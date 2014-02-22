@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved. 
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0  
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LISA FTM Test Run on WS2012</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+
+        <!-- Optional testParams go here -->
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>Core</suiteName>
+            <suiteTests>
+                <suiteTest>VerifyLisModules</suiteTest>
+                <suiteTest>VMHeartbeat</suiteTest>
+                <suiteTest>TimeSync</suiteTest>
+                <suiteTest>Multi_Cpu_Test</suiteTest>
+                <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
+                <suiteTest>CDmount</suiteTest>
+                <suiteTest>FloppyDisk</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>VerifyLisModules</testName>
+            <testScript>LIS_VerifyHyperVIC.sh</testScript>
+            <files>remote-scripts/ica/LIS_VerifyHyperVIC.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testParams>
+                <param>TC_COVERED=CORE-14</param>
+                <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_utils hid_hyperv hv_netvsc)</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>FloppyDisk</testName>
+            <testScript>LIS_Floppy_Disk.sh</testScript>
+            <files>remote-scripts/ica/LIS_Floppy_Disk.sh</files>
+            <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>           
+            <noReboot>False</noReboot>
+            <testParams>               
+                <param>TC_COVERED=NLIS-03</param>
+            </testParams>
+            <timeout>600</timeout>                                                
+        </test>  
+                       
+        <test>
+            <testName>CDmount</testName>
+            <testScript>LIS_CD.sh</testScript>
+            <files>remote-scripts/ica/LIS_CD.sh</files>
+            <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript> 
+            <testparams>
+            <param>IsoFilename=CDTEST.iso</param> 
+                <param>TC_COVERED=NLIS-10</param>
+            </testparams> 
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>VMHeartBeat</testName>
+            <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
+            <timeout>600</timeout>
+            <noReboot>True</noReboot>
+            <testParams>
+                <param>TC_COVERED=CORE-03</param>
+                <param>rootDir=D:\lisa\trunk\lisablue</param>
+            </testParams>
+        </test>
+
+
+        <test>
+            <testName>TimeSync</testName>
+            <testScript>SetupScripts\INST_LIS_TimeSync.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testParams>
+                <param>TC_COVERED=CORE-05</param>
+                <param>rootDir=D:\lisa\trunk\lisablue</param>
+                <param>TestDelay=10</param>
+                <param>MaxTimeDiff=1.0</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>TimeSync_SavedVM</testName>
+            <testScript>SetupScripts\timesync_savedVM.ps1</testScript>
+            <timeout>800</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=CORE-06</param>
+                <param>RootDir=D:\UpstreamTesting\Code</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>TimeSyncNTP</testName>
+            <testScript>INST_LIS_TimeSync_NTP.sh</testScript>
+            <files>remote-scripts/ica/INST_LIS_TimeSync_NTP.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testParams>
+                <param>TC_COVERED=CORE-04</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>LISShutdownVM</testName>
+            <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testParams>
+                <param>TC_COVERED=CORE-07</param>
+                <param>rootDir=D:\lisa\trunk\lisablue</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>LISShutDownVMAndResetCpuCount</testName>
+            <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
+            <cleanupScript>setupScripts\ResetCPU.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testParams>
+                <param>TC_COVERED=CORE-08</param>
+                <param>rootDir=D:\lisa\trunk\lisablue</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>SMP_VCPU_Count2</testName>
+            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
+            <testScript>INST_LIS_SMP_VCPU.sh</testScript>
+            <files>remote-scripts/ica/INST_LIS_SMP_VCPU.sh</files>
+            <timeout>600</timeout>
+            <testparams>
+                <param>VCPU=2</param>
+                <param>TC_COVERED=CORE-11</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>SMP_VCPU_Count3</testName>
+            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
+            <testScript>INST_LIS_SMP_VCPU.sh</testScript>
+            <files>remote-scripts/ica/INST_LIS_SMP_VCPU.sh</files>
+            <timeout>600</timeout>
+            <testparams>
+                <param>VCPU=3</param>
+                <param>TC_COVERED=CORE-11</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>SMP_VCPU_Count4</testName>
+            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
+            <testScript>INST_LIS_SMP_VCPU.sh</testScript>
+            <files>remote-scripts/ica/INST_LIS_SMP_VCPU.sh</files>
+            <timeout>600</timeout>
+            <testparams>		
+                <param>VCPU=4</param>
+                <param>TC_COVERED=CORE-11</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>VerifyItegratedShutdownService</testName>
+            <testScript>setupscripts\VerifyIntegratedShutdownService.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=CORE-16</param>
+                <param>rootDir=D:\lisa\trunk\lisablue</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Multi_Cpu_Test</testName>
+            <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>  
+            <timeout>1600</timeout>
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>TC_COVERED=CORE-11</param>
+                <param>rootDir=D:\lisa\trunk\lisablue</param>
+            </testParams>
+        </test>
+
+    </testCases>
+
+    <VMs>        
+	<vm>
+            <hvServer>localhost</hvServer>
+            <vmName>Sles11Sp3x64</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>Core</suite>
+        </vm>
+    </VMs>
+
+</config>
