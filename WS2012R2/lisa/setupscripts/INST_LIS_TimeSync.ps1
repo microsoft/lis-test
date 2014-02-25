@@ -218,7 +218,7 @@ $ipv4 = $null
 $maxTimeDiff = "1"
 $rootDir = $null
 $tcCovered = "unknown"
-$testDelay = "0"
+$testDelay = "3600"
 
 $params = $testParams.Split(";")
 foreach($p in $params)
