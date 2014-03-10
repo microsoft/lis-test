@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<config>
+    <global>
+        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS_IO_tests</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>Performance</suiteName>
+            <suiteTests>
+                <suiteTest>Performance_IOzone</suiteTest>
+                <suiteTest>Performance_Dynamo</suiteTest>
+                <suiteTest>Performance_Kernbench</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+    
+         <test> 
+            <testName>Performance_IOzone</testName> 
+            <testScript>Performance_IOzone.sh</testScript>
+            <files>remote-scripts/ica/Performance_IOzone.sh</files>
+            <files>Tools/iozone3_420.tar</files>
+            <setupScript>setupScripts\Performance_IOzone_AddVhd.ps1</setupScript> 
+            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript> 
+            <timeout>18000</timeout> 
+            <testParams>  
+                <param>SCSI=0,0,Fixed,512</param> 
+                <param>TOTAL_DISKS=1</param> 
+                <param>TEST_DEVICE1=/dev/sdb</param>  
+                <param>FILE_NAME=iozone3_420.tar</param>
+                <param>SnapshotName=ICABase</param> 
+            </testParams> 
+            <onError>Continue</onError> 
+            <noReboot>False</noReboot> 
+        </test>
+         
+         <test>
+            <testName>Performance_Dynamo</testName>     
+            <testScript>Performance_Dynamo.sh</testScript>
+            <files>remote-scripts/ica/Performance_Dynamo.sh</files>
+            <files>Tools/iometer-1.1.0-rc1-src.tar.bz2</files>
+            <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript> 
+            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
+            <testParams>
+                <param>IOMETER_IP=0.0.0.0</param>
+                <param>IDE=0,1,Fixed,512</param>
+                <param>SCSI=0,0,Fixed,512</param> 
+                <param>TOTAL_DISKS=2</param> 
+                <param>TEST_DEVICE1=/dev/sdb</param> 
+                <param>TEST_DEVICE2=/dev/sdc</param> 
+                <param>FILE_NAME=iometer-1.1.0-rc1-src.tar.bz2</param>
+                <param>SnapshotName=ICABase</param> 
+            </testParams>
+            <timeout>1200</timeout>
+            <OnError>Abort</OnError>
+         </test>
+
+         <test>
+            <testName>Performance_Kernbench</testName>          
+            <testScript>Performance_Kernbench.sh</testScript>
+            <files>remote-scripts/ica/Performance_Kernbench.sh</files>
+            <files>Tools/kernbench-0.50.tar.bz2</files>
+            <testParams>
+                <param>FILE_NAME=kernbench-0.50.tar.bz2</param>
+            </testParams>
+            <timeout>3200</timeout>
+            <OnError>Abort</OnError>
+         </test>
+
+    </testCases>
+    
+    
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>VM_name</vmName>
+            <os>Linux</os>
+            <ipv4>0.0.0.0</ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>IO</suite>
+            <testParams>
+                <param>RootDir=D:\lisa\trunk\lisablue</param>
+                <param>VM_Nomber=1</param>
+                <param>sshKey=rhel5_id_rsa.ppk</param>
+                <param>ipv4=0.0.0.0</param>
+            </testParams>
+        </vm>
+
+    </VMs>
+</config>
