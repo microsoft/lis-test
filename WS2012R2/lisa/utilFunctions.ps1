@@ -1126,15 +1126,19 @@ function CreateTestParamString([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
     }
 
-
+    #
+    # Include the test log directory path
+    #
+    $tp += "rootDir=$PWD;"
+    
     #
     # Include the test log directory path
     #
     $tp += "TestLogDir=${testDir};"
 
-
+    #
     # Include the test name too , to redirect remote scripts log to it . 
-
+    #
     $testname   = $vm.currentTest
     $tp += "TestName=${testname};"
 

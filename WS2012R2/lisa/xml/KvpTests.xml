@@ -57,7 +57,6 @@
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testparams>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
                 <param>TC_COVERED=KVP-01</param>
             </testparams>
         </test>
@@ -75,7 +74,6 @@
                 <param>Key=EEE</param>
                 <param>Value=555</param>
                 <param>Pool=0</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testparams>
         </test>
 
@@ -92,7 +90,6 @@
                 <param>Key=EEE</param>
                 <param>Value=999</param>
                 <param>Pool=0</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testparams>
         </test>
 
@@ -107,7 +104,6 @@
                 <param>Key=EEE</param>
                 <param>Value=999</param>
                 <param>Pool=0</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testparams>
         </test>
 
@@ -123,7 +119,6 @@
                 <param>Key=BBB</param>
                 <param>Value=111</param>
                 <param>sshKey=rhel5_id_rsa.ppk</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testparams>
         </test>
     </testCases>

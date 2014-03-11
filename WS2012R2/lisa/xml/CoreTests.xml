@@ -99,7 +99,6 @@
             <noReboot>True</noReboot>
             <testParams>
                 <param>TC_COVERED=CORE-03</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testParams>
         </test>
 
@@ -112,7 +111,6 @@
             <noReboot>True</noReboot>
             <testParams>
                 <param>TC_COVERED=CORE-05</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
                 <param>TestDelay=10</param>
                 <param>MaxTimeDiff=1.0</param>
             </testParams>
@@ -126,7 +124,6 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=CORE-06</param>
-                <param>RootDir=D:\UpstreamTesting\Code</param>
             </testparams>
         </test>
 
@@ -148,7 +145,6 @@
             <onError>Continue</onError>
             <testParams>
                 <param>TC_COVERED=CORE-07</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testParams>
         </test>
 
@@ -160,7 +156,6 @@
             <onError>Continue</onError>
             <testParams>
                 <param>TC_COVERED=CORE-08</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testParams>
         </test>
 
@@ -206,7 +201,6 @@
             <timeout>600</timeout>
             <testParams>
                 <param>TC_COVERED=CORE-16</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testParams>
         </test>
 
@@ -217,7 +211,6 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>TC_COVERED=CORE-11</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testParams>
         </test>
 
