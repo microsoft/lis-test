@@ -21,7 +21,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -56,7 +56,7 @@
             <testparams>
                 <param>TC_COVERED=PERF-TCPing-01</param>
                 <param>TCPING_PACKAGE=listcping-1.3.5.tar.gz</param>
-                <param>TARGET_IP="192.168.1.106"</param>
+                <param>TARGET_IP="192.168.1.100"</param>
                 <param>TARGET_PORT="22"</param>
             </testparams>
             <uploadFiles>
@@ -67,6 +67,7 @@
 
     <VMs>        
 	<vm>
+            <role>SUT</role>
             <hvServer>localhost</hvServer>
             <vmName>Sles11Sp3x64</vmName>
             <os>Linux</os>
@@ -74,6 +75,13 @@
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>TCPing</suite>
         </vm>
+	<vm>
+            <role>NonSUT</role>
+            <hvServer>localhost</hvServer>
+            <vmName>SLES11SP3X64-NonSUT</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+        </vm>
     </VMs>
-
 </config>

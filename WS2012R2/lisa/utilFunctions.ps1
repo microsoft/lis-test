@@ -598,8 +598,11 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     
     if (-not $testData)
     {
-        LogMsg 0 "$($vm.vmName) Unable to collect test data for test $($vm.currentTest)"
-        return $False
+        if ([string]::Compare($vm.role, "SUT", $true) -eq $true)
+        {
+            LogMsg 0 "$($vm.vmName) Unable to collect test data for test $($vm.currentTest)"
+            return $False
+        }
     }
 
     #
