@@ -87,6 +87,8 @@ if ($TestRunWorkingDir -eq $null -or $TestRunWorkingDir -eq "")
 #----------------------------------------------------------------------------
 $numberOfPassed = 0
 $numberOfFailed = 0
+$numberOfAborted = 0
+
 $icaLogs = Get-ChildItem "$LogFolder\$LisLogFileName" -Recurse
 Write-Host "Number of Log files found: "
 Write-Host $icaLogs.Count
@@ -107,23 +109,33 @@ foreach ($logFile  in $icaLogs)
 		if ($beginToFind -eq $true)
 		{
             Write-host $line
-		    if ($line.Trim().StartsWith("Test") -and $line.Contains(":") ) 
+		    if ($line.Trim().StartsWith("Test")) 
             {
-                if ($line.Contains("Success"))
+                if ($line.Replace(" ", "").Contains(":Success"))
                 {
                     $numberOfPassed ++
                     Write-Host ">>>>> One test passed"   
                 }
-                else
+                elseif ($line.Replace(" ", "").Contains(":Failed"))
                 {
                     $numberOfFailed ++
                     Write-Host "!!!!! One test failed"   
+                }
+                elseif ($line.Replace(" ", "").Contains(":Aborted"))
+                {
+                    $numberOfAborted ++
+                    Write-Host "!!!!! One test aborted"   
+                }
+                else
+                {
+                    $numberOfUnknown ++
+                    Write-Host "!!!!! Cannot understand the test result. Currently accepted results: Success, Failed, Aborted. See the parse logic in StateEngine.ps1, the test completionCode."  
                 }
             }
 		}
 	}
 }
-$totalTests = $numberOfPassed + $numberOfFailed
+$totalTests = $numberOfPassed + $numberOfFailed + $numberOfAborted
 
 
 #----------------------------------------------------------------------------
@@ -139,7 +151,7 @@ $XmlWriter = New-Object System.XMl.XmlTextWriter($XMLLogFilePath,$Null)
 $xmlWriter.WriteStartElement("TaskResult")
 $xmlWriter.WriteAttributeString("Total", $totalTests)
 $xmlWriter.WriteAttributeString("Pass", $numberOfPassed)
-$xmlWriter.WriteAttributeString("Failed", $numberOfFailed)
+$xmlWriter.WriteAttributeString("Failed", $numberOfFailed + $numberOfAborted)
 $xmlWriter.WriteAttributeString("Blocked", "0")
 $xmlWriter.WriteAttributeString("Warned", "0")
 $xmlWriter.WriteAttributeString("Skipped", "0")

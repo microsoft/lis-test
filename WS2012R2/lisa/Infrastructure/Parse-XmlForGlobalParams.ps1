@@ -86,14 +86,14 @@ if ($numberOfVMs -eq 0)
 }
 elseif ($numberOfVMs -gt 1)
 {
-    #Concatenation all VM names into a string, split by | 
+    #Concatenation all VM names into a string, split by : 
     foreach($node in $xmlConfig.config.VMs.ChildNodes)
     {
-        $VMName = $VMName + "|" + $node.vmName
+        $VMName = $VMName + ":" + $node.vmName
     }
     #remove the first separator
     $VMName = $VMName.Substring(1, $VMName.Length-1)
-    Write-Host "All the VMs will be concatenated as (separator char: |): $VMName"
+    Write-Host "All the VMs will be concatenated as (separator char ':'): $VMName"
 }
 else
 {
