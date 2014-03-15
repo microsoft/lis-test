@@ -76,6 +76,8 @@ if ($null -eq $xmlConfig)
 # Get the VM defined in the XML file
 #----------------------------------------------------------------------------
 $numberOfVMs = $xmlConfig.config.VMs.ChildNodes.Count
+$VMName = [string]::Empty
+
 Write-Host "Number of VMs defined in the XML file: $numberOfVMs"
 
 if ($numberOfVMs -eq 0)
@@ -84,13 +86,20 @@ if ($numberOfVMs -eq 0)
 }
 elseif ($numberOfVMs -gt 1)
 {
-    $VMName = $xmlConfig.config.VMs.VM.VMName[0]
+    #Concatenation all VM names into a string, split by | 
+    foreach($node in $xmlConfig.config.VMs.ChildNodes)
+    {
+        $VMName = $VMName + "|" + $node.vmName
+    }
+    #remove the first separator
+    $VMName = $VMName.Substring(1, $VMName.Length-1)
+    Write-Host "All the VMs will be concatenated as (separator char: |): $VMName"
 }
 else
 {
     $VMName = $xmlConfig.config.VMs.VM.VMName
+    Write-Host "The VM collected from the XML: $VMName"
 }
-Write-Host "The VM will be used as SUT for this testing: $VMName"
 
 #----------------------------------------------------------------------------
 # Get the Log Folder defined in the XML file
