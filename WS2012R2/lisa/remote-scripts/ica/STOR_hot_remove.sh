@@ -125,8 +125,8 @@ if [ $sdCount == $diskCount ]; then
     exit 30 
 else
     if [ "$sdCount" == "0" ]; then
-	    LogMsg "Hot remove of Passthrough Disk is succssful"
-	    echo "Hot remove Passthrough Disk is succssful" >> ~/summary.log
+	    LogMsg "Hot remove of Disk is succssful"
+	    echo "Hot remove Disk is succssful" >> ~/summary.log
 	else
 	    LogMsg "Disk count mismatch, count is $sdCount"
 		echo "Disk count mismatch, count is $sdCount" >> ~/summary.log

@@ -1,4 +1,4 @@
-############################################################################
+########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
@@ -17,71 +17,97 @@
 # See the Apache Version 2.0 License for specific language governing
 # permissions and limitations under the License.
 #
-############################################################################
+########################################################################
 
 <#
 .Synopsis
-    AddVhdxHardDisk.ps1
+    This setup script, that will run before the VM is booted, will Add VHDx Hard Driver to VM.
 
-    This script assumes it is running on a Windows 8 machine
-    with access to the Windows 8 Hyper-V snap-in.
+.Description
+     This is a setup script that will run before the VM is booted.
+     The script will create a .vhdx file, and mount it to the
+     specified hard drive.  If the hard drive does not exist, it
+     will be created.
 
-Description:
-    This is a setup script that will run before the VM is booted.
-    The script will create a .vhdx file, and mount it to the
-    specified hard drive.  If the hard drive does not exist, it
-    will be created.
+     The .xml entry to specify this startup script would be:
 
-    Setup scripts (and cleanup scripts) are run in a separate
-    PowerShell environment, and do not have access to the
-    environment running the ICA scripts
+         <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
 
-    The .xml entry to specify this startup script would be:
+   The  scripts will always pass the vmName, hvServer, and a
+   string of testParams from the test definition separated by
+   semicolons. The testParams for this script identify disk
+   controllers, hard drives, .vhd type, and sector size.  The
+   testParamss have the format of:
 
-        <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
+      ControllerType=Controller Index, Lun or Port, vhd type, sector size
 
-    The ICA scripts will always pass the vmName, hvServer, and a
-    string of testParams from the test definition separated by
-    semicolons. The testParams for this script identify disk
-    controllers, hard drives, .vhd type, and sector size.  The
-    testParamss have the format of:
+   The following are some examples
 
-        ControllerType=Controller Index, Lun or Port, vhd type, sector size
+   SCSI=0,0,Dynamic,4096 : Add SCSI Controller 0, hard drive on Lun 0, .vhd type Dynamic, sector size of 4096
+   SCSI=1,0,Fixed,512    : Add SCSI Controller 1, hard drive on Lun 0, .vhd type Fixed, sector size of 512 bytes
+   IDE=0,1,Dynamic,512   : Add IDE hard drive on IDE 0, port 1, .vhd type Fixed, sector size of 512 bytes
+   IDE=1,1,Fixed,4096    : Add IDE hard drive on IDE 1, port 1, .vhd type Fixed, sector size of 4096 bytes
 
-  Test parameters
+   The following testParams
 
-        <testParams>
-            <param>SCSI=0,0,Dynamic,4096</param>
-            <param>IDE=1,1,Fixed,512</param>
-        <testParams>
+     <testParams>
+         <param>SCSI=0,0,Dynamic,4096</param>
+         <param>IDE=1,1,Fixed,512</param>
+     <testParams>
 
-  This will be parsed into the following string by the ICA scripts and passed
-  to the setup script:
+   will be parsed into the following string by the ICA scripts and passed
+   to the setup script:
 
-        "SCSI=0,0,Dynamic,4096;IDE=1,1,Fixed,512"
+       "SCSI=0,0,Dynamic,4096;IDE=1,1,Fixed,512"
 
-    The following are some examples
+   All setup and cleanup scripts must return a boolean ($true or $false)
+   to indicate if the script completed successfully.
 
-        SCSI=0,0,Dynamic,4096 : Add SCSI Controller 0, hard drive on Lun 0, .vhd type Dynamic, sector size of 4096
-        SCSI=1,0,Fixed,512    : Add SCSI Controller 1, hard drive on Lun 0, .vhd type Fixed, sector size of 512 bytes
-        IDE=0,1,Dynamic,512   : Add IDE hard drive on IDE 0, port 1, .vhd type Fixed, sector size of 512 bytes
-        IDE=1,1,Fixed,4096    : Add IDE hard drive on IDE 1, port 1, .vhd type Fixed, sector size of 4096 bytes
+   Where
+      ControllerType   = The type of disk controller.  IDE or SCSI
+      Controller Index = The index of the controller, 0 based.
+                         Note: IDE can be 0 - 1, SCSI can be 0 - 3
+      Lun or Port      = The IDE port number of SCSI Lun number
+      Vhd Type         = Type of VHD to use.
+                         Valid VHD types are:
+                             Dynamic
+                             Fixed
+                            
+   The following are some examples
 
-  All setup and cleanup scripts must return a boolean ($true or $false)
-  to indicate if the script completed successfully.
+   SCSI=0,0,Dynamic,4096 : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic disk with logical sector size of 4096
+   IDE=1,1,Fixed,4096  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Fixed disk with logical sector size of 4096
+   
+    A typical XML definition for this test case would look similar
+    to the following:
+     <test>
+          <testName>VHDx_4k_IDE1_Dynamic</testName>         
+          <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
+          <cleanupScript>setupscripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+          <testScript>STOR_Lis_Disk.sh</testScript>
+          <files>remote-scripts/ica/LIS_Storage_Disk.sh</files>
+          <timeout>18000</timeout>
+          <testparams>
+              <param>IDE=1,1,Dynamic,4096</param>        
+          </testparams>         
+      </test>
 
 .Parameter vmName
-    Name of VM to configure.
+    Name of the VM to remove disk from .
 
 .Parameter hvServer
-    Name of Hyper-V server hosting the VM.
+    Name of the Hyper-V server hosting the VM.
 
 .Parameter testParams
-    A semicolon separated list of test parameters.
+    Test data for this test case
 
 .Example
-    .\AddVhdxHardDisk.ps1 "MyVM" "Localhost" "SCSI=0,0,Dynamic,4096"
+    setupScripts\AddVhdxHardDisk -vmName sles11sp3x64 -hvServer localhost -testParams "SCSI=0,0,Dynamic,4096;sshkey=rhel5_id_rsa.ppk;ipv4=10.200.50.192;RootDir=" 
+
+.Link
+    None.
 #>
+############################################################################
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
@@ -138,7 +164,7 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
     #
     if ($ControllerID -lt 0 -or $controllerID -gt 3)
     {
-        write-output "    Error: Bad SCSI controller ID: $controllerID"
+        write-output "    Error: bad SCSI controller ID: $controllerID"
         return $False
     }
 
@@ -184,30 +210,6 @@ function GetPhysicalDiskForPassThru([string] $server)
     $VMs = Get-VM -ComputerName $server
     foreach ($vm in $VMs)
     {
-        #$query = "Associators of {$Vm} Where ResultClass=Msvm_VirtualSystemSettingData AssocClass=Msvm_SettingsDefineState"
-        #$VMSettingData = Get-WmiObject -Namespace "root\virtualization" -Query $query -ComputerName $server
-        #
-        #if ($VMSettingData)
-        #{
-            # 
-            # Get the Disk Attachments for Passthrough Disks, and add their drive number to the PhysDisksInUse array 
-            #
-        #    $query = "Associators of {$VMSettingData} Where ResultClass=Msvm_ResourceAllocationSettingData AssocClass=Msvm_VirtualSystemSettingDataComponent"
-        #    $PhysicalDiskResource = Get-WmiObject -Namespace "root\virtualization" -Query $query `
-        #        -ComputerName $server | Where-Object { $_.ResourceSubType -match "Microsoft Physical Disk Drive" }
-
-            #
-            # Add the drive number for the in-use drive to the PhyDisksInUse array
-            #
-        #    if ($PhysicalDiskResource)
-        #    {
-        #        ForEach-Object -InputObject $PhysicalDiskResource -Process { $PhysDisksInUse += ([WMI]$_.HostResource[0]).DriveNumber }
-        #    }
-        #}
-
-        #
-        # For Win 8
-        #
         $drives = Get-VMHardDiskDrive -VMName $($vm.name) -ComputerName $server
         if ($drives)
         {
@@ -308,8 +310,6 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
     $physDisk = GetPhysicalDiskForPassThru $server
     if ($physDisk -ne $null)
     {
-        #$pt = Add-VMPassThrough -vm $vmName -controllerID $controllerID -Lun $Lun -PhysicalDisk $physDisk `
-        #                        -server $server -SCSI:$scsi -force
         $pt = Add-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -Passthru -DiskNumber $physDisk.DriveNumber -ComputerName $server
         if ($pt)
         {
@@ -401,7 +401,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
             $defaultVhdPath += "\"
         }
 
-    $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $lun + "-" + $vhdType + ".vhdx" 
+	$vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $lun + "-" + $vhdType + ".vhdx" 
 
 
         $fileInfo = GetRemoteFileInfo -filename $vhdName -server $server
@@ -471,7 +471,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 #
 # Make sure we have access to the Microsoft Hyper-V snapin
 #
-<#$hvModule = Get-Module Hyper-V
+$hvModule = Get-Module Hyper-V
 if ($hvModule -eq $NULL)
 {
     import-module Hyper-V
@@ -482,7 +482,7 @@ if ($hvModule.companyName -ne "Microsoft Corporation")
 {
     "Error: The Microsoft Hyper-V PowerShell module is not available"
     return $Falses
-}#>
+}
 
 #
 # Parse the testParams string
@@ -499,8 +499,8 @@ foreach ($p in $params)
     
     if ($temp.Length -ne 2)
     {
-        "Warn : test parameter '$p' is being ignored because it appears to be malformed"
-        continue
+	"Warn : test parameter '$p' is being ignored because it appears to be malformed"
+     continue
     }
     
     $controllerType = $temp[0].Trim()
@@ -535,7 +535,7 @@ foreach ($p in $params)
         $sectorSize = $diskArgs[3].Trim()
         if ($sectorSize -ne "4096" -and $sectorSize -ne "512")
         {
-            "Error: Bad sector size: ${sectorSize}"
+            "Error: bad sector size: ${sectorSize}"
             return $False
         }
     }

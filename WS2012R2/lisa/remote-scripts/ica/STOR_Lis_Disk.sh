@@ -151,12 +151,10 @@ do
     #
     # Skip /dev/sda
     #
-    if [ $firstDrive == 1 ];
+  if [ ${drive} = "sda" ];
     then
-        firstDrive=0
         continue
     fi
-
     driveName="/dev/${drive}"
     fdisk -l $driveName > fdisk.dat 2> /dev/null
     # Format the Disk and Create a file system , Mount and create file on it . 
@@ -221,10 +219,8 @@ do
         then
             if [ $word -ne $FixedDiskSize -a $word -ne $DynamicDiskSize -a $word -ne $Disk4KSize ];
             then
-                echo "Error: $driveName has an unknown disk size: $word"
-		echo "Error: $driveName has an unknown disk size: $word" >> ~/summary.log
-		UpdateTestState $ICA_TESTABORTED
-                exit 1
+                echo "Warn: $driveName has an unknown disk size: $word"
+		        echo "Warn: $driveName has an unknown disk size: $word" >> ~/summary.log
             fi
          fi
     done

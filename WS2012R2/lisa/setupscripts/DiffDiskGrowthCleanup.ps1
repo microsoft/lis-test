@@ -267,40 +267,6 @@ else
     write-output "Warn : the controller $controllerType $controllerID does not exist"
 }
 
-#
-# Delete the controller if it is SCSI if no other drives are attached
-#
-if ($scsi -and $controller)
-{
-    #
-    # Update the controller object since we may have removed a drive
-    #
-    # $controller = Get-VMDiskController $vmName -server $hvServer -IDE:$ide -SCSI:$scsi -controllerID $controllerID
-   
-    if($ide)
-    {
-        $controller = Get-VMIdeController $vmName -ComputerName $hvServer -ControllerNumber $controllerID
-    }
-
-    if($scsi)
-    {
-        $controller = Get-VMScsiController $vmName -ComputerName $hvServer -ControllerNumber $controllerID
-    }
-
-    $drives = Get-VMHardDiskDrive $controller
-    if ($drives)
-    {
-        write-output "Info : Controller $controllertype $controllerID was not removed."
-        write-output "       Additional drives are still attached"
-    }
-    else
-    {
-        write-output "Info : Removing $controllerType $controllerID"
-        $sts = Remove-VMSCSIController $vmName -ComputerName $hvServer -ControllerNumber $controllerID -Confirm:$false
-    }
-}
-
-
 $hostInfo = Get-VMHost -ComputerName $hvServer
 if (-not $hostInfo)
 {
