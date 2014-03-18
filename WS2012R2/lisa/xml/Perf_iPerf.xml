@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+ Copyright (c) Microsoft Corporation
+
+ All rights reserved. 
+ Licensed under the Apache License, Version 2.0 (the ""License"");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+     http://www.apache.org/licenses/LICENSE-2.0  
+
+ THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+ ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+ PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+ See the Apache Version 2.0 License for specific language governing
+ permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS_IO_tests</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>IPerf</suiteName>
+            <suiteTests>
+                <suiteTest>Perf_iPerf</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+         <test>
+            <testName>Perf_iPerf</testName>          
+            <testScript>perf_iperf.sh</testScript>
+            <files>remote-scripts/ica/perf_iperf.sh,ssh/rhel5_id_rsa</files>
+            <testParams>
+                <param>IPERF_PACKAGE=iperf-2.0.5.tar.gz</param>
+                <param>TARGET_IP=10.200.49.66</param>
+                <param>TARGET_SSHKEY=rhel5_id_rsa</param>
+            </testParams>
+            <uploadFiles>
+                <file>iperfdata.log</file>
+            </uploadFiles>
+            <timeout>1200</timeout>
+            <OnError>Continue</OnError>
+         </test>
+    </testCases>
+    
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>rhel6.4x64</vmName>
+            <os>Linux</os>
+            <ipv4>10.200.50.54</ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>IPerf</suite>
+        </vm>
+
+    </VMs>
+</config>
