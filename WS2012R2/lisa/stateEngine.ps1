@@ -1647,7 +1647,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
             else
             {
-                LogMsg 9 "Info: NonSUT VM: $($vm.vmName) entered RunPreTestScript with no postStartConfig script defined"
+                LogMsg 9 "Info : NonSUT VM: $($vm.vmName) entered RunPreTestScript with no postStartConfig script defined"
             }
 
             UpdateState $vm $Finished

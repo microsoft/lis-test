@@ -162,14 +162,14 @@ echo "TARGET_SSHKEY = ${TARGET_SSHKEY}"
 #
 # Download iperf from the website
 #
-wget "http://sourceforge.net/projects/iperf/files/latest/download/${IPERF_PACKAGE}"
-if [ $? -ne 0 ]; then
-    ${msg}="Error: unable to download ${IPERF_PACKAGE}"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 60
-fi
+#wget "http://sourceforge.net/projects/iperf/files/latest/download/${IPERF_PACKAGE}"
+#if [ $? -ne 0 ]; then
+#    ${msg}="Error: unable to download ${IPERF_PACKAGE}"
+#    LogMsg "${msg}"
+#    echo "${msg}" >> ~/summary.log
+#    UpdateTestState $ICA_TESTFAILED
+#    exit 60
+#fi
 
 #
 # Extract the files from the IPerf tar package
