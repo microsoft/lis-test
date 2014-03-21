@@ -204,11 +204,10 @@ sts=$?
 LogMsg "IOzone installed successfully"
 
 # 
-# Run iozone for 30 minutes
+# Run iozone for throughput test
 #
-
-COMMAND=`timeout 1800 ./iozone -az -g 50G /mnt &`
-${COMMAND}
+pwd
+./iozone -i 0 -i 1 -t 2 -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
 
 #
 # Check if SCSI disk is still online

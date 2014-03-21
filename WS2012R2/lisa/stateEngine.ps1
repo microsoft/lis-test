@@ -2078,8 +2078,9 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     $testData = GetTestData $currentTest $xmlData
     if ($testData -and $testData.uploadFiles)
     {
-        foreach ($file in $testData.uploadFiles.file)
+        foreach ($file in $testData.uploadFiles)
         {
+            LogMsg 9 "Info : Get '${file}' from VM $($vm.vmName)."
             $dstFile = "$($vm.vmName)_${currentTest}_${file}"
             if (-not (GetFileFromVM $vm $file "${testDir}\${dstFile}") )
             {

@@ -39,6 +39,8 @@
                 <param>FILE_NAME=iozone3_420.tar</param>
                 <param>SnapshotName=ICABase</param> 
             </testParams> 
+            <uploadFiles>IOZoneLog.log</uploadFiles>
+            <uploadFiles>IOZoneResult.xls</uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
         </test>
