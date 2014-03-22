@@ -207,7 +207,8 @@ LogMsg "IOzone installed successfully"
 # Run iozone for throughput test
 #
 pwd
-./iozone -i 0 -i 1 -t 2 -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
+# 0=write/rewrite, 1=read/re-read, 2=random-read/write
+./iozone -i 0 -i 1 -i 2 -t 2 -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
 
 #
 # Check if SCSI disk is still online
