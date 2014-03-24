@@ -21,7 +21,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\Public\TestResults</logfileRootDir>
+        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -58,25 +58,30 @@
                 <param>BUFFER_COUNT=65536</param>
                 <param>TTCP_FILE=ttcp.c</param>
                 <param>TTCP_SOURCE_DIR=Tools</param>
-                <param>TARGET_IP="10.200.51.224"</param>
-
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
+                <param>TARGET_IP=192.168.1.100</param>
             </testparams>
             <uploadFiles>
                 <file>ttcp.log</file>
-
             </uploadFiles>
         </test>
     </testCases>
 
     <VMs>        
-	<vm>
+	    <vm>
             <hvServer>localhost</hvServer>
-            <vmName>CentOS6.4x64</vmName>
+            <vmName>Sles11Sp3x64</vmName>
             <os>Linux</os>
-            <ipv4>10.200.51.56</ipv4>
+            <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>TTCP</suite>
+        </vm>
+	    <vm>
+            <role>NonSUT</role>
+            <hvServer>localhost</hvServer>
+            <vmName>SLES11SP3X64-NonSUT</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
         </vm>
     </VMs>
 
