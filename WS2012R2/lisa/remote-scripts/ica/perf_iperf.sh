@@ -35,8 +35,11 @@
 #
 # This test script requires the IPERF_PACKAGE test parameter.
 #   IPERF_PACKAGE=iperf-2.0.5.tar.gz
-#   TARGET_IP=10.20.30.40
+#   TARGET_IP=192.168.1.100
 #   TARGET_SSHKEY=lisa_id_rsa
+#   IPERF_THREADS=4
+#   IPERF_BUFFER=8KB
+#   IPERF_TCPWINDOW=64KB
 #
 # A typical XML test definition for this test case would look
 # similar to the following:
@@ -46,8 +49,11 @@
 #           <files>remote-scripts/ica/perf_iperf.sh,ssh/rhel5_id_rsa</files>
 #           <testParams>
 #               <param>IPERF_PACKAGE=iperf-2.0.5.tar.gz</param>
-#               <param>TARGET_IP=10.200.49.66</param>
+#               <param>TARGET_IP=192.168.1.100</param>
 #               <param>TARGET_SSHKEY=rhel5_id_rsa</param>
+#               <param>IPERF_THREADS=4</param>
+#               <param>IPERF_BUFFER=8KB</param>
+#               <param>IPERF_TCPWINDOW=64KB</param>
 #           </testParams>
 #           <uploadFiles>
 #               <file>iperfdata.log</file>
@@ -142,6 +148,30 @@ if [ "${TARGET_SSHKEY:="UNDEFINED"}" = "UNDEFINED" ]; then
     exit 40
 fi
 
+if [ "${IPERF_THREADS:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Error: the IPERF_THREADS test parameter is undefined"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 40
+fi
+
+if [ "${IPERF_BUFFER:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Error: the IPERF_BUFFER test parameter is undefined"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 40
+fi
+
+if [ "${IPERF_TCPWINDOW:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Error: the IPERF_TCPWINDOW test parameter is undefined"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 40
+fi
+
 #
 # Make sure the SSH key file was copied to this test system
 #
@@ -155,9 +185,12 @@ fi
 
 chmod 600 /root/${TARGET_SSHKEY}
 
-echo "iPerf package = ${IPERF_PACKAGE}"
-echo "TARGET_ip     = ${TARGET_IP}"
-echo "TARGET_SSHKEY = ${TARGET_SSHKEY}"
+echo "iPerf package   = ${IPERF_PACKAGE}"
+echo "TARGET_ip       = ${TARGET_IP}"
+echo "TARGET_SSHKEY   = ${TARGET_SSHKEY}"
+echo "IPERF_THREADS   = ${IPERF_THREADS}"
+echo "IPERF_BUFFER    = ${IPERF_BUFFER}"
+echo "IPERF_TCPWINDOW = ${IPERF_TCPWINDOW}"
 
 #
 # Download iperf from the website
@@ -268,7 +301,7 @@ sleep 5
 #
 LogMsg "Starting iPerf client"
 
-iperf -c ${TARGET_IP} -t 60 > ~/iperfdata.log
+iperf -c ${TARGET_IP} -t 60 -P ${IPERF_THREADS} -l ${IPERF_BUFFER} -w ${IPERF_TCPWINDOW} > ~/iperfdata.log
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf on the client"
     LogMsg "${msg}"

@@ -237,6 +237,7 @@ if (-not (SendCommandToVM $targetIP $sshKey "gcc ./${ttcpFile} -o ./ttcp"))
 #
 # Start a job that will run "ttcp -r" on the target IP machine
 #
+"Starting the ttcp on the target machine in Receive mode ..."
 $scriptBlock = {param([String] $rootDir, [String] $sshKey, [String] $targetIP) cd ${rootDir}; bin\plink.exe -i ssh\${sshKey} root@${targetIP} "./ttcp -r 2&> /dev/null"}
 
 $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $rootDir, $sshKey, $targetIP
@@ -254,6 +255,7 @@ Start-Sleep -s 5
 #
 # Run ttcp on the client
 #
+"Starting the ttcp testing in Transmit mode ..."
 $sts = SendCommandToVM $ipv4 $sshKey "./ttcp -s -t -n $bufCount $targetIP > ./ttcp.log"
 
 #
