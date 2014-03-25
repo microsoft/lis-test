@@ -2,7 +2,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\Automation\trunk\vivek\TestResult</logfileRootDir>
+        <logfileRootDir>C:\Lisa\TestResult</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -240,14 +240,11 @@
     <VMs>        
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>TestVMName</vmName>
+            <vmName>SLES11SP3X64</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>lisa_id_rsa.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>Storage</suite>
-            <testparams>
-                <param>RootDir=D:\Automation\trunk\lisa</param>       
-            </testparams>
         </vm>
     </VMs>
 
