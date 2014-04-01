@@ -208,7 +208,7 @@ LogMsg "IOzone installed successfully"
 #
 pwd
 # 0=write/rewrite, 1=read/re-read, 2=random-read/write
-./iozone -i 0 -i 1 -i 2 -t 2 -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
+./iozone ${IOZONE_PARAMS} -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
 
 #
 # Check if SCSI disk is still online

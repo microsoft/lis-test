@@ -55,7 +55,7 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=PERF-Ping-01</param>
-                <param>TARGET_IP="192.168.1.101"</param>
+                <param>TARGET_IP="192.168.1.100"</param>
                 <param>PING_COUNT="6"</param>
             </testparams>
             <uploadFiles>
@@ -65,14 +65,22 @@
     </testCases>
 
     <VMs>        
-	<vm>
+        <vm>
             <role>SUT</role>
             <hvServer>localhost</hvServer>
-            <vmName>TestVM1</vmName>
+            <vmName>SLES11SP3X64</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>Ping</suite>
         </vm>
+        <vm>
+            <role>NonSUT</role>
+            <hvServer>localhost</hvServer>
+            <vmName>SLES11SP3X64-NonSUT</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+        </vm>	
     </VMs>
 </config>
