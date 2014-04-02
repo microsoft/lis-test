@@ -82,10 +82,11 @@ if (test-path($parserFileName))
 
     Write-Host "Executing the test specific log parser finished. See the executing log as below:"
     Write-Host "--------------------------------------------------------------------------------"
-    Receive-Job $job
+    $loggerExitCode = Receive-Job $job
     Write-Host "--------------------------------------------------------------------------------"
 
     Remove-Job $job
+    Write-Host "The logger returned error code: " $loggerExitCode
 }
 else
 {
@@ -95,4 +96,4 @@ else
 Write-Host "Running [Run-TestSpecificLogger] FINISHED (NOT VERIFIED)."
 
 Stop-Transcript
-exit 0
+exit $loggerExitCode

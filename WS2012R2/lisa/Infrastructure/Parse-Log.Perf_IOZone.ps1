@@ -23,10 +23,10 @@
 
 <#
 .Synopsis
-    Parse the network bandwidth data from the TCPing test log.
+    Parse the network bandwidth data from the IOZone test log.
 
 .Description
-    Parse the network bandwidth data from the TCPing test log.
+    Parse the network bandwidth data from the IOZone test log.
     
 .Parameter LogFolder
     The LISA log folder. 
@@ -38,7 +38,7 @@
     The LISA Infrastructure folder. This is used to located the LisaRecorder.exe when running by Start-Process 
 
 .Exmple
-    Parse-Log.Perf_TCPing.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_TCPing.xml
+    Parse-Log.Perf_IOZone.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_IOZone.xml
 
 #>
 
@@ -48,12 +48,12 @@ param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
 #----------------------------------------------------------------------------
 # Start a new PowerShell log.
 #----------------------------------------------------------------------------
-Start-Transcript "$LogFolder\Parse-Log.Perf_TCPing.ps1.log" -force
+Start-Transcript "$LogFolder\Parse-Log.Perf_IOZone.ps1.log" -force
 
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
-Write-Host "Running [Parse-Log.Perf_TCPing.ps1]..." -foregroundcolor cyan
+Write-Host "Running [Parse-Log.Perf_IOZone.ps1]..." -foregroundcolor cyan
 Write-Host "`$LogFolder        = $LogFolder" 
 Write-Host "`$XMLFileName      = $XMLFileName" 
 Write-Host "`$LisaInfraFolder  = $LisaInfraFolder" 
@@ -93,16 +93,21 @@ if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
 }
 
 #----------------------------------------------------------------------------
-# The log file pattern produced by the TCPing tool
+# The log file pattern produced by the IOZone tool
 #----------------------------------------------------------------------------
-$TCPingLofFile = "*_tcping.log"
+$IOZoneLofFile = "*_IOZoneLog.log"
 
 #----------------------------------------------------------------------------
-# Read the TCPing log file
+# Read the IOZone log file
 #----------------------------------------------------------------------------
-$latencyInMS = "0"
+$Initialwrite = "0"
+$Rewrite = "0"
+$Read = "0"
+$Reread = "0"
+$Randomread = "0"
+$Randomwrite = "0"
 
-$icaLogs = Get-ChildItem "$LogFolder\$TCPingLofFile" -Recurse
+$icaLogs = Get-ChildItem "$LogFolder\$IOZoneLofFile" -Recurse
 Write-Host "Number of Log files found: "
 Write-Host $icaLogs.Count
 
@@ -111,38 +116,81 @@ foreach ($logFile  in $icaLogs)
 {
     Write-Host "One log file has been found: $logFile" 
     
-    #we should find the result in the last line
-    #use the "min" as the factor
-    #result example:   min = 1.213, avg = 1.778, max = 1.923
+    #we should find the result in the last 17 lines
+    #result example: 
+    #"Throughput report Y-axis is type of test X-axis is number of processes"
+    #"Record size = 4 Kbytes "
+    #"Output is in Kbytes/sec"
+    #    
+    #"  Initial write "  761841.69 
+    #
+    #"        Rewrite "  520879.19 
+    #
+    #"           Read "  724325.25 
+    #
+    #"        Re-read "  797489.25 
+    #
+    #"    Random read "  656360.38 
+    #
+    #"   Random write " 1125040.50 
+    #
+    #    
+    #iozone test complete.
+    #
+
+    
     $resultFound = $false
     $iTry=1
-    while (($resultFound -eq $false) -and ($iTry -lt 3))
+    while (($resultFound -eq $false) -and ($iTry -lt 18))
     {
         $line = (Get-Content $logFile)[-1* $iTry]
         Write-Host $line
-
+        $line=$line.Trim().Replace(" ","")
+        
+        $iTry++
         if ($line.Trim() -eq "")
         {
-            $iTry++
             continue
         }
-        elseif ( ($line.StartsWith("min") -eq $false) -or ($line.Contains("avg") -eq $false) -or ($line.Contains("max") -eq $false))
+        elseif ( $line.Contains("Initialwrite") -eq $true )
         {
-            $iTry++
+            $Initialwrite =$line.Split("`"")[2]
+            continue
+        }
+        elseif ( $line.Contains("Rewrite") -eq $true )
+        {
+            $Rewrite =$line.Split("`"")[2]
+            continue
+        }
+        elseif ( $line.Contains("Read") -eq $true )
+        {
+            $Read =$line.Split("`"")[2]
+            continue
+        }
+        elseif ( $line.Contains("Re-read") -eq $true )
+        {
+            $Reread =$line.Split("`"")[2]
+            continue
+        }
+        elseif ( $line.Contains("Randomread") -eq $true )
+        {
+            $Randomread =$line.Split("`"")[2]
+            continue
+        }
+        elseif ( $line.Contains("Randomwrite") -eq $true )
+        {
+            $Randomwrite =$line.Split("`"")[2]
             continue
         }
         else
         {
-            $element = $line.Split(',')
-            $latencyInMS = $element[0].Replace("min","").Replace("=","").Trim()
-            Write-Host "The min latency is: " $latencyInMS  "(ms)"
-            break
+            continue
         }
     }
 }
 
 #----------------------------------------------------------------------------
-# Read TCPing configuration from XML file
+# Read IOZone configuration from XML file
 #----------------------------------------------------------------------------
 # define the test params we need to find from the XML file
 $VMName = [string]::Empty
@@ -174,22 +222,23 @@ if ($VMName -eq [string]::Empty)
 }
 Write-Host "VMName: " $VMName
 
-#
-# --Nothing to do here anymore
-#
-
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
 #----------------------------------------------------------------------------
-# LisPerfTest_TCPing hostos:Windows hostname:lisinter-hp2 guestos:Linux linuxdistro:RHEL6.4X64 testcasename:Perf_TCPing latencyInMS:1.2345
 $LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
-$params = "LisPerfTest_TCPing"
+$params = "LisPerfTest_IOZone"
 $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
 $params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
 $params = $params+" "+"guestos:`"" + "Linux" + "`""
 $params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + "Perf_TCPing" + "`""
-$params = $params+" "+"latencyinms:`"" + $latencyInMS + "`""
+$params = $params+" "+"testcasename:`"" + "Perf_IOZone" + "`""
+
+$params = $params+" "+"initialwritekbsec:`"" + $Initialwrite + "`""
+$params = $params+" "+"rewritekbsec:`"" + $Rewrite + "`""
+$params = $params+" "+"readkbsec:`"" + $Read + "`""
+$params = $params+" "+"rereadkbsec:`"" + $Reread + "`""
+$params = $params+" "+"randomreadkbsec:`"" + $Randomread + "`""
+$params = $params+" "+"randomwritekbsec:`"" + $Randomwrite + "`""
 
 Write-Host "Executing LisaRecorder to record test result into database"
 Write-Host $params

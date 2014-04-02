@@ -188,10 +188,16 @@ $params = $params+" "+"throughputinkbsec:`"" + $throughputinkbsec + "`""
 Write-Host "Executing LisaRecorder to record test result into database"
 Write-Host $params
 
-Start-Process -FilePath $LisaRecorder -Wait -ArgumentList $params -RedirectStandardOutput "$LogFolder\LisaRecorderOutput.log" -RedirectStandardError "$LogFolder\LisaRecorderError.log"
-
-Write-Host "Executing LisaRecorder finished."
+$result = Start-Process -FilePath $LisaRecorder -Wait -ArgumentList $params -PassThru -RedirectStandardOutput "$LogFolder\LisaRecorderOutput.log" -RedirectStandardError "$LogFolder\LisaRecorderError.log"
+if ($result.ExitCode -eq 0)
+{
+    Write-Host "Executing LisaRecorder finished with Success."
+}
+else
+{
+    Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
+}
 
 Stop-Transcript
-exit 0
+return $result.ExitCode
 

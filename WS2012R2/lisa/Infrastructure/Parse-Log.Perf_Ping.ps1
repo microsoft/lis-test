@@ -23,10 +23,10 @@
 
 <#
 .Synopsis
-    Parse the network bandwidth data from the TCPing test log.
+    Parse the network bandwidth data from the Ping test log.
 
 .Description
-    Parse the network bandwidth data from the TCPing test log.
+    Parse the network bandwidth data from the Ping test log.
     
 .Parameter LogFolder
     The LISA log folder. 
@@ -38,7 +38,7 @@
     The LISA Infrastructure folder. This is used to located the LisaRecorder.exe when running by Start-Process 
 
 .Exmple
-    Parse-Log.Perf_TCPing.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_TCPing.xml
+    Parse-Log.Perf_Ping.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_Ping.xml
 
 #>
 
@@ -48,12 +48,12 @@ param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
 #----------------------------------------------------------------------------
 # Start a new PowerShell log.
 #----------------------------------------------------------------------------
-Start-Transcript "$LogFolder\Parse-Log.Perf_TCPing.ps1.log" -force
+Start-Transcript "$LogFolder\Parse-Log.Perf_Ping.ps1.log" -force
 
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
-Write-Host "Running [Parse-Log.Perf_TCPing.ps1]..." -foregroundcolor cyan
+Write-Host "Running [Parse-Log.Perf_Ping.ps1]..." -foregroundcolor cyan
 Write-Host "`$LogFolder        = $LogFolder" 
 Write-Host "`$XMLFileName      = $XMLFileName" 
 Write-Host "`$LisaInfraFolder  = $LisaInfraFolder" 
@@ -93,16 +93,16 @@ if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
 }
 
 #----------------------------------------------------------------------------
-# The log file pattern produced by the TCPing tool
+# The log file pattern produced by the Ping tool
 #----------------------------------------------------------------------------
-$TCPingLofFile = "*_tcping.log"
+$PingLofFile = "*_ping.log"
 
 #----------------------------------------------------------------------------
-# Read the TCPing log file
+# Read the Ping log file
 #----------------------------------------------------------------------------
 $latencyInMS = "0"
 
-$icaLogs = Get-ChildItem "$LogFolder\$TCPingLofFile" -Recurse
+$icaLogs = Get-ChildItem "$LogFolder\$PingLofFile" -Recurse
 Write-Host "Number of Log files found: "
 Write-Host $icaLogs.Count
 
@@ -111,9 +111,8 @@ foreach ($logFile  in $icaLogs)
 {
     Write-Host "One log file has been found: $logFile" 
     
-    #we should find the result in the last line
-    #use the "min" as the factor
-    #result example:   min = 1.213, avg = 1.778, max = 1.923
+    #we should find the result in the second line
+    #result example: rtt min/avg/max/mdev = 0.280/1.121/4.796/1.644 ms
     $resultFound = $false
     $iTry=1
     while (($resultFound -eq $false) -and ($iTry -lt 3))
@@ -126,15 +125,16 @@ foreach ($logFile  in $icaLogs)
             $iTry++
             continue
         }
-        elseif ( ($line.StartsWith("min") -eq $false) -or ($line.Contains("avg") -eq $false) -or ($line.Contains("max") -eq $false))
+        elseif ( ($line.StartsWith("rtt min/avg/max/mdev") -eq $false) -or ($line.Contains("=") -eq $false) -or ($line.Contains("ms") -eq $false))
         {
             $iTry++
             continue
         }
         else
         {
-            $element = $line.Split(',')
-            $latencyInMS = $element[0].Replace("min","").Replace("=","").Trim()
+            $element = $line.Split('=')
+            $elementValue = $element[1].Split('/')
+            $latencyInMS = $elementValue[0].Trim()
             Write-Host "The min latency is: " $latencyInMS  "(ms)"
             break
         }
@@ -142,7 +142,7 @@ foreach ($logFile  in $icaLogs)
 }
 
 #----------------------------------------------------------------------------
-# Read TCPing configuration from XML file
+# Read Ping configuration from XML file
 #----------------------------------------------------------------------------
 # define the test params we need to find from the XML file
 $VMName = [string]::Empty
@@ -174,21 +174,16 @@ if ($VMName -eq [string]::Empty)
 }
 Write-Host "VMName: " $VMName
 
-#
-# --Nothing to do here anymore
-#
-
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
 #----------------------------------------------------------------------------
-# LisPerfTest_TCPing hostos:Windows hostname:lisinter-hp2 guestos:Linux linuxdistro:RHEL6.4X64 testcasename:Perf_TCPing latencyInMS:1.2345
 $LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
-$params = "LisPerfTest_TCPing"
+$params = "LisPerfTest_Ping"
 $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
 $params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
 $params = $params+" "+"guestos:`"" + "Linux" + "`""
 $params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + "Perf_TCPing" + "`""
+$params = $params+" "+"testcasename:`"" + "Perf_Ping" + "`""
 $params = $params+" "+"latencyinms:`"" + $latencyInMS + "`""
 
 Write-Host "Executing LisaRecorder to record test result into database"
