@@ -44,12 +44,6 @@
 
 param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
 
-
-#----------------------------------------------------------------------------
-# Start a new PowerShell log.
-#----------------------------------------------------------------------------
-Start-Transcript "$LogFolder\Parse-Log.Perf_iPerf.ps1.log" -force
-
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
@@ -100,12 +94,16 @@ $iPerfLofFile = "*_iperfdata.log"
 #----------------------------------------------------------------------------
 # Read the iPerf log file
 #----------------------------------------------------------------------------
-$bandwidth = "0"
-
 $icaLogs = Get-ChildItem "$LogFolder\$iPerfLofFile" -Recurse
 Write-Host "Number of Log files found: "
 Write-Host $icaLogs.Count
 
+if($icaLogs.Count -eq 0)
+{
+    return -1
+}
+
+$bandwidth = "0"
 # should only have one file. but in case there are more than one files, just use the last one simply
 foreach ($logFile  in $icaLogs)
 {
@@ -202,7 +200,6 @@ Write-Host "IPERF_TCPWINDOW " $IPERF_TCPWINDOW
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
 #----------------------------------------------------------------------------
-# LisPerfTest_iPerf hostos:Windows hostname:lisinter-hp2 guestos:Linux linuxdistro:RHEL6.4X64 testcasename:Perf_iPerf bandwidthingb:1.2345 parallelthreads:10 tcpwindowinkb:32 bufferleninkb:1.5
 $LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
 $params = "LisPerfTest_iPerf"
 $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
@@ -228,6 +225,5 @@ else
     Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
 }
 
-Stop-Transcript
 return $result.ExitCode
 

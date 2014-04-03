@@ -44,12 +44,6 @@
 
 param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
 
-
-#----------------------------------------------------------------------------
-# Start a new PowerShell log.
-#----------------------------------------------------------------------------
-Start-Transcript "$LogFolder\Parse-Log.Perf_TCPing.ps1.log" -force
-
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
@@ -100,12 +94,16 @@ $TCPingLofFile = "*_tcping.log"
 #----------------------------------------------------------------------------
 # Read the TCPing log file
 #----------------------------------------------------------------------------
-$latencyInMS = "0"
-
 $icaLogs = Get-ChildItem "$LogFolder\$TCPingLofFile" -Recurse
 Write-Host "Number of Log files found: "
 Write-Host $icaLogs.Count
 
+if($icaLogs.Count -eq 0)
+{
+    return -1
+}
+
+$latencyInMS = "0"
 # should only have one file. but in case there are more than one files, just use the last one simply
 foreach ($logFile  in $icaLogs)
 {
@@ -174,14 +172,9 @@ if ($VMName -eq [string]::Empty)
 }
 Write-Host "VMName: " $VMName
 
-#
-# --Nothing to do here anymore
-#
-
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
 #----------------------------------------------------------------------------
-# LisPerfTest_TCPing hostos:Windows hostname:lisinter-hp2 guestos:Linux linuxdistro:RHEL6.4X64 testcasename:Perf_TCPing latencyInMS:1.2345
 $LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
 $params = "LisPerfTest_TCPing"
 $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
@@ -204,6 +197,5 @@ else
     Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
 }
 
-Stop-Transcript
 return $result.ExitCode
 

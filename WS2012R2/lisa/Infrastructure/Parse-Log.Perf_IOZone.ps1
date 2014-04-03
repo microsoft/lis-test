@@ -44,12 +44,6 @@
 
 param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
 
-
-#----------------------------------------------------------------------------
-# Start a new PowerShell log.
-#----------------------------------------------------------------------------
-Start-Transcript "$LogFolder\Parse-Log.Perf_IOZone.ps1.log" -force
-
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
@@ -100,17 +94,21 @@ $IOZoneLofFile = "*_IOZoneLog.log"
 #----------------------------------------------------------------------------
 # Read the IOZone log file
 #----------------------------------------------------------------------------
+$icaLogs = Get-ChildItem "$LogFolder\$IOZoneLofFile" -Recurse
+Write-Host "Number of Log files found: "
+Write-Host $icaLogs.Count
+
+if($icaLogs.Count -eq 0)
+{
+    return -1
+}
+
 $Initialwrite = "0"
 $Rewrite = "0"
 $Read = "0"
 $Reread = "0"
 $Randomread = "0"
 $Randomwrite = "0"
-
-$icaLogs = Get-ChildItem "$LogFolder\$IOZoneLofFile" -Recurse
-Write-Host "Number of Log files found: "
-Write-Host $icaLogs.Count
-
 # should only have one file. but in case there are more than one files, just use the last one simply
 foreach ($logFile  in $icaLogs)
 {
@@ -137,7 +135,6 @@ foreach ($logFile  in $icaLogs)
     #    
     #iozone test complete.
     #
-
     
     $resultFound = $false
     $iTry=1
@@ -253,6 +250,5 @@ else
     Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
 }
 
-Stop-Transcript
 return $result.ExitCode
 

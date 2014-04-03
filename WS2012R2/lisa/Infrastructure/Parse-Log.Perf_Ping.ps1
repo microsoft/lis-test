@@ -44,12 +44,6 @@
 
 param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
 
-
-#----------------------------------------------------------------------------
-# Start a new PowerShell log.
-#----------------------------------------------------------------------------
-Start-Transcript "$LogFolder\Parse-Log.Perf_Ping.ps1.log" -force
-
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
@@ -100,12 +94,16 @@ $PingLofFile = "*_ping.log"
 #----------------------------------------------------------------------------
 # Read the Ping log file
 #----------------------------------------------------------------------------
-$latencyInMS = "0"
-
 $icaLogs = Get-ChildItem "$LogFolder\$PingLofFile" -Recurse
 Write-Host "Number of Log files found: "
 Write-Host $icaLogs.Count
 
+if($icaLogs.Count -eq 0)
+{
+    return -1
+}
+
+$latencyInMS = "0"
 # should only have one file. but in case there are more than one files, just use the last one simply
 foreach ($logFile  in $icaLogs)
 {
@@ -199,6 +197,5 @@ else
     Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
 }
 
-Stop-Transcript
 return $result.ExitCode
 

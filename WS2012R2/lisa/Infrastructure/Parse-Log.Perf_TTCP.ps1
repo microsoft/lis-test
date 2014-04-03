@@ -44,12 +44,6 @@
 
 param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
 
-
-#----------------------------------------------------------------------------
-# Start a new PowerShell log.
-#----------------------------------------------------------------------------
-Start-Transcript "$LogFolder\Parse-Log.Perf_TTCP.ps1.log" -force
-
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
@@ -100,12 +94,16 @@ $TTCPLofFile = "*_ttcp.log"
 #----------------------------------------------------------------------------
 # Read the TTCP log file
 #----------------------------------------------------------------------------
-$throughputinkbsec = "0"
-
 $icaLogs = Get-ChildItem "$LogFolder\$TTCPLofFile" -Recurse
 Write-Host "Number of Log files found: "
 Write-Host $icaLogs.Count
 
+if($icaLogs.Count -eq 0)
+{
+    return -1
+}
+
+$throughputinkbsec = "0"
 # should only have one file. but in case there are more than one files, just use the last one simply
 foreach ($logFile  in $icaLogs)
 {
@@ -167,15 +165,9 @@ if ($VMName -eq [string]::Empty)
 }
 Write-Host "VMName: " $VMName
 
-#
-# --Nothing to do here anymore
-#
-
-
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
 #----------------------------------------------------------------------------
-# LisPerfTest_TTCP hostos:Windows hostname:lisinter-hp2 guestos:Linux linuxdistro:RHEL6.4X64 testcasename:Perf_TTCP bandwidthingb:1.2345 parallelthreads:10 tcpwindowinkb:32 bufferleninkb:1.5
 $LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
 $params = "LisPerfTest_TTCP"
 $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
@@ -198,6 +190,5 @@ else
     Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
 }
 
-Stop-Transcript
 return $result.ExitCode
 

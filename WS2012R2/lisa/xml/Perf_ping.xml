@@ -55,8 +55,8 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=PERF-Ping-01</param>
-                <param>TARGET_IP="192.168.1.100"</param>
-                <param>PING_COUNT="6"</param>
+                <param>TARGET_IP=192.168.1.100</param>
+                <param>PING_COUNT=100</param>
             </testparams>
             <uploadFiles>
                 <file>ping.log</file>

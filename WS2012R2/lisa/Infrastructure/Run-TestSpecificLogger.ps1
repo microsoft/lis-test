@@ -82,10 +82,13 @@ if (test-path($parserFileName))
 
     Write-Host "Executing the test specific log parser finished. See the executing log as below:"
     Write-Host "--------------------------------------------------------------------------------"
-    $loggerExitCode = Receive-Job $job
+    #receive the content (array) *Return*ed from the job script (not *exit*)
+    $returnsFromlogger = Receive-Job $job
     Write-Host "--------------------------------------------------------------------------------"
 
     Remove-Job $job
+    #the last line of the content is the script exit code
+    $loggerExitCode = $returnsFromlogger[-1]
     Write-Host "The logger returned error code: " $loggerExitCode
 }
 else
