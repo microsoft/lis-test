@@ -23,11 +23,11 @@
 
 ########################################################################
 #
-# Desctiption:
+# Description:
 #    Perform a number of pings to approximately measure
 #    network latency.
 #
-#    This test script is passed the follown parameters
+#    This test script is passed the follow parameters
 #    via the constants.sh file:
 #
 #        TC_COVERED

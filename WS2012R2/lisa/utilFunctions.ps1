@@ -92,6 +92,8 @@ function HasItBeenTooLong([String] $timestamp, [Int] $timeout)
 
     if ($tooLong -eq -1)
     {
+        LogMsg 9 "INFO : The current task is started at $timestamp"
+        LogMsg 9 "INFO : Timeout is set to $timeout seconds"
         $retVal = $true
     }
 
