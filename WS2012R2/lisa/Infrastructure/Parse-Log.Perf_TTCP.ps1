@@ -87,7 +87,7 @@ if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
 }
 
 #----------------------------------------------------------------------------
-# The log file pattern produced by the TTCP tool
+# The log file pattern. The log is produced by the TTCP tool
 #----------------------------------------------------------------------------
 $TTCPLofFile = "*_ttcp.log"
 
@@ -135,7 +135,6 @@ foreach ($logFile  in $icaLogs)
 #----------------------------------------------------------------------------
 # Read TTCP configuration from XML file
 #----------------------------------------------------------------------------
-# define the test params we need to find from the XML file
 $VMName = [string]::Empty
 $numberOfVMs = $xmlConfig.config.VMs.ChildNodes.Count
 Write-Host "Number of VMs defined in the XML file: $numberOfVMs"

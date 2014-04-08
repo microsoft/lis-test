@@ -60,7 +60,7 @@ if ($LogFolder -eq $null -or $LogFolder -eq "")
     Throw "Parameter LogFolder is required."
 }
 
-# check the XML file provided
+# Check the XML file provided
 if ($XMLFileName -eq $null -or $XMLFileName -eq "")
 {
     Throw "Parameter XMLFileName is required."
@@ -87,7 +87,7 @@ if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
 }
 
 #----------------------------------------------------------------------------
-# The log file pattern produced by the BuildKernel tool
+# The log file pattern. The log is produced by the BuildKernel tool
 #----------------------------------------------------------------------------
 $BuildKernelLofFiles = "*_Perf_BuildKernel_*.log"
 
@@ -174,9 +174,26 @@ foreach ($logFile  in $icaLogs)
 }
 
 #----------------------------------------------------------------------------
+# Read the test summary log file
+#----------------------------------------------------------------------------
+$TestSummaryLogPattern = "$LogFolder\*\*_summary.log"
+# Source the library functions
+. $LisaInfraFolder\LoggerFunctions.ps1 | out-null
+
+$kernelRelease = GetValueFromLog $TestSummaryLogPattern "KernelRelease"
+$processorCount = GetValueFromLog $TestSummaryLogPattern "ProcessorCount"
+if ($kernelRelease -eq [string]::Empty)
+{ 
+    $kernelRelease = "Unknown"
+}
+if ($processorCount -eq [string]::Empty)
+{ 
+    $processorCount = "0"
+}
+
+#----------------------------------------------------------------------------
 # Read BuildKernel configuration from XML file
 #----------------------------------------------------------------------------
-# define the test params we need to find from the XML file
 $VMName = [string]::Empty
 $newLinuxKernel = [string]::Empty
 
@@ -226,13 +243,14 @@ $LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
 $params = "LisPerfTest_BuildKernel"
 $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
 $params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
-$params = $params+" "+"guestos:`"" + "Linux" + "`""
+$params = $params+" "+"guestos:`"" + $kernelRelease + "`""
 $params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
 $params = $params+" "+"testcasename:`"" + "Perf_BuildKernel" + "`""
 $params = $params+" "+"newlinuxkernel:`"" + "$newLinuxKernel" + "`""
 $params = $params+" "+"realtimeinsec:`"" + $realTimeInSec + "`""
 $params = $params+" "+"usertimeinsec:`"" + $userTimeInSec + "`""
 $params = $params+" "+"systimeinsec:`"" + $sysTimeInSec + "`""
+$params = $params+" "+"processorcount:`"" + $processorCount + "`""
 
 
 Write-Host "Executing LisaRecorder to record test result into database"

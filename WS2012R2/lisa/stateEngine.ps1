@@ -2025,8 +2025,6 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     {
         $iterationNum = $($vm.iteration)
     }
-    $logFilename = "$($vm.vmName)_${currentTest}_${iterationNum}.log"
-    $summaryLog = "$($vm.vmName)_summary.log"
 
     #
     # Update the e-mail summary
@@ -2052,6 +2050,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # Collect test results
     #
+    $logFilename = "$($vm.vmName)_${currentTest}_${iterationNum}.log"
     LogMsg 4 "Info : $($vm.vmName) collecting logfiles"
     if (-not (GetFileFromVM $vm "${currentTest}.log" "${testDir}\${logFilename}") )
     {
@@ -2061,8 +2060,9 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # Test case may optionally create a summary.log.
     #
+    $summaryLog = "${testDir}\$($vm.vmName)__${currentTest}_summary.log"
     del $summaryLog -ErrorAction "SilentlyContinue"
-    GetFileFromVM $vm "summary.log" .\${summaryLog}
+    GetFileFromVM $vm "summary.log" $summaryLog
     if (test-path $summaryLog)
     {
         $content = Get-Content -path $summaryLog
@@ -2070,7 +2070,8 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
         {
             $vm.emailSummary += "          $line<br />"
         }
-        del $summaryLog
+        #Comment: The log parser may read VM information from this log file, such as Linux kernel version, etc. So don't delete this log:
+        #del $summaryLog
     }
 
     #

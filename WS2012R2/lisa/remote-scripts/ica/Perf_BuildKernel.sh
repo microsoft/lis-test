@@ -130,9 +130,6 @@ if [ -e ${KERNELVERSION} ]; then
     rm -rf ${KERNELVERSION}
 fi
 
-UpdateSummary "Kernel Release = $(uname -r)"
-UpdateSummary "$(uname -a)"
-
 #
 # Make sure we were given the $TARBALL file
 #
@@ -153,6 +150,9 @@ if [ 0 -ne ${sts} ]; then
     exit 40
 fi
 
+#
+# The Linux Kernel is extracted to the folder which is named by the version by default
+#
 if [ ! -e ${KERNELVERSION} ]; then
     dbgprint 0 "The tar file did not create the directory: ${KERNELVERSION}"
     dbgprint 0 "Aborting the test."
@@ -161,6 +161,17 @@ if [ ! -e ${KERNELVERSION} ]; then
 fi
 
 cd ${KERNELVERSION}
+
+#
+# Start the testing
+#
+proc_count=$(cat /proc/cpuinfo | grep --count processor)
+dbgprint 1 "Build kernel with $proc_count CPU(s)"
+
+UpdateSummary "KernelRelease=$(uname -r)"
+UpdateSummary "ProcessorCount=$proc_count"
+
+UpdateSummary "$(uname -a)"
 
 #
 # Create the .config file
@@ -253,14 +264,12 @@ else
     yes "" | make oldconfig
     sed --in-place -e s:"# CONFIG_HID_HYPERV_MOUSE is not set":"CONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
 fi
-
+UpdateSummary "make oldconfig: Success"
 
 #
 # Build the kernel
 #
 dbgprint 1 "Building the kernel."
-proc_count=$(cat /proc/cpuinfo | grep --count processor)
-dbgprint 1 "Build kernel with $proc_count CPU(s)"
     
 if [ $proc_count -eq 1 ]; then
     (time make) >/root/Perf_BuildKernel_make.log 2>&1

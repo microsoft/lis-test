@@ -87,7 +87,7 @@ if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
 }
 
 #----------------------------------------------------------------------------
-# The log file pattern produced by the iPerf tool
+# The log file pattern. The log is produced by the iPerf tool
 #----------------------------------------------------------------------------
 $iPerfLofFile = "*_iperfdata.log"
 
@@ -142,7 +142,6 @@ foreach ($logFile  in $icaLogs)
 #----------------------------------------------------------------------------
 # Read iPerf configuration from XML file
 #----------------------------------------------------------------------------
-# define the test params we need to find from the XML file
 $VMName = [string]::Empty
 $IPERF_THREADS = 0
 $IPERF_BUFFER = 0.0
