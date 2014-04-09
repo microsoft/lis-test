@@ -72,31 +72,38 @@ $parserFileName = ".\Infrastructure\Parse-Log." + $XMLFileNameWithoutExt + ".ps1
 if (test-path($parserFileName))
 {
     Write-Host "The test specific log parser is found: " $parserFileName
-    Write-Host "Executing the test specific log parser with below args:"
-    Write-Host "LogFolder=" $LogFolder
-    Write-Host "XmlFileName=" $XmlFileName
-    Write-Host "LisaInfrsFolder=" $lisaInfrsFolder
-
-    $job = Start-Job -filepath $parserFileName -argumentList $LogFolder,$XmlFileName,$lisaInfrsFolder
-    Wait-Job $job | Out-Null
-
-    Write-Host "Executing the test specific log parser finished. See the executing log as below:"
-    Write-Host "--------------------------------------------------------------------------------"
-    #receive the content (array) *Return*ed from the job script (not *exit*)
-    $returnsFromlogger = Receive-Job $job
-    Write-Host "--------------------------------------------------------------------------------"
-
-    Remove-Job $job
-    #the last line of the content is the script exit code
-    $loggerExitCode = $returnsFromlogger[-1]
-    Write-Host "The logger returned error code: " $loggerExitCode
 }
 else
 {
-     Write-Host "The test specific log parser does not exist: " $parserFileName 
+    Write-Host "The test specific log parser does not exist: " $parserFileName 
+    Write-Host "Treat this as Feature test result. Parse the XML log file ..."
+    $parserFileName = ".\Infrastructure\Parse-Log.FeatureTest.ps1"
+	if ($(test-path($parserFileName)) -eq $false)
+	{
+		Write-Host "The feature test log parser is not found: " $parserFileName
+		Throw "No log parser found." 
+	}
 }
 
-Write-Host "Running [Run-TestSpecificLogger] FINISHED (NOT VERIFIED)."
+Write-Host "Executing the test specific log parser with below args:"
+Write-Host "LogFolder=" $LogFolder
+Write-Host "XmlFileName=" $XmlFileName
+Write-Host "LisaInfrsFolder=" $lisaInfrsFolder
 
+$job = Start-Job -filepath $parserFileName -argumentList $LogFolder,$XmlFileName,$lisaInfrsFolder
+Wait-Job $job | Out-Null
+
+Write-Host "Executing the test specific log parser finished. See the executing log as below:"
+Write-Host "--------------------------------------------------------------------------------"
+#receive the content (array) *Return*ed from the job script (not *exit*)
+$returnsFromlogger = Receive-Job $job
+Write-Host "--------------------------------------------------------------------------------"
+
+Remove-Job $job
+#the last line of the content is the script exit code
+$loggerExitCode = $returnsFromlogger[-1]
+Write-Host "The logger returned error code: " $loggerExitCode
+
+Write-Host "Running [Run-TestSpecificLogger] FINISHED (NOT VERIFIED)."
 Stop-Transcript
 exit $loggerExitCode

@@ -55,6 +55,7 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=PERF-TTCP-01</param>
+                <param>BUFFER_LENGTH=8192</param>
                 <param>BUFFER_COUNT=65536</param>
                 <param>TTCP_FILE=ttcp.c</param>
                 <param>TTCP_SOURCE_DIR=Tools</param>

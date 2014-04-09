@@ -38,7 +38,7 @@
     The LISA Infrastructure folder. This is used to located the LisaRecorder.exe when running by Start-Process 
 
 .Exmple
-    Parse-Log.Perf_TTCP.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_TTCP.xml
+    Parse-Log.Perf_TTCP.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_TTCP.xml D:\Lisa\Infrastructure
 
 #>
 

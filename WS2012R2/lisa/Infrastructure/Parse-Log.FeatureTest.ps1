@@ -23,10 +23,10 @@
 
 <#
 .Synopsis
-    Parse the network bandwidth data from the TCPing test log.
+    Parse the number of passed test cases from test log.
 
 .Description
-    Parse the network bandwidth data from the TCPing test log.
+    Parse the number of passed test cases from test log.
     
 .Parameter LogFolder
     The LISA log folder. 
@@ -38,7 +38,7 @@
     The LISA Infrastructure folder. This is used to located the LisaRecorder.exe when running by Start-Process 
 
 .Exmple
-    Parse-Log.Perf_TCPing.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_TCPing.xml D:\Lisa\Infrastructure
+    Parse-Log.FeatureTest.ps1 C:\Lisa\TestResults D:\Lisa\XML\KVPTests.xml D:\Lisa\Infrastructure
 
 #>
 
@@ -47,7 +47,7 @@ param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
-Write-Host "Running [Parse-Log.Perf_TCPing.ps1]..." -foregroundcolor cyan
+Write-Host "Running [Parse-Log.FeatureTest.ps1]..." -foregroundcolor cyan
 Write-Host "`$LogFolder        = $LogFolder" 
 Write-Host "`$XMLFileName      = $XMLFileName" 
 Write-Host "`$LisaInfraFolder  = $LisaInfraFolder" 
@@ -87,60 +87,46 @@ if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
 }
 
 #----------------------------------------------------------------------------
-# The log file pattern. The log is produced by the TCPing tool
+# The log file pattern. 
 #----------------------------------------------------------------------------
-$TCPingLofFile = "*_tcping.log"
+$xmlResultFiles = Get-ChildItem "$LogFolder\*\*-*-*-*-*.xml"
 
 #----------------------------------------------------------------------------
-# Read the TCPing log file
+# Read the log file
 #----------------------------------------------------------------------------
-$icaLogs = Get-ChildItem "$LogFolder\$TCPingLofFile" -Recurse
 Write-Host "Number of Log files found: "
-Write-Host $icaLogs.Count
+Write-Host $xmlResultFiles.Count
 
-if($icaLogs.Count -eq 0)
+if($xmlResultFiles.Count -eq 0)
 {
     return -1
 }
 
-$latencyInMS = "0"
-# should only have one file. but in case there are more than one files, just use the last one simply
-foreach ($logFile  in $icaLogs)
+$passed = 0
+$failed = 0
+$aborted = 0
+foreach ($logFile in $xmlResultFiles)
 {
-    Write-Host "One log file has been found: $logFile" 
-    
-    #we should find the result in the last line
-    #use the "min" as the factor
-    #result example:   min = 1.213, avg = 1.778, max = 1.923
-    $resultFound = $false
-    $iTry=1
-    while (($resultFound -eq $false) -and ($iTry -lt 3))
+    Write-Host "A XML result file was found: " $logFile.FullName
+    $xmlFile = [xml] (Get-Content -Path $logFile)
+    if ($null -eq $xmlFile)
     {
-        $line = (Get-Content $logFile)[-1* $iTry]
-        Write-Host $line
-
-        if ($line.Trim() -eq "")
-        {
-            $iTry++
-            continue
-        }
-        elseif ( ($line.StartsWith("min") -eq $false) -or ($line.Contains("avg") -eq $false) -or ($line.Contains("max") -eq $false))
-        {
-            $iTry++
-            continue
-        }
-        else
-        {
-            $element = $line.Split(',')
-            $latencyInMS = $element[0].Replace("min","").Replace("=","").Trim()
-            Write-Host "The min latency is: " $latencyInMS  "(ms)"
-            break
-        }
+        continue
+    }
+    elseif ($xmlFile.FirstChild.Name -ne "TaskResult")
+    {
+        continue
+    }
+    else
+    {
+        $passed = $xmlFile.FirstChild.Pass
+        $failed = $xmlFile.FirstChild.Failed
+        $aborted = 0  #unused
     }
 }
 
 #----------------------------------------------------------------------------
-# Read TCPing configuration from XML file
+# Read test configuration from XML file
 #----------------------------------------------------------------------------
 $VMName = [string]::Empty
 $numberOfVMs = $xmlConfig.config.VMs.ChildNodes.Count
@@ -171,17 +157,22 @@ if ($VMName -eq [string]::Empty)
 }
 Write-Host "VMName: " $VMName
 
+$XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
+
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
 #----------------------------------------------------------------------------
 $LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
-$params = "LisPerfTest_TCPing"
+$params = "LisFeatureTest"
 $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
 $params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
 $params = $params+" "+"guestos:`"" + "Linux" + "`""
-$params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + "Perf_TCPing" + "`""
-$params = $params+" "+"latencyinms:`"" + $latencyInMS + "`""
+$params = $params+" "+"linuxdistro:`"" + $VMName + "`""
+$params = $params+" "+"testcasename:`"" + $XMLFileNameWithoutExt + "`""
+
+$params = $params+" "+"passed:`"" + $passed + "`""
+$params = $params+" "+"failed:`"" + $failed + "`""
+$params = $params+" "+"aborted:`"" + $aborted + "`""
 
 Write-Host "Executing LisaRecorder to record test result into database"
 Write-Host $params
@@ -195,6 +186,6 @@ else
 {
     Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
 }
-
+    
 return $result.ExitCode
 

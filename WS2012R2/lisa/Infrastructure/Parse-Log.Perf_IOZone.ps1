@@ -38,7 +38,7 @@
     The LISA Infrastructure folder. This is used to located the LisaRecorder.exe when running by Start-Process 
 
 .Exmple
-    Parse-Log.Perf_IOZone.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_IOZone.xml
+    Parse-Log.Perf_IOZone.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_IOZone.xml D:\Lisa\Infrastructure
 
 #>
 

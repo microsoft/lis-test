@@ -113,6 +113,7 @@ $ipv4      = $null
 $rootDir   = $null
 $targetIP  = $null
 $sshKey    = $null
+$bufLength = 8192
 $bufCount  = 65536
 $tcCovered = "Undefined"
 $ttcpFile  = $null
@@ -126,6 +127,7 @@ foreach ($p in $params)
     switch ($fields[0].Trim())
     {      
     "TARGET_IP"       { $targetIP      = $fields[1].Trim() }
+    "BUFFER_LENGTH"   { $bufLength     = $fields[1].Trim() }
     "BUFFER_COUNT"    { $bufCount      = $fields[1].Trim() }
     "rootDir"         { $rootDir       = $fields[1].Trim() }
     "TC_COVERED"      { $tcCovered     = $fields[1].Trim() }
@@ -238,7 +240,7 @@ if (-not (SendCommandToVM $targetIP $sshKey "gcc ./${ttcpFile} -o ./ttcp"))
 # Start a job that will run "ttcp -r" on the target IP machine
 #
 "Starting the ttcp on the target machine in Receive mode ..."
-$scriptBlock = {param([String] $rootDir, [String] $sshKey, [String] $targetIP) cd ${rootDir}; bin\plink.exe -i ssh\${sshKey} root@${targetIP} "./ttcp -r 2&> /dev/null"}
+$scriptBlock = {param([String] $rootDir, [String] $sshKey, [String] $targetIP) cd ${rootDir}; bin\plink.exe -i ssh\${sshKey} root@${targetIP} "./ttcp -r -l $bufLength -n $bufCount 2&> /dev/null"}
 
 $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $rootDir, $sshKey, $targetIP
 if (-not $job)
@@ -256,7 +258,7 @@ Start-Sleep -s 5
 # Run ttcp on the client
 #
 "Starting the ttcp testing in Transmit mode ..."
-$sts = SendCommandToVM $ipv4 $sshKey "./ttcp -s -t -n $bufCount $targetIP > ./ttcp.log"
+$sts = SendCommandToVM $ipv4 $sshKey "./ttcp -s -t -l $bufLength -n $bufCount $targetIP > ./ttcp.log"
 
 #
 # Collect the log file from the client
