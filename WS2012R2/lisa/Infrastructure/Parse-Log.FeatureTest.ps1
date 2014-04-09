@@ -89,7 +89,7 @@ if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
 #----------------------------------------------------------------------------
 # The log file pattern. 
 #----------------------------------------------------------------------------
-$xmlResultFiles = Get-ChildItem "$LogFolder\*\*-*-*-*-*.xml"
+$xmlResultFiles = Get-ChildItem "$LogFolder\*-*-*-*-*.xml"
 
 #----------------------------------------------------------------------------
 # Read the log file
