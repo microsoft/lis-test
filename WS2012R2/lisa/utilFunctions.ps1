@@ -1188,26 +1188,30 @@ function UpdateCurrentTest([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
     
-    $currentTest = $vm.currentTest
-    if ($currentTest -eq "done")
+    #actually this is the previous test. here we need to pick up next new test if existing
+    #if previous test has been marked as "done" - for example, test failed and its XML defined to Abort test onError 
+    $previousTest = $vm.currentTest
+    if ($previousTest -eq "done")
     {
         return
     }
     
-    $currentTestData = GetTestData $currentTest $xmlData
-    $nextTest = $currentTest
-    
-    if ($vm.testCaseResults -eq "False" -and $currentTestData.onError -eq "Abort")
+    $previousTestData = GetTestData $previousTest $xmlData
+    #$nextTest = $currentTest
+
+    #if previous test failed and the XML setting is set to Abort on "onError"
+    # then try to quite Lisa
+    if ( (($vm.testCaseResults -eq "False") -or ($vm.testCaseResults -eq "none")) -and $previousTestData.onError -eq "Abort")
     {
         $vm.currentTest = "done"
         return
     }
     
-    if ($currentTestData.maxIterations)
+    if ($previousTestData.maxIterations)
     {
          $iterationCount = (([int] $vm.iteration) + 1)
          $vm.iteration = $iterationCount.ToString()
-         if ($iterationCount -ge [int] $currentTestData.maxIterations)
+         if ($iterationCount -ge [int] $previousTestData.maxIterations)
          {
              $nextTest = GetNextTest $vm $xmlData
              $vm.currentTest = [string] $nextTest

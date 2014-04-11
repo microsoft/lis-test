@@ -38,7 +38,7 @@
                 <param>TEST_DEVICE1=/dev/sdb</param>  
                 <param>FILE_NAME=iozone3_420.tar</param>
                 <param>SnapshotName=ICABase</param> 
-                <param>IOZONE_PARAMS='-i 0 -i 1 -i 2 -t 2'</param>
+                <param>IOZONE_PARAMS='-s 4G -r 4K -i 0 -i 1 -i 2 -l 4 -u 4 -I -k 8'</param>
             </testParams> 
             <uploadFiles>
                 <file>IOZoneLog.log</file>

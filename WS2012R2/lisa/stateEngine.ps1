@@ -885,8 +885,13 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     #
                     LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test $($testData.testName) failed"
                     $vm.emailSummary += "Test $($vm.currentTest) : Aborted<br />"
-                    $vm.currentTest = "done"
-                    UpdateState $vm $finished
+                    
+                    #comment below code as we may need to continue running next test case
+                    #$vm.currentTest = "done"
+                    #UpdateState $vm $finished
+                    
+                    #need to determine do we need to shutdown system and do cleanup for running next test case if existing
+                    UpdateState $vm $DetermineReboot
                 }
                 else
                 {

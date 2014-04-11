@@ -122,7 +122,7 @@ do
     echo "Target device = ${!j}" >> ~/summary.log
     DISK=`echo ${!j} | cut -c 6-8`
 
-# Fomat and mount disk
+# Format and mount disk
     (echo d;echo;echo w)|fdisk /dev/$DISK
     sleep 2
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk /dev/$DISK
@@ -207,7 +207,6 @@ LogMsg "IOzone installed successfully"
 # Run iozone for throughput test
 #
 pwd
-# 0=write/rewrite, 1=read/re-read, 2=random-read/write
 ./iozone ${IOZONE_PARAMS} -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
 
 #
