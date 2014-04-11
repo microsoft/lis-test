@@ -120,7 +120,7 @@
             <testName>TimeSync_SavedVM</testName>
             <testScript>SetupScripts\timesync_savedVM.ps1</testScript>
             <timeout>800</timeout>
-            <onError>Abort</onError>
+            <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=CORE-06</param>

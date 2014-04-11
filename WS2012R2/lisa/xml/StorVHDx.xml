@@ -18,10 +18,10 @@
         <suite>
             <suiteName>VHDx</suiteName>
             <suiteTests>
-<!--                 <suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>                            
+                <suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>                            
                 <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>                
                 <suiteTest>VHDx_IDE_0_1_Fixed</suiteTest>
-                <suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest> -->
+                <suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest>
                 <suiteTest>VHDx_AddDiff_Disk_IDE</suiteTest>
                 <suiteTest>VHDx_AddDiff_Disk_SCSI</suiteTest> 
                 <suiteTest>VHDx_HotADD_Multi_Dynamic_SCSI</suiteTest>
@@ -104,7 +104,6 @@
                 <param>ParentVhd=VHDXParentDiff.vhdx</param>
                 <param>TC_COVERED=STOR-33</param>                
             </testparams>
-            <onError>Continue</onError>
         </test>
         <test>
             <testName>VHDx_AddDiff_Disk_SCSI</testName>
