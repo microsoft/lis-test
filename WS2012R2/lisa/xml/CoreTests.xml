@@ -84,7 +84,7 @@
             <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript> 
             <testparams>
-            <param>IsoFilename=CDTEST.iso</param> 
+                <param>IsoFilename=CDTEST.iso</param> 
                 <param>TC_COVERED=NLIS-10</param>
             </testparams> 
             <timeout>600</timeout>

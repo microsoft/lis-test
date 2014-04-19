@@ -1627,7 +1627,7 @@ function GetIPv4([String] $vmName, [String] $server)
             if (-not $addr)
             {
                 $errMsg += ("`n" + $error[0].Exception.Message)
-                Write-Error -Message ("GetIPv4: Unable to determin IP address for VM ${vmNAme}`n" + $errmsg) -Category ReadError -ErrorAction SilentlyContinue
+                Write-Error -Message ("GetIPv4: Unable to determine IP address for VM ${vmNAme}`n" + $errmsg) -Category ReadError -ErrorAction SilentlyContinue
                 return $null
             }
         }

@@ -216,9 +216,7 @@ else
     dbgprint 3 "Enabling HyperV support in the ${CONFIG_FILE}"
     # On this first 'sed' command use --in-place=.orig to make a backup
     # of the original .config file created with 'defconfig'
-    sed --in-place=.orig -e s:"# CONFIG_STAGING is not set":"CONFIG_STAGING=y\nCONFIG_STAGING_EXCLUDE_BUILD=n": ${CONFIG_FILE}
-    sed --in-place -e s:"# CONFIG_HYPERV is not set":"CONFIG_HYPERV=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_BLOCK=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_UTILS=m": ${CONFIG_FILE}
-    #
+    sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=y\nCONFIG_HYPERV_UTILS=y\nCONFIG_HYPERV_BALLOON=y\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=y\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=y\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
 
     # Disable kernel preempt support , because of this lot of stack trace is coming and some time kernel does not boot at all.
     #
@@ -262,7 +260,6 @@ else
     # sure config file is setup properly and all appropriate config
     # options are added. THIS STEP IS NECESSARY!!
     yes "" | make oldconfig
-    sed --in-place -e s:"# CONFIG_HID_HYPERV_MOUSE is not set":"CONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
 fi
 UpdateSummary "make oldconfig: Success"
 
@@ -337,6 +334,25 @@ cd ~
 dbgprint 3 "Saving version number of current kernel in oldKernelVersion.txt"
 uname -r > ~/oldKernelVersion.txt
 
+### Grub Modification ###
+# Update grub.conf (we only support v1 right now, grub v2 will have to be added
+# later)
+if [ -e /boot/grub/grub.conf ]; then
+        grubfile="/boot/grub/grub.conf"
+elif [ -e /boot/grub/menu.lst ]; then
+        grubfile="/boot/grub/menu.lst"
+else
+        echo "ERROR: grub v1 does not appear to be installed on this system."
+        exit $E_GENERAL
+fi
+new_default_entry_num="0"
+# added
+
+sed --in-place=.bak -e "s/^default\([[:space:]]\+\|=\)[[:digit:]]\+/default\1$new_default_entry_num/" $grubfile
+
+# Display grub configuration after our change
+echo "Here are the new contents of the grub configuration file:"
+cat $grubfile
 #
 # Let the caller know everything worked
 #
