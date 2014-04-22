@@ -205,7 +205,6 @@ New-Variable SystemStarting     -value "SystemStarting"     -option ReadOnly
 New-Variable SlowSystemStarting -value "SlowSystemStarting" -option ReadOnly
 New-Variable DiagnoseHungSystem -value "DiagnoseHungSystem" -option ReadOnly
 New-Variable SystemUp           -value "SystemUp"           -option ReadOnly
-New-Variable WaitForDependencyVM  -value "WaitForDependencyVM"  -option ReadOnly
 New-Variable PushTestFiles      -value "PushTestFiles"      -option ReadOnly
 New-Variable RunPreTestScript   -value "RunPreTestScript"   -option ReadOnly
 New-Variable StartTest          -value "StartTest"          -option ReadOnly
@@ -275,28 +274,6 @@ function RunICTests([XML] $xmlConfig)
     foreach ($vm in $xmlConfig.config.VMs.vm)
     {
         LogMsg 5 "Info : RunICTests() processing VM $($vm.vmName)"
-        $isSUTVM = $false
-        if ($vm.role -eq $null)
-        {
-            $isSUTVM = $true
-
-            $newElement = $xmlConfig.CreateElement("role")
-            $newElement.set_InnerText("SUT")
-            $results = $vm.AppendChild($newElement)
-        }
-        elseif ($vm.role.ToLower() -eq "nonsut")
-        {
-            $isSUTVM = $false
-        }
-        elseif ($vm.role.ToLower() -eq "sut")
-        {
-            $isSUTVM = $true
-        }
-        else
-        {
-            LogMsg 0 "Error: Unknown VM role specified in the XML file: $($vm.role)"
-            return
-        }
         
         #
         # Add the state related xml elements to each VM xml node
@@ -330,30 +307,19 @@ function RunICTests([XML] $xmlConfig)
         }
         $vm.emailSummary += " build $($OSInfo.BuildNumber)"
         $vm.emailSummary += "<br /><br />"
-                
+        
         #
         # Make sure the VM actually exists on the specific HyperV server
         #
         if ($null -eq (Get-VM $vm.vmName -ComputerName $vm.hvServer))
         {
             LogMsg 0 "Warn : The VM $($vm.vmName) does not exist on server $($vm.hvServer)"
-            if ([string]::Compare($vm.role, "SUT", $true) -eq 0)
-            {                
-                LogMsg 0 "Warn : Tests will not be run on $($vm.vmName)"
-                UpdateState $vm $Disabled
+            LogMsg 0 "Warn : Tests will not be run on $($vm.vmName)"
+            UpdateState $vm $Disabled
 
-                $vm.emailSummary += "    The virtual machine $($vm.vmName) does not exist.<br />"
-                $vm.emailSummary += "    No tests were run on $($vm.vmName)<br />"
-                continue
-            }
-            else
-            {
-                LogMsg 0 "Error : the dependency VM $($vm.vmName) is missing. Testing will be ended."
-               
-                $vm.emailSummary += "    The virtual machine $($vm.vmName) does not exist.<br />"
-                $vm.emailSummary += "    Testing is ended as the dependency VM is missing: $($vm.vmName)<br />"
-                return
-            }
+            $vm.emailSummary += "    The virtual machine $($vm.vmName) does not exist.<br />"
+            $vm.emailSummary += "    No tests were run on $($vm.vmName)<br />"
+            continue
         }
         else
         {
@@ -582,12 +548,6 @@ function DoStateMachine([XML] $xmlConfig)
                     $done = $false
                 }
 
-            $WaitForDependencyVM
-                {
-                    DoWaitForDependencyVM $vm $xmlConfig
-                    $done = $false
-                }
-
             $StartTest
                 {
                     DoStartTest $vm $xmlConfig
@@ -741,88 +701,44 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
 
-    if ([string]::Compare($vm.role, "SUT", $true) -eq 0 )
-    {
-        #for SUT VMs:
-
-        #
-        # Update the VMs current test
-        #
-        UpdateCurrentTest $vm $xmlData
+    #
+    # Update the VMs current test
+    #
+    #$nextTest = [string] (GetNextTest $vm $xmlData)
+    #$vm.currentTest = $nextTest
+    UpdateCurrentTest $vm $xmlData
     
-        $iterationMsg = $null
-        if ($vm.iteration -ne "-1")
-        {
-            $iterationMsg = " (iteration $($vm.iteration))"
-        }
-        LogMsg 0 "Info : $($vm.vmName) currentTest updated to $($vm.currentTest) ${iterationMsg}"
+    $iterationMsg = $null
+    if ($vm.iteration -ne "-1")
+    {
+        $iterationMsg = " (iteration $($vm.iteration))"
+    }
+    LogMsg 0 "Info : $($vm.vmName) currentTest updated to $($vm.currentTest) ${iterationMsg}"
 
-        if ($($vm.currentTest) -eq "done")
-        {
-            UpdateState $vm $Finished
-
-            #check: if all SUT VMs are set to Finished, then shutdwon the NonSUT VM
-            $allSUTVMDone = $true
-
-            foreach( $v in $xmlData.config.VMs.vm )
-            {
-                if ([string]::Compare($v.role, "SUT", $true) -eq 0)
-                {
-                    if ($($v.state) -ne $Finished)
-                    {
-                        $allSUTVMDone = $false
-                    }
-                }
-            }
-
-            #for NonSUT VM, if all SUT VMs are done, then shutdown them
-            if ($allSUTVMDone -eq $true)
-            {
-                foreach( $v in $xmlData.config.VMs.vm )
-                {
-                    if ([string]::Compare($v.role, "NonSUT", $true) -eq 0)
-                    {
-                        if ($($v.state) -eq $Finished)
-                        {
-                            ShutDownVM $v
-                        }
-                    }
-                } 
-            }
-        }
-        else
-        {
-            $testData = GetTestData $vm.currentTest $xmlData
-            if ($testData -is [System.Xml.XmlElement])
-            {
-                if ($testData.setupScript)
-                {
-                    UpdateState $vm $RunSetupScript
-                }
-                else
-                {
-                    UpdateState $vm $StartSystem
-                }
-            }
-            else
-            {
-                LogMsg 0 "Error: No test data for test $($vm.currentTest) in the .xml file`n       $($vm.vmName) has been disabled"
-                $vm.emailSummary += "          No test data found for test $($vm.currentTest)<br />"
-                $vm.currentTest = "done"
-                UpdateState $vm $Disabled
-            }
-        }
+    if ($($vm.currentTest) -eq "done")
+    {
+        UpdateState $vm $Finished
     }
     else
     {
-        #for NON-SUT VMs, put the VM state to run preStartScript or StartSystem
-        if ($vm.preStartConfig)
+        $testData = GetTestData $vm.currentTest $xmlData
+        if ($testData -is [System.Xml.XmlElement])
         {
-            UpdateState $vm $RunSetupScript
+            if ($testData.setupScript)
+            {
+                UpdateState $vm $RunSetupScript
+            }
+            else
+            {
+                UpdateState $vm $StartSystem
+            }
         }
         else
         {
-            UpdateState $vm $StartSystem
+            LogMsg 0 "Error: No test data for test $($vm.currentTest) in the .xml file`n       $($vm.vmName) has been disabled"
+            $vm.emailSummary += "          No test data found for test $($vm.currentTest)<br />"
+            $vm.currentTest = "done"
+            UpdateState $vm $Disabled
         }
     }
 }
@@ -864,73 +780,46 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
         UpdateState $vm $Disabled
     }
 
-    if ([string]::Compare($vm.role, "SUT", $true) -eq 0 )
+    #
+    # Run setup script if one is specified
+    #
+    $testData = GetTestData $($vm.currentTest) $xmlData
+    if ($testData -is [System.Xml.XmlElement])
     {
-        #for SUT VMs:
-        #
-        # Run setup script if one is specified
-        #
-        $testData = GetTestData $($vm.currentTest) $xmlData
-        if ($testData -is [System.Xml.XmlElement])
+        if ($testData.setupScript)
         {
-            if ($testData.setupScript)
-            {
-                LogMsg 3 "Info : $($vm.vmName) - starting setup script $($testData.setupScript)"
+            LogMsg 3 "Info : $($vm.vmName) - starting setup script $($testData.setupScript)"
             
-                $sts = RunPSScript $vm $($testData.setupScript) $xmlData "Setup"
-                if (-not $sts)
-                {
-                    #
-                    # Fail the test if setup script fails.  We're already in SystemDown state so no state transition is needed.
-                    #
-                    LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test $($testData.testName) failed"
-                    $vm.emailSummary += "Test $($vm.currentTest) : Aborted<br />"
-                    
-                    #comment below code as we may need to continue running next test case
-                    #$vm.currentTest = "done"
-                    #UpdateState $vm $finished
-                    
-                    #need to determine do we need to shutdown system and do cleanup for running next test case if existing
-                    UpdateState $vm $DetermineReboot
-                }
-                else
-                {
-                    UpdateState $vm $StartSystem
-                }
+            $sts = RunPSScript $vm $($testData.setupScript) $xmlData "Setup"
+            if (-not $sts)
+            {
+                #
+                # Fail the test if setup script fails.  We're already in SystemDown state so no state transition is needed.
+                #
+                LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test $($testData.testName) failed"
+                $vm.emailSummary += "Test $($vm.currentTest) : Aborted<br />"
+                $vm.currentTest = "done"
+                UpdateState $vm $finished
             }
             else
             {
-                LogMsg 0 "Error: $($vm.vmName) entered RunSetupScript state with no setup script defined for test $($vm.currentTest)"
-                $vm.emailSummary += "Test $($vm.currentTest) : Aborted (corrupt setupScript data)<br />"
-                $vm.currentTest = "done"
-                UpdateState $vm $Finished
+                UpdateState $vm $StartSystem
             }
         }
         else
         {
-            LogMsg 0 "Error: $($vm.vmName) could not find test data for $($vm.currentTest)`n       The VM $($vm.vmName) will be disabled"
-            $vm.emailSummary += "Test $($vm.currentTest) : Aborted (no test data)<br />"
+            LogMsg 0 "Error: $($vm.vmName) entered RunSetupScript state with no setup script defined for test $($vm.currentTest)"
+            $vm.emailSummary += "Test $($vm.currentTest) : Aborted (corrupt setupScript data)<br />"
             $vm.currentTest = "done"
-            UpdateState $vm $Disabled
+            UpdateState $vm $Finished
         }
     }
     else
     {
-        #for NON-SUT VMs, run preStartScript 
-        if ($vm.preStartConfig)
-        {
-            $sts = RunPSScript $vm $($vm.preStartConfig) $xmlData "preStartConfig"
-            if (-not $sts)
-            {
-                LogMsg 0 "Error: Info: NonSUT VM $($vm.vmName) preStartConfig script for test $($vm.postStartConfig) failed"
-            }
-        }
-        else
-        {
-            LogMsg 9 "Info: NonSUT VM: $($vm.vmName) entered RunSetupScript with no preStartConfig script defined"
-        }
-
-        UpdateState $vm $StartSystem
+        LogMsg 0 "Error: $($vm.vmName) could not find test data for $($vm.currentTest)`n       The VM $($vm.vmName) will be disabled"
+        $vm.emailSummary += "Test $($vm.currentTest) : Aborted (no test data)<br />"
+        $vm.currentTest = "done"
+        UpdateState $vm $Disabled
     }
 }
 
@@ -1268,22 +1157,19 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     # Send a "no-op command to the VM and assume this is the first SSH connection,
     # so pipe a 'y' respone into plink
     #
-	
-    LogMsg 9 "INFO : Call: echo y | bin\plink -i ssh\$sshKey root@$hostname exit"
     echo y | bin\plink -i ssh\${sshKey} root@${hostname} exit
 
     #
     # Determine the VMs OS
     #
     $os = (GetOSType $vm).ToString()
-    LogMsg 9 "INFO : The OS type is $os"
 
     #
     # Update the time on the Linux VM
     #
-    #$dateTimeCmd = GetOSDateTimeCmd $vm
-    #if ($dateTimeCmd)
-    #{
+    $dateTimeCmd = GetOSDateTimeCmd $vm
+    if ($dateTimeCmd)
+    {
         #$linuxDateTime = [Datetime]::Now.ToString("MMddHHmmyyyy")
         #LogMsg 3 "Info : $($vm.vmName) Updating time on the VM (${dateTimeCmd})."
         #if (-not (SendCommandToVM $vm "$dateTimeCmd") )
@@ -1295,25 +1181,13 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #}
         #else
         #{
-        #    UpdateState $vm $PushTestFiles
+            UpdateState $vm $PushTestFiles
         #}
-    #}
-    #else
-    #{
-    #    UpdateState $vm $PushTestFiles
-    #}
-
-    If([string]::Compare($vm.role, "SUT", $true) -eq 0)
-    {
-         #for SUT VM, needs to wait for NonSUT VM startup
-         UpdateState $vm $WaitForDependencyVM
     }
     else
     {
-         #for NonSUT VM, run postStartConfig now (map to SUT VM's RunPreTestScript State).
-         UpdateState $vm $RunPreTestScript
+        UpdateState $vm $PushTestFiles
     }
-    
 }
 
 
@@ -1419,7 +1293,16 @@ function DoPushTestFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
         }
     }
-
+    
+    #
+    # Add the ipv4 param that we're using to talk to the VM. This way, tests that deal with multiple NICs can avoid manipulating the one used here
+    #
+    if ($vm.ipv4)
+    {
+        LogMsg 9 "Info : $($vm.vmName) Adding ipv4=$($vm.ipv4)"
+        "ipv4=$($vm.ipv4)" | out-file -encoding ASCII -append -filePath $constFile
+    }
+    
     #
     # Add the iteration information if test case is being iterated
     #
@@ -1611,56 +1494,34 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
     else
     {
-        If([string]::Compare($vm.role, "SUT", $true) -eq 0)
+        #
+        # Run pretest script if one is specified
+        #
+        $testData = GetTestData $($vm.currentTest) $xmlData
+        if ($testData -is [System.Xml.XmlElement])
         {
-            #
-            # For SUT VMs: Run pretest script if one is specified
-            #
-            $testData = GetTestData $($vm.currentTest) $xmlData
-            if ($testData -is [System.Xml.XmlElement])
+            if ($testData.preTest)
             {
-                if ($testData.preTest)
-                {
-                    LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.setupScript)"
+                LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.setupScript)"
                 
-                    $sts = RunPSScript $vm $($testData.preTest) $xmlData "PreTest"
-                    if (-not $sts)
-                    {
-                        LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
-                    }
-                }
-                else
+                $sts = RunPSScript $vm $($testData.preTest) $xmlData "PreTest"
+                if (-not $sts)
                 {
-                    LogMsg 9 "Info: $($vm.vmName) entered RunPreTestScript with no preTest script defined for test $($vm.currentTest)"
+                    LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
                 }
             }
             else
             {
-                LogMsg 0 "Error: $($vm.vmName) could not find test data for $($vm.currentTest)"
+                LogMsg 0 "Error: $($vm.vmName) entered RunPreTestScript with no preTest script defined for test $($vm.currentTest)"
             }
-            UpdateState $vm $StartTest
         }
         else
         {
-            #
-            # For NonSUT VMs: Run postStartConfig script defined in the XML file, VM section
-            #
-            if ($vm.postStartConfig)
-            {
-                $sts = RunPSScript $vm $($vm.postStartConfig) $xmlData "postStartConfig"
-                if (-not $sts)
-                {
-                    LogMsg 0 "Error: Info: NonSUT VM $($vm.vmName) postStartConfig script for test $($vm.postStartConfig) failed"
-                }
-            }
-            else
-            {
-                LogMsg 9 "Info : NonSUT VM: $($vm.vmName) entered RunPreTestScript with no postStartConfig script defined"
-            }
-
-            UpdateState $vm $Finished
+            LogMsg 0 "Error: $($vm.vmName) could not find test data for $($vm.currentTest)"
         }
     }
+    
+    UpdateState $vm $StartTest
 }
 
 
@@ -2030,6 +1891,8 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     {
         $iterationNum = $($vm.iteration)
     }
+    $logFilename = "$($vm.vmName)_${currentTest}_${iterationNum}.log"
+    $summaryLog = "$($vm.vmName)_summary.log"
 
     #
     # Update the e-mail summary
@@ -2055,7 +1918,6 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # Collect test results
     #
-    $logFilename = "$($vm.vmName)_${currentTest}_${iterationNum}.log"
     LogMsg 4 "Info : $($vm.vmName) collecting logfiles"
     if (-not (GetFileFromVM $vm "${currentTest}.log" "${testDir}\${logFilename}") )
     {
@@ -2065,9 +1927,8 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # Test case may optionally create a summary.log.
     #
-    $summaryLog = "${testDir}\$($vm.vmName)__${currentTest}_summary.log"
     del $summaryLog -ErrorAction "SilentlyContinue"
-    GetFileFromVM $vm "summary.log" $summaryLog
+    GetFileFromVM $vm "summary.log" .\${summaryLog}
     if (test-path $summaryLog)
     {
         $content = Get-Content -path $summaryLog
@@ -2075,8 +1936,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
         {
             $vm.emailSummary += "          $line<br />"
         }
-        #Comment: The log parser may read VM information from this log file, such as Linux kernel version, etc. So don't delete this log:
-        #del $summaryLog
+        del $summaryLog
     }
 
     #
@@ -2089,7 +1949,6 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     {
         foreach ($file in $testData.uploadFiles.file)
         {
-            LogMsg 9 "Info : Get '${file}' from VM $($vm.vmName)."
             $dstFile = "$($vm.vmName)_${currentTest}_${file}"
             if (-not (GetFileFromVM $vm $file "${testDir}\${dstFile}") )
             {
@@ -2750,70 +2609,6 @@ function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
-########################################################################
-#
-# DoWaitForDependencyVM()
-#
-########################################################################
-function DoWaitForDependencyVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
-{
-    <#
-    .Synopsis
-        if XML defined nonSUT VMs, then wait for it is ready (System started and setup configuration completed, and the VM transited to Finish
-    .Description
-        Wait for all nonSUT VM finished the startup and configuration
-    .Parameter vm
-        XML Element representing the VM under test
-    .Parameter $xmlData
-        XML document for the test
-    .Example
-        DoWaitForDependencyVM $testVM $xmlData
-    #>
-
-    if (-not $vm -or $vm -isnot [System.Xml.XmlElement])
-    {
-        LogMsg 0 "Error: DoWaitForDependencyVM received an bad vm parameter"
-        return
-    }
-
-    LogMsg 9 "Info : DoWaitForDependencyVM($($vm.vmName))"
-
-    if (-not $xmlData -or $xmlData -isnot [XML])
-    {
-        LogMsg 0 "Error: DoWaitForDependencyVM received a null or bad xmlData parameter - disabling VM"
-        $vm.emailSummary += "DoWaitForDependencyVM received a null xmlData parameter - disabling VM<br />"
-        $vm.currentTest = "done"
-        UpdateState $vm $ForceShutdown
-    }
-
-    #if this is not a SUT VM, it should not wait for others.
-    If([string]::Compare($vm.role, "SUT", $true) -ne 0)
-    {
-         LogMsg 3 "Warn : DoWaitForDependencyVM() should not be called by a NonSUT VM"
-         UpdateState $vm $Finished
-    }
-    else
-    {
-        #assume all NonSUT VM finished
-        $allNonSUTVMFinished = $true
-        foreach( $v in $xmlData.config.VMs.vm )
-        {
-            if ([string]::Compare($v.role, "SUT", $true) -ne 0)
-            {
-                if ($($v.state) -ne $Finished)
-                {
-                    $allNonSUTVMFinished = $false
-                }
-            }
-        }
-
-        if ($allNonSUTVMFinished -eq $true)
-        {
-            UpdateState $vm $PushTestFiles
-        }
-    }
-}
 
 ########################################################################
 #

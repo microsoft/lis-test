@@ -169,7 +169,7 @@ else
 #
 # Add the vfd 
 #
-Set-VMFloppyDiskDrive -Path $vfdPath -VMName $vmName
+Set-VMFloppyDiskDrive -Path $vfdPath -VMName $vmName -ComputerName $hvServer
 if ($? -eq "True")
 {
     $retVal = $True

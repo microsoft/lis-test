@@ -90,7 +90,7 @@ if (-not $hvServer)
 #
 # Remove the VFD , setting path to null will remove the floppy disk 
 #
-Set-VMFloppyDiskDrive -Path $null -VMName $vmName
+Set-VMFloppyDiskDrive -Path $null -VMName $vmName -ComputerName $hvServer
 if ($? -eq "True")
 {
     $retVal = $True

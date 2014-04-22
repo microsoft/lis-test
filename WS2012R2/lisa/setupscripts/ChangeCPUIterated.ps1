@@ -141,8 +141,9 @@ cd $rootDir
 #
 # Delete any summary.log from a previous test run, then create a new file
 #
-$summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
+$summaryLog = "${vmName}_summary.log"
+
 "Covers ${tcCovered}" >> $summaryLog
 
 #
@@ -166,7 +167,7 @@ if ($procs)
 #
 # Shutdown VM.
 #
-Stop-VM –Name $vmName 
+Stop-VM –Name $vmName -ComputerName $hvServer
 if (-not $?)
 {
     "Error: Unable to Shut Down VM" 
@@ -225,7 +226,7 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
         #
         # Shutdown gracefully so we dont corrupt VHD
         #
-        Stop-VM –Name $vmName 
+        Stop-VM –Name $vmName -ComputerName $hvServer
         if (-not $?)
         {
             "Error: Unable to Shut Down VM" 
