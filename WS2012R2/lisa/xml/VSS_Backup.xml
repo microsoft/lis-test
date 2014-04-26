@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+ <!-- C:\Users\dpaslaru\Dropbox\lis-testing\lisablue> .\Lisa.ps1 run .\v-dopasl\xml\VSS-WSB.xml -dbgLevel 4 -->
+
+<config>
+    <global>
+        <logfileRootDir>v-dopasl\logs\VSS-WSB</logfileRootDir>
+ 		<defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>v-dopasl@microsoft.com</to> 
+            </recipients>
+            <sender>v-dopasl@microsoft.com</sender>
+            <subject>LIS test results (lis-c85l)</subject>
+            <smtpServer>smtphost.redmond.corp.microsoft.com</smtpServer>
+        </email>
+    </global>
+
+     <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>ubuntu-ext4-local</vmName>
+            <os>Linux</os>
+            <ipv4>192.168.4.179</ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>VSS</suite>
+
+            <testparams>
+                <param>RootDir=C:\Users\dpaslaru\Dropbox\lis-testing\lis-test\WS2012R2\lisa</param> 
+                <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_utils hid-hyperv hv_netvsc)</param>
+            </testparams>
+        </vm>
+
+        <!-- <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>rhel-63</vmName>
+            <os>Linux</os>
+            <ipv4>192.168.4.171</ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>VSS</suite>
+
+            <testparams>
+                <param>RootDir=C:\Users\dpaslaru\Dropbox\lis-testing\lis-test\WS2012R2\lisa</param> 
+                <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_utils hid-hyperv hv_netvsc)</param>
+            </testparams>
+        </vm> -->
+
+        <!--  <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>SLES11SP1x64</vmName>
+            <os>Linux</os>
+            <ipv4>192.168.4.194</ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>VSS-WSB</suite>
+
+            <testparams>
+                <param>RootDir=C:\Users\dpaslaru\Dropbox\lis-testing\lis-test\WS2012R2\lisa</param> 
+                <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_utils hid-hyperv hv_netvsc)</param>
+            </testparams>
+        </vm> -->
+
+
+	</VMs>
+
+<!-- TestSuites -->
+
+    <testSuites>
+
+        <suite>
+            <suiteName>VSS</suiteName>
+            <suiteTests>
+				<!-- <suiteTest>VSS_BackupRestore</suiteTest> -->
+				<!-- <suiteTest>VSS_BackupRestore_ext3_vhd</suiteTest> -->
+				<!-- <suiteTest>VSS_BackupRestore_ext4_vhdx</suiteTest> -->
+				<!-- <suiteTest>VSS_BackupRestore_ISCSI</suiteTest> -->
+				<!-- <suiteTest>VSS_BackupRestore_PassTru</suiteTest> -->
+                <!-- <suiteTest>VSS_BackupRestore_3Chain_VHD</suiteTest> -->
+                <!-- <suiteTest>VSS_BackupRestore_3Chain_VHD</suiteTest> -->
+                <suiteTest>VSS_BackupRestore_DiskStress</suiteTest>
+
+       		</suiteTests>
+        </suite>
+
+
+
+      
+    </testSuites>
+
+
+
+    <testCases>
+
+    	<test>
+    	<testName>VSS_BackupRestore</testName>
+	        <testScript>setupscripts\VSS_BackupRestore.ps1</testScript> 
+	        <testParams>
+	            <param>driveletter=F:</param>
+	        </testParams>
+	        <timeout>1200</timeout>
+	        <OnError>Continue</OnError>
+	    </test>
+
+  		<test>
+    	<testName>VSS_BackupRestore_ext3_vhd</testName>
+    	   	<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+	        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+	        <testParams>
+	            <param>driveletter=F:</param>
+				<param>SCSI=0,1,Dynamic</param>
+				<param>IDE=0,1,Dynamic</param>
+	            <param>FILESYS=ext3</param>
+				<param>TC_COVERED=VSS</param>
+	        </testParams>
+	        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
+	        <timeout>1200</timeout>
+	        <OnError>Continue</OnError>
+	    </test>
+
+	    <test>
+	    <testName>VSS_BackupRestore_PassTru</testName>
+    	   	<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+	        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+	        <testParams>
+	            <param>driveletter=F:</param>
+				<param>SCSI=0,1,PassThrough</param>
+				<param>passId=2</param>
+	            <param>FILESYS=ext3</param>
+				<param>TC_COVERED=VSS</param>
+	        </testParams>
+	        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
+	        <timeout>1200</timeout>
+	        <OnError>Continue</OnError>
+	    </test>
+
+
+	    <test>
+    	<testName>VSS_BackupRestore_ext4_vhdx</testName>
+    	   	<setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
+	        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+	        <testParams>
+	            <param>driveletter=F:</param>
+				<param>SCSI=0,1,Dynamic</param>
+				<param>IDE=0,1,Dynamic</param>
+	            <param>FILESYS=ext4</param>
+   				<param>TC_COVERED=VSS</param>
+	        </testParams>
+	        <cleanupScript>setupscripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+	        <timeout>1200</timeout>
+	        <OnError>Continue</OnError>
+	    </test>
+
+	    <test>
+    	<testName>VSS_BackupRestore_ISCSI</testName>
+	        <testScript>setupscripts\VSS_BackupRestore_ISCSI.ps1</testScript> 
+	        <testParams>
+	            <param>driveletter=F:</param>
+				<param>TargetIP=10.7.1.10</param>
+	            <param>FILESYS=ext4</param>
+	        </testParams>
+	        <timeout>1200</timeout>
+	        <OnError>Continue</OnError>
+	    </test>
+
+        <test>
+        <testName>VSS_BackupRestore_3Chain_VHD</testName>
+            <testScript>setupscripts\VSS_3Chain_VHD_backup.ps1</testScript> 
+            <testParams>
+                <param>driveletter=F:</param>
+            </testParams>
+            <timeout>1200</timeout>
+            <OnError>Continue</OnError>
+        </test>
+
+        <test>
+        <testName>VSS_BackupRestore_SavedState</testName>
+            <testScript>setupscripts\VSS_BackupRestore_SavedState.ps1</testScript> 
+            <testParams>
+                <param>driveletter=F:</param>
+            </testParams>
+            <timeout>1200</timeout>
+            <OnERROR>Continue</OnERROR>
+        </test>
+
+        <test>
+        <testName>VSS_BackupRestore_DiskStress</testName>
+            <testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript> 
+            <testParams>
+                <param>driveletter=F:</param>
+                <param>iOzoneVers=3_424</param>
+            </testParams>
+            <timeout>1200</timeout>
+            <OnERROR>Continue</OnERROR>
+        </test>
+	
+
+    </testCases>
+
+</config>
+
