@@ -1,7 +1,8 @@
 VSS testscases description
 ==========================
 
-VSS-01	Backup/restore on local disk (file system: ext3)		
+VSS-01	Backup/restore on local disk (file system: ext3)
+--------------------------------------------------------		
 
 1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
 2. Check to see if filesystem is ext3
