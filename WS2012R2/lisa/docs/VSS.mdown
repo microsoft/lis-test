@@ -1,0 +1,136 @@
+VSS testscases description
+==========================
+
+VSS-01	Backup/restore on local disk (file system: ext3)		
+
+1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
+2. Check to see if filesystem is ext3
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error.
+
+1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg								
+
+"	P0	
+VSS-02	backup/restore on local disk (file system: ext4)	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
+2. Check to see if filesytem is ext4.
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-03	backup/restore on local disk (file system: reiserfs)	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
+2. Check to see if filesystem is resierfs.
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-04	backup/restore on local disk with IDE/SCSI disk attached.	"1. Create a VM with IDE0 and make sure disk is attached to IDE1 controller.
+2. Attach another Disk on SCSI controller . 	
+3. Check to see if any of these filesytem is present ext3/4 or resierfs.  (we will only test these 3 file system)
+4. Perform Backup. 
+5. Perform Restore. 
+6. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-05	backup/restore on local disk with SCSI/IDE1 disk attached using VHDx.	"1. Create a VM with IDE0 and make sure VHDx disk is attached to SCSI/IDE controller.
+2. Check to see if any of these filesytem is present ext3/4 or resierfs .  (we will only test these 3 file system)
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-06	test deleted file present after backup/restore using VHDx or VHD.	"1. Create a VM with IDE0 using VHDX or VHD.
+2. Check to see if any of these filesystem is present ext3/4 or resierfs .  (we will only test these 3 file system)
+3. Create a file with some content on it , e.g. /root/1.txt
+4. Perform Backup. 
+5. Delete the file you created in step 3.
+6. Perform Restore. 
+7. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+3. Check to see if file deleted in step 5 is present.
+"	P1	
+VSS-07	backup/restore using VHDx on CSV.	"1. Create a VM with IDE0 and attach at disk at IDE1 and SCSI controller using VHDx .
+2. Check to see if any of these filesystem is present ext3/4 or resierfs .  (we will only test these 3 file system)
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-08	backup/restore using VHD on CSV.	"1. Create a VM with IDE0 and attach at disk at IDE1 and SCSI controller using VHD 
+2. Check to see if any of these filesytem is present ext3/4 or resierfs .  (we will only test these 3 file system)
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-09	backup/restore using VHDx on SMB.	"1. Create a VM with IDE0 and attach at disk at IDE1 and SCSI controller using VHDx .
+2. Check to see if any of these filesytem is present ext3/4 or resierfs .  (we will only test these 3 file system)
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-10	backup/restore using VHD on SMB.	"1. Create a VM with IDE0 and attach at disk at IDE1 and SCSI controller using VHD.
+2. Check to see if any of these filesytem is present ext3/4 or resierfs .  (we will only test these 3 file system)
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-11	backup/restore on with No Network and ISO attached.	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
+2. Remove any network and add ISO. 
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+3. ISO should be present.
+"	P1	
+VSS-12	backup/restore with 3 chained differencing VHD	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
+2. Create a 3 chained differencing disk from the IDE0/SCSI0 disk. 
+3. Create a new VM w/ the 3 chained differencing disk.
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+3. All the chains are intact."	P1	
+VSS-13	backup/restore on with iSCSI connection inside.	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
+2. Create iSCSI connection inside VM. 
+3. Format (ext3 or ext4) and mount the iSCSI disk.
+4. Perform Backup. 
+5. Perform Restore. 
+6. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P0	
+VSS-14	backup/restore on with disk stress test running inside. 	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
+2. Start disk stress test on IDE0. E.g IoZone or DD .
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-15	backup/restore with Different VM state.	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
+2. Stop the VM.
+3. Perform Backup. 
+4. Perform Restore. 
+5. Check boot message (/var/log/boot.msg) for any recovering journal error.
+
+Perform the all above steps with VM in Paused state and Saved state."	"1. There should be no error on Backup and Restore operation. 
+2. After Restore VM make sure there is no recovering journal error in /var/log/boot.msg
+"	P1	
+VSS-16	Test backup/restore with passthrough disk attached.	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller.
+2. Attach pass through disk. 
+3. Format (ext3 or ext4) and mount the disk.
+4. Perform Backup. 
+5. Perform Restore. 
+6. Check boot message (/var/log/boot.msg) for any recovering journal error."	"1.  Guest is not aware of pass through disk attached. 
+2. It will only see block device and freeze the volume.
+"	P0	
+VSS-17	Check if VSS daemon is running. 	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other controller
+2. Check if hv_vss_backup daemon is running inside guest VM."	1. Daemon should be running. 	P1	All the VSS scripts are checking if the VSS deamon is running or not
+VSS-18	Test if backup/restore gracefully fails in case of failure.	"1. Create a VM on IDE0 and make sure there is no other Disk attached on other 
+2. Check if hv_vss_backup daemon is running inside guest VM. 
+3. Change host side configuration to insert failure in backup.  Or disable VSS daemon in guest.
+4. Check guest logs for any weird state."	1. Guest should not panic / call trace in case of backup/restore failure	P0	
