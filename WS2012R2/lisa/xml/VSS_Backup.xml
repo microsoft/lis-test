@@ -302,11 +302,16 @@
 
     <test>
     <testName>VSS_BackupRestore_Fail</testName>
+        <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
         <testScript>setupscripts\VSS_BackupRestore_Fail.ps1</testScript> 
         <testParams>
             <param>driveletter=F:</param>
+            <param>SCSI=0,1,Dynamic</param>
+            <param>IDE=0,1,Dynamic</param>
+            <param>FILESYS-ext3</param>
             <param>TC_COVERED=VSS-18</param>
         </testParams>
+        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
         <timeout>1200</timeout>
         <OnERROR>Continue</OnERROR>
     </test>
