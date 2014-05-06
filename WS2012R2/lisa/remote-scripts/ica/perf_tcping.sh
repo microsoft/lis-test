@@ -218,9 +218,9 @@ cd ~
 # run tcping and direct output to a log file
 #
 LogMsg "running tcping"
-LogMsg "tcping -t 20 -n 100 ${TARGET_IP} ${TARGET_PORT}"
+LogMsg "tcping -t 20 -n 1000 ${TARGET_IP} ${TARGET_PORT}"
 
-tcping -t 20 -n 100 ${TARGET_IP} ${TARGET_PORT} > ~/tcping.log
+tcping -t 20 -n 1000 ${TARGET_IP} ${TARGET_PORT} > ~/tcping.log
 if [ $? -ne 0 ]; then
     msg="Error: tcping failed"
     LogMsg "${msg}"
