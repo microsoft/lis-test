@@ -67,19 +67,22 @@ fi
 i=0
 for interface in $( /sbin/ifconfig | grep '^[a-z]' | sed 's/ .*//' )
 do
-    
-    ifconfig $interface down
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Error: ifdown failed on interface $interface : ${sts}"
-        UpdateTestState "TestAborted"
-        UpdateSummary "Taking interfaces down: Failed"
-        exit 1
-    else
-        LogMsg "Interface $interface : down"
-    fi
+    echo $interface
+    if [ $interface != "lo" ]; then
 
-    let i=i+1
+        ifconfig $interface down
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            LogMsg "Error: ifdown failed on interface $interface : ${sts}"
+            UpdateTestState "TestAborted"
+            UpdateSummary "Taking interfaces down: Failed"
+            exit 1
+        else
+            LogMsg "Interface $interface : down"
+        fi
+
+        let i=i+1
+    fi
 done
 
 UpdateTestState $ICA_TESTCOMPLETED
