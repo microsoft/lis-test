@@ -72,7 +72,7 @@ function CheckVSSDaemon()
 {
      $retValue = $False
     
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep hv_vss_daemon > /root/vss"
+    echo y | .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep hv_vss_daemon > /root/vss"
     if (-not $?)
     {
         Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_vs_daemon" -ErrorAction SilentlyContinue
@@ -80,7 +80,7 @@ function CheckVSSDaemon()
         return $False
     }
 
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/vss .
+    echo y | .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/vss .
     if (-not $?)
     {
        
@@ -164,7 +164,7 @@ function RunRemoteScript($remoteScript)
        return $False
     }      
 
-     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+    .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
@@ -199,15 +199,15 @@ function RunRemoteScript($remoteScript)
     }
 
     # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "at -f runtest.sh now 2> /dev/null"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "at -f runtest.sh now" 
     if (-not $?)
     {
-         Write-Error -Message "Error: Unable to submit runtest.sh to atd" -ErrorAction SilentlyContinue 
+        Write-Output "Error: Unable to submit runtest.sh to the vm"
         return $False
     }
 
     del runtest.sh
-    return $True   
+    return $True
 }
 
 ####################################################################### 
@@ -309,6 +309,10 @@ Write-Output "Attached DVD: Success" >> $summaryLog
 
 # Bring down the network. 
 RunRemoteScript $remoteScript
+
+Start-Sleep -Seconds 3
+# echo $x
+# return $False
 
 # Make sure network is down.
 $sts = ping $ipv4
