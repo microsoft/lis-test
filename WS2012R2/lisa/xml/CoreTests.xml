@@ -43,10 +43,12 @@
                 <suiteTest>VerifyLisModules</suiteTest>
                 <suiteTest>VMHeartbeat</suiteTest>
                 <suiteTest>TimeSync</suiteTest>
+                 <suiteTest>TimeSync_SavedVM</suiteTest>
                 <suiteTest>Multi_Cpu_Test</suiteTest>
                 <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
                 <suiteTest>CDmount</suiteTest>
                 <suiteTest>FloppyDisk</suiteTest>
+                
             </suiteTests>
         </suite>
     </testSuites>
@@ -115,7 +117,17 @@
                 <param>MaxTimeDiff=1.0</param>
             </testParams>
         </test>
-
+	<test>
+            <testName>TimeSync_SavedVM</testName>
+            <testScript>SetupScripts\INST_timesync_savedVM.ps1</testScript>
+            <timeout>800</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=CORE-06</param>
+                <param>RootDir=D:\UpstreamTesting\Code</param>
+            </testparams>
+        </test>
         <test>
             <testName>TimeSync_SavedVM</testName>
             <testScript>SetupScripts\timesync_savedVM.ps1</testScript>
