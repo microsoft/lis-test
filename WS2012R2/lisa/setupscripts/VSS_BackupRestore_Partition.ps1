@@ -166,21 +166,21 @@ function RunRemoteScript($remoteScript)
 
     "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
 
-    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
+    echo y | .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy runtest.sh to the VM"
        return $False
     }      
 
-     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+    echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
        return $False
     }
 
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
+    echo y | .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
     if (-not $?)
     {
         Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
@@ -208,7 +208,7 @@ function RunRemoteScript($remoteScript)
     }
 
     # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh 2> /dev/null"
     
     # Return the state file
     while ($timeout -ne 0 )
@@ -403,7 +403,7 @@ try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true
 Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
 
 # Run the remote script
-$sts = RunRemoteScript
+$sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
 {
     Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
