@@ -198,46 +198,46 @@ foreach($MN in $MNs)
 #
 # States a VM can be in
 #
-New-Variable SystemDown         -value "SystemDown"         -option ReadOnly
-New-variable RunSetupScript     -value "RunSetupScript"     -option ReadOnly
-New-Variable StartSystem        -value "StartSystem"        -option ReadOnly
-New-Variable SystemStarting     -value "SystemStarting"     -option ReadOnly
-New-Variable SlowSystemStarting -value "SlowSystemStarting" -option ReadOnly
-New-Variable DiagnoseHungSystem -value "DiagnoseHungSystem" -option ReadOnly
-New-Variable SystemUp           -value "SystemUp"           -option ReadOnly
-New-Variable WaitForDependencyVM  -value "WaitForDependencyVM"  -option ReadOnly
-New-Variable PushTestFiles      -value "PushTestFiles"      -option ReadOnly
-New-Variable RunPreTestScript   -value "RunPreTestScript"   -option ReadOnly
-New-Variable StartTest          -value "StartTest"          -option ReadOnly
-New-Variable TestStarting       -value "TestStarting"       -option ReadOnly
-New-Variable TestRunning        -value "TestRunning"        -option ReadOnly
-New-Variable CollectLogFiles    -value "CollectLogFiles"    -option ReadOnly
-New-Variable RunPostTestScript  -value "RunPostTestScript"  -option ReadOnly
-New-Variable DetermineReboot    -value "DetermineReboot"    -option ReadOnly
-New-Variable ShutdownSystem     -value "ShutdownSystem"     -option ReadOnly
-New-Variable ShuttingDown       -value "ShuttingDown"       -option ReadOnly
-New-Variable ForceShutDown      -value "ForceShutDown"      -option ReadOnly
-New-variable RunCleanUpScript   -value "RunCleanUpScript"   -option ReadOnly
+New-Variable SystemDown          -value "SystemDown"          -option ReadOnly
+New-variable RunSetupScript      -value "RunSetupScript"      -option ReadOnly
+New-Variable StartSystem         -value "StartSystem"         -option ReadOnly
+New-Variable SystemStarting      -value "SystemStarting"      -option ReadOnly
+New-Variable SlowSystemStarting  -value "SlowSystemStarting"  -option ReadOnly
+New-Variable DiagnoseHungSystem  -value "DiagnoseHungSystem"  -option ReadOnly
+New-Variable SystemUp            -value "SystemUp"            -option ReadOnly
+New-Variable WaitForDependencyVM -value "WaitForDependencyVM" -option ReadOnly
+New-Variable PushTestFiles       -value "PushTestFiles"       -option ReadOnly
+New-Variable RunPreTestScript    -value "RunPreTestScript"    -option ReadOnly
+New-Variable StartTest           -value "StartTest"           -option ReadOnly
+New-Variable TestStarting        -value "TestStarting"        -option ReadOnly
+New-Variable TestRunning         -value "TestRunning"         -option ReadOnly
+New-Variable CollectLogFiles     -value "CollectLogFiles"     -option ReadOnly
+New-Variable RunPostTestScript   -value "RunPostTestScript"   -option ReadOnly
+New-Variable DetermineReboot     -value "DetermineReboot"     -option ReadOnly
+New-Variable ShutdownSystem      -value "ShutdownSystem"      -option ReadOnly
+New-Variable ShuttingDown        -value "ShuttingDown"        -option ReadOnly
+New-Variable ForceShutDown       -value "ForceShutDown"       -option ReadOnly
+New-variable RunCleanUpScript    -value "RunCleanUpScript"    -option ReadOnly
 
-New-Variable StartPS1Test       -value "StartPS1Test"       -option ReadOnly
-New-Variable PS1TestRunning     -value "PS1TestRunning"     -option ReadOnly
-New-Variable PS1TestCompleted   -value "PS1TestCompleted"   -option ReadOnly
+New-Variable StartPS1Test        -value "StartPS1Test"        -option ReadOnly
+New-Variable PS1TestRunning      -value "PS1TestRunning"      -option ReadOnly
+New-Variable PS1TestCompleted    -value "PS1TestCompleted"    -option ReadOnly
 
-New-Variable Finished           -value "Finished"           -option ReadOnly
-New-Variable Disabled           -value "Disabled"           -option ReadOnly
+New-Variable Finished            -value "Finished"            -option ReadOnly
+New-Variable Disabled            -value "Disabled"            -option ReadOnly
 
 #
 # test completion codes
 #
-New-Variable TestCompleted      -value "TestCompleted"      -option ReadOnly
-New-Variable TestAborted        -value "TestAborted"        -option ReadOnly
-New-Variable TestFailed         -value "TestFailed"         -option ReadOnly
+New-Variable TestCompleted       -value "TestCompleted"       -option ReadOnly
+New-Variable TestAborted         -value "TestAborted"         -option ReadOnly
+New-Variable TestFailed          -value "TestFailed"          -option ReadOnly
 
 #
 # Supported OSs
 #
-New-Variable LinuxOS            -value "Linux"              -option ReadOnly
-New-Variable FreeBSDOS          -value "FreeBSD"            -option ReadOnly
+New-Variable LinuxOS             -value "Linux"               -option ReadOnly
+New-Variable FreeBSDOS           -value "FreeBSD"             -option ReadOnly
 
 
 ########################################################################
@@ -330,7 +330,7 @@ function RunICTests([XML] $xmlConfig)
         }
         $vm.emailSummary += " build $($OSInfo.BuildNumber)"
         $vm.emailSummary += "<br /><br />"
-                
+
         #
         # Make sure the VM actually exists on the specific HyperV server
         #
@@ -1089,16 +1089,51 @@ function DoSystemStarting([System.Xml.XmlElement] $vm, [XML] $xmlData)
         # If an IP address was not provided in the .XML file, try to
         # determine the VMs IP address
         #
+        #if (-not $vm.ipv4)
+        #{
+        #    $ipv4 = GetIPv4 $vm.vmName $vm.hvServer
+        #    if ($ipv4)
+        #    {
+        #        #
+        #        # Update the VMs copy of the IPv4 address
+        #        #
+        #        $vm.ipv4 = [String] $ipv4
+        #    }
+        #}
+
+        $ipv4 = $null
+        LogMsg 9 "Debug: vm.ipv4 = $($vm.ipv4)"
+
+        #
+        # Need to ask the VM for the IP address on every
+        # test.  But we also want to honor a <ipv4> value
+        # if it was specified.
+        #
         if (-not $vm.ipv4)
         {
+            LogMsg 9 "Debug: vm.ipv4 is NULL"
             $ipv4 = GetIPv4 $vm.vmName $vm.hvServer
             if ($ipv4)
             {
-                #
                 # Update the VMs copy of the IPv4 address
-                #
                 $vm.ipv4 = [String] $ipv4
+                LogMsg 9 "Debug: Setting VMs IP address to $($vm.ipv4)"
             }
+            else
+            {
+                return
+            }
+        }
+
+        #
+        # Update the vm.ipv4 value if the VMs IP address changed
+        #
+        $ipv4 = GetIPv4 $vm.vmName $vm.hvServer
+        LogMsg 9 "Debug: vm.ipv4 = $($vm.ipv4) and ipv4 = ${ipv4} "
+        if ($ipv4 -and ($vm.ipv4 -ne [String] $ipv4))
+        {
+            LogMsg 9 "Updating VM IP from $($vm.ipv4) to ${ipv4}"
+            $vm.ipv4 = [String] $ipv4
         }
 
         # See if the SSH port is accepting connections
@@ -1418,6 +1453,15 @@ function DoPushTestFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 ($param) | out-file -encoding ASCII -append -filePath $constFile
             }
         }
+    }
+
+    #
+    # Add the ipv4 param that we're using to talk to the VM. This way, tests that deal with multiple NICs can avoid manipulating the one used here
+    #
+    if ($vm.ipv4)
+    {
+        LogMsg 9 "Info : $($vm.vmName) Adding ipv4=$($vm.ipv4)"
+        "ipv4=$($vm.ipv4)" | out-file -encoding ASCII -append -filePath $constFile
     }
 
     #
