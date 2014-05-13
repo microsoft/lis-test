@@ -3,7 +3,7 @@
 <config>
 	<global>
 		<logfileRootDir>Logs_VSS</logfileRootDir>
- 		<defaultSnapshot>ICABase</defaultSnapshot>
+		<defaultSnapshot>ICABase</defaultSnapshot>
 		<email>
 			<recipients>
 				<to>email_address</to> 
@@ -20,7 +20,7 @@
 			<vmName>vmName</vmName>
 			<os>Linux</os>
 			<ipv4>ipAddress</ipv4>
-			<sshKey>rhel5_id_rsa.ppk</sshKey>
+			<sshKey>SshKey</sshKey>
 			<suite>VSS</suite>
 
 			<testparams>
@@ -28,296 +28,212 @@
 				<param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_utils hid-hyperv hv_netvsc)</param>
 			</testparams>
 		</vm>
-
 	</VMs>
-
-<!-- TestSuites -->
 
 	<testSuites>
 
 		<suite>
 			<suiteName>VSS</suiteName>
 			<suiteTests>
+				<suiteTest>VSS_BackupRestore</suiteTest>
 				<suiteTest>VSS_BackupRestore_ext3_vhd</suiteTest>
 				<suiteTest>VSS_BackupRestore_ext4_vhd</suiteTest>
-                <suiteTest>VSS_BackupRestore_reiserfs_vhd</suiteTest>
-                <suiteTest>VSS_BackupRestore_ext4_vhdx</suiteTest>
-                <suiteTest>VSS_BackupRestore</suiteTest>
-                <suiteTest>VSS_BackupRestore_ISO_NoNetwork</suiteTest>
-                <suiteTest>VSS_BackupRestore_3Chain_VHD</suiteTest>
-                <suiteTest>VSS_BackupRestore_ISCSI</suiteTest>
-                <suiteTest>VSS_BackupRestore_DiskStress</suiteTest>
-                <suiteTest>VSS_BackupRestore_State_Saved</suiteTest>
-                <suiteTest>VSS_BackupRestore_State_Off</suiteTest>
-                <suiteTest>VSS_BackupRestore_State_Paused</suiteTest>
-                <suiteTest>VSS_BackupRestore_PassTru</suiteTest>
-                <suiteTest>VSS_BackupRestore_Fail</suiteTest>
-            </suiteTests>
-        </suite>
-
-        <suite>
-            <suiteName>VSS-CSV</suiteName>
-            <!-- Please attach a CSV disk to the VM-->
-            <suiteTests>
-                <suiteTest>VSS_BackupRestore_CSV_VHDX</suiteTest>
-                <suiteTest>VSS_BackupRestore_CSV_VHD</suiteTest>
-            </suiteTests>
-        </suite>
-
-        <suite>
-            <suiteName>VSS-SMB</suiteName>
-            <!-- Please attach a SMB disk to the VM  -->
-            <suiteTests>
-                <suiteTest>VSS_BackupRestore_SMB_VHDX</suiteTest>
-                <suiteTest>VSS_BackupRestore_SMB_VHD</suiteTest>
-	   		</suiteTests>
+				<suiteTest>VSS_BackupRestore_reiserfs_vhd</suiteTest>
+				<suiteTest>VSS_BackupRestore_ext4_vhdx</suiteTest>
+				<suiteTest>VSS_BackupRestore_ISO_NoNetwork</suiteTest>
+				<suiteTest>VSS_BackupRestore_3Chain_VHD</suiteTest>
+				<suiteTest>VSS_BackupRestore_State_Off</suiteTest>
+				<suiteTest>VSS_BackupRestore_State_Paused</suiteTest>
+				<suiteTest>VSS_BackupRestore_Fail</suiteTest>
+				<suiteTest>VSS_BackupRestore_PassTru</suiteTest>
+				<suiteTest>VSS_BackupRestore_ISCSI</suiteTest>
+				<suiteTest>VSS_BackupRestore_DiskStress</suiteTest>
+			</suiteTests>
 		</suite>
-
 	</testSuites>
 
 
 	<testCases>
 
-    <test>
-    <testName>VSS_BackupRestore_ext3_vhd</testName>
-        <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>SCSI=0,1,Dynamic</param>
-            <param>IDE=0,1,Dynamic</param>
-            <param>FILESYS=ext3</param>
-            <param>TC_COVERED=VSS-01</param>
-        </testParams>
-        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore</testName>
+		<testScript>setupscripts\VSS_BackupRestore.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>snapshotName=ICABase</param>
+		</testParams>
+		<timeout>1200</timeout>
+		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<OnError>Continue</OnError>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_ext4_vhd</testName>
-        <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>SCSI=0,1,Dynamic</param>
-            <param>IDE=0,1,Dynamic</param>
-            <param>FILESYS=ext4</param>
-            <param>TC_COVERED=VSS-02</param>
-        </testParams>
-        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_ext3_vhd</testName>
+		<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+		<testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>SCSI=0,1,Dynamic</param>
+			<param>IDE=0,1,Dynamic</param>
+			<param>FILESYS=ext3</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<timeout>1200</timeout>
+		<OnError>Continue</OnError>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_reiserfs_vhd</testName>
-        <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>SCSI=0,1,Dynamic</param>
-            <param>IDE=0,1,Dynamic</param>
-            <param>FILESYS=reiserfs</param>
-            <param>TC_COVERED=VSS-03</param>
-        </testParams>
-        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_ext4_vhd</testName>
+		<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+		<testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>SCSI=0,1,Dynamic</param>
+			<param>IDE=0,1,Dynamic</param>
+			<param>FILESYS=ext4</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<timeout>1200</timeout>
+		<OnError>Continue</OnError>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_ext4_vhdx</testName>
-        <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>SCSI=0,1,Dynamic</param>
-            <param>IDE=0,1,Dynamic</param>
-            <param>FILESYS=ext4</param>
-            <param>TC_COVERED=VSS-05</param>
-        </testParams>
-        <cleanupScript>setupscripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_reiserfs_vhd</testName>
+		<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+		<testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>SCSI=0,1,Dynamic</param>
+			<param>IDE=0,1,Dynamic</param>
+			<param>FILESYS=reiserfs</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<timeout>1200</timeout>
+		<OnError>Continue</OnError>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore</testName>
-        <testScript>setupscripts\VSS_BackupRestore.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>TC_COVERED=VSS-06,VSS-17</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_ext4_vhdx</testName>
+		<setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
+		<testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>SCSI=0,1,Dynamic</param>
+			<param>IDE=0,1,Dynamic</param>
+			<param>FILESYS=ext4</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<timeout>1200</timeout>
+		<OnError>Continue</OnError>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_CSV_VHDX</testName>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>FILESYS=ext4</param>
-            <param>TC_COVERED=VSS-07</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_ISO_NoNetwork</testName>
+		<testScript>setupscripts\VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<timeout>1200</timeout>
+        <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<OnError>Continue</OnError>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_CSV_VHD</testName>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>FILESYS=ext4</param>
-            <param>TC_COVERED=VSS-08</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_3Chain_VHD</testName>
+		<testScript>setupscripts\VSS_3Chain_VHD_backup.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<timeout>1200</timeout>
+        <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<OnError>Continue</OnError>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_SMB_VHDX</testName>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>FILESYS=ext4</param>
-            <param>TC_COVERED=VSS-09</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_ISCSI</testName>
+		<testScript>setupscripts\VSS_BackupRestore_ISCSI.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>TargetIP=10.7.1.10</param>
+			<param>FILESYS=ext4</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<timeout>1200</timeout>
+        <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<OnError>Continue</OnError>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_SMB_VHD</testName>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>FILESYS=ext4</param>
-            <param>TC_COVERED=VSS-10</param>
+	<test>
+	<testName>VSS_BackupRestore_DiskStress</testName>
+		<testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
         </testParams>
-        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+		<timeout>1200</timeout>
+        <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<OnERROR>Continue</OnERROR>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_ISO_NoNetwork</testName>
-        <testScript>setupscripts\VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>TC_COVERED=VSS-11</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_State_Off</testName>
+		<testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>vmState=Off</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<timeout>1200</timeout>
+        <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<OnERROR>Continue</OnERROR>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_3Chain_VHD</testName>
-        <testScript>setupscripts\VSS_3Chain_VHD_backup.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>TC_COVERED=VSS-12</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_State_Paused</testName>
+		<testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>vmState=Paused</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<timeout>1200</timeout>
+        <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<OnERROR>Continue</OnERROR>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_ISCSI</testName>
-        <testScript>setupscripts\VSS_BackupRestore_ISCSI.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>TargetIP=10.7.1.10</param>
-            <param>FILESYS=ext4</param>
-            <param>TC_COVERED=VSS-13</param>
+	<test>
+	<testName>VSS_BackupRestore_PassTru</testName>
+		<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+		<testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>SCSI=0,1,PassThrough</param>
         </testParams>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
+        <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<OnError>Continue</OnError>
+	</test>
 
-    <test>
-    <testName>VSS_BackupRestore_DiskStress</testName>
-        <testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>iOzoneVers=3_424</param>
-            <param>TC_COVERED=VSS-14</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnERROR>Continue</OnERROR>
-    </test>
-
-    <test>
-    <testName>VSS_BackupRestore_State_Off</testName>
-        <testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>vmState=Off</param>
-            <param>TC_COVERED=VSS-15</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnERROR>Continue</OnERROR>
-    </test>
-
-    <test>
-    <testName>VSS_BackupRestore_State_Saved</testName>
-        <testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>vmState=Saved</param>
-            <param>TC_COVERED=VSS-15</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnERROR>Continue</OnERROR>
-    </test>
-
-        <test>
-    <testName>VSS_BackupRestore_State_Paused</testName>
-        <testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>vmState=Paused</param>
-            <param>TC_COVERED=VSS-15</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnERROR>Continue</OnERROR>
-    </test>
-
-    <test>
-    <testName>VSS_BackupRestore_PassTru</testName>
-        <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>SCSI=0,1,PassThrough</param>
-            <param>passId=2</param>
-            <param>FILESYS=ext3</param>
-            <param>TC_COVERED=VSS-16</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-    <testName>VSS_BackupRestore_Fail</testName>
-        <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Fail.ps1</testScript> 
-        <testParams>
-            <param>driveletter=F:</param>
-            <param>SCSI=0,1,Dynamic</param>
-            <param>IDE=0,1,Dynamic</param>
-            <param>FILESYS-ext3</param>
-            <param>TC_COVERED=VSS-18</param>
-        </testParams>
-        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-        <timeout>1200</timeout>
-        <OnERROR>Continue</OnERROR>
-    </test>
+	<test>
+	<testName>VSS_BackupRestore_Fail</testName>
+		<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+		<testScript>setupscripts\VSS_BackupRestore_Fail.ps1</testScript> 
+		<testParams>
+			<param>driveletter=F:</param>
+			<param>SCSI=0,1,Dynamic</param>
+			<param>IDE=0,1,Dynamic</param>
+			<param>FILESYS-ext3</param>
+            <param>snapshotName=ICABase</param>
+		</testParams>
+		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
+		<timeout>1200</timeout>
+		<OnERROR>Continue</OnERROR>
+	</test>
 	
-
 	</testCases>
 
 </config>
-
