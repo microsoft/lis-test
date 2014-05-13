@@ -1,4 +1,5 @@
 #!/bin/bash
+
 ##############################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
@@ -21,19 +22,19 @@
 ############################################################################
 
 ############################################################################
-# Performace test IOMETER
 #
-# IOMETER - Performance_Dynamo.sh
+#
+# iometer - Performance_Dynamo.sh
 #
 # Description:
 #   This is a semi-automated test-case. For the test to run you need
-#   to have a Windows guest with IOMETER 1.1.0-rc1 installed and the 
-#   Iometer for Linux (Dynamo client) archive placed in the Tools folder 
-#   inside lisablue. The versions must match. In the xml you have to 
-#   specify the Windows client's IP address.
-
+#   to have a Windows environment running IOMETER 1.1.0-rc1 and the 
+#   iometer for Linux (Dynamo client) archive placed in the Tools folder.
+#   The versions must match. In the xml you have to  specify the Windows 
+#	client IP address.
+#
 # Parameters:
-#     IOMETER_IP: The IP of the Windows guest
+#     IOMETER_IP: The IP of the Windows machine
 #     TOTAL_DISKS: Number of disks attached
 #     TEST_DEVICE1 = /dev/sdb
 #     TEST_DEVICE2 = /dev/sdc
@@ -43,7 +44,7 @@
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
-ICA_TESTFAILED="TestFailed"        # Error during running of test
+ICA_TESTFAILED="TestFailed"        # Error during test
 
 CONSTANTS_FILE="constants.sh"
 
@@ -58,6 +59,25 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
+LinuxRelease()
+{
+    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
+
+    case $DISTRO in
+        *buntu*)
+            echo "UBUNTU";;
+        Fedora*)
+            echo "FEDORA";;
+        CentOS*)
+            echo "CENTOS";;
+        *SUSE*)
+            echo "SLES";;
+        Red*Hat*)
+            echo "RHEL";;
+        Debian*)
+            echo "DEBIAN";;
+    esac
+}
 
 #
 # Create the state.txt file so ICA knows we are running
@@ -66,8 +86,7 @@ LogMsg "Updating test case state to running"
 UpdateTestState $ICA_TESTRUNNING
 
 #
-# Source the constants.sh file to pickup definitions from
-# the ICA automation
+# Source the constants.sh file
 #
 if [ -e ./${CONSTANTS_FILE} ]; then
     source ${CONSTANTS_FILE}
@@ -81,10 +100,8 @@ if [ -e ~/summary.log ]; then
 fi
 
 #
-#  Check if VHD's are attached and if so, mount them
+# Check if variable is defined in the constants file
 #
-
-## Check if Variable in Const file is present or not
 if [ ! ${TOTAL_DISKS} ]; then
     LogMsg "The TOTAL_DISKS variable is not defined."
     echo "The TOTAL_DISKS variable is not defined." >> ~/summary.log
@@ -96,7 +113,7 @@ fi
 echo "Number of disk attached : $TOTAL_DISKS" >> ~/summary.log
 
 fdisk -l
-sleep 2
+sleep 3
 NEW_DISK=$(fdisk -l | grep "Disk /dev/sd*" | wc -l)
 NEW_DISK=$((NEW_DISK-1))
 if [ "$NEW_DISK" = "$TOTAL_DISKS" ] ; then
@@ -113,6 +130,19 @@ else
     exit 40
 fi
 
+case $(LinuxRelease) in
+    "UBUNTU")
+        apt-get install make
+        FS="ext4"
+    ;;
+    "SLES")
+        FS="ext3"
+    ;;
+     *)
+        FS="ext4"
+    ;; 
+esac
+
 i=1
 while [ $i -le $TOTAL_DISKS ]
 do
@@ -127,14 +157,14 @@ do
     echo "Target device = ${!j}" >> ~/summary.log
     DISK=`echo ${!j} | cut -c 6-8`
 
-    # Fomat and mount disk
+    # Format and mount the disk
     (echo d;echo;echo w)|fdisk /dev/$DISK
     sleep 2
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk /dev/$DISK
     sleep 5
-    mkfs.ext4 /dev/${DISK}1
+    mkfs.${FS} /dev/${DISK}1
     if [ "$?" = "0" ]; then
-        LogMsg "mkfs.ext4 /dev/${DISK}1 successful..."
+        LogMsg "mkfs.$FS /dev/${DISK}1 successful..."
         mount /dev/${DISK}1 /mnt
         if [ "$?" = "0" ]; then
             LogMsg "Drive mounted successfully..."    
@@ -153,36 +183,31 @@ do
     i=$[$i+1]
 done
 
-
 #
-# Install IOMETER and check if its installed successfully
+# Install iometer and check if the installation is successful
 #
-
-
-# Make sure the IOMETER exists
 IOMETER=/root/${FILE_NAME}
 
 if [ ! -e ${IOMETER} ];
 then
-    echo "Cannot find iometer file." >> ~/summary.log
+    echo "Cannot find the iometer archive!" >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 20
 fi
 
+#
 # Get Root Directory of the archive
-#ROOTDIR=iometer-1.1.0-rc1
+#
 ROOTDIR=`tar tjf ${FILE_NAME} | sed -e 's@/.*@@' | uniq`
 
-# Now Extract the archive.
 tar -xvjf ${IOMETER}
 sts=$?
 if [ 0 -ne ${sts} ]; then
-    echo "Failed to extract IOMETER tarball" >> ~/summary.log
+    echo "Failed to extract iometer tarball!" >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 30
 fi
 
-# cd in to directory    
 if [ !  ${ROOTDIR} ];
 then
     echo "Cannot find ROOTDIR." >> ~/summary.log
@@ -203,36 +228,36 @@ sed -i s,"defined(IOMTR_OS_LINUX) || defined(IOMTR_OSFAMILY_NETWARE)","defined(I
 make -f Makefile-$(uname).$(uname -m) all
 sts=$?
     if [ 0 -ne ${sts} ]; then
-        echo "Error:  make linux  ${sts}" >> ~/summary.log
+        echo "Error: make linux  ${sts}" >> ~/summary.log
         UpdateTestState "TestAborted"
         echo "make linux : Failed" 
         exit 50
     else
-        echo "make linux : Success"
+        echo "make linux: Success"
 
     fi
     
-LogMsg "IOMETER installed successfully"
+LogMsg "iometer was installed successfully!"
 
 #
-#Turn off firewall
+# Turn off firewall
 #
 service iptables stop
 
 #
-# run IOMETER
+# run iometer
 #
 ./dynamo -i ${IOMETER_IP} -m ${ipv4}
 if [ $? -ne 0 ] ; then
-    LogMsg "IOMETER test failed"
-    echo "IOMETER test failed" >> ~/summary.log
+    LogMsg "iometer test failed!"
+    echo "iometer test failed!" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 60
 fi
 sleep 1
 
-LogMsg "IOMETER test completed successfully"
-echo "IOMETER test completed successfully" >> ~/summary.log
+LogMsg "iometer test completed successfully"
+echo "iometer test completed successfully" >> ~/summary.log
 
 #
 # Let ICA know we completed successfully
