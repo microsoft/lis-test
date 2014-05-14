@@ -388,6 +388,24 @@ cd $rootDir
 # Source the TCUtils.ps1 file
 . .\setupscripts\TCUtils.ps1
 
+# Check if the Vm VHD in not on the same drive as the backup destination 
+$vm = Get-VM -Name $vmName -ComputerName $hvServer
+if (-not $vm)
+{
+    "Error: VM '${vmName}' does not exist"
+    return $False
+}
+ 
+foreach ($drive in $vm.HardDrives)
+{
+    if ( $drive.Path.StartsWith("${driveLetter}"))
+    {
+        "Error: Backup partition '${driveLetter}' is same as partition hosting the VMs disk"
+        "       $($drive.Path)"
+        return $False
+    }
+}
+
 # Check to see Linux VM is running VSS backup daemon 
 $sts = CheckVSSDaemon
 if (-not $sts[-1])
