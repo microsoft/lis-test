@@ -1,4 +1,5 @@
 #!/bin/bash
+
 ############################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
@@ -22,13 +23,13 @@
 
 ############################################################################
 #
-# Performance test IOzone
 # Performance_IOzone.sh
 #
 # Description:
-# For the test to run you have to place the iozone3_420.tar archive in the
-# lisablue/Tools folder on the HyperV.
+# 	For the test to run you have to place the iozone3_420.tar archive in the
+# 	Tools folder under lisa.
 #
+# Parameters:
 #     TOTAL_DISKS: Number of disks attached
 #     TEST_DEVICE1 = /dev/sdb
 #
@@ -37,14 +38,13 @@
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
-ICA_TESTFAILED="TestFailed"        # Error during running of test
+ICA_TESTFAILED="TestFailed"        # Error during test
 
 CONSTANTS_FILE="constants.sh"
 
-
 LogMsg()
 {
-    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
+    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the time-stamp to the log file
 }
 
 UpdateTestState()
@@ -52,6 +52,25 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
+LinuxRelease()
+{
+    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
+
+    case $DISTRO in
+        *buntu*)
+            echo "UBUNTU";;
+        Fedora*)
+            echo "FEDORA";;
+        CentOS*)
+            echo "CENTOS";;
+        *SUSE*)
+            echo "SLES";;
+        Red*Hat*)
+            echo "RHEL";;
+        Debian*)
+            echo "DEBIAN";;
+    esac
+}
 
 #
 # Create the state.txt file so ICA knows we are running
@@ -60,8 +79,7 @@ LogMsg "Updating test case state to running"
 UpdateTestState $ICA_TESTRUNNING
 
 #
-# Source the constants.sh file to pickup definitions from
-# the ICA automation
+# Source the constants.sh file
 #
 if [ -e ./${CONSTANTS_FILE} ]; then
     source ${CONSTANTS_FILE}
@@ -74,12 +92,9 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
-
 #
-#  Check if VHD's are attached and if so, mount them
+# Check if variable is defined in the constants file
 #
-
-## Check if Variable in Const file is present or not
 if [ ! ${TOTAL_DISKS} ]; then
     LogMsg "The TOTAL_DISKS variable is not defined."
     echo "The TOTAL_DISKS variable is not defined." >> ~/summary.log
@@ -108,6 +123,28 @@ else
     exit 40
 fi
 
+case $(LinuxRelease) in
+    "UBUNTU")
+        apt-get install make
+        FS="ext4"
+        COMMAND="timeout 30m ./iozone -az -g 50G /mnt &"
+        EVAL=""
+    ;;
+	#
+	# Some older SLES versions don't have the #timeout command
+	#
+    "SLES")
+        FS="ext3"
+        COMMAND="bash -c \ '(sleep 1800; kill \$$) & exec ./iozone -az -g 50G /mnt\'"
+        EVAL="eval"
+    ;;
+     *)
+        FS="ext4"
+        COMMAND="timeout 30m ./iozone -az -g 50G /mnt &"
+        EVAL=""
+    ;; 
+esac
+
 i=1
 while [ $i -le $TOTAL_DISKS ]
 do
@@ -122,14 +159,14 @@ do
     echo "Target device = ${!j}" >> ~/summary.log
     DISK=`echo ${!j} | cut -c 6-8`
 
-# Format and mount disk
+# Format and mount the disk
     (echo d;echo;echo w)|fdisk /dev/$DISK
     sleep 2
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk /dev/$DISK
     sleep 5
-    mkfs.ext4 /dev/${DISK}1
+    mkfs.${FS} /dev/${DISK}1
     if [ "$?" = "0" ]; then
-        LogMsg "mkfs.ext4 /dev/${DISK}1 successful..."
+        LogMsg "mkfs.$FS /dev/${DISK}1 successful..."
         mount /dev/${DISK}1 /mnt
         if [ "$?" = "0" ]; then
             LogMsg "Drive mounted successfully..."    
@@ -149,10 +186,8 @@ do
 done
 
 #
-# Install IOzone and check if its installed successfully
+# Install iometer and check if the installation is successful
 #
-
-# Make sure iozone exists
 IOZONE=/root/${FILE_NAME}
 
 if [ ! -e ${IOZONE} ];
@@ -165,16 +200,14 @@ fi
 # Get Root Directory of the archive
 ROOTDIR=`tar -tvf ${IOZONE} | head -n 1 | awk -F " " '{print $6}' | awk -F "/" '{print $1}'`
 
-# Now Extract the archive
 tar -xvf ${IOZONE}
 sts=$?
 if [ 0 -ne ${sts} ]; then
-    echo "Failed to extract Iozone archive" >> ~/summary.log
+    echo "Failed to extract the iozone archive!" >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 30
 fi
-
-# cd in to directory    
+ 
 if [ !  ${ROOTDIR} ];
 then
     echo "Cannot find ROOTDIR." >> ~/summary.log
@@ -185,45 +218,43 @@ fi
 cd ${ROOTDIR}/src/current
 
 #
-# Compile IOzone
+# Compile iozone
 #
-
 make linux
 sts=$?
     if [ 0 -ne ${sts} ]; then
-        echo "Error:  make linux  ${sts}" >> ~/summary.log
+        echo "Error: make linux  ${sts}" >> ~/summary.log
         UpdateTestState "TestAborted"
         echo "make linux : Failed" 
         exit 50
     else
-        echo "make linux : Success"
+        echo "make linux: Success"
 
     fi
 
 
-LogMsg "IOzone installed successfully"
+LogMsg "iometer was installed successfully!"
 
 # 
-# Run iozone for throughput test
+# Run iozone for 30 minutes
 #
-pwd
-./iozone ${IOZONE_PARAMS} -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
+${EVAL} ${COMMAND}
 
 #
-# Check if SCSI disk is still online
+# Check if the SCSI disk is still connected
 #
 mkdir /mnt/Example
 dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
     if [ $? -ne 0 ]; then
-        LogMsg "Iozone test failed!"
-        echo "Iozone test failed!" >> ~/summary.log
+        LogMsg "iozone test failed!"
+        echo "iozone test failed!" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
         exit 60
     fi
-   sleep 1
+sleep 1
 
-LogMsg "IOzone test completed successfully"
-echo "IOzone test completed successfully" >> ~/summary.log
+LogMsg "=iozone test completed successfully"
+echo "iozone test completed successfully" >> ~/summary.log
 
 #
 # Let ICA know we completed successfully
