@@ -36,8 +36,7 @@
         <noReboot>False</noReboot>
         <timeout>600</timeout>
         <testParams>
-            <param>TC_COVERED=FC-01</param>
-            <param>TC_COVERED=FC-02</param>
+            <param>TC_COVERED=FC-01,FC-02</param>
             <param>vSANName=fc</param>
         </testParams>
     </test>

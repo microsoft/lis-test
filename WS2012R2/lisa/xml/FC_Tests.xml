@@ -94,7 +94,7 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>PKI_id_rsa.ppk</sshKey>
-            <suite>VSS</suite>
+            <suite>FC</suite>
         </vm>
     </VMs>
 </config>
