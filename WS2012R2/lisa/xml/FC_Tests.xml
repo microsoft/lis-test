@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+
+    All rights reserved. 
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0  
+
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS_FC_tests_WS2012R2</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+        <suite>
+		<suiteName>FC</suiteName>
+		<suiteTests>
+			<suiteTest>FC_disks_detection</suiteTest>
+			<suiteTest>FC_stressTest</suiteTest> 
+			<suiteTest>FC_SaveRestore_VM</suiteTest>
+		</suiteTests>
+        </suite>
+    </testSuites>
+
+	<testCases>			
+		<test>
+			<testName>FC_disks_detection</testName>
+			<testScript>FC_disks.sh</testScript>
+			<files>remote-scripts\ica\FC_disks.sh</files>
+			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+			<timeout>600</timeout>
+			<testParams>
+				<param>TC_COVERED=FC-01,FC-02</param>
+				<param>vSANName=FC_NAME</param>
+			</testParams>
+		</test>
+
+		<test>
+			<testName>FC_stressTest</testName>
+			<testScript>FC_stressTest.sh</testScript>
+			<files>remote-scripts\ica\FC_stressTest.sh</files>
+			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+			<timeout>1800</timeout>
+			<testParams>
+				<param>TC_COVERED=FC-04</param>
+				<param>vSANName=FC_NAME</param>
+			</testParams>
+		</test>
+
+		<test>
+			<testName>FC_SaveRestore_VM</testName>
+			<testScript>FC_disks.sh</testScript>
+			<files>remote-scripts\ica\FC_disks.sh</files>
+			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+			<posttest>setupScripts\FC_SaveRestoreVM.ps1</posttest>
+			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+			<timeout>600</timeout>
+			<testParams>
+				<param>TC_COVERED=FC-07</param>
+				<param>vSANName=FC_NAME</param>
+			</testParams>
+		</test>
+	</testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>VM_NAME</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>PKI_id_rsa.ppk</sshKey>
+            <suite>VSS</suite>
+        </vm>
+    </VMs>
+</config>
