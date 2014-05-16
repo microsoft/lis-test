@@ -29,7 +29,7 @@
 #   Integration services. This script will identify the number of 
 #   total disks detected inside the guest VM.
 #   It will then format one FC disk and perform stress test on it.
-#   This tests verifies the first FC disk, if you want to check every disk
+#   This test verifies the first FC disk, if you want to check every disk
 #   move the exit statement from line 271 to line 273.
 #     
 #    To pass test parameters into test cases, the host will create

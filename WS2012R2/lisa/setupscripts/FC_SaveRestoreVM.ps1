@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    Saves and restores a VM while the fibre channel is conencted.
+    Saves and restores a VM while the fibre channel is connected.
 
 .Description
     This is a postTest script to check for save/restore VM operation 
