@@ -67,3 +67,13 @@ if (! $sts)
 {
     Import-Module FailoverClusters
 }
+
+#
+# Check if migration networks are configured
+#
+$migrationNetworks = Get-ClusterNetwork
+if (-not $migrationNetworks)
+{
+    "Error: There are no migration networks configured"
+    return $False
+}
