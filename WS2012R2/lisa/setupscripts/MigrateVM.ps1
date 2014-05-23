@@ -36,3 +36,26 @@
 .Link
     None.
 #>
+param([string] $vmName, [string] $hvServer, [string] $migrationType)
+
+#
+# Check input arguments
+#
+if (-not $vmName -or $vmName.Length -eq 0)
+{
+    "Error: VM name is null"
+    return $false
+}
+
+if (-not $hvServer -or $hvServer.Length -eq 0)
+{
+    "Error: hvServer is null"
+    return $false
+}
+
+if (-not $migrationType -or $migrationType.Length -eq 0)
+{
+    "Error: migrationType is null or invalid"
+    return $False
+}
+
