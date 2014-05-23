@@ -59,3 +59,11 @@ if (-not $migrationType -or $migrationType.Length -eq 0)
     return $False
 }
 
+#
+# Load the cluster cmdlet module
+#
+$sts = Get-Module | Select-String -Pattern FailoverClusters -Quiet
+if (! $sts)
+{
+    Import-Module FailoverClusters
+}
