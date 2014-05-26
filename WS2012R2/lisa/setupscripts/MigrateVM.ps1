@@ -77,3 +77,31 @@ if (-not $migrationNetworks)
     "Error: There are no migration networks configured"
     return $False
 }
+
+#
+# Get the VMs current node
+#
+$vmResource =  Get-ClusterResource | where-object {$_.OwnerGroup.name -eq "$vmName" -and $_.ResourceType.Name -eq "Virtual Machine"}
+if (-not $vmResource)
+{
+    "Error: Unable to find cluster resource for current node"
+    return $False
+}
+
+$currentNode = $vmResource.OwnerNode.Name
+if (-not $currentNode)
+{
+    "Error: Unable to set currentNode"
+    return $False
+}
+
+#
+# Get nodes the VM can be migrated to
+#
+$clusterNodes = Get-ClusterNode
+if (-not $clusterNodes -and $clusterNodes -isnot [array])
+{
+    "Error: There is only one cluster node in the cluster."
+    return $False
+}
+
