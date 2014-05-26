@@ -105,3 +105,41 @@ if (-not $clusterNodes -and $clusterNodes -isnot [array])
     return $False
 }
 
+#
+# Picking up a node that does not match the current VMs node
+#
+$destinationNode = $clusterNodes[0].Name.ToLower()
+if ($currentNode -eq $clusterNodes[0].Name.ToLower())
+{
+    $destinationNode = $clusterNodes[1].Name.ToLower()
+}
+
+if (-not $destinationNode)
+{
+    "Error: Unable to set destination node"
+    return $False
+}
+
+"Info : Migrating VM $vmName from $currentNode to $destinationNode"
+
+$error.Clear()
+$sts = Move-ClusterVirtualMachineRole -name $vmName -node $destinationNode -MigrationType $migrationType
+if ($error.Count -gt 0)
+{
+    "Error: Unable to move the VM"
+    $error
+    return $False
+}
+
+"Info : Migrating VM $vmName back from $destinationNode to $currentNode"
+
+$error.Clear()
+$sts = Move-ClusterVirtualMachineRole -name $vmName -node $currentNode -MigrationType $migrationType
+if ($error.Count -gt 0)
+{
+    "Error: Unable to move the VM"
+    $error
+    return $False
+}
+
+return $True
