@@ -106,7 +106,11 @@ if (-not $clusterNodes -and $clusterNodes -isnot [array])
 }
 
 #
+<<<<<<< Updated upstream
 # Picking up a node that does not match the current VMs node
+=======
+# Picking up a node thhat does not match the current VMs node
+>>>>>>> Stashed changes
 #
 $destinationNode = $clusterNodes[0].Name.ToLower()
 if ($currentNode -eq $clusterNodes[0].Name.ToLower())
