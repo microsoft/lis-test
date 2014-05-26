@@ -78,6 +78,7 @@ Write-Output "TestParams : '${testParams}'"
 
 $migrationType  = $null
 $TC_COVERED     = $null
+$ipv4           = $null
 
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($param in $params)
@@ -87,6 +88,7 @@ foreach ($param in $params)
     switch ($fields[0].Trim())
     {
         "MigType"       { $migrationType    = $fields[1].Trim() }
+        "ipv4"          { $ipv4             = $fields[1].Trim() }
         "TC_COVERED"    { $TC_COVERED       = $fields[1].Trim() }
         default         {} #unknown param - just ignore it
     }
