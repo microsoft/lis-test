@@ -49,6 +49,55 @@ param( [String] $vmName,
 
 ########################################################################
 #
+# Create-TempFile()
+#
+########################################################################
+function Create-TempFile
+{
+    param(
+		[Parameter(mandatory=$True)]
+		[String]$FilePath,
+		[Parameter(mandatory=$True)]
+		[double]$Size
+		)
+
+    $file = [System.IO.File]::Create($FilePath)
+    $file.SetLength($Size)
+    $file.Close()
+
+    return $true
+}
+
+########################################################################
+#
+# Copy-TempFile -Path $rootDir\temp.txt -sshKey $sshKey -Ip $ipv4
+#
+########################################################################
+function Copy-TempFile
+{
+    param(
+		[Parameter(mandatory=$True)]
+		[String]$FilePath,
+		[Parameter(mandatory=$True)]
+		[String]$sshKey,
+		[Parameter(mandatory=$True)]
+		[String]$Ip,
+		[Parameter(mandatory=$True)]
+		[String]$ScpDir
+		)
+
+    & "$ScpDir\pscp.exe" -i $sshKey $FilePath root@${Ip}:
+    if(-not $?)
+    {
+        "Error: Error copying ${Path} to VM Ip - ${Ip}"
+        return $False
+    }
+
+    return $true
+}
+
+########################################################################
+#
 # Main entry point for script
 #
 ########################################################################
@@ -78,8 +127,15 @@ Write-Output "TestParams : '${testParams}'"
 
 $migrationType  = $null
 $ipv4           = $null
+$sshKey         = $null
 $rootDir        = $null
+$copyFile       = $False
 $TC_COVERED     = $null
+$pingCount      = 0
+$goodPings      = 0
+$badPings       = 0
+$firstPing      = $False
+$lastPing       = $False
 
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($param in $params)
@@ -90,7 +146,9 @@ foreach ($param in $params)
     {
         "MigType"       { $migrationType    = $fields[1].Trim() }
         "ipv4"          { $ipv4             = $fields[1].Trim() }
+        "sshKey"        { $sshKey           = $fields[1].Trim() }
         "rootDir"       { $rootDir          = $fields[1].Trim() }
+        "copyFile"      { $copyFile         = $fields[1].Trim() }
         "TC_COVERED"    { $TC_COVERED       = $fields[1].Trim() }
         default         {} #unknown param - just ignore it
     }
@@ -107,15 +165,6 @@ if (-not $ping)
 {
     "Error: Unable to create a ping object"
 }
-
-#
-# Initialize counters
-#
-$pingCount = 0
-$goodPings = 0
-$badPings = 0
-$firstPing = $False
-$lastPing = $False
 
 "Info: Trying to ping the VM before starting migration"
 $pingCount += 1
@@ -145,6 +194,7 @@ $jobInfo = Get-Job -Id $job.Id
 if($jobInfo.State -ne "Running")
 {
     "Error: Migration job did not start or terminated immediately"
+    return $False
 }
 
 "Info: Pinging VM during the migration"
@@ -163,6 +213,30 @@ while ($migrateJobRunning)
         $lastPing = $False
     }
     $pingCount += 1
+
+    #
+    # Copying file during migration
+    #
+    if($copyFile)
+    {
+        "Info: Creating a 256MB temp file"
+        $sts = Create-TempFile -FilePath "$rootDir\temp.txt" -Size 256MB 
+        if (-not $?)
+        {
+            "Error: Unable to create the temp file"
+            return $False
+        }
+
+        "Info: Copying temp file to VM"
+        $sts = Copy-TempFile -FilePath "$rootDir\temp.txt" -sshKey "$rootDir\ssh\$sshKey" -Ip $ipv4 -ScpDir "$rootDir\bin"
+        if (-not $?)
+        {
+            "Error: Unable to copy file"
+            return $False
+        }
+
+        $copyFile = $False
+    }
 
     $jobInfo = Get-Job -Id $job.Id
     if($jobInfo.State -eq "Completed")
