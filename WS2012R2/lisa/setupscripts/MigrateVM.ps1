@@ -36,7 +36,7 @@
 .Link
     None.
 #>
-param([string] $vmName, [string] $hvServer, [string] $migrationType)
+param([string] $vmName, [string] $hvServer, [string] $migrationType, [String] $stopClusterNode)
 
 #
 # Check input arguments
@@ -129,6 +129,55 @@ if ($error.Count -gt 0)
     $error
     return $False
 }
+
+
+if($stopClusterNode)
+{
+    $clusterNodeStopped = $False
+    "Info: Stoping cluster service for node ${destinationNode}"
+    Stop-ClusterNode -Name $destinationNode
+    $stoppedNode = Get-ClusterNode -Name $destinationNode
+    $stopClusterNode = $False
+
+    "Info: Waiting for ${destinationNode}'s cluster service to stop"
+    while(-not $clusterNodeStopped)
+    {
+        if($stoppedNode.State -eq "Down")
+        {
+            $clusterNodeStopped = $True
+        }
+    }
+    "Info: Cluster service for node ${destinationNode} is stopped"
+
+    "Info: Sleep for 30 sec."
+    $sleepTime = 30
+    Start-Sleep -s $sleepTime
+
+    "Info: Starting cluster service for node ${destinationNode}"
+    Start-ClusterNode -Name $destinationNode
+    "Info: Waiting for ${destinationNode}'s cluster service to be up and running"
+    while($clusterNodeStopped)
+    {
+        if($stoppedNode.State -eq "Up")
+        {
+            $clusterNodeStopped = $False
+        }
+    }
+    "Info: ${destinationNode}'s cluster service is up and running"
+
+    "Info: checking if VM went back to ${currentNode}"
+    $vms = Get-VM -ComputerName $currentNode
+    foreach($vm in $vms)
+    {
+        if($vm.ComputerName.ToLower() -eq $currentNode.ToLower())
+        {
+            "Success: ${vmName} went back to ${currentNode}"
+            return $True
+        }
+    }
+    return $False
+}
+
 
 "Info : Migrating VM $vmName back from $destinationNode to $currentNode"
 

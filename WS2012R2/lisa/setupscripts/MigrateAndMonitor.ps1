@@ -130,6 +130,7 @@ $ipv4           = $null
 $sshKey         = $null
 $rootDir        = $null
 $copyFile       = $False
+$stopClusterNode= $False
 $TC_COVERED     = $null
 $pingCount      = 0
 $goodPings      = 0
@@ -149,6 +150,7 @@ foreach ($param in $params)
         "sshKey"        { $sshKey           = $fields[1].Trim() }
         "rootDir"       { $rootDir          = $fields[1].Trim() }
         "copyFile"      { $copyFile         = $fields[1].Trim() }
+        "stopClusterNode"{ $stopClusterNode = $fields[1].Trim() }
         "TC_COVERED"    { $TC_COVERED       = $fields[1].Trim() }
         default         {} #unknown param - just ignore it
     }
@@ -177,11 +179,12 @@ if ($pingReply.Status -ne "Success")
 $firstPing = $true
 $goodPings += 1
 
+
 #
 # Start the VM migration, and make sure it is running
 #
 "Info: Starting migration job"
-$job = Start-Job -FilePath $rootDir\setupScripts\MigrateVM.ps1 -ArgumentList $vmName, $hvServer, $migrationType
+$job = Start-Job -FilePath $rootDir\setupScripts\MigrateVM.ps1 -ArgumentList $vmName, $hvServer, $migrationType, $stopClusterNode
 
 if (-not $job)
 {
