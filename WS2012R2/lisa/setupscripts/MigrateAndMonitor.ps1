@@ -77,8 +77,9 @@ if (-not $testParams)
 Write-Output "TestParams : '${testParams}'"
 
 $migrationType  = $null
-$TC_COVERED     = $null
 $ipv4           = $null
+$rootDir        = $null
+$TC_COVERED     = $null
 
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($param in $params)
@@ -89,6 +90,7 @@ foreach ($param in $params)
     {
         "MigType"       { $migrationType    = $fields[1].Trim() }
         "ipv4"          { $ipv4             = $fields[1].Trim() }
+        "rootDir"       { $rootDir          = $fields[1].Trim() }
         "TC_COVERED"    { $TC_COVERED       = $fields[1].Trim() }
         default         {} #unknown param - just ignore it
     }
@@ -130,7 +132,7 @@ $goodPings += 1
 # Start the VM migration, and make sure it is running
 #
 "Info: Starting migration job"
-$job = Start-Job -FilePath setupScripts\MigrateVM.ps1 -ArgumentList $vmName, $hvServer, $migrationType
+$job = Start-Job -FilePath $rootDir\setupScripts\MigrateVM.ps1 -ArgumentList $vmName, $hvServer, $migrationType
 
 if (-not $job)
 {
@@ -163,7 +165,7 @@ while ($migrateJobRunning)
     $pingCount += 1
 
     $jobInfo = Get-Job -Id $job.Id
-    if($jobInfo.State -ne "Completed")
+    if($jobInfo.State -eq "Completed")
     {
         $migrateJobRunning = $False
         continue
