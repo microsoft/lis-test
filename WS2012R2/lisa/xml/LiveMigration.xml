@@ -36,4 +36,28 @@
         <!-- Optional testParams go here -->
     </global>
     
+	<testSuites>
+        <suite>
+            <suiteName>LiveMigration</suiteName>
+            <suiteTests>
+                <suiteTest>LiveMigrate</suiteTest>
+                <suiteTest>QuickMigrate</suiteTest>
+                <suiteTest>CopyFileDuringMigration</suiteTest>
+                <suiteTest>Failover</suiteTest>
+                <suiteTest>SetMemory512_LiveMig</suiteTest>
+                <suiteTest>SetMemory512_QuickMig</suiteTest>
+                <suiteTest>SetMemory2048_LiveMig</suiteTest>
+                <suiteTest>SetMemory2048_QuickMig</suiteTest>
+                <suiteTest>SetMemory5120_LiveMig</suiteTest>
+                <suiteTest>SetMemory5120_QuickMig</suiteTest>
+                <suiteTest>MultiCPU2_LiveMig</suiteTest>
+                <suiteTest>MultiCPU3_LiveMig</suiteTest>
+                <suiteTest>MultiCPU4_LiveMig</suiteTest>
+                <suiteTest>MultiCPU2_QuickMig</suiteTest>
+                <suiteTest>MultiCPU3_QuickMig</suiteTest>
+                <suiteTest>MultiCPU4_QuickMig</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+	
 </config>
