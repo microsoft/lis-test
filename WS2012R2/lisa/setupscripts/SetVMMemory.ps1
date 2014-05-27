@@ -28,16 +28,19 @@
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
 .Parameter VMMemory
-    The amount of RAM to be set
+    The amount of RAM to be set in GB
 .Example
-
+     
 .Link
     None.
 #>
 
 param(
+      [Parameter(mandatory=$True)]
       [string] $vmName,
-      [string] $hvServer, 
+      [Parameter(mandatory=$True)]
+      [string] $hvServer,
+      [Parameter(mandatory=$True)] 
       [string] $VMMemory
       )
 
@@ -61,3 +64,14 @@ if (-not $VMMemory -or $VMMemory.Length -eq 0)
     return $False
 }
 
+Set-VMMemory -VMName $vmName -ComputerName $hvServer -StartupBytes $VMMemory -Confirm:$False
+if(-not $?)
+{
+    "Error: Unable to set ${VMMemory} of RAM for ${vmName}"
+    return $retVal
+}
+
+"Success: Setting $VMMemory of RAM for $vmName updated successful"
+$retVal = $True
+
+return $retVal 
