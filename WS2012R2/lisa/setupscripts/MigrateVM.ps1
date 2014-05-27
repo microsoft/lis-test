@@ -36,7 +36,7 @@
 .Link
     None.
 #>
-param([string] $vmName, [string] $hvServer, [string] $migrationType, [String] $stopClusterNode)
+param([string] $vmName, [string] $hvServer, [string] $migrationType, [bool] $stopClusterNode)
 
 #
 # Check input arguments
