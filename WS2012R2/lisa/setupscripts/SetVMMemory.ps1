@@ -34,3 +34,30 @@
 .Link
     None.
 #>
+
+param(
+      [string] $vmName,
+      [string] $hvServer, 
+      [string] $VMMemory
+      )
+
+$retVal = $False
+
+if (-not $vmName -or $vmName.Length -eq 0)
+{
+    "Error: vmName is null"
+    return $False
+}
+
+if (-not $hvServer -or $hvServer.Length -eq 0)
+{
+    "Error: vmName is null"
+    return $False
+}
+
+if (-not $VMMemory -or $VMMemory.Length -eq 0)
+{
+    "Error: vmName is null"
+    return $False
+}
+
