@@ -27,21 +27,18 @@
     Name of the VM to migrate.
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
-.Parameter VMMemory
-    The amount of RAM to be set in GB
+.Parameter testParams
+    The amount of RAM to be set
 .Example
-     
+    
 .Link
     None.
 #>
 
 param(
-      [Parameter(mandatory=$True)]
       [string] $vmName,
-      [Parameter(mandatory=$True)]
-      [string] $hvServer,
-      [Parameter(mandatory=$True)] 
-      [string] $VMMemory
+      [string] $hvServer, 
+      [string] $testParams
       )
 
 $retVal = $False
@@ -54,14 +51,28 @@ if (-not $vmName -or $vmName.Length -eq 0)
 
 if (-not $hvServer -or $hvServer.Length -eq 0)
 {
-    "Error: vmName is null"
+    "Error: hvServer is null"
     return $False
 }
 
-if (-not $VMMemory -or $VMMemory.Length -eq 0)
+if (-not $testParams)
 {
-    "Error: vmName is null"
+    "Error: testParams is null"
     return $False
+}
+
+$VMMemory = $null
+
+$params = $testParams.TrimEnd(";").Split(";")
+foreach ($param in $params)
+{
+    $fields = $param.Split("=")
+
+    switch ($fields[0].Trim())
+    {
+        "VMMemory"      { $VMMemory    = $fields[1].Trim() }
+        default         {} #unknown param - just ignore it
+    }
 }
 
 Set-VMMemory -VMName $vmName -ComputerName $hvServer -StartupBytes $VMMemory -Confirm:$False
