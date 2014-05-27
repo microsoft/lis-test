@@ -40,6 +40,47 @@ param(
       [string] $hvServer, 
       [string] $testParams
       )
+########################################################################
+#
+# ConvertStringToUInt64()
+#
+########################################################################
+function ConvertStringToUInt64([string] $str)
+{
+    $uint64Size = $null
+
+    #
+    # Make sure we received a string to convert
+    #
+    if (-not $str)
+    {
+        Write-Error -Message "ConvertStringToUInt64() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    if ($str.EndsWith("MB"))
+    {
+        $num = $str.Replace("MB","")
+        $uint64Size = ([Convert]::ToUInt64($num)) * 1MB
+    }
+    elseif ($str.EndsWith("GB"))
+    {
+        $num = $str.Replace("GB","")
+        $uint64Size = ([Convert]::ToUInt64($num)) * 1GB
+    }
+    elseif ($str.EndsWith("TB"))
+    {
+        $num = $str.Replace("TB","")
+        $uint64Size = ([Convert]::ToUInt64($num)) * 1TB
+    }
+    else
+    {
+        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    return $uint64Size
+}
 
 $retVal = $False
 
@@ -61,7 +102,8 @@ if (-not $testParams)
     return $False
 }
 
-$VMMemory = $null
+$VMMemory      = $null
+$startupMemory = $null
 
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($param in $params)
@@ -75,7 +117,9 @@ foreach ($param in $params)
     }
 }
 
-Set-VMMemory -VMName $vmName -ComputerName $hvServer -StartupBytes $VMMemory -Confirm:$False
+$startupMemory = ConvertStringToUInt64 $VMMemory
+
+Set-VMMemory -VMName $vmName -ComputerName $hvServer -StartupBytes $startupMemory -Confirm:$False
 if(-not $?)
 {
     "Error: Unable to set ${VMMemory} of RAM for ${vmName}"
