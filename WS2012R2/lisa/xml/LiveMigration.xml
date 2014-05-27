@@ -18,3 +18,22 @@
     See the Apache Version 2.0 License for specific language governing
     permissions and limitations under the License.
 -->
+
+<config>
+    <global>
+        <logfileRootDir>D:\v-clnesa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>v-clnesa@microsoft.com</to>
+                <!-- <to>myself@microsoft.com</to> -->
+            </recipients>
+            <sender>v-clnesa@microsoft.com</sender>
+            <subject>LISA FTM VHDx Resize on WS2012R2</subject>
+            <smtpServer>smtphost.redmond.corp.microsoft.com</smtpServer>
+        </email>
+
+        <!-- Optional testParams go here -->
+    </global>
+    
+</config>
