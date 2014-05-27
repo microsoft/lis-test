@@ -250,4 +250,15 @@
         </test>
     </testCases>
 	
+	<VMs>
+		<vm>
+			<hvServer>bl7wr2</hvServer>
+			<vmName>clnesaDebian_LM</vmName>
+			<os>Linux</os>
+			<ipv4>10.200.50.92</ipv4>
+			<sshKey>rhel5_id_rsa.ppk</sshKey>
+			<suite>LiveMigration</suite>
+		</vm>
+    </VMs>
+	
 </config>
