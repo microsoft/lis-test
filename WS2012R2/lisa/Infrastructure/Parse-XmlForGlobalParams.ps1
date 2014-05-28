@@ -89,7 +89,7 @@ elseif ($numberOfVMs -gt 1)
     #Concatenation all VM names into a string, split by : 
     foreach($node in $xmlConfig.config.VMs.ChildNodes)
     {
-        $VMName = $VMName + ":" + $node.vmName
+        $VMName = $VMName + ":" + $node.vmName + "@" + $node.hvServer
     }
     #remove the first separator
     $VMName = $VMName.Substring(1, $VMName.Length-1)

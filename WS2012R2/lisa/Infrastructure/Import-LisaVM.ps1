@@ -92,31 +92,38 @@ for ($i=0; $i -lt $vmNumber; $i++)
 {
     if ($vmNumber -eq 1)
     {
-        $theVMName = $VmList
+        $theVMFullName = $VmList
     }
     else
     {
-        $theVMName = $VmList[$i]
+        $theVMFullName = $VmList[$i]
     }
+
+    $theVMName = $theVMFullName.Split("@")[0]
+    $theVMComputerName = $theVMFullName.Split("@")[1]
 
     #----------------------------------------------------------------------------
     # Remove a VM if its name already exists in HyperV manager (if not, the start vm will fail because the VM files are being used by HyperV)
     #----------------------------------------------------------------------------
-    $VMSvr = Get-WmiObject -namespace "Root\Virtualization\V2" "Msvm_VirtualSystemManagementService"
-    $VM = Get-WmiObject -namespace "Root\Virtualization\V2" -query "SELECT * FROM Msvm_ComputerSystem WHERE Caption='Virtual Machine' and elementName= '$theVMName'"
+    Write-Host "Get-VM: $theVMName  from $theVMComputerName"
+    $VM = Get-VM -Name $theVMName -ComputerName $theVMComputerName
 
     if($VM -ne $null)
     {
-	    Write-Host "The VM $theVMName was found already exist in the HyperV manager. Exiting..."
+	    Write-Host "The VM: $theVMName was found already exist in the HyperV manager of $theVMComputerName. Exiting..."
     }
     else
     {
         $VMFullName = "$VMDir\$theVMName"
-        Write-Host "Importing $VMFullName into Hyper-V ..." 
+        Write-Host "Importing $VMFullName into Hyper-V on $theVMComputerName ..." 
 
-        $vmConfig = Get-Item "$VMDir\$theVMName\Virtual Machines\*.xml"
-        Compare-VM -path $vmconfig
-        Import-VM ¨CPath $vmconfig
+        $remoteConfigFilePattern = "\\$theVMComputerName\"+$VMDir.Replace(":","$")+"\$theVMName\Virtual Machines\*.xml"
+        $vmConfigRemote = Get-Item $remoteConfigFilePattern
+        $localConfigFilePattern = "$VMDir\$theVMName\Virtual Machines\"+$vmConfigRemote.Name
+        Write-Host "VM config file found: $localConfigFilePattern on $theVMComputerName" 
+
+        Compare-VM -path $localConfigFilePattern -ComputerName $theVMComputerName
+        Import-VM -Path $localConfigFilePattern  -ComputerName $theVMComputerName
     }
 }
 Write-Host "Running [Import-LisaVM.ps1] FINISHED (NOT VERIFIED)."

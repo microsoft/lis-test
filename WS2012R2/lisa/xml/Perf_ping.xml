@@ -50,7 +50,7 @@
             <testName>Ping</testName>
             <testScript>perf_ping.sh</testScript>
             <files>remote-scripts\ica\perf_ping.sh</files>
-            <timeout>600</timeout>
+            <timeout>1200</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testparams>
