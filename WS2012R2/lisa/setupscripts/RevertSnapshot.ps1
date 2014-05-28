@@ -19,8 +19,6 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
     Revert a VM to a named snapshot.
@@ -38,14 +36,12 @@ Description
      The .xml entry for this script could look like either of the
      following:
 
-         <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
+         <setupScript>SetupScripts\RevertSnapshot.ps1</setupScript>
 
    The LiSA automation scripts will always pass the vmName, hvServer,
    and a string of testParams.  The testParams is a string of semicolon
-   separated key value pairs.  For example, an example would be:
-
-         "SLEEP_TIME=5; VCPU=2;"
-
+   separated key value pairs.  
+   
    The setup (and cleanup) scripts need to parse the testParam
    string to find any parameters it needs.
 
@@ -53,15 +49,17 @@ Description
    to indicate if the script completed successfully or not.
 
 .Parameter vmName
-
+    Name of the VM to perform the test with.
+    
 .Parameter hvServer
-
+    Name of the Hyper-V server hosting the VM.
+    
 .Parameter testParams
-
+    A semicolon separated list of test parameters.
+    
 .Example
-    .\RevertSnapshot "myVM" "localhost" "snapshotName=ICABase"
+    .\RevertSnapshot.ps1 -vmName "myVM" -hvServer "localhost" -testParams "snapshotName=ICABase"
 #>
-
 
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -91,7 +89,7 @@ if (-not $testParams)
 }
 
 #
-# Find the testParams we require.  Complain if not found
+# Find the testParams we require.
 #
 $Snapshot = $null
 
@@ -113,13 +111,6 @@ if (-not $Snapshot)
     return $retVal
 }
 
-<#$sts = get-module | select-string -pattern HyperV -quiet
-if (! $sts)
-{
-   Import-module .\HyperVLibV2Sp1\Hyperv.psd1 
-}#>
-
-#New-VMSnapshot -VM $VmName -server $hvServer -wait -Force | Out-Null
 $snap = Get-VMSnapshot -ComputerName $hvServer -VMName   $VmName -Name $Snapshot
 
 Restore-VMSnapshot $snap -Confirm:$false -Verbose
@@ -133,7 +124,5 @@ else
     Write-Output "VM snapshot reverted"
     $retVal = $true
 }
-
-Write-Output $retVal
 
 return $retVal
