@@ -89,7 +89,7 @@ function CheckVSSDaemon()
     $filename = ".\vss"
   
     # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
-    if ((Get-Content $filename  | Measure-Object –Line).Lines -eq  "1" ) {
+    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) {
     {
         Write-Output "VSS Daemon is running"  
         $retValue =  $True
