@@ -65,7 +65,7 @@
                 <param>DriveLetter=C:</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -81,7 +81,7 @@
                 <param>FILESYS=ext3</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -97,7 +97,7 @@
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -113,7 +113,7 @@
                 <param>FILESYS=reiserfs</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -129,7 +129,7 @@
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -141,7 +141,7 @@
                 <param>DriveLetter=C:</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -153,7 +153,7 @@
                 <param>DriveLetter=C:</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -167,7 +167,7 @@
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -177,8 +177,10 @@
             <testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript> 
             <testParams>
                 <param>DriveLetter=C:</param>
+                <param>iOzoneVers=3_424</param>
+                <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -191,7 +193,7 @@
                 <param>vmState=Off</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -204,7 +206,7 @@
                 <param>vmState=Paused</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -217,7 +219,7 @@
                 <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,PassThrough</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
@@ -230,10 +232,10 @@
                 <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
-                <param>FILESYS-ext3</param>
+                <param>FILESYS=ext3</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
-            <timeout>1200</timeout>
+            <timeout>2400</timeout>
             <OnError>Continue</OnError>
             <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
