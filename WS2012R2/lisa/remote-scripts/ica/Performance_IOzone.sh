@@ -127,21 +127,12 @@ case $(LinuxRelease) in
     "UBUNTU")
         apt-get install make
         FS="ext4"
-        COMMAND="timeout 30m ./iozone -az -g 50G /mnt &"
-        EVAL=""
     ;;
-	#
-	# Some older SLES versions don't have the #timeout command
-	#
     "SLES")
         FS="ext3"
-        COMMAND="bash -c \ '(sleep 1800; kill \$$) & exec ./iozone -az -g 50G /mnt\'"
-        EVAL="eval"
     ;;
      *)
         FS="ext4"
-        COMMAND="timeout 30m ./iozone -az -g 50G /mnt &"
-        EVAL=""
     ;; 
 esac
 
@@ -236,9 +227,11 @@ sts=$?
 LogMsg "iometer was installed successfully!"
 
 # 
-# Run iozone for 30 minutes
-#
-${EVAL} ${COMMAND}
+# Run iozone for throughput test
+# IOZONE_PARAMS: -s 48G -r 4K -i 0 -i 1 -i 2 -l 4 -u 4 -I -k 8
+# 
+pwd
+./iozone ${IOZONE_PARAMS} -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
 
 #
 # Check if the SCSI disk is still connected
