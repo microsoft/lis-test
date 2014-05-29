@@ -1,4 +1,4 @@
-########################################################################
+﻿########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
@@ -100,27 +100,31 @@ for ($i=0; $i -lt $vmNumber; $i++)
 {
     if ($vmNumber -eq 1)
     {
-        $theVMName = $VmList
+        $theVMFullName = $VmList
     }
     else
     {
-        $theVMName = $VmList[$i]
+        $theVMFullName = $VmList[$i]
     }
+
+    $theVMName = $theVMFullName.Split("@")[0]
+    $theVMComputerName = $theVMFullName.Split("@")[1]
 
     #----------------------------------------------------------------------------
     # Remove a VM if its name already exists in HyperV manager (if not, the start vm will fail because the VM files are being used by HyperV)
     #----------------------------------------------------------------------------
-    $VMSvr = Get-WmiObject -namespace "Root\Virtualization\V2" "Msvm_VirtualSystemManagementService"
-    $VM = Get-WmiObject -namespace "Root\Virtualization\V2" -query "SELECT * FROM Msvm_ComputerSystem WHERE Caption='Virtual Machine' and elementName= '$theVMName'"
+    Write-Host "Get-VM: $theVMName  from $theVMComputerName"
+    $VM = Get-VM -Name $theVMName -ComputerName $theVMComputerName
 
     if($VM -ne $null)
     {
-	    Write-Host "The VM: $theVMName was found already exist in the HyperV manager. Exiting..."
+	    Write-Host "The VM: $theVMName was found already exist in the HyperV manager of $theVMComputerName. Exiting..."
     }
     else
     {
-        Write-Host "Copying the VM: $theVMName by using Robocopy ..." 
-        cmd /c "robocopy /mir /R:2 /W:1 $LisVmRootDir\$theVMName $LocalVmRootDir\$theVMName  > $LogFolder\CopySUTVMByRobocopy.log"
+        $desShare = "\\" + $theVMComputerName + "\" + $LocalVmRootDir.Replace(":","$") + "\" + $theVMName
+        Write-Host "Copying the VM: $theVMName to $theVMComputerName by using Robocopy ..." 
+        cmd /c "robocopy /mir /R:2 /W:1 $LisVmRootDir\$theVMName $desShare  > $LogFolder\CopySUTVMByRobocopy-$theVMComputerName.log"
     }
 }
 Write-Host "Running [Copy-LisaVM.ps1] FINISHED (NOT VERIFIED)."

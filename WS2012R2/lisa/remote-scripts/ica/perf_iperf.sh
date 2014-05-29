@@ -301,7 +301,7 @@ sleep 5
 #
 LogMsg "Starting iPerf client"
 
-iperf -c ${TARGET_IP} -t 60 -P ${IPERF_THREADS} -l ${IPERF_BUFFER} -w ${IPERF_TCPWINDOW} > ~/iperfdata.log
+iperf -c ${TARGET_IP} -t 300 -P ${IPERF_THREADS} -l ${IPERF_BUFFER} -w ${IPERF_TCPWINDOW} > ~/iperfdata.log
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf on the client"
     LogMsg "${msg}"
