@@ -59,8 +59,6 @@
 .Example
     setupScripts\VSS_BackupRestore_ISO_NoNetwork.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:'
 
-.Link
-    http://technet.microsoft.com/en-us/library/jj873971.aspx
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -72,7 +70,7 @@ function CheckVSSDaemon()
 {
      $retValue = $False
     
-    echo y | .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep hv_vss_daemon > /root/vss"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_vss_daemon' > /root/vss"
     if (-not $?)
     {
         Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_vs_daemon" -ErrorAction SilentlyContinue
@@ -80,7 +78,7 @@ function CheckVSSDaemon()
         return $False
     }
 
-    echo y | .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/vss .
+    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/vss .
     if (-not $?)
     {
        
@@ -91,18 +89,8 @@ function CheckVSSDaemon()
 
     $filename = ".\vss"
   
-    
-    $line = Get-Content $filename  | Measure-Object –Line
-    if (-not $line)
-    {
-         Write-Error -Message "Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
-         Write-Output "ERROR: Unable to copy vss from the VM"
-       
-    }
-
-    # !!!!
-    # This is assumption that when you grep vss backup process in file, it will always return 3 lines in case of success. 
-    if ($line.Lines -eq  "3" )
+    # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
+    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) {
     {
         Write-Output "VSS Daemon is running"  
         $retValue =  $True
