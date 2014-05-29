@@ -66,42 +66,7 @@
 .Example
     setupScripts\VSS_WSB_BackupRestore.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:'
 
-.Link
-    http://technet.microsoft.com/en-us/library/jj873971.aspx
 #>
-
-
-
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#   http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Description:
-# This script will create a backup of a given VM name, then display
-# the backups available in the specified path. It uses a second partition as target. 
-
-# Notes:
-# VM must be running, script checks if Server Backup feature is installed, or 
-# adds it otherwise. Sometimes an error can occur in the write-progress part,
-# it can be safely ignored.
-
-# Documentation reference:
-# http://technet.microsoft.com/en-us/library/jj873971.aspx
-
-# Script execution example: .\VSS_WSB_BackupRestore.ps1 -hvServer localhost -vmName NAMEofVM -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:'
-
-# Important:
-# The script has to be run on the host!
-#######################################################################
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
@@ -112,7 +77,7 @@ function CheckVSSDaemon()
 {
      $retValue = $False
     
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep hv_vss_daemon > /root/vss"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_vss_daemon' > /root/vss"
     if (-not $?)
     {
         Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_vs_daemon" -ErrorAction SilentlyContinue
@@ -131,17 +96,8 @@ function CheckVSSDaemon()
 
     $filename = ".\vss"
   
-    
-    $line = Get-Content $filename  | Measure-Object –Line
-    if (-not $line)
-    {
-         Write-Error -Message "Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
-         Write-Output "ERROR: Unable to copy vss from the VM"
-       
-    }
-
-    # This is assumption that when you grep vss backup process in file , it will always return 3 lines in case of success. 
-    if ($line.Lines -eq  "3" )
+    # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
+    if ((Get-Content $filename  | Measure-Object –Line).Lines -eq  "1" ) {
     {
         Write-Output "VSS Daemon is running"  
         $retValue =  $True
