@@ -44,6 +44,7 @@
 #		LEGACY_NETMASK
 #		IP_IGNORE
 #		LO_IGNORE
+#		GATEWAY
 #
 #	Parameter explanation:
 #		REMOTE_SERVER is the IP address of the remote server, pinged in the last step of the script
@@ -54,6 +55,7 @@
 #		IP_IGNORE is the IP Address of an interface that is not touched during this test (no dhcp or static ip assigned to it)
 #			- it can be used to specify the connection used to communicate with the VM, which needs to remain unchanged
 #		LO_IGNORE is an optional argument used to indicate that the loopback interface lo is not to be used during the test (it is usually detected as a legacy interface)
+#		GATEWAY is the IP Address of the default gateway
 #		TC_COVERED is the testcase number
 #
 #
@@ -158,6 +160,24 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" = "UNDEFINED" ]; then
 	UpdateSummary "$msg"
 	SetTestStateAborted
 fi
+
+# set gateway parameter
+if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
+    LogMsg "$msg"
+	GATEWAY=''
+else
+	CheckIP "$GATEWAY"
+	
+	if [ 0 -ne $? ]; then
+		msg=""
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
+fi
+
 
 declare __iface_ignore
 
@@ -373,15 +393,33 @@ fi
 __synth_iterator=0
 # Try to get DHCP address for synthetic adaptor and ping if configured
 while [ $__synth_iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
+
+	LogMsg "Trying to get an IP Address via DHCP on synthetic interface ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
 	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+	
 	if [ 0 -eq $? ]; then		
-		ping -I "${SYNTH_NET_INTERFACES[$__synth_iterator]}" -c 10 "$REMOTE_SERVER" >/dev/null 2>&1
+	
+		if [ -n "$GATEWAY" ]; then
+			LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+			CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+			if [ 0 -ne $? ]; then
+				LogMsg "Warning! Failed to set default gateway!"
+			fi
+		fi
+		
+		LogMsg "Trying to ping $REMOTE_SERVER from synthetic interface ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+		UpdateSummary "Trying to ping $REMOTE_SERVER from synthetic interface ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+		
+		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`syn`null`dhcp`null`
+		ping -I "${SYNTH_NET_INTERFACES[$__synth_iterator]}" -c 10 -p "cafed00d0073796e006468637000" "$REMOTE_SERVER" >/dev/null 2>&1
 		if [ 0 -eq $? ]; then
 			# ping worked! Do not test any other interface
 			LogMsg "Successfully pinged $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]} (dhcp)."
+			UpdateSummary "Successfully pinged $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]} (dhcp)."
 			break
 		else
 			LogMsg "Unable to ping $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+			UpdateSummary "Unable to ping $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
 		fi
 	fi
 	# shut interface down
@@ -402,14 +440,30 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq $__synth_iterator ]; then
 		# reset iterator
 		__synth_iterator=0
 		while [ $__synth_iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
+		
 			SetIPstatic "$SYNTH_STATIC_IP" "${SYNTH_NET_INTERFACES[$__synth_iterator]}" "$SYNTH_NETMASK"
-			ping -I "${SYNTH_NET_INTERFACES[$__synth_iterator]}" -c 10 "$REMOTE_SERVER" >/dev/null 2>&1
+			LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__synth_iterator]} | grep -vi inet6)"
+			
+			if [ -n "$GATEWAY" ]; then
+				LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+				CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+				if [ 0 -ne $? ]; then
+					LogMsg "Warning! Failed to set default gateway!"
+				fi
+			fi
+			
+			LogMsg "Trying to ping $REMOTE_SERVER"
+			UpdateSummary "Trying to ping $REMOTE_SERVER"
+			# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`syn`null`static`null`
+			ping -I "${SYNTH_NET_INTERFACES[$__synth_iterator]}" -c 10 -p "cafed00d0073796e0073746174696300" "$REMOTE_SERVER" >/dev/null 2>&1
 			if [ 0 -eq $? ]; then
 				# ping worked! Remove working element from __invalid_positions list
 				LogMsg "Successfully pinged $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]} (static)."
+				UpdateSummary "Successfully pinged $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]} (static)."
 				break
 			else
 				LogMsg "Unable to ping $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+				UpdateSummary "Unable to ping $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
 			fi
 			: $((__synth_iterator++))
 		done
@@ -429,15 +483,31 @@ fi
 __legacy_iterator=0
 
 while [ $__legacy_iterator -lt ${#LEGACY_NET_INTERFACES[@]} ]; do
+	LogMsg "Trying to get an IP Address via DHCP on legacy interface ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
 	SetIPfromDHCP "${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+	
 	if [ 0 -eq $? ]; then
-		ping -I "${LEGACY_NET_INTERFACES[$__legacy_iterator]}" -c 10 "$REMOTE_SERVER" >/dev/null 2>&1
+		if [ -n "$GATEWAY" ]; then
+			LogMsg "Setting $GATEWAY as default gateway on dev ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+			CreateDefaultGateway "$GATEWAY" "${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+			if [ 0 -ne $? ]; then
+				LogMsg "Warning! Failed to set default gateway!"
+			fi
+		fi
+		
+		LogMsg "Trying to ping $REMOTE_SERVER from legacy interface ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+		UpdateSummary "Trying to ping $REMOTE_SERVER from legacy interface ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+		
+		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`leg`null`dhcp`null`
+		ping -I "${LEGACY_NET_INTERFACES[$__legacy_iterator]}" -c 10 -p "cafed00d006c6567006468637000" "$REMOTE_SERVER" >/dev/null 2>&1
 		if [ 0 -eq $? ]; then
 			# ping worked!
-			LogMsg "Successfully pinged $REMOTE_SERVER through legacy ${SYNTH_NET_INTERFACES[$__legacy_iterator]} (dhcp)."
+			LogMsg "Successfully pinged $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]} (dhcp)."
+			UpdateSummary "Successfully pinged $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]} (dhcp)."
 			break
 		else
 			LogMsg "Unable to ping $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+			UpdateSummary "Unable to ping $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
 		fi
 	fi
 	# shut interface down
@@ -461,13 +531,29 @@ if [ ${#LEGACY_NET_INTERFACES[@]} -eq $__legacy_iterator ]; then
 		# reset iterator
 		__legacy_iterator=0
 		while [ $__legacy_iterator -lt ${#LEGACY_NET_INTERFACES[@]} ]; do
+		
 			SetIPstatic "$LEGACY_STATIC_IP" "${LEGACY_NET_INTERFACES[$__legacy_iterator]}" "$LEGACY_NETMASK"
-			ping -I "${LEGACY_NET_INTERFACES[$__legacy_iterator]}" -c 10 "$REMOTE_SERVER" >/dev/null 2>&1
+			LogMsg "$(ip -o addr show ${LEGACY_NET_INTERFACES[$__legacy_iterator]} | grep -vi inet6)"
+			
+			if [ -n "$GATEWAY" ]; then
+				LogMsg "Setting $GATEWAY as default gateway on dev ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+				CreateDefaultGateway "$GATEWAY" "${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+				if [ 0 -ne $? ]; then
+					LogMsg "Warning! Failed to set default gateway!"
+				fi
+			fi
+			
+			LogMsg "Trying to ping $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+			UpdateSummary "Trying to ping $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+			# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`leg`null`static`null`
+			ping -I "${LEGACY_NET_INTERFACES[$__legacy_iterator]}" -c 10 -p "cafed00d006c65670073746174696300" "$REMOTE_SERVER" >/dev/null 2>&1
 			if [ 0 -eq $? ]; then
 				LogMsg "Successfully pinged $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]} (static)."
+				UpdateSummary "Successfully pinged $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]} (static)."
 				break
 			else
 				LogMsg "Unable to ping $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+				UpdateSummary "Unable to ping $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
 			fi
 			: $((__legacy_iterator++))
 		done

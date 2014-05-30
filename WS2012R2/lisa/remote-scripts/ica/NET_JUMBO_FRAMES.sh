@@ -48,6 +48,7 @@
 #		NETMASK
 #		SSH_PRIVATE_KEY
 #		REMOTE_USER
+#		GATEWAY
 #
 #	Parameter explanation:
 #	REMOTE_VM is an IP address of a ping-able machine. All interfaces found will have to be able to ping this REMOTE_VM
@@ -56,6 +57,7 @@
 #	STATIC_IP is the address that will be assigned to the interface(s) corresponding to the given MAC. Multiple Addresses can be specified
 #	separated by , (comma) and they will be assigned in order to each interface found.
 #	NETMASK of this VM's subnet. Defaults to /24 if not set.
+#	GATEWAY is the IP Address of the default gateway
 #	TC_COVERED is the LIS testcase number
 #
 #
@@ -167,6 +169,23 @@ if [ "${REMOTE_USER:-UNDEFINED}" = "UNDEFINED" ]; then
 else
 	msg="REMOTE_USER set to $REMOTE_USER"
     LogMsg "$msg"
+fi
+
+# set gateway parameter
+if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
+    LogMsg "$msg"
+	GATEWAY=''
+else
+	CheckIP "$GATEWAY"
+	
+	if [ 0 -ne $? ]; then
+		msg=""
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
 fi
 
 declare __iface_ignore
@@ -281,6 +300,7 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		SetTestStateFailed
 		exit 20
 	fi	
+	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
 
 # set the iterator to point to the next element in the SYNTH_NET_INTERFACES array
@@ -289,6 +309,7 @@ __iterator=${#STATIC_IPS[@]}
 # set dhcp ips for remaining interfaces
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
+	LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
 	
 	if [ 0 -ne $? ]; then
@@ -298,6 +319,9 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		SetTestStateFailed
 		exit 10
 	fi
+	
+	# add some interface output
+	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 	
 	: $((__iterator++))
 	
@@ -372,6 +396,7 @@ __iterator=0
 # if not, assume that it was already set.
 
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
+	LogMsg "Setting $REMOTE_VM mtu to $__max_mtu"
 	ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM" "
 		__remote_interface=\$(ifconfig | grep -B1 \"$REMOTE_VM\" | head -n 1 | cut -d ' ' -f1)
 		if [ x\"\$__remote_interface\" = x ]; then
@@ -400,12 +425,16 @@ if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
 		SetTestStateFailed
 		exit 10
 	fi
+	
 fi
+
+UpdateSummary "Successfully set mtu to $__max_mtu on both local and remote NICs."
 
 declare -ai __packet_size=(0 1 2 48 64 512 1440 1500 1505 4096 4192 25152 65500)
 declare -i __packet_iterator
 # 20 bytes IP header + 8 bytes ICMP header 
 declare -i __const_ping_header=28
+declare __hex_ping_value
 
 # for each interface, ping the REMOTE_VM with different-sized packets
 for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
@@ -416,7 +445,21 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			break
 		fi
 		
-		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" "$REMOTE_VM" -c 10 -s "${__packet_size[$__packet_iterator]}"
+		if [ -n "$GATEWAY" ]; then
+			LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
+			CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
+			if [ 0 -ne $? ]; then
+				LogMsg "Warning! Failed to set default gateway!"
+			fi
+		fi
+		
+		__hex_ping_value=$(echo -n "${__packet_size[$__packet_iterator]}" | od -A n -t x1 | sed 's/ //g' | cut -c1-10)
+		
+		LogMsg "Trying to ping $REMOTE_VM from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
+		UpdateSummary "Trying to ping $REMOTE_VM from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
+		
+		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`jumb`null`packet_size`null`
+		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d006a756d6200${__hex_ping_value}00" -s "${__packet_size[$__packet_iterator]}" "$REMOTE_VM"
 		
 		if [ 0 -ne $? ]; then
 			msg="Failed to ping $REMOTE_VM through interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
@@ -425,6 +468,9 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			SetTestStateFailed
 			exit 10
 		fi
+		
+		LogMsg "Successfully pinged!"
+		UpdateSummary "Successfully pinged!"
 	done
 
 done

@@ -44,6 +44,7 @@
 #		STATIC_IP
 #		TC_COVERED
 #		NETMASK
+#		GATEWAY
 #
 #	Parameter explanation:
 #	REMOTE_SERVER is an IP address of a ping-able machine. All interfaces found will have to be able to ping this REMOTE_SERVER
@@ -51,6 +52,7 @@
 #	separated by , (comma) and they will be assigned in order to each interface found.
 #	NETMASK of this VM's subnet. Defaults to /24 if not set.
 #	TC_COVERED is the LIS testcase number
+#	GATEWAY is the IP Address of the default gateway
 #
 #
 #############################################################################################################
@@ -145,6 +147,24 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter REMOTE_SERVER is not defined in constants file. No network connectivity test will be performed."
     LogMsg "$msg"
 fi
+
+# set gateway parameter
+if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
+    LogMsg "$msg"
+	GATEWAY=''
+else
+	CheckIP "$GATEWAY"
+	
+	if [ 0 -ne $? ]; then
+		msg=""
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
+fi
+
 
 declare __iface_ignore
 
@@ -257,7 +277,9 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		LogMsg "Number of static IP addresses in constants.sh is greater than number of concerned interfaces. All extra IP addresses are ignored."
 		break
 	fi
+	
 	SetIPstatic "${STATIC_IPS[$__iterator]}" "${SYNTH_NET_INTERFACES[$__iterator]}" "$NETMASK"
+	
 	# if failed to assigned address
 	if [ 0 -ne $? ]; then
 		msg="Failed to assign static ip ${STATIC_IPS[$__iterator]} netmask $NETMASK on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -266,6 +288,9 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		SetTestStateFailed
 		exit 20
 	fi	
+	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
+	
+	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
 
 # set the iterator to point to the next element in the SYNTH_NET_INTERFACES array
@@ -274,6 +299,7 @@ __iterator=${#STATIC_IPS[@]}
 # set dhcp ips for remaining interfaces
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
+	LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
 	
 	if [ 0 -ne $? ]; then
@@ -283,7 +309,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 	: $((__iterator++))
 	
 done
@@ -295,6 +321,7 @@ declare -i __message_count=0
 
 for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
+	LogMsg "Setting ${SYNTH_NET_INTERFACES[$__iterator]} to promisc mode"
 	# set interfaces to promiscuous mode
 	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} promisc
 	
@@ -318,6 +345,19 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		exit 10
 	fi
 	
+	UpdateSummary "Successfully set ${SYNTH_NET_INTERFACES[$__iterator]} to promiscuous mode"
+	
+	if [ -n "$GATEWAY" ]; then
+		LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
+		CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
+		if [ 0 -ne $? ]; then
+			LogMsg "Warning! Failed to set default gateway!"
+		fi
+	fi
+	
+	LogMsg "Trying to ping $REMOTE_SERVER"
+	UpdateSummary "Trying to ping $REMOTE_SERVER"
+	
 	# ping the remote server
 	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$REMOTE_SERVER"
 
@@ -329,7 +369,11 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		exit 10
 	fi
 	
+	UpdateSummary "Successfully pinged $REMOTE_SERVER on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+	
 	# disable promiscuous mode
+	LogMsg "Disabling promisc mode on ${SYNTH_NET_INTERFACES[$__iterator]}"
+	
 	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} -promisc
 	
 	# make sure it was disabled
@@ -352,6 +396,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		exit 10
 	fi
 	
+	UpdateSummary "Successfully disabled promiscuous mode on ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
 
 
