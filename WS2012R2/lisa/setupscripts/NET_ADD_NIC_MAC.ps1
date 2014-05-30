@@ -37,10 +37,11 @@
       External
       Internal
       Private
+	  None
 	  
-   Network Name is the name of a existing network.
+   Network Name is the name of a existing network. If Network Type is set to None however, the NIC is not connected to any switch.
 
-   This script will make sure the network exists before adding the NIC.
+   This script will make sure the network switch exists before adding the NIC (test is disabled in case of None switch type).
 
    The following is an example of a testParam for adding a NIC
 
@@ -134,10 +135,10 @@ foreach ($p in $params)
         #
         # Validate the Network type
         #
-        if (@("External", "Internal", "Private") -notcontains $networkType)
+        if (@("External", "Internal", "Private", "None") -notcontains $networkType)
         {
             "Error: Invalid netowrk type: $networkType"
-            "       Network type must be either: External, Internal, Private"
+            "       Network type must be either: External, Internal, Private, None"
             return $false
         }
 
@@ -145,14 +146,26 @@ foreach ($p in $params)
         #
         # Make sure the network exists
         #
-        $vmSwitch = Get-VMSwitch -Name $networkName -ComputerName $hvServer
-        if (-not $vmSwitch)
-        {
-            "Error: Invalid network name: $networkName"
-            "       The network does not exist"
-            return $false
-        }
+		if ($networkType -notlike "None")
+		{
+			$vmSwitch = Get-VMSwitch -Name $networkName -ComputerName $hvServer
+			if (-not $vmSwitch)
+			{
+				"Error: Invalid network name: $networkName"
+				"       The network does not exist"
+				return $false
+			}
+			
+			# make sure network is of stated type
+			if ($vmSwitch.SwitchType -notlike $networkType)
+			{
+				"Error: Switch $networkName is type $vmSwitch.SwitchType (not $networkType)"
+				return $false
+			}
+			
+		}
 
+		
         #
         # Validate the MAC is the correct length
         #
@@ -178,8 +191,14 @@ foreach ($p in $params)
         #
         # Add Nic with given MAC Address
         #
-		
-        Add-VMNetworkAdapter -VMName $vmName -SwitchName $networkName -StaticMacAddress $macAddress -IsLegacy:$legacy -ComputerName $hvServer
+		if ($networkType -notlike "None")
+		{
+			Add-VMNetworkAdapter -VMName $vmName -SwitchName $networkName -StaticMacAddress $macAddress -IsLegacy:$legacy -ComputerName $hvServer
+		}
+		else
+		{
+			Add-VMNetworkAdapter -VMName $vmName -StaticMacAddress $macAddress -IsLegacy:$legacy -ComputerName $hvServer
+		}
 		
         if ($? -ne "True")
         {
