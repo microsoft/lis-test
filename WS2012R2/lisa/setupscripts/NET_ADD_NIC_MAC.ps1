@@ -37,7 +37,7 @@
       External
       Internal
       Private
-	  None
+      None
 	  
    Network Name is the name of a existing network. If Network Type is set to None however, the NIC is not connected to any switch.
 

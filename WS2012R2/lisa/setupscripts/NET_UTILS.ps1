@@ -225,7 +225,7 @@ function getAddress([String]$IPv4, [String]$netmask, [int]$nth)
     }
 
     [uint32]$netBits = netmaskToCIDR $netmask
-    write-host "net bits: $netBits"
+    
     [uint32]$nth = [uint32]$nth -shl $netBits
 
     [uint32]$rest = $start + $nth
