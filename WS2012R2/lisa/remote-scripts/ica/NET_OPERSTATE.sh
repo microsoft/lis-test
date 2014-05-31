@@ -137,8 +137,8 @@ else
 	declare __synth_iface
 	
 	for __synth_iface in ${SYNTH_NET_INTERFACES[@]}; do
-		if [ ! -e /sys/class/net/"$__synth_iface" ]; then
-			msg="Could not find /sys/class/net/$__synth_iface ."
+		if [ ! -e /sys/class/net/"$__synth_iface"/operstate ]; then
+			msg="Could not find /sys/class/net/$__synth_iface/operstate ."
 			LogMsg "$msg"
 			UpdateSummary "$msg"
 			SetTestStateFailed
@@ -147,7 +147,7 @@ else
 		
 		declare __state
 		
-		cat /sys/class/net/"$__synth_iface" | grep -i down
+		cat /sys/class/net/"$__synth_iface"/operstate | grep -i down
 		
 		if [ 0 -ne $? ]; then
 			msg="Operstate of $__synth_iface is not down."
@@ -193,8 +193,8 @@ else
 			declare __legacy_iface
 		
 			for __legacy_iface in ${LEGACY_NET_INTERFACES[@]}; do
-				if [ ! -e /sys/class/net/"$__legacy_iface" ]; then
-					msg="Could not find /sys/class/net/$__legacy_iface ."
+				if [ ! -e /sys/class/net/"$__legacy_iface"/operstate ]; then
+					msg="Could not find /sys/class/net/$__legacy_iface/operstate ."
 					LogMsg "$msg"
 					UpdateSummary "$msg"
 					SetTestStateFailed
@@ -203,7 +203,7 @@ else
 				
 				declare __state
 				
-				cat /sys/class/net/"$__legacy_iface" | grep -i down
+				cat /sys/class/net/"$__legacy_iface"/operstate | grep -i down
 				
 				if [ 0 -ne $? ]; then
 					msg="Operstate of $__legacy_iface is not down."
