@@ -113,7 +113,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
+	__iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 # Retrieve synthetic network interfaces
@@ -137,7 +137,7 @@ else
 	declare __synth_iface
 	
 	for __synth_iface in ${SYNTH_NET_INTERFACES[@]}; do
-		if [ ! -e /sys/class/net/"$__synth_iface"/operstate ]; then
+		if [ ! -e /sys/class/net/"$__synth_iface" ]; then
 			msg="Could not find /sys/class/net/$__synth_iface ."
 			LogMsg "$msg"
 			UpdateSummary "$msg"
@@ -147,7 +147,7 @@ else
 		
 		declare __state
 		
-		cat /sys/class/net/"$__synth_iface"/operstate | grep -i down
+		cat /sys/class/net/"$__synth_iface" | grep -i down
 		
 		if [ 0 -ne $? ]; then
 			msg="Operstate of $__synth_iface is not down."

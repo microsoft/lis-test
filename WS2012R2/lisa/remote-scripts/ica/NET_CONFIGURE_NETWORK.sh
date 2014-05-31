@@ -173,7 +173,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -187,15 +187,16 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
@@ -230,7 +231,7 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 declare -i __iterator
 declare -ai __invalid_positions
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		# mark invalid positions
 		__invalid_positions=("${__invalid_positions[@]}" "$__iterator")
@@ -307,7 +308,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		UpdateSummary "Unable to set static IP to interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	fi
 	# shut interface down
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} down
+	ip link set ${SYNTH_NET_INTERFACES[$__iterator]} down
 	: $((__iterator++))
 done
 
@@ -338,7 +339,7 @@ fi
 LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 
 # Get IP-Address and check it
-IP_ADDRESS=$(ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
+IP_ADDRESS=$(ip -o addr show "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -vi inet6 | cut -d '/' -f1 | awk '{print $NF}')
 
 CheckIP "$IP_ADDRESS"
 

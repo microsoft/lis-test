@@ -215,7 +215,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig -a | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
+	__iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -229,15 +229,16 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
@@ -271,7 +272,7 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 # Test interfaces
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		LogMsg "$msg"

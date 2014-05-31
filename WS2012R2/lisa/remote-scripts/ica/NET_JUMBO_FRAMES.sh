@@ -210,7 +210,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -224,15 +224,16 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
@@ -265,7 +266,7 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		LogMsg "$msg"
@@ -346,7 +347,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 	
 		__current_mtu=$((__current_mtu+__const_increment_size))
 		
-		ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" mtu "$__current_mtu"
+		ip link set dev "${SYNTH_NET_INTERFACES[$__iterator]}" mtu "$__current_mtu"
 		
 		if [ 0 -ne $? ]; then
 			# we reached the maximum mtu for this interface. break loop
@@ -355,10 +356,10 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		fi
 		
 		# make sure mtu was set. otherwise, set test to failed
-		__actual_mtu=$(ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -i mtu | cut -d ':' -f2 | cut -d ' ' -f1)
+		__actual_mtu=$(ip -o link show "${SYNTH_NET_INTERFACES[$__iterator]}" | cut -d ' ' -f5)
 		
 		if [ x"$__actual_mtu" != x"$__current_mtu" ]; then
-			msg="Set mtu on interface ${SYNTH_NET_INTERFACES[$__iterator]} to $__current_mtu but ifconfig reports mtu to be $__actual_mtu"
+			msg="Set mtu on interface ${SYNTH_NET_INTERFACES[$__iterator]} to $__current_mtu but ip reports mtu to be $__actual_mtu"
 			LogMsg "$msg"
 			UpdateSummary "$msg"
 			SetTestStateFailed
@@ -398,18 +399,18 @@ __iterator=0
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
 	LogMsg "Setting $REMOTE_VM mtu to $__max_mtu"
 	ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM" "
-		__remote_interface=\$(ifconfig | grep -B1 \"$REMOTE_VM\" | head -n 1 | cut -d ' ' -f1)
+		__remote_interface=\$(ip -o addr show | grep \"$REMOTE_VM\" | cut -d ' ' -f2)
 		if [ x\"\$__remote_interface\" = x ]; then
 			exit 1
 		fi
 		
-		ifconfig \"\$__remote_interface\" mtu \"$__max_mtu\"
+		ip link set dev \"\$__remote_interface\" mtu \"$__max_mtu\"
 		
 		if [ 0 -ne \$? ]; then
 			exit 2
 		fi
 		
-		__remote_actual_mtu=\$(ifconfig \"\$__remote_interface\" | grep -i mtu | cut -d ':' -f2 | cut -d ' ' -f1)
+		__remote_actual_mtu=\$(ip -o link show \"\$__remote_interface\" | cut -d ' ' -f5)
 		
 		if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
 			exit 3

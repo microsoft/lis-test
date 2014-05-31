@@ -201,28 +201,7 @@ else
 	fi
 	
 	# Get the interface associated with the given IP_IGNORE
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
-fi
-
-
-declare __lo_ignore
-
-# Parameter provided in constants file
-if [ "${LO_IGNORE:-UNDEFINED}" = "UNDEFINED" ]; then
-	msg="The test parameter LO_IGNORE is not defined in constants file! The loopback interface may be used during the test."
-	LogMsg "$msg"
-	__lo_ignore=''
-else
-
-	ifconfig lo >/dev/null 2>&1
-
-	if [ 0 -ne $? ]; then
-		msg="The loopback interface is not working"
-		LogMsg "$msg"
-	else
-		__lo_ignore=lo
-	fi
-	
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -236,18 +215,38 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
+fi
+
+declare __lo_ignore
+
+if [ "${LO_IGNORE:-UNDEFINED}" = "UNDEFINED" ]; then
+	msg="The test parameter LO_IGNORE is not defined in constants file! The loopback interface may be used during the test."
+	LogMsg "$msg"
+	__lo_ignore=''
+else
+
+	ip link show lo >/dev/null 2>&1
+
+	if [ 0 -ne $? ]; then
+		msg="The loopback interface is not working"
+		LogMsg "$msg"
+	else
+		__lo_ignore=lo
+	fi
+	
 fi
 
 # Retrieve synthetic network interfaces
@@ -278,7 +277,7 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 declare -i __synth_iterator
 declare -ai __invalid_positions
 for __synth_iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-	ifconfig "${SYNTH_NET_INTERFACES[$__synth_iterator]}" >/dev/null 2>&1
+	ip link show "${SYNTH_NET_INTERFACES[$__synth_iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		__invalid_positions=("${__invalid_positions[@]}" "$__synth_iterator")
 		LogMsg "Warning synthetic interface ${SYNTH_NET_INTERFACES[$__synth_iterator]} is unusable"
@@ -355,7 +354,7 @@ LogMsg "Found ${#LEGACY_NET_INTERFACES[@]} legacy interface(s): ${LEGACY_NET_INT
 declare -i __legacy_iterator
 declare -ai __invalid_positions
 for __legacy_iterator in "${!LEGACY_NET_INTERFACES[@]}"; do
-	ifconfig "${LEGACY_NET_INTERFACES[$__legacy_iterator]}" >/dev/null 2>&1
+	ip link show "${LEGACY_NET_INTERFACES[$__legacy_iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		# add current position to __invalid_positions array
 		__invalid_positions=("${__invalid_positions[@]}" "$__legacy_iterator")
@@ -423,7 +422,7 @@ while [ $__synth_iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		fi
 	fi
 	# shut interface down
-	ifconfig ${SYNTH_NET_INTERFACES[$__synth_iterator]} down
+	ip link set ${SYNTH_NET_INTERFACES[$__synth_iterator]} down
 	LogMsg "Unable to get address from dhcp server on synthetic interface ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
 	: $((__synth_iterator++))
 done
@@ -511,7 +510,7 @@ while [ $__legacy_iterator -lt ${#LEGACY_NET_INTERFACES[@]} ]; do
 		fi
 	fi
 	# shut interface down
-	ifconfig ${LEGACY_NET_INTERFACES[$__legacy_iterator]} down
+	ip link set ${LEGACY_NET_INTERFACES[$__legacy_iterator]} down
 	LogMsg "Unable to get address from dhcp server on legacy interface ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
 	: $((__legacy_iterator++))
 done

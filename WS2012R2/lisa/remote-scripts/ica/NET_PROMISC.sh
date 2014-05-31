@@ -188,7 +188,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -202,15 +202,16 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
@@ -243,7 +244,7 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 # Test interfaces
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		LogMsg "$msg"
@@ -253,7 +254,7 @@ for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
 	fi
 	
 	# make sure interface is not in promiscuous mode already
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -i promisc
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -i promisc
 	if [ 0 -eq $? ]; then
 		msg="Synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} is already in promiscuous mode"
 		LogMsg "$msg"
@@ -323,7 +324,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 	LogMsg "Setting ${SYNTH_NET_INTERFACES[$__iterator]} to promisc mode"
 	# set interfaces to promiscuous mode
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} promisc
+	ip link set dev ${SYNTH_NET_INTERFACES[$__iterator]} promisc on
 	
 	# make sure it was set
 	__message_count=$(dmesg | grep -i "device ${SYNTH_NET_INTERFACES[$__iterator]} entered promiscuous mode" | wc -l)
@@ -335,10 +336,10 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		exit 10
 	fi
 	
-	# now check ifconfig for promisc
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
+	# now check ip for promisc
+	ip link show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
 	if [ 0 -ne $? ]; then
-		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is not set to promiscuous mode according to ifconfig. Dmesg however contained an entry stating that it did."
+		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is not set to promiscuous mode according to ip. Dmesg however contained an entry stating that it did."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
@@ -374,7 +375,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 	# disable promiscuous mode
 	LogMsg "Disabling promisc mode on ${SYNTH_NET_INTERFACES[$__iterator]}"
 	
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} -promisc
+	ip link set dev ${SYNTH_NET_INTERFACES[$__iterator]} promisc off
 	
 	# make sure it was disabled
 	__message_count=$(dmesg | grep -i "device ${SYNTH_NET_INTERFACES[$__iterator]} left promiscuous mode" | wc -l)
@@ -386,10 +387,10 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		exit 10
 	fi
 	
-	# now check ifconfig for promisc
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
+	# now check ip for promisc
+	ip link show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
 	if [ 0 -eq $? ]; then
-		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is set to promiscuous mode according to ifconfig. Dmesg however contained an entry stating that it left that mode."
+		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is set to promiscuous mode according to ip. Dmesg however contained an entry stating that it left that mode."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
