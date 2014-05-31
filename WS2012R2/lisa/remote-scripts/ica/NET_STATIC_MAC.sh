@@ -230,30 +230,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
-fi
-
-
-declare __lo_ignore
-
-# Parameter provided in constants file
-
-if [ "${LO_IGNORE:-UNDEFINED}" = "UNDEFINED" ]; then
-	msg="The test parameter LO_IGNORE is not defined in constants file! The loopback interface may be used during the test."
-	LogMsg "$msg"
-	__lo_ignore=''
-else
-
-	ifconfig lo >/dev/null 2>&1
-
-	if [ 0 -ne $? ]; then
-		msg="The loopback interface is not working"
-		LogMsg "$msg"
-		__lo_ignore=''
-	else
-		__lo_ignore=lo
-	fi
-	
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -267,18 +244,39 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
+fi
+
+declare __lo_ignore
+
+if [ "${LO_IGNORE:-UNDEFINED}" = "UNDEFINED" ]; then
+	msg="The test parameter LO_IGNORE is not defined in constants file! The loopback interface may be used during the test."
+	LogMsg "$msg"
+	__lo_ignore=''
+else
+
+	ip link show lo >/dev/null 2>&1
+
+	if [ 0 -ne $? ]; then
+		msg="The loopback interface is not working"
+		LogMsg "$msg"
+		__lo_ignore=''
+	else
+		__lo_ignore=lo
+	fi
+	
 fi
 
 # Retrieve synthetic network interfaces
