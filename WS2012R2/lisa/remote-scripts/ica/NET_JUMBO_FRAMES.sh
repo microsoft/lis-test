@@ -239,6 +239,27 @@ else
 	fi
 fi
 
+# Get the legacy netadapter interface
+GetLegacyNetInterfaces
+
+if [ 0 -ne $? ]; then
+	msg="No legacy network interfaces found. Test can continue"
+	LogMsg "$msg"
+else
+# Remove loopback interface if LO_IGNORE is set
+	LEGACY_NET_INTERFACES=(${LEGACY_NET_INTERFACES[@]/lo/})
+
+	if [ ${#LEGACY_NET_INTERFACES[@]} -ne 0 ]; then
+		IFS=,
+		msg="Legacy interfaces ${LEGACY_NET_INTERFACES[*]} are present. Test requires only synthetic network adapters."
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
+fi
+
+
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
 
@@ -390,32 +411,60 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 done
 
+# Hyper-V does not support multiple MTUs per endpoint, so we need to set the max MTU on all interfaces,
+# including the interface ignored because it's used by the LIS framework.
+# This can fail (e.g. the LIS connection uses a legacy adapter), but the test will continue
+# and only issue a warning
+if [ -n "$__iface_ignore" ]; then
+	ip link set dev "$__iface_ignore" mtu "$__max_mtu"
+	# make sure mtu was set. otherwise, issue a warning
+	__actual_mtu=$(ip -o link show "$__iface_ignore" | cut -d ' ' -f5)
+	
+	if [ x"$__actual_mtu" != x"$__max_mtu" ]; then
+		msg="Set mtu on interface $__iface_ignore (which is used by the LIS Framework) to $__max_mtu but ip reports mtu to be $__actual_mtu"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+	fi
+fi
+
 # reset iterator
 __iterator=0
 
-# if SSH_PRIVATE_KEY was specified, ssh into the REMOTE_VM and set the MTU of that interface to __max_mtu
+# if SSH_PRIVATE_KEY was specified, ssh into the REMOTE_VM and set the MTU of all interfaces to $__max_mtu
 # if not, assume that it was already set.
 
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
-	LogMsg "Setting $REMOTE_VM mtu to $__max_mtu"
+	LogMsg "Setting all interfaces on $REMOTE_VM mtu to $__max_mtu"
 	ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM" "
 		__remote_interface=\$(ip -o addr show | grep \"$REMOTE_VM\" | cut -d ' ' -f2)
 		if [ x\"\$__remote_interface\" = x ]; then
 			exit 1
 		fi
 		
-		ip link set dev \"\$__remote_interface\" mtu \"$__max_mtu\"
-		
-		if [ 0 -ne \$? ]; then
+		# make sure no legacy interfaces are present
+		__legacy_interface_no=\$(find /sys/devices -name net -a ! -path '*vmbus*' -a ! -path '*virtual*' -a ! -path '*lo*' | wc -l)
+
+		if [ 0 -ne \"\$__legacy_interface_no\" ]; then
 			exit 2
 		fi
+
+		# set mtu to max_mtu for all interfaces
+		__all_interfaces=\$(ip -o link show | grep -vi 'link/loopback' | cut -d':' -f2 | sed -e 's/^ *//g' -e 's/ *$//g')
+
+		for __interface in \$__all_interfaces; do
+			ip link set dev \$__interface mtu \"$__max_mtu\"
+			
+			if [ 0 -ne \$? ]; then
+				exit 2
+			fi
 		
-		__remote_actual_mtu=\$(ip -o link show \"\$__remote_interface\" | cut -d ' ' -f5)
-		
-		if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
-			exit 3
-		fi
-		
+			__remote_actual_mtu=\$(ip -o link show \"\$__remote_interface\" | cut -d ' ' -f5)
+			
+			if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
+				exit 3
+			fi
+		done
+
 		exit 0
 		"
 		
@@ -460,8 +509,8 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		UpdateSummary "Trying to ping $REMOTE_VM from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
 		
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`jumb`null`packet_size`null`
-		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d006a756d6200${__hex_ping_value}00" -s "${__packet_size[$__packet_iterator]}" "$REMOTE_VM"
-		
+		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 20 -p "cafed00d006a756d6200${__hex_ping_value}00" -s "${__packet_size[$__packet_iterator]}" "$REMOTE_VM"
+
 		if [ 0 -ne $? ]; then
 			msg="Failed to ping $REMOTE_VM through interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
 			LogMsg "$msg"
