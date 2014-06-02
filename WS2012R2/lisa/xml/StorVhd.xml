@@ -32,7 +32,9 @@
                 <suiteTest>VHD_HotADD_Multi_Dynamic_SCSI</suiteTest>      
                 <suiteTest>VHD_HotRemove_Multi_Dynamic_SCSI</suiteTest> 
                 <suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest> 
-                <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>        
+                <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
+                <suiteTest>TakeRevert_SnapShot</suiteTest>                            
+                <suiteTest>ExportImportVM</suiteTest>        
             </suiteTests>
         </suite>
     </testSuites>
@@ -234,6 +236,30 @@
                 <param>TC_COVERED=STOR-01</param>
             </testParams>
             <timeout>600</timeout>			
+        </test>
+
+		<test>
+            <testName>TakeRevert_SnapShot</testName>
+            <testScript>setupScripts\STOR_TakeRevert_Snapshot.ps1</testScript>
+            <timeout>1800</timeout>
+            <testParams>
+                <param>snapshotname=ICABase</param>
+                <param>TC_COVERED=STOR-42,STOR-43</param>
+        </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>ExportImportVM</testName>
+            <testScript>setupScripts\STOR_ExportImportVM.ps1</testScript>
+            <timeout>2400</timeout>
+            <testParams>
+                <param>SnapshotName=ICABase</param>
+                <param>TC_COVERED=STOR-58</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
         </test>
     </testCases>
 
