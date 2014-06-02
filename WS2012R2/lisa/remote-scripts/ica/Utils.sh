@@ -560,7 +560,7 @@ SetIPstatic()
 	
 	# Get IP-Address
 	declare __IP_ADDRESS
-	__IP_ADDRESS=$(ip -o addr show "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -vi inet6 | cut -d '/' -f1 | awk '{print $NF}')
+	__IP_ADDRESS=$(ip -o addr show "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -vi inet6 | cut -d '/' -f1 | awk '{print $NF}' | grep -vi '[a-z]')
 
 	if [ -z "$__IP_ADDRESS" ]; then
 		LogMsg "IP address $__ip did not get assigned to $__interface"
