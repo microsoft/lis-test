@@ -53,8 +53,6 @@
                 <param>TARGET_IP=192.168.1.100</param>
                 <param>TARGET_SSHKEY=rhel5_id_rsa</param>
                 <param>IPERF_THREADS=10</param>
-                <param>IPERF_BUFFER=1.5KB</param>
-                <param>IPERF_TCPWINDOW=64KB</param>
             </testParams>
             <uploadFiles>
                 <file>iperfdata.log</file>

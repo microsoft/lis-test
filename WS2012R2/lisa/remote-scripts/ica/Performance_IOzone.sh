@@ -230,8 +230,8 @@ LogMsg "iometer was installed successfully!"
 # Run iozone for throughput test
 # IOZONE_PARAMS: -s 48G -r 4K -i 0 -i 1 -i 2 -l 4 -u 4 -I -k 8
 # 
-pwd
-./iozone ${IOZONE_PARAMS} -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
+cd /mnt
+/root/${ROOTDIR}/src/current/iozone ${IOZONE_PARAMS} -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
 
 #
 # Check if the SCSI disk is still connected
