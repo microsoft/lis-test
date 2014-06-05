@@ -67,7 +67,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>MigType=Live</param>
+                <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-114</param>
                 <param>ipv4=10.200.49.62</param>
             </testparams>
@@ -78,7 +78,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>MigType=Quick</param>
+                <param>MigrationType=Quick</param>
                 <param>TC_COVERED=MIGR-115</param>
             </testparams>
         </test>
@@ -89,7 +89,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>CopyFile=True</param>
-                <param>MigType=Live</param>
+                <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-112</param>
             </testparams>
         </test>
@@ -100,7 +100,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>stopClusterNode=True</param>
-                <param>MigType=Live</param>
+                <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-112</param>
             </testparams>
         </test>
@@ -112,7 +112,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VMMemory=512MB</param>
-                <param>MigType=Live</param>
+                <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-113</param>
             </testparams>
         </test>
@@ -124,7 +124,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VMMemory=512MB</param>
-                <param>MigType=Quick</param>
+                <param>MigrationType=Quick</param>
                 <param>TC_COVERED=MIGR-113</param>
             </testparams>
         </test>
@@ -136,7 +136,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VMMemory=2GB</param>
-                <param>MigType=Live</param>
+                <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-114</param>
             </testparams>
         </test>
@@ -148,7 +148,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VMMemory=2GB</param>
-                <param>MigType=Quick</param>
+                <param>MigrationType=Quick</param>
                 <param>TC_COVERED=MIGR-114</param>
             </testparams>
         </test>
@@ -160,7 +160,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VMMemory=5GB</param>
-                <param>MigType=Live</param>
+                <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-114</param>
             </testparams>
         </test>
@@ -172,7 +172,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VMMemory=5GB</param>
-                <param>MigType=Quick</param>
+                <param>MigrationType=Quick</param>
                 <param>TC_COVERED=MIGR-114</param>
             </testparams>
         </test>
@@ -184,7 +184,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VCPU=2</param>
-                <param>MigType=Live</param>
+                <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-115</param>
             </testparams>
         </test>
@@ -196,7 +196,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VCPU=3</param>
-                <param>MigType=Live</param>
+                <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-115</param>
             </testparams>
         </test>
@@ -208,7 +208,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VCPU=4</param>
-                <param>MigType=Live</param>
+                <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-115</param>
             </testparams>
         </test>
@@ -220,7 +220,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VCPU=2</param>
-                <param>MigType=Quick</param>
+                <param>MigrationType=Quick</param>
                 <param>TC_COVERED=MIGR-116</param>
             </testparams>
         </test>
@@ -232,7 +232,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VCPU=3</param>
-                <param>MigType=Quick</param>
+                <param>MigrationType=Quick</param>
                 <param>TC_COVERED=MIGR-116</param>
             </testparams>
         </test>
@@ -244,7 +244,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VCPU=4</param>
-                <param>MigType=Quick</param>
+                <param>MigrationType=Quick</param>
                 <param>TC_COVERED=MIGR-116</param>
             </testparams>
         </test>
