@@ -24,7 +24,7 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <logfileRootDir>C:\Users\dpaslaru\Dropbox\lis-testing\lis-test\WS2012R2\lisa\TestLogs</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -40,7 +40,7 @@
         <suite>
             <suiteName>VSS</suiteName>
             <suiteTests>
-                <suiteTest>VSS_BackupRestore</suiteTest>
+               <!--  <suiteTest>VSS_BackupRestore</suiteTest>
                 <suiteTest>VSS_BackupRestore_ext3_vhd</suiteTest>
                 <suiteTest>VSS_BackupRestore_ext4_vhd</suiteTest>
                 <suiteTest>VSS_BackupRestore_reiserfs_vhd</suiteTest>
@@ -51,7 +51,7 @@
                 <suiteTest>VSS_BackupRestore_State_Paused</suiteTest>
                 <suiteTest>VSS_BackupRestore_Fail</suiteTest>
                 <suiteTest>VSS_BackupRestore_PassTru</suiteTest>
-                <suiteTest>VSS_BackupRestore_ISCSI</suiteTest>
+                <suiteTest>VSS_BackupRestore_ISCSI</suiteTest> -->
                 <suiteTest>VSS_BackupRestore_DiskStress</suiteTest>
             </suiteTests>
         </suite>
@@ -62,7 +62,7 @@
             <testName>VSS_BackupRestore</testName>
             <testScript>setupscripts\VSS_BackupRestore.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
@@ -75,7 +75,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext3</param>
@@ -91,7 +91,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext4</param>
@@ -107,7 +107,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=reiserfs</param>
@@ -123,7 +123,7 @@
             <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext4</param>
@@ -138,7 +138,7 @@
             <testName>VSS_BackupRestore_ISO_NoNetwork</testName>
             <testScript>setupscripts\VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
@@ -150,7 +150,7 @@
             <testName>VSS_BackupRestore_3Chain_VHD</testName>
             <testScript>setupscripts\VSS_3Chain_VHD_backup.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
@@ -162,7 +162,7 @@
             <testName>VSS_BackupRestore_ISCSI</testName>
             <testScript>setupscripts\VSS_BackupRestore_ISCSI.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>TargetIP=10.7.1.10</param>
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
@@ -176,7 +176,7 @@
             <testName>VSS_BackupRestore_DiskStress</testName>
             <testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>iOzoneVers=3_424</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -189,7 +189,7 @@
             <testName>VSS_BackupRestore_State_Off</testName>
             <testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>vmState=Off</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -202,7 +202,7 @@
             <testName>VSS_BackupRestore_State_Paused</testName>
             <testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>vmState=Paused</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -216,7 +216,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>SCSI=0,1,PassThrough</param>
                 <param>FILESYS=ext3</param>
                 <param>snapshotName=ICABase</param>
@@ -231,7 +231,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\VSS_BackupRestore_Fail.ps1</testScript> 
             <testParams>
-                <param>DriveLetter=C:</param>
+                <param>DriveLetter=F:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext3</param>
