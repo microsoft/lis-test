@@ -1,2 +1,4 @@
 WS2012R2/lisa/ssh/*
 WS2012R2/lisa/bin/*
+WS2012R2/lisa/TestLogs/*
+*.log
