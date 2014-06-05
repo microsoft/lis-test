@@ -503,7 +503,8 @@ Write-Output "Restore success!"
 # After Backup Restore VM must be off make sure that.
 if ( $vm.state -ne "Off" )  
 {
-    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state
+    Write-Output "ERROR: VM is not in OFF state, current state is:"
+    echo $vm.state
     return $False
 }
 
