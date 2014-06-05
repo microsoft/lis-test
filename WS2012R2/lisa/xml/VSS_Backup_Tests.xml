@@ -246,10 +246,10 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>VM_NAME</vmName>
+            <vmName>Oracle6.5_UEK3QU2</vmName>
             <os>Linux</os>
-            <ipv4></ipv4>
-            <sshKey>PKI_id_rsa.ppk</sshKey>
+            <ipv4>192.168.4.237/ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>VSS</suite>
         </vm>
     </VMs>
