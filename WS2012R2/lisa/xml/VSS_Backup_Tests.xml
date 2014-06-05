@@ -218,6 +218,8 @@
             <testParams>
                 <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,PassThrough</param>
+                <param>FILESYS=ext3</param>
+                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
