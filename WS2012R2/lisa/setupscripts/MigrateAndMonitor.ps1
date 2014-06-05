@@ -47,6 +47,19 @@ param( [String] $vmName,
        [String] $testParams
 )
 
+$migrationType  = $null
+$ipv4           = $null
+$sshKey         = $null
+$rootDir        = $null
+$copyFile       = $False
+$stopClusterNode= $False
+$TC_COVERED     = $null
+$pingCount      = 0
+$goodPings      = 0
+$badPings       = 0
+$firstPing      = $False
+$lastPing       = $False
+
 ########################################################################
 #
 # Create-TempFile()
@@ -120,24 +133,6 @@ if (-not $testParams)
     Return $False
 }
 
-#
-# Debug - display the test parameters so they are captured in the log file
-#
-Write-Output "TestParams : '${testParams}'"
-
-$migrationType  = $null
-$ipv4           = $null
-$sshKey         = $null
-$rootDir        = $null
-$copyFile       = $False
-$stopClusterNode= $False
-$TC_COVERED     = $null
-$pingCount      = 0
-$goodPings      = 0
-$badPings       = 0
-$firstPing      = $False
-$lastPing       = $False
-
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($param in $params)
 {
@@ -145,7 +140,7 @@ foreach ($param in $params)
 
     switch ($fields[0].Trim())
     {
-        "MigType"       { $migrationType    = $fields[1].Trim() }
+        "MigrationType" { $migrationType    = $fields[1].Trim() }
         "ipv4"          { $ipv4             = $fields[1].Trim() }
         "sshKey"        { $sshKey           = $fields[1].Trim() }
         "rootDir"       { $rootDir          = $fields[1].Trim() }
@@ -161,7 +156,6 @@ echo "Covers : ${TC_COVERED}" >> $summaryLog
 #
 # Create a ping object
 #
-[System.Reflection.Assembly]::LoadWithPartialName("system.net.networkinformation")
 $ping = New-Object System.Net.NetworkInformation.Ping
 if (-not $ping)
 {
@@ -285,7 +279,7 @@ foreach ($data in $jobInfo)
 "Bad pings  : $badPings"
 
 #
-# Adding pun stats to summary
+# Adding ping stats to summary
 #
 echo "Good pings = $goodPings" >> ${vmName}_summary.log
 echo "Bad pings  = $badPings"  >> ${vmName}_summary.log

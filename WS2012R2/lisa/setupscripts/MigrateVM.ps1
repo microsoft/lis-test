@@ -182,7 +182,7 @@ if($stopClusterNode)
 "Info : Migrating VM $vmName back from $destinationNode to $currentNode"
 
 $error.Clear()
-$sts = Move-ClusterVirtualMachineRole -name $vmName -node $currentNode -MigrationType $migrationType
+Move-ClusterVirtualMachineRole -name $vmName -node $currentNode -MigrationType $migrationType
 if ($error.Count -gt 0)
 {
     "Error: Unable to move the VM"
