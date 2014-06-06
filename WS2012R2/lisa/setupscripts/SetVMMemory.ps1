@@ -119,7 +119,17 @@ foreach ($param in $params)
 
 $startupMemory = ConvertStringToUInt64 $VMMemory
 
-Set-VMMemory -VMName $vmName -ComputerName $hvServer -StartupBytes $startupMemory -Confirm:$False
+$vm = Get-VM -VMName $vmName -ComputerName $hvServer
+
+if ($vm.DynamicMemoryEnabled)
+{
+	Set-VMMemory -VMName $vmName -ComputerName $hvServer -StartupBytes $startupMemory -MaximumBytes $startupMemory -MinimumBytes $startupMemory -Confirm:$False
+}
+else
+{
+	Set-VMMemory -VMName $vmName -ComputerName $hvServer -StartupBytes $startupMemory
+}
+
 if(-not $?)
 {
     "Error: Unable to set ${VMMemory} of RAM for ${vmName}"
