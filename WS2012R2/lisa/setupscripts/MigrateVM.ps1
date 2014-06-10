@@ -122,7 +122,7 @@ if (-not $destinationNode)
 "Info : Migrating VM $vmName from $currentNode to $destinationNode"
 
 $error.Clear()
-$sts = Move-ClusterVirtualMachineRole -name $vmName -node $destinationNode -MigrationType $migrationType
+Move-ClusterVirtualMachineRole -name $vmName -node $destinationNode -MigrationType $migrationType
 if ($error.Count -gt 0)
 {
     "Error: Unable to move the VM"
@@ -134,9 +134,9 @@ if ($error.Count -gt 0)
 if($stopClusterNode)
 {
     $clusterNodeStopped = $False
+    $stoppedNode = Get-ClusterNode -Name $destinationNode
     "Info: Stoping cluster service for node ${destinationNode}"
     Stop-ClusterNode -Name $destinationNode
-    $stoppedNode = Get-ClusterNode -Name $destinationNode
     $stopClusterNode = $False
 
     "Info: Waiting for ${destinationNode}'s cluster service to stop"
