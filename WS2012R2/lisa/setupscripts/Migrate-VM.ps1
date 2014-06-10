@@ -32,7 +32,7 @@
 .Parameter migrationType
     Type of the migration to perform
 .Example
-
+    .\Migrate-Vm.ps1 -vmName VM_Name -hvServer localhost -MigrationType Live -StopClusterNode $True
 .Link
     None.
 #>
