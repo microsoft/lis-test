@@ -145,7 +145,7 @@ foreach ($param in $params)
         "sshKey"        { $sshKey           = $fields[1].Trim() }
         "rootDir"       { $rootDir          = $fields[1].Trim() }
         "copyFile"      { $copyFile         = $fields[1].Trim() }
-        "stopClusterNode"{ $stopClusterNode = $fields[1].Trim() }
+        "stopClusterNode"{ $stopClusterNode = $True }
         "TC_COVERED"    { $TC_COVERED       = $fields[1].Trim() }
         default         {} #unknown param - just ignore it
     }
