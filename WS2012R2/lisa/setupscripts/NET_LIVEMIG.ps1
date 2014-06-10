@@ -37,7 +37,7 @@
 .Parameter testParams
     Test data for this test case
 .Example
-
+    .\Migrate-VM.ps1 -vmName VM_Name -hvServer localhost -TestParams "ipv4=255.255.255.255;MigrationType=Live;sshKey=YOUR_KEY.ppk"
 .Link
     None.
 #>
@@ -178,7 +178,7 @@ $goodPings += 1
 # Start the VM migration, and make sure it is running
 #
 "Info: Starting migration job"
-$job = Start-Job -FilePath $rootDir\setupScripts\MigrateVM.ps1 -ArgumentList $vmName, $hvServer, $migrationType, $stopClusterNode
+$job = Start-Job -FilePath $rootDir\setupScripts\Migrate-VM.ps1 -ArgumentList $vmName, $hvServer, $migrationType, $stopClusterNode
 
 if (-not $job)
 {
