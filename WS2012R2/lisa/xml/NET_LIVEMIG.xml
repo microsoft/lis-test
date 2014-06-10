@@ -21,19 +21,17 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\v-clnesa\TestResults</logfileRootDir>
+        <logfileRootDir>C:\Path\To\LogDir</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
-                <to>v-clnesa@microsoft.com</to>
-                <!-- <to>myself@microsoft.com</to> -->
+                <to>myself@mail.com</to>
             </recipients>
-            <sender>v-clnesa@microsoft.com</sender>
-            <subject>LISA FTM VHDx Resize on WS2012R2</subject>
-            <smtpServer>smtphost.redmond.corp.microsoft.com</smtpServer>
+            <sender>myself@mail.com</sender>
+            <sender>myboss@mail.com</sender>
+            <subject>LISA VHDx Resize on WS2012R2</subject>
+            <smtpServer>smtp.your.company.com</smtpServer>
         </email>
-
-        <!-- Optional testParams go here -->
     </global>
     
 	<testSuites>
@@ -63,18 +61,17 @@
 	<testCases>
         <test>
             <testName>LiveMigrate</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>MigrationType=Live</param>
                 <param>TC_COVERED=MIGR-114</param>
-                <param>ipv4=10.200.49.62</param>
             </testparams>
         </test>
         <test>
             <testName>QuickMigrate</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -84,7 +81,7 @@
         </test>
         <test>
             <testName>CopyFileDuringMigration</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -95,7 +92,7 @@
         </test>
 		<test>
             <testName>Failover</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -106,7 +103,7 @@
         </test>
         <test>
             <testName>SetMemory512_LiveMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -118,7 +115,7 @@
         </test>
         <test>
             <testName>SetMemory512_QuickMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -130,7 +127,7 @@
         </test>
         <test>
             <testName>SetMemory2048_LiveMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -142,7 +139,7 @@
         </test>
         <test>
             <testName>SetMemory2048_QuickMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -154,7 +151,7 @@
         </test>
         <test>
             <testName>SetMemory5120_LiveMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -166,7 +163,7 @@
         </test>
         <test>
             <testName>SetMemory5120_QuickMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -178,7 +175,7 @@
         </test>
         <test>
             <testName>MultiCPU2_LiveMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -190,7 +187,7 @@
         </test>
         <test>
             <testName>MultiCPU3_LiveMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -202,7 +199,7 @@
         </test>
         <test>
             <testName>MultiCPU4_LiveMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -214,7 +211,7 @@
         </test>
         <test>
             <testName>MultiCPU2_QuickMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -226,7 +223,7 @@
         </test>
         <test>
             <testName>MultiCPU3_QuickMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -238,7 +235,7 @@
         </test>
         <test>
             <testName>MultiCPU4_QuickMig</testName>
-            <testScript>setupScripts\MigrateAndMonitor.ps1</testScript>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -252,11 +249,11 @@
 	
 	<VMs>
 		<vm>
-			<hvServer>bl7wr2</hvServer>
-			<vmName>clnesaDebian_LM</vmName>
+			<hvServer>localhost</hvServer>
+			<vmName>VM_NAME</vmName>
 			<os>Linux</os>
-			<ipv4>10.200.50.92</ipv4>
-			<sshKey>rhel5_id_rsa.ppk</sshKey>
+			<ipv4>255.255.255.255</ipv4>
+			<sshKey>YOUR_KEY.ppk</sshKey>
 			<suite>LiveMigration</suite>
 		</vm>
     </VMs>
