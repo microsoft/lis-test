@@ -139,16 +139,17 @@
             </testparams>
         </test>
 
-        <test>
-            <testName>TimeSyncNTP</testName>
-            <testScript>INST_LIS_TimeSync_NTP.sh</testScript>
-            <files>remote-scripts/ica/INST_LIS_TimeSync_NTP.sh</files>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <testParams>
-                <param>TC_COVERED=CORE-04</param>
-            </testParams>
-        </test>
+         <test>
+             <testName>TimeSyncNTP</testName>
+             <testScript>CORE_TimeSync_NTP.sh</testScript>
+             <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
+             <timeout>600</timeout>
+             <onError>Continue</onError>
+             <testParams>
+                 <param>TZONE=Europe/Berlin</param>
+                 <param>TC_COVERED=CORE-04</param>
+             </testParams>
+         </test>
 
         <test>
             <testName>LISShutdownVM</testName>
