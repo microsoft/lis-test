@@ -308,7 +308,7 @@ Catch { Write-Output "No existing backup's to remove"}
 $summaryLog  = "${vmName}_summary.log"
 echo "Covers VSS Backup" > $summaryLog
 
-$remoteScript = "VSS_ISCSI_PartitionDisks.sh"
+$remoteScript = "STOR_VSS_ISCSI_PartitionDisks.sh"
 
 # Check input arguments
 if ($vmName -eq $null)
