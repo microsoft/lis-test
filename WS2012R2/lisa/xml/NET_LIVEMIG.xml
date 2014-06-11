@@ -21,14 +21,14 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\Path\To\LogDir</logfileRootDir>
+        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
                 <to>myself@mail.com</to>
+                <to>myboss@mail.com</to>
             </recipients>
             <sender>myself@mail.com</sender>
-            <sender>myboss@mail.com</sender>
             <subject>LISA VHDx Resize on WS2012R2</subject>
             <smtpServer>smtp.your.company.com</smtpServer>
         </email>
@@ -249,12 +249,12 @@
 	
 	<VMs>
 		<vm>
-			<hvServer>localhost</hvServer>
-			<vmName>VM_NAME</vmName>
-			<os>Linux</os>
-			<ipv4>255.255.255.255</ipv4>
-			<sshKey>YOUR_KEY.ppk</sshKey>
-			<suite>LiveMigration</suite>
+            <hvServer>HYPERV_SERVER</hvServer>
+            <vmName>VM_NAME</vmName>
+            <os>Linux</os>
+            <ipv4>255.255.255.255</ipv4>
+            <sshKey>YOUR_KEY.ppk</sshKey>
+            <suite>LiveMigration</suite>
 		</vm>
     </VMs>
 	
