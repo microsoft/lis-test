@@ -64,6 +64,7 @@ $sts = Get-Module | Select-String -Pattern FailoverClusters -Quiet
 if (! $sts)
 {
     Import-Module FailoverClusters
+    return $False
 }
 
 #
