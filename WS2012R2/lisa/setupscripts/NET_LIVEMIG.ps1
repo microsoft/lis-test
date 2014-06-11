@@ -38,8 +38,6 @@
     Test data for this test case
 .Example
     .\NET-LIVEMIG.ps1 -vmName VM_Name -hvServer HYPERV_SERVER -TestParams "ipv4=255.255.255.255;MigrationType=Live;sshKey=YOUR_KEY.ppk"
-.Link
-    None.
 #>
 
 param( [String] $vmName,
@@ -151,7 +149,7 @@ foreach ($param in $params)
     }
 }
 
-echo "Covers : ${TC_COVERED}" >> $summaryLog
+Write-Output "Covers : ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
 # Create a ping object
@@ -281,8 +279,8 @@ foreach ($data in $jobInfo)
 #
 # Adding ping stats to summary
 #
-echo "Good pings = $goodPings" >> ${vmName}_summary.log
-echo "Bad pings  = $badPings"  >> ${vmName}_summary.log
+Write-Output "Good pings = $goodPings" | Tee-Object -Append -file $summaryLog
+Write-Output "Bad pings  = $badPings"  | Tee-Object -Append -file $summaryLog
 
 #
 # Checking if migration reports success and the last ping is successful
