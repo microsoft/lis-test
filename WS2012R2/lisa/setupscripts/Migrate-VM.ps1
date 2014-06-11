@@ -32,9 +32,7 @@
 .Parameter migrationType
     Type of the migration to perform
 .Example
-    .\Migrate-Vm.ps1 -vmName VM_Name -hvServer localhost -MigrationType Live -StopClusterNode $True
-.Link
-    None.
+    .\Migrate-Vm.ps1 -vmName VM_Name -hvServer HYPERV_SERVER -MigrationType Live -StopClusterNode $True
 #>
 param([string] $vmName, [string] $hvServer, [string] $migrationType, [bool] $stopClusterNode)
 
