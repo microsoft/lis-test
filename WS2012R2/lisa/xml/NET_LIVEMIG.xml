@@ -93,7 +93,7 @@
 		<test>
             <testName>Failover</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
-            <timeout>600</timeout>
+            <timeout>3600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>stopClusterNode=True</param>
