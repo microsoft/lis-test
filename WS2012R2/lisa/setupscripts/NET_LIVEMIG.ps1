@@ -37,7 +37,7 @@
 .Parameter testParams
     Test data for this test case
 .Example
-    .\Migrate-VM.ps1 -vmName VM_Name -hvServer localhost -TestParams "ipv4=255.255.255.255;MigrationType=Live;sshKey=YOUR_KEY.ppk"
+    .\NET-LIVEMIG.ps1 -vmName VM_Name -hvServer HYPERV_SERVER -TestParams "ipv4=255.255.255.255;MigrationType=Live;sshKey=YOUR_KEY.ppk"
 .Link
     None.
 #>
