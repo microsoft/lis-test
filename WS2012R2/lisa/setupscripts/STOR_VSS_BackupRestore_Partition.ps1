@@ -24,7 +24,7 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will connect to a iSCSI target, format and mount the iSCSI disk.
+    This script will format and mount connected disk in the VM.
     After that it will proceed with backup/restore operation. 
     
     It uses a second partition as target. 
@@ -35,13 +35,17 @@
     A typical xml entry looks like this:
 
     <test>
-        <testName>VSS_BackupRestore_ISCSI</testName>
-        <testScript>setupscripts\VSS_BackupRestore_ISCSI.ps1</testScript> 
+        <testName>VSS_BackupRestore_ext4_vhdx</testName>
+        <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
+        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
         <testParams>
             <param>driveletter=F:</param>
-            <param>TargetIP=10.7.1.10</param>
+            <param>SCSI=0,1,Dynamic</param>
+            <param>IDE=0,1,Dynamic</param>
             <param>FILESYS=ext4</param>
+            <param>TC_COVERED=VSS-02</param>
         </testParams>
+        <cleanupScript>setupscripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>1200</timeout>
         <OnError>Continue</OnError>
     </test>
@@ -56,7 +60,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\VSS_BackuRestore_ISCSI.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:;TargetIP=ipOfTheIscsiTarget;FILESYS=ext4'
+    setupScripts\VSS_BackuRestore_Partition.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:;FILESYS=ext4'
 
 #>
 
@@ -150,21 +154,21 @@ function RunRemoteScript($remoteScript)
 
     "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
 
-    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
+    echo y | .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy runtest.sh to the VM"
        return $False
     }      
 
-     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+    echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
        return $False
     }
 
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
+    echo y | .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
     if (-not $?)
     {
         Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
@@ -192,7 +196,7 @@ function RunRemoteScript($remoteScript)
     }
 
     # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh 2> /dev/null"
     
     # Return the state file
     while ($timeout -ne 0 )
@@ -308,7 +312,7 @@ Catch { Write-Output "No existing backup's to remove"}
 $summaryLog  = "${vmName}_summary.log"
 echo "Covers VSS Backup" > $summaryLog
 
-$remoteScript = "VSS_ISCSI_PartitionDisks.sh"
+$remoteScript = "STOR_VSS_PartitionDisks.sh"
 
 # Check input arguments
 if ($vmName -eq $null)
@@ -330,8 +334,6 @@ foreach ($p in $params)
         "rootdir" { $rootDir = $fields[1].Trim() }
         "driveletter" { $driveletter = $fields[1].Trim() }
         "FILESYS" { $FILESYS = $fields[1].Trim() }
-        "TargetIP" { $TargetIP = $fields[1].Trim() }
-        "TestLogDir" { $TestLogDir = $fields[1].Trim() }
         default  {}          
         }
 }
@@ -363,12 +365,6 @@ if ($null -eq $driveletter)
 if ($null -eq $FILESYS)
 {
     "ERROR: Test parameter FILESYS was not specified"
-    return $False
-}
-
-if ($null -eq $TargetIP)
-{
-    "ERROR: Test parameter TargetIP was not specified"
     return $False
 }
 
@@ -418,10 +414,19 @@ if (-not $sts[-1])
 {
     Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
     Write-Output "ERROR: Running $remoteScript script failed on VM!"
+    Write-Output "Here are the remote logs:`n`n###################"
+    $logfilename = ".\$remoteScript.log"
+    Get-Content $logfilename
+    Write-Output "###################`n"
     return $False
 }
 Write-Output "$remoteScript execution on VM: Success"
+Write-Output "Here are the remote logs:`n`n###################"
+$logfilename = ".\$remoteScript.log"
+Get-Content $logfilename
+Write-Output "###################`n"
 Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
+del $remoteScript.log
 
 # Remove Existing Backup Policy
 try { Remove-WBPolicy -all -force }

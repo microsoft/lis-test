@@ -24,8 +24,8 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will format and mount connected disk in the VM.
-    After that it will proceed with backup/restore operation. 
+    This script will push VSS_Disk_Stress.sh script to the vm. 
+    While the script is running it will perform the backup/restore operation. 
     
     It uses a second partition as target. 
 
@@ -35,20 +35,18 @@
     A typical xml entry looks like this:
 
     <test>
-        <testName>VSS_BackupRestore_ext4_vhdx</testName>
-        <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+    <testName>VSS_BackupRestore_DiskStress</testName>
+        <testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript> 
         <testParams>
             <param>driveletter=F:</param>
-            <param>SCSI=0,1,Dynamic</param>
-            <param>IDE=0,1,Dynamic</param>
-            <param>FILESYS=ext4</param>
-            <param>TC_COVERED=VSS-02</param>
+            <param>iOzoneVers=3_424</param>
+            <param>TC_COVERED=VSS-14</param>
         </testParams>
-        <cleanupScript>setupscripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>1200</timeout>
-        <OnError>Continue</OnError>
+        <OnERROR>Continue</OnERROR>
     </test>
+    
+    The iOzoneVers param is needed for the download of the correct iOzone version. 
 
 .Parameter vmName
     Name of the VM to remove disk from .
@@ -60,7 +58,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\VSS_BackuRestore_Partition.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:;FILESYS=ext4'
+    setupScripts\VSS_BackuRestore_DiskStress.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:;iOzoneVers=3_424'
 
 #>
 
@@ -154,21 +152,21 @@ function RunRemoteScript($remoteScript)
 
     "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
 
-    echo y | .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
+    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy runtest.sh to the VM"
        return $False
     }      
 
-    echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
        return $False
     }
 
-    echo y | .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
     if (-not $?)
     {
         Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
@@ -196,7 +194,7 @@ function RunRemoteScript($remoteScript)
     }
 
     # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh 2> /dev/null"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
     
     # Return the state file
     while ($timeout -ne 0 )
@@ -312,12 +310,12 @@ Catch { Write-Output "No existing backup's to remove"}
 $summaryLog  = "${vmName}_summary.log"
 echo "Covers VSS Backup" > $summaryLog
 
-$remoteScript = "VSS_PartitionDisks.sh"
+$remoteScript = "STOR_VSS_Disk_Stress.sh"
 
 # Check input arguments
 if ($vmName -eq $null)
 {
-    "ERROR: VM name is null"
+    Write-Output "ERROR: VM name is null"
     return $retVal
 }
 
@@ -333,39 +331,45 @@ foreach ($p in $params)
         "ipv4" { $ipv4 = $fields[1].Trim() }
         "rootdir" { $rootDir = $fields[1].Trim() }
         "driveletter" { $driveletter = $fields[1].Trim() }
-        "FILESYS" { $FILESYS = $fields[1].Trim() }
+        "iOzoneVers" { $iOzoneVers = $fields[1].Trim() }
+        "TestLogDir" { $TestLogDir = $fields[1].Trim() }
         default  {}          
         }
 }
 
 if ($null -eq $sshKey)
 {
-    "ERROR: Test parameter sshKey was not specified"
+    Write-Output "ERROR: Test parameter sshKey was not specified"
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-    "ERROR: Test parameter ipv4 was not specified"
+    Write-Output "ERROR: Test parameter ipv4 was not specified"
     return $False
 }
 
 if ($null -eq $rootdir)
 {
-    "ERROR: Test parameter rootdir was not specified"
+    Write-Output "ERROR: Test parameter rootdir was not specified"
     return $False
 }
 
 if ($null -eq $driveletter)
 {
-    "ERROR: Test parameter driveletter was not specified."
+    Write-Output "ERROR: Test parameter driveletter was not specified."
     return $False
 }
 
-if ($null -eq $FILESYS)
+if ($null -eq $iOzoneVers)
 {
-    "ERROR: Test parameter FILESYS was not specified"
+    Write-Output "ERROR: Test parameter iOzoneVers was not specified"
     return $False
+}
+
+if ($null -eq $TestLogDir)
+{
+    $TestLogDir = $rootdir
 }
 
 echo $params
@@ -403,30 +407,21 @@ if (-not $sts[-1])
 }
 Write-Output "VSS Daemon is running " >> $summaryLog
 
-# Install the Windows Backup feature
-Write-Output "Checking if the Windows Server Backup feature is installed..."
-try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true -Restart:$false }
-Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
-
 # Run the remote script
 $sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
 {
     Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
     Write-Output "ERROR: Running $remoteScript script failed on VM!"
-    Write-Output "Here are the remote logs:`n`n###################"
-    $logfilename = ".\$remoteScript.log"
-    Get-Content $logfilename
-    Write-Output "###################`n"
     return $False
 }
 Write-Output "$remoteScript execution on VM: Success"
-Write-Output "Here are the remote logs:`n`n###################"
-$logfilename = ".\$remoteScript.log"
-Get-Content $logfilename
-Write-Output "###################`n"
 Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
-del $remoteScript.log
+
+# Install the Windows Backup feature
+Write-Output "Checking if the Windows Server Backup feature is installed..."
+try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true -Restart:$false }
+Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
 
 # Remove Existing Backup Policy
 try { Remove-WBPolicy -all -force }
@@ -447,8 +442,8 @@ Catch { Write-Output "No existing backup's to remove"}
 Set-WBVssBackupOptions -Policy $policy -VssCopyBackup
 
 # Add the Virtual machines to the list
-$VM = Get-WBVirtualMachine | where vmname -like $vmName
-Add-WBVirtualMachine -Policy $policy -VirtualMachine $VM
+$VMlist = Get-WBVirtualMachine | where vmname -like $vmName
+Add-WBVirtualMachine -Policy $policy -VirtualMachine $VMlist
 Add-WBBackupTarget -Policy $policy -Target $backupLocation
 
 # Display the Backup policy

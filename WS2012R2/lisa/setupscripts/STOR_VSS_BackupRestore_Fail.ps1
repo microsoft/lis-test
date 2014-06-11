@@ -24,8 +24,8 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will stop networking and attach a CD ISO to the vm. 
-    After that it will perform the backup/restore operation. 
+    This script will push test if VSS backup will gracefully fail in case
+    of failure. 
     
     It uses a second partition as target. 
 
@@ -35,18 +35,21 @@
     A typical xml entry looks like this:
 
     <test>
-    <testName>VSS_BackupRestore_ISO_NoNetwork</testName>
-        <testScript>setupscripts\VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
+    <testName>VSS_BackupRestore_Fail</testName>
+        <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+        <testScript>setupscripts\VSS_BackupRestore_Fail.ps1</testScript> 
         <testParams>
             <param>driveletter=F:</param>
-            <param>TC_COVERED=VSS-11</param>
+            <param>SCSI=0,1,Dynamic</param>
+            <param>IDE=0,1,Dynamic</param>
+            <param>FILESYS-ext3</param>
+            <param>TC_COVERED=VSS-18</param>
         </testParams>
+        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
         <timeout>1200</timeout>
         <OnERROR>Continue</OnERROR>
     </test>
     
-    The iOzoneVers param is needed for the download of the correct iOzone version. 
-
 .Parameter vmName
     Name of the VM to remove disk from .
 
@@ -57,7 +60,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\VSS_BackupRestore_ISO_NoNetwork.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:'
+    setupScripts\VSS_BackuRestore_DiskStress.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:;iOzoneVers=3_424'
 
 #>
 
@@ -142,6 +145,12 @@ function CheckRecoveringJ()
 #######################################################################
 function RunRemoteScript($remoteScript)
 {
+    $retValue = $False
+    $stateFile     = "state.txt"
+    $TestCompleted = "TestCompleted"
+    $TestAborted   = "TestAborted"
+    $TestRunning   = "TestRunning"
+    $timeout       = 6000    
 
     "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
 
@@ -152,7 +161,7 @@ function RunRemoteScript($remoteScript)
        return $False
     }      
 
-    .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
@@ -187,15 +196,105 @@ function RunRemoteScript($remoteScript)
     }
 
     # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "at -f runtest.sh now" 
-    if (-not $?)
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
+    
+    # Return the state file
+    while ($timeout -ne 0 )
     {
-        Write-Output "Error: Unable to submit runtest.sh to the vm"
-        return $False
+    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $stateFile)
+        {
+            $contents = Get-Content -Path $stateFile
+            if ($null -ne $contents)
+            {
+                    if ($contents -eq $TestCompleted)
+                    {                    
+                        Write-Output "Info : state file contains Testcompleted"              
+                        $retValue = $True
+                        break                                             
+                                     
+                    }
+
+                    if ($contents -eq $TestAborted)
+                    {
+                         Write-Output "Info : State file contains TestAborted failed. "                                  
+                         break
+                          
+                    }
+                    #Start-Sleep -s 1
+                    $timeout-- 
+
+                    if ($timeout -eq 0)
+                    {                        
+                        Write-Output "Error : Timed out on Test Running , Exiting test execution."                    
+                        break                                               
+                    }                                
+                  
+            }    
+            else
+            {
+                Write-Output "Warn : state file is empty"
+                break
+            }
+           
+        }
+        else
+        {
+             Write-Host "Warn : ssh reported success, but state file was not copied"
+             break
+        }
+    }
+    else #
+    {
+         Write-Output "Error : pscp exit status = $sts"
+         Write-Output "Error : unable to pull state.txt from VM." 
+         break
+    }     
     }
 
-    del runtest.sh
-    return $True
+    # Get the logs
+    $remoteScriptLog = $remoteScript+".log"
+    
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} . 
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $remoteScriptLog)
+        {
+            $contents = Get-Content -Path $remoteScriptLog
+            if ($null -ne $contents)
+            {
+                    if ($null -ne ${TestLogDir})
+                    {
+                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
+                
+                    }
+
+                    else 
+                    {
+                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"                                
+                    }                              
+                  
+            }    
+            else
+            {
+                Write-Output "Warn: $remoteScriptLog is empty"                
+            }           
+        }
+        else
+        {
+             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"             
+        }
+    }
+    
+    # Cleanup 
+    del state.txt -ErrorAction "SilentlyContinue"
+    del runtest.sh -ErrorAction "SilentlyContinue"
+
+    return $retValue
 }
 
 ####################################################################### 
@@ -213,7 +312,7 @@ Catch { Write-Output "No existing backup's to remove"}
 $summaryLog  = "${vmName}_summary.log"
 echo "Covers VSS Backup" > $summaryLog
 
-$remoteScript = "VSS_StopNetwork.sh"
+$remoteScript = "STOR_VSS_Disk_Fail.sh"
 
 # Check input arguments
 if ($vmName -eq $null)
@@ -234,6 +333,8 @@ foreach ($p in $params)
         "ipv4" { $ipv4 = $fields[1].Trim() }
         "rootdir" { $rootDir = $fields[1].Trim() }
         "driveletter" { $driveletter = $fields[1].Trim() }
+        "TestLogDir" { $TestLogDir = $fields[1].Trim() }
+        "FILESYS" { $FILESYS = $fields[1].Trim() }
         default  {}          
         }
 }
@@ -259,6 +360,12 @@ if ($null -eq $rootdir)
 if ($null -eq $driveletter)
 {
     Write-Output "ERROR: Test parameter driveletter was not specified."
+    return $False
+}
+
+if ($null -eq $FILESYS)
+{
+    Write-Output "ERROR: Test parameter FILESYS was not specified."
     return $False
 }
 
@@ -302,46 +409,16 @@ if (-not $sts[-1])
 }
 Write-Output "VSS Daemon is running " >> $summaryLog
 
-# Insert CD/DVD .
-$CdPath = ".\bin\CDTEST.iso"
-Set-VMDvdDrive -VMName $vmName -ComputerName $hvServer –Path $CdPath
-if (-not $?)
-    {
-        "Error: Unable to Add ISO $CdPath" 
-        return $False
-    }
-
-Write-Output "Attached DVD: Success" >> $summaryLog
-
-# Bring down the network. 
-RunRemoteScript $remoteScript
-
-Start-Sleep -Seconds 3
-# echo $x
-# return $False
-
-# Make sure network is down.
-$sts = ping $ipv4
-$pingresult = $False
-foreach ($line in $sts)
+# Run the remote script
+$sts = RunRemoteScript $remoteScript
+if (-not $sts[-1])
 {
-   if (( $line -Like "*unreachable*" ) -or ($line -Like "*timed*")) 
-   {
-       $pingresult = $True
-   }
+    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
+    Write-Output "ERROR: Running $remoteScript script failed on VM!"
+    return $False
 }
-
-if ($pingresult) 
-   {
-       Write-Output "Network Down: Success"
-       Write-Output "Network Down: Success" >> $summaryLog
-   }
-   else
-   {
-       Write-Output "Network Down: Failed" >> $summaryLog
-       Write-Output "ERROR: Running $remoteScript script failed on VM!"
-       return $False
-   }
+Write-Output "$remoteScript execution on VM: Success"
+Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
 
 # Install the Windows Backup feature
 Write-Output "Checking if the Windows Server Backup feature is installed..."
@@ -395,70 +472,33 @@ Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
 Start-Sleep -Seconds 3
 
-# Start the Restore
-Write-Output "`nNow let's do restore ...`n"
-
-# Get BackupSet
-$BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
-
-# Start Restore
-Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force
-$sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+Write-Output "INFO: Going through Event Logs for Warninig ID 10107"
+# Now Check if Warning related Error is present in Event Log ? Backup should fail .
+$EventLog = Get-WinEvent -ProviderName Microsoft-Windows-Hyper-V-VMMS | where-object {  $_.TimeCreated -gt $Date}
+if(-not $EventLog)
 {
-    Write-Output "ERROR: VSS WB Restore failed"
-    $retVal = $false
-    return $retVal
-}
-
-# Review the results  
-Get-WBSummary            
-Get-WBBackupSet -BackupTarget $backupLocation        
-Get-WBJob -Previous 1 >> $summaryLog
-
-# Make sure VM exist after VSS backup/restore operation 
-$vm = Get-VM -Name $vmName -ComputerName $hvServer
-    if (-not $vm)
-    {
-        Write-Output "ERROR: VM ${vmName} does not exist after restore"
-        return $False
-    }
-Write-Output "Restore success!"
-
-# After Backup Restore VM must be off make sure that.
-if ( $vm.state -ne "Off" )  
-{
-    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state
+    "Error : Error Getting event logs"
     return $False
-}
+} 
 
-# Now Start the VM
-$timeout = 500
-$sts = Start-VM -Name $vmName -ComputerName $hvServer 
-if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
-{
-    Write-Output "ERROR: ${vmName} failed to start"
-    return $False
-}
-else
-{
-    Write-Output "INFO: Started VM ${vmName}"
-}
+# Event ID 10107 is what we looking here, it will be always be 10107.
+foreach ($event in $EventLog)
+   {
+       if ($event.Id -eq 10150)
+       {           
+           $results = "Passed"
+           $retVal = $True
+           Write-Output "INFO : " + $event.Message
+           Write-Output "INFO :VSS Backup Error in Event Log : Success"   
+           Write-Output  "VSS Backup Error in Event Log : Success" >> $summaryLog
+                      
+       }              
+   }
 
-# Now Check the boot logs in VM to verify if there is no Recovering journals in it . 
-$sts=CheckRecoveringJ
-if ($sts[-1])
+if ($retVal -eq $false)
 {
-    Write-Output "ERROR: Recovering Journals in Boot log file, VSS backup/restore failed!"
-    Write-Output "No Recovering Journal in boot logs: Failed" >> $summaryLog
-    return $False
-}
-else 
-{
-    $results = "Passed"
-    $retVal = $True
-    Write-Output "INFO: VSS Back/Restore: Success"   
-    Write-Output "No Recovering Journal in boot msg: Success" >> $summaryLog
+     Write-Output "INFO :VSS Backup Error not in Event Log"   
+     Write-Output "VSS Backup Error not in Event Log" >> $summaryLog
 }
 
 # Remove Existing Backups
