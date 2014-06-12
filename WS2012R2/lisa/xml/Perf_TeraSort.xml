@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+ Copyright (c) Microsoft Corporation
+
+ All rights reserved. 
+ Licensed under the Apache License, Version 2.0 (the ""License"");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+     http://www.apache.org/licenses/LICENSE-2.0  
+
+ THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+ ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+ PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+ See the Apache Version 2.0 License for specific language governing
+ permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS_IO_tests</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>TeraSort</suiteName>
+            <suiteTests>
+                <suiteTest>Perf_ConfigHadoop</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+         <test>
+            <testName>Perf_ConfigHadoop</testName>          
+            <testScript>perf_confighadoop.sh</testScript>
+            <files>remote-scripts/ica/perf_confighadoop.sh</files>
+            <timeout>1200</timeout>
+            <OnError>Continue</OnError>
+         </test>
+    </testCases>
+    
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>TestVM</vmName>
+            <os>Linux</os>
+            <ipv4>192.168.1.100</ipv4>
+            <sshKey>lisa_id_rsa.ppk</sshKey>
+            <suite>TeraSort</suite>
+        </vm>
+
+    </VMs>
+</config>
