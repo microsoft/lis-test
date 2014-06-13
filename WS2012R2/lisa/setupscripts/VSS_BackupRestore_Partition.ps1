@@ -93,7 +93,7 @@ function CheckVSSDaemon()
     $filename = ".\vss"
   
     # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
-    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) {
+    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) 
     {
         Write-Output "VSS Daemon is running"  
         $retValue =  $True
@@ -305,7 +305,7 @@ function RunRemoteScript($remoteScript)
 $retVal = $false
 
 Write-Output "Removing old backups"
-try { Remove-WBBackupSet -Force }
+try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
 Catch { Write-Output "No existing backup's to remove"}
 
 # Define and cleanup the summaryLog
@@ -459,9 +459,9 @@ Write-Output "Backing to $driveletter"
 Start-WBBackup -Policy $policy
 
 # Review the results            
-Get-WBSummary            
-Get-WBBackupSet -BackupTarget $backupLocation        
-Get-WBJob -Previous 1 >> $summaryLog
+$BackupTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
+Write-Output "Backup duration: $BackupTime minutes"           
+"Backup duration: $BackupTime minutes" >> $summaryLog
 
 $sts=Get-WBJob -Previous 1
 if ($sts.JobState -ne "Completed")
@@ -482,7 +482,7 @@ Write-Output "`nNow let's do restore ...`n"
 $BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
 
 # Start Restore
-Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force
+Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force -WarningAction SilentlyContinue
 $sts=Get-WBJob -Previous 1
 if ($sts.JobState -ne "Completed")
 {
@@ -492,9 +492,9 @@ if ($sts.JobState -ne "Completed")
 }
 
 # Review the results  
-Get-WBSummary            
-Get-WBBackupSet -BackupTarget $backupLocation        
-Get-WBJob -Previous 1 >> $summaryLog
+$RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
+Write-Output "Restore duration: $RestoreTime minutes"
+"Restore duration: $RestoreTime minutes" >> $summaryLog
 
 # Make sure VM exist after VSS backup/restore operation 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
@@ -543,7 +543,7 @@ else
 
 # Remove Existing Backups
 Write-Output "Removing old backups from $backupLocation"
-try { Remove-WBBackupSet -BackupTarget $backupLocation -Force }
+try { Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
 Catch { Write-Output "No existing backup's to remove"}
 
 Write-Output "INFO: Test ${results}"
