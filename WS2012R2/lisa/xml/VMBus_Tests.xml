@@ -41,8 +41,8 @@
         <suite>
             <suiteName>VMBus</suiteName>
             <suiteTests>
-			   	<suiteTest>VMBus_protocol_version</suiteTest>
-				<suiteTest>VMBus_verify_interrupts</suiteTest>
+		<suiteTest>VMBus_protocol_version</suiteTest>
+		<suiteTest>VMBus_verify_interrupts</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -51,26 +51,26 @@
         <test>
             <testName>VMBus_protocol_version</testName>
             <testScript>vmbus_protocol_version.sh</testScript>
-			<files>remote-scripts/ica/vmbus_protocol_version.sh</files>
+	    <files>remote-scripts/ica/vmbus_protocol_version.sh</files>
             <timeout>300</timeout>
             <onError>Continue</onError>
-			<noReboot>True</noReboot>	
-			<testParams>
-                <param>TC_COVERED=VMBus-01</param>
-				<!-- For WS 2012 R2 the VMBus version is 2.4 -->
-				<param>VMBusVer=2.4</param>
+		<noReboot>True</noReboot>	
+		<testParams>
+            <param>TC_COVERED=VMBus-01</param>
+		<!-- For WS 2012 R2 the VMBus version is 2.4 -->
+		<param>VMBusVer=2.4</param>
             </testParams>
         </test>
 
         <test>
             <testName>VMBus_verify_interrupts</testName>
             <testScript>vmbus_verify_interrupts.sh</testScript>
-			<files>remote-scripts/ica/vmbus_verify_interrupts.sh</files>
+	    <files>remote-scripts/ica/vmbus_verify_interrupts.sh</files>
             <timeout>300</timeout>
             <onError>Continue</onError>
-			<noReboot>True</noReboot>
-			<testParams>
-                <param>TC_COVERED=VMBus-02</param>
+	    <noReboot>True</noReboot>
+	    <testParams>
+            	<param>TC_COVERED=VMBus-02</param>
             </testParams>
         </test>
 
