@@ -51,9 +51,7 @@
 #               <param>IPERF_PACKAGE=iperf-2.0.5.tar.gz</param>
 #               <param>TARGET_IP=192.168.1.100</param>
 #               <param>TARGET_SSHKEY=rhel5_id_rsa</param>
-#               <param>IPERF_THREADS=4</param>
-#               <param>IPERF_BUFFER=8KB</param>
-#               <param>IPERF_TCPWINDOW=64KB</param>
+#               <param>IPERF_THREADS=10</param>
 #           </testParams>
 #           <uploadFiles>
 #               <file>iperfdata.log</file>
@@ -156,22 +154,6 @@ if [ "${IPERF_THREADS:="UNDEFINED"}" = "UNDEFINED" ]; then
     exit 40
 fi
 
-if [ "${IPERF_BUFFER:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the IPERF_BUFFER test parameter is undefined"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 40
-fi
-
-if [ "${IPERF_TCPWINDOW:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the IPERF_TCPWINDOW test parameter is undefined"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 40
-fi
-
 #
 # Make sure the SSH key file was copied to this test system
 #
@@ -189,8 +171,6 @@ echo "iPerf package   = ${IPERF_PACKAGE}"
 echo "TARGET_ip       = ${TARGET_IP}"
 echo "TARGET_SSHKEY   = ${TARGET_SSHKEY}"
 echo "IPERF_THREADS   = ${IPERF_THREADS}"
-echo "IPERF_BUFFER    = ${IPERF_BUFFER}"
-echo "IPERF_TCPWINDOW = ${IPERF_TCPWINDOW}"
 
 #
 # Download iperf from the website
@@ -301,7 +281,7 @@ sleep 5
 #
 LogMsg "Starting iPerf client"
 
-iperf -c ${TARGET_IP} -t 300 -P ${IPERF_THREADS} -l ${IPERF_BUFFER} -w ${IPERF_TCPWINDOW} > ~/iperfdata.log
+iperf -c ${TARGET_IP} -t 300 -P ${IPERF_THREADS} > ~/iperfdata.log
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf on the client"
     LogMsg "${msg}"
