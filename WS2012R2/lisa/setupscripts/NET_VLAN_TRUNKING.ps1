@@ -636,8 +636,15 @@ if ($nic2)
 else
 {
 	# we need to add it here
-    $vm2MacAddress = getRandUnusedMAC $hvServer
-
+    # try a few times
+    for ($i = 0; $i -lt 3; $i++)
+    {
+        $vm2MacAddress = getRandUnusedMAC $hvServer
+        if ($vm2MacAddress)
+        {
+            break
+        }
+    }
     $retVal = isValidMAC $vm2MacAddress
     if (-not $retVal)
     {
@@ -712,6 +719,22 @@ $vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinu
 if (-not $vm1)
 {
     "Error: VM ${vmName} does not exist"
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
     return $False
 }
 
@@ -754,6 +777,23 @@ else
     if (-not $retVal)
     {
         "$vm2StaticIP is not in the same subnet as $vm1StaticIP / $netmask"
+
+        # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+        if ($scriptAddedNIC)
+        {
+            if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+            {
+                if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+                {
+                    .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+                }
+                else
+                {
+                    "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+                }
+            }
+        }
+
         return $false
     }
 }
@@ -776,6 +816,22 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 	{
 		"Error: Unable to start VM ${vm2Name}"
 		$error[0].Exception
+
+        # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+        if ($scriptAddedNIC)
+        {
+            if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+            {
+                if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+                {
+                    .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+                }
+                else
+                {
+                    "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+                }
+            }
+        }
 		return $False
 	}
 }
@@ -804,7 +860,25 @@ $timeout = 120 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "Error: VM ${vm2Name} never started"
-    Stop-VM $vm.vmName -ComputerName $vm.hvServer -force | out-null
+    
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
     return $False
 }
 
@@ -812,6 +886,25 @@ if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 if (-not (Test-Path ".\remote-scripts\ica\Utils.sh"))
 {
 	"Error: Unable to find remote-scripts\ica\Utils.sh "
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
 
@@ -821,6 +914,24 @@ $retVal = SendFileToVM "$vm2ipv4" "$sshKey" ".\remote-scripts\ica\Utils.sh" "/ro
 if (-not $retVal)
 {
 	"Failed sending file to VM!"
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
 	return $False
 }
 
@@ -829,6 +940,25 @@ $retVal = CreateVlanInterfaceConfig $ipv4 $sshKey $vm1MacAddress $vm1StaticIP $n
 if (-not $retVal)
 {
 	"Failed to create Vlan Interface on vm $ipv4 for interface with mac $vm1MacAddress , by setting a static IP of $vm1StaticIP netmask $netmask and vlan ID $vlanID"
+
+Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
 
@@ -836,6 +966,26 @@ $retVal = CreateVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vm2StaticIP
 if (-not $retVal)
 {
 	"Failed to create Vlan Interface on vm $vm2ipv4 for interface with mac $vm2MacAddress , by setting a static IP of $vm2StaticIP netmask $netmask and vlan ID $vlanID"
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
 	return $false
 }
 
@@ -843,12 +993,57 @@ Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Trunk -AllowedVlanIdList $vl
 if (-not $?)
 {
 	"Failed to set $vm1Nic to Trunk Mode with an AllowedVlanIdList of $vlanID and a native VlanID $nativeVlanId"
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
+
 Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2NIC -Trunk -AllowedVlanIdList $vlanID -NativeVlanId $nativeVlanId 
 if (-not $?)
 {
 	"Failed to set $vm2Nic to Trunk Mode with an AllowedVlanIdList of $vlanID and a native VlanID $nativeVlanId"
+
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
 
@@ -860,6 +1055,30 @@ $retVal = pingVMs $ipv4 $vm2StaticIP $sshKey 10 $vm1MacAddress $vlanID
 if (-not $retVal)
 {
 	"Unable to ping $vm2StaticIP from $vm1StaticIP with MAC $vm1MacAddress"
+
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+    
 	return $false
 }
 
@@ -869,6 +1088,30 @@ $retVal = pingVMs $vm2ipv4 $vm1StaticIP $sshKey 10 $vm2MacAddress $vlanID
 if (-not $retVal)
 {
 	"Unable to ping $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress"
+    
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
 
@@ -889,6 +1132,30 @@ $retVal = CreateVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vm2StaticIP
 if (-not $retVal)
 {
 	"Failed to create Vlan Interface on vm $vm2ipv4 for interface with mac $vm2MacAddress , by setting a static IP of $vm2StaticIP netmask $netmask and vlan ID $vlanID"
+
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
 
@@ -897,6 +1164,30 @@ Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Trunk -AllowedVlanIdList $ba
 if (-not $?)
 {
 	"Failed to set $vm2Nic to Trunk Mode with an AllowedVlanIdList of $vlanID and a native VlanID $nativeVlanId"
+
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
 
@@ -907,6 +1198,30 @@ $retVal = pingVMs $vm2ipv4 $vm1StaticIP $sshKey 10 $vm2MacAddress $badVlanId
 if ($retVal)
 {
 	"Ping from vm2: Able to ping $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress although it should not have worked!"
+
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
 
@@ -915,6 +1230,30 @@ Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1NIC -Trunk -AllowedVlanIdList $ba
 if (-not $?)
 {
 	"Failed to set $vm1Nic to Trunk Mode with an AllowedVlanIdList of $vlanID and a native VlanID $nativeVlanId"
+
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
 
@@ -922,25 +1261,55 @@ $retVal = pingVMs $vm2ipv4 $vm1StaticIP $sshKey 10 $vm2MacAddress $badVlanId
 if ($retVal)
 {
 	"Able to ping $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress although it should not have worked!"
+
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
+
+    RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
+
+    Stop-VM -VMName $vm2name -force
+
+    # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+    if ($scriptAddedNIC)
+    {
+        if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+        {
+            if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+            {
+                .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+            }
+            else
+            {
+                "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+            }
+        }
+    }
+
 	return $false
 }
+
+# undo everything we did
+Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
+
+RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
 
 Stop-VM -VMName $vm2name -force
 
 # if this script added the second NIC, then remove it unless the Leave_trail param was set.
 if ($scriptAddedNIC)
 {
-	if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-	{
-		if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
-		{
-			.\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
-		}
-		else
-		{
-			"Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
-		}
-	}
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+    {
+        if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+        {
+            .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+        }
+        else
+        {
+            "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+        }
+    }
 }
 
 "Test successful!"

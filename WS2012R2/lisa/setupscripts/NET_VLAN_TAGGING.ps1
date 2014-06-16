@@ -539,9 +539,15 @@ if ($nic2)
 else
 {
 	# we need to add it here
-	
-	$vm2MacAddress = getRandUnusedMAC $hvServer
-
+	# try a few times
+    for ($i = 0 ; $i -lt 3; $i++)
+    {
+	   $vm2MacAddress = getRandUnusedMAC $hvServer
+       if ($vm2MacAddress)
+       {
+            break
+       }
+    }
     $retVal = isValidMAC $vm2MacAddress
     if (-not $retVal)
     {
