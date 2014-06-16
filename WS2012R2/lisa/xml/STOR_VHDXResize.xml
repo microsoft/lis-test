@@ -174,9 +174,9 @@
 
     <VMs>
 		<vm>
-            <hvServer>localhost5</hvServer>
+            <hvServer>localhost</hvServer>
             <vmName>VM_Name</vmName>
-            <os>Linux<os>
+            <os>Linux</os>
             <ipv4>255.255.255.255</ipv4>
             <sshKey>YOUR_KEY.ppk</sshKey>
             <suite>VHDxResize</suite>
