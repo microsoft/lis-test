@@ -848,7 +848,7 @@ CreateVlanConfig()
 				fi
 			fi
 			
-			__vlan_file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface.$__vlanID"
+			__vlan_file_path="/etc/sysconfig/network/ifcfg-$__interface.$__vlanID"
 			if [ -e "$__vlan_file_path" ]; then
 				LogMsg "CreateVlanConfig: warning, $__vlan_file_path already exists."
 				if [ -d "$__vlan_file_path" ]; then
@@ -1259,7 +1259,7 @@ CreateIfupConfigFile()
 		GetDistro
 		
 		case $DISTRO in
-			suse*)
+			suse_12*)
 				__file_path="/etc/sysconfig/network/ifcfg-$__interface_name"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
@@ -1279,6 +1279,27 @@ CreateIfupConfigFile()
 				
 				wicked ifdown "$__interface_name"
 				wicked ifup "$__interface_name"
+				;;
+			suse*)
+				__file_path="/etc/sysconfig/network/ifcfg-$__interface_name"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+				
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+				
+				cat <<-EOF > "$__file_path"
+					STARTMODE=manual
+					BOOTPROTO=static
+					IPADDR="$__ip"
+					NETMASK="$__netmask"
+				EOF
+				
+				ifdown "$__interface_name"
+				ifup "$__interface_name"
 				;;
 			redhat*)
 				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
