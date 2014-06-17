@@ -22,7 +22,7 @@
 .Synopsis
     Performs basic Live/Quick Migration operations
 .Description
-    This is a Pwershell test case script that implements Live/Quick Migration
+    This is a Powershell test case script that implements Live/Quick Migration
     of a VM.
     Keeps pinging the VM while migration is in progress, ensures that migration
     of VM is successful and the that the ping should not loose
