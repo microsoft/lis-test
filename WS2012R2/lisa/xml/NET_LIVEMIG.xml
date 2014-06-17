@@ -29,7 +29,7 @@
                 <to>myboss@mail.com</to>
             </recipients>
             <sender>myself@mail.com</sender>
-            <subject>LISA VHDx Resize on WS2012R2</subject>
+            <subject>LISA Live Migration on WS2012R2</subject>
             <smtpServer>smtp.your.company.com</smtpServer>
         </email>
     </global>
