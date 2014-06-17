@@ -149,7 +149,9 @@ foreach ($param in $params)
     }
 }
 
-Write-Output "Covers : ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
 # Create a ping object
@@ -279,8 +281,8 @@ foreach ($data in $jobInfo)
 #
 # Adding ping stats to summary
 #
-Write-Output "Good pings = $goodPings" | Tee-Object -Append -file $summaryLog
-Write-Output "Bad pings  = $badPings"  | Tee-Object -Append -file $summaryLog
+Write-Output "Good pings = $goodPings" | Tee-Object -Append -file $summaryLog
+Write-Output "Bad pings  = $badPings"  | Tee-Object -Append -file $summaryLog
 
 #
 # Checking if migration reports success and the last ping is successful
