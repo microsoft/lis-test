@@ -149,7 +149,9 @@ foreach ($param in $params)
     }
 }
 
-Write-Output "Covers : ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
 # Create a ping object
