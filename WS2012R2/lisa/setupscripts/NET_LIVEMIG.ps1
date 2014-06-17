@@ -167,7 +167,7 @@ $pingCount += 1
 $pingReply = $ping.Send($ipv4)
 if ($pingReply.Status -ne "Success")
 {
-    "Error: Cannont ping VM prior to migration. Status = $($pingReply.Status)"
+    "Error: Cannot ping VM prior to migration. Status = $($pingReply.Status)"
     return $False
 }
 $firstPing = $true
