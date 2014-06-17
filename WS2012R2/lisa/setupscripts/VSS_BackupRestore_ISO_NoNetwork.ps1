@@ -304,7 +304,7 @@ Write-Output "VSS Daemon is running " >> $summaryLog
 
 # Insert CD/DVD .
 $CdPath = ".\bin\CDTEST.iso"
-Set-VMDvdDrive -VMName $vmName -ComputerName $hvServer –Path $CdPath
+Set-VMDvdDrive -VMName $vmName -ComputerName $hvServer -Path $CdPath
 if (-not $?)
     {
         "Error: Unable to Add ISO $CdPath" 
