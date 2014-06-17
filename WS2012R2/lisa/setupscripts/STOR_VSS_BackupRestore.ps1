@@ -24,28 +24,35 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will stop networking and attach a CD ISO to the vm. 
-    After that it will perform the backup/restore operation. 
-    
+    This script will create a file on the vm, backs up the VM,
+    deletes the file and restores the VM.
+
     It uses a second partition as target. 
 
     Note: The script has to be run on the host. A second partition
     different from the Hyper-V one has to be available. 
 
-    A typical xml entry looks like this:
+    The .xml entry for this script could look like either of the
+    following:
 
-    <test>
-    <testName>VSS_BackupRestore_ISO_NoNetwork</testName>
-        <testScript>setupscripts\VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
+    An actual testparams definition may look like the following
+
         <testParams>
             <param>driveletter=F:</param>
-            <param>TC_COVERED=VSS-11</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnERROR>Continue</OnERROR>
-    </test>
-    
-    The iOzoneVers param is needed for the download of the correct iOzone version. 
+        <testParams>
+
+    A typical XML definition for this test case would look similar
+    to the following:
+        <test>
+        <testName>VSS_BackupRestore</testName>
+            <testScript>setupscripts\VSS_BackupRestore.ps1</testScript> 
+            <testParams>
+                <param>driveletter=F:</param>
+                <param>TC_COVERED=VSS-06,VSS-17</param>
+            </testParams>
+            <timeout>1200</timeout>
+            <OnError>Continue</OnError>
+        </test>
 
 .Parameter vmName
     Name of the VM to remove disk from .
@@ -57,7 +64,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\VSS_BackupRestore_ISO_NoNetwork.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:'
+    setupScripts\VSS_WSB_BackupRestore.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:'
 
 #>
 
@@ -90,7 +97,7 @@ function CheckVSSDaemon()
     $filename = ".\vss"
   
     # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
-    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) 
+    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" )
     {
         Write-Output "VSS Daemon is running"  
         $retValue =  $True
@@ -137,65 +144,49 @@ function CheckRecoveringJ()
     return $retValue    
 }
 
-######################################################################
-# Runs a remote script on the VM an returns the log.
 #######################################################################
-function RunRemoteScript($remoteScript)
+# Create a file on the VM. 
+#######################################################################
+function CreateFile()
 {
-
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
-
-    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo abc > /root/1"
     if (-not $?)
     {
-       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
-       return $False
-    }      
-
-    .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
-       return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
+        Write-Error -Message "ERROR: Unable to create file" -ErrorAction SilentlyContinue
         return $False
     }
+   
+    return  $True 
+}
 
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
+#######################################################################
+# Delete a file on the VM. 
+#######################################################################
+function DeleteFile()
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "rm -rf /root/1"
     if (-not $?)
     {
-        Write-Output "ERROR: Unable to run dos2unix on runtest.sh" 
+        Write-Error -Message "ERROR: Unable to delete file" -ErrorAction SilentlyContinue
         return $False
     }
-    
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x ${remoteScript}" 
-        return $False
-    }
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
-        return $False
-    }
+   
+    return  $True 
+}
 
-    # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "at -f runtest.sh now" 
+#######################################################################
+# Checks if test file is present or not. 
+#######################################################################
+function CheckFile()
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "cat /root/1"
     if (-not $?)
     {
-        Write-Output "Error: Unable to submit runtest.sh to the vm"
+        Write-Error -Message "ERROR: Unable to read file" -ErrorAction SilentlyContinue
         return $False
     }
-
-    del runtest.sh
-    return $True
+   
+    return  $True 
 }
 
 ####################################################################### 
@@ -213,12 +204,10 @@ Catch { Write-Output "No existing backup's to remove"}
 $summaryLog  = "${vmName}_summary.log"
 echo "Covers VSS Backup" > $summaryLog
 
-$remoteScript = "VSS_StopNetwork.sh"
-
 # Check input arguments
 if ($vmName -eq $null)
 {
-    Write-Output "ERROR: VM name is null"
+    "ERROR: VM name is null"
     return $retVal
 }
 
@@ -227,44 +216,40 @@ $params = $testParams.Split(";")
 
 foreach ($p in $params)
 {
-    $fields = $p.Split("=")
-        switch ($fields[0].Trim())
-        {
-        "sshKey" { $sshKey = $fields[1].Trim() }
-        "ipv4" { $ipv4 = $fields[1].Trim() }
-        "rootdir" { $rootDir = $fields[1].Trim() }
-        "driveletter" { $driveletter = $fields[1].Trim() }
-        default  {}          
-        }
+  $fields = $p.Split("=")
+    
+  switch ($fields[0].Trim())
+    {
+    "sshKey" { $sshKey = $fields[1].Trim() }
+    "ipv4" { $ipv4 = $fields[1].Trim() }
+    "rootdir" { $rootDir = $fields[1].Trim() }
+    "driveletter" { $driveletter = $fields[1].Trim() }
+     default  {}          
+    }
 }
 
 if ($null -eq $sshKey)
 {
-    Write-Output "ERROR: Test parameter sshKey was not specified"
+    "ERROR: Test parameter sshKey was not specified"
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-    Write-Output "ERROR: Test parameter ipv4 was not specified"
+    "ERROR: Test parameter ipv4 was not specified"
     return $False
 }
 
 if ($null -eq $rootdir)
 {
-    Write-Output "ERROR: Test parameter rootdir was not specified"
+    "ERROR: Test parameter rootdir was not specified"
     return $False
 }
 
 if ($null -eq $driveletter)
 {
-    Write-Output "ERROR: Test parameter driveletter was not specified."
+    "Warning: Backup driveletter is not specified."
     return $False
-}
-
-if ($null -eq $TestLogDir)
-{
-    $TestLogDir = $rootdir
 }
 
 echo $params
@@ -302,51 +287,19 @@ if (-not $sts[-1])
 }
 Write-Output "VSS Daemon is running " >> $summaryLog
 
-# Insert CD/DVD .
-$CdPath = ".\bin\CDTEST.iso"
-Set-VMDvdDrive -VMName $vmName -ComputerName $hvServer –Path $CdPath
-if (-not $?)
-    {
-        "Error: Unable to Add ISO $CdPath" 
-        return $False
-    }
-
-Write-Output "Attached DVD: Success" >> $summaryLog
-
-# Bring down the network. 
-RunRemoteScript $remoteScript
-
-Start-Sleep -Seconds 3
-# echo $x
-# return $False
-
-# Make sure network is down.
-$sts = ping $ipv4
-$pingresult = $False
-foreach ($line in $sts)
-{
-   if (( $line -Like "*unreachable*" ) -or ($line -Like "*timed*")) 
-   {
-       $pingresult = $True
-   }
-}
-
-if ($pingresult) 
-   {
-       Write-Output "Network Down: Success"
-       Write-Output "Network Down: Success" >> $summaryLog
-   }
-   else
-   {
-       Write-Output "Network Down: Failed" >> $summaryLog
-       Write-Output "ERROR: Running $remoteScript script failed on VM!"
-       return $False
-   }
-
 # Install the Windows Backup feature
 Write-Output "Checking if the Windows Server Backup feature is installed..."
 try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true -Restart:$false }
 Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
+
+# Create a file on the VM before backup
+$sts = CreateFile
+if (-not $sts[-1])
+{
+    Write-Output "ERROR: Can not create file"
+    return $False
+}
+Write-Output "File created on VM: $vmname" >> $summaryLog
 
 # Remove Existing Backup Policy
 try { Remove-WBPolicy -all -force }
@@ -358,17 +311,12 @@ $policy = New-WBPolicy
 # Set the backup backup location
 $backupLocation = New-WBBackupTarget -VolumePath $driveletter
 
-# Remove Existing Backups
-Write-Output "Removing old backups from $backupLocation"
-try { Remove-WBBackupSet -BackupTarget $backupLocation -Force }
-Catch { Write-Output "No existing backup's to remove"}
-
 # Define VSS WBBackup type
 Set-WBVssBackupOptions -Policy $policy -VssCopyBackup
 
 # Add the Virtual machines to the list
-$VMlist = Get-WBVirtualMachine | where vmname -like $vmName
-Add-WBVirtualMachine -Policy $policy -VirtualMachine $VMlist
+$VM = Get-WBVirtualMachine | where vmname -like $vmName
+Add-WBVirtualMachine -Policy $policy -VirtualMachine $VM
 Add-WBBackupTarget -Policy $policy -Target $backupLocation
 
 # Display the Backup policy
@@ -395,6 +343,15 @@ Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
 Start-Sleep -Seconds 3
 
+# Delete file on the VM
+$sts = DeleteFile
+if (-not $sts[-1])
+{
+    Write-Output "ERROR: Can not delete file"
+    return $False
+}
+Write-Output "File deleted on VM: $vmname" >> $summaryLog
+
 # Start the Restore
 Write-Output "`nNow let's do restore ...`n"
 
@@ -416,7 +373,7 @@ $RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-
 Write-Output "Restore duration: $RestoreTime minutes"
 "Restore duration: $RestoreTime minutes" >> $summaryLog
 
-# Make sure VM exist after VSS backup/restore operation 
+# Make sure VM exsist after VSS backup/restore Operation 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
     if (-not $vm)
     {
@@ -428,11 +385,11 @@ Write-Output "Restore success!"
 # After Backup Restore VM must be off make sure that.
 if ( $vm.state -ne "Off" )  
 {
-    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state
+    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state 
     return $False
 }
 
-# Now Start the VM
+# Now Start the VM 
 $timeout = 500
 $sts = Start-VM -Name $vmName -ComputerName $hvServer 
 if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
@@ -449,19 +406,29 @@ else
 $sts=CheckRecoveringJ
 if ($sts[-1])
 {
-    Write-Output "ERROR: Recovering Journals in Boot log file, VSS backup/restore failed!"
+    Write-Output "ERROR: Recovering Journals in Boot log File, VSS Backup/restore is Failed "
     Write-Output "No Recovering Journal in boot logs: Failed" >> $summaryLog
     return $False
 }
 else 
 {
+    $sts = CheckFile
+    if (-not $sts[-1])
+        {
+            Write-Output "ERROR: File is not present file"
+            Write-Output "File present on VM After Backup/Restore: Failed" >> $summaryLog
+            return $False
+        }
+
+    Write-Output "INFO: File present on VM: $vmName"
+    Write-Output "File present on VM After Backup/Restore: Success" >> $summaryLog
     $results = "Passed"
     $retVal = $True
     Write-Output "INFO: VSS Back/Restore: Success"   
     Write-Output "No Recovering Journal in boot msg: Success" >> $summaryLog
 }
 
-# Remove Existing Backups
+# Remove Created Backup
 Write-Output "Removing old backups from $backupLocation"
 try { Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
 Catch { Write-Output "No existing backup's to remove"}

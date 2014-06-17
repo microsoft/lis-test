@@ -24,8 +24,8 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will connect to a iSCSI target, format and mount the iSCSI disk.
-    After that it will proceed with backup/restore operation. 
+    This script will push test if VSS backup will gracefully fail in case
+    of failure. 
     
     It uses a second partition as target. 
 
@@ -35,17 +35,21 @@
     A typical xml entry looks like this:
 
     <test>
-        <testName>VSS_BackupRestore_ISCSI</testName>
-        <testScript>setupscripts\VSS_BackupRestore_ISCSI.ps1</testScript> 
+    <testName>VSS_BackupRestore_Fail</testName>
+        <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+        <testScript>setupscripts\VSS_BackupRestore_Fail.ps1</testScript> 
         <testParams>
             <param>driveletter=F:</param>
-            <param>TargetIP=10.7.1.10</param>
-            <param>FILESYS=ext4</param>
+            <param>SCSI=0,1,Dynamic</param>
+            <param>IDE=0,1,Dynamic</param>
+            <param>FILESYS-ext3</param>
+            <param>TC_COVERED=VSS-18</param>
         </testParams>
+        <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
         <timeout>1200</timeout>
-        <OnError>Continue</OnError>
+        <OnERROR>Continue</OnERROR>
     </test>
-
+    
 .Parameter vmName
     Name of the VM to remove disk from .
 
@@ -56,7 +60,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\VSS_BackuRestore_ISCSI.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:;TargetIP=ipOfTheIscsiTarget;FILESYS=ext4'
+    setupScripts\VSS_BackuRestore_DiskStress.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:;iOzoneVers=3_424'
 
 #>
 
@@ -308,12 +312,12 @@ Catch { Write-Output "No existing backup's to remove"}
 $summaryLog  = "${vmName}_summary.log"
 echo "Covers VSS Backup" > $summaryLog
 
-$remoteScript = "VSS_ISCSI_PartitionDisks.sh"
+$remoteScript = "STOR_VSS_Disk_Fail.sh"
 
 # Check input arguments
 if ($vmName -eq $null)
 {
-    "ERROR: VM name is null"
+    Write-Output "ERROR: VM name is null"
     return $retVal
 }
 
@@ -329,47 +333,45 @@ foreach ($p in $params)
         "ipv4" { $ipv4 = $fields[1].Trim() }
         "rootdir" { $rootDir = $fields[1].Trim() }
         "driveletter" { $driveletter = $fields[1].Trim() }
-        "FILESYS" { $FILESYS = $fields[1].Trim() }
-        "TargetIP" { $TargetIP = $fields[1].Trim() }
         "TestLogDir" { $TestLogDir = $fields[1].Trim() }
+        "FILESYS" { $FILESYS = $fields[1].Trim() }
         default  {}          
         }
 }
 
 if ($null -eq $sshKey)
 {
-    "ERROR: Test parameter sshKey was not specified"
+    Write-Output "ERROR: Test parameter sshKey was not specified"
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-    "ERROR: Test parameter ipv4 was not specified"
+    Write-Output "ERROR: Test parameter ipv4 was not specified"
     return $False
 }
 
 if ($null -eq $rootdir)
 {
-    "ERROR: Test parameter rootdir was not specified"
+    Write-Output "ERROR: Test parameter rootdir was not specified"
     return $False
 }
 
 if ($null -eq $driveletter)
 {
-    "ERROR: Test parameter driveletter was not specified."
+    Write-Output "ERROR: Test parameter driveletter was not specified."
     return $False
 }
 
 if ($null -eq $FILESYS)
 {
-    "ERROR: Test parameter FILESYS was not specified"
+    Write-Output "ERROR: Test parameter FILESYS was not specified."
     return $False
 }
 
-if ($null -eq $TargetIP)
+if ($null -eq $TestLogDir)
 {
-    "ERROR: Test parameter TargetIP was not specified"
-    return $False
+    $TestLogDir = $rootdir
 }
 
 echo $params
@@ -407,11 +409,6 @@ if (-not $sts[-1])
 }
 Write-Output "VSS Daemon is running " >> $summaryLog
 
-# Install the Windows Backup feature
-Write-Output "Checking if the Windows Server Backup feature is installed..."
-try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true -Restart:$false }
-Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
-
 # Run the remote script
 $sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
@@ -422,6 +419,11 @@ if (-not $sts[-1])
 }
 Write-Output "$remoteScript execution on VM: Success"
 Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
+
+# Install the Windows Backup feature
+Write-Output "Checking if the Windows Server Backup feature is installed..."
+try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true -Restart:$false }
+Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
 
 # Remove Existing Backup Policy
 try { Remove-WBPolicy -all -force }
@@ -442,8 +444,8 @@ Catch { Write-Output "No existing backup's to remove"}
 Set-WBVssBackupOptions -Policy $policy -VssCopyBackup
 
 # Add the Virtual machines to the list
-$VM = Get-WBVirtualMachine | where vmname -like $vmName
-Add-WBVirtualMachine -Policy $policy -VirtualMachine $VM
+$VMlist = Get-WBVirtualMachine | where vmname -like $vmName
+Add-WBVirtualMachine -Policy $policy -VirtualMachine $VMlist
 Add-WBBackupTarget -Policy $policy -Target $backupLocation
 
 # Display the Backup policy
@@ -470,70 +472,33 @@ Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
 Start-Sleep -Seconds 3
 
-# Start the Restore
-Write-Output "`nNow let's do restore ...`n"
-
-# Get BackupSet
-$BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
-
-# Start Restore
-Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force -WarningAction SilentlyContinue
-$sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+Write-Output "INFO: Going through Event Logs for Warninig ID 10107"
+# Now Check if Warning related Error is present in Event Log ? Backup should fail .
+$EventLog = Get-WinEvent -ProviderName Microsoft-Windows-Hyper-V-VMMS | where-object {  $_.TimeCreated -gt $Date}
+if(-not $EventLog)
 {
-    Write-Output "ERROR: VSS WB Restore failed"
-    $retVal = $false
-    return $retVal
-}
-
-# Review the results  
-$RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
-Write-Output "Restore duration: $RestoreTime minutes"
-"Restore duration: $RestoreTime minutes" >> $summaryLog
-
-# Make sure VM exist after VSS backup/restore operation 
-$vm = Get-VM -Name $vmName -ComputerName $hvServer
-    if (-not $vm)
-    {
-        Write-Output "ERROR: VM ${vmName} does not exist after restore"
-        return $False
-    }
-Write-Output "Restore success!"
-
-# After Backup Restore VM must be off make sure that.
-if ( $vm.state -ne "Off" )  
-{
-    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state
+    "Error : Error Getting event logs"
     return $False
-}
+} 
 
-# Now Start the VM
-$timeout = 500
-$sts = Start-VM -Name $vmName -ComputerName $hvServer 
-if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
-{
-    Write-Output "ERROR: ${vmName} failed to start"
-    return $False
-}
-else
-{
-    Write-Output "INFO: Started VM ${vmName}"
-}
+# Event ID 10107 is what we looking here, it will be always be 10107.
+foreach ($event in $EventLog)
+   {
+       if ($event.Id -eq 10150)
+       {           
+           $results = "Passed"
+           $retVal = $True
+           Write-Output "INFO : " + $event.Message
+           Write-Output "INFO :VSS Backup Error in Event Log : Success"   
+           Write-Output  "VSS Backup Error in Event Log : Success" >> $summaryLog
+                      
+       }              
+   }
 
-# Now Check the boot logs in VM to verify if there is no Recovering journals in it . 
-$sts=CheckRecoveringJ
-if ($sts[-1])
+if ($retVal -eq $false)
 {
-    Write-Output "ERROR: Recovering Journals in Boot log file, VSS backup/restore failed!"
-    Write-Output "No Recovering Journal in boot logs: Failed" >> $summaryLog
-    return $False
-}
-else 
-{
-    $results = "Passed"
-    $retVal = $True
-    Write-Output "INFO: VSS Back/Restore: Success"   
-    Write-Output "No Recovering Journal in boot msg: Success" >> $summaryLog
+     Write-Output "INFO :VSS Backup Error not in Event Log"   
+     Write-Output "VSS Backup Error not in Event Log" >> $summaryLog
 }
 
 # Remove Existing Backups

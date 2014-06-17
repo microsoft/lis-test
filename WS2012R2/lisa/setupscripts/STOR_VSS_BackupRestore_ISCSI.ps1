@@ -24,34 +24,26 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will set the vm in Paused, Saved or Off state.
+    This script will connect to a iSCSI target, format and mount the iSCSI disk.
+    After that it will proceed with backup/restore operation. 
     
-    After that it will perform backup/restore.
-
     It uses a second partition as target. 
 
     Note: The script has to be run on the host. A second partition
     different from the Hyper-V one has to be available. 
 
-    For the state param there are 3 options:
+    A typical xml entry looks like this:
 
-    <param>vmState=Paused</param>
-    <param>vmState=Off</param>
-    <param>vmState=Saved</param>
-
-    A typical XML definition for this test case would look similar
-    to the following:
-    
     <test>
-    <testName>VSS_BackupRestore_State</testName>
-    <testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
-    <testParams>
-        <param>driveletter=F:</param>
-        <param>vmState=Paused</param>
-        <param>TC_COVERED=VSS-15</param>
-    </testParams>
-    <timeout>1200</timeout>
-    <OnERROR>Continue</OnERROR>
+        <testName>VSS_BackupRestore_ISCSI</testName>
+        <testScript>setupscripts\VSS_BackupRestore_ISCSI.ps1</testScript> 
+        <testParams>
+            <param>driveletter=F:</param>
+            <param>TargetIP=10.7.1.10</param>
+            <param>FILESYS=ext4</param>
+        </testParams>
+        <timeout>1200</timeout>
+        <OnError>Continue</OnError>
     </test>
 
 .Parameter vmName
@@ -64,8 +56,7 @@
     Test data for this test case
 
 .Example
-
-    .\setupscripts\VSS_BackupRestore_State.ps1 -hvServer localhost -vmName vm_name -testParams 'driveletter=D:;RootDir=path/to/testdir;sshKey=sshKey;ipv4=ipaddress;vmState=Saved'
+    setupScripts\VSS_BackuRestore_ISCSI.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:;TargetIP=ipOfTheIscsiTarget;FILESYS=ext4'
 
 #>
 
@@ -145,32 +136,161 @@ function CheckRecoveringJ()
     return $retValue    
 }
 
+######################################################################
+# Runs a remote script on the VM an returns the log.
 #######################################################################
-# Channge the VM state 
-#######################################################################
-function ChangeVMState($vmState,$vmName)
+function RunRemoteScript($remoteScript)
 {
-    $vm = Get-VM -Name $vmName
+    $retValue = $False
+    $stateFile     = "state.txt"
+    $TestCompleted = "TestCompleted"
+    $TestAborted   = "TestAborted"
+    $TestRunning   = "TestRunning"
+    $timeout       = 6000    
 
-    if ($vmState -eq "Off")
+    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
+
+    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
+    if (-not $?)
     {
-        Stop-VM -Name $vmName -ErrorAction SilentlyContinue
-        return $vm.state
-    }
-    elseif ($vmState -eq "Saved")
+       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
+       return $False
+    }      
+
+     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+    if (-not $?)
     {
-        Save-VM -Name $vmName -ErrorAction SilentlyContinue
-        return $vm.state
+       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
+       return $False
     }
-    elseif ($vmState -eq "Paused") 
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
+    if (-not $?)
     {
-        Suspend-VM -Name $vmName -ErrorAction SilentlyContinue
-        return $vm.state
+        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
+        return $False
     }
-    else
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
+    if (-not $?)
     {
-        return $false    
+        Write-Output "ERROR: Unable to run dos2unix on runtest.sh" 
+        return $False
     }
+    
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x ${remoteScript}" 
+        return $False
+    }
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
+        return $False
+    }
+
+    # Run the script on the vm
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
+    
+    # Return the state file
+    while ($timeout -ne 0 )
+    {
+    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $stateFile)
+        {
+            $contents = Get-Content -Path $stateFile
+            if ($null -ne $contents)
+            {
+                    if ($contents -eq $TestCompleted)
+                    {                    
+                        Write-Output "Info : state file contains Testcompleted"              
+                        $retValue = $True
+                        break                                             
+                                     
+                    }
+
+                    if ($contents -eq $TestAborted)
+                    {
+                         Write-Output "Info : State file contains TestAborted failed. "                                  
+                         break
+                          
+                    }
+                    #Start-Sleep -s 1
+                    $timeout-- 
+
+                    if ($timeout -eq 0)
+                    {                        
+                        Write-Output "Error : Timed out on Test Running , Exiting test execution."                    
+                        break                                               
+                    }                                
+                  
+            }    
+            else
+            {
+                Write-Output "Warn : state file is empty"
+                break
+            }
+           
+        }
+        else
+        {
+             Write-Host "Warn : ssh reported success, but state file was not copied"
+             break
+        }
+    }
+    else #
+    {
+         Write-Output "Error : pscp exit status = $sts"
+         Write-Output "Error : unable to pull state.txt from VM." 
+         break
+    }     
+    }
+
+    # Get the logs
+    $remoteScriptLog = $remoteScript+".log"
+    
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} . 
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $remoteScriptLog)
+        {
+            $contents = Get-Content -Path $remoteScriptLog
+            if ($null -ne $contents)
+            {
+                    if ($null -ne ${TestLogDir})
+                    {
+                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
+                
+                    }
+
+                    else 
+                    {
+                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"                                
+                    }                              
+                  
+            }    
+            else
+            {
+                Write-Output "Warn: $remoteScriptLog is empty"                
+            }           
+        }
+        else
+        {
+             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"             
+        }
+    }
+    
+    # Cleanup 
+    del state.txt -ErrorAction "SilentlyContinue"
+    del runtest.sh -ErrorAction "SilentlyContinue"
+
+    return $retValue
 }
 
 ####################################################################### 
@@ -188,6 +308,8 @@ Catch { Write-Output "No existing backup's to remove"}
 $summaryLog  = "${vmName}_summary.log"
 echo "Covers VSS Backup" > $summaryLog
 
+$remoteScript = "STOR_VSS_ISCSI_PartitionDisks.sh"
+
 # Check input arguments
 if ($vmName -eq $null)
 {
@@ -200,18 +322,18 @@ $params = $testParams.Split(";")
 
 foreach ($p in $params)
 {
-  $fields = $p.Split("=")
-    
-  switch ($fields[0].Trim())
-    {
-    "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
-    "sshKey" { $sshKey = $fields[1].Trim() }
-    "ipv4" { $ipv4 = $fields[1].Trim() }
-    "rootdir" { $rootDir = $fields[1].Trim() }
-    "driveletter" { $driveletter = $fields[1].Trim() }
-    "vmState" { $vmState = $fields[1].Trim() }
-     default  {}          
-    }
+    $fields = $p.Split("=")
+        switch ($fields[0].Trim())
+        {
+        "sshKey" { $sshKey = $fields[1].Trim() }
+        "ipv4" { $ipv4 = $fields[1].Trim() }
+        "rootdir" { $rootDir = $fields[1].Trim() }
+        "driveletter" { $driveletter = $fields[1].Trim() }
+        "FILESYS" { $FILESYS = $fields[1].Trim() }
+        "TargetIP" { $TargetIP = $fields[1].Trim() }
+        "TestLogDir" { $TestLogDir = $fields[1].Trim() }
+        default  {}          
+        }
 }
 
 if ($null -eq $sshKey)
@@ -234,13 +356,19 @@ if ($null -eq $rootdir)
 
 if ($null -eq $driveletter)
 {
-    "ERROR: Backup driveletter is not specified."
+    "ERROR: Test parameter driveletter was not specified."
     return $False
 }
 
-if ($null -eq $vmState)
+if ($null -eq $FILESYS)
 {
-    "ERROR: vmState param is not specified."
+    "ERROR: Test parameter FILESYS was not specified"
+    return $False
+}
+
+if ($null -eq $TargetIP)
+{
+    "ERROR: Test parameter TargetIP was not specified"
     return $False
 }
 
@@ -279,36 +407,21 @@ if (-not $sts[-1])
 }
 Write-Output "VSS Daemon is running " >> $summaryLog
 
-# Check if VM is Started
-$vm = Get-VM -Name $vmName
-$currentState=$vm.state
-
-if ( $currentState -ne "Running" )  
-{
-    Write-Output "ERROR: $vmName is not started."
-    return $False
-}
-
-# Change the VM state
-$sts = ChangeVMState $vmState $vmName
-if (-not $sts[-1])
-{
-    Write-Output "ERROR: vmState param is wrong. Available options are `'Off`', `'Saved`'' and `'Paused`'."
-    return $false
-}
-
-elseif ( $sts -ne $vmState )
-{
-    Write-Output "ERROR: Failed to put $vmName in $vmState state."
-    return $False
-}
-
-Write-Output "State change of $vmName to $vmState : Success."
-
 # Install the Windows Backup feature
 Write-Output "Checking if the Windows Server Backup feature is installed..."
 try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true -Restart:$false }
 Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
+
+# Run the remote script
+$sts = RunRemoteScript $remoteScript
+if (-not $sts[-1])
+{
+    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
+    Write-Output "ERROR: Running $remoteScript script failed on VM!"
+    return $False
+}
+Write-Output "$remoteScript execution on VM: Success"
+Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
 
 # Remove Existing Backup Policy
 try { Remove-WBPolicy -all -force }
@@ -319,6 +432,11 @@ $policy = New-WBPolicy
 
 # Set the backup backup location
 $backupLocation = New-WBBackupTarget -VolumePath $driveletter
+
+# Remove Existing Backups
+Write-Output "Removing old backups from $backupLocation"
+try { Remove-WBBackupSet -BackupTarget $backupLocation -Force }
+Catch { Write-Output "No existing backup's to remove"}
 
 # Define VSS WBBackup type
 Set-WBVssBackupOptions -Policy $policy -VssCopyBackup
@@ -363,7 +481,7 @@ Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[
 $sts=Get-WBJob -Previous 1
 if ($sts.JobState -ne "Completed")
 {
-    Write-Output "ERROR: VSS Restore failed"
+    Write-Output "ERROR: VSS WB Restore failed"
     $retVal = $false
     return $retVal
 }
@@ -373,7 +491,7 @@ $RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-
 Write-Output "Restore duration: $RestoreTime minutes"
 "Restore duration: $RestoreTime minutes" >> $summaryLog
 
-# Make sure VM exsist after VSS backup/restore Operation 
+# Make sure VM exist after VSS backup/restore operation 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
     if (-not $vm)
     {
@@ -382,7 +500,14 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
     }
 Write-Output "Restore success!"
 
-# Now Start the VM 
+# After Backup Restore VM must be off make sure that.
+if ( $vm.state -ne "Off" )  
+{
+    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state
+    return $False
+}
+
+# Now Start the VM
 $timeout = 500
 $sts = Start-VM -Name $vmName -ComputerName $hvServer 
 if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
@@ -399,7 +524,7 @@ else
 $sts=CheckRecoveringJ
 if ($sts[-1])
 {
-    Write-Output "ERROR: Recovering Journals in Boot log File, VSS Backup/restore is Failed "
+    Write-Output "ERROR: Recovering Journals in Boot log file, VSS backup/restore failed!"
     Write-Output "No Recovering Journal in boot logs: Failed" >> $summaryLog
     return $False
 }
@@ -411,7 +536,7 @@ else
     Write-Output "No Recovering Journal in boot msg: Success" >> $summaryLog
 }
 
-# Remove Created Backup
+# Remove Existing Backups
 Write-Output "Removing old backups from $backupLocation"
 try { Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
 Catch { Write-Output "No existing backup's to remove"}

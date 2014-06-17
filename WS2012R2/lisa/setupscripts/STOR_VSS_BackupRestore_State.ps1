@@ -24,35 +24,35 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will create a file on the vm, backs up the VM,
-    deletes the file and restores the VM.
+    This script will set the vm in Paused, Saved or Off state.
+    
+    After that it will perform backup/restore.
 
     It uses a second partition as target. 
 
     Note: The script has to be run on the host. A second partition
     different from the Hyper-V one has to be available. 
 
-    The .xml entry for this script could look like either of the
-    following:
+    For the state param there are 3 options:
 
-    An actual testparams definition may look like the following
-
-        <testParams>
-            <param>driveletter=F:</param>
-        <testParams>
+    <param>vmState=Paused</param>
+    <param>vmState=Off</param>
+    <param>vmState=Saved</param>
 
     A typical XML definition for this test case would look similar
     to the following:
-        <test>
-        <testName>VSS_BackupRestore</testName>
-            <testScript>setupscripts\VSS_BackupRestore.ps1</testScript> 
-            <testParams>
-                <param>driveletter=F:</param>
-                <param>TC_COVERED=VSS-06,VSS-17</param>
-            </testParams>
-            <timeout>1200</timeout>
-            <OnError>Continue</OnError>
-        </test>
+    
+    <test>
+    <testName>VSS_BackupRestore_State</testName>
+    <testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
+    <testParams>
+        <param>driveletter=F:</param>
+        <param>vmState=Paused</param>
+        <param>TC_COVERED=VSS-15</param>
+    </testParams>
+    <timeout>1200</timeout>
+    <OnERROR>Continue</OnERROR>
+    </test>
 
 .Parameter vmName
     Name of the VM to remove disk from .
@@ -64,7 +64,8 @@
     Test data for this test case
 
 .Example
-    setupScripts\VSS_WSB_BackupRestore.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:'
+
+    .\setupscripts\VSS_BackupRestore_State.ps1 -hvServer localhost -vmName vm_name -testParams 'driveletter=D:;RootDir=path/to/testdir;sshKey=sshKey;ipv4=ipaddress;vmState=Saved'
 
 #>
 
@@ -97,7 +98,7 @@ function CheckVSSDaemon()
     $filename = ".\vss"
   
     # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
-    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" )
+    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) 
     {
         Write-Output "VSS Daemon is running"  
         $retValue =  $True
@@ -145,48 +146,31 @@ function CheckRecoveringJ()
 }
 
 #######################################################################
-# Create a file on the VM. 
+# Channge the VM state 
 #######################################################################
-function CreateFile()
+function ChangeVMState($vmState,$vmName)
 {
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo abc > /root/1"
-    if (-not $?)
-    {
-        Write-Error -Message "ERROR: Unable to create file" -ErrorAction SilentlyContinue
-        return $False
-    }
-   
-    return  $True 
-}
+    $vm = Get-VM -Name $vmName
 
-#######################################################################
-# Delete a file on the VM. 
-#######################################################################
-function DeleteFile()
-{
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "rm -rf /root/1"
-    if (-not $?)
+    if ($vmState -eq "Off")
     {
-        Write-Error -Message "ERROR: Unable to delete file" -ErrorAction SilentlyContinue
-        return $False
+        Stop-VM -Name $vmName -ErrorAction SilentlyContinue
+        return $vm.state
     }
-   
-    return  $True 
-}
-
-#######################################################################
-# Checks if test file is present or not. 
-#######################################################################
-function CheckFile()
-{
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "cat /root/1"
-    if (-not $?)
+    elseif ($vmState -eq "Saved")
     {
-        Write-Error -Message "ERROR: Unable to read file" -ErrorAction SilentlyContinue
-        return $False
+        Save-VM -Name $vmName -ErrorAction SilentlyContinue
+        return $vm.state
     }
-   
-    return  $True 
+    elseif ($vmState -eq "Paused") 
+    {
+        Suspend-VM -Name $vmName -ErrorAction SilentlyContinue
+        return $vm.state
+    }
+    else
+    {
+        return $false    
+    }
 }
 
 ####################################################################### 
@@ -220,10 +204,12 @@ foreach ($p in $params)
     
   switch ($fields[0].Trim())
     {
+    "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "sshKey" { $sshKey = $fields[1].Trim() }
     "ipv4" { $ipv4 = $fields[1].Trim() }
     "rootdir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
+    "vmState" { $vmState = $fields[1].Trim() }
      default  {}          
     }
 }
@@ -248,7 +234,13 @@ if ($null -eq $rootdir)
 
 if ($null -eq $driveletter)
 {
-    "Warning: Backup driveletter is not specified."
+    "ERROR: Backup driveletter is not specified."
+    return $False
+}
+
+if ($null -eq $vmState)
+{
+    "ERROR: vmState param is not specified."
     return $False
 }
 
@@ -287,19 +279,36 @@ if (-not $sts[-1])
 }
 Write-Output "VSS Daemon is running " >> $summaryLog
 
+# Check if VM is Started
+$vm = Get-VM -Name $vmName
+$currentState=$vm.state
+
+if ( $currentState -ne "Running" )  
+{
+    Write-Output "ERROR: $vmName is not started."
+    return $False
+}
+
+# Change the VM state
+$sts = ChangeVMState $vmState $vmName
+if (-not $sts[-1])
+{
+    Write-Output "ERROR: vmState param is wrong. Available options are `'Off`', `'Saved`'' and `'Paused`'."
+    return $false
+}
+
+elseif ( $sts -ne $vmState )
+{
+    Write-Output "ERROR: Failed to put $vmName in $vmState state."
+    return $False
+}
+
+Write-Output "State change of $vmName to $vmState : Success."
+
 # Install the Windows Backup feature
 Write-Output "Checking if the Windows Server Backup feature is installed..."
 try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true -Restart:$false }
 Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
-
-# Create a file on the VM before backup
-$sts = CreateFile
-if (-not $sts[-1])
-{
-    Write-Output "ERROR: Can not create file"
-    return $False
-}
-Write-Output "File created on VM: $vmname" >> $summaryLog
 
 # Remove Existing Backup Policy
 try { Remove-WBPolicy -all -force }
@@ -343,15 +352,6 @@ Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
 Start-Sleep -Seconds 3
 
-# Delete file on the VM
-$sts = DeleteFile
-if (-not $sts[-1])
-{
-    Write-Output "ERROR: Can not delete file"
-    return $False
-}
-Write-Output "File deleted on VM: $vmname" >> $summaryLog
-
 # Start the Restore
 Write-Output "`nNow let's do restore ...`n"
 
@@ -363,7 +363,7 @@ Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[
 $sts=Get-WBJob -Previous 1
 if ($sts.JobState -ne "Completed")
 {
-    Write-Output "ERROR: VSS WB Restore failed"
+    Write-Output "ERROR: VSS Restore failed"
     $retVal = $false
     return $retVal
 }
@@ -381,13 +381,6 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
         return $False
     }
 Write-Output "Restore success!"
-
-# After Backup Restore VM must be off make sure that.
-if ( $vm.state -ne "Off" )  
-{
-    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state 
-    return $False
-}
 
 # Now Start the VM 
 $timeout = 500
@@ -412,16 +405,6 @@ if ($sts[-1])
 }
 else 
 {
-    $sts = CheckFile
-    if (-not $sts[-1])
-        {
-            Write-Output "ERROR: File is not present file"
-            Write-Output "File present on VM After Backup/Restore: Failed" >> $summaryLog
-            return $False
-        }
-
-    Write-Output "INFO: File present on VM: $vmName"
-    Write-Output "File present on VM After Backup/Restore: Success" >> $summaryLog
     $results = "Passed"
     $retVal = $True
     Write-Output "INFO: VSS Back/Restore: Success"   
