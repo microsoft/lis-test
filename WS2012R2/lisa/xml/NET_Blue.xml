@@ -32,11 +32,9 @@
 				 <suiteTest>NetworkMode</suiteTest>
 				<suiteTest>JumboFrame</suiteTest>
 				<suiteTest>CopyLargeFile</suiteTest>
+				<suiteTest>BridgeNetwork</suiteTest>
 				<suiteTest>VlanTagging</suiteTest>
 				<suiteTest>VlanTrunking</suiteTest>
-				<suiteTest>BridgeNetwork</suiteTest>
-
-
 			</suiteTests>
 		</suite>
 		
