@@ -66,6 +66,9 @@ Write-Host "Current test running folder:"
 $PWD
 
 $XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
+#Update - if there are more xml files defined for different test scenarios
+#example: Perf_IOZone.l4u4-r32k.xml to test the scenario with 4 IOzone processes and 32KB record size.
+$XMLFileNameWithoutExt = $XMLFileNameWithoutExt.split(".")[0]
 $lisaInfrsFolder = $PWD.ToString() + "\Infrastructure"
 
 $parserFileName = ".\Infrastructure\Parse-Log." + $XMLFileNameWithoutExt + ".ps1"
