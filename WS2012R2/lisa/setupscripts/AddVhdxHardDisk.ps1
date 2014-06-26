@@ -473,7 +473,7 @@ foreach ($p in $params)
     if ($temp.Length -ne 2)
     {
 	"Warn : test parameter '$p' is being ignored because it appears to be malformed"
-���� continue
+	continue
     }
     
     $controllerType = $temp[0].Trim()
