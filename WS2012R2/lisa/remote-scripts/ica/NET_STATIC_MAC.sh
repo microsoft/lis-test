@@ -46,6 +46,7 @@
 #		NETMASK
 #		IP_IGNORE
 #		LO_IGNORE
+#		GATEWAY
 #
 #	Parameter explanation:
 #	MAC is the assigned MAC addresses in hyper-v, which must be found inside the VM. Multiple addresses can be specified, separated by , (comma)
@@ -57,6 +58,7 @@
 #	IP_IGNORE is the IP Address of an interface that is not touched during this test (no dhcp or static ip assigned to it)
 #			- it can be used to specify the connection used to communicate with the VM, which needs to remain unchanged
 #	LO_IGNORE is an optional argument used to indicate that the loopback interface lo is not to be used during the test (it is usually detected as a legacy interface)
+#	GATEWAY is the IP Address of the default gateway
 #	TC_COVERED is the LIS testcase number
 #
 #
@@ -188,6 +190,24 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" = "UNDEFINED" ]; then
     LogMsg "$msg"
 fi
 
+# set gateway parameter
+if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
+    LogMsg "$msg"
+	GATEWAY=''
+else
+	CheckIP "$GATEWAY"
+	
+	if [ 0 -ne $? ]; then
+		msg=""
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
+fi
+
+
 declare __iface_ignore
 
 # Parameter provided in constants file
@@ -210,30 +230,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
-fi
-
-
-declare __lo_ignore
-
-# Parameter provided in constants file
-
-if [ "${LO_IGNORE:-UNDEFINED}" = "UNDEFINED" ]; then
-	msg="The test parameter LO_IGNORE is not defined in constants file! The loopback interface may be used during the test."
-	LogMsg "$msg"
-	__lo_ignore=''
-else
-
-	ifconfig lo >/dev/null 2>&1
-
-	if [ 0 -ne $? ]; then
-		msg="The loopback interface is not working"
-		LogMsg "$msg"
-		__lo_ignore=''
-	else
-		__lo_ignore=lo
-	fi
-	
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -247,18 +244,39 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
+fi
+
+declare __lo_ignore
+
+if [ "${LO_IGNORE:-UNDEFINED}" = "UNDEFINED" ]; then
+	msg="The test parameter LO_IGNORE is not defined in constants file! The loopback interface may be used during the test."
+	LogMsg "$msg"
+	__lo_ignore=''
+else
+
+	ip link show lo >/dev/null 2>&1
+
+	if [ 0 -ne $? ]; then
+		msg="The loopback interface is not working"
+		LogMsg "$msg"
+		__lo_ignore=''
+	else
+		__lo_ignore=lo
+	fi
+	
 fi
 
 # Retrieve synthetic network interfaces
@@ -382,6 +400,7 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		LogMsg "Number of static IP addresses in constants.sh is greater than number of concerned interfaces. All extra IP addresses are ignored."
 		break
 	fi
+	
 	SetIPstatic "${STATIC_IPS[$__iterator]}" "${__MAC_NET_INTERFACES[$__iterator]}" "$NETMASK"
 	# if failed to assigned address
 	if [ 0 -ne $? ]; then
@@ -391,6 +410,8 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		SetTestStateFailed
 		exit 20
 	fi	
+	LogMsg "$(ip -o addr show ${__MAC_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
+	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${__MAC_NET_INTERFACES[$__iterator]}"
 done
 
 # set the iterator to point to the next element in the MAC_NET_INTERFACES array
@@ -399,6 +420,7 @@ __iterator=${#STATIC_IPS[@]}
 # set dhcp ips for remaining interfaces
 while [ $__iterator -lt ${#__MAC_NET_INTERFACES[@]} ]; do
 
+	LogMsg "Trying to get an IP Address via DHCP on interface ${__MAC_NET_INTERFACES[$__iterator]}"
 	SetIPfromDHCP "${__MAC_NET_INTERFACES[$__iterator]}"
 	
 	if [ 0 -ne $? ]; then
@@ -408,6 +430,8 @@ while [ $__iterator -lt ${#__MAC_NET_INTERFACES[@]} ]; do
 		SetTestStateFailed
 		exit 10
 	fi
+	
+	UpdateSummary "Successfully set ip from dhcp on interface ${__MAC_NET_INTERFACES[$__iterator]}"
 	
 	: $((__iterator++))
 	
@@ -419,7 +443,20 @@ declare -i __iterator
 # ping REMOTE_SERVER if set
 if [ "${REMOTE_SERVER:-UNDEFINED}" != "UNDEFINED" ]; then
 	for __iterator in ${!__MAC_NET_INTERFACES[@]}; do
-		ping -I ${__MAC_NET_INTERFACES[$__iterator]} -c 10 "$REMOTE_SERVER"
+	
+		# set default gateway if specified
+		if [ -n "$GATEWAY" ]; then
+			LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
+			CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
+			if [ 0 -ne $? ]; then
+				LogMsg "Warning! Failed to set default gateway!"
+			fi
+		fi
+		
+		LogMsg "Trying to ping $REMOTE_SERVER"
+		UpdateSummary "Trying to ping $REMOTE_SERVER"
+		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`static`null`mac`null`
+		ping -I ${__MAC_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d00737461746963006d616300" "$REMOTE_SERVER"
 		if [ 0 -ne $? ]; then
 			msg="Unable to ping $REMOTE_SERVER through interface ${__MAC_NET_INTERFACES[$__iterator]}"
 			LogMsg "$msg"
@@ -427,6 +464,7 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" != "UNDEFINED" ]; then
 			SetTestStateFailed
 			exit 10
 		fi
+		UpdateSummary "Successfully pinged $REMOTE_SERVER through interface ${__MAC_NET_INTERFACES[$__iterator]}"
 	done
 fi
 

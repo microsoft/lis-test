@@ -48,6 +48,7 @@
 #		NETMASK
 #		SSH_PRIVATE_KEY
 #		REMOTE_USER
+#		GATEWAY
 #
 #	Parameter explanation:
 #	REMOTE_VM is an IP address of a ping-able machine. All interfaces found will have to be able to ping this REMOTE_VM
@@ -56,6 +57,7 @@
 #	STATIC_IP is the address that will be assigned to the interface(s) corresponding to the given MAC. Multiple Addresses can be specified
 #	separated by , (comma) and they will be assigned in order to each interface found.
 #	NETMASK of this VM's subnet. Defaults to /24 if not set.
+#	GATEWAY is the IP Address of the default gateway
 #	TC_COVERED is the LIS testcase number
 #
 #
@@ -169,6 +171,23 @@ else
     LogMsg "$msg"
 fi
 
+# set gateway parameter
+if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
+    LogMsg "$msg"
+	GATEWAY=''
+else
+	CheckIP "$GATEWAY"
+	
+	if [ 0 -ne $? ]; then
+		msg=""
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
+fi
+
 declare __iface_ignore
 
 # Parameter provided in constants file
@@ -191,7 +210,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -205,19 +224,41 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
 fi
+
+# Get the legacy netadapter interface
+GetLegacyNetInterfaces
+
+if [ 0 -ne $? ]; then
+	msg="No legacy network interfaces found. Test can continue"
+	LogMsg "$msg"
+else
+# Remove loopback interface if LO_IGNORE is set
+	LEGACY_NET_INTERFACES=(${LEGACY_NET_INTERFACES[@]/lo/})
+
+	if [ ${#LEGACY_NET_INTERFACES[@]} -ne 0 ]; then
+		IFS=,
+		msg="Legacy interfaces ${LEGACY_NET_INTERFACES[*]} are present. Test requires only synthetic network adapters."
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
+fi
+
 
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
@@ -246,7 +287,7 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		LogMsg "$msg"
@@ -281,6 +322,7 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		SetTestStateFailed
 		exit 20
 	fi	
+	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
 
 # set the iterator to point to the next element in the SYNTH_NET_INTERFACES array
@@ -289,6 +331,7 @@ __iterator=${#STATIC_IPS[@]}
 # set dhcp ips for remaining interfaces
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
+	LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
 	
 	if [ 0 -ne $? ]; then
@@ -298,6 +341,9 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		SetTestStateFailed
 		exit 10
 	fi
+	
+	# add some interface output
+	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 	
 	: $((__iterator++))
 	
@@ -322,7 +368,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 	
 		__current_mtu=$((__current_mtu+__const_increment_size))
 		
-		ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" mtu "$__current_mtu"
+		ip link set dev "${SYNTH_NET_INTERFACES[$__iterator]}" mtu "$__current_mtu"
 		
 		if [ 0 -ne $? ]; then
 			# we reached the maximum mtu for this interface. break loop
@@ -331,10 +377,10 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		fi
 		
 		# make sure mtu was set. otherwise, set test to failed
-		__actual_mtu=$(ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -i mtu | cut -d ':' -f2 | cut -d ' ' -f1)
+		__actual_mtu=$(ip -o link show "${SYNTH_NET_INTERFACES[$__iterator]}" | cut -d ' ' -f5)
 		
 		if [ x"$__actual_mtu" != x"$__current_mtu" ]; then
-			msg="Set mtu on interface ${SYNTH_NET_INTERFACES[$__iterator]} to $__current_mtu but ifconfig reports mtu to be $__actual_mtu"
+			msg="Set mtu on interface ${SYNTH_NET_INTERFACES[$__iterator]} to $__current_mtu but ip reports mtu to be $__actual_mtu"
 			LogMsg "$msg"
 			UpdateSummary "$msg"
 			SetTestStateFailed
@@ -365,31 +411,60 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 done
 
+# Hyper-V does not support multiple MTUs per endpoint, so we need to set the max MTU on all interfaces,
+# including the interface ignored because it's used by the LIS framework.
+# This can fail (e.g. the LIS connection uses a legacy adapter), but the test will continue
+# and only issue a warning
+if [ -n "$__iface_ignore" ]; then
+	ip link set dev "$__iface_ignore" mtu "$__max_mtu"
+	# make sure mtu was set. otherwise, issue a warning
+	__actual_mtu=$(ip -o link show "$__iface_ignore" | cut -d ' ' -f5)
+	
+	if [ x"$__actual_mtu" != x"$__max_mtu" ]; then
+		msg="Set mtu on interface $__iface_ignore (which is used by the LIS Framework) to $__max_mtu but ip reports mtu to be $__actual_mtu"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+	fi
+fi
+
 # reset iterator
 __iterator=0
 
-# if SSH_PRIVATE_KEY was specified, ssh into the REMOTE_VM and set the MTU of that interface to __max_mtu
+# if SSH_PRIVATE_KEY was specified, ssh into the REMOTE_VM and set the MTU of all interfaces to $__max_mtu
 # if not, assume that it was already set.
 
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
+	LogMsg "Setting all interfaces on $REMOTE_VM mtu to $__max_mtu"
 	ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM" "
-		__remote_interface=\$(ifconfig | grep -B1 \"$REMOTE_VM\" | head -n 1 | cut -d ' ' -f1)
+		__remote_interface=\$(ip -o addr show | grep \"$REMOTE_VM\" | cut -d ' ' -f2)
 		if [ x\"\$__remote_interface\" = x ]; then
 			exit 1
 		fi
 		
-		ifconfig \"\$__remote_interface\" mtu \"$__max_mtu\"
-		
-		if [ 0 -ne \$? ]; then
+		# make sure no legacy interfaces are present
+		__legacy_interface_no=\$(find /sys/devices -name net -a ! -path '*vmbus*' -a ! -path '*virtual*' -a ! -path '*lo*' | wc -l)
+
+		if [ 0 -ne \"\$__legacy_interface_no\" ]; then
 			exit 2
 		fi
+
+		# set mtu to max_mtu for all interfaces
+		__all_interfaces=\$(ip -o link show | grep -vi 'link/loopback' | cut -d':' -f2 | sed -e 's/^ *//g' -e 's/ *$//g')
+
+		for __interface in \$__all_interfaces; do
+			ip link set dev \$__interface mtu \"$__max_mtu\"
+			
+			if [ 0 -ne \$? ]; then
+				exit 2
+			fi
 		
-		__remote_actual_mtu=\$(ifconfig \"\$__remote_interface\" | grep -i mtu | cut -d ':' -f2 | cut -d ' ' -f1)
-		
-		if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
-			exit 3
-		fi
-		
+			__remote_actual_mtu=\$(ip -o link show \"\$__remote_interface\" | cut -d ' ' -f5)
+			
+			if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
+				exit 3
+			fi
+		done
+
 		exit 0
 		"
 		
@@ -400,12 +475,16 @@ if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
 		SetTestStateFailed
 		exit 10
 	fi
+	
 fi
+
+UpdateSummary "Successfully set mtu to $__max_mtu on both local and remote NICs."
 
 declare -ai __packet_size=(0 1 2 48 64 512 1440 1500 1505 4096 4192 25152 65500)
 declare -i __packet_iterator
 # 20 bytes IP header + 8 bytes ICMP header 
 declare -i __const_ping_header=28
+declare __hex_ping_value
 
 # for each interface, ping the REMOTE_VM with different-sized packets
 for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
@@ -416,8 +495,22 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			break
 		fi
 		
-		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" "$REMOTE_VM" -c 10 -s "${__packet_size[$__packet_iterator]}"
+		if [ -n "$GATEWAY" ]; then
+			LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
+			CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
+			if [ 0 -ne $? ]; then
+				LogMsg "Warning! Failed to set default gateway!"
+			fi
+		fi
 		
+		__hex_ping_value=$(echo -n "${__packet_size[$__packet_iterator]}" | od -A n -t x1 | sed 's/ //g' | cut -c1-10)
+		
+		LogMsg "Trying to ping $REMOTE_VM from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
+		UpdateSummary "Trying to ping $REMOTE_VM from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
+		
+		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`jumb`null`packet_size`null`
+		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 20 -p "cafed00d006a756d6200${__hex_ping_value}00" -s "${__packet_size[$__packet_iterator]}" "$REMOTE_VM"
+
 		if [ 0 -ne $? ]; then
 			msg="Failed to ping $REMOTE_VM through interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
 			LogMsg "$msg"
@@ -425,6 +518,9 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			SetTestStateFailed
 			exit 10
 		fi
+		
+		LogMsg "Successfully pinged!"
+		UpdateSummary "Successfully pinged!"
 	done
 
 done
