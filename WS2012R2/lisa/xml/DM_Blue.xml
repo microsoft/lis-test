@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<config>
+	<global>
+		<logfileRootDir>v-mareja\LisaTestResults</logfileRootDir>
+		<defaultSnapshot>ICABase</defaultSnapshot>
+		<email>
+			<recipients>
+				<to>v-mareja@microsoft.com</to>
+			</recipients>
+			<sender>v-mareja@microsoft.com</sender>
+			<subject>LIS_DM_tests_run_on_2012R2</subject>
+			<smtpServer>smtphost.redmond.corp.microsoft.com</smtpServer>
+		</email>
+	</global>
+
+	<testSuites>
+		<suite>
+			<suiteName>DM</suiteName>
+			<suiteTests>
+				<suiteTest>DMLoaded</suiteTest>
+				<suiteTest>StartupLowCompete</suiteTest>
+				<!--suiteTest>RemoveUnderPressure</suiteTest>
+				<suiteTest>StartupHighCompete</suiteTest>
+				<suiteTest>SaveRestore</suiteTest>
+				<suiteTest>DemandPressure</suiteTest>
+				<suiteTest>HighPriority</suiteTest>
+				<suiteTest>HotAdd</suiteTest>
+				<suiteTest>HotRemove</suiteTest>
+				<suiteTest>CleanShutdown</suiteTest>
+				<suiteTest>MaxMemHonored</suiteTest>
+				<suiteTest>MinMemHonored</suiteTest-->
+
+			</suiteTests>
+		</suite>
+		
+	</testSuites>
+
+	<testCases>
+
+		<test>
+			<testName>DMLoaded</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-01</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=1GB</param>
+					<param>startupMem=512MB</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+			<testScript>DM_VERIFY_LOADED.sh</testScript>
+			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh,remote-scripts/ica/Utils.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+		
+		<test>
+			<testName>StartupLowCompete</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-02</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=80%</param>
+					<param>startupMem=80%</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+					<param>vmName=marejaRHEL7rcx64_1</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=25%</param>
+					<param>startupMem=25%</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>setupScripts\DM_StartupLowCompete.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>8000</timeout>
+		</test>
+		
+		<test>
+			<testName>RemoveUnderPressure</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-03</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=60%</param>
+					<param>startupMem=60%</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+					<param>vmName=marejaRHEL7rcx64_1</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=40%</param>
+					<param>startupMem=40%</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+					<param>vmName=marejaRHEL7rcx64_2</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=25%</param>
+					<param>startupMem=25%</param>
+					<param>memWeight=100</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>setupScripts\DM_RemoveUnderPressure.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+
+		<test>
+			<testName>StartupHighCompete</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-01</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=1GB</param>
+					<param>startupMem=512MB</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>DM_VERIFY_LOADED.sh</testScript>
+			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+		
+		<test>
+			<testName>SaveRestore</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-04</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=80%</param>
+					<param>startupMem=80%</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+					<param>vmName=marejaRHEL7rcx64_1</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=20%</param>
+					<param>startupMem=20%</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>setupScripts\DM_SaveRestore.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+		
+		<test>
+			<testName>DemandPressure</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-05</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=20%</param>
+					<param>startupMem=20%</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>setupScripts\DM_PressureChangesDemand.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+		
+		<test>
+			<testName>HighPriority</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-01</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=1GB</param>
+					<param>startupMem=512MB</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>DM_VERIFY_LOADED.sh</testScript>
+			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+		
+		<test>
+			<testName>HotAdd</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-01</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=1GB</param>
+					<param>startupMem=512MB</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>DM_VERIFY_LOADED.sh</testScript>
+			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+
+		<test>
+			<testName>HotRemove</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-01</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=1GB</param>
+					<param>startupMem=512MB</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>DM_VERIFY_LOADED.sh</testScript>
+			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+		
+		<test>
+			<testName>CleanShutdown</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-09</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=20%</param>
+					<param>startupMem=20%</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+					<param>vmName=marejaRHEL7rcx64_1</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=80%</param>
+					<param>startupMem=80%</param>
+					<param>memWeight=100</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>setupScripts\DM_CleanShutdown.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+		
+		<test>
+			<testName>MaxMemHonored</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-01</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=1GB</param>
+					<param>startupMem=512MB</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>DM_VERIFY_LOADED.sh</testScript>
+			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+
+		<test>
+            <testName>MinMemHonored</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+					<param>TC_COVERED=DM-01</param>
+					<param>vmName=RHEL63_x64_mareja</param>
+					<param>enable=yes</param>
+					<param>minMem=512MB</param>
+					<param>maxMem=1GB</param>
+					<param>startupMem=512MB</param>
+					<param>memWeight=0</param>
+					<param>staticMem=512MB</param>
+			</testParams>
+
+			<testScript>DM_VERIFY_LOADED.sh</testScript>
+			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+        </test>
+		
+	</testCases>
+	
+	
+	<VMs>
+		<vm>
+			<hvServer>localhost</hvServer>
+			<vmName>RHEL63_x64_mareja</vmName>
+			<os>Linux</os>
+			<ipv4></ipv4>
+			<sshKey>rhel5_id_rsa.ppk</sshKey>
+			<suite>DM</suite>
+			<testParams>
+				<param>RootDir=D:\CBS\vmareja\lisablue</param>
+				<param>sshKey=rhel5_id_rsa.ppk</param>
+			</testParams>
+		</vm>
+	</VMs>
+</config>
