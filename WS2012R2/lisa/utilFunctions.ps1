@@ -874,7 +874,7 @@ function SendCommandToVM([System.Xml.XmlElement] $vm, [string] $command)
     $sshKey = $vm.sshKey
 
     $process = Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${hostname} ${command}" -PassThru -NoNewWindow -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
-    $commandTimeout = 30
+    $commandTimeout = 120
     while(!$process.hasExited)
     {
         LogMsg 8 "Waiting 1 second to check the process status for Command = '$command'."

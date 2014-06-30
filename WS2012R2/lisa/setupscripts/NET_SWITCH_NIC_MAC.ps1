@@ -38,6 +38,7 @@
       External
       Internal
       Private
+      None
 
 	 The Network Type is ignored by this script, but is still necessary, in order to have the same 
 	  parameters as the NET_ADD_NIC_MAC script.
@@ -138,10 +139,10 @@ foreach ($p in $params)
         #
         # Validate the Network type
         #
-        if (@("External", "Internal", "Private") -notcontains $networkType)
+        if (@("External", "Internal", "Private", "None") -notcontains $networkType)
         {
             "Error: Invalid netowrk type: $networkType"
-            "       Network type must be either: External, Internal, Private"
+            "       Network type must be either: External, Internal, Private, None"
             return $false
         }
 
@@ -149,12 +150,16 @@ foreach ($p in $params)
         #
         # Make sure the network exists
         #
-        $vmSwitch = Get-VMSwitch -Name $networkName -ComputerName $hvServer
-        if (-not $vmSwitch)
+
+        if ($networkType -notlike "None")
         {
-            "Error: Invalid network name: $networkName"
-            "       The network does not exist"
-            return $false
+            $vmSwitch = Get-VMSwitch -Name $networkName -ComputerName $hvServer
+            if (-not $vmSwitch)
+            {
+                "Error: Invalid network name: $networkName"
+                "       The network does not exist"
+                return $false
+            }
         }
 
         #
@@ -185,8 +190,17 @@ foreach ($p in $params)
         $nic = Get-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IsLegacy:$legacy | where {$_.MacAddress -eq $macAddress }
         if ($nic)
         {
-            Connect-VMNetworkAdapter $nic -SwitchName $networkName -Confirm:$False
-            $retVal = $True
+            if ($networkType -like "None")
+            {
+                Disconnect-VMNetworkAdapter $nic
+            }
+            else 
+            {
+                Connect-VMNetworkAdapter $nic -SwitchName $networkName -Confirm:$False
+
+            }
+            
+            $retVal = $?
         }
         else
         {
