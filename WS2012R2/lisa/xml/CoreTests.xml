@@ -32,8 +32,6 @@
             <subject>LISA FTM Test Run on WS2012</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
-
-        <!-- Optional testParams go here -->
     </global>
 
     <testSuites>
@@ -48,7 +46,6 @@
                 <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
                 <suiteTest>CDmount</suiteTest>
                 <suiteTest>FloppyDisk</suiteTest>
-                
             </suiteTests>
         </suite>
     </testSuites>
@@ -210,7 +207,7 @@
 
         <test>
             <testName>VerifyItegratedShutdownService</testName>
-            <testScript>setupscripts\VerifyIntegratedShutdownService.ps1</testScript>
+            <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <timeout>600</timeout>
             <testParams>
                 <param>TC_COVERED=CORE-16</param>
