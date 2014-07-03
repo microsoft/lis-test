@@ -238,31 +238,37 @@ foreach ($key in $dict.Keys)
     Write-Output ("  {0,-27} : {1}" -f $key, $value)
 }
 
+$osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
+if (-not $osInfo)
+{
+    "Error: Unable to collect Operating System informatioin"
+    return $False
+}
+
 #
-# Check to make sure 3 KVP keys are present
+# Create an array of keynames specific to a build of Windows.
+# Hopefully, these will not change in future builds of Windows Server.
 #
-$key = "ProcessorArchitecture"
-if (-not $dict.ContainsKey($key))
+$osSpecificKeyNames = $null
+switch ($osInfo.BuildNumber)
 {
-    "Error: The key '${key}' does not exist"
-    return $False
+    "9200"  { $osSpecificKeyNames = @("OSBuildNumber", "OSVendor", "OSSignature") }
+    "9600"  { $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId") }
+    default { $osSpecificeyNames = $null }
 }
 
-$key = "OSPlatformId"
-if (-not $dict.ContainsKey($key))
+$allKeysFound = $True
+foreach ($key in $osSpecificKeyNames)
 {
-    "Error: The key '${key}' does not exist"
-    return $False
+    if (-not $dict.ContainsKey($key))
+    {
+        "Error: The key '${key}' does not exist"
+        $allKeysFound = $False
+        break
+    }
 }
 
-$key = "OSVersion"
-if (-not $dict.ContainsKey($key))
-{
-    "Error: The key '${key}' does not exist"
-    return $False
-}
-
-return $True
+return $allKeysFound
 
 
 
