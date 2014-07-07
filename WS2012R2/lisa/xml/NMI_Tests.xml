@@ -99,11 +99,11 @@
 
   <VMs>
 	<VM>
-      	hvServer>localhost</hvServer>
-      	vmName>MyVM_64bit</vmName>
-      	os>Linux</os>
-      	ipv4></ipv4>
-      	sshKey>linux_id_rsa.ppk</sshKey>
+      	<hvServer>localhost</hvServer>
+      	<vmName>MyVM_64bit</vmName>
+      	<os>Linux</os>
+      	<ipv4></ipv4>
+      	<sshKey>linux_id_rsa.ppk</sshKey>
 	<suite>NMI</suite>
     </VM>
   </VMs>
