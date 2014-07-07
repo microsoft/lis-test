@@ -43,7 +43,7 @@
             <suiteTests>
 		<suiteTest>NMI_Send_Interrupt</suiteTest>
 		<suiteTest>NMI_Verify_Interrupt</suiteTest>
-		suiteTest>NMI_different_vmStates</suiteTest>
+		<suiteTest>NMI_different_vmStates</suiteTest>
 	      <suiteTest>NMI_SendAs_Unprivileged</suiteTest>	
             </suiteTests>
         </suite>
