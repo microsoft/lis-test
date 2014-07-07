@@ -41,7 +41,8 @@
                 <suiteTest>VerifyLisModules</suiteTest>
                 <suiteTest>VMHeartbeat</suiteTest>
                 <suiteTest>TimeSync</suiteTest>
-                 <suiteTest>TimeSync_SavedVM</suiteTest>
+                <suiteTest>TimeSync_SavedVM</suiteTest>
+                <suiteTest>TimeSync_NTP</suiteTest>
                 <suiteTest>Multi_Cpu_Test</suiteTest>
                 <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
                 <suiteTest>CDmount</suiteTest>
@@ -137,7 +138,7 @@
         </test>
 
          <test>
-             <testName>TimeSyncNTP</testName>
+             <testName>TimeSync_NTP</testName>
              <testScript>CORE_TimeSync_NTP.sh</testScript>
              <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
              <timeout>600</timeout>
