@@ -15,7 +15,6 @@
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
-
 #####################################################################
 #
 # SendCommandToVM()
@@ -30,8 +29,6 @@ function SendCommandToVM([String] $sshKey, [String] $ipv4, [string] $command)
     $dt = .\bin\plink.exe -i ${sshKeyPath} root@${ipv4} $command
     if ($?)
 
-#    $process = Start-Process plink -ArgumentList "-i ${sshKey} root@${ipv4} ${command}" -PassThru -NoNewWindow -Wait # -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
-#    if ($process.ExitCode -eq 0)
     {
         $retVal = $dt
     }
@@ -39,9 +36,6 @@ function SendCommandToVM([String] $sshKey, [String] $ipv4, [string] $command)
     {
         Write-Output "Error: $vmName unable to send command to VM. Command = '$command'"
     }
-
-    #del lisaOut.tmp -ErrorAction "SilentlyContinue"
-    #del lisaErr.tmp -ErrorAction "SilentlyContinue"
 
     return $retVal
 }
