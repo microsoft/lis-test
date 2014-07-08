@@ -4,7 +4,7 @@
 # It will wait for 10 mins, start the VM from saved state and will re-check the time sync.
 # 
 # testParams
-#    HOME_DIR=d:\ica\trunk\ica
+#    HOME_DIR=C:\lisa\
 #    ipv4=
 #    sshKey=
 #
@@ -12,8 +12,8 @@
 # returns 04/27/2012 16:10:30PM
 #
 #####################################################################
-param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
+param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
 
 #####################################################################
@@ -49,7 +49,7 @@ function SendCommandToVM([String] $sshKey, [String] $ipv4, [string] $command)
 
 #####################################################################
 #
-#
+#   GetUnixVMTime()
 #
 #####################################################################
 function GetUnixVMTime([String] $sshKey, [String] $ipv4)
@@ -76,9 +76,10 @@ function GetUnixVMTime([String] $sshKey, [String] $ipv4)
     return $unixTimeStr
 }
 
+
 #####################################################################
 #
-#
+#   GetTimeSync()
 #
 #####################################################################
 function GetTimeSync([String] $sshKey, [String] $ipv4)
@@ -159,11 +160,6 @@ if (-not $testParams)
     return $False
 }
 
-"timesync_savedVM.ps1"
-"  vmName    = ${vmName}"
-"  hvServer  = ${hvServer}"
-"  testParams= ${testParams}"
-
 #
 # Parse the testParams string
 #
@@ -212,7 +208,7 @@ if (-not $ipv4)
 "  rootDir = ${rootDir}"
 
 #
-# Change the working directory to where we ned to be
+# Change the working directory
 #
 if (-not (Test-Path $rootDir))
 {
@@ -229,16 +225,6 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "Covers TC34" | Out-File -Append $summaryLog
 
-#
-# Load the PowerShell HyperV Library
-#
-<#$sts = get-module | select-string -pattern HyperV -quiet
-if (! $sts)
-{
-    Import-module .\HyperVLibV2Sp1\HyperV.psd1
-}#>
-
-
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 
 $msg = "Test case FAILED"
@@ -250,11 +236,9 @@ if ($diffInSeconds -and $diffInSeconds -lt 5)
 
 $msg
 
-
 #
 # Save the VM state and wait for 10 mins. 
 #
-#Set-VMState -Vm $vmName -Server $hvServer -State Suspended -wait -verbose
 Save-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
 if ($? -ne "True")
 {
@@ -267,7 +251,6 @@ Start-Sleep -seconds 60
 #
 # After 10 mins start the VM and check the time sync.
 #
-#Set-VMState -Vm $vmName -Server $hvServer -State Running -wait -verbose
 Start-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
 if ($? -ne "True")
 {
