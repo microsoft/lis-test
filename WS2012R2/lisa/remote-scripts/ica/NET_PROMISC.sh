@@ -44,6 +44,7 @@
 #		STATIC_IP
 #		TC_COVERED
 #		NETMASK
+#		GATEWAY
 #
 #	Parameter explanation:
 #	REMOTE_SERVER is an IP address of a ping-able machine. All interfaces found will have to be able to ping this REMOTE_SERVER
@@ -51,6 +52,7 @@
 #	separated by , (comma) and they will be assigned in order to each interface found.
 #	NETMASK of this VM's subnet. Defaults to /24 if not set.
 #	TC_COVERED is the LIS testcase number
+#	GATEWAY is the IP Address of the default gateway
 #
 #
 #############################################################################################################
@@ -146,6 +148,24 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" = "UNDEFINED" ]; then
     LogMsg "$msg"
 fi
 
+# set gateway parameter
+if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
+    LogMsg "$msg"
+	GATEWAY=''
+else
+	CheckIP "$GATEWAY"
+	
+	if [ 0 -ne $? ]; then
+		msg=""
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
+fi
+
+
 declare __iface_ignore
 
 # Parameter provided in constants file
@@ -168,7 +188,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -182,15 +202,16 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
@@ -223,7 +244,7 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 # Test interfaces
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		LogMsg "$msg"
@@ -233,7 +254,7 @@ for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
 	fi
 	
 	# make sure interface is not in promiscuous mode already
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -i promisc
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -i promisc
 	if [ 0 -eq $? ]; then
 		msg="Synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} is already in promiscuous mode"
 		LogMsg "$msg"
@@ -257,7 +278,9 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		LogMsg "Number of static IP addresses in constants.sh is greater than number of concerned interfaces. All extra IP addresses are ignored."
 		break
 	fi
+	
 	SetIPstatic "${STATIC_IPS[$__iterator]}" "${SYNTH_NET_INTERFACES[$__iterator]}" "$NETMASK"
+	
 	# if failed to assigned address
 	if [ 0 -ne $? ]; then
 		msg="Failed to assign static ip ${STATIC_IPS[$__iterator]} netmask $NETMASK on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -266,6 +289,9 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		SetTestStateFailed
 		exit 20
 	fi	
+	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
+	
+	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
 
 # set the iterator to point to the next element in the SYNTH_NET_INTERFACES array
@@ -274,6 +300,7 @@ __iterator=${#STATIC_IPS[@]}
 # set dhcp ips for remaining interfaces
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
+	LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
 	
 	if [ 0 -ne $? ]; then
@@ -283,7 +310,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 	: $((__iterator++))
 	
 done
@@ -295,8 +322,9 @@ declare -i __message_count=0
 
 for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
+	LogMsg "Setting ${SYNTH_NET_INTERFACES[$__iterator]} to promisc mode"
 	# set interfaces to promiscuous mode
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} promisc
+	ip link set dev ${SYNTH_NET_INTERFACES[$__iterator]} promisc on
 	
 	# make sure it was set
 	__message_count=$(dmesg | grep -i "device ${SYNTH_NET_INTERFACES[$__iterator]} entered promiscuous mode" | wc -l)
@@ -308,15 +336,28 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		exit 10
 	fi
 	
-	# now check ifconfig for promisc
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
+	# now check ip for promisc
+	ip link show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
 	if [ 0 -ne $? ]; then
-		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is not set to promiscuous mode according to ifconfig. Dmesg however contained an entry stating that it did."
+		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is not set to promiscuous mode according to ip. Dmesg however contained an entry stating that it did."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 10
 	fi
+	
+	UpdateSummary "Successfully set ${SYNTH_NET_INTERFACES[$__iterator]} to promiscuous mode"
+	
+	if [ -n "$GATEWAY" ]; then
+		LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
+		CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
+		if [ 0 -ne $? ]; then
+			LogMsg "Warning! Failed to set default gateway!"
+		fi
+	fi
+	
+	LogMsg "Trying to ping $REMOTE_SERVER"
+	UpdateSummary "Trying to ping $REMOTE_SERVER"
 	
 	# ping the remote server
 	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$REMOTE_SERVER"
@@ -329,8 +370,12 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		exit 10
 	fi
 	
+	UpdateSummary "Successfully pinged $REMOTE_SERVER on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+	
 	# disable promiscuous mode
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} -promisc
+	LogMsg "Disabling promisc mode on ${SYNTH_NET_INTERFACES[$__iterator]}"
+	
+	ip link set dev ${SYNTH_NET_INTERFACES[$__iterator]} promisc off
 	
 	# make sure it was disabled
 	__message_count=$(dmesg | grep -i "device ${SYNTH_NET_INTERFACES[$__iterator]} left promiscuous mode" | wc -l)
@@ -342,16 +387,17 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		exit 10
 	fi
 	
-	# now check ifconfig for promisc
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
+	# now check ip for promisc
+	ip link show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
 	if [ 0 -eq $? ]; then
-		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is set to promiscuous mode according to ifconfig. Dmesg however contained an entry stating that it left that mode."
+		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is set to promiscuous mode according to ip. Dmesg however contained an entry stating that it left that mode."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 10
 	fi
 	
+	UpdateSummary "Successfully disabled promiscuous mode on ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
 
 
