@@ -239,6 +239,9 @@ GetDistro()
 		*Debian*)
 			DISTRO=debian_x
 			;;
+		*SUSE*12*)
+			DISTRO=suse_12
+			;;
 		*SUSE*11*)
 			DISTRO=suse_11
 			;;
@@ -337,7 +340,7 @@ GetSynthNetInterfaces()
 
 
 # Function to get all legacy network interfaces
-# Sets the $LEGACY_NET_INTERFACES array elements to an interface name suitable for ifconfig etc.
+# Sets the $LEGACY_NET_INTERFACES array elements to an interface name suitable for ifconfig/ip commands.
 # Takes no arguments
 GetLegacyNetInterfaces()
 {
@@ -434,11 +437,13 @@ SetIPfromDHCP()
 	fi
 	
 	# Check first argument
-	ifconfig "$1" >/dev/null 2>&1
+	ip link show "$1" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		LogMsg "Network adapter $1 is not working."
 		return 1
 	fi
+	
+	ip addr flush "$1"
 	
 	GetDistro
 	case $DISTRO in
@@ -485,7 +490,7 @@ SetIPfromDHCP()
 	
 	declare __IP_ADDRESS
 	# Get IP-Address
-	__IP_ADDRESS=$(ifconfig "$1" | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
+	__IP_ADDRESS=$(ip -o addr show "$1" | grep -vi inet6 | cut -d '/' -f1 | awk '{print $NF}')
 
 	if [ -z "$__IP_ADDRESS" ]; then
 		LogMsg "IP address did not get assigned to $1"
@@ -515,39 +520,816 @@ SetIPstatic()
 		return 1
 	fi
 	
-	ifconfig "$2" > /dev/null 2>&1
+	ip link show "$2" > /dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		LogMsg "Network adapter $2 is not working."
 		return 2
 	fi
 	
-	declare __NETMASK
+	declare __netmask
+	declare __interface
+	declare __ip
 	
-	__NETMASK=${3:-255.255.255.0}
+	__netmask=${3:-255.255.255.0}
+	__interface="$2"
+	__ip="$1"
 	
-	ifconfig "$2" down && ifconfig "$2" "$1" && ifconfig "$2" netmask "$__NETMASK" && ifconfig "$2" up
+	echo "$__netmask" | grep '.' >/dev/null 2>&1
+	if [  0 -eq $? ]; then
+		__netmask=$(NetmaskToCidr "$__netmask")
+		if [ 0 -ne $? ]; then
+			LogMsg "SetIPstatic: $__netmask is not a valid netmask"
+			return 3
+		fi
+	fi
+	
+	if [ "$__netmask" -ge 32 -o "$__netmask" -le 0 ]; then
+		LogMsg "SetIPstatic: $__netmask is not a valid cidr netmask"
+		return 4
+	fi
+	
+	ip link set "$__interface" down
+	ip addr flush "$__interface"
+	ip addr add "$__ip"/"$__netmask" dev "$__interface"
+	ip link set "$__interface" up
 	
 	if [ 0 -ne $? ]; then
-		LogMsg "Unable to assign address $1 (netmask $__NETMASK) to $2."
-		return 3
+		LogMsg "Unable to assign address $__ip/$__netmask to $__interface."
+		return 5
 	fi
 	
 	# Get IP-Address
 	declare __IP_ADDRESS
-	__IP_ADDRESS=$(ifconfig "$2" | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
+	__IP_ADDRESS=$(ip -o addr show "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -vi inet6 | cut -d '/' -f1 | awk '{print $NF}' | grep -vi '[a-z]')
 
 	if [ -z "$__IP_ADDRESS" ]; then
-		LogMsg "IP address $1 did not get assigned to $2"
+		LogMsg "IP address $__ip did not get assigned to $__interface"
 		return 3
 	fi
 
 	# Check that addresses match
-	if [ "$__IP_ADDRESS" != "$1" ]; then
-		LogMsg "New address $__IP_ADDRESS differs from static ip $1 on interface $2"
-		return 4
+	if [ "$__IP_ADDRESS" != "$__ip" ]; then
+		LogMsg "New address $__IP_ADDRESS differs from static ip $__ip on interface $__interface"
+		return 6
 	fi
 
 	# OK
+	return 0
+}
+
+# translate network mask to CIDR notation
+# Parameters:
+# $1 == valid network mask
+NetmaskToCidr()
+{
+	if [ 1 -ne $# ]; then
+		LogMsg "NetmaskToCidr accepts 1 argument: a valid network mask"
+		return 100
+	fi
+	
+	declare -i netbits=0
+	oldifs="$IFS"
+	IFS=.
+	
+	for dec in $1; do
+		case $dec in
+			255)
+				netbits=$((netbits+8))
+				;;
+			254)
+				netbits=$((netbits+7))
+				;;
+			252)
+				netbits=$((netbits+6))
+				;;
+			248)
+				netbits=$((netbits+5))
+				;;
+			240)
+				netbits=$((netbits+4))
+				;;
+			224)
+				netbits=$((netbits+3))
+				;;
+			192)
+				netbits=$((netbits+2))
+				;;
+			128)
+				netbits=$((netbits+1))
+				;;
+			0)	#nothing to add
+				;;
+			*)
+				LogMsg "NetmaskToCidr: $1 is not a valid netmask"
+				return 1
+				;;
+		esac
+	done
+	
+	echo $netbits
+	
+	return 0
+}
+
+# Remove all default gateways
+RemoveDefaultGateway()
+{
+	while ip route del default >/dev/null 2>&1
+	do : #nothing
+	done
+	
+	return 0
+}
+
+# Create default gateway
+# Parameters:
+# $1 == gateway ip
+# $2 == interface
+CreateDefaultGateway()
+{
+	if [ 2 -ne $# ]; then
+		LogMsg "CreateDefaultGateway expects 2 argument"
+		return 100
+	fi
+	
+	# check that $1 is an IP address
+	CheckIP "$1"
+	
+	if [ 0 -ne $? ]; then
+		LogMsg "CreateDefaultGateway: $1 is not a valid IP Address"
+		return 1
+	fi
+	
+	# check interface exists
+	ip link show "$2" >/dev/null 2>&1
+	if [ 0 -ne $? ]; then
+		LogMsg "CreateDefaultGateway: no interface $2 found."
+		return 2
+	fi
+	
+	
+	declare __interface
+	declare __ipv4
+	
+	__ipv4="$1"
+	__interface="$2"
+	
+	# before creating the new default route, delete any old route
+	RemoveDefaultGateway
+	
+	# create new default gateway
+	ip route add default via "$__ipv4" dev "$__interface"
+	
+	if [ 0 -ne $? ]; then
+		LogMsg "CreateDefaultGateway: unable to set $__ipv4 as a default gateway for interface $__interface"
+		return 3
+	fi
+	
+	# check to make sure default gateway actually was created
+	ip route show | grep -i "default via $__ipv4 dev $__interface" >/dev/null 2>&1
+	
+	if [ 0 -ne $? ]; then
+		LogMsg "CreateDefaultGateway: Route command succeded, but gateway does not appear to have been set."
+		return 4
+	fi
+	
+	return 0
+}
+
+# Create Vlan Config
+# Parameters:
+# $1 == interface for which to create the vlan config file
+# $2 == static IP to set for vlan interface
+# $3 == netmask for that interface
+# $4 == vlan ID
+CreateVlanConfig()
+{
+	if [ 4 -ne $# ]; then
+		LogMsg "CreateVlanConfig expects 4 argument"
+		return 100
+	fi
+	
+	# check interface exists
+	ip link show "$1" >/dev/null 2>&1
+	if [ 0 -ne $? ]; then
+		LogMsg "CreateVlanConfig: no interface $1 found."
+		return 1
+	fi
+	
+	# check that $2 is an IP address
+	CheckIP "$2"
+	
+	if [ 0 -ne $? ]; then
+		LogMsg "CreateVlanConfig: $2 is not a valid IP Address"
+		return 2
+	fi
+	
+	declare __noreg='^[0-4096]+'
+	# check $4 for valid vlan range
+	if ! [[ $4 =~ $__noreg ]] ; then
+		LogMsg "CreateVlanConfig: invalid vlan ID $4 received."
+		return 3
+	fi
+	
+	# check that vlan driver is loaded
+	
+	lsmod | grep 8021q
+	
+	if [ 0 -ne $? ]; then
+		modprobe 8021q
+	fi
+	
+	declare __interface
+	declare __ip
+	declare __netmask
+	declare __vlanID
+	declare __file_path
+	declare __vlan_file_path
+	
+	__interface="$1"
+	__ip="$2"
+	__netmask="$3"
+	__vlanID="$4"
+	
+	GetDistro
+	case $DISTRO in
+		redhat*)
+			__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface"
+			if [ -e "$__file_path" ]; then
+				LogMsg "CreateVlanConfig: warning, $__file_path already exists."
+				if [ -d "$__file_path" ]; then
+					rm -rf "$__file_path"
+				else
+					rm -f "$__file_path"
+				fi
+			fi
+			
+			__vlan_file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface.$__vlanID"
+			if [ -e "$__vlan_file_path" ]; then
+				LogMsg "CreateVlanConfig: warning, $__vlan_file_path already exists."
+				if [ -d "$__vlan_file_path" ]; then
+					rm -rf "$__vlan_file_path"
+				else
+					rm -f "$__vlan_file_path"
+				fi
+			fi
+			
+			cat <<-EOF > "$__file_path"
+				DEVICE=$__interface
+				TYPE=Ethernet
+				BOOTPROTO=none
+				ONBOOT=yes
+			EOF
+			
+			cat <<-EOF > "$__vlan_file_path"
+				DEVICE=$__interface.$__vlanID
+				BOOTPROTO=none
+				IPADDR=$__ip
+				NETMASK=$__netmask
+				ONBOOT=yes
+				VLAN=yes
+			EOF
+			
+			ifdown "$__interface"
+			ifup "$__interface"
+			ifup "$__interface.$__vlanID"
+			
+			;;
+		suse_12*)
+			__file_path="/etc/sysconfig/network/ifcfg-$__interface"
+			if [ -e "$__file_path" ]; then
+				LogMsg "CreateVlanConfig: warning, $__file_path already exists."
+				if [ -d "$__file_path" ]; then
+					rm -rf "$__file_path"
+				else
+					rm -f "$__file_path"
+				fi
+			fi
+			
+			__vlan_file_path="/etc/sysconfig/network/ifcfg-$__interface.$__vlanID"
+			if [ -e "$__vlan_file_path" ]; then
+				LogMsg "CreateVlanConfig: warning, $__vlan_file_path already exists."
+				if [ -d "$__vlan_file_path" ]; then
+					rm -rf "$__vlan_file_path"
+				else
+					rm -f "$__vlan_file_path"
+				fi
+			fi
+			
+			cat <<-EOF > "$__file_path"
+				TYPE=Ethernet
+				BOOTPROTO=none
+				STARTMODE=auto
+			EOF
+			
+			cat <<-EOF > "$__vlan_file_path"
+				ETHERDEVICE=$__interface
+				BOOTPROTO=static
+				IPADDR=$__ip
+				NETMASK=$__netmask
+				STARTMODE=auto
+				VLAN=yes
+			EOF
+			
+			# bring real interface down and up again
+			wicked ifdown "$__interface"
+			wicked ifup "$__interface"
+			# bring also vlan interface up
+			wicked ifup "$__interface.$__vlanID"
+			;;
+		suse*)
+			__file_path="/etc/sysconfig/network/ifcfg-$__interface"
+			if [ -e "$__file_path" ]; then
+				LogMsg "CreateVlanConfig: warning, $__file_path already exists."
+				if [ -d "$__file_path" ]; then
+					rm -rf "$__file_path"
+				else
+					rm -f "$__file_path"
+				fi
+			fi
+			
+			__vlan_file_path="/etc/sysconfig/network/ifcfg-$__interface.$__vlanID"
+			if [ -e "$__vlan_file_path" ]; then
+				LogMsg "CreateVlanConfig: warning, $__vlan_file_path already exists."
+				if [ -d "$__vlan_file_path" ]; then
+					rm -rf "$__vlan_file_path"
+				else
+					rm -f "$__vlan_file_path"
+				fi
+			fi
+			
+			cat <<-EOF > "$__file_path"
+				BOOTPROTO=static
+				IPADDR=0.0.0.0
+				STARTMODE=auto
+			EOF
+			
+			cat <<-EOF > "$__vlan_file_path"
+				BOOTPROTO=static
+				IPADDR=$__ip
+				NETMASK=$__netmask
+				STARTMODE=auto
+				VLAN=yes
+				ETHERDEVICE=$__interface
+			EOF
+			
+			ifdown "$__interface"
+			ifup "$__interface"
+			ifup "$__interface.$__vlanID"
+			;;
+		debian*|ubuntu*)
+			__file_path="/etc/network/interfaces"
+			if [ ! -e "$__file_path" ]; then
+				LogMsg "CreateVlanConfig: warning, $__file_path does not exist. Creating it..."
+				if [ -d "$(dirname $__file_path)" ]; then
+					touch "$__file_path"
+				else
+					rm -f "$(dirname $__file_path)"
+					LogMsg "CreateVlanConfig: Warning $(dirname $__file_path) is not a directory"
+					mkdir -p "$(dirname $__file_path)"
+					touch "$__file_path"
+				fi
+			fi
+
+			declare __first_iface
+			declare __last_line
+			declare __second_iface
+			# delete any previously existing lines containing the desired vlan interface
+			# get first line number containing our interested interface
+			__first_iface=$(awk "/iface $__interface/ { print NR; exit }" "$__file_path")
+			# if there was any such line found, delete it and any related config lines
+			if [ -n "$__first_iface" ]; then
+				# get the last line of the file
+				__last_line=$(wc -l $__file_path | cut -d ' ' -f 1)
+				# sanity check
+				if [ "$__first_iface" -gt "$__last_line" ]; then
+					LogMsg "CreateVlanConfig: error while parsing $__file_path . First iface line is gt last line in file"
+					return 100
+				fi
+
+				# get the last x lines after __first_iface
+				__second_iface=$((__last_line-__first_iface))
+
+				# if the first_iface was also the last line in the file
+				if [ "$__second_iface" -eq 0 ]; then
+					__second_iface=$__last_line
+				else
+					# get the line number of the seconf iface line
+					__second_iface=$(tail -n $__second_iface $__file_path | awk "/iface/ { print NR; exit }")
+
+					if [ -z $__second_iface ]; then
+						__second_iface="$__last_line"
+					else
+						__second_iface=$((__first_iface+__second_iface-1))
+					fi
+					
+
+					if [ "$__second_iface" -gt "$__last_line" ]; then
+						LogMsg "CreateVlanConfig: error while parsing $__file_path . Second iface line is gt last line in file"
+						return 100
+					fi
+
+					if [ "$__second_iface" -le "$__first_iface" ]; then
+						LogMsg "CreateVlanConfig: error while parsing $__file_path . Second iface line is gt last line in file"
+						return 100
+					fi
+				fi
+				# now delete all lines between the first iface and the second iface
+				sed -i "$__first_iface,${__second_iface}d" "$__file_path"
+			fi
+
+			sed -i "/auto $__interface/d" "$__file_path"
+			# now append our config to the end of the file
+			cat << EOF >> "$__file_path"
+auto $__interface
+iface $__interface inet static
+	address 0.0.0.0
+
+auto $__interface.$__vlanID
+iface $__interface.$__vlanID inet static
+	address $__ip
+	netmask $__netmask
+EOF
+
+			ifdown "$__interface"
+			ifup $__interface
+			ifup $__interface.$__vlanID
+			;;
+		*)
+			LogMsg "Platform not supported yet!"
+			return 4
+			;;
+	esac
+	
+	# verify change took place
+	cat /proc/net/vlan/config | grep " $__vlanID "
+	
+	if [ 0 -ne $? ]; then
+		LogMsg "/proc/net/vlan/config has no vlanID of $__vlanID"
+		return 5
+	fi
+	
+	return 0
+}
+
+# Remove Vlan Config
+# Parameters:
+# $1 == interface from which to remove the vlan config file
+# $2 == vlan ID
+RemoveVlanConfig()
+{
+	if [ 2 -ne $# ]; then
+		LogMsg "RemoveVlanConfig expects 2 argument"
+		return 100
+	fi
+	
+	# check interface exists
+	ip link show "$1" >/dev/null 2>&1
+	if [ 0 -ne $? ]; then
+		LogMsg "RemoveVlanConfig: no interface $1 found."
+		return 1
+	fi
+	
+	declare __noreg='^[0-4096]+'
+	# check $2 for valid vlan range
+	if ! [[ $2 =~ $__noreg ]] ; then
+		LogMsg "RemoveVlanConfig: invalid vlan ID $2 received."
+		return 2
+	fi
+	
+	declare __interface
+	declare __ip
+	declare __netmask
+	declare __vlanID
+	declare __file_path
+	
+	__interface="$1"
+	__vlanID="$2"
+	
+	GetDistro
+	case $DISTRO in
+		redhat*)
+			__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface.$__vlanID"
+			if [ -e "$__file_path" ]; then
+				LogMsg "RemoveVlanConfig: found $__file_path ."
+				if [ -d "$__file_path" ]; then
+					rm -rf "$__file_path"
+				else
+					rm -f "$__file_path"
+				fi
+			fi
+			service network restart 2>&1
+			
+			# make sure the interface is down
+			ip link set "$__interface.$__vlanID" down
+			;;
+		suse_12*)
+			__file_path="/etc/sysconfig/network/ifcfg-$__interface.$__vlanID"
+			if [ -e "$__file_path" ]; then
+				LogMsg "RemoveVlanConfig: found $__file_path ."
+				if [ -d "$__file_path" ]; then
+					rm -rf "$__file_path"
+				else
+					rm -f "$__file_path"
+				fi
+			fi
+			wicked ifdown "$__interface.$__vlanID"
+			# make sure the interface is down
+			ip link set "$__interface.$__vlanID" down
+			;;
+		suse*)
+			__file_path="/etc/sysconfig/network/ifcfg-$__interface.$__vlanID"
+			if [ -e "$__file_path" ]; then
+				LogMsg "RemoveVlanConfig: found $__file_path ."
+				if [ -d "$__file_path" ]; then
+					rm -rf "$__file_path"
+				else
+					rm -f "$__file_path"
+				fi
+			fi
+
+			ifdown $__interface.$__vlanID
+			ifdown $__interface
+			ifup $__interface
+
+			# make sure the interface is down
+			ip link set "$__interface.$__vlanID" down
+			;;
+		debian*|ubuntu*)
+			__file_path="/etc/network/interfaces"
+			if [ ! -e "$__file_path" ]; then
+				LogMsg "RemoveVlanConfig: warning, $__file_path does not exist."
+				return 0
+			fi
+			if [ ! -d "$(dirname $__file_path)" ]; then
+				LogMsg "RemoveVlanConfig: warning, $(dirname $__file_path) does not exist."
+				return 0
+			else
+				rm -f "$(dirname $__file_path)"
+				LogMsg "CreateVlanConfig: Warning $(dirname $__file_path) is not a directory"
+				mkdir -p "$(dirname $__file_path)"
+				touch "$__file_path"
+			fi
+
+			declare __first_iface
+			declare __last_line
+			declare __second_iface
+			# delete any previously existing lines containing the desired vlan interface
+			# get first line number containing our interested interface
+			__first_iface=$(awk "/iface $__interface.$__vlanID/ { print NR; exit }" "$__file_path")
+			# if there was any such line found, delete it and any related config lines
+			if [ -n "$__first_iface" ]; then
+				# get the last line of the file
+				__last_line=$(wc -l $__file_path | cut -d ' ' -f 1)
+				# sanity check
+				if [ "$__first_iface" -gt "$__last_line" ]; then
+					LogMsg "CreateVlanConfig: error while parsing $__file_path . First iface line is gt last line in file"
+					return 100
+				fi
+
+				# get the last x lines after __first_iface
+				__second_iface=$((__last_line-__first_iface))
+
+				# if the first_iface was also the last line in the file
+				if [ "$__second_iface" -eq 0 ]; then
+					__second_iface=$__last_line
+				else
+					# get the line number of the seconf iface line
+					__second_iface=$(tail -n $__second_iface $__file_path | awk "/iface/ { print NR; exit }")
+
+					if [ -z $__second_iface ]; then
+						__second_iface="$__last_line"
+					else
+						__second_iface=$((__first_iface+__second_iface-1))
+					fi
+					
+
+					if [ "$__second_iface" -gt "$__last_line" ]; then
+						LogMsg "CreateVlanConfig: error while parsing $__file_path . Second iface line is gt last line in file"
+						return 100
+					fi
+
+					if [ "$__second_iface" -le "$__first_iface" ]; then
+						LogMsg "CreateVlanConfig: error while parsing $__file_path . Second iface line is gt last line in file"
+						return 100
+					fi
+				fi
+				# now delete all lines between the first iface and the second iface
+				sed -i "$__first_iface,${__second_iface}d" "$__file_path"
+			fi
+
+			sed -i "/auto $__interface.$__vlanID/d" "$__file_path"
+
+			;;
+		*)
+			LogMsg "Platform not supported yet!"
+			return 3
+			;;
+	esac
+	
+	return 0
+	
+}
+
+# Create ifup config file
+# Parameters:
+# $1 == interface name
+# $2 == static | dhcp
+# $3 == IP Address
+# $4 == Subnet Mask
+# if $2 is set to dhcp, $3 and $4 are ignored
+CreateIfupConfigFile()
+{
+	if [ 2 -gt $# -o 4 -lt $# ]; then
+		LogMsg "CreateIfupConfigFile accepts between 2 and 4 arguments"
+		return 100
+	fi
+	
+	# check interface exists
+	ip link show "$1" >/dev/null 2>&1
+	if [ 0 -ne $? ]; then
+		LogMsg "CreateIfupConfigFile: no interface $1 found."
+		return 1
+	fi
+	
+	declare __interface_name="$1"
+	declare __create_static=0
+	declare __ip
+	declare __netmask
+	declare __file_path
+	
+	case "$2" in
+		static)
+			__create_static=1
+			;;
+		dhcp)
+			__create_static=0
+			;;
+		*)
+			LogMsg "CreateIfupConfigFile: \$2 needs to be either static or dhcp (received $2)"
+			return 2
+			;;
+	esac
+	
+	if [ "$__create_static" -eq 0 ]; then
+		# create config file for dhcp
+		GetDistro
+		case $DISTRO in
+			suse_12*)
+				__file_path="/etc/sysconfig/network/ifcfg-$__interface_name"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+				
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+				
+				cat <<-EOF > "$__file_path"
+					STARTMODE=manual
+					BOOTPROTO=dhcp
+				EOF
+				
+				wicked ifdown "$__interface_name"
+				wicked ifup "$__interface_name"
+				
+				;;
+			suse*)
+				__file_path="/etc/sysconfig/network/ifcfg-$__interface_name"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+				
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+				
+				cat <<-EOF > "$__file_path"
+					STARTMODE=manual
+					BOOTPROTO=dhcp
+				EOF
+				
+				ifdown "$__interface_name"
+				ifup "$__interface_name"
+				
+				;;
+			redhat*)
+				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+				
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+				
+				cat <<-EOF > "$__file_path"
+					DEVICE="$__interface_name"
+					BOOTPROTO=dhcp
+				EOF
+				
+				ifdown "$__interface_name"
+				ifup "$__interface_name"
+				;;
+			*)
+				LogMsg "CreateIfupConfigFile: Platform not supported yet!"
+				return 3
+				;;
+		esac
+	else
+		# create config file for static
+		if [ $# -ne 4 ]; then
+			LogMsg "CreateIfupConfigFile: if static config is selected, please provide 4 arguments"
+			return 100
+		fi
+		
+		CheckIP "$3"
+		
+		if [ 0 -ne $? ]; then
+			LogMsg "CreateIfupConfigFile: $3 is not a valid IP Address"
+			return 2
+		fi
+		
+		__ip="$3"
+		__netmask="$4"
+		
+		GetDistro
+		
+		case $DISTRO in
+			suse_12*)
+				__file_path="/etc/sysconfig/network/ifcfg-$__interface_name"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+				
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+				
+				cat <<-EOF > "$__file_path"
+					STARTMODE=manual
+					BOOTPROTO=static
+					IPADDR="$__ip"
+					NETMASK="$__netmask"
+				EOF
+				
+				wicked ifdown "$__interface_name"
+				wicked ifup "$__interface_name"
+				;;
+			suse*)
+				__file_path="/etc/sysconfig/network/ifcfg-$__interface_name"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+				
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+				
+				cat <<-EOF > "$__file_path"
+					STARTMODE=manual
+					BOOTPROTO=static
+					IPADDR="$__ip"
+					NETMASK="$__netmask"
+				EOF
+				
+				ifdown "$__interface_name"
+				ifup "$__interface_name"
+				;;
+			redhat*)
+				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+				
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+				
+				cat <<-EOF > "$__file_path"
+					DEVICE="$__interface_name"
+					BOOTPROTO=none
+					IPADDR="$__ip"
+					NETMASK="$__netmask"
+					NM_CONTROLLED=no
+				EOF
+				
+				ifdown "$__interface_name"
+				ifup "$__interface_name"
+				;;
+			*)
+				LogMsg "CreateIfupConfigFile: Platform not supported yet!"
+				return 3
+				;;
+		esac
+	fi
+	
 	return 0
 }
 
@@ -686,6 +1468,184 @@ EnableNetworkManager()
 	ControlNetworkManager start
 	# propagate return value from ControlNetworkManager
 	return $?
+}
+
+# Setup a bridge named br0
+# $1 == Bridge IP Address
+# $2 == Bridge netmask
+# $3 - $# == Interfaces to attach to bridge
+# if no parameter is given outside of IP and Netmask, all interfaces will be added (except lo)
+SetupBridge()
+{
+	
+	if [ $# -lt 2 ]; then
+		LogMsg "SetupBridge needs at least 2 parameters"
+		return 1
+	fi
+	
+	declare -a __bridge_interfaces
+	declare __bridge_ip
+	declare __bridge_netmask
+	
+	CheckIP "$1"
+	
+	if [ 0 -ne $? ]; then
+		LogMsg "SetupBridge: $1 is not a valid IP Address"
+		return 2
+	fi
+	
+	__bridge_ip="$1"
+	__bridge_netmask="$2"
+
+	echo "$__bridge_netmask" | grep '.' >/dev/null 2>&1
+	if [  0 -eq $? ]; then
+		__bridge_netmask=$(NetmaskToCidr "$__bridge_netmask")
+		if [ 0 -ne $? ]; then
+			LogMsg "SetupBridge: $__bridge_netmask is not a valid netmask"
+			return 3
+		fi
+	fi
+	
+	if [ "$__bridge_netmask" -ge 32 -o "$__bridge_netmask" -le 0 ]; then
+		LogMsg "SetupBridge: $__bridge_netmask is not a valid cidr netmask"
+		return 4
+	fi
+	
+	if [ 2 -eq $# ]; then
+		LogMsg "SetupBridge received no interface argument. All network interfaces found will be attached to the bridge."
+		# Get all synthetic interfaces
+		GetSynthNetInterfaces
+		# Remove the loopback interface
+		SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/lo/})
+		
+		# Get the legacy interfaces
+		GetLegacyNetInterfaces
+		# Remove the loopback interface
+		LEGACY_NET_INTERFACES=(${LEGACY_NET_INTERFACES[@]/lo/})
+		# Remove the bridge itself
+		LEGACY_NET_INTERFACES=(${LEGACY_NET_INTERFACES[@]/br0/})
+		
+		# concat both arrays and use this new variable from now on.
+		__bridge_interfaces=("${SYNTH_NET_INTERFACES[@]}" "${LEGACY_NET_INTERFACES[@]}")
+		
+		if [ ${#__bridge_interfaces[@]} -eq 0 ]; then
+			LogMsg "SetupBridge: No interfaces found"
+			return 3
+		fi
+		
+	else
+		# get rid of the first two parameters
+		shift
+		shift
+		# and loop through the remaining ones
+		declare __iterator
+		for __iterator in "$@"; do
+			ip link show "$__iterator" >/dev/null 2>&1
+			if [ 0 -ne $? ]; then
+				LogMsg "SetupBridge: Interface $__iterator not working or not present"
+				return 4
+			fi
+			__bridge_interfaces=("${__bridge_interfaces[@]}" "$__iterator")
+		done
+	fi
+	
+	# create bridge br0
+	brctl addbr br0
+	if [ 0 -ne $? ]; then
+		LogMsg "SetupBridge: unable to create bridge br0"
+		return 5
+	fi
+	
+	# turn off stp
+	brctl stp br0 off
+	
+	declare __iface
+	# set all interfaces to 0.0.0.0 and then add them to the bridge
+	for __iface in ${__bridge_interfaces[@]}; do
+		ip link set "$__iface" down
+		ip addr flush dev "$__iface"
+		ip link set "$__iface" up
+		ip link set dev "$__iface" promisc on
+		#add interface to bridge
+		brctl addif br0 "$__iface"
+		if [ 0 -ne $? ]; then
+			LogMsg "SetupBridge: unable to add interface $__iface to bridge br0"
+			return 6
+		fi
+		LogMsg "SetupBridge: Added $__iface to bridge"
+		echo "1" > /proc/sys/net/ipv4/conf/"$__iface"/proxy_arp
+		echo "1" > /proc/sys/net/ipv4/conf/"$__iface"/forwarding
+		
+	done
+	
+	#setup forwarding on bridge
+	echo "1" > /proc/sys/net/ipv4/conf/br0/forwarding
+	echo "1" > /proc/sys/net/ipv4/conf/br0/proxy_arp
+	echo "1" > /proc/sys/net/ipv4/ip_forward
+	
+	ip link set br0 down
+	ip addr add "$__bridge_ip"/"$__bridge_netmask" dev br0 
+	ip link set br0 up
+	LogMsg "$(brctl show br0)"
+	LogMsg "SetupBridge: Successfull"
+	# done
+	return 0
+}
+
+# TearDown Bridge br0
+TearDownBridge()
+{
+	ip link show br0 >/dev/null 2>&1
+	
+	if [ 0 -ne $? ]; then
+		LogMsg "TearDownBridge: No interface br0 found"
+		return 1
+	fi
+	
+	brctl show br0
+	
+	if [ 0 -ne $? ]; then
+		LogMsg "TearDownBridge: No bridge br0 found"
+		return 2
+	fi
+	
+	# get Mac Addresses of interfaces attached to the bridge
+	declare __bridge_macs
+	__bridge_macs=$(brctl showmacs br0 | grep -i "yes" | cut -f 2)
+	
+	# get the interfaces associated with those macs
+	declare __mac
+	declare __bridge_interfaces
+	
+	for __mac in $__bridge_macs; do
+		__bridge_interfaces=$(grep -il "$__mac" /sys/class/net/*/address)
+		if [ 0 -ne $? ]; then
+			msg="TearDownBridge: MAC Address $__mac does not belong to any interface."
+			LogMsg "$msg"
+			UpdateSummary "$msg"
+			SetTestStateFailed
+			return 3
+		fi
+	
+		# get just the interface name from the path
+		__bridge_interfaces=$(basename "$(dirname "$__sys_interface")")
+		
+		ip link show "$__bridge_interfaces" >/dev/null 2>&1
+		
+		if [ 0 -ne $? ]; then
+			LogMsg "TearDownBridge: Could not find interface $__bridge_interfaces"
+			return 4
+		fi
+		
+		brctl delif br0 "$__bridge_interfaces"
+	done
+	
+	# remove the bridge itself
+	ip link set br0 down
+	brctl delbr br0
+	
+	return 0
+	
 }
 
 # Check free space
