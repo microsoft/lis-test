@@ -52,7 +52,7 @@
 			<files>remote-scripts\ica\FC_disks.sh</files>
 			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
 			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-			<timeout>600</timeout>
+			<timeout>3600</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-01,FC-02</param>
 				<param>vSANName=FC_NAME</param>
@@ -65,7 +65,7 @@
 			<files>remote-scripts\ica\FC_stressTest.sh</files>
 			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
 			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-			<timeout>1800</timeout>
+			<timeout>7200</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-04</param>
 				<param>vSANName=FC_NAME</param>
@@ -79,7 +79,7 @@
 			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
 			<posttest>setupScripts\FC_SaveRestoreVM.ps1</posttest>
 			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-			<timeout>600</timeout>
+			<timeout>7200</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-07</param>
 				<param>vSANName=FC_NAME</param>
