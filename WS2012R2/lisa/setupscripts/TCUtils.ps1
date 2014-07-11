@@ -487,6 +487,8 @@ function SendCommandToVM([String] $ipv4, [String] $sshKey, [string] $command)
         return $False
     }
 
+    # get around plink questions
+    bin\plink.exe -i ssh\${sshKey} root@${ipv4} 'exit 0'
     $process = Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${ipv4} ${command}" -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
     if ($process.ExitCode -eq 0)
     {
@@ -558,6 +560,9 @@ function SendFileToVM([String] $ipv4, [String] $sshkey, [string] $localFile, [st
     {
         $recurse = "-r"
     }
+    
+    # get around plink questions
+    bin\plink.exe -i ssh\${sshKey} root@${ipv4} 'exit 0'
 
     $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} ${localFile} root@${ipv4}:${remoteFile}" -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
     if ($process.ExitCode -eq 0)
