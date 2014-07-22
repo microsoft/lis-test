@@ -68,8 +68,6 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-Set-PSDebug -Strict
-
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
   # function which $memMB MB of memory on VM with IP $conIpv4 with stresstestapp
