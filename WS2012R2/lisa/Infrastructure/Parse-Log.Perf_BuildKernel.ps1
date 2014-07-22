@@ -235,6 +235,7 @@ foreach($param in $xmlConfig.config.testCases.test.testParams.ChildNodes)
 
 Write-Host "VMName: " $VMName
 Write-Host "KernelVersion" $newLinuxKernel
+$XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
 
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
@@ -245,7 +246,8 @@ $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem)
 $params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
 $params = $params+" "+"guestos:`"" + $kernelRelease + "`""
 $params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + "Perf_BuildKernel" + "`""
+$params = $params+" "+"testcasename:`"" + $XMLFileNameWithoutExt + "`""
+
 $params = $params+" "+"newlinuxkernel:`"" + "$newLinuxKernel" + "`""
 $params = $params+" "+"realtimeinsec:`"" + $realTimeInSec + "`""
 $params = $params+" "+"usertimeinsec:`"" + $userTimeInSec + "`""

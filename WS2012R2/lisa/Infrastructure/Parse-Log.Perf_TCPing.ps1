@@ -170,6 +170,7 @@ if ($VMName -eq [string]::Empty)
     Write-Host "!!! No VM is found from the LISA XML file."
 }
 Write-Host "VMName: " $VMName
+$XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
 
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
@@ -180,7 +181,8 @@ $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem)
 $params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
 $params = $params+" "+"guestos:`"" + "Linux" + "`""
 $params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + "Perf_TCPing" + "`""
+$params = $params+" "+"testcasename:`"" + $XMLFileNameWithoutExt + "`""
+
 $params = $params+" "+"latencyinms:`"" + $latencyInMS + "`""
 
 Write-Host "Executing LisaRecorder to record test result into database"

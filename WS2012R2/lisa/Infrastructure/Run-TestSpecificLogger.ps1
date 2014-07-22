@@ -28,40 +28,49 @@
 .Description
     Parse the network bandwidth data from the iPerf test log.
     
-.Parameter LogFolder
-    The LISA log folder. 
-
 .Parameter XMLFileName
     The LISA XML file. 
 
 .Exmple
-    Run-TestSpecificLogger.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_iPerf.xml
+    Run-TestSpecificLogger.ps1 D:\Lisa\XML\Perf_iPerf.xml
 
 #>
 
-param( [string]$LogFolder, [string]$XMLFileName)
+param([string]$XMLFileName)
 
 #----------------------------------------------------------------------------
 # Start a new PowerShell log.
 #----------------------------------------------------------------------------
-Start-Transcript "$LogFolder\Run-TestSpecificLogger.ps1.log" -force
+Start-Transcript ".\Run-TestSpecificLogger.ps1.log" -force
 
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
 Write-Host "Running [Run-TestSpecificLogger.ps1]..." -foregroundcolor cyan
-Write-Host "`$LogFolder        = $LogFolder" 
 Write-Host "`$XMLFileName      = $XMLFileName" 
 
 #----------------------------------------------------------------------------
-# If the test specific log parser exists, run it
-# the log parser should be Parse-Log.XMLFileName.ps1
+# Check the parameters
 #----------------------------------------------------------------------------
 # check the XML file provided
 if ($XMLFileName -eq $null -or $XMLFileName -eq "")
 {
     Throw "Parameter XMLFileName is required."
 }
+$xmlConfig = [xml] (Get-Content -Path $xmlFilename)
+if ($null -eq $xmlConfig)
+{
+    write-host -f Red "Error: Unable to parse the .xml file"
+    return $false
+}
+# Get the Log Folder defined in the XML file
+$LogFolder = $xmlConfig.config.global.logfileRootDir
+Write-Host "Log Folder defined in the XML file: $LogFolder"
+
+#----------------------------------------------------------------------------
+# Check the test specific log parser
+# the log parser should be Parse-Log.XMLFileName.ps1
+#----------------------------------------------------------------------------
 Write-Host "Current test running folder:"
 $PWD
 
@@ -88,6 +97,9 @@ else
 	}
 }
 
+#----------------------------------------------------------------------------
+# Run the log parser to parse test results and record them into database
+#----------------------------------------------------------------------------
 Write-Host "Executing the test specific log parser with below args:"
 Write-Host "LogFolder=" $LogFolder
 Write-Host "XmlFileName=" $XmlFileName
@@ -109,4 +121,5 @@ Write-Host "The logger returned error code: " $loggerExitCode
 
 Write-Host "Running [Run-TestSpecificLogger] FINISHED (NOT VERIFIED)."
 Stop-Transcript
+move ".\Run-TestSpecificLogger.ps1.log" $LogFolder -force
 exit $loggerExitCode

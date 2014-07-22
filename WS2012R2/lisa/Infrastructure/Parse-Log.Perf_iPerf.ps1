@@ -195,6 +195,7 @@ Write-Host "VMName: " $VMName
 Write-Host "IPERF_THREADS" $IPERF_THREADS
 Write-Host "IPERF_BUFFER " $IPERF_BUFFER 
 Write-Host "IPERF_TCPWINDOW " $IPERF_TCPWINDOW 
+$XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
 
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
@@ -205,7 +206,8 @@ $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem)
 $params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
 $params = $params+" "+"guestos:`"" + "Linux" + "`""
 $params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + "Perf_iPerf" + "`""
+$params = $params+" "+"testcasename:`"" + $XMLFileNameWithoutExt + "`""
+
 $params = $params+" "+"bandwidthingbits:`"" + $bandwidth + "`""
 $params = $params+" "+"parallelthreads:`"" + "$IPERF_THREADS" + "`""
 $params = $params+" "+"tcpwindowinkb:`"" + "$IPERF_TCPWINDOW" + "`""

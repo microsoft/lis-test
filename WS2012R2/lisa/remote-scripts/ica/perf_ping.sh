@@ -150,7 +150,11 @@ LogMsg "Info : PING_COUNT = ${PING_COUNT}"
 #
 # Perform the pings, and redirect output to ping.log
 #
-ping -c ${PING_COUNT} ${TARGET_IP} > ~/ping.log
+if [ "${PING_TOOL:="UNDEFINED"}" == "ping6" ]; then
+    ping6 -c ${PING_COUNT} ${TARGET_IP} > ~/ping.log
+else
+    ping -c ${PING_COUNT} ${TARGET_IP} > ~/ping.log
+fi
 
 if [ $? -ne 0 ]; then
     msg="Error: ping -c ${PING_COUNT} ${TARGET_IP} failed"
