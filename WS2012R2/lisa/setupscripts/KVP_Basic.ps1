@@ -202,14 +202,14 @@ if (-not $serviceEnabled)
 #
 # Create a data exchange object and collect KVP data from the VM
 #
-$Vm = Get-WmiObject -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
+$Vm = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
 if (-not $Vm)
 {
     "Error: Unable to the VM '${VMName}' on the local host"
     return $False
 }
 
-$Kvp = Get-WmiObject -Namespace root\virtualization\v2 -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
+$Kvp = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
 if (-not $Kvp)
 {
     "Error: Unable to retrieve KVP Exchange object for VM '${vmName}'"
