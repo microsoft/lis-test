@@ -45,6 +45,8 @@
                 <suiteTest>KVP_Modify_Key_Values</suiteTest>
                 <suiteTest>KVP_Remove_Key_Values</suiteTest>
                 <suiteTest>KVP_Push_Key_Values</suiteTest>
+				<suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
+				<suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -121,15 +123,43 @@
                 <param>sshKey=rhel5_id_rsa.ppk</param>
             </testparams>
         </test>
+		
+		<test>
+			<testName>KVP_DeleteNonExistKVPOnGuest</testName>
+			<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+			<timeout>600</timeout>
+			<onError>Abort</onError>
+			<noReboot>True</noReboot>
+			<testparams>
+				<param>TC_COVERED=KVP-06</param>
+				<param>Key=XXX</param>
+				<param>Value=000</param>
+				<param>Pool=0</param>
+			</testparams>
+		</test>	
+		
+		<test>
+			<testName>KVP_ModifyNonExistKVPOnGuest</testName>
+			<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+			<timeout>600</timeout>
+			<onError>Abort</onError>
+			<noReboot>True</noReboot>
+			<testparams>
+				<param>TC_COVERED=KVP-07</param>
+				<param>Key=XXX</param>
+				<param>Value=000</param>
+				<param>Pool=0</param>
+			</testparams>
+		</test>
     </testCases>
 
     <VMs>        
 	<vm>
             <hvServer>localhost</hvServer>
-            <vmName>Sles11Sp3x64</vmName>
+            <vmName>VM_NAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <sshKey>PVT.ppk</sshKey>
             <suite>KVP</suite>
         </vm>
     </VMs>

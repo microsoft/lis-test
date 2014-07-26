@@ -240,7 +240,7 @@ if ($? -ne "True")
   return $false
 }
 
-Start-Sleep -seconds 60
+Start-Sleep -seconds 600
 
 #
 # After 10 mins start the VM and check the time sync.
