@@ -50,6 +50,7 @@
 #		FILE_SIZE_GB
 #		STATIC_IP
 #		NETMASK
+#		GATEWAY
 #
 #	Parameter explanation:
 #	REMOTE_VM is the address of the second vm.
@@ -61,6 +62,7 @@
 #	FILE_SIZE_GB override the 10GB size. File size specified in GB
 #	STATIC_IP is the address that will be assigned to the VM's synthetic network adapter
 #	NETMASK of this VM's subnet. Defaults to /24 if not set.
+#	GATEWAY is the IP Address of the default gateway
 #
 #
 #############################################################################################################
@@ -154,6 +156,22 @@ else
     LogMsg "$msg"
 fi
 
+# set gateway parameter
+if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
+    LogMsg "$msg"
+	GATEWAY=''
+else
+	CheckIP "$GATEWAY"
+	
+	if [ 0 -ne $? ]; then
+		msg=""
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
+fi
 
 declare __iface_ignore
 
@@ -175,7 +193,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -189,15 +207,16 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
@@ -232,7 +251,7 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 declare -i __iterator
 declare -ai __invalid_positions
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		# mark invalid positions
 		__invalid_positions=("${__invalid_positions[@]}" "$__iterator")
@@ -273,10 +292,27 @@ __iterator=0
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
 	if [ 0 -eq $? ]; then		
-		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 "$REMOTE_VM" >/dev/null 2>&1
+		# add some interface output
+		UpdateSummary "Successfully set ip from dhcp on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+		LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
+		
+		# set default gateway if specified
+		if [ -n "$GATEWAY" ]; then
+			LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
+			CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
+			if [ 0 -ne $? ]; then
+				LogMsg "Warning! Failed to set default gateway!"
+			fi
+		fi
+		
+		LogMsg "Trying to ping $REMOTE_SERVER"
+		UpdateSummary "Trying to ping $REMOTE_SERVER"
+		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`copy`null`dhcp`null`
+		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d00636f7079006468637000" "$REMOTE_VM" >/dev/null 2>&1
 		if [ 0 -eq $? ]; then
 			# ping worked!
 			LogMsg "Successfully pinged $REMOTE_VM through synthetic ${SYNTH_NET_INTERFACES[$__iterator]} (dhcp)."
+			UpdateSummary "Successfully pinged $REMOTE_VM through synthetic ${SYNTH_NET_INTERFACES[$__iterator]} (dhcp)."
 			break
 		else
 			LogMsg "Unable to ping $REMOTE_VM through synthetic ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -284,6 +320,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 	fi
 	__invalid_positions=("${__invalid_positions[@]}" "$__iterator")
 	LogMsg "Unable to get address from dhcp server on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+	UpdateSummary "Unable to get address from dhcp server on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	: $((__iterator++))
 done
 
@@ -299,10 +336,23 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq  ${#__invalid_positions[@]} ]; then
 		SetIPstatic "$STATIC_IP" "${SYNTH_NET_INTERFACES[$__iterator]}" "$NETMASK"
 		# if successfully assigned address
 		if [ 0 -eq $? ]; then
-			# try to ping $REMOTE_VM
-			ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 "$REMOTE_VM" >/dev/null 2>&1
+			LogMsg "Successfully assigned $STATIC_IP ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+			UpdateSummary "Successfully assigned $STATIC_IP ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+			
+			# set default gateway if specified
+			if [ -n "$GATEWAY" ]; then
+				LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
+				CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
+				if [ 0 -ne $? ]; then
+					LogMsg "Warning! Failed to set default gateway!"
+				fi
+			fi
+			# ping the remote vm using an easily distinguishable pattern 0xcafed00d`null`cop`null`static`null`
+			ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d00636f700073746174696300" "$REMOTE_VM" >/dev/null 2>&1
+			
 			if [ 0 -eq $? ]; then
-				# ping worked! Maybe we should set a custom route using this interface... no way of forcing ssh to use a particular interface
+				# ping worked!
+				UpdateSummary "Successfully pinged $REMOTE_VM on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 				break
 			else
 				LogMsg "Unable to ping $REMOTE_VM through ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -311,7 +361,7 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq  ${#__invalid_positions[@]} ]; then
 			LogMsg "Unable to set static IP to interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		fi
 		# shut interface down
-		ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} down
+		ip link set ${SYNTH_NET_INTERFACES[$__iterator]} down
 		__invalid_positions=("${__invalid_positions[@]}" "$__iterator")
 		: $((__iterator++))
 	done
@@ -348,7 +398,7 @@ fi
 LogMsg "Successfully pinged $REMOTE_VM on synthetic interface(s) ${SYNTH_NET_INTERFACES[@]}"
 
 # get file size in bytes
-declare -i ____file_size
+declare -i __file_size
 
 if [ "${FILE_SIZE_GB:-UNDEFINED}" = "UNDEFINED" ]; then
 	__file_size=$((10*1024*1024*1024))						# 10 GB
@@ -356,8 +406,10 @@ else
 	__file_size=$((FILE_SIZE_GB*1024*1024*1024))
 fi
 
+LogMsg "Checking for local disk space"
+
 # Check disk size on local vm
-IsFreeSpace "$HOME" $__file_size
+IsFreeSpace "$HOME" "$__file_size"
 
 if [ 0 -ne $? ]; then
 	msg="Not enough free space on current partition to create the test file"
@@ -368,8 +420,9 @@ if [ 0 -ne $? ]; then
 fi
 
 LogMsg "Enough free space locally to create the file"
+UpdateSummary "Enough free space locally to create the file"
 
-
+LogMsg "Checking for disk space on $REMOTE_VM"
 # Check disk size on remote vm. Cannot use IsFreeSpace function directly. Need to export Utils.sh to the remote_vm, source it and then access the functions therein
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no Utils.sh "$REMOTE_USER"@"$REMOTE_VM":/tmp
 if [ 0 -ne $? ]; then
@@ -411,6 +464,7 @@ if [ 0 -ne $sts ]; then
 fi
 
 LogMsg "Enough free space remotely to create the file"
+UpdateSummary "Enough free space (both locally and remote) to create the file"
 
 # get source to create the file
 
@@ -458,6 +512,7 @@ if [ 0 -ne $? ]; then
 fi
 
 LogMsg "Successfully sent $output_file to $REMOTE_VM:$remote_home/$output_file"
+UpdateSummary "Successfully sent $output_file to $REMOTE_VM:$remote_home/$output_file"
 
 # erase file locally, if set
 [ $NO_DELETE -eq 0 ] && rm -f $output_file
@@ -476,6 +531,7 @@ if [ 0 -ne $? ]; then
 fi
 
 LogMsg "Received $outputfile from $REMOTE_VM"
+UpdateSummary "Received $outputfile from $REMOTE_VM"
 
 # delete remote file
 [ $NO_DELETE -eq 0 ] && ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM" "rm -f $remote_home/$output_file"

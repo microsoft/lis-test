@@ -43,12 +43,14 @@
 #		NETMASK
 #		REMOTE_SERVER
 #		DISABLE_NM
+#		GATEWAY
 #
 #	Parameter explanation:
 #	STATIC_IP is the address that will be assigned to the VM's synthetic network adapter
 #	NETMASK of this VM's subnet. Defaults to /24 if not set.
 #	REMOTE_SERVER is an IP address of a ping-able machine, to test network connectivity
 #	DISABLE_NM can be set to 'yes' to disable the NetworkManager.
+#	GATEWAY is the IP Address of the default gateway
 #	TC_COVERED is the LIS testcase number
 #
 #############################################################################################################
@@ -134,6 +136,22 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" = "UNDEFINED" ]; then
 	REMOTE_SERVER=''
 fi
 
+# set gateway parameter
+if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
+    LogMsg "$msg"
+	GATEWAY=''
+else
+	CheckIP "$GATEWAY"
+	
+	if [ 0 -ne $? ]; then
+		msg=""
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 10
+	fi
+fi
 
 declare __iface_ignore
 
@@ -155,7 +173,7 @@ else
 	fi
 	
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ifconfig | grep -B1 "$ipv4" | head -n 1 | cut -d ' ' -f1)
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -169,15 +187,16 @@ else
 		GetDistro
 		case "$DISTRO" in
 			suse*)
-				__orig_netmask=$(ifconfig "$__iface_ignore" | awk '/Mask:/{ print $4;} ' | cut -c6-)
+				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
 				;;
 		esac
 		DisableNetworkManager
 		case "$DISTRO" in
 			suse*)
-				ifconfig "$__iface_ignore" down
-				ifconfig "$__iface_ignore" "$ipv4" netmask "$__orig_netmask"
-				ifconfig "$__iface_ignore" up
+				ip link set "$__iface_ignore" down
+				ip addr flush dev "$__iface_ignore"
+				ip addr add "$ipv4"/"$__orig_netmask" dev "$__iface_ignore"
+				ip link set "$__iface_ignore" up
 				;;
 		esac
 	fi
@@ -212,7 +231,7 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 declare -i __iterator
 declare -ai __invalid_positions
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-	ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		# mark invalid positions
 		__invalid_positions=("${__invalid_positions[@]}" "$__iterator")
@@ -250,28 +269,46 @@ fi
 
 declare -ai __invalid_positions
 __iterator=0
+
 # set synthetic interface address to $STATIC_IP
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 	SetIPstatic "$STATIC_IP" "${SYNTH_NET_INTERFACES[$__iterator]}" "$NETMASK"
 	# if successfully assigned address
 	if [ 0 -eq $? ]; then
+		UpdateSummary "Successfully assigned $STATIC_IP ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+		# add some interface output
+		LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 		# if configured, try to ping $REMOTE_SERVER
 		if [ -n "$REMOTE_SERVER" ]; then
-			ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 "$REMOTE_SERVER" >/dev/null 2>&1
+			if [ -n "$GATEWAY" ]; then
+				LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
+				CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
+				if [ 0 -ne $? ]; then
+					LogMsg "Warning! Failed to set default gateway!"
+				fi
+			fi
+			
+			LogMsg "Trying to ping $REMOTE_SERVER"
+			UpdateSummary "Trying to ping $REMOTE_SERVER"
+			# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`con`null`static`null`
+			ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d00636f6e0073746174696300" "$REMOTE_SERVER" >/dev/null 2>&1
 			if [ 0 -eq $? ]; then
 				# ping worked!
+				UpdateSummary "Successfully pinged $REMOTE_SERVER on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 				break
 			else
 				LogMsg "Unable to ping $REMOTE_SERVER through ${SYNTH_NET_INTERFACES[$__iterator]}"
+				UpdateSummary "Unable to ping $REMOTE_SERVER through ${SYNTH_NET_INTERFACES[$__iterator]}"
 			fi
 		else #nothing more to do
 			break
 		fi
 	else
 		LogMsg "Unable to set static IP to interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+		UpdateSummary "Unable to set static IP to interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	fi
 	# shut interface down
-	ifconfig ${SYNTH_NET_INTERFACES[$__iterator]} down
+	ip link set ${SYNTH_NET_INTERFACES[$__iterator]} down
 	: $((__iterator++))
 done
 
@@ -286,6 +323,7 @@ fi
 LogMsg "Synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} successfully set the static IP address (and pinged if the REMOTE_SERVER variable was given)"
 
 # Try to get DHCP address
+LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 
 SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
 
@@ -297,9 +335,11 @@ if [ 0 -ne $? ]; then
     SetTestStateFailed
     exit 10
 fi
+# add some interface output
+LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 
-# Get IP-Address
-IP_ADDRESS=$(ifconfig "${SYNTH_NET_INTERFACES[$__iterator]}" | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
+# Get IP-Address and check it
+IP_ADDRESS=$(ip -o addr show "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -vi inet6 | cut -d '/' -f1 | awk '{print $NF}' | grep -vi '[a-z]')
 
 CheckIP "$IP_ADDRESS"
 
@@ -315,7 +355,18 @@ LogMsg "Successfully received $IP_ADDRESS through DHCP"
 
 # If configured, try to ping $REMOTE_SERVER
 if [ -n "$REMOTE_SERVER" ]; then
-	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 $REMOTE_SERVER >/dev/null 2>&1
+	if [ -n "$GATEWAY" ]; then
+		LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
+		CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
+		if [ 0 -ne $? ]; then
+			LogMsg "Warning! Failed to set default gateway!"
+		fi
+	fi
+	
+	LogMsg "Trying to ping $REMOTE_SERVER"
+	UpdateSummary "Trying to ping $REMOTE_SERVER"
+	# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`conf`null`dhcp`null`
+	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d00636f6e66006468637000" $REMOTE_SERVER >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		msg="Unable to ping $REMOTE_SERVER through ${SYNTH_NET_INTERFACES[$__iterator]}"
 		LogMsg "$msg"
@@ -324,6 +375,7 @@ if [ -n "$REMOTE_SERVER" ]; then
 		exit 10
 	fi
 	LogMsg "Successfully pinged $REMOTE_SERVER with $IP_ADDRESS received through dhcp"
+	UpdateSummary "Successfully pinged $REMOTE_SERVER with $IP_ADDRESS received through dhcp"
 fi
 
 UpdateSummary "Test successful"

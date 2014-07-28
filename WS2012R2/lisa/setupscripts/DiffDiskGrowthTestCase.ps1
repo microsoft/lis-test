@@ -351,20 +351,28 @@ $parentInitialSize = $parentFileInfo.FileSize
 # Tell the guest OS on the VM to mount the differencing disk
 #
 
-$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mount /dev/sdb1 /mnt" | out-null 
+$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mount /dev/sdb1 /mnt" | out-null
 if (-not $?)
 {
     "Error: Unable to send mount request to VM"
     return $False
 }
 
+$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir -p /mnt/ica" | out-null
+if (-not $?)
+{
+    "Error: Unable to send mkdir request to VM"
+    return $False
+}
+
 #
 # Tell the guest OS to write a few MB to the differencing disk
 #
-$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dd if=/dev/sda1 of=/mnt/ica/test.dat count=2048" | out-null 
+$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dd if=/dev/sda1 of=/mnt/ica/test.dat count=2048 > /dev/null 2>&1" | out-null 
 if (-not $?)
 {
     "Error: Unable to send cp command to VM to grow the .vhd"
+    return $False
 }
 
 #
@@ -374,6 +382,7 @@ $sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "umount /mnt" | out-null
 if (-not $?)
 {
     "Warn : Unable to send umount request to VM"
+    return $False
 }
 
 #

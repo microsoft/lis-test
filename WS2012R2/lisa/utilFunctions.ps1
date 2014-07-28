@@ -1461,7 +1461,7 @@ function GetIPv4ViaICASerial( [String] $vmName, [String] $server)
     #
     # Get the Pipe name for COM1
     #
-    $pipName = $vm.ComPort2.Path
+    $pipeName = $vm.ComPort2.Path
     if (-not $pipeName)
     {
         Write-Error -Message "GetIPv4ViaICASerial: VM ${vmName} does not have a pipe associated with COM1" -Category ObjectNotFound -ErrorAction SilentlyContinue

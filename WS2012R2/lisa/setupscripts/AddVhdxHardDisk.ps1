@@ -93,7 +93,7 @@
       </test>
 
 .Parameter vmName
-    Name of the VM to remove disk from .
+    Name of the VM to remove disk from.
 
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -102,12 +102,9 @@
     Test data for this test case
 
 .Example
-    setupScripts\AddVhdxHardDisk -vmName sles11sp3x64 -hvServer localhost -testParams "SCSI=0,0,Dynamic,4096;sshkey=rhel5_id_rsa.ppk;ipv4=10.200.50.192;RootDir=" 
+    setupScripts\AddVhdxHardDisk -vmName myVM -hvServer localhost -testParams "SCSI=0,0,Dynamic,4096;sshkey=linux_id_rsa.ppk;ipv4=IPaddress;RootDir=" 
 
-.Link
-    None.
 #>
-############################################################################
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
@@ -146,7 +143,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     
     return $fileInfo
 }
-
 
 ############################################################################
 #
@@ -190,7 +186,6 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
     }
     return $True
 }
-
 
 ############################################################################
 #
@@ -324,7 +319,6 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
     return $retVal
 }
 
-
 ############################################################################
 #
 # CreateHardDrive
@@ -441,11 +435,6 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
 
 $retVal = $true
 
-"AddHardDisk.ps1"
-"  vmName     : $vmName"
-"  hvServer   : $hvServer"
-"  testParams : $testParams"
-
 #
 # Check input arguments
 #
@@ -469,22 +458,6 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 }
 
 #
-# Make sure we have access to the Microsoft Hyper-V snapin
-#
-$hvModule = Get-Module Hyper-V
-if ($hvModule -eq $NULL)
-{
-    import-module Hyper-V
-    $hvModule = Get-Module Hyper-V
-}
-
-if ($hvModule.companyName -ne "Microsoft Corporation")
-{
-    "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $Falses
-}
-
-#
 # Parse the testParams string
 #
 $params = $testParams.Split(';')
@@ -500,7 +473,7 @@ foreach ($p in $params)
     if ($temp.Length -ne 2)
     {
 	"Warn : test parameter '$p' is being ignored because it appears to be malformed"
-     continue
+	continue
     }
     
     $controllerType = $temp[0].Trim()

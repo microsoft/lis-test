@@ -2779,6 +2779,9 @@ function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData)
         # Start the PowerShell test case script
         #
         LogMsg 3 "Info : $vmName Run PowerShell test case script $testScript"
+		LogMsg 3 "Info : vmName: $vmName"
+		LogMsg 3 "Info : hvServer: $hvServer"
+		LogMsg 3 "Info : params: $params"
         
         $job = Start-Job -filepath $testScript -argumentList $vmName, $hvServer, $params
         if ($job)

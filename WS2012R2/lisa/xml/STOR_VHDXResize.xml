@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>C:\Path\To\LogDir</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mail.com</to>
+                <to>myboss@mail.com</to>
+            </recipients>
+            <sender>myself@mail.com</sender>
+            <subject>LISA VHDx Resize on WS2012R2</subject>
+            <smtpServer>smtp.your.company.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>VHDxResize</suiteName>
+            <suiteTests>
+                <suiteTest>VHDxResizeToBigger512</suiteTest>
+                <suiteTest>VHDxResizeToBigger4096</suiteTest>
+                <suiteTest>VHDxResizeToSmaller512</suiteTest>
+                <suiteTest>VHDxResizeToSmaller4096</suiteTest>
+                <suiteTest>VHDxResizeGrowShrink</suiteTest>
+                <suiteTest>VHDxResizeGrowFilesystem512</suiteTest>
+                <suiteTest>VHDxResizeGrowFilesystem4096</suiteTest>
+                <suiteTest>VHDxResizeOver2TB</suiteTest>
+                <suiteTest>VHDxResizeLiveMigration</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>VHDxResizeToBigger512</testName>
+			<testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>NewSize=4GB</param>
+                <param>TC_COVERED=STOR-VHDx-01a</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VHDxResizeToBigger4096</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,4096,3GB</param>
+                <param>NewSize=4GB</param>
+                <param>TC_COVERED=STOR-VHDx-01b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VHDxResizeToSmaller512</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>NewSize=2GB</param>
+                <param>TC_COVERED=STOR-VHDx-02a</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VHDxResizeToSmaller4096</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,4096,3GB</param>
+                <param>NewSize=2GB</param>
+                <param>TC_COVERED=STOR-VHDx-02b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VHDxResizeGrowShrink</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>growSize=4GB</param>
+                <param>shrinkSize=3GB</param>
+                <param>TC_COVERED=STOR-VHDx-03</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VHDxResizeGrowFilesystem512</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>NewSize=4GB</param>
+                <param>TC_COVERED=STOR-VHDx-04a</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VHDxResizeGrowFilesystem4096</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,4096,3GB</param>
+                <param>NewSize=4GB</param>
+                <param>TC_COVERED=STOR-VHDx-04b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VHDxResizeOver2TB</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_DiskOver2TB.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>3000</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,512,127GB</param>
+                <param>NewSize=2304GB</param>
+                <param>TC_COVERED=STOR-VHDx-05</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VHDxResizeLiveMigration</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_BasicLM.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>NewSize=4GB</param>
+                <param>TC_COVERED=STOR-VHDx-06</param>
+            </testparams>
+        </test>
+	</testCases>
+
+    <VMs>
+		<vm>
+            <hvServer>localhost</hvServer>
+            <vmName>VM_Name</vmName>
+            <os>Linux</os>
+            <ipv4>255.255.255.255</ipv4>
+            <sshKey>YOUR_KEY.ppk</sshKey>
+            <suite>VHDxResize</suite>
+        </vm>
+    </VMs>
+
+</config>

@@ -26,7 +26,7 @@
     Parse the LISA test log and create a simple XML log file.
 
 .Description
-    Parse the LISA test log (ica.log by default), create a simple XML log, and copy it to a test harness running folder.
+    Parse the LISA test log (ica.log by default), create a simple XML log (file name is specified by $XMLLogFileName,), and copy it to a test harness running folder (specified by $TestRunWorkingDir).
     
 .Parameter LisLogFileName
     The log file produced by LISA. By default it is named ica.log. 
@@ -34,31 +34,31 @@
 .Parameter XMLLogFileName
     The XML log file name to be created.
 
-.Parameter LogFolder
+.Parameter XMLFileName
     A folder to save the script running logs.
 
 .Parameter TestRunWorkingDir
     The test harness folder which needs the XML log file.
 
 .Exmple
-    Parse-LisaResultAsXmlLog.ps1 ica.log \\AB803750-2129-436B-AFE6-02F912A3155C.xml D:\Logs F:\TestRunWorkingDir
+    Parse-LisaResultAsXmlLog.ps1 ica.log \\AB803750-2129-436B-AFE6-02F912A3155C.xml D:\Lisa\XML\Perf_iPerf.xml F:\TestRunWorkingDir
 
 #>
 
-param( [string]$LisLogFileName = "ica.log", [string]$XMLLogFileName, [string]$LogFolder, [string]$TestRunWorkingDir )
+param( [string]$LisLogFileName = "ica.log", [string]$XMLFileName, [string]$XMLLogFileName, [string]$TestRunWorkingDir )
 
 #----------------------------------------------------------------------------
 # Start a new PowerShell log.
 #----------------------------------------------------------------------------
-Start-Transcript "$LogFolder\Parse-LisaResultAsXmlLog.ps1.log" -force
+Start-Transcript ".\Parse-LisaResultAsXmlLog.ps1.log" -force
 
 #----------------------------------------------------------------------------
 # Print running information
 #----------------------------------------------------------------------------
 Write-Host "Running [Parse-LisaResultAsXmlLog.ps1]..." -foregroundcolor cyan
-Write-Host "`$LisLogFileName   = $LisLogFileName" 
-Write-Host "`$XMLLogFileName   = $XMLLogFileName" 
-Write-Host "`$LogFolder        = $LogFolder" 
+Write-Host "`$LisLogFileName    = $LisLogFileName" 
+Write-Host "`$XMLFileName       = $XMLFileName" 
+Write-Host "`$XMLLogFileName    = $XMLLogFileName" 
 Write-Host "`$TestRunWorkingDir = $TestRunWorkingDir" 
 
 #----------------------------------------------------------------------------
@@ -68,19 +68,31 @@ if ($LisLogFileName -eq $null -or $LisLogFileName -eq "")
 {
     Throw "Parameter LisLogFileName is required."
 }
+
+if ($XMLFileName -eq $null -or $XMLFileName -eq "")
+{
+    Throw "Parameter XMLFileName is required."
+}
+$xmlConfig = [xml] (Get-Content -Path $xmlFilename)
+if ($null -eq $xmlConfig)
+{
+    write-host -f Red "Error: Unable to parse the .xml file"
+    return $false
+}
+# Get the Log Folder defined in the XML file
+$LogFolder = $xmlConfig.config.global.logfileRootDir
+Write-Host "Log Folder defined in the XML file: $LogFolder"
 if ($XMLLogFileName -eq $null -or $XMLLogFileName -eq "")
 {
-    Throw "Parameter XMLLogFileName is required."
-}
-if ($LogFolder -eq $null -or $LogFolder -eq "")
-{
-    Throw "Parameter LogFolder is required."
-}
-if ($TestRunWorkingDir -eq $null -or $TestRunWorkingDir -eq "")
-{
-    Throw "Parameter TestRunWorkingDir is required."
+    Write-Host "No XML log file name provided. Will generate one GUID xml log file."
+    $XMLLogFileName =[System.Guid]::NewGuid().toString() + ".xml"
+	Write-Host "GUID xml log file name: $XMLLogFileName has been generated."
 }
 
+if ($TestRunWorkingDir -eq $null -or $TestRunWorkingDir -eq "")
+{
+    Write-Host "No TestRunWorkingDir provided. Will ignore copying the XMl log back to test harness running folder."
+}
 
 #----------------------------------------------------------------------------
 # Read the Lisa log file
@@ -162,10 +174,14 @@ $xmlWriter.Finalize
 $xmlWriter.Flush
 $xmlWriter.Close()
 
-Copy-Item $XMLLogFilePath $TestRunWorkingDir
+if ($TestRunWorkingDir -ne $null -and $TestRunWorkingDir -ne "")
+{
+    Copy-Item $XMLLogFilePath $TestRunWorkingDir
+}
 
 Write-Host "XML Log file has been created: $XMLLogFilePath " 
 Write-Host "Running [Parse-LisaResultAsXmlLog] FINISHED (NOT VERIFIED)."
 
 Stop-Transcript
+move ".\Parse-LisaResultAsXmlLog.ps1.log" $LogFolder -force
 exit 0

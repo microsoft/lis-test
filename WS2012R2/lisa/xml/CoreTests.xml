@@ -32,8 +32,6 @@
             <subject>LISA FTM Test Run on WS2012</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
-
-        <!-- Optional testParams go here -->
     </global>
 
     <testSuites>
@@ -43,12 +41,12 @@
                 <suiteTest>VerifyLisModules</suiteTest>
                 <suiteTest>VMHeartbeat</suiteTest>
                 <suiteTest>TimeSync</suiteTest>
-                 <suiteTest>TimeSync_SavedVM</suiteTest>
+                <suiteTest>TimeSync_SavedVM</suiteTest>
+                <suiteTest>TimeSync_NTP</suiteTest>
                 <suiteTest>Multi_Cpu_Test</suiteTest>
                 <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
                 <suiteTest>CDmount</suiteTest>
                 <suiteTest>FloppyDisk</suiteTest>
-                
             </suiteTests>
         </suite>
     </testSuites>
@@ -139,16 +137,17 @@
             </testparams>
         </test>
 
-        <test>
-            <testName>TimeSyncNTP</testName>
-            <testScript>INST_LIS_TimeSync_NTP.sh</testScript>
-            <files>remote-scripts/ica/INST_LIS_TimeSync_NTP.sh</files>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <testParams>
-                <param>TC_COVERED=CORE-04</param>
-            </testParams>
-        </test>
+         <test>
+             <testName>TimeSync_NTP</testName>
+             <testScript>CORE_TimeSync_NTP.sh</testScript>
+             <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
+             <timeout>600</timeout>
+             <onError>Continue</onError>
+             <testParams>
+                 <param>TZONE=Europe/Berlin</param>
+                 <param>TC_COVERED=CORE-04</param>
+             </testParams>
+         </test>
 
         <test>
             <testName>LISShutdownVM</testName>
@@ -209,7 +208,7 @@
 
         <test>
             <testName>VerifyItegratedShutdownService</testName>
-            <testScript>setupscripts\VerifyIntegratedShutdownService.ps1</testScript>
+            <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <timeout>600</timeout>
             <testParams>
                 <param>TC_COVERED=CORE-16</param>

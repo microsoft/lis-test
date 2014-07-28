@@ -202,14 +202,14 @@ if (-not $serviceEnabled)
 #
 # Create a data exchange object and collect KVP data from the VM
 #
-$Vm = Get-WmiObject -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
+$Vm = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
 if (-not $Vm)
 {
     "Error: Unable to the VM '${VMName}' on the local host"
     return $False
 }
 
-$Kvp = Get-WmiObject -Namespace root\virtualization\v2 -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
+$Kvp = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
 if (-not $Kvp)
 {
     "Error: Unable to retrieve KVP Exchange object for VM '${vmName}'"
@@ -238,31 +238,37 @@ foreach ($key in $dict.Keys)
     Write-Output ("  {0,-27} : {1}" -f $key, $value)
 }
 
+$osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
+if (-not $osInfo)
+{
+    "Error: Unable to collect Operating System informatioin"
+    return $False
+}
+
 #
-# Check to make sure 3 KVP keys are present
+# Create an array of keynames specific to a build of Windows.
+# Hopefully, these will not change in future builds of Windows Server.
 #
-$key = "ProcessorArchitecture"
-if (-not $dict.ContainsKey($key))
+$osSpecificKeyNames = $null
+switch ($osInfo.BuildNumber)
 {
-    "Error: The key '${key}' does not exist"
-    return $False
+    "9200"  { $osSpecificKeyNames = @("OSBuildNumber", "OSVendor", "OSSignature") }
+    "9600"  { $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId") }
+    default { $osSpecificeyNames = $null }
 }
 
-$key = "OSPlatformId"
-if (-not $dict.ContainsKey($key))
+$allKeysFound = $True
+foreach ($key in $osSpecificKeyNames)
 {
-    "Error: The key '${key}' does not exist"
-    return $False
+    if (-not $dict.ContainsKey($key))
+    {
+        "Error: The key '${key}' does not exist"
+        $allKeysFound = $False
+        break
+    }
 }
 
-$key = "OSVersion"
-if (-not $dict.ContainsKey($key))
-{
-    "Error: The key '${key}' does not exist"
-    return $False
-}
-
-return $True
+return $allKeysFound
 
 
 

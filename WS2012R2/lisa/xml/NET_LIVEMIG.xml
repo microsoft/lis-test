@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mail.com</to>
+                <to>myboss@mail.com</to>
+            </recipients>
+            <sender>myself@mail.com</sender>
+            <subject>LISA Live Migration on WS2012R2</subject>
+            <smtpServer>smtp.your.company.com</smtpServer>
+        </email>
+    </global>
+    
+	<testSuites>
+        <suite>
+            <suiteName>LiveMigration</suiteName>
+            <suiteTests>
+                <suiteTest>LiveMigrate</suiteTest>
+                <suiteTest>QuickMigrate</suiteTest>
+                <suiteTest>CopyFileDuringMigration</suiteTest>
+                <suiteTest>Failover</suiteTest>
+                <suiteTest>SetMemory512_LiveMig</suiteTest>
+                <suiteTest>SetMemory512_QuickMig</suiteTest>
+                <suiteTest>SetMemory2048_LiveMig</suiteTest>
+                <suiteTest>SetMemory2048_QuickMig</suiteTest>
+                <suiteTest>SetMemory5120_LiveMig</suiteTest>
+                <suiteTest>SetMemory5120_QuickMig</suiteTest>
+                <suiteTest>MultiCPU2_LiveMig</suiteTest>
+                <suiteTest>MultiCPU3_LiveMig</suiteTest>
+                <suiteTest>MultiCPU4_LiveMig</suiteTest>
+                <suiteTest>MultiCPU2_QuickMig</suiteTest>
+                <suiteTest>MultiCPU3_QuickMig</suiteTest>
+                <suiteTest>MultiCPU4_QuickMig</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+	
+	<testCases>
+        <test>
+            <testName>LiveMigrate</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-01</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>QuickMigrate</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>MigrationType=Quick</param>
+                <param>TC_COVERED=NET_LIVEMIG-02</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>CopyFileDuringMigration</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>CopyFile=True</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-03</param>
+            </testparams>
+        </test>
+		<test>
+            <testName>Failover</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <timeout>3600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>stopClusterNode=True</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-04</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>SetMemory512_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=512MB</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-05a</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>SetMemory512_QuickMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=512MB</param>
+                <param>MigrationType=Quick</param>
+                <param>TC_COVERED=NET_LIVEMIG-06a</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>SetMemory2048_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=2GB</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-05b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>SetMemory2048_QuickMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=2GB</param>
+                <param>MigrationType=Quick</param>
+                <param>TC_COVERED=NET_LIVEMIG-06b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>SetMemory5120_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=5GB</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-05c</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>SetMemory5120_QuickMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=5GB</param>
+                <param>MigrationType=Quick</param>
+                <param>TC_COVERED=NET_LIVEMIG-06c</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU2_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VCPU=2</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-07a</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU3_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VCPU=3</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-08a</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU4_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VCPU=4</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-07b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU2_QuickMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VCPU=2</param>
+                <param>MigrationType=Quick</param>
+                <param>TC_COVERED=NET_LIVEMIG-08b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU3_QuickMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VCPU=3</param>
+                <param>MigrationType=Quick</param>
+                <param>TC_COVERED=NET_LIVEMIG-07c</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU4_QuickMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VCPU=4</param>
+                <param>MigrationType=Quick</param>
+                <param>TC_COVERED=NET_LIVEMIG-08c</param>
+            </testparams>
+        </test>
+    </testCases>
+    <VMs>
+        <vm>
+            <hvServer>HYPERV_SERVER</hvServer>
+            <vmName>VM_NAME</vmName>
+            <os>Linux</os>
+            <ipv4>255.255.255.255</ipv4>
+            <sshKey>YOUR_KEY.ppk</sshKey>
+            <suite>LiveMigration</suite>
+        </vm>
+    </VMs>
+	
+</config>

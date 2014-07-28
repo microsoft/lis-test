@@ -32,8 +32,6 @@ LogMsg()
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
 }
 
-
-
 UpdateSummary()
 {
     echo $1 >> ~/summary.log
@@ -42,6 +40,50 @@ UpdateSummary()
 UpdateTestState()
 {
     echo $1 > ~/state.txt
+}
+
+IntegrityCheck(){
+targetDevice=$1
+testFile="/dev/shm/testsource"
+blockSize="200000000"
+_gb=1073741824
+targetSize=$(blockdev --getsize64 $targetDevice)
+let "blocks=$targetSize / $blockSize"
+
+if [ "$targetSize" -gt "$_gb" ] ; then
+  targetSize=$_gb
+  let "blocks=$targetSize / $blockSize"
+  #blocks=5
+ fi
+LogMsg "Creating test data file $testfile with size $blockSize"
+echo "We will fill the device $targetDevice (of size $targetSize) with this gata (in $blocks) and then will check if the data is not corrupted."
+echo "This will erase all data in $targetDevice"
+
+LogMsg "Creating test source file... ($BLOCKSIZE)"
+
+dd if=/dev/urandom of=$testFile bs=$blockSize count=1 status=noxfer 2> /dev/null
+
+LogMsg "Calculating source checksum..."        
+        
+checksum=$(sha1sum $testFile | cut -d " " -f 1)
+echo $checksum
+
+LogMsg "Checking ${blocks} blocks"
+for ((y=0 ; y<$blocks ; y++)) ; do
+  LogMsg "Writing block $y to device $targetDevice ..." 
+  dd if=$testFile of=$targetDevice bs=$blockSize count=1 seek=$y status=noxfer 2> /dev/null
+  echo -n "Checking block $y ..."
+  testChecksum=$(dd if=$targetDevice bs=$blockSize count=1 skip=$y status=noxfer 2> /dev/null | sha1sum | cut -d " " -f 1)
+  if [ "$checksum" == "$testChecksum" ] ; then
+    echo "Checksum matched for block $y"
+  else
+    echo "Checksum mismatch at block $y"
+    echo "Checksum mismatch on  block $y for ${targetDevice} " >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+  fi
+done
+echo "Data integrity test on ${blocks} blocks on drive ${targetDevice} : success " >> ~/summary.log
+rm -f $testFile
 }
 
 
@@ -155,6 +197,7 @@ do
     then
         continue
     fi
+
     driveName="/dev/${drive}"
     fdisk -l $driveName > fdisk.dat 2> /dev/null
     # Format the Disk and Create a file system , Mount and create file on it . 
@@ -162,6 +205,8 @@ do
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk  $driveName
     if [ "$?" = "0" ]; then
     sleep 5
+
+   # IntegrityCheck $driveName
     mkfs.ext3  ${driveName}1
     if [ "$?" = "0" ]; then
         LogMsg "mkfs.ext3   ${driveName}1 successful..."
@@ -179,8 +224,8 @@ do
                     if [ "$?" = "0" ]; then
                         LogMsg "Drive unmounted successfully..."
                  fi
-                    LogMsg "Disk test completed for ${driveName}1"
-                    echo "Disk test is completed for ${driveName}1" >> ~/summary.log
+                    LogMsg "Disk test's completed for ${driveName}1"
+                    echo "Disk test's is completed for ${driveName}1" >> ~/summary.log
                 else
                     LogMsg "Error in creating directory /mnt/Example..."
                     echo "Error in creating directory /mnt/Example" >> ~/summary.log
@@ -206,8 +251,10 @@ do
         exit 90
     fi  
 
+    # Perform Data integrity test 
 
-    #
+    IntegrityCheck ${driveName}1
+    
     # The fdisk output appears as one word on each line of the file
     # The 6th element (index 5) is the disk size in bytes
     #
@@ -219,8 +266,10 @@ do
         then
             if [ $word -ne $FixedDiskSize -a $word -ne $DynamicDiskSize -a $word -ne $Disk4KSize ];
             then
-                echo "Warn: $driveName has an unknown disk size: $word"
-		        echo "Warn: $driveName has an unknown disk size: $word" >> ~/summary.log
+                echo "Error: $driveName has an unknown disk size: $word"
+		echo "Error: $driveName has an unknown disk size: $word" >> ~/summary.log
+		UpdateTestState $ICA_TESTABORTED
+                exit 1
             fi
          fi
     done
@@ -229,4 +278,3 @@ done
 UpdateTestState $ICA_TESTCOMPLETED
 
 exit 0
-

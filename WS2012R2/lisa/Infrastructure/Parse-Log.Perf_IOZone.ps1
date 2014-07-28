@@ -189,6 +189,7 @@ foreach ($logFile  in $icaLogs)
 #----------------------------------------------------------------------------
 # Read IOZone configuration from XML file
 #----------------------------------------------------------------------------
+#get the VM name
 $VMName = [string]::Empty
 $numberOfVMs = $xmlConfig.config.VMs.ChildNodes.Count
 Write-Host "Number of VMs defined in the XML file: $numberOfVMs"
@@ -218,6 +219,53 @@ if ($VMName -eq [string]::Empty)
 }
 Write-Host "VMName: " $VMName
 
+#get IOZone parameters
+$RecordSize = ""
+$NProcLowLimit = 1
+$NProcUpperLimit = 1
+$NPosixAsyncIO = 8
+$IOZoneParams = ""
+foreach($param in $xmlConfig.config.testCases.test.testParams.ChildNodes)
+{
+    $paramText = $param.InnerText
+    if ($paramText.ToUpper().StartsWith("IOZONE_PARAMS="))
+    {
+        $IOZoneParams = $paramText.Split('=')[1]
+        break
+    }
+}
+if ($IOZoneParams -ne "")
+{
+    $IOZoneParams = $IOZoneParams.Replace("'","")
+    $listParams = $IOZoneParams.split("-")
+    foreach ($p in $listParams)
+    {
+        if ($p.StartsWith("r"))
+        {
+            $RecordSize = $p.Replace("r","").Trim()
+        }
+        elseif ($p.StartsWith("l"))
+        {
+            $NProcLowLimit = $p.Replace("l","").Trim()
+        }
+        elseif ($p.StartsWith("u"))
+        {
+            $NProcUpperLimit = $p.Replace("u","").Trim()
+        }
+        elseif ($p.StartsWith("k"))
+        {
+            $NPosixAsyncIO = $p.Replace("k","").Trim()
+        }
+    }
+}
+
+Write-Host "IOZoneParams: " $IOZoneParams
+Write-Host "RecordSize:" $RecordSize
+Write-Host "NProcLowLimit:" $NProcLowLimit 
+Write-Host "NProcUpperLimit:" $NProcUpperLimit 
+Write-Host "NPosixAsyncIO:" $NPosixAsyncIO 
+$XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
+
 #----------------------------------------------------------------------------
 # Call LisaRecorder to log data into database
 #----------------------------------------------------------------------------
@@ -227,7 +275,7 @@ $params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem)
 $params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
 $params = $params+" "+"guestos:`"" + "Linux" + "`""
 $params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + "Perf_IOZone" + "`""
+$params = $params+" "+"testcasename:`"" + $XMLFileNameWithoutExt + "`""
 
 $params = $params+" "+"initialwritekbsec:`"" + $Initialwrite + "`""
 $params = $params+" "+"rewritekbsec:`"" + $Rewrite + "`""
@@ -235,6 +283,12 @@ $params = $params+" "+"readkbsec:`"" + $Read + "`""
 $params = $params+" "+"rereadkbsec:`"" + $Reread + "`""
 $params = $params+" "+"randomreadkbsec:`"" + $Randomread + "`""
 $params = $params+" "+"randomwritekbsec:`"" + $Randomwrite + "`""
+
+$params = $params+" "+"recordsize:`"" + $RecordSize + "`""
+$params = $params+" "+"nproclowlimit:`"" + $NProcLowLimit + "`""
+$params = $params+" "+"nprocupperlimit:`"" + $NProcUpperLimit + "`""
+$params = $params+" "+"nposixasyncio:`"" + $NPosixAsyncIO + "`""
+$params = $params+" "+"iozoneparams:`"" + $IOZoneParams + "`""
 
 Write-Host "Executing LisaRecorder to record test result into database"
 Write-Host $params

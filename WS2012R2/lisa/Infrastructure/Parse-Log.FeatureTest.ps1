@@ -87,7 +87,7 @@ if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
 }
 
 #----------------------------------------------------------------------------
-# The log file pattern. 
+# The log file pattern. This log file is the XML file produced by Parse-LisaResultAsXmlLog.ps1
 #----------------------------------------------------------------------------
 $xmlResultFiles = Get-ChildItem "$LogFolder\*-*-*-*-*.xml"
 
@@ -156,7 +156,6 @@ if ($VMName -eq [string]::Empty)
     Write-Host "!!! No VM is found from the LISA XML file."
 }
 Write-Host "VMName: " $VMName
-
 $XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
 
 #----------------------------------------------------------------------------
