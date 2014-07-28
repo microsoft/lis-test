@@ -2,7 +2,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -29,15 +29,17 @@
     <testCases>
         <test>
             <testName>Perf_TeraSort</testName>
-            <testScript>confighadoopcluster.sh</testScript>
-            <files>remote-scripts/ica/confighadoopcluster.sh</files>
+            <testScript>perf_hadoopterasort.sh</testScript>
+            <files>remote-scripts/ica/perf_hadoopterasort.sh,testdata/perf_hadoopterasort.xml/hadoop-2.4.0.tar.gz,ssh/id_rsa</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
-                <param>HADOOP_MASTER_HOSTNAME=hadoopmaster</param>
-                <param>RESOURCE_MANAGER_HOSTNAME=hadoopmaster</param>
-                <param>SLAVE_HOSTNAMES=hadoopworker1 hadoopworker2</param>
+                <param>TC_COVERED=PERF-TeraSort</param>
+                <param>SLAVE_SSHKEY=id_rsa</param>				
+                <param>HADOOP_MASTER_HOSTNAME=LisaPerfSUT1</param>
+                <param>RESOURCE_MANAGER_HOSTNAME=LisaPerfSUT1</param>
+                <param>SLAVE_HOSTNAMES=LisaPerfNonSUT1</param>
                 <param>TERAGEN_RECORDS=100000</param>
             </testparams>
         </test>
@@ -45,13 +47,20 @@
 
     <VMs>        
 	<vm>
-            <vmName>HadoopMaster</vmName>
-            <hvServer>localhost</hvServer>
+            <vmName>SLES12Beta5X64</vmName>
+            <hvServer>lis-perf02</hvServer>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
             <suite>PerfTeraSort</suite>
         </vm>
+        <vm>
+            <role>NonSUT</role>
+            <hvServer>lis-perf01</hvServer>
+            <vmName>SLES12Beta5X64-NonSUT</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+        </vm>
     </VMs>
-
 </config>
