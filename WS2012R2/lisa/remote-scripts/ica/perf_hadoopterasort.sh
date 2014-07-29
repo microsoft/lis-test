@@ -354,7 +354,7 @@ RunConfigOnSlaves()
     do
         LogMsg "Info : Running config on slave '${slave}'"
 
-        scp -o StrictHostKeyChecking=no -i /root/${SLAVE_SSHKEY} /root/${HADOOP_ARCHIVE} root@${slave}:
+        scp -i /root/${SLAVE_SSHKEY} /root/${HADOOP_ARCHIVE} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy file ${HADOOP_ARCHIVE} to slave ${slave}"
             LogMsg "${msg}"
@@ -363,7 +363,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        scp -o StrictHostKeyChecking=no -i /root/${SLAVE_SSHKEY} ${CONFIG_SCRIPT} root@${slave}:
+        scp -i /root/${SLAVE_SSHKEY} ${CONFIG_SCRIPT} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy file ${CONFIG_SCRIPT} to slave ${slave}"
             LogMsg "${msg}"
@@ -372,7 +372,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        ssh -o StrictHostKeyChecking=no -i /root/${SLAVE_SSHKEY} root@${slave} chmod 755 ${CONFIG_SCRIPT}
+        ssh -i /root/${SLAVE_SSHKEY} root@${slave} chmod 755 ${CONFIG_SCRIPT}
         if [ $? -ne 0 ]; then
             msg="Error: Unable to chmod 755 script file ${CONFIG_SCRIPT} on slave ${slave}"
             LogMsg "${msg}"
@@ -381,7 +381,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        scp -o StrictHostKeyChecking=no -i /root/${SLAVE_SSHKEY} ${CONSTANTS_FILE} root@${slave}:
+        scp -i /root/${SLAVE_SSHKEY} ${CONSTANTS_FILE} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy constants.sh to slave ${slave}"
             LogMsg "${msg}"
@@ -390,7 +390,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        ssh -o StrictHostKeyChecking=no -i /root/${SLAVE_SSHKEY} root@${slave} ${CONFIG_SCRIPT}
+        ssh -i /root/${SLAVE_SSHKEY} root@${slave} ${CONFIG_SCRIPT}
         if [ $? -ne 0 ]; then
             msg="Error: ${CONFIG_SCRIPT} did not run successfully on slave ${slave}"
             LogMsg "${msg}"
