@@ -47,7 +47,8 @@
 
     <VMs>        
 	    <vm>
-            <vmName>HadoopMaster</vmName>
+            <role>SUT</role>
+            <vmName>VMHadoopMaster</vmName>
             <hvServer>HyperVHost1</hvServer>
             <os>Linux</os>
             <ipv4></ipv4>
