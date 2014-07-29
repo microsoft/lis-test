@@ -40,9 +40,9 @@
                 TestCaseName.Target_IP
                 VMName.SSHKey
 
-    For Global test parameters, the area name “Global” is a constant.  For
-    test case specific test params, the “area” is the test case name.  For
-    VM specific, the “area” is the VM name.  Hopefully, the following examples
+    For Global test parameters, the area name "Global" is a constant.  For
+    test case specific test params, the "area" is the test case name.  For
+    VM specific, the "area" is the VM name.  Hopefully, the following examples
     will eliminate any possible confusion.
 
     Here is the contents of an example parameterization file that defines what
@@ -61,15 +61,15 @@
         If the <global> section of the Lisa test .xml file has a test parameter
         defined as:
             <param>GParam2=something</param>
-        the code will create a unique name of“Global.GParam2” and then look for
+        the code will create a unique name of "Global.GParam2" and then look for
         that unique name in the parameterized file.  If this unique name is present
-        in the parameterized file, then the value of the global testParam “GParam2”
+        in the parameterized file, then the value of the global testParam "GParam2"
         will be updated.  After substitution, the updated test param would look like:
             <param>GParam2=Global_2</param>
 
     Test specific
         When looking for test specific test parameters, the unique will be the
-        “test case name”.”testParam name”  So if the test named TestAAA has a test
+        "test case name"."testParam name"  So if the test named TestAAA has a test
         parameter named VMBusVer, the unique name would be:   TestAAA.VMBusVer
 
         If this unique name is found in the parameterized file, the value of the
@@ -92,7 +92,7 @@
         As an example, if the initial test param for the VM Sles12Beta9 was
             <param>SSHKey=foo.ppk</param
 
-        Since the above parameterized file has an entry for “Sles12Beta9.SSHKey,
+        Since the above parameterized file has an entry for "Sles12Beta9.SSHKey",
         after substitution, the updated VM specific test param would be
             <param>SSHKey=Nick_id_rsa.ppk</param>
 
@@ -227,6 +227,22 @@ if (! (test-path $inputXml))
     exit 1
 }
 
+if (-not $outputXML)
+{
+    #
+    # Note: There is a default value of ".\new.xml"
+    #       so this error should never occur.
+    #
+    "Error: The outputXML argument was not specified."
+    exit 1
+}
+
+if (! (test-path $parameterFile))
+{
+    "Error: The parameterFile '${parameterFile}' does not exist."
+    exit 1
+}
+
 $xmlData = [xml] (Get-Content -Path $inputXml)
 if ($null -eq $xmlData)
 {
@@ -244,7 +260,8 @@ if ($xmlData.Config.Global.ParameterFile)
 {
     $paramFile = $xmlData.Config.Global.ParameterFile
 }
-elseif ( $parameterFile )
+
+if ( $parameterFile )
 {
     $paramFile = $parameterFile
 }
@@ -272,7 +289,8 @@ else
 #
 # Write the modified xml data to the specified file
 #
-$xmlData.Save($outputXml)
+"Write Data to: '${outputXml}'"
+$xmlData.Save("$outputXml")
 if (-not $?)
 {
     "Error: Unable to save xml data to '${outputXml}'"
