@@ -40,10 +40,10 @@
       Private
       None
 
-	 The Network Type is ignored by this script, but is still necessary, in order to have the same 
-	  parameters as the NET_ADD_NIC_MAC script.
-	  
-	  
+     The Network Type is ignored by this script, but is still necessary, in order to have the same 
+      parameters as the NET_ADD_NIC_MAC script.
+      
+      
    Network Name is the name of a existing network.
 
    This script will not create the network.  It will connect the NIC to the specified network.
@@ -56,21 +56,43 @@
    to indicate if the script completed successfully or not.
    
    .Parameter vmName
-	Name of the VM to remove NIC from .
+    Name of the VM to remove NIC from .
 
-	.Parameter hvServer
-	Name of the Hyper-V server hosting the VM.
+    .Parameter hvServer
+    Name of the Hyper-V server hosting the VM.
 
-	.Parameter testParams
-	Test data for this test case
+    .Parameter testParams
+    Test data for this test case
 
-	.Example
-	setupScripts\SwitchNic_Mac -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Internal,InternalNet,001600112200"
+    .Example
+    setupScripts\SwitchNic_Mac -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Internal,InternalNet,001600112200"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $retVal = $false
+
+# Source TCUitls.ps1 for getipv4 and other functions
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+. .\setupScripts\TCUtils.ps1
+}
+else
+{
+"Error: Could not find setupScripts\TCUtils.ps1"
+return $false
+}
+
+# Source NET_UTILS.ps1 for network functions
+if (Test-Path ".\setupScripts\NET_UTILS.ps1")
+{
+    . .\setupScripts\NET_UTILS.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\NET_Utils.ps1"
+    return $false
+}
 
 #
 # Check input arguments
@@ -87,6 +109,7 @@ if (-not $hvServer)
     return $retVal
 }
 
+
 #
 # Parse the testParams string, then process each parameter
 #
@@ -102,15 +125,15 @@ foreach ($p in $params)
     }
     
     #
-    # Is this a NIC=* parameter
+    # Is this a SWITCH=* parameter
     #
-    if ($temp[0].Trim() -eq "NIC")
+    if ($temp[0].Trim() -eq "SWITCH")
     {
         $nicArgs = $temp[1].Split(',')
         
         if ($nicArgs.Length -lt 4)
         {
-            "Error: Incorrect number of arguments for NIC test parameter: $p"
+            "Error: Incorrect number of arguments for SWITCH test parameter: $p"
             return $false
 
         }
@@ -207,6 +230,8 @@ foreach ($p in $params)
             "$vmName - No NIC found with MAC $macAddress ."
         }
     }
+
 }
+
 Write-Output $retVal
 return $retVal

@@ -2,7 +2,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -29,29 +29,47 @@
     <testCases>
         <test>
             <testName>Perf_TeraSort</testName>
-            <testScript>confighadoopcluster.sh</testScript>
-            <files>remote-scripts/ica/confighadoopcluster.sh</files>
-            <timeout>600</timeout>
+            <testScript>perf_hadoopterasort.sh</testScript>
+            <files>remote-scripts/ica/perf_hadoopterasort.sh,testdata/perf_hadoopterasort.xml/hadoop-2.4.0.tar.gz,ssh/id_rsa</files>
+            <timeout>1800</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
-                <param>HADOOP_MASTER_HOSTNAME=hadoopmaster</param>
-                <param>RESOURCE_MANAGER_HOSTNAME=hadoopmaster</param>
-                <param>SLAVE_HOSTNAMES=hadoopworker1 hadoopworker2</param>
-                <param>TERAGEN_RECORDS=100000</param>
+                <param>TC_COVERED=PERF-TeraSort</param>
+                <param>SLAVE_SSHKEY=id_rsa</param>				
+                <param>HADOOP_MASTER_HOSTNAME=HadoopMaster</param>
+                <param>RESOURCE_MANAGER_HOSTNAME=HadoopMaster</param>
+                <param>SLAVE_HOSTNAMES=HadoopSlave1 HadoopSlave2</param>
+                <param>TERAGEN_RECORDS=50000000</param>
             </testparams>
         </test>
     </testCases>
 
     <VMs>        
-	<vm>
-            <vmName>HadoopMaster</vmName>
-            <hvServer>localhost</hvServer>
+	    <vm>
+            <role>SUT</role>
+            <vmName>VMHadoopMaster</vmName>
+            <hvServer>HyperVHost1</hvServer>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
             <suite>PerfTeraSort</suite>
         </vm>
+        <vm>
+            <role>NonSUT</role>
+            <vmName>VMHadoopSlave1</vmName>
+            <hvServer>HyperVHost2</hvServer>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+        </vm>
+        <vm>
+            <role>NonSUT</role>
+            <vmName>VMHadoopSlave2</vmName>
+            <hvServer>HyperVHost3</hvServer>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+        </vm>
     </VMs>
-
 </config>
