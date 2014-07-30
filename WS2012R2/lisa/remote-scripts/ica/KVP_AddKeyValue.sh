@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# AddKeyValue.sh
+# KVP_AddKeyValue.sh
 # 
 # This script will add a key value to the specified pool. 
 # Parameters to be passed are - Test case number, Key Name, Value, Pool Number 
