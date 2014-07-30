@@ -33,14 +33,13 @@
 
         <test>
 			<testName>ModifyNonExistKVPOnGuest</testName>
-			<testScript>setupscripts\ModifyNonExistKeyValue.ps1</testScript>
-			<!--<files>setupscripts\ModifyNonExistKeyValue.ps1</files>-->
+			<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
 			<timeout>600</timeout>
 			<onError>Abort</onError>
 			<noReboot>False</noReboot>
 			<testparams>
 				<param>TC_COVERED=42</param>
-				<param>Key=XXX</param>
+				<param>Key=AAA</param>
 				<param>Value=000</param>
 				<param>Pool=0</param>
 			</testparams>
@@ -55,7 +54,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\ModifyNonExistKeyValue.ps1 -vmName "myVm" -hvServer "localhost -TestParams "key=aaa;value=222"
+    setupScripts\KVP_ModifyNonExistKeyValue.ps1 -vmName "myVm" -hvServer "localhost -TestParams "key=aaa;value=000"
 
 .Link
     None.

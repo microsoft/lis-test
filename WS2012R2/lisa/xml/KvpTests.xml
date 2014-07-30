@@ -132,7 +132,7 @@
 			<noReboot>True</noReboot>
 			<testparams>
 				<param>TC_COVERED=KVP-06</param>
-				<param>Key=XXX</param>
+				<param>Key=AAA</param>
 				<param>Value=000</param>
 				<param>Pool=0</param>
 			</testparams>
@@ -146,7 +146,7 @@
 			<noReboot>True</noReboot>
 			<testparams>
 				<param>TC_COVERED=KVP-07</param>
-				<param>Key=XXX</param>
+				<param>Key=AAA</param>
 				<param>Value=000</param>
 				<param>Pool=0</param>
 			</testparams>

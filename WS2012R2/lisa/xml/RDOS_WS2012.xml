@@ -156,8 +156,8 @@
 		
 		<test>
 			<testName>WriteNonIntrinsicKVPData</testName>
-			<testScript>AddKeyValue.sh</testScript>
-			<files>remote-scripts\ica\AddKeyValue.sh</files>
+			<testScript>KVP_AddKeyValue.sh</testScript>
+			<files>remote-scripts\ica\KVP_AddKeyValue.sh</files>
 			<timeout>600</timeout>
 			<onError>Abort</onError>
 			<noReboot>False</noReboot>
@@ -245,7 +245,7 @@
 			<noReboot>False</noReboot>
 			<testparams>
 				<param>TC_COVERED=40</param>
-				<param>Key=XXX</param>
+				<param>Key=AAA</param>
 				<param>Value=000</param>
 				<param>Pool=0</param>
 			</testparams>
@@ -259,7 +259,7 @@
 			<noReboot>False</noReboot>
 			<testparams>
 				<param>TC_COVERED=42</param>
-				<param>Key=XXX</param>
+				<param>Key=AAA</param>
 				<param>Value=000</param>
 				<param>Pool=0</param>
 			</testparams>
