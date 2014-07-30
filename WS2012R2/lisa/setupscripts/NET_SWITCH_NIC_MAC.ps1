@@ -30,7 +30,7 @@
 
       NIC=NIC type, Network Type, Network Name, MAC Address
 
-  NIC Type can be one of the following:
+  NIC and SWITCH type can be one of the following:
       NetworkAdapter
       LegacyNetworkAdapter
 
@@ -50,22 +50,22 @@
 
    The following is an example of a testParam for switching a NIC
 
-       "NIC=NetworkAdapter,Internal,InternalNet,001600112200"
+       "SWITCH=NetworkAdapter,Internal,InternalNet,001600112200"
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
    
    .Parameter vmName
-    Name of the VM to remove NIC from .
+    Name of the VM to remove NIC from.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
 
     .Parameter testParams
-    Test data for this test case
+    Test data for this test case.
 
     .Example
-    setupScripts\SwitchNic_Mac -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Internal,InternalNet,001600112200"
+    setupScripts\SwitchNic_Mac -vmName VM -hvServer localhost -testParams "SWITCH=NetworkAdapter,Internal,Internal,001600112200,NIC=NetworkAdapter,External,External,001600112200"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
