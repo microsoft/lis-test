@@ -15,6 +15,10 @@
         </email>
 
         <!-- Optional testParams go here -->
+        <testParams>
+            <param>vmCpuNumber=4</param>
+            <param>vmMemory=20GB</param>
+        </testParams>
     </global>
 
     <testSuites>
@@ -46,7 +50,7 @@
     </testCases>
 
     <VMs>        
-	    <vm>
+        <vm>
             <role>SUT</role>
             <vmName>VMHadoopMaster</vmName>
             <hvServer>HyperVHost1</hvServer>
@@ -54,6 +58,7 @@
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
             <suite>PerfTeraSort</suite>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
         <vm>
             <role>NonSUT</role>
@@ -62,6 +67,7 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
         <vm>
             <role>NonSUT</role>
@@ -70,6 +76,7 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
     </VMs>
 </config>
