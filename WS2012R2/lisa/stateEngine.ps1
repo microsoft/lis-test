@@ -795,7 +795,7 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $testData = GetTestData $vm.currentTest $xmlData
             if ($testData -is [System.Xml.XmlElement])
             {
-                if ($testData.setupScript)
+                if ($vm.preStartConfig -or $testData.setupScript)
                 {
                     UpdateState $vm $RunSetupScript
                 }
@@ -864,11 +864,27 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
         UpdateState $vm $Disabled
     }
 
+    #run preStartScript if has
+    if ($vm.preStartConfig)
+    {
+        LogMsg 3 "Info : $($vm.vmName) - starting preStart script $($vm.preStartConfig)"
+
+        $sts = RunPSScript $vm $($vm.preStartConfig) $xmlData "preStartConfig"
+        if (-not $sts)
+        {
+            LogMsg 0 "Error: Info: VM $($vm.vmName) preStartConfig script for test $($vm.postStartConfig) failed"
+        }
+    }
+    else
+    {
+        LogMsg 9 "Info: VM: $($vm.vmName) does not have preStartConfig script defined"
+    }
+
     if ([string]::Compare($vm.role, "SUT", $true) -eq 0 )
     {
         #for SUT VMs:
         #
-        # Run setup script if one is specified
+        # Run setup script if one is specified (this setup Script is defined in testcase level)
         #
         $testData = GetTestData $($vm.currentTest) $xmlData
         if ($testData -is [System.Xml.XmlElement])
@@ -893,18 +909,12 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     #need to determine do we need to shutdown system and do cleanup for running next test case if existing
                     UpdateState $vm $DetermineReboot
                 }
-                else
-                {
-                    UpdateState $vm $StartSystem
-                }
             }
             else
             {
-                LogMsg 0 "Error: $($vm.vmName) entered RunSetupScript state with no setup script defined for test $($vm.currentTest)"
-                $vm.emailSummary += "Test $($vm.currentTest) : Aborted (corrupt setupScript data)<br />"
-                $vm.currentTest = "done"
-                UpdateState $vm $Finished
+                LogMsg 9 "INFO : $($vm.vmName) does not have setup script defined for test $($vm.currentTest)"
             }
+            UpdateState $vm $StartSystem
         }
         else
         {
@@ -914,22 +924,10 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
             UpdateState $vm $Disabled
         }
     }
+    #for Non-SUT VMs:
+    # NonSUT will not run test cases directly so there will not have setup script defined
     else
     {
-        #for NON-SUT VMs, run preStartScript 
-        if ($vm.preStartConfig)
-        {
-            $sts = RunPSScript $vm $($vm.preStartConfig) $xmlData "preStartConfig"
-            if (-not $sts)
-            {
-                LogMsg 0 "Error: Info: NonSUT VM $($vm.vmName) preStartConfig script for test $($vm.postStartConfig) failed"
-            }
-        }
-        else
-        {
-            LogMsg 9 "Info: NonSUT VM: $($vm.vmName) entered RunSetupScript with no preStartConfig script defined"
-        }
-
         UpdateState $vm $StartSystem
     }
 }
