@@ -237,38 +237,50 @@ foreach ($key in $dict.Keys)
     $value = $dict[$key]
     Write-Output ("  {0,-27} : {1}" -f $key, $value)
 }
-
-$osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
-if (-not $osInfo)
-{
-    "Error: Unable to collect Operating System informatioin"
-    return $False
-}
-
 #
-# Create an array of keynames specific to a build of Windows.
-# Hopefully, these will not change in future builds of Windows Server.
 #
-$osSpecificKeyNames = $null
-switch ($osInfo.BuildNumber)
+if ($Intrinsic)
 {
-    "9200"  { $osSpecificKeyNames = @("OSBuildNumber", "OSVendor", "OSSignature") }
-    "9600"  { $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId") }
-    default { $osSpecificeyNames = $null }
+	$osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
+	if (-not $osInfo)
+	{
+		"Error: Unable to collect Operating System information"
+		return $Flase
+	}
+	#
+	#Create an array of key names specific to a build of Windows.
+	#Hopefully, These will not change in future builds of Windows Server.
+	#
+	$osSpecificKeyNames = $null
+	switch ($osInfo.BuildNumber)
+	{
+		"9200" { $osSpecificKeyNames = @("OSBuildNumber", "OSVendor", "OSSignature") }
+		"9600" { $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId") }
+		default { $osSpecificKeyNames = $null }
+	}
+	$testPassed = $True
+	foreach ($key in $osSpecificKeyNames)
+	{
+		if (-not $dict.ContainsKey($key))
+		{
+			"Error: The key '${key}' does not exist"
+			$testPassed = $False
+			break
+		}
+	}
+}
+else #Non-Intrinsic
+{
+	if ($dict.length -gt 0)
+	{
+		"Info: $($dict.length) non-intrinsic KVP items found"
+		$testPassed = $True
+	}
+	else
+	{
+		"Error: No non-intrinsic KVP items found"
+		$testPassed = $False
+	}
 }
 
-$allKeysFound = $True
-foreach ($key in $osSpecificKeyNames)
-{
-    if (-not $dict.ContainsKey($key))
-    {
-        "Error: The key '${key}' does not exist"
-        $allKeysFound = $False
-        break
-    }
-}
-
-return $allKeysFound
-
-
-
+return $testPassed

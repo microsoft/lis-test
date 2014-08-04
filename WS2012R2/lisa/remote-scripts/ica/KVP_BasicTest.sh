@@ -66,7 +66,7 @@ echo "Covers ${TC_COVERED}" > ~/summary.log
 #
 # Verify that the KVP Daemon is running
 #
-pgrep -lf hv_kvp_daemon
+pgrep -lf "hypervkvpd|hv_kvp_daemon"
 if [ $? -ne 0 ]; then
 	LogMsg "KVP Daemon is not running by default"
 	echo "KVP daemon not running, basic test: Failed" >> ~/summary.log
@@ -87,12 +87,13 @@ if [ $? -ne 0 ]; then
 	exit 10
 fi
 gcc -o kvptool/kvp_client kvptool/kvp_client.c
-chmod 755 kvptool/kvp_client
+mv ~/kvptool/kvp_client ~/
+chmod 755 ~/kvp_client
 
 #
 # Run the KVP client tool and verify that the data pools are created and accessible
 #
-poolcount="`./kvptool/kvp_client | grep Pool | wc -l`"
+poolcount="`~/kvp_client | grep Pool | wc -l`"
 if [ $poolcount -ne 5 ]; then
 	LogMsg "pools are not created properly"
 	echo "Pools are not listed properly, KVP Basic test: Failed" >> ~/summary.log
