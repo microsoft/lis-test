@@ -48,7 +48,7 @@
             asking the test VM for its time.
 
         MaxTimeDiff
-            Default is 1 second.  This parameter is optional.
+            Default is 5 second.  This parameter is optional.
             Specifies the maximum time difference to allow.
             Since the time is collected from the VM via SSH
             network delays will increase the actual difference.
@@ -215,10 +215,10 @@ if (-not $testParams)
 "Parsing test parameters"
 $sshKey = $null
 $ipv4 = $null
-$maxTimeDiff = "1"
+$maxTimeDiff = "5"
 $rootDir = $null
 $tcCovered = "unknown"
-$testDelay = "3600"
+$testDelay = "0"
 
 $params = $testParams.Split(";")
 foreach($p in $params)
