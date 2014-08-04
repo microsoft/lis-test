@@ -67,12 +67,10 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-Set-PSDebug -Strict
-
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
-  # function which $memMB MB of memory on VM with IP $conIpv4 with stresstestapp
-  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir,[int64]$memMB)
+  # function for starting stresstestapp
+  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir)
   {
 
   # because function is called as job, setup rootDir and source TCUtils again
@@ -107,36 +105,25 @@ $scriptBlock = {
   
       $cmdToVM = @"
 #!/bin/bash
-
-  mega=1024
-  Memory=128
-  MemTotal=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
-  MemTotal=`$((MemTotal / mega))
-  timeOut=20
-
-  while [ `$MemTotal -gt `$Memory ] ; do
-       stressapptest -s `$timeOut -M `$Memory & >/dev/null 2>&1
-       NewMemTotal=`$( cat /proc/meminfo | grep -i MemTotal | awk '{print `$2}' )
-       NewMemTotal=`$((NewMemTotal / mega))
-       if [ `$NewMemTotal -gt `$MemTotal   ]; then
-
-             UpdateTestState `$ICA_TESTCOMPLETED
-             echo "Total Memory before Hot Add is `$MemTotal" >> /root/PressureChangesDemand.log 2>&1
-             echo "Total Memory After Hot Add is `$NewMemTotal" >> /root/PressureChangesDemand.log 2>&1
-             echo  "Test PASS : Memory hot add success" >> /root/PressureChangesDemand.log 2>&1
-             UpdateSummary "Total Memory After Hot Add is `$NewMemTotal"
-             exit 0
-       fi
-       sleep 2
-       ((Memory=`$Memory+128))
-  done
-
-  echo "Total Memory before Hot Add is `$MemTotal" >> /root/PressureChangesDemand.log 2>&1
-  echo "Total Memory After Hot Add is `$NewMemTotal" >> /root/PressureChangesDemand.log 2>&1
-  echo -e "Test Fail : Hot Add Failed " >> /root/PressureChangesDemand.log 2>&1
-  UpdateTestState `$ICA_TESTABORTED
-  UpdateSummary "Total Memory After Hot Add is `$NewMemTotal"
-  exit 0
+        if [ ! -e /proc/meminfo ]; then
+          echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/HotAdd.log 2>&1
+          exit 100
+        fi
+        __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
+        __totalMem=`$((__totalMem/1024))
+        echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1    
+        __iterations=10
+        __chunks=128
+        echo "Going to start `$__iterations instance(s) of stresstestapp each consuming 256MB memory" >> /root/HotAdd.log 2>&1
+        for ((i=0; i < `$__iterations; i++)); do
+          stressapptest -M `$__chunks -s 10 &
+          sleep 10
+          __chunks=`$((__chunks+128))       
+          echo "Memory chunks: `$__chunks" >> /root/HotAdd.log 2>&1
+        done
+        echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
+        wait
+        exit 0
 "@
 
     #"pingVMs: sendig command to vm: $cmdToVM"
@@ -299,6 +286,7 @@ if (-not $vm1)
 
 # get memory stats from vm1
 # wait up to 2 min for it
+start-sleep -s 30
 
 $sleepPeriod = 120 #seconds
 # get VM1 and VM2's Memory
@@ -327,14 +315,8 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0)
 "Memory stats after $vm1Name started reporting "
 "  ${vm1Name}: assigned - $vm1BeforeAssigned | demand - $vm1BeforeDemand"
 
-# Calculate the amount of memory to be consumed on VM1 and VM2 with stresstestapp
-[int64]$vm1ConsumeMem = (Get-VMMemory -VM $vm1).Maximum
-# only consume 75% of max memory
-$vm1ConsumeMem = ($vm1ConsumeMem / 4) * 3
-# transform to MB
-$vm1ConsumeMem /= 1MB
 # Send Command to consume
-$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $memMB) ConsumeMemory $ip $sshKey $rootDir $memMB } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$vm1ConsumeMem)
+$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir) ConsumeMemory $ip $sshKey $rootDir } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir)
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
@@ -359,7 +341,7 @@ if ($vm1Demand -le $vm1BeforeDemand)
 
 
 # Wait for jobs to finish now and make sure they exited successfully
-$timeout = 600
+$timeout = 240
 $firstJobStatus = $false
 while ($timeout -gt 0)
 {
@@ -385,6 +367,27 @@ while ($timeout -gt 0)
   $timeout -= 1
   start-sleep -s 1
 
+}
+
+start-sleep -s 20
+
+# if (-not $firstJobStatus)
+# {
+#   "Error: consume memory script did not finish in 240 seconds"
+#   return $false
+# }
+
+# get memory stats after stresstestapp finished
+[int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
+[int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
+
+"Memory stats after stresstestapp finished: "
+"  ${vm1Name}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
+
+if ($vm1AfterDemand -ge $vm1Demand)
+{
+  "Error: Demand did not go down after stresstestapp finished."
+  return $false
 }
 
 
