@@ -7,7 +7,7 @@
 		<email>
 			<recipients>
 				<to>myboss@mycompany.com</to>
-                			<to>myself@mycompany.com</to>
+                <to>myself@mycompany.com</to>
 			</recipients>
 			<sender>myself@mycompany.com</sender>
 			<subject>LISA FTM Test Run for LIS3.5 on WS2012</subject>
@@ -63,7 +63,7 @@
 				<suiteTest>ModifyNonExistKVPOnGuest</suiteTest>
 			</suiteTests>
 		</suite>
-	
+
 	</testSuites>
 
 	<testCases>
@@ -71,8 +71,8 @@
 		<!--BVT FTM Tests -->
 		<test>
 			<testName>ICVersion</testName>
-			<testScript>LIS_IC_version.sh</testScript>
-			<files>remote-scripts\ica\LIS_IC_version.sh</files>
+			<testScript>LIS_verifyHyperVIC.sh</testScript>
+			<files>remote-scripts\ica\LIS_verifyHyperVIC.sh</files>
 			<testparams>
 				<param>TC_COVERED=BVT-31</param>
 			</testparams>
@@ -156,8 +156,8 @@
 		
 		<test>
 			<testName>WriteNonIntrinsicKVPData</testName>
-			<testScript>AddKeyValue.sh</testScript>
-			<files>remote-scripts\ica\AddKeyValue.sh</files>
+			<testScript>KVP_AddKeyValue.sh</testScript>
+			<files>remote-scripts\ica\KVP_AddKeyValue.sh</files>
 			<timeout>600</timeout>
 			<onError>Abort</onError>
 			<noReboot>False</noReboot>
@@ -171,19 +171,19 @@
 		
 		<test>
 			<testName>ReadNonIntrinsicKVPData</testName>
-			<testScript>setupScripts\GetNonIntrinsicValues.ps1</testScript>
+			<testScript>setupScripts\KVP_Basic.ps1</testScript>
 			<timeout>600</timeout>
 			<onError>Abort</onError>
 			<noReboot>False</noReboot>
 			<testparams>
 				<param>TC_COVERED=36</param>
-				<param>Key=CCC</param>
+				<param>nonintrinsic</param>
 			</testparams>
 		</test>
 		
 		<test>
 			<testName>ReadIntrinsicKVPData</testName>
-			<testScript>setupScripts\GetIntrinsicValues.ps1</testScript>
+			<testScript>setupScripts\KVP_Basic.ps1</testScript>
 			<timeout>600</timeout>
 			<onError>Abort</onError>
 			<noReboot>False</noReboot>
@@ -194,8 +194,8 @@
 		
 		<test>
 			<testName>HostCanWriteKVPToOnly_P0</testName>
-			<testScript>VerifyKVInPool0.sh</testScript>
-			<files>remote-scripts\ica\VerifyKVInPool0.sh</files>
+			<testScript>KVP_VerifyKeyValue.sh</testScript>
+			<files>remote-scripts\ica\KVP_VerifyKeyValue.sh</files>
 			<PreTest>setupScripts\AddKeyValue.ps1</PreTest>
 			<timeout>600</timeout>
 			<onError>Abort</onError>
@@ -204,6 +204,7 @@
 				<param>TC_COVERED=38</param>
 				<param>Key=DDD</param>
 				<param>Value=555</param>
+				<param>Pool=0</param>
 			</testparams>
 		</test>
 		
@@ -244,7 +245,7 @@
 			<noReboot>False</noReboot>
 			<testparams>
 				<param>TC_COVERED=40</param>
-				<param>Key=XXX</param>
+				<param>Key=AAA</param>
 				<param>Value=000</param>
 				<param>Pool=0</param>
 			</testparams>
@@ -252,13 +253,13 @@
 		
 		<test>
 			<testName>ModifyNonExistKVPOnGuest</testName>
-			<testScript>setupscripts\ModifyNonExistKeyValue.ps1</testScript>
+			<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
 			<timeout>600</timeout>
 			<onError>Abort</onError>
 			<noReboot>False</noReboot>
 			<testparams>
 				<param>TC_COVERED=42</param>
-				<param>Key=XXX</param>
+				<param>Key=AAA</param>
 				<param>Value=000</param>
 				<param>Pool=0</param>
 			</testparams>
@@ -288,10 +289,10 @@
 				<param>SCSI=0,1,Dynamic</param>
 				<param>NO=1</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
-				<param>TC_COUNT=DSK_VHD-37</param>
+				<param>TC_COVERED=DSK_VHD-37</param>
 			</testParams> 	  
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -303,10 +304,10 @@
 				<param>SCSI=0,1,Fixed</param>
 				<param>NO=1</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
-				<param>TC_COUNT=DSK_VHD-38</param>
+				<param>TC_COVERED=DSK_VHD-38</param>
 			</testParams>
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -318,10 +319,10 @@
 				<param>IDE=0,1,Dynamic</param>
 				<param>NO=1</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
-				<param>TC_COUNT=DSK_VHD-36</param>
+				<param>TC_COVERED=DSK_VHD-36</param>
 			</testParams>
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -333,10 +334,10 @@
 				<param>IDE=0,1,Fixed</param>
 				<param>NO=1</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
-				<param>TC_COUNT=DSK_VHD-37</param>
+				<param>TC_COVERED=DSK_VHD-37</param>
 			</testParams>
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -348,10 +349,10 @@
 				<param>IDE=1,1,Dynamic</param>
 				<param>NO=1</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
-				<param>TC_COUNT=DSK_VHD-35</param>
+				<param>TC_COVERED=DSK_VHD-35</param>
 			</testParams>
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -363,18 +364,18 @@
 				<param>IDE=1,1,Fixed</param>
 				<param>NO=1</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
-				<param>TC_COUNT=DSK_VHD-37</param>
+				<param>TC_COVERED=DSK_VHD-37</param>
 			</testParams>
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
 
 		<test>
 			<testName>MultiDiskSCSI_Dynamic</testName>
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -384,7 +385,7 @@
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-				<param>TC_COUNT=DSK_VHD-47</param>
+				<param>TC_COVERED=DSK_VHD-47</param>
 			</testparams>
 			<onError>Continue</onError>
 			<noReboot>False</noReboot>
@@ -392,8 +393,8 @@
 
 		<test>
 			<testName>MultiDiskSCSI_Fixed</testName>
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -403,7 +404,7 @@
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-				<param>TC_COUNT=DSK_VHD-47</param>
+				<param>TC_COVERED=DSK_VHD-47</param>
 			</testparams>
 			<onError>Continue</onError>
 			<noReboot>False</noReboot>
@@ -411,8 +412,8 @@
 
 		<test>
 			<testName>MultiDiskIDE_Dynamic</testName>
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -422,7 +423,7 @@
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-				<param>TC_COUNT=DSK_VHD-45,DSK_VHD-46</param>
+				<param>TC_COVERED=DSK_VHD-45,DSK_VHD-46</param>
 			</testparams>
 			<onError>Continue</onError>
 			<noReboot>False</noReboot>
@@ -430,8 +431,8 @@
 
 		<test>
 			<testName>MultiDiskIDE_Fixed</testName>
-			<testScript>LIS_Addnewdisk.sh</testScript>
-			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -441,221 +442,221 @@
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-				<param>TC_COUNT=DSK_VHD-45,DSK_VHD-46</param>
+				<param>TC_COVERED=DSK_VHD-45,DSK_VHD-46</param>
 			</testparams>
 			<onError>Continue</onError>
 			<noReboot>False</noReboot>
 		</test>
 
 		<test>
-      	 		<testName>HotADD_Multi_Disk_SCSI_Fixed_count2</testName>
-      			<testScript>LIS_Addnewdisk.sh</testScript>
-       			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-       			<preTest>setupScripts\AddHardDisk.ps1</preTest>
-       			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-       			<timeout>18000</timeout>
-       			<testparams>
-           				<param>SCSI=0,0,Fixed</param>
+      	 	<testName>HotADD_Multi_Disk_SCSI_Fixed_count2</testName>
+      		<testScript>STOR_Lis_Disk.sh</testScript>
+       		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+       		<preTest>setupScripts\AddHardDisk.ps1</preTest>
+       		<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
+       		<timeout>18000</timeout>
+       		<testparams>
+           		<param>SCSI=0,0,Fixed</param>
 				<param>SCSI=0,1,Fixed</param>
-				<param>TC_COUNT=DSK_VHD-51,DSK_VHD-53</param>
+				<param>TC_COVERED=DSK_VHD-51,DSK_VHD-53</param>
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-       			</testparams>
-       			<onError>Continue</onError>
+       		</testparams>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 		<test>
-      	 		<testName>HotRemove_Multi_Disk_SCSI_Fixed_count2</testName>
-      			<testScript>LIS_hot_remove.sh</testScript>
-       			<files>remote-scripts/ica/LIS_hot_remove.sh</files>
-       			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-       			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
-       			<timeout>18000</timeout>
-       			<testparams>
-          		 		<param>SCSI=0,0,Fixed</param>
+      		<testName>HotRemove_Multi_Disk_SCSI_Fixed_count2</testName>
+      		<testScript>STOR_hot_remove.sh</testScript>
+       		<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+       		<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
+       		<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
+       		<timeout>18000</timeout>
+       		<testparams>
+         		<param>SCSI=0,0,Fixed</param>
 				<param>SCSI=0,1,Fixed</param>
-				<param>TC_COUNT=DSK_VHD-52,DSK_VHD-54</param>
-       			</testparams>
-       			<onError>Continue</onError>
+				<param>TC_COVERED=DSK_VHD-52,DSK_VHD-54</param>
+       		</testparams>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 		<test>
-      	 		<testName>HotADD_Multi_Disk_SCSI_Dynamic_count2</testName>
-      			<testScript>LIS_Addnewdisk.sh</testScript>
-       			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-       			<preTest>setupScripts\AddHardDisk.ps1</preTest>
-       			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-       			<timeout>18000</timeout>
-       			<testparams>
-           				<param>SCSI=0,0,Dynamic</param>
+      		<testName>HotADD_Multi_Disk_SCSI_Dynamic_count2</testName>
+      		<testScript>STOR_Lis_Disk.sh</testScript>
+       		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+       		<preTest>setupScripts\AddHardDisk.ps1</preTest>
+       		<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
+       		<timeout>18000</timeout>
+       		<testparams>
+        		<param>SCSI=0,0,Dynamic</param>
 				<param>SCSI=0,1,Dynamic</param>
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-				<param>TC_COUNT=DSK_VHD-51,DSK_VHD-53</param>
-       			</testparams>
-       			<onError>Continue</onError>
+				<param>TC_COVERED=DSK_VHD-51,DSK_VHD-53</param>
+       		</testparams>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+   		</test>
 
 		<test>
-      		 	<testName>HotRemove_Multi_Disk_SCSI_Dynamic_count2</testName>
-      			<testScript>LIS_hot_remove.sh</testScript>
-       			<files>remote-scripts/ica/LIS_hot_remove.sh</files>
-       			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-       			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
-       			<timeout>18000</timeout>
-       			<testparams>
+   		 	<testName>HotRemove_Multi_Disk_SCSI_Dynamic_count2</testName>
+   			<testScript>STOR_hot_remove.sh</testScript>
+   			<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+     		<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
+       		<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
+       		<timeout>18000</timeout>
+       		<testparams>
 				<param>SCSI=0,0,Dynamic</param>
 				<param>SCSI=0,1,Dynamic</param>
-				<param>TC_COUNT=DSK_VHD-52,DSK_VHD-54</param>
+				<param>TC_COVERED=DSK_VHD-52,DSK_VHD-54</param>
 			</testparams>
-       			<onError>Continue</onError>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 		<test>
-      	 		<testName>HotADD_Multi_Disk_SCSI_Fixed_count3</testName>
-      			<testScript>LIS_Addnewdisk.sh</testScript>
-       			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-       			<preTest>setupScripts\AddHardDisk.ps1</preTest>
-       			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-       			<timeout>18000</timeout>
-       			<testparams>
-           				<param>SCSI=0,0,Fixed</param>
+      		<testName>HotADD_Multi_Disk_SCSI_Fixed_count3</testName>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+       		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+       		<preTest>setupScripts\AddHardDisk.ps1</preTest>
+       		<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
+       		<timeout>18000</timeout>
+       		<testparams>
+           		<param>SCSI=0,0,Fixed</param>
 				<param>SCSI=0,1,Fixed</param> 
-				<param>TC_COUNT=DSK_VHD-51,DSK_VHD-53</param>
+				<param>TC_COVERED=DSK_VHD-51,DSK_VHD-53</param>
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-       			</testparams>
-       			<onError>Continue</onError>
+       		</testparams>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
  	   	</test>
 
 		<test>
-      		 	<testName>HotRemove_Multi_Disk_SCSI_Fixed_count3</testName>
-      			<testScript>LIS_hot_remove.sh</testScript>
-       			<files>remote-scripts/ica/LIS_hot_remove.sh</files>
-       			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-       			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
-       			<timeout>18000</timeout>
-       			<testparams>
-           				<param>SCSI=0,0,Fixed</param>
+      		<testName>HotRemove_Multi_Disk_SCSI_Fixed_count3</testName>
+      		<testScript>STOR_hot_remove.sh</testScript>
+       		<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+       		<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
+       		<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
+       		<timeout>18000</timeout>
+       		<testparams>
+           		<param>SCSI=0,0,Fixed</param>
 				<param>SCSI=0,1,Fixed</param> 
-				<param>TC_COUNT=DSK_VHD-52,DSK_VHD-54</param>
-       			</testparams>
-       			<onError>Continue</onError>
+				<param>TC_COVERED=DSK_VHD-52,DSK_VHD-54</param>
+       		</testparams>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 		<test>
-      	 		<testName>HotADD_Multi_Disk_SCSI_Dynamic_count3</testName>
-      			<testScript>LIS_Addnewdisk.sh</testScript>
-       			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-       			<preTest>setupScripts\AddHardDisk.ps1</preTest>
-       			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-       			<timeout>18000</timeout>
-       			<testparams>
-           				<param>SCSI=0,0,Dynamic</param>
+      		<testName>HotADD_Multi_Disk_SCSI_Dynamic_count3</testName>
+			<testScript>STOR_Lis_Disk.sh</testScript>
+       		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+       		<preTest>setupScripts\AddHardDisk.ps1</preTest>
+       		<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
+       		<timeout>18000</timeout>
+       		<testparams>
+           		<param>SCSI=0,0,Dynamic</param>
 				<param>SCSI=0,1,Dynamic</param>  
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-				<param>TC_COUNT=DSK_VHD-51,DSK_VHD-53</param>
-       			</testparams>
-       			<onError>Continue</onError>
+				<param>TC_COVERED=DSK_VHD-51,DSK_VHD-53</param>
+       		</testparams>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 		<test>
-      	 		<testName>HotRemove_Multi_Disk_SCSI_Dynamic_count3</testName>
-      			<testScript>LIS_hot_remove.sh</testScript>
-       			<files>remote-scripts/ica/LIS_hot_remove.sh</files>
-       			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-       			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
-       			<timeout>18000</timeout>
-       			<testparams>
+      		<testName>HotRemove_Multi_Disk_SCSI_Dynamic_count3</testName>
+      		<testScript>STOR_hot_remove.sh</testScript>
+       		<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+       		<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
+       		<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
+       		<timeout>18000</timeout>
+       		<testparams>
 				<param>SCSI=0,0,Dynamic</param>
 				<param>SCSI=0,1,Dynamic</param>
-				<param>TC_COUNT=DSK_VHD-52,DSK_VHD-54</param>
+				<param>TC_COVERED=DSK_VHD-52,DSK_VHD-54</param>
 			</testparams>
-       			<onError>Continue</onError>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 		<test>
-      		 	<testName>HotADD_Multi_Disk_SCSI_Fixed_count4</testName>
-      			<testScript>LIS_Addnewdisk.sh</testScript>
-       			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-       			<preTest>setupScripts\AddHardDisk.ps1</preTest>
-       			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-       			<timeout>18000</timeout>
-       			<testparams>
-           				<param>SCSI=0,0,Fixed</param>
+      		<testName>HotADD_Multi_Disk_SCSI_Fixed_count4</testName>
+      		<testScript>STOR_Lis_Disk.sh</testScript>
+       		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+       		<preTest>setupScripts\AddHardDisk.ps1</preTest>
+       		<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
+       		<timeout>18000</timeout>
+       		<testparams>
+        		<param>SCSI=0,0,Fixed</param>
 				<param>SCSI=0,1,Fixed</param>
-				<param>TC_COUNT=DSK_VHD-51,DSK_VHD-53</param>
+				<param>TC_COVERED=DSK_VHD-51,DSK_VHD-53</param>
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-       			</testparams>
-       			<onError>Continue</onError>
+       		</testparams>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 		<test>
-      	 		<testName>HotRemove_Multi_Disk_SCSI_Fixed_count4</testName>
-      			<testScript>LIS_hot_remove.sh</testScript>
-       			<files>remote-scripts/ica/LIS_hot_remove.sh</files>
-       			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-       			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
-       			<timeout>18000</timeout>
-       			<testparams>
-           				<param>SCSI=0,0,Fixed</param>
+      		<testName>HotRemove_Multi_Disk_SCSI_Fixed_count4</testName>
+      		<testScript>STOR_hot_remove.sh</testScript>
+       		<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+       		<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
+       		<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
+       		<timeout>18000</timeout>
+       		<testparams>
+        		<param>SCSI=0,0,Fixed</param>
 				<param>SCSI=0,1,Fixed</param>
-				<param>TC_COUNT=DSK_VHD-52,DSK_VHD-54</param>
-       			</testparams>
-       			<onError>Continue</onError>
+				<param>TC_COVERED=DSK_VHD-52,DSK_VHD-54</param>
+       		</testparams>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 		<test>
-      	 		<testName>HotADD_Multi_Disk_SCSI_Dynamic_count4</testName>
-      			<testScript>LIS_Addnewdisk.sh</testScript>
-       			<files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-       			<preTest>setupScripts\AddHardDisk.ps1</preTest>
-       			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-       			<timeout>18000</timeout>
-       			<testparams>
-           				<param>SCSI=0,0,Dynamic</param>
+      		<testName>HotADD_Multi_Disk_SCSI_Dynamic_count4</testName>
+      		<testScript>STOR_Lis_Disk.sh</testScript>
+       		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+       		<preTest>setupScripts\AddHardDisk.ps1</preTest>
+       		<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
+       		<timeout>18000</timeout>
+       		<testparams>
+        		<param>SCSI=0,0,Dynamic</param>
 				<param>SCSI=0,1,Dynamic</param>
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
-				<param>TC_COUNT=DSK_VHD-51,DSK_VHD-53</param>
-       			</testparams>
-       			<onError>Continue</onError>
+				<param>TC_COVERED=DSK_VHD-51,DSK_VHD-53</param>
+       		</testparams>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 		<test>
-      	 		<testName>HotRemove_Multi_Disk_SCSI_Dynamic_count4</testName>
-      			<testScript>LIS_hot_remove.sh</testScript>
-       			<files>remote-scripts/ica/LIS_hot_remove.sh</files>
-       			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-       			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
-       			<timeout>18000</timeout>
-       			<testparams>
+      		<testName>HotRemove_Multi_Disk_SCSI_Dynamic_count4</testName>
+      		<testScript>STOR_hot_remove.sh</testScript>
+       		<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+       		<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
+       		<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
+       		<timeout>18000</timeout>
+       		<testparams>
 				<param>SCSI=0,0,Dynamic</param>
 				<param>SCSI=0,1,Dynamic</param>
-				<param>TC_COUNT=DSK_VHD-52,DSK_VHD-54</param>
+				<param>TC_COVERED=DSK_VHD-52,DSK_VHD-54</param>
 			</testparams>
-       			<onError>Continue</onError>
+       		<onError>Continue</onError>
 			<noReboot>False</noReboot>
-    		</test>
+    	</test>
 
 	</testCases>
 

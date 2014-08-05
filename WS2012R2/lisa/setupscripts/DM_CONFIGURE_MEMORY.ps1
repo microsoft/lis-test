@@ -28,7 +28,7 @@
    Configure Dynamic Memory parameters for a set of Virtual Machines.
    The testParams have the format of:
 
-      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%], 
+      vmName=Name of a VM, enableDM=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%], 
       startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100) 
 
    vmName is the name of a existing Virtual Machines.
@@ -53,7 +53,7 @@
 
    The following is an example of a testParam for configuring Dynamic Memory
 
-       "vmName=sles11x64sp3;enable=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
+       "vmName=sles11x64sp3;enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
@@ -68,7 +68,7 @@
     Test data for this test case
 
     .Example
-    setupScripts\DM_CONFIGURE_MEMORY -vmName sles11sp3x64 -hvServer localhost -testParams "vmName=sles11x64sp3;enable=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
+    setupScripts\DM_CONFIGURE_MEMORY -vmName sles11sp3x64 -hvServer localhost -testParams "vmName=sles11x64sp3;enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -176,7 +176,7 @@ foreach ($p in $params)
         "vmName: $tPvmName"
         
     }
-    elseif($temp[0].Trim() -eq "enable")
+    elseif($temp[0].Trim() -eq "enableDM")
     {
 
       if ($temp[1].Trim() -ilike "yes")
