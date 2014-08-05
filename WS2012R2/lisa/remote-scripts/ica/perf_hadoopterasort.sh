@@ -348,13 +348,12 @@ RunConfigOnSlaves()
     # Copy the perf_hadoopterasort.sh, constants.sh and hadoop zip (if exists) to each slave.
     # Then chmod the files.  Finally, run the config script on each slave.
     #
-    chmod 600 /root/${SLAVE_SSHKEY}
 
     for slave in $SLAVE_HOSTNAMES
     do
         LogMsg "Info : Running config on slave '${slave}'"
 
-        scp -i /root/${SLAVE_SSHKEY} /root/${HADOOP_ARCHIVE} root@${slave}:
+        scp /root/${HADOOP_ARCHIVE} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy file ${HADOOP_ARCHIVE} to slave ${slave}"
             LogMsg "${msg}"
@@ -363,7 +362,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        scp -i /root/${SLAVE_SSHKEY} ${CONFIG_SCRIPT} root@${slave}:
+        scp ${CONFIG_SCRIPT} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy file ${CONFIG_SCRIPT} to slave ${slave}"
             LogMsg "${msg}"
@@ -372,7 +371,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        ssh -i /root/${SLAVE_SSHKEY} root@${slave} chmod 755 ${CONFIG_SCRIPT}
+        ssh root@${slave} chmod 755 ${CONFIG_SCRIPT}
         if [ $? -ne 0 ]; then
             msg="Error: Unable to chmod 755 script file ${CONFIG_SCRIPT} on slave ${slave}"
             LogMsg "${msg}"
@@ -381,7 +380,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        scp -i /root/${SLAVE_SSHKEY} ${CONSTANTS_FILE} root@${slave}:
+        scp ${CONSTANTS_FILE} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy constants.sh to slave ${slave}"
             LogMsg "${msg}"
@@ -390,7 +389,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        ssh -i /root/${SLAVE_SSHKEY} root@${slave} ${CONFIG_SCRIPT}
+        ssh root@${slave} ${CONFIG_SCRIPT}
         if [ $? -ne 0 ]; then
             msg="Error: ${CONFIG_SCRIPT} did not run successfully on slave ${slave}"
             LogMsg "${msg}"

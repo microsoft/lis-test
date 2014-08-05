@@ -34,18 +34,21 @@
         <test>
             <testName>Perf_TeraSort</testName>
             <testScript>perf_hadoopterasort.sh</testScript>
-            <files>remote-scripts/ica/perf_hadoopterasort.sh,testdata/perf_hadoopterasort.xml/hadoop-2.4.0.tar.gz,ssh/id_rsa</files>
+            <files>remote-scripts/ica/perf_hadoopterasort.sh,testdata/perf_hadoopterasort.xml/hadoop-2.4.0.tar.gz</files>
             <timeout>1800</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
                 <param>TC_COVERED=PERF-TeraSort</param>
-                <param>SLAVE_SSHKEY=id_rsa</param>				
                 <param>HADOOP_MASTER_HOSTNAME=HadoopMaster</param>
                 <param>RESOURCE_MANAGER_HOSTNAME=HadoopMaster</param>
                 <param>SLAVE_HOSTNAMES=HadoopSlave1 HadoopSlave2</param>
                 <param>TERAGEN_RECORDS=50000000</param>
             </testparams>
+            <uploadFiles>
+                <file>hadoop.log</file>
+                <file>terasort.log</file>
+            </uploadFiles>
         </test>
     </testCases>
 
