@@ -45,6 +45,7 @@
                 <suiteTest>TimeSync_NTP</suiteTest>
                 <suiteTest>Multi_Cpu_Test</suiteTest>
                 <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
+                <suiteTest>StressReloadModules</suiteTest>
                 <suiteTest>CDmount</suiteTest>
                 <suiteTest>FloppyDisk</suiteTest>
             </suiteTests>
@@ -213,6 +214,18 @@
             <testParams>
                 <param>TC_COVERED=CORE-16</param>
             </testParams>
+        </test>
+		
+	    <test>
+            <testName>StressReloadModules</testName>
+            <setupscript>setupscripts\CORE_EnableIntegrationServices.ps1</setupscript>
+            <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
+            <timeout>10600</timeout>
+            <testParams>
+                <param>TC_COVERED=CORE-18</param>
+            </testParams>
+                <onError>Continue</onError>
+                <noReboot>False</noReboot>
         </test>
 
         <test>
