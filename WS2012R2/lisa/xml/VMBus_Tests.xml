@@ -65,7 +65,7 @@
         <test>
             <testName>VMBus_verify_interrupts</testName>
             <testScript>vmbus_verify_interrupts.sh</testScript>
-	    <files>remote-scripts/ica/vmbus_verify_interrupts.sh</files>
+	    <files>remote-scripts/ica/vmbus_verify_interrupt.sh</files>
             <timeout>300</timeout>
             <onError>Continue</onError>
 	    <noReboot>True</noReboot>
