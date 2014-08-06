@@ -69,7 +69,7 @@
         <onError>Continue</onError>
   	<noReboot>False</noReboot>
         <testParams>
-		param>TC_COVERED=NMI-01</param>
+		<param>TC_COVERED=NMI-01</param>
         </testParams>
       </test>
 		
@@ -80,7 +80,7 @@
         <onError>Continue</onError>
 	<noReboot>True</noReboot>
 	<testParams>
-		param>TC_COVERED=NMI-02</param>
+		<param>TC_COVERED=NMI-02</param>
         </testParams>
       </test>
 		
@@ -91,7 +91,7 @@
         <onError>Continue</onError>
 	<noReboot>True</noReboot>
 	<testParams>
-		aram>TC_COVERED=NMI-03</param>
+		<param>TC_COVERED=NMI-03</param>
         </testParams>
         </test>
 
