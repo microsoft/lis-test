@@ -27,6 +27,7 @@
                 <suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
                 <suiteTest>VHD_AddDiff_Disk_IDE</suiteTest>  
                 <suiteTest>VHD_AddDiff_Disk_SCSI</suiteTest>
+                <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteTest>
                 <suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest> 
                 <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest> 
                 <suiteTest>VHD_HotADD_Multi_Dynamic_SCSI</suiteTest>      
@@ -40,6 +41,20 @@
     </testSuites>
 
     <testCases>
+        <test>
+            <testName>VHD_SCSI_0_1_Dynamic_Big</testName>          
+            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
+            <testParams>
+                <param>SCSI=0,1,Dynamic,2039GB</param>                 
+                <param>TC_COVERED=STOR-26,STOR-27</param>
+                <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
+            </testParams>           
+            <testScript>STOR_Big_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Big_Disk.sh</files>
+            <timeout>10800</timeout>
+        </test>
+
         <test>
             <testName>VHD_HotADD_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
