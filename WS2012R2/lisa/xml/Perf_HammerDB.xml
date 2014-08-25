@@ -64,8 +64,8 @@
     </testCases>
 
     <VMs>        
-	<vm>
-            <vmName>HdbDev</vmName>
+	    <vm>
+            <vmName>TestVM</vmName>
             <hvServer>localhost</hvServer>
             <os>Linux</os>
             <ipv4></ipv4>
