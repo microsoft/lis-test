@@ -900,7 +900,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     # Fail the test if setup script fails.  We're already in SystemDown state so no state transition is needed.
                     #
                     LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test $($testData.testName) failed"
-                    $vm.emailSummary += "Test $($vm.currentTest) : Aborted<br />"
+                    $vm.emailSummary += "    Test $($vm.currentTest) : Aborted<br />"
                     
                     #comment below code as we may need to continue running next test case
                     #$vm.currentTest = "done"
@@ -908,6 +908,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     
                     #need to determine do we need to shutdown system and do cleanup for running next test case if existing
                     UpdateState $vm $DetermineReboot
+                    return
                 }
             }
             else
