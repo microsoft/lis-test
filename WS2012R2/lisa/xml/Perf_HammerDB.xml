@@ -22,7 +22,7 @@
 <config>
     <global>
         <logfileRootDir>C:\Public\TestResults</logfileRootDir>
-        <defaultSnapshot>LisaProvisioned</defaultSnapshot>
+        <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>
