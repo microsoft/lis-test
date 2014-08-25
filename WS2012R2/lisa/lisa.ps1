@@ -253,7 +253,7 @@ function LogMsg([int]$level, [string]$msg)
 
     if ($level -le $dbgLevel)
     {
-        $now = [Datetime]::Now.ToString("MM/dd/yyyy hh:mm:ss : ")
+        $now = [Datetime]::Now.ToString("MM/dd/yyyy HH:mm:ss : ")
         ($now + $msg) | out-file -encoding ASCII -append -filePath $logfile
         
         $color = "white"
