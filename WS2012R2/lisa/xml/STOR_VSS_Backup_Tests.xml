@@ -164,6 +164,7 @@
             <testParams>
                 <param>DriveLetter=C:</param>
                 <param>TargetIP=10.7.1.10</param>
+                <param>IQN=iqn.2000-01.com:test-iqn</param> <!--optional, use it if more than one IQN is present -->
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
