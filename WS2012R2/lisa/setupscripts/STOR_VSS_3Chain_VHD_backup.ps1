@@ -1,4 +1,4 @@
-﻿########################################################################
+########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
@@ -518,12 +518,29 @@ if (-not $?)
 # New VM is static hardcoded since we do not need it to be dynamic
 $GChildVHD = $CreateVHD[-1]
 
-$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $Switch
+# Get-VM 
+$vm = Get-VM -Name $vmName -ComputerName $hvServer
+
+#get VM Generation
+$vm_gen = $vm.Generation
+
+$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $Switch -Generation $vm_gen
 if (-not $?)
     {
        Write-Output "Error: Creating New VM" 
        return $False
     }
+
+# Disable secure boot
+if ($vm_gen -eq 2)
+{
+    Set-VMFirmware -VMName $vmName1 -EnableSecureBoot Off
+    if(-not $?)
+    {
+        Write-Output "Error: Unable to disable secure boot"
+        return $false
+    }
+}
 
 echo "New 3 Chain VHD VM $vmName1 Created: Success" >> $summaryLog
 Write-Output "INFO: New 3 Chain VHD VM $vmName1 Created"
