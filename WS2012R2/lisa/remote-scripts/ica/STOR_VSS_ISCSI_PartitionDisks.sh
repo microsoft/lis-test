@@ -137,7 +137,7 @@ iscsiConnect()
 
         # Check if IQN Variable in constants.sh file is present. 
         # If not, select the first target
-        if [ ! ${IQN} ]; then
+        
             # Discover the IQN
             iscsiadm -m discovery -t st -p ${1}
             if [ 0 -ne $? ]; then
@@ -146,12 +146,13 @@ iscsiConnect()
                 UpdateSummary " iSCSI service: Failed"
                 exit 1
             else
-                # We take the first IQN target
-                IQN=`iscsiadm -m discovery -t st -p ${1} | head -n 1 | cut -d ' ' -f 2` 
-                LogMsg "iSCSI discovery: Success"
-                UpdateSummary "iSCSI discovery: Success"
+                if [ ! ${IQN} ]; then
+                    # We take the first IQN target
+                    IQN=`iscsiadm -m discovery -t st -p ${1} | head -n 1 | cut -d ' ' -f 2` 
+                    LogMsg "iSCSI discovery: Success"
+                    UpdateSummary "iSCSI discovery: Success"
+                fi
             fi
-        fi
     
         # Now we have all data necesary to connect to the iscsi target
         iscsiadm -m node -T $IQN -p  ${1} -l
