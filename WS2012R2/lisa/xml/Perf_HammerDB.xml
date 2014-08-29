@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved. 
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0  
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>C:\Public\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LISA FTM Test Run on WS2012</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+
+        <!-- Optional testParams go here -->
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>HammerDB</suiteName>
+            <suiteTests>
+                <suiteTest>Perf_HammerDB</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>Perf_HammerDB</testName>
+            <testScript>SetupScripts\Perf_HammerDB.ps1</testScript>
+            <files>remote-scripts\ica\perf_hammerdbmysql.sh,tools\lisahdb.tcl,tools\hdb_tpcc.tcl,tools\HammerDB-2.16-Linux-x86-64-Install,tools\MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</files>
+            <timeout>3600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=Perf-HammerDB</param>
+                <param>NEW_HDB_FILE=lisahdb.tcl</param>
+                <param>NEW_TPCC_FILE=hdb_tpcc.tcl</param>
+                <!-- <param>HAMMERDB_PACKAGE=HammerDB-2.16-Linux-x86-64-Install</param>
+                <param>MYSQL_PACKAGE=MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</param> -->
+            </testparams>
+        </test>
+    </testCases>
+
+    <VMs>        
+	    <vm>
+            <vmName>TestVM</vmName>
+            <hvServer>localhost</hvServer>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>HammerDB</suite>
+        </vm>
+    </VMs>
+
+</config>
