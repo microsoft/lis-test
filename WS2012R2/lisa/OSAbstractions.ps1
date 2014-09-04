@@ -233,7 +233,10 @@ function GetOSType ([System.Xml.XmlElement] $vm)
         Use SSH to send a uname command to the VM.  Use the
         returned name as OSType.
 	#> 
-    $os = bin\plink -i ssh\${sshKey} root@${hostname} "uname -s"
+    
+    # plink will pending at waiting password if sshkey failed auth, so
+    # pipe a 'y' to response
+    $os = echo y | bin\plink -i ssh\${sshKey} root@${hostname} "uname -s"
 
     switch ($os)
     {
