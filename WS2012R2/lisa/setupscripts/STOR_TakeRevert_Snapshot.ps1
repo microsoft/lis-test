@@ -22,7 +22,7 @@
 <#
 .Synopsis
     Verify take snapshot and revert snapshot operations work.
-    
+
 .Description
     Tests to see that the virtual machine snapshot operation works as well as
     the revert snapshot operation.
@@ -43,19 +43,175 @@
 
 .Parameter vmName
     Name of the VM to perform the test with.
-    
+
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
-    
+
 .Parameter testParams
     A semicolon separated list of test parameters.
-    
+
 .Example
     setupScripts\STOR_TakeRevert_Snapshot.ps1 -vmName "myVm" -hvServer "localhost -TestParams "TC_COVERED=STOR-42,STOR-43;snapshotname=ICABase"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+######################################################################
+# Runs a remote script on the VM an returns the log.
+#######################################################################
+function RunRemoteScript($remoteScript)
+{
+    $retValue = $False
+    $stateFile     = "state.txt"
+    $TestCompleted = "TestCompleted"
+    $TestAborted   = "TestAborted"
+    $TestRunning   = "TestRunning"
+    $timeout       = 6000
+
+    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
+
+    echo y | .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
+    if (-not $?)
+    {
+       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
+       return $False
+    }
+
+    echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+    if (-not $?)
+    {
+       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
+       return $False
+    }
+
+    echo y | .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
+        return $False
+    }
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to run dos2unix on runtest.sh"
+        return $False
+    }
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x ${remoteScript}"
+        return $False
+    }
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
+        return $False
+    }
+
+    # Run the script on the vm
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh 2> /dev/null"
+
+    # Return the state file
+    while ($timeout -ne 0 )
+    {
+    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $stateFile)
+        {
+            $contents = Get-Content -Path $stateFile
+            if ($null -ne $contents)
+            {
+                    if ($contents -eq $TestCompleted)
+                    {
+                        Write-Output "Info : state file contains Testcompleted"
+                        $retValue = $True
+                        break
+
+                    }
+
+                    if ($contents -eq $TestAborted)
+                    {
+                         Write-Output "Info : State file contains TestAborted failed. "
+                         break
+
+                    }
+                    #Start-Sleep -s 1
+                    $timeout--
+
+                    if ($timeout -eq 0)
+                    {
+                        Write-Output "Error : Timed out on Test Running , Exiting test execution."
+                        break
+                    }
+
+            }
+            else
+            {
+                Write-Output "Warn : state file is empty"
+                break
+            }
+
+        }
+        else
+        {
+             Write-Host "Warn : ssh reported success, but state file was not copied"
+             break
+        }
+    }
+    else #
+    {
+         Write-Output "Error : pscp exit status = $sts"
+         Write-Output "Error : unable to pull state.txt from VM."
+         break
+    }
+    }
+
+    # Get the logs
+    $remoteScriptLog = $remoteScript+".log"
+
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} .
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $remoteScriptLog)
+        {
+            $contents = Get-Content -Path $remoteScriptLog
+            if ($null -ne $contents)
+            {
+                    if ($null -ne ${TestLogDir})
+                    {
+                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
+
+                    }
+
+                    else
+                    {
+                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
+                    }
+
+            }
+            else
+            {
+                Write-Output "Warn: $remoteScriptLog is empty"
+            }
+        }
+        else
+        {
+             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"
+        }
+    }
+
+    # Cleanup
+    del state.txt -ErrorAction "SilentlyContinue"
+    del runtest.sh -ErrorAction "SilentlyContinue"
+
+    return $retValue
+}
 $retVal = $false
 $TC_COVERED = $null
 $rootDir = $null
@@ -63,7 +219,7 @@ $ipv4 = $null
 $sshKey = $null
 $snapshotname = $null
 $random = Get-Random -minimum 1024 -maximum 4096
-
+$remoteScript = "STOR_Lis_Disk.sh"
 #
 # Check input arguments
 #
@@ -89,32 +245,22 @@ if (-not $testParams)
 #
 # Checking the mandatory testParams
 #
+
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
-    if ($fields[0].Trim() -eq "TC_COVERED")
-    {
-        $TC_COVERED = $fields[1].Trim()
-    }
-     if ($fields[0].Trim() -eq "rootDir")
-    {
-        $rootDir = $fields[1].Trim()
-    }
-     if ($fields[0].Trim() -eq "snapshotname")
-    {
-        $snapshotname = $fields[1].Trim()
-    }
-     if ($fields[0].Trim() -eq "ipv4")
-    {
-        $ipv4 = $fields[1].Trim()
-    }
-     if ($fields[0].Trim() -eq "sshKey")
-    {
-        $sshKey = $fields[1].Trim()
-    }
+        switch ($fields[0].Trim())
+        {
+        "sshKey" { $sshKey = $fields[1].Trim() }
+        "ipv4" { $ipv4 = $fields[1].Trim() }
+        "rootdir" { $rootDir = $fields[1].Trim() }
+        "snapshotname" { $snapshotname = $fields[1].Trim() }
+        "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
+        default  {}
+        }
 }
+
 
 if (-not $TC_COVERED)
 {
@@ -178,6 +324,19 @@ if (-not $?)
 {
     Write-Output "Error: Unable to create file on VM" | Out-File -Append $summaryLog
     return $False
+}
+
+# Run the remote script
+$sts = RunRemoteScript $remoteScript
+if (-not $sts[-1])
+{
+    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
+    Write-Output "ERROR: Running $remoteScript script failed on VM!"
+    Write-Output "Here are the remote logs:`n`n###################"
+    $logfilename = ".\$remoteScript.log"
+    Get-Content $logfilename
+    Write-Output "###################`n"
+    return $falsese
 }
 
 Write-Host "Waiting for VM $vmName to shut-down..."

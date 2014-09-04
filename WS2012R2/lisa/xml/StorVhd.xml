@@ -284,17 +284,20 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-		<test>
-            <testName>TakeRevert_SnapShot</testName>
-            <testScript>setupScripts\STOR_TakeRevert_Snapshot.ps1</testScript>
-            <timeout>1800</timeout>
-            <testParams>
-                <param>snapshotname=ICABase</param>
-                <param>TC_COVERED=STOR-25,STOR-28</param>
-        </testParams>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test>
+        <test>
+            <testName>TakeRevert_SnapShot</testName>
+            <setupScript>setupScripts\AddDisk.ps1</setupScript>
+            <testScript>setupScripts\STOR_TakeRevert_Snapshot.ps1</testScript>
+            <timeout>1800</timeout>
+            <testParams>
+                <param>DiskType=VHD</param>
+                <param>SCSI=0,1,Dynamic</param>
+                <param>SnapshotName=ICABase</param>
+                <param>TC_COVERED=STOR-25,STOR-28,STOR-45,STOR-46</param>
+             </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
 
         <test>
             <testName>ExportImportVM</testName>
