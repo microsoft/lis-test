@@ -1284,70 +1284,89 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
 
-    LogMsg 9 "Info : DoSystemUp($($vm.vmName))"
+    $timeout = 600
 
-    if (-not $xmlData -or $xmlData -isnot [XML])
+    if ($vm.timeouts.systemUpTimeout)
     {
-        LogMsg 0 "Error: DoSystemUp received a null or bad xmlData parameter - disabling VM"
-        $vm.emailSummary += "DoSystemUp received a null xmlData parameter - disabling VM<br />"
-        $vm.currentTest = "done"
-        UpdateState $vm $ForceShutdown
+        $timeout = $vm.timeouts.systemUpTimeout
     }
+ 
+    if ( (HasItBeenTooLong $vm.stateTimestamp $timeout) )
+    {
+        LogMsg 0 "Error: $($vm.vmName) system up - timed out`n       Terminating test run."
+        $vm.emailSummary += "    System up timeout. Terminating test run<br/>"
+        
+        $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
+        Stop-VM $v -ComputerName $vm.hvServer | out-null
+        $vm.currentTest = "done"
+        UpdateState $vm $ShuttingDown
+    }
+    else
+    {
+        LogMsg 9 "Info : DoSystemUp($($vm.vmName))"
 
-    $hostname = $vm.ipv4
-    $sshKey = $vm.sshKey
+        if (-not $xmlData -or $xmlData -isnot [XML])
+        {
+            LogMsg 0 "Error: DoSystemUp received a null or bad xmlData parameter - disabling VM"
+            $vm.emailSummary += "DoSystemUp received a null xmlData parameter - disabling VM<br />"
+            $vm.currentTest = "done"
+            UpdateState $vm $ForceShutdown
+        }
 
-    #
-    # The first time we SSH into a VM, SSH will prompt to accept the server key.
-    # Send a "no-op command to the VM and assume this is the first SSH connection,
-    # so pipe a 'y' respone into plink
-    #
+        $hostname = $vm.ipv4
+        $sshKey = $vm.sshKey
+
+        #
+        # The first time we SSH into a VM, SSH will prompt to accept the server key.
+        # Send a "no-op command to the VM and assume this is the first SSH connection,
+        # so pipe a 'y' respone into plink
+        #
 	
-    LogMsg 9 "INFO : Call: echo y | bin\plink -i ssh\$sshKey root@$hostname exit"
-    echo y | bin\plink -i ssh\${sshKey} root@${hostname} exit
+        LogMsg 9 "INFO : Call: echo y | bin\plink -i ssh\$sshKey root@$hostname exit"
+        echo y | bin\plink -i ssh\${sshKey} root@${hostname} exit
 
-    #
-    # Determine the VMs OS
-    #
-    $os = (GetOSType $vm).ToString()
-    LogMsg 9 "INFO : The OS type is $os"
+        #
+        # Determine the VMs OS
+        #
+        $os = (GetOSType $vm).ToString()
+        LogMsg 9 "INFO : The OS type is $os"
 
-    #
-    # Update the time on the Linux VM
-    #
-    #$dateTimeCmd = GetOSDateTimeCmd $vm
-    #if ($dateTimeCmd)
-    #{
-        #$linuxDateTime = [Datetime]::Now.ToString("MMddHHmmyyyy")
-        #LogMsg 3 "Info : $($vm.vmName) Updating time on the VM (${dateTimeCmd})."
-        #if (-not (SendCommandToVM $vm "$dateTimeCmd") )
+        #
+        # Update the time on the Linux VM
+        #
+        #$dateTimeCmd = GetOSDateTimeCmd $vm
+        #if ($dateTimeCmd)
         #{
-        #    LogMsg 0 "Error: $($vm.vmName) could not update time"
-        #    $vm.emailSummary += "    Unable to update time on VM - test aborted<br />"
-        #    $vm.testCaseResults = "False"
-        #    UpdateState $vm $DetermineReboot
+            #$linuxDateTime = [Datetime]::Now.ToString("MMddHHmmyyyy")
+            #LogMsg 3 "Info : $($vm.vmName) Updating time on the VM (${dateTimeCmd})."
+            #if (-not (SendCommandToVM $vm "$dateTimeCmd") )
+            #{
+            #    LogMsg 0 "Error: $($vm.vmName) could not update time"
+            #    $vm.emailSummary += "    Unable to update time on VM - test aborted<br />"
+            #    $vm.testCaseResults = "False"
+            #    UpdateState $vm $DetermineReboot
+            #}
+            #else
+            #{
+            #    UpdateState $vm $PushTestFiles
+            #}
         #}
         #else
         #{
         #    UpdateState $vm $PushTestFiles
         #}
-    #}
-    #else
-    #{
-    #    UpdateState $vm $PushTestFiles
-    #}
 
-    If([string]::Compare($vm.role, "SUT", $true) -eq 0)
-    {
-         #for SUT VM, needs to wait for NonSUT VM startup
-         UpdateState $vm $WaitForDependencyVM
-    }
-    else
-    {
-         #for NonSUT VM, run postStartConfig now (map to SUT VM's RunPreTestScript State).
-         UpdateState $vm $RunPreTestScript
-    }
-    
+        If([string]::Compare($vm.role, "SUT", $true) -eq 0)
+        {
+             #for SUT VM, needs to wait for NonSUT VM startup
+             UpdateState $vm $WaitForDependencyVM
+        }
+        else
+        {
+             #for NonSUT VM, run postStartConfig now (map to SUT VM's RunPreTestScript State).
+             UpdateState $vm $RunPreTestScript
+        }
+    }    
 }
 
 
