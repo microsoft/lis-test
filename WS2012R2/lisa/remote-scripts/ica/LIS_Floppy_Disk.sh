@@ -70,7 +70,7 @@ else
 	exit 1
 fi
 
-#Check for Testcase count
+#Check for Testcase ID
 if [ ! ${TC_COVERED} ]; then
     LogMsg "Error: The TC_COVERED variable is not defined."
 	echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
@@ -81,7 +81,7 @@ fi
 echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
 #
-# check if floppy module is loaded or no 
+# check if floppy module is loaded or not 
 #
 LogMsg "Check if floppy module is loaded"
 
@@ -90,18 +90,18 @@ if [[ $FLOPPY != "" ]] ; then
     LogMsg "Floppy disk  module is present"
 else
     LogMsg "Floppy disk module is not present in VM"
-    LogMsg "Loading Floppy disk module "
+    LogMsg "Loading Floppy disk module..."
     modprobe floppy
     sts=$?
     if [ 0 -ne ${sts} ]; then
-        LogMsg "Unable to load Floppy Disk module"
-        LogMsg "Aborting test."
-        UpdateSummary "Floppy disk module loaded : Failed"
+        LogMsg "Unable to load Floppy Disk module!"
+	UpdateSummary "Floppy disk module loaded : Failed!"
         UpdateTestState "TestFailed"
         exit 1
     else
         LogMsg  "Floppy disk module loaded inside the VM"
         UpdateSummary "Floppy disk module loaded : Success"
+        sleep 3
     fi
 fi
 
@@ -122,7 +122,7 @@ fi
 #
 # Mount the floppy disk
 #
-LogMsg "##### Mount the floppy disk #####"
+LogMsg "Mount the floppy disk"
 mount /dev/fd0 /mnt/
 sts=$?
 if [ 0 -ne ${sts} ]; then
@@ -138,10 +138,10 @@ else
     UpdateSummary "Floppy disk detected : Success"
 fi
 
-LogMsg "##### Perform read ,write and delete  operations on the Floppy Disk ######"
+LogMsg "Perform read ,write and delete  operations on the Floppy Disk"
 cd /mnt/
-LogMsg "#####Perform write operation on the floppy disk #####"
-LogMsg "Creating a file Sample.txt ........."
+LogMsg "Perform write operation on the floppy disk"
+LogMsg "Creating a file Sample.txt"
 LogMsg "This is a sample file been created for testing..." >Sample.txt
 sts=$?
 if [ 0 -ne ${sts} ]; then
@@ -156,8 +156,7 @@ else
     UpdateSummary "File Creation inside floppy disk : Success"
 fi
 
-LogMsg "#####Perform read operation on the floppy disk #####"
-#echo "Sample.txt"
+LogMsg "Perform read operation on the floppy disk"
 cat Sample.txt
 sts=$?
        if [ 0 -ne ${sts} ]; then
@@ -172,7 +171,7 @@ sts=$?
 		    UpdateSummary "File read inside floppy disk : Success"          
        fi
 
-LogMsg "##### Perform delete operation on the Floppy disk #####"
+LogMsg "Perform delete operation on the Floppy disk"
 
 rm Sample.txt
 sts=$?

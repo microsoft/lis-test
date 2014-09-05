@@ -15,14 +15,13 @@
     ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
     PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
 
-
     See the Apache Version 2.0 License for specific language governing
     permissions and limitations under the License.
 -->
 
 <config>
     <global>
-        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>C:\Public\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -30,7 +29,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LISA VMBus tests for WS2012R2</subject>
+            <subject>LISA FTM Test Run on WS2012</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
 
@@ -39,51 +38,39 @@
 
     <testSuites>
         <suite>
-            <suiteName>VMBus</suiteName>
+            <suiteName>HammerDB</suiteName>
             <suiteTests>
-		<suiteTest>VMBus_protocol_version</suiteTest>
-		<suiteTest>VMBus_verify_interrupts</suiteTest>
+                <suiteTest>Perf_HammerDB</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
         <test>
-            <testName>VMBus_protocol_version</testName>
-            <testScript>vmbus_protocol_version.sh</testScript>
-	    <files>remote-scripts/ica/vmbus_protocol_version.sh</files>
-            <timeout>300</timeout>
+            <testName>Perf_HammerDB</testName>
+            <testScript>SetupScripts\Perf_HammerDB.ps1</testScript>
+            <files>remote-scripts\ica\perf_hammerdbmysql.sh,tools\lisahdb.tcl,tools\hdb_tpcc.tcl,tools\HammerDB-2.16-Linux-x86-64-Install,tools\MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</files>
+            <timeout>3600</timeout>
             <onError>Continue</onError>
-		<noReboot>True</noReboot>	
-		<testParams>
-            <param>TC_COVERED=VMBus-01</param>
-		<!-- For WS 2012 R2 the VMBus version is 2.4 -->
-		<param>VMBusVer=2.4</param>
-            </testParams>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=Perf-HammerDB</param>
+                <param>NEW_HDB_FILE=lisahdb.tcl</param>
+                <param>NEW_TPCC_FILE=hdb_tpcc.tcl</param>
+                <!-- <param>HAMMERDB_PACKAGE=HammerDB-2.16-Linux-x86-64-Install</param>
+                <param>MYSQL_PACKAGE=MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</param> -->
+            </testparams>
         </test>
-
-        <test>
-            <testName>VMBus_verify_interrupts</testName>
-            <testScript>vmbus_verify_interrupts.sh</testScript>
-	    <files>remote-scripts/ica/vmbus_verify_interrupt.sh</files>
-            <timeout>300</timeout>
-            <onError>Continue</onError>
-	    <noReboot>True</noReboot>
-	    <testParams>
-            	<param>TC_COVERED=VMBus-02</param>
-            </testParams>
-        </test>
-
     </testCases>
 
-    <VMs>
-	<vm>
+    <VMs>        
+	    <vm>
+            <vmName>TestVM</vmName>
             <hvServer>localhost</hvServer>
-            <vmName>MyVM_64bit</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>linux_id_rsa.ppk</sshKey>
-            <suite>VMBus</suite>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>HammerDB</suite>
         </vm>
     </VMs>
 

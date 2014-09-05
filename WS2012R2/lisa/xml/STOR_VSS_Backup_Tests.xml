@@ -62,6 +62,7 @@
             <testName>STOR_VSS_BackupRestore</testName>
             <testScript>setupscripts\STOR_VSS_BackupRestore.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-17,VSS-06</param>
                 <param>DriveLetter=C:</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -75,6 +76,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-01</param>
                 <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
@@ -91,6 +93,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-02</param>
                 <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
@@ -107,6 +110,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-03</param>
                 <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
@@ -123,6 +127,7 @@
             <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-05</param>
                 <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
@@ -138,6 +143,7 @@
             <testName>STOR_VSS_BackupRestore_ISO_NoNetwork</testName>
             <testScript>setupscripts\STOR_VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-11</param>
                 <param>DriveLetter=C:</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -150,6 +156,7 @@
             <testName>STOR_VSS_BackupRestore_3Chain_VHD</testName>
             <testScript>setupscripts\STOR_VSS_3Chain_VHD_backup.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-12</param>
                 <param>DriveLetter=C:</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -162,8 +169,10 @@
             <testName>STOR_VSS_BackupRestore_ISCSI</testName>
             <testScript>setupscripts\STOR_VSS_BackupRestore_ISCSI.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-13</param>
                 <param>DriveLetter=C:</param>
                 <param>TargetIP=10.7.1.10</param>
+                <param>IQN=iqn.2000-01.com:test-iqn</param> <!--optional, use it if more than one IQN is present -->
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -176,6 +185,7 @@
             <testName>STOR_VSS_BackupRestore_DiskStress</testName>
             <testScript>setupscripts\STOR_VSS_BackupRestore_DiskStress.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-14</param>
                 <param>DriveLetter=C:</param>
                 <param>iOzoneVers=3_424</param>
                 <param>snapshotName=ICABase</param>
@@ -189,6 +199,7 @@
             <testName>STOR_VSS_BackupRestore_State_Off</testName>
             <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-15</param>
                 <param>DriveLetter=C:</param>
                 <param>vmState=Off</param>
                 <param>snapshotName=ICABase</param>
@@ -202,6 +213,7 @@
             <testName>STOR_VSS_BackupRestore_State_Paused</testName>
             <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-15</param>
                 <param>DriveLetter=C:</param>
                 <param>vmState=Paused</param>
                 <param>snapshotName=ICABase</param>
@@ -216,6 +228,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-16</param>
                 <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,PassThrough</param>
                 <param>FILESYS=ext3</param>
@@ -231,6 +244,7 @@
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Fail.ps1</testScript> 
             <testParams>
+                <param>TC_COVERED=VSS-18</param>
                 <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>

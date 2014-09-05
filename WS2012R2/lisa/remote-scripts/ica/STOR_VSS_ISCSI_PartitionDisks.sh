@@ -31,7 +31,7 @@ count=0
 #######################################################################
 LogMsg()
 {
-    echo `date "+%a %b %d %T %Y"` : ${1}
+    echo $(date "+%a %b %d %T %Y") : ${1}
 }
 
 #######################################################################
@@ -55,7 +55,7 @@ UpdateTestState()
 #######################################################################
 LinuxRelease()
 {
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
+    DISTRO=$(grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version})
 
     case $DISTRO in
         *buntu*)
@@ -83,73 +83,89 @@ LinuxRelease()
 #######################################################################
 iscsiConnect()
 {
-    case $(LinuxRelease) in
-    "SLES")
-    /etc/init.d/open-iscsi start
-    ;;
-    "DEBIAN" | "UBUNTU")
-    # start the iscsi service
-    service open-iscsi restart
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Error: iSCSI start failed. Please check if iSCSI initiator is installed"
-        UpdateTestState "TestAborted"
-        UpdateSummary " iSCSI service: Failed"
-        exit 1
-    else
-        LogMsg "iSCSI start: Success"
-        UpdateSummary "iSCSI start: Success"
-    fi
-    
-    ;;
-    "RHEL" | "CENTOS")
-    # start the iscsi service
-    service iscsi restart
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Error: iSCSI start failed. Please check if iSCSI initiator is installed"
-        UpdateTestState "TestAborted"
-        UpdateSummary " iSCSI service: Failed"
-        exit 1
-    else
-        LogMsg "iSCSI start: Success"
-        UpdateSummary "iSCSI start: Success"
-    fi
-    ;;
-    *)
-    LogMsg "Distro not supported"
-    UpdateTestState "TestAborted"
-    UpdateSummary "Distro not supported, test aborted"
-    exit 1
-    ;;
-    esac
+        # Start the iscsi service. This is distro-specific.
+        case $(LinuxRelease) in
+        "SLES")
+            /etc/init.d/open-iscsi start
+            sts=$?
+            if [ 0 -ne ${sts} ]; then
+                LogMsg "Error: iSCSI start failed. Please check if iSCSI initiator is installed"
+                UpdateTestState "TestAborted"
+                UpdateSummary " iSCSI service: Failed"
+                exit 1
+            else
+                LogMsg "iSCSI start: Success"
+                UpdateSummary "iSCSI start: Success"
+            fi
+        ;;
+            
+        "DEBIAN" | "UBUNTU")
+            service open-iscsi restart
+            sts=$?
+            if [ 0 -ne ${sts} ]; then
+                LogMsg "Error: iSCSI start failed. Please check if iSCSI initiator is installed"
+                UpdateTestState "TestAborted"
+                UpdateSummary " iSCSI service: Failed"
+                exit 1
+            else
+                LogMsg "iSCSI start: Success"
+                UpdateSummary "iSCSI start: Success"
+            fi
+        ;;
 
-    # discover the IQN
-    iscsiadm -m discovery -t st -p ${1}
-    if [ 0 -ne $? ]; then
-        LogMsg "Error: iSCSI discovery failed. Please check the target IP address (${1})"
-        UpdateTestState "TestAborted"
-        UpdateSummary " iSCSI service: Failed"
-        exit 1
-    else
-        #we take the first IQN target
-        IQN=`iscsiadm -m discovery -t st -p ${1} | head -n 1 | cut -d ' ' -f 2` 
-        LogMsg "iSCSI discovery: Success"
-        UpdateSummary "iSCSI discovery: Success"
-    fi
+        "RHEL" | "CENTOS")
+            service iscsi restart
+            sts=$?
+            if [ 0 -ne ${sts} ]; then
+                LogMsg "Error: iSCSI start failed. Please check if iSCSI initiator is installed"
+                UpdateTestState "TestAborted"
+                UpdateSummary " iSCSI service: Failed"
+                exit 1
+            else
+                LogMsg "iSCSI start: Success"
+                UpdateSummary "iSCSI start: Success"
+            fi
+        ;;
+
+        *)
+            LogMsg "Distro not supported"
+            UpdateTestState "TestAborted"
+            UpdateSummary "Distro not supported, test aborted"
+            exit 1
+        ;;
+        esac
+
+        # Check if IQN Variable in constants.sh file is present. 
+        # If not, select the first target
+        
+            # Discover the IQN
+            iscsiadm -m discovery -t st -p ${1}
+            if [ 0 -ne $? ]; then
+                LogMsg "Error: iSCSI discovery failed. Please check the target IP address (${1})"
+                UpdateTestState "TestAborted"
+                UpdateSummary " iSCSI service: Failed"
+                exit 1
+            else
+                if [ ! ${IQN} ]; then
+                    # We take the first IQN target
+                    IQN=`iscsiadm -m discovery -t st -p ${1} | head -n 1 | cut -d ' ' -f 2` 
+                    LogMsg "iSCSI discovery: Success"
+                    UpdateSummary "iSCSI discovery: Success"
+                fi
+            fi
     
-    # connect to the iscsi target
-    iscsiadm -m node -T $IQN -p  ${1} -l
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Error:  iSCSI connection failed ${sts}"
-        UpdateTestState "TestAborted"
-        UpdateSummary "iSCSI connection: Failed"
-        exit 1
-    else
-        LogMsg "iSCSI connection: Success"
-        UpdateSummary " SCSI connection: Success"
-    fi
+        # Now we have all data necesary to connect to the iscsi target
+        iscsiadm -m node -T $IQN -p  ${1} -l
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            LogMsg "Error:  iSCSI connection failed ${sts}"
+            UpdateTestState "TestAborted"
+            UpdateSummary "iSCSI connection: Failed"
+            exit 1
+        else
+            LogMsg "iSCSI connection: Success"
+            UpdateSummary " SCSI connection: Success"
+        fi
 }
 
 
@@ -188,12 +204,22 @@ if [ ! ${FILESYS} ]; then
     LogMsg "No FILESYS variable in constants.sh"
     UpdateTestState "TestAborted"
     exit 1
+else
+    LogMsg "File System: ${FILESYS}"
 fi
 
 if [ ! ${TargetIP} ]; then
     LogMsg "No TargetIP variable in constants.sh"
     UpdateTestState "TestAborted"
     exit 1
+else
+    LogMsg "Target IP: ${TargetIP}"
+fi
+
+if [ ! ${IQN} ]; then
+    LogMsg "No IQN variable in constants.sh. Will try to autodiscover it"
+else
+    LogMsg "IQN: ${IQN}"
 fi
 
 # Connect to the iSCSI Target  
@@ -209,7 +235,6 @@ else
 fi
 
 # Count the Number of partition present in added new Disk . 
-
 for disk in $(cat /proc/partitions | grep sd | awk '{print $4}')
 do
         if [[ "$disk" != "sda"* ]];
