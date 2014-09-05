@@ -64,15 +64,15 @@
 #         <param>RDBMS=MySQL</param>
 #         <param>MYSQL_HOST=127.0.0.1</param>
 #         <param>MYSQL_PORT=3306</param>
-#         <param>MY_COUNT_WARE=2</param>
-#         <param>MYSQL_NUM_THREADS=4</param>
 #         <param>MYSQL_USER=root</param>
 #         <param>MYSQL_PASS=redhat</param>
-#         <param>MYSQL_DBASE=tpcc</param>
-#         <param>MY_TOTAL_ITERATIONS=1000000</param>
-#         <param>MYSQLDRIVER=timed</param>
-#         <param>MY_RAMPUP=1</param>
-#         <param>MY_DURATION=3</param>
+#         <param>HDB_COUNT_WAREHOUSE=2</param>
+#         <param>HDB_NUM_VIRTUALUSER=4</param>
+#         <param>HDB_DBASE=tpcc</param>
+#         <param>HDB_TOTAL_ITERATIONS=1000000</param>
+#         <param>HDB_TESTRUN_DRIVER=timed</param>
+#         <param>HDB_TESTRUN_RAMPUP_TIME=1</param>
+#         <param>HDB_TESTRUN_DURATION_TIME=3</param>
 #         <param>MYSQL_PACKAGE="MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</param>
 #     </testParams>
 # </test>
@@ -98,19 +98,20 @@ HDB_CONFIG="/usr/local/HammerDB-${HAMMERDB_VERSION}/config.xml"
 
 NEW_HDB_FILE=lisahdb.tcl
 NEW_TPCC_FILE=hdb_tpcc.tcl
-
 RDBMS=MySQL                     # Identifies the target database
+
 MYSQL_HOST=127.0.0.1            # IP address of the MySQL host
 MYSQL_PORT=3306                 # Port the MySQL server is listening on
-MY_COUNT_WARE=2                 # Number of ware houses to create
-MYSQL_NUM_THREADS=2             # Number of virtual users to create
 MYSQL_USER=root                 # Username to use when connecting to the MySQL server
 MYSQL_PASS=redhat               # Password to use when connecting to the MySQL server
-MYSQL_DBASE=tpcc                # Which benchmark to run
-MY_TOTAL_ITERATIONS=1000000     # Number of iterations for a standard test run
-MYSQLDRIVER=timed               # Type of test run
-MY_RAMPUP=1                     # Number of minutes of rampup time
-MY_DURATION=3                   # Number of minutes to run a 'timed' test
+
+HDB_COUNT_WAREHOUSE=100         # Number of ware houses to create
+HDB_NUM_VIRTUALUSER=16          # Number of virtual users to create
+HDB_DBASE=tpcc                  # Which benchmark to run
+HDB_TOTAL_ITERATIONS=1000000    # Number of iterations for a standard test run
+HDB_TESTRUN_DRIVER=timed        # Type of test run
+HDB_TESTRUN_RAMPUP_TIME=2       # Number of minutes of rampup time
+HDB_TESTRUN_DURATION_TIME=5     # Number of minutes to run a 'timed' test
 
 #
 # MySQL related settings
@@ -130,6 +131,7 @@ MYSQL_PACKAGE="MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar"
 LogMsg()
 {
     echo `date "+%a %b %d %T %Y"` ": ${1}"
+    echo "${1}" >> ~/perf_hammerdbmysql.log
 }
 
 
@@ -270,7 +272,7 @@ SlesInstallMySQL()
     # Try to install the MySQL package on the MYSQL_HOST
     #
     # Note: This requires the following:
-    #       - The MySQL package is the correct package for the Linux distributioin.
+    #       - The MySQL package is the correct package for the Linux distribution.
     #       - There is not a mysql client already installed on the MYSQL_HOST.
     #         If there is a MySQL client already installed, the MYSQL install will
     #         most likely fail with a conflict error.
@@ -335,6 +337,20 @@ SlesInstallMySQL()
     # in the test parameter MYSQL_PASS
     #
     LogMsg "Info : Updating the MySQL expired password"
+    
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        LogMsg "Info : MYSQL is running on '${MYSQL_HOST}'"
+        LogMsg "Info : Copying the MYSQL secret file from remote server"
+        scp root@${MYSQL_HOST}:/root/.mysql_secret /root
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to copy the MYSQL initial password file from host ${MYSQL_HOST}"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 100
+        fi
+    fi
+    
     expiredPasswd=$(cat ~/.mysql_secret | cut -d : -f 4 | cut -d ' ' -f 2)
     LogMsg "Expired password: '${expiredPasswd}'"
     LogMsg "New password:     '${MYSQL_PASS}'"
@@ -345,7 +361,35 @@ SlesInstallMySQL()
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
-        exit 100
+        exit 101
+    fi
+    
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        #
+        # Update MySql to allow connections from other servers such as Load Generator
+        # 
+        LogMsg "Info : Updating MySQL settings to allow connections from other machines"
+
+        echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
+        echo "flush privileges;" >> /root/setmysql.sql
+        
+        scp /root/setmysql.sql root@${MYSQL_HOST}:
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to copy the MYSQL setting SQL file to host ${MYSQL_HOST}"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 110
+        fi
+        
+        ssh root@${MYSQL_HOST} "mysql -h localhost -uroot -p${MYSQL_PASS} mysql </root/setmysql.sql"
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to run sql command on MySql server side to allow connections from Load Generator"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 111
+        fi
     fi
 
     #
@@ -515,16 +559,17 @@ if [ ! -e "${HDB_CONFIG}" ]; then
 fi
 
 sed -i "/<rdbms>/c\    <rdbms>$RDBMS</rdbms>" $HDB_CONFIG
+sed -i "/<mysql_host>/c\        <mysql_host>$MYSQL_HOST</mysql_host>" $HDB_CONFIG
 sed -i "/<mysql_port>/c\        <mysql_port>$MYSQL_PORT</mysql_port>" $HDB_CONFIG
-sed -i "/<my_count_ware>/c\            <my_count_ware>$MY_COUNT_WARE</my_count_ware>" $HDB_CONFIG
-sed -i "/<mysql_num_threads>/c\            <mysql_num_threads>$MYSQL_NUM_THREADS</mysql_num_threads>" $HDB_CONFIG
+sed -i "/<my_count_ware>/c\            <my_count_ware>$HDB_COUNT_WAREHOUSE</my_count_ware>" $HDB_CONFIG
+sed -i "/<mysql_num_threads>/c\            <mysql_num_threads>$HDB_NUM_VIRTUALUSER</mysql_num_threads>" $HDB_CONFIG
 sed -i "/<mysql_user>/c\            <mysql_user>$MYSQL_USER</mysql_user>" $HDB_CONFIG
 sed -i "/<mysql_pass>/c\            <mysql_pass>$MYSQL_PASS</mysql_pass>" $HDB_CONFIG
-sed -i "/<mysql_dbase>/c\            <mysql_dbase>$MYSQL_DBASE</mysql_dbase>" $HDB_CONFIG
-sed -i "/<my_total_iterations>/c\            <my_total_iterations>$MY_TOTAL_ITERATIONS</my_total_iterations>" $HDB_CONFIG
-sed -i "/<mysqldriver>/c\            <mysqldriver>$MYSQLDRIVER</mysqldriver>" $HDB_CONFIG
-sed -i "/<my_rampup>/c\            <my_rampup>$MY_RAMPUP</my_rampup>" $HDB_CONFIG
-sed -i "/<my_duration>/c\            <my_duration>$MY_DURATION</my_duration>" $HDB_CONFIG
+sed -i "/<mysql_dbase>/c\            <mysql_dbase>$HDB_DBASE</mysql_dbase>" $HDB_CONFIG
+sed -i "/<my_total_iterations>/c\            <my_total_iterations>$HDB_TOTAL_ITERATIONS</my_total_iterations>" $HDB_CONFIG
+sed -i "/<mysqldriver>/c\            <mysqldriver>$HDB_TESTRUN_DRIVER</mysqldriver>" $HDB_CONFIG
+sed -i "/<my_rampup>/c\            <my_rampup>$HDB_TESTRUN_RAMPUP_TIME</my_rampup>" $HDB_CONFIG
+sed -i "/<my_duration>/c\            <my_duration>$HDB_TESTRUN_DURATION_TIME</my_duration>" $HDB_CONFIG
 
 #
 # Cat the config file so it appears in the log file
