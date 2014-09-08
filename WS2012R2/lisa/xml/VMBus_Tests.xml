@@ -64,7 +64,7 @@
             <testName>VMBus_verify_interrupts</testName>
             <testScript>vmbus_verify_interrupts.sh</testScript>
 			<setupScript>setupScripts\ChangeCPU.ps1</setupScript>
-			<files>remote-scripts/ica/vmbus_verify_interrupt.sh</files>
+			<files>remote-scripts/ica/vmbus_verify_interrupts.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
 			<noReboot>False</noReboot>
