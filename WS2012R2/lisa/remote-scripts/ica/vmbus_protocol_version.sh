@@ -4,11 +4,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -23,21 +23,22 @@
 ########################################################################
 #
 # vmbus_protocol_version.sh
-# Description:
-#	This script was created to automate the testing of a Linux
-#	Integration services. This script will verify that the negotiated 
-#	VMBus protocol number is correct.
-#	This is available only for Windows Server 2012 R2 and newer.
-#	Windows Server 2012 R2 VMBus protocol version is 2.4.
 #
-#	The test performs the following steps:
-#	 1. Make sure we have a constants.sh file.
-#	 2. Take the VMBusVer variable from the test case description.
-#    3. Looks for the VMBus protocol tag inside the dmesg log.
-#     
-#	 To pass test parameters into test cases, the host will create
-#    a file named constants.sh.  This file contains one or more
-#    variable definition.
+# Description:
+#       This script was created to automate the testing of a Linux
+#       Integration services. This script will verify that the
+#       VMBus protocol string is identified and present in Linux.
+#       This is available only for Windows Server 2012 R2 and newer.
+#       Windows Server 2012 R2 VMBus protocol version is 2.4, newer
+#		Linux kernels have VMBus protocol version 3.0.
+#
+#       The test performs the following steps:
+#       1. Make sure we have a constants.sh file.
+#    	2. Looks for the VMBus protocol tag inside the dmesg log.
+#
+#       To pass test parameters into test cases, the host will create
+#    	a file named constants.sh. This file contains one or more
+#    	variable definition.
 #
 ################################################################
 
@@ -84,42 +85,28 @@ if [ -e ~/summary.log ]; then
 fi
 
 #
-# Identifying the test-case ID and VMBus version to match
+# Identifying the test-case ID
 #
 if [ ! ${TC_COVERED} ]; then
     LogMsg "The TC_COVERED variable is not defined!"
-	echo "The TC_COVERED variable is not defined!" >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
-fi
-
-if [ ! ${VMBusVer} ]; then
-    LogMsg "The VMBusVer variable is not defined."
-	echo "The VMBusVer variable is not defined." >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
+    echo "The TC_COVERED variable is not defined!" >> ~/summary.log
 fi
 
 echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 
 #
-# Checking for the VMBus protocol number in the dmesg file
+# Checking for the VMBus protocol string in dmesg
 #
-vmbus_string=`dmesg | grep "Vmbus version:"`
+vmbus_string=`dmesg | grep "Vmbus version:" | sed 's/^\[[^]]*\] *//'`
 
 if [ "$vmbus_string" = "" ]; then
-	LogMsg "Error! Could not find the VMBus protocol string in dmesg."
-	echo "Error! Could not find the VMBus protocol string in dmesg." >> ~/summary.log
-	UpdateTestState "TestFailed"
-    exit 10
-elif [[ "$vmbus_string" == *hv_vmbus*Hyper-V*Host*Build*Vmbus*version:"$VMBusVer" ]]; then
-	LogMsg "Info: Found a matching VMBus string: ${vmbus_string}"
-	echo -e "Info: Found a matching VMBus string:\n ${vmbus_string}" >> ~/summary.log
-else
-	LogMsg "Error! A full VMBus protocol string could not be found."
-	echo "Error! A full VMBus protocol string could not be found." >> ~/summary.log
-	UpdateTestState "TestFailed"
-	exit 10
+        LogMsg "Test failed! Could not find the VMBus protocol string in dmesg."
+        echo "Test failed! Could not find the VMBus protocol string in dmesg." >> ~/summary.log
+        UpdateTestState "TestFailed"
+        exit 10
+	elif [[ "$vmbus_string" == *hv_vmbus*Hyper-V*Host*Build*Vmbus*version:* ]]; then
+		LogMsg "Test passed! Found a matching VMBus string:\n ${vmbus_string}"
+		echo -e "Test passed! Found a matching VMBus string:\n${vmbus_string}" >> ~/summary.log
 fi
 
 LogMsg "Test Passed"
