@@ -860,7 +860,8 @@ if [ "${hname}" = "${HADOOP_MASTER_HOSTNAME}" ]; then
     fi
 
     LogMsg "Info : Running terasort to sort test data"
-    hadoop jar /usr/local/hadoop/share/hadoop/mapreduce/hadoop-*examples*.jar terasort /data/genout /data/sortout 2&> ~/terasort.log
+	#Number of Reduce tasks = 7 ( 1.75 * num-of-worker-nodes * num-of-cores-per-node )
+    hadoop jar /usr/local/hadoop/share/hadoop/mapreduce/hadoop-*examples*.jar terasort -Dmapred.reduce.tasks=7 /data/genout /data/sortout 2&> ~/terasort.log
     if [ $? -ne 0 ]; then
         msg="Error: Unable to sort the test data"
         LogMsg "${msg}"
