@@ -25,6 +25,8 @@
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
+ICA_TESTFAILED="TestFailed"
+
 CONSTANTS_FILE="constants.sh"
 
 LogMsg()
