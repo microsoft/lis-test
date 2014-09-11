@@ -35,6 +35,7 @@
                 <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
                 <suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest>
                 <suiteTest>VHD_HotADD_Dynamic_SCSI_SMP</suiteTest>
+                <suiteTest>Make_passthrough_offline</suiteTest>
                 <suiteTest>TakeRevert_SnapShot</suiteTest>
                 <suiteTest>ExportImportVM</suiteTest>
             </suiteTests>
@@ -42,6 +43,21 @@
     </testSuites>
 
     <testCases>
+
+        <test>
+            <testName>Make_passthrough_offline</testName>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <testParams>
+                <param>TC_COVERED=STOR-29</param>
+                <param>TargetIP=valid_iscsi_target_ip</param>
+                <param>IQN=valid_iqn</param>
+                <param>SSH_PRIVATE_KEY=sshKey</param>
+            </testParams>
+            <testScript>STOR_pass_offline.sh</testScript>
+            <files>remote-scripts/ica/STOR_pass_offline.sh</files>
+            <timeout>10800</timeout>
+        </test>
+
         <test>
             <testName>VHD_HotADD_Dynamic_SCSI_SMP</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
