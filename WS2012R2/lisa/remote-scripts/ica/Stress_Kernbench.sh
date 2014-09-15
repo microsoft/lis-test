@@ -22,8 +22,8 @@
 
 ############################################################################
 #
-# Performace test Kernbench
-# Performance_Kernbench.sh
+# Stress test Kernbench
+# Stress_Kernbench.sh
 #
 # Description:
 #   For the test to run you have to place the kernbench-0.50.tar.bz2 archive
@@ -62,7 +62,7 @@ LinuxRelease()
             echo "FEDORA";;
         CentOS*)
             echo "CENTOS";;
-        *suse*)
+        *SUSE*)
             echo "SLES";;
         Red*Hat*)
             echo "RHEL";;
@@ -134,7 +134,6 @@ fi
 #
 
 
-
 #
 #get the kernel version and change the headers path depending on the distribution
 #
@@ -143,17 +142,34 @@ VERSION=$(uname -r)
 OLD="include/linux/kernel.h"
 
 case $(LinuxRelease) in
-    "CENTOS" | "SLES" | "RHEL")
-        yum install kernel-devel
+    "CENTOS" | "RHEL")
         NEW="/usr/src/kernels/${VERSION}/include/linux/kernel.h"
     ;;
     "UBUNTU")
         apt-get install linux-headers-$(uname -r)
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            echo "Error:  kernel headers  ${sts}" >> ~/summary.log
+            UpdateTestState "TestAborted"
+            echo "kernel headers installation failed" 
+            exit 50
+        fi
         NEW="/usr/src/linux-headers-${VERSION}/include/linux/kernel.h"
     ;;
     "DEBIAN")
         apt-get install linux-headers-$(uname -r)
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            echo "Error:  kernel headers  ${sts}" >> ~/summary.log
+            UpdateTestState "TestAborted"
+            echo "kernel headers installation failed" 
+            exit 50
+        fi
         NEW="/usr/include/linux/kernel.h"
+    ;;
+    "SLES")
+        VERSION=${VERSION:0:${#VERSION}-8}
+        NEW="/usr/src/linux-${VERSION}/include/linux/kernel.h"
     ;;
      *)
         LogMsg "Distro not supported"
