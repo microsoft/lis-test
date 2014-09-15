@@ -1,4 +1,5 @@
 #!/bin/bash
+
 ########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
@@ -22,25 +23,19 @@
 
 ########################################################################
 #
-# vmbus_protocol_version.sh
+#	CORE_LISmodules_version.sh
 #
-# Description:
-#       This script was created to automate the testing of a Linux
-#       Integration services. This script will verify that the
-#       VMBus protocol string is identified and present in Linux.
-#       This is available only for Windows Server 2012 R2 and newer.
-#       Windows Server 2012 R2 VMBus protocol version is 2.4, newer
-#		Linux kernels have VMBus protocol version 3.0.
+#	Description:
+#		This script was created to automate the testing of a Linux
+#	Integration services. The script will verify the list of given
+#	LIS kernel modules and verify if the version matches with the 
+#	Linux kernel release number.
 #
-#       The test performs the following steps:
-#       1. Make sure we have a constants.sh file.
-#    	2. Looks for the VMBus protocol tag inside the dmesg log.
+#		To pass test parameters into test cases, the host will create
+#	a file named constants.sh. This file contains one or more
+#	variable definition.
 #
-#       To pass test parameters into test cases, the host will create
-#    	a file named constants.sh. This file contains one or more
-#    	variable definition.
-#
-################################################################
+########################################################################
 
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
@@ -51,7 +46,8 @@ CONSTANTS_FILE="constants.sh"
 
 LogMsg()
 {
-    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
+	# Adding the timestamp to the log file
+    echo `date "+%a %b %d %T %Y"` : ${1}    
 }
 
 UpdateTestState()
@@ -72,9 +68,9 @@ LogMsg "Updating test case state to running"
 if [ -e ./${CONSTANTS_FILE} ]; then
     source ${CONSTANTS_FILE}
 else
-    ERRmsg="Error: no ${CONSTANTS_FILE} file"
-    LogMsg $ERRmsg
-    echo $ERRmsg >> ~/summary.log
+    msg="Error: no ${CONSTANTS_FILE} file"
+    LogMsg $msg
+    echo $msg >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
@@ -89,25 +85,32 @@ fi
 #
 if [ ! ${TC_COVERED} ]; then
     LogMsg "The TC_COVERED variable is not defined!"
-    echo "The TC_COVERED variable is not defined!" >> ~/summary.log
+	echo "The TC_COVERED variable is not defined!" >> ~/summary.log
 fi
 
 echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 
-#
-# Checking for the VMBus protocol string in dmesg
-#
-vmbus_string=`dmesg | grep "Vmbus version:" | sed 's/^\[[^]]*\] *//'`
+# Verifies first if the modules are loaded
+for module in ${HYPERV_MODULES[@]}; do
+	load_status=$( lsmod | grep $module 2>&1)
 
-if [ "$vmbus_string" = "" ]; then
-        LogMsg "Test failed! Could not find the VMBus protocol string in dmesg."
-        echo "Test failed! Could not find the VMBus protocol string in dmesg." >> ~/summary.log
-        UpdateTestState "TestFailed"
-        exit 10
-	elif [[ "$vmbus_string" == *hv_vmbus*Hyper-V*Host*Build*Vmbus*version:* ]]; then
-		LogMsg "Test passed! Found a matching VMBus string:\n ${vmbus_string}"
-		echo -e "Test passed! Found a matching VMBus string:\n${vmbus_string}" >> ~/summary.log
-fi
+	# Check to see if the module is loaded
+	if [[ $load_status =~ $module ]]; then
+		version=$(modinfo $module | grep vermagic: | awk '{print $2}')
+		if [[ "$version" == "$(uname -r)" ]]; then
+			LogMsg "Found a kernel matching version for $module module: ${version}"
+			echo "Found a kernel matching version for $module module: ${version}" >> ~/summary.log
+		else
+			LogMsg "Error: LIS module $module doesn't match the kernel build version!"
+			echo "Error: LIS module $module doesn't match the kernel build version!" >> ~/summary.log
+			UpdateTestState $ICA_TESTABORTED
+			exit 10
+		fi
+	else
+		LogMsg "Error: LIS module $module is not loaded or present!"
+		echo "Error: LIS module $module is not loaded or present!" >> ~/summary.log
+	fi
+done
 
-LogMsg "Test Passed"
-UpdateTestState "TestCompleted"
+UpdateTestState $ICA_TESTCOMPLETED
+exit 0

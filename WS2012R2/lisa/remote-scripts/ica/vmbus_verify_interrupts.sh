@@ -23,22 +23,24 @@
 ########################################################################
 #
 # vmbus_verify_interrupt.sh
+#
 # Description:
 #	This script was created to automate the testing of a Linux
 #	Integration services. This script will verify if all the CPUs 
 #	inside a Linux VM are processing VMBus interrupts, by checking 
 #	the /proc/interrupts file.
-#	The VM must have at least 2 CPU cores, otherwise the script will 
-#	return an error message.
+#	The VM is configured with 4 CPU cores as part of the setup script,
+#	as each core must process the Hyper-V interrupts for a successful test pass.
 #
 #	The test performs the following steps:
-#	 1. Make sure we have a constants.sh file.
-#    2. Looks for the Hyper-v timer property of each CPU under /proc/interrupts
-#	 3. Verifies if each CPU has more than 0 interrupts processed.
+#		1. Configures the VM with 4 cores (see the test case XML definition)	
+#		2. Make sure we have a constants.sh file.
+#		3. Looks for the Hyper-v timer property of each CPU under /proc/interrupts
+#		4. Verifies if each CPU has more than 0 interrupts processed.
 #     
-#	 To pass test parameters into test cases, the host will create
-#    a file named constants.sh.  This file contains one or more
-#    variable definition.
+#	To pass test parameters into test cases, the host will create
+#	a file named constants.sh.  This file contains one or more
+#	variable definition.
 #
 ################################################################
 
@@ -48,6 +50,7 @@ ICA_TESTABORTED="TestAborted"      # Error during setup of test
 ICA_TESTFAILED="TestFailed"        # Error during execution of test
 
 CONSTANTS_FILE="constants.sh"
+nonCPU0inter=0
 
 LogMsg()
 {
@@ -90,8 +93,6 @@ fi
 if [ ! ${TC_COVERED} ]; then
     LogMsg "The TC_COVERED variable is not defined!"
 	echo "The TC_COVERED variable is not defined!" >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
 fi
 
 echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
@@ -100,44 +101,33 @@ echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 # Getting the CPUs count
 #
 cpu_count=$(grep CPU -o /proc/interrupts | wc -l)
-if [ $cpu_count -eq 1 ]; then
-	LogMsg "The script requires at least 2 CPU cores!"
-	echo "The script requires at least 2 CPU cores!" >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-	exit 10
-fi
-
-LogMsg "${cpu_count} CPUs found"
-echo "${cpu_count} CPUs found" >> ~/summary.log
+echo "${cpu_count} CPU cores detected" >> ~/summary.log
 
 #
-# Verifying if VMBUS interrupts are processed by all CPUs by checking the /proc/interrupts file 
+# Verifying if VMBUS interrupts are processed by all CPUs by checking /proc/interrupts 
 #
-nonCPU0inter=0
-
 while read line
 do
-    if [[ $line = *hyperv* ]]; then
-        for ((  i=0 ;  i<=$cpu_count-1;  i++ ))
+    if [[ ($line = *hyperv* ) || ( $line = *Hypervisor* ) ]]; then
+        for (( core=0; core<=$cpu_count-1; core++ ))
         do
-            intrCount=`echo $line | cut -f $(( $i+2 )) -d ' '` 
+            intrCount=`echo $line | cut -f $(( $core+2 )) -d ' '`
             if [ $intrCount -ne 0 ]; then
                 (( nonCPU0inter++ ))
-				LogMsg "CPU core ${i} is processing VMBUS interrupts"
-				echo "CPU core ${i} is processing VMBUS Interrupts" >> ~/summary.log
+                LogMsg "Only CPU core ${core} is processing VMBUS interrupts."
             fi
         done
     fi
 done < "/proc/interrupts"
 
-if [ $nonCPU0inter -ge 2 ]; then
-	LogMsg "Test Passed! At least 2 CPU cores are processing interrupts."
-	echo "Test Passed! At least 2 CPU cores are processing interrupts." >> ~/summary.log
-	            else
-                LogMsg "Error: Only 1 CPU core is processing VMBUS Interrupts!"
-				echo "Error: Only 1 CPU core is processing VMBUS Interrupts!" >> ~/summary.log
-                UpdateTestState "TestFailed"
-                exit 10
+if [ $nonCPU0inter -eq $cpu_count ]; then
+	LogMsg "Test Passed! All CPU cores are processing interrupts."
+	echo "Test Passed! All CPU cores are processing interrupts." >> ~/summary.log
+else
+	LogMsg "Test Failed! Not all CPU cores are processing VMBUS interrupts."
+	echo "Test Failed! Not all CPU cores are processing VMBUS interrupts." >> ~/summary.log
+	UpdateTestState "TestFailed"
+	exit 10
 fi
 
 LogMsg "Test completed successfully"

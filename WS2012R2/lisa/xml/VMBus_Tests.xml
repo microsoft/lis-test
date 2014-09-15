@@ -22,7 +22,7 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -37,49 +37,48 @@
         <!-- Optional testParams go here -->
     </global>
 
-    <testSuites>
-        <suite>
-            <suiteName>VMBus</suiteName>
-            <suiteTests>
-		<suiteTest>VMBus_protocol_version</suiteTest>
-		<suiteTest>VMBus_verify_interrupts</suiteTest>
-            </suiteTests>
-        </suite>
-    </testSuites>
+	<testSuites>
+		<suite>
+			<suiteName>VMBus</suiteName>
+			<suiteTests>
+				<suiteTest>VMBus_protocol_version</suiteTest>
+				<suiteTest>VMBus_verify_interrupts</suiteTest>
+			</suiteTests>
+		</suite>
+	</testSuites>
 
     <testCases>
         <test>
             <testName>VMBus_protocol_version</testName>
             <testScript>vmbus_protocol_version.sh</testScript>
-	    <files>remote-scripts/ica/vmbus_protocol_version.sh</files>
+			<files>remote-scripts/ica/vmbus_protocol_version.sh</files>
             <timeout>300</timeout>
             <onError>Continue</onError>
-		<noReboot>True</noReboot>	
-		<testParams>
-            <param>TC_COVERED=VMBus-01</param>
-		<!-- For WS 2012 R2 the VMBus version is 2.4 -->
-		<param>VMBusVer=2.4</param>
+			<noReboot>False</noReboot>	
+			<testParams>
+				<param>TC_COVERED=VMBus-01</param>
             </testParams>
         </test>
 
         <test>
             <testName>VMBus_verify_interrupts</testName>
             <testScript>vmbus_verify_interrupts.sh</testScript>
-	    <files>remote-scripts/ica/vmbus_verify_interrupt.sh</files>
-            <timeout>300</timeout>
+			<setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+			<files>remote-scripts/ica/vmbus_verify_interrupts.sh</files>
+            <timeout>600</timeout>
             <onError>Continue</onError>
-	    <noReboot>True</noReboot>
-	    <testParams>
+			<noReboot>False</noReboot>
+			<testParams>
             	<param>TC_COVERED=VMBus-02</param>
+				<param>vCPU=4</param>
             </testParams>
         </test>
-
     </testCases>
 
     <VMs>
-	<vm>
+		<vm>
             <hvServer>localhost</hvServer>
-            <vmName>MyVM_64bit</vmName>
+            <vmName>LinuxVM</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
