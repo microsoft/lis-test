@@ -1,4 +1,4 @@
-########################################################################
+﻿########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
@@ -21,24 +21,24 @@
 
 <#
 .Synopsis
-    This script tests the file copy overwrite functionality.
+    This script tests the functionality of copying large file.
 
 .Description
-    The script will copy a file from a Windows host to the Linux VM,
-    and checks if the size is matching.
-	Then it tries to copy the same file again, which must fail with an
-	error message that the file already exists - error code 0x80070050.
+    The script will copy a random generated 10GB file from a Windows host to 
+	the Linux VM, and then checks if the size is matching.
 
     A typical XML definition for this test case would look similar
     to the following:
 		<test>
-			<testName>FCOPY_file_exists</testName>
-			<testScript>setupscripts\FCOPY_file_exists.ps1</testScript>
+			<testName>FCOPY_large_file</testName>
+			<setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript> 
+			<testScript>setupscripts\FCOPY_large_file.ps1</testScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
 			<timeout>900</timeout>
 			<testParams>
-				<param>TC_COVERED=FCopy-02</param>
+				<param>TC_COVERED=FCopy-04</param>
+				<param>SCSI=0,0,Dynamic</param>
 			</testParams>
-			<noReboot>True</noReboot>
 		</test>
 
 .Parameter vmName
@@ -51,14 +51,11 @@
     Test data for this test case.
 
 .Example
-    setupScripts\FCOPY_file_exists.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress'
+    setupScripts\FCOPY_large_file.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-$retVal = $false
-$testfile = $null
-$gsi = $null
 
 #######################################################################
 #
@@ -100,9 +97,9 @@ function check_fcopy_daemon()
 #######################################################################
 function check_file([String] $testfile)
 {
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /root/$testfile"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /mnt/$testfile"
     if (-not $?) {
-        Write-Output "ERROR: Unable to read file" -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Unable to read file /mnt/$testfile." -ErrorAction SilentlyContinue
         return $False
     }
 	return $True
@@ -110,9 +107,96 @@ function check_file([String] $testfile)
 
 #######################################################################
 #
+#	Resize VHD
+#
+#######################################################################
+function resize_vhd([Long] $vhdSize)
+{
+    #
+    # Make sure the VM has a SCSI 0 controller, and that
+    # Lun 0 on the controller has a .vhdx file attached.
+    #
+    "Info : Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
+    $scsi00 = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber 0 -ControllerLocation 0 -ComputerName $hvServer -ErrorAction SilentlyContinue
+    if (-not $scsi00)
+    {
+        "Error: VM ${vmName} does not have a SCSI 0 Lun 0 drive"
+        $error[0].Exception.Message
+        return $False
+    }
+
+    $vhdPath = $scsi00.Path
+
+    "Info : Verify the file is a .vhdx"
+    if (-not $vhdPath.EndsWith(".vhdx") -and -not $vhdPath.EndsWith(".avhdx"))
+    {
+        "Error: SCSI 0 Lun 0 virtual disk is not a .vhdx file."
+        "       Path = ${vhdPath}"
+        return $False
+    }
+
+    Resize-VHD -Path $vhdPath -SizeBytes $vhdSize -ComputerName $hvServer -ErrorAction SilentlyContinue
+    if (-not $?)
+    {
+       "Error: Unable to resize VHDX file '${vhdPath}"
+       return $False
+    }
+
+    return $True
+}
+
+#######################################################################
+#
+#	Mount disk
+#
+#######################################################################
+function mount_disk()
+{
+    . .\setupScripts\TCUtils.ps1
+
+    $driveName = "/dev/sdb"
+
+    $sts = SendCommandToVM $ipv4 $sshKey "(echo d;echo;echo w)|fdisk ${driveName}"
+    if (-not $sts) {
+		Write-Output "ERROR: Failed to format the disk in the VM $vmName." 
+		return $False
+    }
+
+    $sts = SendCommandToVM $ipv4 $sshKey "(echo n;echo p;echo 1;echo;echo;echo w)|fdisk ${driveName}"
+    if (-not $sts) {
+		Write-Output "ERROR: Failed to format the disk in the VM $vmName." 
+		return $False
+    }
+
+    $sts = SendCommandToVM $ipv4 $sshKey "mkfs.ext3 ${driveName}1"
+    if (-not $sts) {
+		Write-Output "ERROR: Failed to make file system in the VM $vmName." 
+		return $False
+    }
+
+    $sts = SendCommandToVM $ipv4 $sshKey "mount ${driveName}1 /mnt"
+    if (-not $sts) {
+		Write-Output "ERROR: Failed to mount the disk in the VM $vmName." 
+		return $False
+    }
+
+    "Info: $driveName has been mounted to /mnt in the VM $vmName."
+
+    return $True
+}
+
+
+#######################################################################
+#
 #	Main body script
 #
 #######################################################################
+
+$retVal = $false
+$testfile = $null
+$gsi = $null
+# 10GB file size
+$filesize = 10737418240
 
 # Checking the input arguments
 if (-not $vmName) {
@@ -141,11 +225,11 @@ foreach ($p in $params) {
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
-	if ($fields[0].Trim() -eq "ipv4") {
-		$IPv4 = $fields[1].Trim()
-    }
 	if ($fields[0].Trim() -eq "rootDir") {
         $rootDir = $fields[1].Trim()
+    }
+	if ($fields[0].Trim() -eq "ipv4") {
+		$IPv4 = $fields[1].Trim()
     }
 	if ($fields[0].Trim() -eq "sshkey") {
         $sshkey = $fields[1].Trim()
@@ -206,8 +290,8 @@ else {
 	# Define the file-name to use with the current time-stamp
 	$testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file" 
 
-	# Create a 10MB sample file
-	$createfile = fsutil file createnew $testfile 10485760
+	# Create a 10GB sample file
+	$createfile = fsutil file createnew $testfile $filesize
 
 	if ($createfile -notlike "File *testfile-*.file is created") {
 		"Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
@@ -215,54 +299,64 @@ else {
 	}
 }
 
+#
 # The fcopy daemon must be running on the Linux guest VM
+#
 $sts = check_fcopy_daemon
 if (-not $sts[-1]) {
-    Write-Output "ERROR: file copy daemon is not running inside the Linux guest VM!" | Tee-Object -Append -file $summaryLog
+    Write-Output "ERROR: File copy daemon is not running inside the Linux guest VM!" | Tee-Object -Append -file $summaryLog
     $retVal = $False
 }
 
-# If we got here then all checks have passed and we can copy the file to the Linux guest VM
-# Initial file copy, which must be successful
-$Error.Clear()
-Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/root/" -FileSource host -ErrorAction SilentlyContinue
-if ($error.Count -eq 0) {
-	# Checking if the file size is matching
-	$sts = check_file $testfile
-	if (-not $sts[-1]) {
-		Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
-		$retVal = $False
-	}
-	elseif ($sts[0] -eq 10485760) {
-		Write-Output "Info: The file copied matches the 10MB size." | Tee-Object -Append -file $summaryLog
-	}
-    else {
-	    Write-Output "ERROR: The file copied doesn't match the 10MB size!" | Tee-Object -Append -file $summaryLog
-	    $retVal = $False
-    }
+#
+# Expand the SCSI disk to 15GB, and then mount it in the VM
+#
+$sts = resize_vhd 16106127360
+if (-not $sts[-1]) {
+    Write-Output "ERROR: Failed to expand the VHD." | Tee-Object -Append -file $summaryLog
+    $retVal = $False
 }
-elseif ($Error.Count -gt 0) {
-	Write-Output "Test Failed. An error has occurred while copying the file to guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
-	$error[0] | Tee-Object -Append -file $summaryLog
+$sts = mount_disk
+if (-not $sts[-1]) {
+    Write-Output "ERROR: Failed to mount the disk in the VM." | Tee-Object -Append -file $summaryLog
+    $retVal = $False
+}
+
+#
+# Copy the file to the Linux guest VM
+#
+$Error.Clear()
+Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/mnt/" -FileSource host -ErrorAction SilentlyContinue
+if ($Error.Count -eq 0) {
+	Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" | Tee-Object -Append -file $summaryLog
+}
+else {
+	Write-Output "ERROR: Test failed! File could not be copied." | Tee-Object -Append -file $summaryLog
 	$retVal = $False
 }
 
-$Error.Clear()
-# Second copy file attempt must fail with the below error code pattern
-Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/root/" -FileSource host -ErrorAction SilentlyContinue
-
-if ($Error[0].Exception.Message -like "*failed to initiate copying files to the guest: The file exists. (0x80070050)*") {
-	Write-Output "Test passed! File could not be copied as it already exists on guest VM '${vmName}'" | Tee-Object -Append -file $summaryLog
+#
+# Checking if the file is present on the guest and file size is matching
+#
+$sts = check_file $testfile
+if (-not $sts[-1]) {
+	Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
+	$retVal = $False
 }
-elseif ($error.Count -eq 0) {
-	Write-Output "Error: File '${testfile}' has been copied twice to guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
+elseif ($sts[0] -eq $filesize) {
+	Write-Output "Info: The file copied matches the 10GB size." | Tee-Object -Append -file $summaryLog
+}
+else {
+	Write-Output "ERROR: The file copied doesn't match the 10GB size!" | Tee-Object -Append -file $summaryLog
 	$retVal = $False
 }
 
+#
 # Removing the temporary test file
+#
 Remove-Item -Path $testfile -Force
-if ($? -ne "True") {
-    Write-Output "ERROR: cannot remove the test file '${testfile}'!" | Tee-Object -Append -file $summaryLog
+if (-not $?) {
+    Write-Output "ERROR: Cannot remove the test file '${testfile}'!" | Tee-Object -Append -file $summaryLog
 }
 
 return $retVal
