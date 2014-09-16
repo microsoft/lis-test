@@ -39,15 +39,15 @@
             <suiteName>Core</suiteName>
             <suiteTests>
                 <suiteTest>VMHeartbeat</suiteTest>
-				<suiteTest>TimeSync</suiteTest>
+		<suiteTest>TimeSync</suiteTest>
                 <suiteTest>TimeSync_NTP</suiteTest>
                 <suiteTest>TimeSync_SavedVM</suiteTest>
-				<suiteTest>LISShutdownVM</suiteTest>
-				<suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
-				<suiteTest>VerifyLisModules</suiteTest>
+		<suiteTest>LISShutdownVM</suiteTest>
+		<suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
+		<suiteTest>VerifyLisModules</suiteTest>
                 <suiteTest>Multi_Cpu_Test</suiteTest>
-				<suiteTest>Verify_LISModules_Version</suiteTest>
-				<suiteTest>VerifyItegratedShutdownService</suiteTest>
+		<suiteTest>Verify_LISModules_Version</suiteTest>
+		<suiteTest>VerifyItegratedShutdownService</suiteTest>
                 <suiteTest>StressReloadModules</suiteTest>
                 <suiteTest>FloppyDisk</suiteTest>
                 <suiteTest>CDmount</suiteTest>
@@ -56,7 +56,7 @@
     </testSuites>
 
     <testCases>
-		<test>
+	<test>
             <testName>VMHeartBeat</testName>
             <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
             <timeout>600</timeout>
@@ -66,19 +66,19 @@
             </testParams>
         </test>
 	
-		<test>
-			<testName>TimeSync_NTP</testName>
-			<testScript>CORE_TimeSync_NTP.sh</testScript>
-			<files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
-			<timeout>600</timeout>
-			<onError>Continue</onError>
-			<testParams>
-				<param>TZONE=Europe/Berlin</param>
-				<param>TC_COVERED=CORE-04</param>
-			</testParams>
+	<test>
+		<testName>TimeSync_NTP</testName>
+		<testScript>CORE_TimeSync_NTP.sh</testScript>
+		<files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<testParams>
+			<param>TZONE=Europe/Berlin</param>
+			<param>TC_COVERED=CORE-04</param>
+		</testParams>
          </test>
 	
-		<test>
+	<test>
             <testName>TimeSync</testName>
             <testScript>SetupScripts\INST_LIS_TimeSync.ps1</testScript>
             <timeout>600</timeout>
@@ -91,7 +91,7 @@
             </testParams>
         </test>
 
-		<test>
+	<test>
             <testName>TimeSync_SavedVM</testName>
             <testScript>SetupScripts\INST_timesync_savedVM.ps1</testScript>
             <timeout>800</timeout>
@@ -102,7 +102,7 @@
             </testparams>
         </test>
 	
-		<test>
+	<test>
             <testName>LISShutdownVM</testName>
             <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
             <timeout>600</timeout>
@@ -112,7 +112,7 @@
             </testParams>
         </test>
 		
-		<test>
+	<test>
             <testName>LISShutDownVMAndResetCpuCount</testName>
             <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
             <cleanupScript>setupScripts\ResetCPU.ps1</cleanupScript>
@@ -131,12 +131,12 @@
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testParams>
-                <param>TC_COVERED=CORE-09, CORE-10</param>
+                <param>TC_COVERED=CORE-09,CORE-10</param>
                 <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc)</param>
             </testParams>
         </test>
 		
-		<test>
+	<test>
             <testName>Multi_Cpu_Test</testName>
             <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>  
             <timeout>1600</timeout>
@@ -146,7 +146,7 @@
             </testParams>
         </test>
 
-		<test>
+	<test>
             <testName>SMP_VCPU_Count2</testName>
             <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
             <testScript>INST_LIS_SMP_VCPU.sh</testScript>
@@ -182,7 +182,7 @@
             </testparams>
         </test>
 
-		<test>
+	<test>
             <testName>Verify_LISModules_Version</testName>
             <testScript>CORE_LISmodules_version.sh</testScript>
             <files>remote-scripts/ica/CORE_LISmodules_version.sh</files>
@@ -191,11 +191,11 @@
 			<noReboot>True</noReboot>
             <testparams>		
                 <param>TC_COVERED=CORE-15</param>
-				<param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
+		<param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
             </testparams>
         </test>
 		
-		<test>
+	<test>
             <testName>VerifyItegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <timeout>600</timeout>
@@ -216,7 +216,7 @@
             <noReboot>False</noReboot>
         </test>
 
-		<test>
+	<test>
             <testName>FloppyDisk</testName>
             <testScript>LIS_Floppy_Disk.sh</testScript>
             <files>remote-scripts/ica/LIS_Floppy_Disk.sh</files>
@@ -246,7 +246,7 @@
 	</testCases>
 
     <VMs>        
-		<vm>
+	<vm>
             <hvServer>localhost</hvServer>
             <vmName>LinuxVM</vmName>
             <os>Linux</os>
