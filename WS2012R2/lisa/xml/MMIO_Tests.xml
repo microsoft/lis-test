@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>email@mycompany.com</to>
+            </recipients>
+            <sender>email@mycompany.com</sender>
+            <subject>LISA MMIO gap size test run on WS2012R2</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>MMIO</suiteName>
+            <suiteTests>
+                <suiteTest>MMIO_Set_Invalid_GapSize</suiteTest>
+			</suiteTests>
+		</suite> 
+	</testSuites>
+
+	<testCases>
+		<test>
+			<testName>MMIO_Set_Invalid_GapSize</testName>
+			<testScript>setupscripts\MMIO_Set_Invalid_GapSize.ps1</testScript>
+			<timeout>600</timeout>
+			<onError>Continue</onError>
+			<testParams>
+				<param>TC_COVERED=MMIO-02</param>
+			</testParams>
+			<noReboot>True</noReboot>
+		</test>
+
+	</testCases>
+
+	<VMs>        
+		<vm>
+			<hvServer>localhost</hvServer>
+			<vmName>VMName</vmName>
+			<os>Linux</os>
+			<ipv4></ipv4>
+			<sshKey>PKI.ppk</sshKey>
+			<suite>MMIO</suite>
+		</vm>
+	</VMs>
+
+</config>
