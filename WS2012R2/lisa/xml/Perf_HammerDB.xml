@@ -34,6 +34,10 @@
         </email>
 
         <!-- Optional testParams go here -->
+        <testParams>
+            <param>vmCpuNumber=16</param>
+            <param>vmMemory=20GB</param>
+        </testParams>
     </global>
 
     <testSuites>
@@ -50,28 +54,52 @@
             <testName>Perf_HammerDB</testName>
             <testScript>SetupScripts\Perf_HammerDB.ps1</testScript>
             <files>remote-scripts\ica\perf_hammerdbmysql.sh,tools\lisahdb.tcl,tools\hdb_tpcc.tcl,tools\HammerDB-2.16-Linux-x86-64-Install,tools\MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</files>
-            <timeout>3600</timeout>
+            <timeout>10800</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
                 <param>TC_COVERED=Perf-HammerDB</param>
                 <param>NEW_HDB_FILE=lisahdb.tcl</param>
                 <param>NEW_TPCC_FILE=hdb_tpcc.tcl</param>
-                <!-- <param>HAMMERDB_PACKAGE=HammerDB-2.16-Linux-x86-64-Install</param>
-                <param>MYSQL_PACKAGE=MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</param> -->
+                <param>RDBMS=MySQL</param>			
+                <param>MYSQL_HOST=192.168.2.101</param>
+                <param>MYSQL_PORT=3306</param>
+                <param>MYSQL_USER=root</param>
+                <param>MYSQL_PASS=mysql</param>			
+                <param>HDB_COUNT_WAREHOUSE=100</param>
+                <param>HDB_NUM_VIRTUALUSER=7</param>
+                <param>HDB_DBASE=tpcc</param>
+                <param>HDB_TOTAL_ITERATIONS=1000000</param>
+                <param>HDB_TESTRUN_DRIVER=timed</param>		
+                <param>HDB_TESTRUN_RAMPUP_TIME=2</param>
+                <param>HDB_TESTRUN_DURATION_TIME=5</param>
             </testparams>
+            <uploadFiles>
+                <file>perf_hammerdbmysql.log</file>
+                <file>hdb.log</file>
+            </uploadFiles>
         </test>
     </testCases>
 
     <VMs>        
 	    <vm>
-            <vmName>TestVM</vmName>
-            <hvServer>localhost</hvServer>
+            <vmName>TestVM1</vmName>
+            <hvServer>HyperVHost1</hvServer>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <sshKey>id_rsa.ppk</sshKey>
             <suite>HammerDB</suite>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
-    </VMs>
+        <vm>
+            <role>NonSUT</role>
+            <vmName>TestVM2</vmName>
+            <hvServer>HyperVHost2</hvServer>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+        </vm>
+		</VMs>
 
 </config>
