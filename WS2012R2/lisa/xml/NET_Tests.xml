@@ -66,6 +66,7 @@
 			<testParams>
 				<param>NIC=NetworkAdapter,External,External,001600112200</param>
 				<param>TC_COVERED=NET-01</param>
+				<param>Test_IPv6=external</param>
 				<!-- As possible, please try to set a static IP not used by the DHCP Server -->
 				<!-- Alternatively, find out which IP is leased by the dhcp server to us and set it to the IP -->
 				<param>STATIC_IP=192.168.0.2</param>
@@ -85,6 +86,7 @@
 			<testParams>
 		        <param>NIC=NetworkAdapter,Internal,Internal,001600112200</param>
 				<param>TC_COVERED=NET-04</param>
+				<param>Test_IPv6=internal</param>
 				<param>STATIC_IP=192.168.0.2</param>
 				<param>NETMASK=255.255.255.0</param>
 				<param>PING_SUCC=192.168.0.1</param>
@@ -103,6 +105,7 @@
 			<testParams>
 		        <param>NIC=NetworkAdapter,External,External,001600112200</param>
 				<param>TC_COVERED=NET-05</param>
+				<param>Test_IPv6=external</param>
 				<param>PING_SUCC=8.8.8.8</param>
 				<param>PING_FAIL=192.168.2.1</param>
 				<param>PING_FAIL2=10.10.10.5</param>
@@ -120,6 +123,7 @@
 			<testParams>
 		        <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
 				<param>TC_COVERED=NET-06</param>
+				<param>Test_IPv6=guest</param>
 				<param>STATIC_IP=192.168.0.2</param>
 				<param>NETMASK=255.255.255.0</param>
 				<param>PING_SUCC=192.168.0.3</param>
@@ -139,6 +143,7 @@
 		        <param>NIC=NetworkAdapter,External,External,001600112200</param>
 				<param>NIC=NetworkAdapter,External,External,001600112201</param>
 				<param>TC_COVERED=NET-07</param>
+				<param>Test_IPv6=external</param>
 				<param>NETMASK=255.255.255.0</param>
 				<param>PING_SUCC=8.8.8.8</param>
 				<param>PING_FAIL=192.168.2.1</param>
@@ -158,6 +163,7 @@
 		        <param>NIC=NetworkAdapter,External,External,001600112200</param>
 				<param>NIC=LegacyNetworkAdapter,External,External,001600112201</param>
 				<param>TC_COVERED=NET-08</param>
+				<param>Test_IPv6=external</param>
 				<param>REMOTE_SERVER=8.8.8.8</param>
 				<param>LO_IGNORE=yes</param>
 				<param>GATEWAY=192.168.0.1</param>
@@ -195,6 +201,7 @@
 		        <param>NIC=NetworkAdapter,External,External,001600112200</param>
 			    <param>SWITCH=NetworkAdapter,Internal,Internal,001600112200</param>
 				<param>TC_COVERED=NET-13</param>
+				<param>Test_IPv6=internal</param>
 				<param>STATIC_IP=192.168.0.2</param>
 				<param>NETMASK=255.255.255.0</param>
 				<param>PING_SUCC=192.168.0.1</param>
@@ -216,6 +223,7 @@
 		        <param>NIC=NetworkAdapter,External,External,001600112200</param>
 			    <param>SWITCH=NetworkAdapter,Private,Private,001600112200</param>
 				<param>TC_COVERED=NET-13</param>
+        		<param>Test_IPv6=guest</param>
 				<param>STATIC_IP=10.10.10.6</param>
 				<param>NETMASK=255.255.255.0</param>
 				<param>PING_SUCC=10.10.10.5</param>
@@ -259,6 +267,7 @@
             <testparams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-14</param>
+                <param>Test_IPv6=external</param>
                 <param>REMOTE_VM=8.8.8.8</param>
 				<param>SSH_PRIVATE_KEY=sshKey</param>
             </testparams>
@@ -271,6 +280,7 @@
 			<testParams>
 				<param>NIC=NetworkAdapter,External,External,001600112200</param>
 				<param>TC_COVERED=NET-02</param>
+				<param>Test_IPv6=external</param>
 				<param>REMOTE_VM=192.168.0.3</param>
 				<param>SSH_PRIVATE_KEY=sshKey</param>
 				<param>ZERO_FILE=yes</param>
@@ -289,6 +299,7 @@
 			<testParams>
 				<param>NIC=NetworkAdapter,Private,Private,001600112200</param>
 				<param>TC_COVERED=NET-01</param>
+				<param>Test_IPv6=guest</param>
 				<!-- <param>STATIC_IP=10.10.10.1</param> -->
 				<!-- <param>STATIC_IP2=10.10.10.2</param> -->
 				<!-- <param>NETMASK=255.255.255.0</param> -->
@@ -309,6 +320,7 @@
 			<testParams>
 					<param>NIC=NetworkAdapter,Private,Private,001600112203</param>
 					<param>TC_COVERED=NET-01</param>
+					<param>Test_IPv6=guest</param>
 					<param>STATIC_IP=10.10.10.2</param>
 					<param>STATIC_IP2=10.10.10.3</param>
 					<param>NETMASK=255.255.255.0</param>
@@ -329,6 +341,7 @@
 				<param>NIC=NetworkAdapter,Private,VP1,001600112200</param>
 				<param>NIC=NetworkAdapter,Private,VP2,001600112201</param>
 				<param>TC_COVERED=NET-01</param>
+				<param>Test_IPv6=guest</param>
 				<!-- <param>BRIDGE_IP=10.10.10.1</param> -->
 				<!-- <param>STATIC_IP=10.10.10.10</param> -->
 				<!-- <param>STATIC_IP2=10.10.10.20</param> -->

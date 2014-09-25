@@ -519,6 +519,35 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			exit 10
 		fi
 		
+		if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
+
+			if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
+			    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
+			    LogMsg "$msg"
+				UpdateSummary "$msg"
+				SetTestStateAborted
+				exit 30
+			fi
+
+			if [ "$PING_SUCC_IPv6" != false ] && [ "$PING_SUCC_IPv6" = "detect" ] ; then
+
+			full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$REMOTE_VM" "ip addr show | grep -A 2 "$REMOTE_VM" | grep "inet6"|grep "global"" | awk '{print $2}'`
+			IPv6=${full_ipv6:0:${#full_ipv6}-3}
+			fi
+			
+			LogMsg "Trying to ping $IPv6 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
+			UpdateSummary "Trying to ping $IPv6 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
+			
+			ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10  "$IPv6" -s "${__packet_size[$__packet_iterator]}" 
+			if [ 0 -ne $? ]; then
+				msg="Failed to ping $IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+				LogMsg "$msg"
+				UpdateSummary "$msg"
+				SetTestStateFailed
+				exit 10
+			fi
+		fi
+
 		LogMsg "Successfully pinged!"
 		UpdateSummary "Successfully pinged!"
 	done
