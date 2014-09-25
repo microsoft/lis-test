@@ -16,19 +16,18 @@
 
     <testSuites>
         <suite>
-            <suiteName>IOZone</suiteName>
+            <suiteName>FIO</suiteName>
             <suiteTests>
-                <suiteTest>Performance_IOzone</suiteTest>
+                <suiteTest>Performance_FIO</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
          <test> 
-            <testName>Performance_IOzone</testName> 
-            <testScript>Performance_IOzone.sh</testScript>
-            <files>remote-scripts/ica/Performance_IOzone.sh</files>
-            <files>Tools/iozone3_420.tar</files>
+            <testName>Performance_FIO</testName> 
+            <testScript>Performance_FIO.sh</testScript>
+            <files>remote-scripts/ica/Performance_FIO.sh,Tools/fio-2.1.10.tar.gz,tools/lis-ssd-test.fio</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
             <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript> 
             <timeout>18000</timeout> 
@@ -36,13 +35,18 @@
                 <param>SCSI=0,0,Fixed,60GB</param> 
                 <param>TOTAL_DISKS=1</param> 
                 <param>TEST_DEVICE1=/dev/sdb</param>  
-                <param>FILE_NAME=iozone3_420.tar</param>
+                <param>FILE_NAME=fio-2.1.10.tar.gz</param>
                 <param>SnapshotName=ICABase</param> 
-                <param>IOZONE_PARAMS='-s 4G -r 4K -i 0 -i 1 -i 2 -l 4 -u 4 -I -k 8'</param>
+                <param>FIO_SCENARIO_FILE=lis-ssd-test.fio</param>
             </testParams> 
             <uploadFiles>
-                <file>IOZoneLog.log</file>
-                <file>IOZoneResult.xls</file>				
+                <file>FIOLog-4k.log</file>
+                <file>FIOLog-8k.log</file>
+                <file>FIOLog-16k.log</file>
+                <file>FIOLog-32k.log</file>
+                <file>FIOLog-64k.log</file>
+                <file>FIOLog-128k.log</file>
+                <file>FIOLog-256k.log</file>
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
@@ -53,11 +57,11 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>RHEL6.4x64</vmName>
+            <vmName>SLES12Beta9X64</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
-            <suite>IOZone</suite>
+            <suite>FIO</suite>
         </vm>
     </VMs>
 </config>
