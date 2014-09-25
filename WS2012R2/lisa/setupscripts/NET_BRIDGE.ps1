@@ -308,6 +308,20 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 				# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`vlan`null`tag`null`
 				ping -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e0074616700" $pingTargetIpv4 >> /root/NET_BRIDGE.log 2>&1
 				__retVal=`$?
+
+                if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "guest" ]  ; then
+
+                    echo "Trying to get IPv6 associated with $pingTargetIpv4" >> /root/NET_BRIDGE.log 2>&1
+                    full_ipv6=`$(ssh -i .ssh/$sshKey -v -o StrictHostKeyChecking=no root@$pingTargetIpv4 "ip addr show | grep -A 2 $pingTargetIpv4 | grep link | awk '{print \`$2}'")
+
+                    IPv6=`${full_ipv6:0:`${#full_ipv6}-3}
+
+                    echo "Trying to ping `$IPv6 on interface `$__sys_interface" >> /root/NET_BRIDGE.log 2>&1
+                    # ping the right address
+                    ping6 -I `$__sys_interface -c $noPackets  "`$IPv6" >> /root/NET_BRIDGE.log 2>&1
+                    __retVal=`$(( __retVal && _rVal ))
+                fi
+
 				echo PingVMs: ping returned `$__retVal >> /root/NET_BRIDGE.log 2>&1
 				exit `$__retVal
 "@
@@ -417,6 +431,8 @@ $leaveTrail = $null
 #Snapshot name
 $snapshotParam = $null
 
+#Test IPv6
+$Test_IPv6 = $null
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
@@ -486,6 +502,7 @@ foreach ($p in $params)
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
+    "Test_IPv6" { $Test_IPv6 = $fields[1].Trim() }
     "NIC"
     {
 		

@@ -443,7 +443,7 @@ SetIPfromDHCP()
 		return 1
 	fi
 	
-	ip addr flush "$1"
+	ip -4 addr flush "$1"
 	
 	GetDistro
 	case $DISTRO in

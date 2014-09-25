@@ -551,6 +551,50 @@ fi
 # delete local file again
 [ $NO_DELETE -eq 0 ] && rm -f "$HOME"/$output_file
 
+if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
+
+	if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
+	    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
+	    LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateAborted
+		exit 30
+	fi
+
+	if [ "$PING_SUCC_IPv6" != false ] && [ "$PING_SUCC_IPv6" = "detect" ] ; then
+
+	full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$REMOTE_VM" "ip addr show | grep -A 2 "$REMOTE_VM" | grep "inet6"|grep "global"" | awk '{print $2}'`
+	IPv6=${full_ipv6:0:${#full_ipv6}-3}
+	fi
+	
+
+	dd if=$file_source of="$HOME"/"$output_file" bs=1M count=$((__file_size/1024/1024))
+
+	if [ 0 -ne $? ]; then
+		msg="Unable to create file $output_file in $HOME"
+		LogMsg "$msg"
+	    UpdateSummary "$msg"
+	    SetTestStateFailed
+	    exit 10
+	fi
+
+	LogMsg "Successfully created $output_file"
+
+	#send file to remote_vm
+	scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -6 -v -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@["$IPv6"]:"$remote_home"/"$output_file"
+	if [ 0 -ne $? ]; then
+		[ $NO_DELETE -eq 0 ] && rm -f "$HOME"/$output_file
+		msg="Unable to copy file $output_file to $IPv6:$remote_home/$output_file"
+		LogMsg "$msg"
+	    UpdateSummary "$msg"
+	    SetTestStateFailed
+	    exit 10
+	fi
+
+	LogMsg "Successfully sent $output_file to $IPv6:$remote_home/$output_file"
+	UpdateSummary "Successfully sent $output_file to $IPv6:$remote_home/$output_file"
+fi 
+
 UpdateSummary "Checksums of file match. Test successful"
 LogMsg "Updating test case state to completed"
 SetTestStateCompleted
