@@ -105,56 +105,69 @@
 param( [String] $vmName, [String] $hvServer, [String] $testParams )
 
 
-#$SNAPSHOT_NAME = "HOT_ADD_TEST"
 $KVP_KEY       = "HotAddTest"
 
 
 #######################################################################
 #
-# ConfigureAutoStartOnVM
 #
-# Description:
-#    Configure the root user to automatically login after the 
-#    VM is booted.  Also configure a script to autostart when
-#    the root user is logged in.
 #
 #######################################################################
-function ConfigureAutoStartOnVM()
+function LinuxRelease()
 {
-    $hotAddScript = "NET_VerifyBootNoNIC.sh"
+    $releaseFile = bin\plink.exe -i ssh\${sshKey} root@${ipv4} 'cat /etc/*release'
 
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ./${hotAddScript} 2>&1"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod 755 ./${hotAddScript}"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod 755 ./kvp_client"
+    if ($releaseFile -match "CentOS")      { return "CENTOS" }
+    elseif ($releaseFile -match "Fedora")  { return "FEDORA" }
+    elseif ($releaseFile -match "Red Hat") { return "RHEL"   }
+    elseif ($releaseFile -match "SUSE")    { return "SLES"   }
+    elseif ($releaseFile -match "Ubuntu")  { return "UBUNTU" }
+    elseif ($releaseFile -match "Debian")  { return "DEBIAN" }
+    
+    return "Unknown"
+}
 
-    # 
-    # Configure the root user for autologin 
-    # 
-    #
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sed -i 's/DISPLAYMANAGER_AUTOLOGIN=\`"\`"/DISPLAYMANAGER_AUTOLOGIN=\`"root\`"/g' /etc/sysconfig/displaymanager"
-  
-    #
-    # Configure NET_VerifyBootNoNIC.sh to start when the root user logs in
-    # 
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo '#!/bin/bash' > /root/launchscript.sh"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo `"./${hotAddScript}`" >> /root/launchscript.sh"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod 755 /root/launchscript.sh"
 
-    #
-    # Create the autostart file to run the NET_VerifyBootNoNIC.sh script on login
-    #
-    $AUTOSTART = "/root/.config/autostart/hotaddnic.desktop"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir /root/.config/autostart"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo '[Desktop Entry]'                 >  $AUTOSTART"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'X-SuSE-translate=true'           >> $AUTOSTART"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'GenericName=HotAddNicTest'       >> $AUTOSTART"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'Name=Hot Add NIC Test'           >> $AUTOSTART"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'Comment=Test Gen2 Hot Add NIC'   >> $AUTOSTART"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'TryExec=/root/launchscript.sh'   >> $AUTOSTART"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'Exec=/root/launchscript.sh'      >> $AUTOSTART"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'Icon=utilities-terminal'         >> $AUTOSTART"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'Type=Application'                >> $AUTOSTART"
-    bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'StartupNotify=true'              >> $AUTOSTART"
+#######################################################################
+#
+# ConfigureRcLocal()
+#
+# Description
+#    Configure the rc.local on the Linux VM to run the 
+#    /root/NET_VerifyBootNoNIC.sh script automactically when the VM
+#    reboots.
+#
+#######################################################################
+function ConfigureRcLocal()
+{
+    $linuxRelease = LinuxRelease
+ 
+    switch ($linuxRelease)
+    {
+    "CENTOS" {
+                 Throw "Error: This script currently does not support the CentOS distribution"
+             }
+    "DEBIAN" {
+                 Throw "Error: This script currently does not support the Debian distribution"
+             }
+    "FEDORA" {
+                 Throw "Error: This script currently does not support the Fedora distribution"
+             }
+    "RHEL"   {
+                 Throw "Error: This script currently does not support the RHEL distirbution"
+             }
+    "SLES"   {
+                 plink -i ssh\${sshKey} root@${ipv4} "echo 'dos2unix /root/NET_VerifyBootNoNIC.sh'  >> /etc/init.d/after.local"
+                 plink -i ssh\${sshKey} root@${ipv4} "echo 'chmod 755 /root/NET_VerifyBootNoNIC.sh' >> /etc/init.d/after.local"
+                 plink -i ssh\${sshKey} root@${ipv4} "echo '/root/NET_VerifyBootNoNIC.sh &'         >> /etc/init.d/after.local"
+             }
+    "UBUNTU" {
+                 Throw "Error: This script currently does not support the Ubuntu distribution"
+             }
+    default  {
+                 Throw "Error: Unknown linux distribution '${linuxRelease}'"
+             }
+    }   
 }
 
 
@@ -517,8 +530,7 @@ try
     # Configure the root user to be logged automatically when the VM boots,
     # and configure the NET_VerifyBootNoNIC.sh script to be run automatically
     # when the root user logs in.
-    #
-    ConfigureAutoStartOnVM
+    ConfigureRcLocal
 
     #
     # Stop the VM
@@ -529,16 +541,6 @@ try
     {
         Throw "Error: Unable to stop VM to allow removal of original NIC"
     }
-
-    #
-    # Take snapshot and name snapshot HOT_ADD_TEST
-    #
-    #"Info : Creating ${SNAPSHOT_NAME} snapshot"
-    #Checkpoint-VM -Name "${vmName}" -SnapshotName "${SNAPSHOT_NAME}" -ComputerName $hvServer -ErrorAction SilentlyContinue
-    #if (-not $?)
-    #{
-    #    Throw "Error: Unable to create ${SNAPSHOT_NAME} snapshot"
-    #}
 
     #
     # Remove the original NIC
