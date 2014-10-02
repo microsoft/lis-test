@@ -45,16 +45,19 @@ UpdateTestState()
 IntegrityCheck(){
 targetDevice=$1
 testFile="/dev/shm/testsource"
-blockSize="200000000"
-_gb=1073741824
+blockSize=$((32*1024*1024))
+_gb=$((1*1024*1024*1024))
 targetSize=$(blockdev --getsize64 $targetDevice)
 let "blocks=$targetSize / $blockSize"
 
 if [ "$targetSize" -gt "$_gb" ] ; then
   targetSize=$_gb
   let "blocks=$targetSize / $blockSize"
-  #blocks=5
  fi
+ 
+blocks=$((blocks-1))
+ mount $targetDevice /mnt/
+ targetDevice="/mnt/1"
 LogMsg "Creating test data file $testfile with size $blockSize"
 echo "We will fill the device $targetDevice (of size $targetSize) with this gata (in $blocks) and then will check if the data is not corrupted."
 echo "This will erase all data in $targetDevice"
@@ -80,11 +83,14 @@ for ((y=0 ; y<$blocks ; y++)) ; do
     echo "Checksum mismatch at block $y"
     echo "Checksum mismatch on  block $y for ${targetDevice} " >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
+    exit 80
   fi
 done
-echo "Data integrity test on ${blocks} blocks on drive ${targetDevice} : success " >> ~/summary.log
+echo "Data integrity test on ${blocks} blocks on drive $1 : success " >> ~/summary.log
+umount /mnt/
 rm -f $testFile
 }
+
 
 
 # Source the constants file
@@ -219,6 +225,7 @@ do
                     LogMsg "Successful created directory /mnt/Example"
                     LogMsg "Listing directory: ls /mnt/Example"
                     ls /mnt/Example
+                    rm -f /mnt/Example/data
                     df -h
                     umount /mnt
                     if [ "$?" = "0" ]; then
