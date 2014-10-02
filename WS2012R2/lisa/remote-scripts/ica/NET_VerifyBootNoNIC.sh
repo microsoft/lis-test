@@ -77,6 +77,117 @@ LogMsg()
 }
 
 
+####################################################################### 
+# 
+# LinuxRelease() 
+# 
+####################################################################### 
+LinuxRelease() 
+{ 
+    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}` 
+
+ 
+    case $DISTRO in 
+        *buntu*) 
+            echo "UBUNTU";; 
+        Fedora*) 
+            echo "FEDORA";; 
+        CentOS*) 
+            echo "CENTOS";; 
+        *SUSE*) 
+            echo "SLES";; 
+        Red*Hat*) 
+            echo "RHEL";; 
+        Debian*) 
+            echo "DEBIAN";; 
+    esac 
+} 
+
+
+########################################################################
+#
+#
+#
+########################################################################
+DistroSpecificNicPrep()
+{
+    distro=`LinuxRelease`
+    LogMsg "Info : Distro specific NIC prep for '${distro}'"
+
+    case $distro in
+        "CENTOS" | "RHEL")
+        ;;
+        "UBUNTU")
+        ;;
+        "DEBIAN")
+        ;;
+        "SLES")
+        ;;
+        *)
+            LogMsg "Error: DistroSpecificNicPrep found an invalid distro of '${distro}'"
+            exit 1
+        ;;
+    esac
+}
+
+
+
+########################################################################
+#
+#
+#
+########################################################################
+DistroSpecificIfUp()
+{
+    distro=`LinuxRelease`
+    LogMsg "Info : Distro specific IfUp for '${distro}'"
+
+    case $distro in
+        "CENTOS" | "RHEL")
+        ;;
+        "UBUNTU")
+        ;;
+        "DEBIAN")
+        ;;
+        "SLES")
+            LogMsg "Info : 'ifup eth0' for SLES"
+            ifup eth0
+        ;;
+        *)
+            LogMsg "Error: DistroSpecificIfUp found an invalid distro of '${distro}'"
+            exit 1
+        ;;
+    esac
+}
+
+
+########################################################################
+#
+#
+#
+########################################################################
+DistroSpecificCleanup()
+{
+    distro=`LinuxRelease`
+    LogMsg "Info : Distro specific Cleanup for '${distro}'"
+
+    case $distro in
+        "CENTOS" | "RHEL")
+        ;;
+        "UBUNTU")
+        ;;
+        "DEBIAN")
+        ;;
+        "SLES")
+        ;;
+        *)
+            LogMsg "Error: DistroSpecificCleanup found an invalid distro of '${distro}'"
+            exit 1
+        ;;
+    esac
+}
+
+
 ########################################################################
 #
 # Main script body
@@ -105,6 +216,11 @@ if [ $ethCount -ne 0 ]; then
     LogMsg "Error: eth device count is not zero: ${ethCount}"
     exit 1
 fi
+
+#
+# Do any distro specific prep work before the NIC is hot added
+#
+DistroSpecificNicPrep
 
 #
 # Create a nonintrinsic HotAddTest KVP item with a value of 'NoNICs'
@@ -137,11 +253,7 @@ done
 #
 # Configure the new eth device
 #
-LogMsg "Info : ifup eth0"
-ifup eth0
-
-#echo "Info : dhclient eth0"
-#dhclient eth0
+DistroSpecificIfUp
 
 #
 # Verify the eth device received an IP address
@@ -162,7 +274,7 @@ LogMsg "Info : Updating HotAddTesk KVP item to 'NICUp'"
 ./kvp_client append 1 'HotAddTest' 'NICUp'
 
 #
-# Loop waiting for the eth device to disappear
+# Loop waiting for the eth device to be removed
 #
 LogMsg "Info : Waiting for the eth device to be deleted"
 timeout=300
@@ -182,6 +294,11 @@ do
         exit 1
     fi
 done
+
+#
+# Do any distro specific cleanup work required after the NIC was hot removed
+#
+DistroSpecificCleanup
 
 #
 # Modify the KVP HotAddTest value to 'NoNICs'
