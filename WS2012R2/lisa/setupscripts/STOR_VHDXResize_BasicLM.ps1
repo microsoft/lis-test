@@ -250,7 +250,7 @@ if (-not $?)
     return $False
 }
 
-$diskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l 2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
+$diskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
 if (-not $?)
 {
     "Error: Unable to determine disk size from within the guest after growing the VHDX"

@@ -260,7 +260,7 @@ if (-not $?)
     return $False
 }
 
-$growDiskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l 2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
+$growDiskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
 if (-not $?)
 {
     "Error: Unable to determine disk size from within the guest after growing the VHDX"
@@ -329,7 +329,7 @@ if (-not $?)
     return $False
 }
 
-$shrinkDiskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l 2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
+$shrinkDiskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
 if (-not $?)
 {
     "Error: Unable to determine disk size from within the guest after shrinking the VHDX"
