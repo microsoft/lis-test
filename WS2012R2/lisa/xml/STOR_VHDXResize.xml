@@ -60,7 +60,9 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>Dynamic=True</param>
+				<param>SectorSize=512</param>
+				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>TC_COVERED=STOR-VHDx-01a</param>
             </testparams>
@@ -73,7 +75,9 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,0,Dynamic,4096,3GB</param>
+                <param>Dynamic=True</param>
+				<param>SectorSize=4096</param>
+				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>TC_COVERED=STOR-VHDx-01b</param>
             </testparams>
@@ -86,7 +90,9 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>Dynamic=True</param>
+				<param>SectorSize=512</param>
+				<param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
@@ -99,7 +105,9 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,0,Dynamic,4096,3GB</param>
+                <param>Dynamic=True</param>
+				<param>SectorSize=4096</param>
+				<param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
@@ -112,7 +120,9 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>Dynamic=True</param>
+				<param>SectorSize=512</param>
+				<param>DefaultSize=3GB</param>
                 <param>growSize=4GB</param>
                 <param>shrinkSize=3GB</param>
                 <param>TC_COVERED=STOR-VHDx-03</param>
@@ -126,7 +136,9 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>Dynamic=True</param>
+				<param>SectorSize=512</param>
+				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>TC_COVERED=STOR-VHDx-04a</param>
             </testparams>
@@ -139,7 +151,9 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,0,Dynamic,4096,3GB</param>
+                <param>Dynamic=True</param>
+				<param>SectorSize=4096</param>
+				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>TC_COVERED=STOR-VHDx-04b</param>
             </testparams>
@@ -152,7 +166,9 @@
             <timeout>3000</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,0,Dynamic,512,127GB</param>
+                <param>Dynamic=True</param>
+				<param>SectorSize=512</param>
+				<param>DefaultSize=127GB</param>
                 <param>NewSize=2304GB</param>
                 <param>TC_COVERED=STOR-VHDx-05</param>
             </testparams>
@@ -165,7 +181,9 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,0,Dynamic,512,3GB</param>
+                <param>Dynamic=True</param>
+				<param>SectorSize=512</param>
+				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>TC_COVERED=STOR-VHDx-06</param>
             </testparams>

@@ -72,49 +72,6 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 ###########################################################################
 #
-# ConvertStringToUInt64
-#
-# Description:
-#	Converts size string to uint64
-#
-############################################################################
-function ConvertStringToUInt64([string] $newSize)
-{
-    $uint64Size = $null
-
-    if (-not $newSize)
-    {
-        Write-Error -Message "ConvertStringToUInt64() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    if ($newSize.EndsWith("MB"))
-    {
-        $num = $newSize.Replace("MB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1MB
-    }
-    elseif ($newSize.EndsWith("GB"))
-    {
-        $num = $newSize.Replace("GB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1GB
-    }
-    elseif ($newSize.EndsWith("TB"))
-    {
-        $num = $newSize.Replace("TB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1TB
-    }
-    else
-    {
-        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    return $uint64Size
-}
-
-
-###########################################################################
-#
 # CheckCreateSCSIController
 #
 # Description
@@ -238,11 +195,22 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-    "dynamic"    	{ $dynamic  = $True }
-    "sectorSize"	{ $sectorSize    = $fields[1].Trim() }
-	"defaultSize"	{ $defaultSize  = $fields[1].Trim() }
+    "Dynamic"    	{ $dynamic  = $True }
+    "SectorSize"	{ $sectorSize    = $fields[1].Trim() }
+	"DefaultSize"	{ $defaultSize  = $fields[1].Trim() }
     default     {}  # unknown param - just ignore it
     }
+}
+
+# Source STOR_VHDXResize_Utils.ps1
+if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
+{
+    . .\setupScripts\STOR_VHDXResize_Utils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
+    return $false
 }
 
 #

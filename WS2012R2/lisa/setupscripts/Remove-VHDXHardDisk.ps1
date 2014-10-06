@@ -117,9 +117,20 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-    "sectorSize"	{ $sectorSize    = $fields[1].Trim() }
+    "SectorSize"	{ $sectorSize    = $fields[1].Trim() }
     default     {}  # unknown param - just ignore it
     }
+}
+
+# Source STOR_VHDXResize_Utils.ps1
+if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
+{
+    . .\setupScripts\STOR_VHDXResize_Utils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
+    return $false
 }
 
 $vhdxName = $vmName + "-" + $sectorSize + "-test2"
