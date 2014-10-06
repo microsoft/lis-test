@@ -95,17 +95,6 @@ if (-not $testParams)
     return $False
 }
 
-# Source STOR_VHDXResize_Utils.ps1
-if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
-{
-    . .\setupScripts\STOR_VHDXResize_Utils.ps1
-}
-else
-{
-    "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
-    return $false
-}
-
 #
 # Debug - display the test parameters so they are captured in the log file
 #
@@ -143,6 +132,17 @@ if (-not $rootDir)
 else
 {
     cd $rootDir
+}
+
+# Source STOR_VHDXResize_Utils.ps1
+if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
+{
+    . .\setupScripts\STOR_VHDXResize_Utils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
+    return $false
 }
 
 Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog

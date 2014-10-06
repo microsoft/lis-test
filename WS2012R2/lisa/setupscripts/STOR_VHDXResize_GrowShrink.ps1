@@ -127,6 +127,15 @@ foreach ($p in $params)
     }
 }
 
+if (-not $rootDir)
+{
+    "Warn : no rootdir was specified"
+}
+else
+{
+    cd $rootDir
+}
+
 # Source STOR_VHDXResize_Utils.ps1
 if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
 {
@@ -136,15 +145,6 @@ else
 {
     "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
     return $false
-}
-
-if (-not $rootDir)
-{
-    "Warn : no rootdir was specified"
-}
-else
-{
-    cd $rootDir
 }
 
 Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog

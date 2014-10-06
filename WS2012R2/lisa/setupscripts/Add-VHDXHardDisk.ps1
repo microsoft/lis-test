@@ -234,4 +234,5 @@ if (-not $sts[$sts.Length-1])
 }
 
 $retVal = $True
+echo $retVal
 return $retVal
