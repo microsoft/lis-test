@@ -133,8 +133,8 @@ else
     return $false
 }
 
-$vhdxName = $vmName + "-" + $sectorSize + "-test2"
-$vhdxDisks = Get-VMHardDiskDrive -VMName XP
+$vhdxName = $vmName + "-" + $sectorSize + "-test"
+$vhdxDisks = Get-VMHardDiskDrive -VMName $vmName
 
 foreach ($vhdx in $vhdxDisks)
 {
