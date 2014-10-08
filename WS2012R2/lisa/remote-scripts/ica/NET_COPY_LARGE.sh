@@ -307,6 +307,8 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		
 		LogMsg "Trying to ping $REMOTE_SERVER"
 		UpdateSummary "Trying to ping $REMOTE_SERVER"
+		sleep 20
+		
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`copy`null`dhcp`null`
 		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d00636f7079006468637000" "$REMOTE_VM" >/dev/null 2>&1
 		if [ 0 -eq $? ]; then
