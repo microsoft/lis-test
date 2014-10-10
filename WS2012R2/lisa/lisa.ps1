@@ -758,12 +758,41 @@ function RunTests ([String] $xmlFilename )
     }
 
     #
-    # Run an init script if one is specified in the global data
+    # Run any init scripts specified in the global data.  This change supports the original
+    # syntax that only allowed a single init script, and a new syntax that allows the user
+    # to specify multiple init scripts.
+    #
+    # Original syntax
+    #    <LisaInitScript>.\single.ps1</LisaInitScript>
+    #
+    # New syntax
+    #    <LisaInitScript>
+    #        <file>.\setupScripts\CreateVSwitches.ps1</file>
+    #        <file>.\setupScripts\CreateVMs.ps1</file>
+    #        <file>.\setupScripts\ProvisionVMs.ps1</file>
+    #    </LisaInitScript>
     #
     if ($xmlConfig.Config.Global.LisaInitScript)
     {
-        LogMsg 3 "Info : Running Lisa Init script '$($xmlConfig.Config.Global.LisaInitScript)'"
-        $initResults = RunInitShutdownScript $xmlConfig.Config.Global.LisaInitScript $xmlFilename
+        if ($xmlConfig.Config.Global.LisaInitScript.file)
+        {
+            #
+            # Support the newer syntax that allows multiple init scripts
+            #
+            foreach ($file in $xmlConfig.Config.Global.LisaInitScript.file)
+            {
+                LogMsg 3 "Info : Running Lisa Init script '${file}'"
+                $initResults = RunInitShutdownScript ${file} $xmlFilename
+            }
+        }
+        else
+        {
+            #
+            # Support the older syntax that allowed a single init script
+            #
+            LogMsg 3 "Info : Running Lisa Init script '$($xmlConfig.Config.Global.LisaInitScript)'"
+            $initResults = RunInitShutdownScript $xmlConfig.Config.Global.LisaInitScript $xmlFilename
+        }
     }
 
     LogMsg 10 "Info : Calling RunICTests"
