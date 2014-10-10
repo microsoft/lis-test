@@ -4,11 +4,11 @@
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
 
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
 
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -38,19 +38,20 @@
         <suite>
             <suiteName>Core</suiteName>
             <suiteTests>
-                <suiteTest>VMHeartbeat</suiteTest>
-		<suiteTest>TimeSync</suiteTest>
-                <suiteTest>TimeSync_NTP</suiteTest>
-                <suiteTest>TimeSync_SavedVM</suiteTest>
-		<suiteTest>LISShutdownVM</suiteTest>
-		<suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
-		<suiteTest>VerifyLisModules</suiteTest>
-                <suiteTest>Multi_Cpu_Test</suiteTest>
-		<suiteTest>Verify_LISModules_Version</suiteTest>
-		<suiteTest>VerifyItegratedShutdownService</suiteTest>
-                <suiteTest>StressReloadModules</suiteTest>
-                <suiteTest>FloppyDisk</suiteTest>
-                <suiteTest>CDmount</suiteTest>
+            <suiteTest>VMHeartbeat</suiteTest>
+            <suiteTest>TimeSync</suiteTest>
+            <suiteTest>TimeSync_NTP</suiteTest>
+            <suiteTest>TimeSync_SavedVM</suiteTest>
+    		<suiteTest>LISShutdownVM</suiteTest>
+    		<suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
+    		<suiteTest>VerifyLisModules</suiteTest>
+            <suiteTest>Multi_Cpu_Test</suiteTest>
+    		<suiteTest>Verify_LISModules_Version</suiteTest>
+            <suiteTest>VerifyItegratedShutdownService</suiteTest>
+            <suiteTest>RebootDifferentMemSettings</suiteTest>
+            <suiteTest>StressReloadModules</suiteTest>
+            <suiteTest>FloppyDisk</suiteTest>
+            <suiteTest>CDmount</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -65,7 +66,7 @@
                 <param>TC_COVERED=CORE-03</param>
             </testParams>
         </test>
-	
+
 	<test>
 		<testName>TimeSync_NTP</testName>
 		<testScript>CORE_TimeSync_NTP.sh</testScript>
@@ -77,7 +78,7 @@
 			<param>TC_COVERED=CORE-04</param>
 		</testParams>
          </test>
-	
+
 	<test>
             <testName>TimeSync</testName>
             <testScript>SetupScripts\INST_LIS_TimeSync.ps1</testScript>
@@ -101,7 +102,7 @@
                 <param>TC_COVERED=CORE-06</param>
             </testparams>
         </test>
-	
+
 	<test>
             <testName>LISShutdownVM</testName>
             <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
@@ -111,7 +112,7 @@
                 <param>TC_COVERED=CORE-07</param>
             </testParams>
         </test>
-		
+
 	<test>
             <testName>LISShutDownVMAndResetCpuCount</testName>
             <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
@@ -122,7 +123,7 @@
                 <param>TC_COVERED=CORE-08</param>
             </testParams>
         </test>
-	
+
         <test>
             <testName>VerifyLisModules</testName>
             <testScript>LIS_VerifyHyperVIC.sh</testScript>
@@ -135,10 +136,10 @@
                 <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc)</param>
             </testParams>
         </test>
-		
+
 	<test>
             <testName>Multi_Cpu_Test</testName>
-            <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>  
+            <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
             <timeout>1600</timeout>
             <noReboot>False</noReboot>
             <testParams>
@@ -176,7 +177,7 @@
             <testScript>INST_LIS_SMP_VCPU.sh</testScript>
             <files>remote-scripts/ica/INST_LIS_SMP_VCPU.sh</files>
             <timeout>600</timeout>
-            <testparams>		
+            <testparams>
                 <param>VCPU=4</param>
                 <param>TC_COVERED=CORE-11</param>
             </testparams>
@@ -189,12 +190,12 @@
             <timeout>600</timeout>
 			<onError>Continue</onError>
 			<noReboot>True</noReboot>
-            <testparams>		
+            <testparams>
                 <param>TC_COVERED=CORE-15</param>
 		<param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
             </testparams>
         </test>
-		
+
 	<test>
             <testName>VerifyItegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
@@ -203,7 +204,17 @@
                 <param>TC_COVERED=CORE-16</param>
             </testParams>
         </test>
-		
+
+        <test>
+            <testName>RebootDifferentMemSettings</testName>
+            <testParams>
+                <param>TC_COVERED=CORE-17</param>
+                <param>MemSize=5GB,2GB</param>
+            </testParams>
+            <testScript>SetupScripts\CORE_RebootDiffMemory.ps1</testScript>
+            <timeout>600</timeout>
+        </test>
+
 		<test>
             <testName>StressReloadModules</testName>
             <setupscript>setupscripts\CORE_EnableIntegrationServices.ps1</setupscript>
@@ -220,32 +231,32 @@
             <testName>FloppyDisk</testName>
             <testScript>LIS_Floppy_Disk.sh</testScript>
             <files>remote-scripts/ica/LIS_Floppy_Disk.sh</files>
-            <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>           
+            <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>
             <noReboot>False</noReboot>
-            <testParams>               
+            <testParams>
                 <param>TC_COVERED=NLIS-03</param>
             </testParams>
-            <timeout>600</timeout>                                                
-        </test>  
-                       
+            <timeout>600</timeout>
+        </test>
+
         <test>
             <testName>CDmount</testName>
             <testScript>LIS_CD.sh</testScript>
             <files>remote-scripts/ica/LIS_CD.sh</files>
             <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
-            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript> 
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testparams>
-                <param>IsoFilename=CDTEST.iso</param> 
+                <param>IsoFilename=CDTEST.iso</param>
                 <param>TC_COVERED=NLIS-10</param>
-            </testparams> 
+            </testparams>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-		
+
 	</testCases>
 
-    <VMs>        
+    <VMs>
 	<vm>
             <hvServer>localhost</hvServer>
             <vmName>LinuxVM</vmName>
