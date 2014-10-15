@@ -209,7 +209,7 @@
             <testName>RebootDifferentMemSettings</testName>
             <testParams>
                 <param>TC_COVERED=CORE-17</param>
-                <param>MemSize=5GB,2GB</param>
+                <param>MemSize=2GB,3.5GB,4.5GB,6GB</param>
             </testParams>
             <testScript>SetupScripts\CORE_RebootDiffMemory.ps1</testScript>
             <timeout>600</timeout>

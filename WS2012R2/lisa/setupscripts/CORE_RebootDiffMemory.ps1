@@ -23,10 +23,10 @@
 
 <#
 .Synopsis
-    Test LIS and shutdown with mulitiple ram settings
+    Test LIS and shutdown with different ram settings
 
 .Description
-    Test LIS and shutdown with multiple ram settings
+    Test LIS and shutdown with different ram settings
     The XML test case definition for this test would
     look similar to the following:
         <test>
@@ -112,25 +112,25 @@ foreach ($p in $params)
 #
 if ($null -eq $sshKey)
 {
-    Write-output "Error: Test parameter sshKey was not specified"| Tee-Object -Append -file $summaryLog
+    Write-output "Error: Test parameter sshKey was not specified" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-    Write-output "Error: Test parameter ipv4 was not specified"| Tee-Object -Append -file $summaryLog
+    Write-output "Error: Test parameter ipv4 was not specified" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
 if (-not $rootDir)
 {
-    Write-output "Error: Test parameter rootDir was not specified"| Tee-Object -Append -file $summaryLog
+    Write-output "Error: Test parameter rootDir was not specified" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
 if (-not $memArgs)
 {
-    Write-output "Error: Test parameter MemSize was not specified"| Tee-Object -Append -file $summaryLog
+    Write-output "Error: Test parameter MemSize was not specified" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
@@ -139,7 +139,7 @@ if (-not $memArgs)
 #
 if (-not (Test-Path $rootDir))
 {
-    Write-output"Error: The directory `"${rootDir}`" does not exist"| Tee-Object -Append -file $summaryLog
+    Write-output"Error: The directory `"${rootDir}`" does not exist" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
@@ -156,6 +156,8 @@ Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 # Source the TCUtils.ps1 file
 #
 . .\setupscripts\TCUtils.ps1
+
+$success = $True
 
 ForEach ($memory in $memArgs)
 {
@@ -177,7 +179,7 @@ ForEach ($memory in $memArgs)
         $sts = WaitForVMToStop $vmName $hvServer $timeout
         if (-not $sts)
         {
-           Write-output "Error: WaitForVMToStop fail"| Tee-Object -Append -file $summaryLog
+           Write-output "Error: WaitForVMToStop fail" | Tee-Object -Append -file $summaryLog
            return $False
         }
     }
@@ -185,11 +187,11 @@ ForEach ($memory in $memArgs)
     .\setupScripts\SetVMMemory.ps1 -vmName $vmName -hvServer $hvServer -testParams $memoryParam
     if ($? -eq "True")
     {
-        Write-output "VM Memory count updated to $memory"    | Tee-Object -Append -file $summaryLog
+        Write-output "VM Memory count updated to $memory" | Tee-Object -Append -file $summaryLog
     }
     else
     {
-        Write-output "Error: Unable to update VM memory"| Tee-Object -Append -file $summaryLog
+        Write-output "Error: Unable to update VM memory" | Tee-Object -Append -file $summaryLog
         return $False
     }
 
@@ -197,7 +199,7 @@ ForEach ($memory in $memArgs)
     Start-VM -Name $vmName -ComputerName $hvServer  -ErrorAction SilentlyContinue
     if ( $Error[0] -and $Error[0].Exception.Message.Contains("Not enough memory") )
     {
-        Write-output "Error: Not enough memory ($memory) to start VM."| Tee-Object -Append -file $summaryLog
+        Write-output "Error: Not enough memory ($memory) to start VM." | Tee-Object -Append -file $summaryLog
         continue
     }
     $Error.Clear()
@@ -220,13 +222,13 @@ ForEach ($memory in $memArgs)
     if($timeout -le 0)
     {
         Write-output "VM timeout at GetIPv4 operation with memory size $memory" | Tee-Object -Append -file $summaryLog
-        $retVal = $False
+        $success = $False
     }
     else
     {
-        Write-output "VM started with $memory"| Tee-Object -Append -file $summaryLog
-        $retVal = $retVal -and $True
+        Write-output "VM started with $memory" | Tee-Object -Append -file $summaryLog
+        $retVal = $True
     }
 }
 
-return $retVal
+return $retVal -and $success
