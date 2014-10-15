@@ -30,22 +30,22 @@
 .Parameter testParams
     The amount of RAM to be set
 .Example
-    
+
 .Link
     None.
 #>
 
 param(
       [string] $vmName,
-      [string] $hvServer, 
+      [string] $hvServer,
       [string] $testParams
       )
 ########################################################################
 #
-# ConvertStringToUInt64()
+# ConvertStringToDecimal()
 #
 ########################################################################
-function ConvertStringToUInt64([string] $str)
+function ConvertStringToDecimal([string] $str)
 {
     $uint64Size = $null
 
@@ -54,24 +54,24 @@ function ConvertStringToUInt64([string] $str)
     #
     if (-not $str)
     {
-        Write-Error -Message "ConvertStringToUInt64() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
+        Write-Error -Message "ConvertStringToDecimal() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
         return $null
     }
 
     if ($str.EndsWith("MB"))
     {
         $num = $str.Replace("MB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1MB
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1MB
     }
     elseif ($str.EndsWith("GB"))
     {
         $num = $str.Replace("GB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1GB
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1GB
     }
     elseif ($str.EndsWith("TB"))
     {
         $num = $str.Replace("TB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1TB
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1TB
     }
     else
     {
@@ -117,7 +117,7 @@ foreach ($param in $params)
     }
 }
 
-$startupMemory = ConvertStringToUInt64 $VMMemory
+$startupMemory = ConvertStringToDecimal $VMMemory
 
 $vm = Get-VM -VMName $vmName -ComputerName $hvServer
 
@@ -139,4 +139,4 @@ if(-not $?)
 "Success: Setting $VMMemory of RAM for $vmName updated successful"
 $retVal = $True
 
-return $retVal 
+return $retVal
