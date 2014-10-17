@@ -41,8 +41,7 @@
 # Preconditions:
 #    This script assumes the following provisioning has been completed on
 #    the Linux system under test:
-#    - SSH keys have been provisioned on the localhost and on
-#      the mysql_host.
+#    - SSH keys have been provisioned on the localhost and on the mysql_host.
 #    - The SSH server has strict mode disabled.
 #    - The SSH client has strict mode disabled.
 #    - If the mysql_host is identified by hostname, then name
@@ -55,14 +54,14 @@
 #     <testScript>setupscripts\Perf_HammerDB.ps1</testScript>
 #     <files>remote-scripts\ica\perf_hammerdb.sh,tools\lisahdb.tcl,tools\hdb_tpcc.tcl,packages\HammerDB-2.16-Linux-x86-64-Install,packages\MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</files>
 #     <onError>Continue</onError>
-#     <timeout>3600</timeout>
+#     <timeout>7200</timeout>
 #     <testParams>
 #         <param>HAMMERDB_PACKAGE=HammerDB-2.16-Linux-x86-64-Install</param>
 #         <param>HAMMERDB_URL=http://sourceforge.net/projects/hammerora/files/HammerDB/HammerDB-2.16/</param>
 #         <param>NEW_HDB_FILE=lisahdb.tcl</param>
 #         <param>NEW_TPCC_FILE=hdb_tpcc.tcl</param>
 #         <param>RDBMS=MySQL</param>
-#         <param>MYSQL_HOST=127.0.0.1</param>
+#         <param>MYSQL_HOST=192.168.1.10</param>
 #         <param>MYSQL_PORT=3306</param>
 #         <param>MYSQL_USER=root</param>
 #         <param>MYSQL_PASS=redhat</param>
@@ -79,7 +78,6 @@
 #
 #######################################################################
 
-
 #
 # LISA related constants
 #
@@ -95,6 +93,7 @@ HAMMERDB_VERSION="2.16"
 HAMMERDB_PACKAGE="HammerDB-${HAMMERDB_VERSION}-Linux-x86-64-Install"
 HAMMERDB_URL="http://sourceforge.net/projects/hammerora/files/HammerDB/HammerDB-${HAMMERDB_VERSION}</param>"
 HDB_CONFIG="/usr/local/HammerDB-${HAMMERDB_VERSION}/config.xml"
+<<<<<<< HEAD
 
 NEW_HDB_FILE=lisahdb.tcl
 NEW_TPCC_FILE=hdb_tpcc.tcl
@@ -112,16 +111,22 @@ HDB_TOTAL_ITERATIONS=1000000    # Number of iterations for a standard test run
 HDB_TESTRUN_DRIVER=timed        # Type of test run
 HDB_TESTRUN_RAMPUP_TIME=2       # Number of minutes of rampup time
 HDB_TESTRUN_DURATION_TIME=5     # Number of minutes to run a 'timed' test
+=======
+RDBMS=MySQL                     # Identifies the target database
+>>>>>>> HammerDB improvements and fixes
 
-#
-# MySQL related settings
-#
-MYSQL_PACKAGE="MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar"
+MYSQL_HOST=192.168.1.2            # IP address of the MySQL host - the non-SUT VM
+MYSQL_PORT=3306               # Port the MySQL server is listening on
+MYSQL_USER=root                 # Username to use when connecting to the MySQL server 
+MYSQL_PASS=redhat               # Password to use when connecting to the MySQL server 
 
-
-#
-# Function definitions
-#
+HDB_COUNT_WAREHOUSE=100         # Number of ware houses to create
+HDB_NUM_VIRTUALUSER=16          # Number of virtual users to create
+HDB_DBASE=tpcc                  # Which benchmark to run
+HDB_TOTAL_ITERATIONS=1000000    # Number of iterations for a standard test run
+HDB_TESTRUN_DRIVER=timed        # Type of test run
+HDB_TESTRUN_RAMPUP_TIME=2       # Number of minutes of rampup time
+HDB_TESTRUN_DURATION_TIME=5     # Number of minutes to run a 'timed' test
 
 #######################################################################
 #
@@ -134,7 +139,6 @@ LogMsg()
     echo "${1}" >> ~/perf_hammerdbmysql.log
 }
 
-
 #######################################################################
 #
 # UpdateTestState()
@@ -144,7 +148,6 @@ UpdateTestState()
 {
     echo $1 > ~/state.txt
 }
-
 
 #######################################################################
 #
@@ -171,7 +174,6 @@ LinuxRelease()
     esac
 }
 
-
 #######################################################################
 #
 # UbuntuInstallMySQL()
@@ -182,13 +184,188 @@ LinuxRelease()
 #######################################################################
 UbuntuInstallMySQL()
 {
-    msg="Error: Ubuntu currently is not supported by this script"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 34
-}
+    #
+    # Note: A number of steps will use SSH to issue commands to the
+    #       MYSQL_HOST.  This requires that the SSH keys be provisioned
+    #       in advanced, and strict mode be disabled for both the SSH
+    #       server and client.
+    #
+    LogMsg "Info: Install MySQL on Ubuntu"
 
+    #
+    # Ubuntu installs an older version of the MySQL client by default.
+    # This older version conflicts with the newer MySQL we will 
+    # install. Quietly remove the older version if it is installed.
+    #
+	ssh root@${MYSQL_HOST} "apt-get remove mysql-server-5.5 mysql-server-core-5.5 mysql-client-5.5 mysql-client-core-5.5 2>&1"
+
+    #
+    # Copy the MySQL package to the MYSQL_HOST, only if it is not the localhost
+    #
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        LogMsg "Info: Copy MYSQL package to mysql_host '${MYSQL_HOST}'"
+
+        scp "./${MYSQL_PACKAGE}" root@${MYSQL_HOST}:/root
+        if [ $? -ne 0 ]; then
+            msg="202 Error: Unable to copy the MYSQL package to host ${MYSQL_HOST}"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 70
+        fi
+    fi
+
+    #
+    # Try to install the MySQL package on the MYSQL_HOST
+    #
+    # Note: This requires the following:
+    #       - The MySQL package is the correct package for the Linux distribution.
+    #       - There is not a mysql client already installed on the MYSQL_HOST.
+    #         If there is a MySQL client already installed, the MYSQL install will
+    #         most likely fail with a conflict error.
+    #       
+    LogMsg "Info: Deleting old MySQL deb files"
+    ssh root@${MYSQL_HOST} "rm -f ~/MySQL*.deb"
+
+    LogMsg "Info: Extracting the ${MYSQL_PACKAGE} package"
+    ssh root@${MYSQL_HOST} "tar -xf ${MYSQL_PACKAGE}"
+	
+	# For Ubuntu we must inject the fields to use during the install process
+	# The MySQL root password will be set to "ubuntu"
+	ssh root@${MYSQL_HOST} "echo mysql-server-5.6 mysql-server/root_password password ubuntu | debconf-set-selections"
+	ssh root@${MYSQL_HOST} "echo mysql-server-5.6 mysql-server/root_password_again password ubuntu | debconf-set-selections"
+
+	LogMsg "Info: Installing MySQL-common..."
+    ssh root@${MYSQL_HOST} "dpkg -i mysql-common-5.6*.deb"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Installing MySQL-server-core..."
+    ssh root@${MYSQL_HOST} "dpkg -i mysql-server-core-5.6*.deb"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Installing MySQL-client-core..."
+    ssh root@${MYSQL_HOST} "dpkg -i mysql-client-core-5.6*.deb"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Installing MySQL-client..."
+    ssh root@${MYSQL_HOST} "dpkg -i mysql-client-5.6*.deb"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+    LogMsg "Info: Installing MySQL-server..."
+    ssh root@${MYSQL_HOST} "dpkg -i mysql-server-5.6*.deb"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Configure MySQL to listen on all IPs"
+    ssh root@${MYSQL_HOST} "sed -i 's/bind-address/#bind-address/g' /etc/mysql/my.cnf"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to configure MySQL!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+
+    #
+    # Give MySQL a few seconds to start, then verify if it's running before proceeding any further
+    #
+    sleep 9
+	
+	ssh root@${MYSQL_HOST} "ps aux | grep [m]ysqld"
+	if [ $? -ne 0 ]; then
+		msg="Error: MySQL is not running on host ${MYSQL_HOST}"
+		LogMsg "${msg}"
+		echo "${msg}" >> ~/summary.log
+		UpdateTestState $ICA_TESTFAILED
+		exit 110
+	fi
+	
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        # 
+        # Update MySql to allow connections from other servers such as Load Generator
+        # 
+        LogMsg "Info: Updating MySQL settings to allow connections from other machines"
+
+        echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
+        echo "flush privileges;" >> /root/setmysql.sql
+        
+        scp /root/setmysql.sql root@${MYSQL_HOST}:
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to copy the MYSQL setting SQL file to host ${MYSQL_HOST}"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 110
+        fi
+        
+        ssh root@${MYSQL_HOST} "mysql -h localhost -uroot -pubuntu mysql </root/setmysql.sql"
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to run sql command on MySql server side to allow connections from Load Generator"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 111
+        fi
+    fi
+
+    #
+    # Add an export LD_LIBRARY_PATH to the .bashrc file
+    #
+    LogMsg "Info: Updating .bashrc"
+    clientPath=/usr/lib/x86_64-linux-gnu/libmysqlclient.so.18
+    if [ ! -e $clientPath ]; then
+        LogMsg "Info: Searching for libmysqlclient.so.18"
+        clientPath=$(find / -name "libmysqlclient.so.18")
+        if [ -z ${clientPath} ]; then
+            msg="Error: The MySQL client library is not installed!"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 50
+        fi
+    fi
+
+    dirPath=$(dirname ${clientPath})
+    grep ${dirPath} ~/.bashrc
+    if [ $? -ne 0 ]; then
+        LogMsg "Info: Adding LD_LIBRARY_PATH to .bashrc"
+        echo "export LD_LIBRARY_PATH=${dirPath}" >> ~/.bashrc
+    fi
+	
+	ssh root@${MYSQL_HOST} "service mysql restart"
+	
+	# Fixing tclsh path for script compatibility
+	ln -s /usr/bin/tclsh8.6 /usr/local/bin/tclsh8.6
+}
 
 #######################################################################
 #
@@ -213,28 +390,10 @@ DebianInstallMySQL()
 # RhelInstallMySQL()
 #
 # Description:
-#    Perform distro specific MySQL steps for CentOS and RHEL
+#    Perform distro specific MySQL steps for RHEL and CentOS
 #
 #######################################################################
 RhelInstallMySQL()
-{
-    msg="Error: CentOS and RHEL currently are not supported by this script"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 32
-}
-
-
-#######################################################################
-#
-# SlesInstallMySQL()
-#
-# Description:
-#    Perform distro specific MySQL steps for SLES
-#
-#######################################################################
-SlesInstallMySQL()
 {
     #
     # Note: A number of steps will use SSH to issue commands to the
@@ -242,25 +401,24 @@ SlesInstallMySQL()
     #       in advanced, and strict mode be disabled for both the SSH
     #       server and client.
     #
-    LogMsg "Info : SlesInstallMySQL"
+    LogMsg "Info: Install MySQL on RHEL/CentOS"
 
     #
-    # Sles installs an older version of the MySQL client by default.
+    # RHEL/CentOS might have an older version of the MySQL client by default.
     # This older version conflicts with the newer MySQL we will 
     # install.  Quietly remove the older version if it is installed.
     #
-    ssh root@${MYSQL_HOST} "zypper --non-interactive remove libmysqlclient18 2>&1"
+	ssh root@${MYSQL_HOST} "yum -y remove mysql-libs 2>&1"
 
     #
-    # Copy the MySQL package to the MYSQL_HOST, only if it is not the
-    # localhost.
+    # Copy the MySQL package to the MYSQL_HOST, only if it is not the localhost
     #
     if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
-        LogMsg "Info : Copy MYSQL package to mysql_host '${MYSQL_HOST}'"
+        LogMsg "Info: Copy MYSQL package to mysql_host '${MYSQL_HOST}'"
 
-        scp "./${MYSQL_PACKAGE}" root@${MYSQL_HOST}:
+        scp "./${MYSQL_PACKAGE}" root@${MYSQL_HOST}:/root
         if [ $? -ne 0 ]; then
-            msg="Error: Unable to copy the MYSQL package to host ${MYSQL_HOST}"
+            msg="202 Error: Unable to copy the MYSQL package to host ${MYSQL_HOST}"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
@@ -277,18 +435,56 @@ SlesInstallMySQL()
     #         If there is a MySQL client already installed, the MYSQL install will
     #         most likely fail with a conflict error.
     #       
-    LogMsg "Info : Install the MySQL package"
-
-    LogMsg "Info : Deleting old MySQL rpm files"
+    LogMsg "Info: Deleting old MySQL deb files"
     ssh root@${MYSQL_HOST} "rm -f ~/MySQL*.rpm"
 
-    LogMsg "Info : Extracting the ${MYSQL_PACKAGE} package"
+    LogMsg "Info: Extracting the ${MYSQL_PACKAGE} package"
     ssh root@${MYSQL_HOST} "tar -xf ${MYSQL_PACKAGE}"
-
-    LogMsg "Info : Installing MySQL"
-    ssh root@${MYSQL_HOST} "rpm -i MySQL*.rpm"
+	
+	LogMsg "Info: Installing MySQL-shared-compat..."
+    ssh root@${MYSQL_HOST} "rpm -iv MySQL-shared-compat-5.6*.rpm"
     if [ $? -ne 0 ]; then
-        msg="Error: Unable to install the MySQL packages"
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Installing MySQL-shared..."
+    ssh root@${MYSQL_HOST} "rpm -iv MySQL-shared-5.6*.rpm"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Installing MySQL-client..."
+    ssh root@${MYSQL_HOST} "rpm -iv MySQL-client-5.6*.rpm"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+		
+    LogMsg "Info: Installing MySQL-server..."
+    ssh root@${MYSQL_HOST} "rpm -iv MySQL-server-5.6*.rpm"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Configure MySQL to listen on all IPs"
+    ssh root@${MYSQL_HOST} "sed -i 's/bind-address/#bind-address/g' /usr/my.cnf"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to configure MySQL!"
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
@@ -298,7 +494,7 @@ SlesInstallMySQL()
     #
     # Start the MySQL daemon
     #
-    LogMsg "Info : Starting the MySQL daemon"
+    LogMsg "Info: Starting the MySQL daemon..."
 
     #
     # The command "service mysql start" does not work until after a reboot.
@@ -327,8 +523,8 @@ SlesInstallMySQL()
     #
     # Give MySQL a few seconds to start
     #
-    LogMsg "Info : sleep for a few seconds so mysqld can start"
-    sleep 10
+    LogMsg "Info: sleep for a few seconds so mysqld can start"
+    sleep 9
 
     #
     # MySQL sets the password for the root user as expired.  The current, expired, password
@@ -336,11 +532,11 @@ SlesInstallMySQL()
     # .mysql_secret file, and then use mysqladmin to reset the password to value specified
     # in the test parameter MYSQL_PASS
     #
-    LogMsg "Info : Updating the MySQL expired password"
+    LogMsg "Info: Updating the MySQL expired password"
     
     if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
-        LogMsg "Info : MYSQL is running on '${MYSQL_HOST}'"
-        LogMsg "Info : Copying the MYSQL secret file from remote server"
+        LogMsg "Info: MYSQL is running on '${MYSQL_HOST}'"
+        LogMsg "Info: Copying the MYSQL secret file from remote server"
         scp root@${MYSQL_HOST}:/root/.mysql_secret /root
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy the MYSQL initial password file from host ${MYSQL_HOST}"
@@ -368,7 +564,7 @@ SlesInstallMySQL()
         #
         # Update MySql to allow connections from other servers such as Load Generator
         # 
-        LogMsg "Info : Updating MySQL settings to allow connections from other machines"
+        LogMsg "Info: Updating MySQL settings to allow connections from other machines"
 
         echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
         echo "flush privileges;" >> /root/setmysql.sql
@@ -395,10 +591,218 @@ SlesInstallMySQL()
     #
     # Add an export LD_LIBRARY_PATH to the .bashrc file
     #
-    LogMsg "Info : Updating .bashrc"
+    LogMsg "Info: Updating .bashrc"
     clientPath=/usr/lib64/libmysqlclient.so.18
     if [ ! -e $clientPath ]; then
-        LogMsg "Info : Searching for libmysqlclient.so.18"
+        LogMsg "Info: Searching for libmysqlclient.so.18"
+        clientPath=$(find / -name "libmysqlclient.so.18")
+        if [ -z ${clientPath} ]; then
+            msg="Error: The MySQL client library is not installed!"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 50
+        fi
+    fi
+
+    dirPath=$(dirname ${clientPath})
+    grep ${dirPath} ~/.bashrc
+    if [ $? -ne 0 ]; then
+        LogMsg "Info: Adding LD_LIBRARY_PATH to .bashrc"
+        echo "export LD_LIBRARY_PATH=${dirPath}" >> ~/.bashrc
+    fi
+	
+	ssh root@${MYSQL_HOST} "service mysql restart"
+	
+	# RHEL 6.x doesn't have tclsh v8.6, forcing a link between versions
+	ln -s /usr/bin/tclsh8.5 /usr/local/bin/tclsh8.6
+}
+
+#######################################################################
+#
+# SlesInstallMySQL()
+#
+# Description:
+#    Perform distro specific MySQL steps for SLES
+#
+#######################################################################
+SlesInstallMySQL()
+{
+    #
+    # Note: A number of steps will use SSH to issue commands to the
+    #       MYSQL_HOST.  This requires that the SSH keys be provisioned
+    #       in advanced, and strict mode be disabled for both the SSH
+    #       server and client.
+    #
+    LogMsg "Info: MySQL installation on SLES"
+
+    #
+    # Sles installs an older version of the MySQL client by default.
+    # This older version conflicts with the newer MySQL we will 
+    # install.  Quietly remove the older version if it is installed.
+    #
+    ssh root@${MYSQL_HOST} "zypper --non-interactive remove libmysqlclient18 2>&1"
+
+    #
+    # Copy the MySQL package to the MYSQL_HOST, only if it is not the
+    # localhost.
+    #
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        LogMsg "Info: Copy MYSQL package to mysql_host '${MYSQL_HOST}'"
+
+        scp "./${MYSQL_PACKAGE}" root@${MYSQL_HOST}:
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to copy the MYSQL package to host ${MYSQL_HOST}"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 70
+        fi
+    fi
+
+    #
+    # Try to install the MySQL package on the MYSQL_HOST
+    #
+    # Note: This requires the following:
+    #       - The MySQL package is the correct package for the Linux distribution.
+    #       - There is not a mysql client already installed on the MYSQL_HOST.
+    #         If there is a MySQL client already installed, the MYSQL install will
+    #         most likely fail with a conflict error.
+    #       
+    LogMsg "Info: Install the MySQL package"
+
+    LogMsg "Info: Deleting old MySQL rpm files"
+    ssh root@${MYSQL_HOST} "rm -f ~/MySQL*.rpm"
+
+    LogMsg "Info: Extracting the ${MYSQL_PACKAGE} package"
+    ssh root@${MYSQL_HOST} "tar -xf ${MYSQL_PACKAGE}"
+
+    LogMsg "Info: Installing MySQL"
+    ssh root@${MYSQL_HOST} "rpm -i MySQL*.rpm"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the MySQL packages"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+
+    #
+    # Start the MySQL daemon
+    #
+    LogMsg "Info: Starting the MySQL daemon"
+
+    #
+    # The command "service mysql start" does not work until after a reboot.
+    # We need to start the mysql daemon now so the expired password can be
+    # reset.  The following is a hack to start the mysql daemon.
+    # We need to revisit this later.
+    #
+    # Create a script that starts MySQL and can be submitted to ATD
+    #
+    echo "#!/bin/bash" > /root/runmysql.sh
+    echo "mysqld_safe" >> /root/runmysql.sh
+    chmod 755 /root/runmysql.sh
+    scp /root/runmysql.sh root@${MYSQL_HOST}:
+
+    ssh root@${MYSQL_HOST} "service atd start"
+
+    ssh root@${MYSQL_HOST} "at -f /root/runmysql.sh now"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to start the MySQL daemon"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 90
+    fi
+
+    #
+    # Give MySQL a few seconds to start
+    #
+    LogMsg "Info: sleep for a few seconds so mysqld can start"
+    sleep 9
+
+    #
+    # MySQL sets the password for the root user as expired.  The current, expired, password
+    # is stored in a file named ~/.mysql_secret.  Extract the expired password from the
+    # .mysql_secret file, and then use mysqladmin to reset the password to value specified
+    # in the test parameter MYSQL_PASS
+    #
+<<<<<<< HEAD
+    LogMsg "Info : Updating the MySQL expired password"
+    
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        LogMsg "Info : MYSQL is running on '${MYSQL_HOST}'"
+        LogMsg "Info : Copying the MYSQL secret file from remote server"
+=======
+    LogMsg "Info: Updating the MySQL expired password"
+    
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        LogMsg "Info: MYSQL is running on '${MYSQL_HOST}'"
+        LogMsg "Info: Copying the MYSQL secret file from remote server"
+>>>>>>> HammerDB improvements and fixes
+        scp root@${MYSQL_HOST}:/root/.mysql_secret /root
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to copy the MYSQL initial password file from host ${MYSQL_HOST}"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 100
+        fi
+    fi
+    
+    expiredPasswd=$(cat ~/.mysql_secret | cut -d : -f 4 | cut -d ' ' -f 2)
+    LogMsg "Expired password: '${expiredPasswd}'"
+    LogMsg "New password:     '${MYSQL_PASS}'"
+
+    ssh root@${MYSQL_HOST} "mysqladmin -uroot -p${expiredPasswd} PASSWORD $MYSQL_PASS"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to reset expired password for root"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 101
+    fi
+    
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        #
+        # Update MySql to allow connections from other servers such as Load Generator
+        # 
+<<<<<<< HEAD
+        LogMsg "Info : Updating MySQL settings to allow connections from other machines"
+=======
+        LogMsg "Info: Updating MySQL settings to allow connections from other machines"
+>>>>>>> HammerDB improvements and fixes
+
+        echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
+        echo "flush privileges;" >> /root/setmysql.sql
+        
+        scp /root/setmysql.sql root@${MYSQL_HOST}:
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to copy the MYSQL setting SQL file to host ${MYSQL_HOST}"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 110
+        fi
+        
+        ssh root@${MYSQL_HOST} "mysql -h localhost -uroot -p${MYSQL_PASS} mysql </root/setmysql.sql"
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to run sql command on MySql server side to allow connections from Load Generator"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 111
+        fi
+    fi
+
+    #
+    # Add an export LD_LIBRARY_PATH to the .bashrc file
+    #
+    LogMsg "Info: Updating .bashrc"
+    clientPath=/usr/lib64/libmysqlclient.so.18
+    if [ ! -e $clientPath ]; then
+        LogMsg "Info: Searching for libmysqlclient.so.18"
         clientPath=$(find / -name "libmysqlclient.so.18")
         if [ -z ${clientPath} ]; then
             msg="Error: The MySQL client library is not installed"
@@ -412,11 +816,54 @@ SlesInstallMySQL()
     dirPath=$(dirname ${clientPath})
     grep ${dirPath} ~/.bashrc
     if [ $? -ne 0 ]; then
-        LogMsg "Info : Adding LD_LIBRARY_PATH to .bashrc"
+        LogMsg "Info: Adding LD_LIBRARY_PATH to .bashrc"
         echo "export LD_LIBRARY_PATH=${dirPath}" >> ~/.bashrc
     fi
 }
 
+#######################################################################
+#
+# UbuntuAutologin()
+#
+# Description:
+#    Perform distro specific autologin steps for Ubuntu
+#
+#######################################################################
+UbuntuAutologin()
+{
+	LogMsg "Info: configuring GDM to autologin root"
+	sed -i 's/#  AutomaticLoginEnable/AutomaticLoginEnable/g' /etc/gdm/custom.conf
+	sed -i 's/#  AutomaticLogin = user1/AutomaticLogin=root/g' /etc/gdm/custom.conf
+}
+
+#######################################################################
+#
+# RhelAutologin()
+#
+# Description:
+#    Perform distro specific autologin steps for RHEL and CentOS
+#
+#######################################################################
+RhelAutologin()
+{
+	LogMsg "Info: configuring GDM to autologin root"
+	sed -i '/daemon/a \ AutomaticLoginEnable=true' /etc/gdm/custom.conf
+	sed -i '/AutomaticLoginEnable/a \ AutomaticLogin=root' /etc/gdm/custom.conf
+}
+
+#######################################################################
+#
+# SlesAutologin()
+#
+# Description:
+#    Perform distro specific autologin steps for SLES
+#
+#######################################################################
+SlesAutologin()
+{
+	LogMsg "Info: configuring Display Manager to autologin root"
+	sed -i 's/DISPLAYMANAGER_AUTOLOGIN=""/DISPLAYMANAGER_AUTOLOGIN="root"/g' /etc/sysconfig/displaymanager
+}
 
 #######################################################################
 #
@@ -459,7 +906,7 @@ fi
 # Make sure we have the MySQL package, then install it on the
 # host defined by the MYSQL_HOST test parameter
 #
-LogMsg "Info : Checking if MYSQL package '${MYSQL_PACKAGE}' exists"
+LogMsg "Info: Checking if MYSQL package '${MYSQL_PACKAGE}' exists"
 
 if [ ! -e "./${MYSQL_PACKAGE}" ]; then
     msg="Error: The package '${MYSQL_PACKAGE}' is not present"
@@ -470,7 +917,7 @@ if [ ! -e "./${MYSQL_PACKAGE}" ]; then
 fi
 
 #
-# Install MySQL - this has distro specific behavior
+# Install MySQL - this has distro specific behaviour
 #
 distro=`LinuxRelease`
 case $distro in
@@ -497,9 +944,6 @@ esac
 
 #
 # Now install HammerDB.  This is not distro sensitive.
-#
-
-#
 # If the HammerDB package is not present, try downloading it
 #
 if [ ! -e "${HAMMERDB_PACKAGE}" ]; then
@@ -574,14 +1018,14 @@ sed -i "/<my_duration>/c\            <my_duration>$HDB_TESTRUN_DURATION_TIME</my
 #
 # Cat the config file so it appears in the log file
 #
-LogMsg "Displaying HammerDB config file"
+#LogMsg "Displaying HammerDB config file"
 #cat $HDB_CONFIG
 
 #
 # Replace the modified hammerdb files with ones that will
 # automatically run a test.
 #
-LogMsg "Info : replace hammerdb files with modified files"
+LogMsg "Info: replace hammerdb files with modified files"
 if [ ! -e $NEW_HDB_FILE ]; then
     msg="Error: The new hammerdb file '${NEW_HDB_FILE}' does not exist"
     LogMsg "${msg}"
@@ -622,22 +1066,42 @@ fi
 chmod 755 /usr/local/HammerDB-${HAMMERDB_VERSION}/${NEW_HDB_FILE}
 
 #
-# Setup the root user for autologin
+# Configure GUI autologin for root account - this has distro specific behaviour
 #
-LogMsg "Info : configuring Display Manager to autologin root"
-sed -i 's/DISPLAYMANAGER_AUTOLOGIN=""/DISPLAYMANAGER_AUTOLOGIN="root"/g' /etc/sysconfig/displaymanager
+distro=`LinuxRelease`
+case $distro in
+    "CENTOS" | "RHEL")
+        RhelAutologin
+    ;;
+    "UBUNTU")
+        UbuntuAutologin
+    ;;
+    "DEBIAN")
+        DebianAutologin
+    ;;
+    "SLES")
+        SlesAutologin
+    ;;
+     *)
+        msg="Error: Distro '${distro}' not supported"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState "TestAborted"
+        exit 1
+    ;; 
+esac
 
 #
 # Setup HammerDB for autorun when root is logged on
 #
-LogMsg "Info : Create the /root/launchhammerdb.sh script"
+LogMsg "Info: Create the /root/launchhammerdb.sh script"
 
 echo "#!/bin/bash" > /root/launchhammerdb.sh
 echo "cd /usr/local/HammerDB-${HAMMERDB_VERSION}" >> /root/launchhammerdb.sh
 echo "./${NEW_HDB_FILE}" >> /root/launchhammerdb.sh
 chmod 755 /root/launchhammerdb.sh
 
-LogMsg "Info : Create the autostart file"
+LogMsg "Info: Create the autostart file"
 AUTOSTART=/root/.config/autostart/hammerdb.desktop
 mkdir /root/.config/autostart
 echo "[Desktop Entry]"                 >  $AUTOSTART

@@ -4,11 +4,11 @@
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
 
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
 
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -54,13 +54,22 @@
             <testName>Perf_HammerDB</testName>
             <testScript>SetupScripts\Perf_HammerDB.ps1</testScript>
             <files>remote-scripts\ica\perf_hammerdbmysql.sh,tools\lisahdb.tcl,tools\hdb_tpcc.tcl,tools\HammerDB-2.16-Linux-x86-64-Install,tools\MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</files>
+<<<<<<< HEAD
             <timeout>10800</timeout>
+=======
+            <!-- MySQL tar bundle might be one of the following, depending on the distro tested:
+					- MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar
+					- MySQL-5.6.16-1.rhel6.6.x86_64.rpm-bundle.tar
+					- MySQL-5.6.16-1.ubuntu14.10.x86_64.deb-bundle.tar -->
+			<timeout>7200</timeout>
+>>>>>>> HammerDB improvements and fixes
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
                 <param>TC_COVERED=Perf-HammerDB</param>
                 <param>NEW_HDB_FILE=lisahdb.tcl</param>
                 <param>NEW_TPCC_FILE=hdb_tpcc.tcl</param>
+<<<<<<< HEAD
                 <param>RDBMS=MySQL</param>			
                 <param>MYSQL_HOST=192.168.2.101</param>
                 <param>MYSQL_PORT=3306</param>
@@ -73,6 +82,8 @@
                 <param>HDB_TESTRUN_DRIVER=timed</param>		
                 <param>HDB_TESTRUN_RAMPUP_TIME=2</param>
                 <param>HDB_TESTRUN_DURATION_TIME=5</param>
+=======
+>>>>>>> HammerDB improvements and fixes
             </testparams>
             <uploadFiles>
                 <file>perf_hammerdbmysql.log</file>
@@ -87,7 +98,11 @@
             <hvServer>HyperVHost1</hvServer>
             <os>Linux</os>
             <ipv4></ipv4>
+<<<<<<< HEAD
             <sshKey>id_rsa.ppk</sshKey>
+=======
+            <sshKey>PKI_id_rsa.ppk</sshKey>
+>>>>>>> HammerDB improvements and fixes
             <suite>HammerDB</suite>
             <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
