@@ -1123,3 +1123,4 @@ LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
 
 exit 0
+
