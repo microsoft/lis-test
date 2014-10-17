@@ -138,14 +138,6 @@ if [ "${TARGET_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
     exit 30
 fi
 
-if [ "${TARGET_SSHKEY:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the TARGET_SSHKEY test parameter is undefined"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 40
-fi
-
 if [ "${IPERF_THREADS:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the IPERF_THREADS test parameter is undefined"
     LogMsg "${msg}"
@@ -154,22 +146,8 @@ if [ "${IPERF_THREADS:="UNDEFINED"}" = "UNDEFINED" ]; then
     exit 40
 fi
 
-#
-# Make sure the SSH key file was copied to this test system
-#
-if [ ! -e "/root/${TARGET_SSHKEY}" ]; then
-    msg="Error: The SSH Key file '/root/${TARGET_SSHKEY}' does not exist"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 50
-fi
-
-chmod 600 /root/${TARGET_SSHKEY}
-
 echo "iPerf package   = ${IPERF_PACKAGE}"
 echo "TARGET_ip       = ${TARGET_IP}"
-echo "TARGET_SSHKEY   = ${TARGET_SSHKEY}"
 echo "IPERF_THREADS   = ${IPERF_THREADS}"
 
 #
@@ -246,7 +224,9 @@ fi
 #
 LogMsg "Copying iperf to target machine"
 
-scp -o StrictHostKeyChecking=no -i /root/${TARGET_SSHKEY} src/iperf root@${TARGET_IP}:
+sleep 40
+
+scp src/iperf root@[${TARGET_IP}]:
 if [ $? -ne 0 ]; then
     msg="Error: Unable to copy iperf binary to target machine"
     LogMsg "${msg}"
@@ -260,7 +240,7 @@ fi
 #
 LogMsg "Starting iPerf in server mode on ${TARGET_IP}"
 
-ssh -i /root/${TARGET_SSHKEY} root@${TARGET_IP} "echo '/root/iperf -s -D' | at now"
+ssh root@${TARGET_IP} "echo '/root/iperf -s -D -V' | at now"
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf on the Target machine"
     LogMsg "${msg}"
@@ -281,7 +261,7 @@ sleep 5
 #
 LogMsg "Starting iPerf client"
 
-iperf -c ${TARGET_IP} -t 300 -P ${IPERF_THREADS} > ~/iperfdata.log
+iperf -c ${TARGET_IP} -t 300 -P ${IPERF_THREADS} -V > ~/iperfdata.log
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf on the client"
     LogMsg "${msg}"
