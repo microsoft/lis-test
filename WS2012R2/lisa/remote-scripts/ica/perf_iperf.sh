@@ -191,7 +191,7 @@ fi
 #
 LogMsg "Copying iperf to target machine"
 
-sleep 10
+sleep 40
 
 scp src/iperf root@[${TARGET_IP}]:
 if [ $? -ne 0 ]; then
