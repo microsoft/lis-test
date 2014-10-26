@@ -1,6 +1,5 @@
 #!/bin/bash
-
-########################################################################
+############################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
@@ -19,24 +18,33 @@
 # See the Apache Version 2.0 License for specific language governing
 # permissions and limitations under the License.
 #
-########################################################################
+############################################################################
 
+############################################################################
+#
+# Stress test IOzone
+# Stress_IOzone.sh
+#
+# Description:
+# For the test to run you have to place the iozone3_420.tar archive in the
+# lisablue/Tools folder on the HyperV.
+#
+#     TOTAL_DISKS: Number of disks attached
+#     TEST_DEVICE1 = /dev/sdb
+#
+############################################################################
 
-ICA_TESTRUNNING="TestRunning"
-ICA_TESTCOMPLETED="TestCompleted"
-ICA_TESTABORTED="TestAborted"
-ICA_TESTFAILED="TestFailed"
+ICA_TESTRUNNING="TestRunning"      # The test is running
+ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
+ICA_TESTABORTED="TestAborted"      # Error during setup of test
+ICA_TESTFAILED="TestFailed"        # Error during execution of test
 
 CONSTANTS_FILE="constants.sh"
+
 
 LogMsg()
 {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
-}
-
-UpdateSummary()
-{
-    echo $1 >> ~/summary.log
 }
 
 UpdateTestState()
@@ -44,102 +52,48 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-IntegrityCheck(){
-targetDevice=$1
-testFile="/dev/shm/testsource"
-blockSize=$((32*1024*1024))
-_gb=$((1*1024*1024*1024))
-targetSize=$(blockdev --getsize64 $targetDevice)
-let "blocks=$targetSize / $blockSize"
+LinuxRelease()
+{
+    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
 
-if [ "$targetSize" -gt "$_gb" ] ; then
-  targetSize=$_gb
-  let "blocks=$targetSize / $blockSize"
- fi
- 
-blocks=$((blocks-1))
- mount $targetDevice /mnt/
- targetDevice="/mnt/1"
-LogMsg "Creating test data file $testfile with size $blockSize"
-echo "We will fill the device $targetDevice (of size $targetSize) with this gata (in $blocks) and then will check if the data is not corrupted."
-echo "This will erase all data in $targetDevice"
-
-LogMsg "Creating test source file... ($BLOCKSIZE)"
-
-dd if=/dev/urandom of=$testFile bs=$blockSize count=1 status=noxfer 2> /dev/null
-
-LogMsg "Calculating source checksum..."        
-        
-checksum=$(sha1sum $testFile | cut -d " " -f 1)
-echo $checksum
-
-LogMsg "Checking ${blocks} blocks"
-for ((y=0 ; y<$blocks ; y++)) ; do
-  LogMsg "Writing block $y to device $targetDevice ..." 
-  dd if=$testFile of=$targetDevice bs=$blockSize count=1 seek=$y status=noxfer 2> /dev/null
-  echo -n "Checking block $y ..."
-  testChecksum=$(dd if=$targetDevice bs=$blockSize count=1 skip=$y status=noxfer 2> /dev/null | sha1sum | cut -d " " -f 1)
-  if [ "$checksum" == "$testChecksum" ] ; then
-    echo "Checksum matched for block $y"
-  else
-    echo "Checksum mismatch at block $y"
-    echo "Checksum mismatch on  block $y for ${targetDevice} " >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 80
-  fi
-done
-echo "Data integrity test on ${blocks} blocks on drive $1 : success " >> ~/summary.log
-umount /mnt/
-rm -f $testFile
+    case $DISTRO in
+        *buntu*)
+            echo "UBUNTU";;
+        Fedora*)
+            echo "FEDORA";;
+        CentOS*)
+            echo "CENTOS";;
+        *SUSE*)
+            echo "SLES";;
+        Red*Hat*)
+            echo "RHEL";;
+        Debian*)
+            echo "DEBIAN";;
+    esac
 }
 
-
-
-# Source the constants file
-if [ -e ~/${CONSTANTS_FILE} ]; then
-    source ~/${CONSTANTS_FILE}
-else
-    msg="Error: in ${CONSTANTS_FILE} file"
-    LogMsg $msg
-    echo $msg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
-fi
-
-echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
 #
 # Create the state.txt file so ICA knows we are running
 #
+LogMsg "Updating test case state to running"
 UpdateTestState $ICA_TESTRUNNING
 
 #
-# Cleanup any old summary.log files
+# Source the constants.sh file to pickup definitions from
+# the ICA automation
 #
+if [ -e ./${CONSTANTS_FILE} ]; then
+    source ${CONSTANTS_FILE}
+else
+    echo "Warn : no ${CONSTANTS_FILE} found"
+fi
+
 if [ -e ~/summary.log ]; then
     LogMsg "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
 fi
 
-#
-# Make sure the constants.sh file exists
-#
-if [ ! -e ./constants.sh ];
-then
-    echo "Cannot find constants.sh file."
-    UpdateTestState $ICA_TESTABORTED
-    exit 1
-fi
-
-#Check for Testcase count
-if [ ! ${TC_COVERED} ]; then
-    LogMsg "Error: The TC_COVERED variable is not defined."
-    echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
-    UpdateTestState "TestAborted"
-    exit 1
-fi
-
-echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
 # Count the number of SCSI= and IDE= entries in constants
 #
@@ -186,6 +140,25 @@ then
     exit 1
 fi
 
+
+case $(LinuxRelease) in
+    "UBUNTU")
+        FS="ext4"
+        COMMAND="timeout 1800 ./iozone -az -g 50G /mnt &"
+        EVAL=""
+    ;;
+    "SLES")
+        FS="ext3"
+        COMMAND="bash -c \ '(sleep 1800; kill \$$) & exec ./iozone -az -g 50G /mnt\'"
+        EVAL="eval"
+    ;;
+     *)
+        FS="ext4"
+        COMMAND="timeout 1800 ./iozone -az -g 50G /mnt &"
+        EVAL=""
+    ;; 
+esac
+
 #
 # For each drive, run fdisk -l and extract the drive
 # size in bytes.  The setup script will add Fixed
@@ -215,9 +188,9 @@ do
     sleep 5
 
    # IntegrityCheck $driveName
-    mkfs.ext3  ${driveName}1
+    mkfs.${FS}  ${driveName}1
     if [ "$?" = "0" ]; then
-        LogMsg "mkfs.ext3   ${driveName}1 successful..."
+        LogMsg "mkfs.${FS}   ${driveName}1 successful..."
         mount   ${driveName}1 /mnt
                 if [ "$?" = "0" ]; then
                 LogMsg "Drive mounted successfully..."
@@ -227,12 +200,7 @@ do
                     LogMsg "Successful created directory /mnt/Example"
                     LogMsg "Listing directory: ls /mnt/Example"
                     ls /mnt/Example
-                    rm -f /mnt/Example/data
                     df -h
-                    umount /mnt
-                    if [ "$?" = "0" ]; then
-                        LogMsg "Drive unmounted successfully..."
-                 fi
                     LogMsg "Disk test's completed for ${driveName}1"
                     echo "Disk test's is completed for ${driveName}1" >> ~/summary.log
                 else
@@ -259,31 +227,92 @@ do
         UpdateTestState $ICA_TESTFAILED
         exit 90
     fi  
-
-    # Perform Data integrity test 
-
-    IntegrityCheck ${driveName}1
-    
-    # The fdisk output appears as one word on each line of the file
-    # The 6th element (index 5) is the disk size in bytes
-    #
-    elementCount=0
-    for word in $(cat fdisk.dat)
-    do
-        elementCount=$((elementCount+1))
-        if [ $elementCount == 5 ];
-        then
-            if [ $word -ne $FixedDiskSize -a $word -ne $DynamicDiskSize -a $word -ne $Disk4KSize ];
-            then
-                echo "Error: $driveName has an unknown disk size: $word"
-		echo "Error: $driveName has an unknown disk size: $word" >> ~/summary.log
-		UpdateTestState $ICA_TESTABORTED
-                exit 1
-            fi
-         fi
-    done
 done
 
+
+
+#
+# Install IOzone and check if its installed successfully
+#
+
+# Make sure iozone exists
+IOZONE=/root/${FILE_NAME}
+
+if [ ! -e ${IOZONE} ];
+then
+    echo "Cannot find iozone file." >> ~/summary.log
+    UpdateTestState $ICA_TESTABORTED
+    exit 20
+fi
+
+# Get Root Directory of the archive
+ROOTDIR=`tar -tvf ${IOZONE} | head -n 1 | awk -F " " '{print $6}' | awk -F "/" '{print $1}'`
+
+# Now Extract the archive
+tar -xvf ${IOZONE}
+sts=$?
+if [ 0 -ne ${sts} ]; then
+    echo "Failed to extract Iozone archive" >> ~/summary.log
+    UpdateTestState $ICA_TESTABORTED
+    exit 30
+fi
+
+# cd in to directory    
+if [ !  ${ROOTDIR} ];
+then
+    echo "Cannot find ROOTDIR." >> ~/summary.log
+    UpdateTestState $ICA_TESTABORTED
+    exit 40
+fi
+
+cd ${ROOTDIR}/src/current
+
+#
+# Compile IOzone
+#
+
+make linux
+sts=$?
+    if [ 0 -ne ${sts} ]; then
+        echo "Error:  make linux  ${sts}" >> ~/summary.log
+        UpdateTestState "TestAborted"
+        echo "make linux : Failed" 
+        exit 50
+    else
+        echo "make linux : Success"
+
+    fi
+
+
+LogMsg "IOzone installed successfully"
+
+# 
+# Run iozone for 30 minutes
+#
+
+${EVAL} ${COMMAND}
+
+#
+# Check if SCSI disk is still online
+#
+mkdir /mnt/Example
+dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
+    if [ $? -ne 0 ]; then
+        LogMsg "Iozone test failed!"
+        echo "Iozone test failed!" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 60
+    fi
+   sleep 1
+
+LogMsg "IOzone test completed successfully"
+echo "IOzone test completed successfully" >> ~/summary.log
+
+#
+# Let ICA know we completed successfully
+#
+LogMsg "Updating test case state to completed"
 UpdateTestState $ICA_TESTCOMPLETED
 
 exit 0
+

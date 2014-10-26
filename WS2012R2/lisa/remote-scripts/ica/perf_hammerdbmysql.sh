@@ -93,7 +93,27 @@ HAMMERDB_VERSION="2.16"
 HAMMERDB_PACKAGE="HammerDB-${HAMMERDB_VERSION}-Linux-x86-64-Install"
 HAMMERDB_URL="http://sourceforge.net/projects/hammerora/files/HammerDB/HammerDB-${HAMMERDB_VERSION}</param>"
 HDB_CONFIG="/usr/local/HammerDB-${HAMMERDB_VERSION}/config.xml"
+<<<<<<< HEAD
 RDBMS=MySQL                     # Identifies the target database
+=======
+
+NEW_HDB_FILE=lisahdb.tcl
+NEW_TPCC_FILE=hdb_tpcc.tcl
+RDBMS=MySQL                     # Identifies the target database
+
+MYSQL_HOST=127.0.0.1            # IP address of the MySQL host
+MYSQL_PORT=3306                 # Port the MySQL server is listening on
+MYSQL_USER=root                 # Username to use when connecting to the MySQL server
+MYSQL_PASS=redhat               # Password to use when connecting to the MySQL server
+
+HDB_COUNT_WAREHOUSE=100         # Number of ware houses to create
+HDB_NUM_VIRTUALUSER=16          # Number of virtual users to create
+HDB_DBASE=tpcc                  # Which benchmark to run
+HDB_TOTAL_ITERATIONS=1000000    # Number of iterations for a standard test run
+HDB_TESTRUN_DRIVER=timed        # Type of test run
+HDB_TESTRUN_RAMPUP_TIME=2       # Number of minutes of rampup time
+HDB_TESTRUN_DURATION_TIME=5     # Number of minutes to run a 'timed' test
+>>>>>>> upstream/master
 
 MYSQL_HOST=192.168.1.2            # IP address of the MySQL host - the non-SUT VM
 MYSQL_PORT=3306               # Port the MySQL server is listening on
@@ -708,11 +728,19 @@ SlesInstallMySQL()
     # .mysql_secret file, and then use mysqladmin to reset the password to value specified
     # in the test parameter MYSQL_PASS
     #
+<<<<<<< HEAD
     LogMsg "Info: Updating the MySQL expired password"
     
     if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
         LogMsg "Info: MYSQL is running on '${MYSQL_HOST}'"
         LogMsg "Info: Copying the MYSQL secret file from remote server"
+=======
+    LogMsg "Info : Updating the MySQL expired password"
+    
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        LogMsg "Info : MYSQL is running on '${MYSQL_HOST}'"
+        LogMsg "Info : Copying the MYSQL secret file from remote server"
+>>>>>>> upstream/master
         scp root@${MYSQL_HOST}:/root/.mysql_secret /root
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy the MYSQL initial password file from host ${MYSQL_HOST}"
@@ -740,7 +768,11 @@ SlesInstallMySQL()
         #
         # Update MySql to allow connections from other servers such as Load Generator
         # 
+<<<<<<< HEAD
         LogMsg "Info: Updating MySQL settings to allow connections from other machines"
+=======
+        LogMsg "Info : Updating MySQL settings to allow connections from other machines"
+>>>>>>> upstream/master
 
         echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
         echo "flush privileges;" >> /root/setmysql.sql

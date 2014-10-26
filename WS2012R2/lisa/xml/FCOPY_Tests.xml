@@ -42,6 +42,8 @@
 		<suiteTests>
 			<suiteTest>FCOPY_basic</suiteTest>
 			<suiteTest>FCOPY_file_exists</suiteTest> 
+			<suiteTest>FCOPY_overwrite</suiteTest>
+			<suiteTest>FCOPY_large_file</suiteTest>
 		</suiteTests>
         </suite>
     </testSuites>
@@ -67,6 +69,28 @@
 			<noReboot>True</noReboot>
 		</test>
 		
+		<test>
+			<testName>FCOPY_overwrite</testName>
+			<testScript>setupscripts\FCOPY_overwrite.ps1</testScript>
+			<timeout>900</timeout>
+			<testParams>
+				<param>TC_COVERED=FCopy-03</param>
+			</testParams>
+			<noReboot>False</noReboot>
+		</test>		
+		
+		<test>
+			<testName>FCOPY_large_file</testName>
+			<setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript> 
+			<testScript>setupscripts\FCOPY_large_file.ps1</testScript>
+			<cleanupScript>setupscripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+			<timeout>900</timeout>
+			<testParams>
+				<param>TC_COVERED=FCopy-04</param>
+				<param>SCSI=0,0,Dynamic,512</param>
+			</testParams>
+			<noReboot>False</noReboot>
+		</test>
 	</testCases>
 
 	<VMs>

@@ -57,35 +57,57 @@ UpdateTestState()
     done
  }
 
+
 IntegrityCheck(){
 targetDevice=$1
 testFile="/dev/shm/testsource"
-blockSize="100000000"
-blocks="1"
-_gb=1073741824
+blockSize=$((32*1024*1024))
+_gb=$((1*1024*1024*1024))
 targetSize=$(blockdev --getsize64 $targetDevice)
+let "blocks=$targetSize / $blockSize"
+
 if [ "$targetSize" -gt "$_gb" ] ; then
   targetSize=$_gb
-  blocks=$(($targetSize / $blockSize))
+  let "blocks=$targetSize / $blockSize"
  fi
+ 
+blocks=$((blocks-1))
+ mount $targetDevice /mnt/
+ targetDevice="/mnt/1"
+LogMsg "Creating test data file $testfile with size $blockSize"
+echo "We will fill the device $targetDevice (of size $targetSize) with this gata (in $blocks) and then will check if the data is not corrupted."
+echo "This will erase all data in $targetDevice"
+
+LogMsg "Creating test source file... ($BLOCKSIZE)"
+
 dd if=/dev/urandom of=$testFile bs=$blockSize count=1 status=noxfer 2> /dev/null
+
+LogMsg "Calculating source checksum..."        
+        
 checksum=$(sha1sum $testFile | cut -d " " -f 1)
+echo $checksum
+
 LogMsg "Checking ${blocks} blocks"
-for ((y=0 ; y<blocks ; y++)) ; do
+for ((y=0 ; y<$blocks ; y++)) ; do
   LogMsg "Writing block $y to device $targetDevice ..." 
   dd if=$testFile of=$targetDevice bs=$blockSize count=1 seek=$y status=noxfer 2> /dev/null
+  echo -n "Checking block $y ..."
   testChecksum=$(dd if=$targetDevice bs=$blockSize count=1 skip=$y status=noxfer 2> /dev/null | sha1sum | cut -d " " -f 1)
   if [ "$checksum" == "$testChecksum" ] ; then
-    LogMsg "Checksum matched for block $y"
+    echo "Checksum matched for block $y"
   else
-    LogMsg "Checksum mismatch at block $y"
-    echo "Checksum mismatch for block $y" >> ~/summary.log
+    echo "Checksum mismatch at block $y"
+    echo "Checksum mismatch on  block $y for ${targetDevice} " >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
+    exit 80
   fi
 done
-echo "Checksum test pass for ${y} out of ${blocks} blocks on drive ${targetDevice}" >> ~/summary.log
+echo "Data integrity test on ${blocks} blocks on drive $1 : success " >> ~/summary.log
+umount /mnt/
 rm -f $testFile
 }
+
+
 
 TestFileSystem()
 {

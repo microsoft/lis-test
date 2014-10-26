@@ -443,7 +443,7 @@ SetIPfromDHCP()
 		return 1
 	fi
 	
-	ip addr flush "$1"
+	ip -4 addr flush "$1"
 	
 	GetDistro
 	case $DISTRO in
@@ -1233,6 +1233,28 @@ CreateIfupConfigFile()
 				
 				ifdown "$__interface_name"
 				ifup "$__interface_name"
+
+				;;
+			ubuntu*)
+				__file_path="/etc/network/interfaces"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+				
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+
+				cat <<-EOF >> "$__file_path"
+					auto $__interface_name
+					iface $__interface_name inet dhcp
+				EOF
+
+				service network-manager restart
+				ifdown "$__interface_name"
+				ifup "$__interface_name"
+
 				;;
 			*)
 				LogMsg "CreateIfupConfigFile: Platform not supported yet!"
@@ -1323,12 +1345,41 @@ CreateIfupConfigFile()
 				ifdown "$__interface_name"
 				ifup "$__interface_name"
 				;;
+
+			ubuntu*)
+				__file_path="/etc/network/interfaces"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+				
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+
+				cat <<-EOF >> "$__file_path"
+					auto $__interface_name
+					iface $__interface_name inet static
+					address $__ip
+					netmask $__netmask
+				EOF
+
+				service network-manager restart
+				ifdown "$__interface_name"
+				ifup "$__interface_name"
+				
+				;;
 			*)
 				LogMsg "CreateIfupConfigFile: Platform not supported yet!"
 				return 3
 				;;
 		esac
 	fi
+
+	sysctl -w net.ipv4.conf.all.rp_filter=0
+	sysctl -w net.ipv4.conf.default.rp_filter=0
+	sysctl -w net.ipv4.conf.eth0.rp_filter=0
+	sysctl -w net.ipv4.conf.$__interface_name.rp_filter=0
 	
 	return 0
 }

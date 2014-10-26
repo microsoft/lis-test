@@ -415,6 +415,28 @@ while [ $__synth_iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 			# ping worked! Do not test any other interface
 			LogMsg "Successfully pinged $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]} (dhcp)."
 			UpdateSummary "Successfully pinged $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]} (dhcp)."
+			if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
+
+				if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
+				    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
+				    LogMsg "$msg"
+					UpdateSummary "$msg"
+					SetTestStateAborted
+					exit 30
+				fi
+
+				LogMsg "Trying to ping $PING_SUCCIPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+				ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10  "$PING_SUCC_IPv6"
+				if [ 0 -ne $? ]; then
+					msg="Failed to ping $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+					LogMsg "$msg"
+					UpdateSummary "$msg"
+					SetTestStateFailed
+					exit 10
+				fi
+
+				UpdateSummary "Successfully pinged $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+			fi
 			break
 		else
 			LogMsg "Unable to ping $REMOTE_SERVER through synthetic ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
@@ -503,6 +525,28 @@ while [ $__legacy_iterator -lt ${#LEGACY_NET_INTERFACES[@]} ]; do
 			# ping worked!
 			LogMsg "Successfully pinged $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]} (dhcp)."
 			UpdateSummary "Successfully pinged $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]} (dhcp)."
+			if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
+
+				if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
+				    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
+				    LogMsg "$msg"
+					UpdateSummary "$msg"
+					SetTestStateAborted
+					exit 30
+				fi
+
+				LogMsg "Trying to ping $PING_SUCCIPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+				ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10  "$PING_SUCC_IPv6"
+				if [ 0 -ne $? ]; then
+					msg="Failed to ping $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+					LogMsg "$msg"
+					UpdateSummary "$msg"
+					SetTestStateFailed
+					exit 10
+				fi
+
+				UpdateSummary "Successfully pinged $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+			fi
 			break
 		else
 			LogMsg "Unable to ping $REMOTE_SERVER through legacy ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"

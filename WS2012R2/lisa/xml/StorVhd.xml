@@ -6,7 +6,7 @@
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
-                <to>myself@mycompany.com</to>		
+                <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
             <subject>LISA FTM Test Run on WS2012R2</subject>
@@ -14,42 +14,76 @@
         </email>
 
         <!-- Optional testParams go here -->
-    </global>  
+    </global>
 
     <testSuites>
         <suite>
             <suiteName>Storage</suiteName>
-            <suiteTests>			
-                <suiteTest>FloppyDisk</suiteTest> 
+            <suiteTests>
+                <suiteTest>FloppyDisk</suiteTest>
                 <suiteTest>VHD_IDE_0_1_DYNAMIC</suiteTest>
                 <suiteTest>VHD_MultiDisk_SCSI_Dynamic</suiteTest>
                 <suiteTest>VHD_MultiDisk_SCSI_Fixed</suiteTest>
                 <suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
-                <suiteTest>VHD_AddDiff_Disk_IDE</suiteTest>  
+                <suiteTest>VHD_AddDiff_Disk_IDE</suiteTest>
                 <suiteTest>VHD_AddDiff_Disk_SCSI</suiteTest>
                 <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteTest>
-                <suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest> 
-                <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest> 
-                <suiteTest>VHD_HotADD_Multi_Dynamic_SCSI</suiteTest>      
-                <suiteTest>VHD_HotRemove_Multi_Dynamic_SCSI</suiteTest> 
-                <suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest> 
+                <suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest>
+                <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest>
+                <suiteTest>VHD_HotADD_Multi_Dynamic_SCSI</suiteTest>
+                <suiteTest>VHD_HotRemove_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
-                <suiteTest>TakeRevert_SnapShot</suiteTest>                            
-                <suiteTest>ExportImportVM</suiteTest>        
+                <suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest>
+                <suiteTest>VHD_HotADD_Dynamic_SCSI_SMP</suiteTest>
+                <suiteTest>Make_passthrough_offline</suiteTest>
+                <suiteTest>TakeRevert_SnapShot</suiteTest>
+                <suiteTest>ExportImportVM</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
+
         <test>
-            <testName>VHD_SCSI_0_1_Dynamic_Big</testName>          
+            <testName>Make_passthrough_offline</testName>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <testParams>
+                <param>TC_COVERED=STOR-29</param>
+                <param>TargetIP=valid_iscsi_target_ip</param>
+                <param>IQN=valid_iqn</param>
+                <param>SSH_PRIVATE_KEY=sshKey</param>
+            </testParams>
+            <testScript>STOR_pass_offline.sh</testScript>
+            <files>remote-scripts/ica/STOR_pass_offline.sh</files>
+            <timeout>10800</timeout>
+        </test>
+
+        <test>
+            <testName>VHD_HotADD_Dynamic_SCSI_SMP</testName>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <preTest>setupscripts\AddHardDisk.ps1</preTest>
+            <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>18000</timeout>
+            <testparams>
+                <param>SCSI=0,0,Dynamic</param>
+                <param>TC_COVERED=STOR-24</param>
+                <param>VCPU=4</param>
+            </testparams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+       </test>
+
+        <test>
+            <testName>VHD_SCSI_0_1_Dynamic_Big</testName>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <testParams>
-                <param>SCSI=0,1,Dynamic,2039GB</param>                 
+                <param>SCSI=0,1,Dynamic,2039GB</param>
                 <param>TC_COVERED=STOR-26,STOR-27</param>
                 <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
-            </testParams>           
+            </testParams>
             <testScript>STOR_Big_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Big_Disk.sh</files>
             <timeout>10800</timeout>
@@ -59,13 +93,13 @@
             <testName>VHD_HotADD_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
-            <preTest>setupscripts\AddHardDisk.ps1</preTest> 
+            <preTest>setupscripts\AddHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
-                <param>SCSI=0,0,Dynamic</param>    
-                <param>SCSI=0,1,Dynamic</param> 
-                <param>TC_COVERED=STOR-18,STOR-20</param>         
+                <param>SCSI=0,0,Dynamic</param>
+                <param>SCSI=0,1,Dynamic</param>
+                <param>TC_COVERED=STOR-18,STOR-20,STOR-23</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -75,13 +109,13 @@
             <testName>VHD_HotRemove_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_hot_remove.sh</testScript>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
-            <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
+            <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
             <timeout>18000</timeout>
             <testparams>
-                <param>SCSI=0,0,Dynamic</param>    
-                <param>SCSI=0,1,Dynamic</param> 
-                <param>TC_COVERED=STOR-19,STOR-23</param>         
+                <param>SCSI=0,0,Dynamic</param>
+                <param>SCSI=0,1,Dynamic</param>
+                <param>TC_COVERED=STOR-19,STOR-23</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -91,13 +125,13 @@
             <testName>HotRemove_Multi_PassThrough_SCSI</testName>
             <testScript>STOR_hot_remove.sh</testScript>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
-            <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
+            <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
             <timeout>18000</timeout>
             <testparams>
-                <param>SCSI=0,0,PassThrough</param>    
-                <param>SCSI=0,1,PassThrough</param> 
-                <param>TC_COVERED=STOR-19,STOR-23</param>         
+                <param>SCSI=0,0,PassThrough</param>
+                <param>SCSI=0,1,PassThrough</param>
+                <param>TC_COVERED=STOR-22</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -107,13 +141,13 @@
             <testName>HotADD_Multi_PassThrough_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
-            <preTest>setupscripts\AddHardDisk.ps1</preTest> 
+            <preTest>setupscripts\AddHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
                 <param>SCSI=0,0,PassThrough</param>
-                <param>SCSI=0,1,PassThrough</param> 
-                <param>TC_COVERED=STOR-21</param>         
+                <param>SCSI=0,1,PassThrough</param>
+                <param>TC_COVERED=STOR-21</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -126,11 +160,11 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-            <testParams>            
-                <param>IDE=0,1,PassThrough</param>  
-                <param>IDE=1,1,PassThrough</param>         
+            <testParams>
+                <param>IDE=0,1,PassThrough</param>
+                <param>IDE=1,1,PassThrough</param>
                 <param>TC_COVERED=STOR-10,STOR-09,STOR-16</param>
-            </testParams>         
+            </testParams>
             <onError>Continue</onError>
             <timeout>10800</timeout>
         </test>
@@ -142,12 +176,12 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-            <testParams>            
+            <testParams>
                 <param>SCSI=0,0,PassThrough</param>
                 <param>SCSI=0,1,PassThrough</param>
-                <param>SCSI=0,2,PassThrough</param>        
+                <param>SCSI=0,2,PassThrough</param>
                 <param>TC_COVERED=STOR-11,STOR-15</param>
-            </testParams>         
+            </testParams>
             <onError>Continue</onError>
             <timeout>12800</timeout>
         </test>
@@ -179,7 +213,7 @@
             </testparams>
             <onError>Continue</onError>
         </test>
-  
+
         <test>
             <testName>VHD_MultiDisk_SCSI_Dynamic</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
@@ -190,8 +224,8 @@
             <testparams>
                 <param>SCSI=0,0,Dynamic</param>
                 <param>SCSI=0,1,Dynamic</param>
-                <param>SCSI=0,2,Dynamic</param>  
-                <param>TC_COVERED=STOR-04,STOR-14</param>             
+                <param>SCSI=0,2,Dynamic</param>
+                <param>TC_COVERED=STOR-04,STOR-14</param>
             </testparams>
             <onError>Continue</onError>
         </test>
@@ -206,7 +240,7 @@
             <testparams>
                 <param>SCSI=0,0,Fixed</param>
                 <param>SCSI=0,1,Fixed</param>
-                <param>TC_COVERED=STOR-06</param> 
+                <param>TC_COVERED=STOR-06</param>
             </testparams>
             <onError>Continue</onError>
         </test>
@@ -221,13 +255,13 @@
             <testparams>
                 <param>IDE=0,1,Fixed</param>
                 <param>IDE=1,1,Fixed</param>
-                <param>TC_COVERED=STOR-05</param> 
+                <param>TC_COVERED=STOR-05</param>
             </testparams>
             <onError>Continue</onError>
         </test>
 
         <test>
-            <testName>VHD_IDE_0_1_DYNAMIC</testName> 
+            <testName>VHD_IDE_0_1_DYNAMIC</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
@@ -235,35 +269,51 @@
             <testParams>
                 <param>IDE=1,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
-                <param>TC_COVERED=STOR-02,STOR-03,STOR-12</param>     
-            </testParams> 
+                <param>TC_COVERED=STOR-02,STOR-03,STOR-12</param>
+            </testParams>
             <timeout>10800</timeout>
         </test>
-	
+
         <test>
             <testName>FloppyDisk</testName>
-            <testScript>STOR_Floppy_Disk.sh</testScript>    
-            <files>remote-scripts\ica\STOR_Floppy_Disk.sh</files> 
-            <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript> 
+            <testScript>STOR_Floppy_Disk.sh</testScript>
+            <files>remote-scripts\ica\STOR_Floppy_Disk.sh</files>
+            <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
             <noReboot>False</noReboot>
-            <testParams>               
+            <testParams>
                 <param>TC_COVERED=STOR-01</param>
             </testParams>
-            <timeout>600</timeout>			
+            <timeout>600</timeout>
         </test>
-
-		<test>
-            <testName>TakeRevert_SnapShot</testName>
-            <testScript>setupScripts\STOR_TakeRevert_Snapshot.ps1</testScript>
-            <timeout>1800</timeout>
-            <testParams>
-                <param>snapshotname=ICABase</param>
-                <param>TC_COVERED=STOR-42,STOR-43</param>
-        </testParams>
+         <test>
+            <testName>CDmount</testName>
+            <testScript>LIS_CD.sh</testScript>
+            <files>remote-scripts/ica/LIS_CD.sh</files>
+            <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
+            <testparams>
+                <param>IsoFilename=CDTEST.iso</param>
+                <param>TC_COVERED=STOR-01a</param>
+            </testparams>
+            <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
+        <test>
+            <testName>TakeRevert_SnapShot</testName>
+            <setupScript>setupScripts\AddDisk.ps1</setupScript>
+            <testScript>setupScripts\STOR_TakeRevert_Snapshot.ps1</testScript>
+            <timeout>1800</timeout>
+            <testParams>
+                <param>DiskType=VHD</param>
+                <param>SCSI=0,1,Dynamic</param>
+                <param>SnapshotName=ICABase</param>
+                <param>TC_COVERED=STOR-25,STOR-28,STOR-45,STOR-46</param>
+             </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
 
         <test>
             <testName>ExportImportVM</testName>
@@ -271,14 +321,14 @@
             <timeout>2400</timeout>
             <testParams>
                 <param>SnapshotName=ICABase</param>
-                <param>TC_COVERED=STOR-58</param>
+                <param>TC_COVERED=STOR-59</param>
             </testParams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
     </testCases>
 
-    <VMs>        
+    <VMs>
         <vm>
             <hvServer>localhost</hvServer>
             <vmName>SLES11SP3X64</vmName>

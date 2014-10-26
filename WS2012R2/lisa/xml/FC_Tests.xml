@@ -5,11 +5,11 @@
     Copyright (c) Microsoft Corporation
 
 
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
 
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -39,13 +39,14 @@
 		<suiteName>FC</suiteName>
 		<suiteTests>
 			<suiteTest>FC_disks_detection</suiteTest>
-			<suiteTest>FC_stressTest</suiteTest> 
+			<suiteTest>FC_stressTest</suiteTest>
 			<suiteTest>FC_SaveRestore_VM</suiteTest>
+			<suiteTest>FC_disks_multipath_detection</suiteTest>
 		</suiteTests>
         </suite>
     </testSuites>
 
-	<testCases>			
+	<testCases>
 		<test>
 			<testName>FC_disks_detection</testName>
 			<testScript>FC_disks.sh</testScript>
@@ -82,6 +83,17 @@
 			<timeout>7200</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-07</param>
+				<param>vSANName=FC_NAME</param>
+			</testParams>
+		</test>
+
+		<test>
+			<testName>FC_disks_multipath_detection</testName>
+			<testScript>setupscripts\FC_MultipathDetection.ps1</testScript>
+			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+			<timeout>3600</timeout>
+			<testParams>
+				<param>TC_COVERED=FC-08</param>
 				<param>vSANName=FC_NAME</param>
 			</testParams>
 		</test>

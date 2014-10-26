@@ -103,9 +103,7 @@ function check_file([String] $testfile)
         Write-Output "ERROR: Unable to read file" -ErrorAction SilentlyContinue
         return $False
     }
-	elseif ($? -eq 10485760) {
-		return $True
-	}
+	return $True
 }
 
 #######################################################################
@@ -239,8 +237,12 @@ if (-not $sts[-1]) {
 	Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
 	$retVal = $False
 }
-elseif ($sts[1]) {
+elseif ($sts[0] -eq 10485760) {
 	Write-Output "Info: The file copied matches the 10MB size." | Tee-Object -Append -file $summaryLog
+}
+else {
+	Write-Output "ERROR: The file copied doesn't match the 10MB size!" | Tee-Object -Append -file $summaryLog
+	$retVal = $False
 }
 
 # Removing the temporary test file

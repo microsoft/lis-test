@@ -38,6 +38,7 @@
             <suiteName>IPerf</suiteName>
             <suiteTests>
                 <suiteTest>Perf_iPerf</suiteTest>
+                <suiteTest>Perf_iPerfipv6</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -46,13 +47,33 @@
          <test>
             <testName>Perf_iPerf</testName>          
             <testScript>perf_iperf.sh</testScript>
-            <files>remote-scripts/ica/perf_iperf.sh,ssh/rhel5_id_rsa</files>
+            <files>remote-scripts/ica/perf_iperf.sh</files>
             <files>Tools/iperf-2.0.5.tar.gz</files>
             <testParams>
                 <param>IPERF_PACKAGE=iperf-2.0.5.tar.gz</param>
-                <param>TARGET_IP=192.168.1.100</param>
-                <param>TARGET_SSHKEY=rhel5_id_rsa</param>
-                <param>IPERF_THREADS=10</param>
+                <param>TARGET_IP=192.168.1.10</param>
+                <param>IPERF_THREADS=1</param>
+                <param>IPERF_BUFFER=1.5KB</param>
+                <param>IPERF_TCPWINDOW=64KB</param>
+            </testParams>
+            <uploadFiles>
+                <file>iperfdata.log</file>
+            </uploadFiles>
+            <timeout>1200</timeout>
+            <OnError>Continue</OnError>
+         </test>
+
+         <test>
+            <testName>Perf_iPerfipv6</testName>          
+            <testScript>perf_iperf.sh</testScript>
+            <files>remote-scripts/ica/perf_iperf.sh</files>
+            <files>Tools/iperf-2.0.5.tar.gz</files>
+            <testParams>
+                <param>IPERF_PACKAGE=iperf-2.0.5.tar.gz</param>
+                <param>TARGET_IP=fd00::1:10</param>
+                <param>IPERF_THREADS=1</param>
+                <param>IPERF_BUFFER=1.5KB</param>
+                <param>IPERF_TCPWINDOW=64KB</param>
             </testParams>
             <uploadFiles>
                 <file>iperfdata.log</file>
@@ -66,19 +87,19 @@
         <vm>
 	    <role>SUT</role>
             <hvServer>localhost</hvServer>
-            <vmName>Sles11Sp3x64</vmName>
+            <vmName>vmName1</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <sshKey>id_rsa.ppk</sshKey>
             <suite>IPerf</suite>
         </vm>
         <vm>
             <role>NonSUT</role>
             <hvServer>localhost</hvServer>
-            <vmName>SLES11SP3X64-NonSUT</vmName>
+            <vmName>vmName2</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <sshKey>id_rsa.ppk</sshKey>
         </vm>
     </VMs>
 </config>

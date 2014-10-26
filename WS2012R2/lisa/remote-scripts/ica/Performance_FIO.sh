@@ -1,6 +1,6 @@
 #!/bin/bash
 
-##############################################################################
+############################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
@@ -23,21 +23,15 @@
 
 ############################################################################
 #
-#
-# iometer - Performance_Dynamo.sh
+# Performance_FIO.sh
 #
 # Description:
-#   This is a semi-automated test-case. For the test to run you need
-#   to have a Windows environment running IOMETER 1.1.0-rc1 and the 
-#   iometer for Linux (Dynamo client) archive placed in the Tools folder.
-#   The versions must match. In the xml you have to  specify the Windows 
-#	client IP address.
+#     For the test to run you have to place the FIO3_420.tar archive in the
+#     Tools folder under lisa.
 #
 # Parameters:
-#     IOMETER_IP: The IP of the Windows machine
 #     TOTAL_DISKS: Number of disks attached
 #     TEST_DEVICE1 = /dev/sdb
-#     TEST_DEVICE2 = /dev/sdc
 #
 ############################################################################
 
@@ -48,10 +42,9 @@ ICA_TESTFAILED="TestFailed"        # Error during test
 
 CONSTANTS_FILE="constants.sh"
 
-# To add the timestamp to the log file
 LogMsg()
 {
-    echo `date "+%a %b %d %T %Y"` : ${1}
+    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the time-stamp to the log file
 }
 
 UpdateTestState()
@@ -113,7 +106,7 @@ fi
 echo "Number of disk attached : $TOTAL_DISKS" >> ~/summary.log
 
 fdisk -l
-sleep 3
+sleep 2
 NEW_DISK=$(fdisk -l | grep "Disk /dev/sd*" | wc -l)
 NEW_DISK=$((NEW_DISK-1))
 if [ "$NEW_DISK" = "$TOTAL_DISKS" ] ; then
@@ -132,11 +125,27 @@ fi
 
 case $(LinuxRelease) in
     "UBUNTU")
+        LogMsg "Run test on Ubuntu. Install libaio-dev..."
         apt-get install make
+        apt-get install libaio-dev
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            echo "Failed to install the libaio-dev library!" >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+            exit 41
+        fi
         FS="ext4"
     ;;
     "SLES")
-        FS="ext3"
+        LogMsg "Run test on SLES. Install libaio-devel..."
+        zypper --non-interactive install libaio-devel
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            echo "Failed to install the libaio-devel library!" >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+            exit 41
+        fi
+        FS="ext4"
     ;;
      *)
         FS="ext4"
@@ -153,11 +162,11 @@ do
         exit 50
     fi
 
-    LogMsg "TEST_DEVICE = ${!j}"       
+    LogMsg "TEST_DEVICE = ${!j}"
     echo "Target device = ${!j}" >> ~/summary.log
     DISK=`echo ${!j} | cut -c 6-8`
 
-    # Format and mount the disk
+# Format and mount the disk
     (echo d;echo;echo w)|fdisk /dev/$DISK
     sleep 2
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk /dev/$DISK
@@ -175,39 +184,37 @@ do
             exit 70
         fi
     else
-        LogMsg "Error in creating file system.."
-        echo "Creating Filesystem : Failed" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 80
+            LogMsg "Error in creating file system.."
+            echo "Creating Filesystem : Failed" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 80
     fi
     i=$[$i+1]
 done
 
 #
-# Install iometer and check if the installation is successful
+# Install FIO and check if the installation is successful
 #
-IOMETER=/root/${FILE_NAME}
+FIO=/root/${FILE_NAME}
 
-if [ ! -e ${IOMETER} ];
+if [ ! -e ${FIO} ];
 then
-    echo "Cannot find the iometer archive!" >> ~/summary.log
+    echo "Cannot find FIO test source file." >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 20
 fi
 
-#
 # Get Root Directory of the archive
-#
-ROOTDIR=`tar tjf ${FILE_NAME} | sed -e 's@/.*@@' | uniq`
+ROOTDIR=`tar -tvf ${FIO} | head -n 1 | awk -F " " '{print $6}' | awk -F "/" '{print $1}'`
 
-tar -xvjf ${IOMETER}
+tar -xvf ${FIO}
 sts=$?
 if [ 0 -ne ${sts} ]; then
-    echo "Failed to extract iometer tarball!" >> ~/summary.log
+    echo "Failed to extract the FIO archive!" >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 30
 fi
-
+ 
 if [ !  ${ROOTDIR} ];
 then
     echo "Cannot find ROOTDIR." >> ~/summary.log
@@ -215,49 +222,80 @@ then
     exit 40
 fi
 
-cd ${ROOTDIR}/src
+cd ${ROOTDIR}
 
 #
-# Change the IOPerformance header for compilation
+# Compile FIO
 #
-sed -i s,"defined(IOMTR_OS_LINUX) || defined(IOMTR_OSFAMILY_NETWARE)","defined(IOMTR_OSFAMILY_NETWARE)",g IOPerformance.h
-
-#
-# Compile the application
-#
-make -f Makefile-$(uname).$(uname -m) all
+./configure
 sts=$?
-    if [ 0 -ne ${sts} ]; then
-        echo "Error: make linux  ${sts}" >> ~/summary.log
-        UpdateTestState "TestAborted"
-        echo "make linux : Failed" 
-        exit 50
-    else
-        echo "make linux: Success"
-
-    fi
-    
-LogMsg "iometer was installed successfully!"
-
-#
-# Turn off firewall
-#
-service iptables stop
-
-#
-# run iometer
-#
-./dynamo -i ${IOMETER_IP} -m ${ipv4}
-if [ $? -ne 0 ] ; then
-    LogMsg "iometer test failed!"
-    echo "iometer test failed!" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 60
+if [ 0 -ne ${sts} ]; then
+    echo "Error: configure  ${sts}" >> ~/summary.log
+    UpdateTestState "TestAborted"
+     echo "Configure : Failed" 
+    exit 50
+else
+    echo "Configure: Success"
 fi
+
+#
+# make FIO
+#
+make
+sts=$?
+if [ 0 -ne ${sts} ]; then
+    echo "Error: make  ${sts}" >> ~/summary.log
+    UpdateTestState "TestAborted"
+     echo "make : Failed" 
+    exit 50
+else
+    echo "make: Success"
+fi
+
+LogMsg "FIO was installed successfully!"
+
+# Run FIO with block size 4k
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-4k.log
+
+# Run FIO with block size 8k
+sed --in-place=.orig -e s:"bs=4k":"bs=8k": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-8k.log
+
+# Run FIO with block size 16k
+sed --in-place=.orig -e s:"bs=8k":"bs=16k": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-16k.log
+
+# Run FIO with block size 32k
+sed --in-place=.orig -e s:"bs=16k":"bs=32k": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-32k.log
+
+# Run FIO with block size 64k
+sed --in-place=.orig -e s:"bs=32k":"bs=64k": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-64k.log
+
+# Run FIO with block size 128k
+sed --in-place=.orig -e s:"bs=64k":"bs=128k": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-128k.log
+
+# Run FIO with block size 256k
+sed --in-place=.orig -e s:"bs=128k":"bs=256k": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-256k.log
+
+#
+# Check if the SCSI disk is still connected
+#
+mkdir /mnt/Example
+dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
+    if [ $? -ne 0 ]; then
+        LogMsg "FIO test failed!"
+        echo "FIO test failed!" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 60
+    fi
 sleep 1
 
-LogMsg "iometer test completed successfully"
-echo "iometer test completed successfully" >> ~/summary.log
+LogMsg "=FIO test completed successfully"
+echo "FIO test completed successfully" >> ~/summary.log
 
 #
 # Let ICA know we completed successfully
