@@ -94,6 +94,11 @@ HAMMERDB_PACKAGE="HammerDB-${HAMMERDB_VERSION}-Linux-x86-64-Install"
 HAMMERDB_URL="http://sourceforge.net/projects/hammerora/files/HammerDB/HammerDB-${HAMMERDB_VERSION}</param>"
 HDB_CONFIG="/usr/local/HammerDB-${HAMMERDB_VERSION}/config.xml"
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+RDBMS=MySQL                     # Identifies the target database
+=======
+>>>>>>> 81b319b6a8c1bca3bf198101b89e6db302d988dd
 
 NEW_HDB_FILE=lisahdb.tcl
 NEW_TPCC_FILE=hdb_tpcc.tcl
@@ -111,9 +116,13 @@ HDB_TOTAL_ITERATIONS=1000000    # Number of iterations for a standard test run
 HDB_TESTRUN_DRIVER=timed        # Type of test run
 HDB_TESTRUN_RAMPUP_TIME=2       # Number of minutes of rampup time
 HDB_TESTRUN_DURATION_TIME=5     # Number of minutes to run a 'timed' test
+<<<<<<< HEAD
 =======
 RDBMS=MySQL                     # Identifies the target database
 >>>>>>> HammerDB improvements and fixes
+=======
+>>>>>>> upstream/master
+>>>>>>> 81b319b6a8c1bca3bf198101b89e6db302d988dd
 
 MYSQL_HOST=192.168.1.2            # IP address of the MySQL host - the non-SUT VM
 MYSQL_PORT=3306               # Port the MySQL server is listening on
@@ -425,6 +434,7 @@ RhelInstallMySQL()
             exit 70
         fi
     fi
+<<<<<<< HEAD
 
     #
     # Try to install the MySQL package on the MYSQL_HOST
@@ -566,6 +576,149 @@ RhelInstallMySQL()
         # 
         LogMsg "Info: Updating MySQL settings to allow connections from other machines"
 
+=======
+
+    #
+    # Try to install the MySQL package on the MYSQL_HOST
+    #
+    # Note: This requires the following:
+    #       - The MySQL package is the correct package for the Linux distribution.
+    #       - There is not a mysql client already installed on the MYSQL_HOST.
+    #         If there is a MySQL client already installed, the MYSQL install will
+    #         most likely fail with a conflict error.
+    #       
+    LogMsg "Info: Deleting old MySQL deb files"
+    ssh root@${MYSQL_HOST} "rm -f ~/MySQL*.rpm"
+
+    LogMsg "Info: Extracting the ${MYSQL_PACKAGE} package"
+    ssh root@${MYSQL_HOST} "tar -xf ${MYSQL_PACKAGE}"
+	
+	LogMsg "Info: Installing MySQL-shared-compat..."
+    ssh root@${MYSQL_HOST} "rpm -iv MySQL-shared-compat-5.6*.rpm"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Installing MySQL-shared..."
+    ssh root@${MYSQL_HOST} "rpm -iv MySQL-shared-5.6*.rpm"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Installing MySQL-client..."
+    ssh root@${MYSQL_HOST} "rpm -iv MySQL-client-5.6*.rpm"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+		
+    LogMsg "Info: Installing MySQL-server..."
+    ssh root@${MYSQL_HOST} "rpm -iv MySQL-server-5.6*.rpm"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to install the package!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+	
+	LogMsg "Info: Configure MySQL to listen on all IPs"
+    ssh root@${MYSQL_HOST} "sed -i 's/bind-address/#bind-address/g' /usr/my.cnf"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to configure MySQL!"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+
+    #
+    # Start the MySQL daemon
+    #
+    LogMsg "Info: Starting the MySQL daemon..."
+
+    #
+    # The command "service mysql start" does not work until after a reboot.
+    # We need to start the mysql daemon now so the expired password can be
+    # reset.  The following is a hack to start the mysql daemon.
+    # We need to revisit this later.
+    #
+    # Create a script that starts MySQL and can be submitted to ATD
+    #
+    echo "#!/bin/bash" > /root/runmysql.sh
+    echo "mysqld_safe" >> /root/runmysql.sh
+    chmod 755 /root/runmysql.sh
+    scp /root/runmysql.sh root@${MYSQL_HOST}:
+
+    ssh root@${MYSQL_HOST} "service atd start"
+
+    ssh root@${MYSQL_HOST} "at -f /root/runmysql.sh now"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to start the MySQL daemon"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 90
+    fi
+
+    #
+    # Give MySQL a few seconds to start
+    #
+    LogMsg "Info: sleep for a few seconds so mysqld can start"
+    sleep 9
+
+    #
+    # MySQL sets the password for the root user as expired.  The current, expired, password
+    # is stored in a file named ~/.mysql_secret.  Extract the expired password from the
+    # .mysql_secret file, and then use mysqladmin to reset the password to value specified
+    # in the test parameter MYSQL_PASS
+    #
+    LogMsg "Info: Updating the MySQL expired password"
+    
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        LogMsg "Info: MYSQL is running on '${MYSQL_HOST}'"
+        LogMsg "Info: Copying the MYSQL secret file from remote server"
+        scp root@${MYSQL_HOST}:/root/.mysql_secret /root
+        if [ $? -ne 0 ]; then
+            msg="Error: Unable to copy the MYSQL initial password file from host ${MYSQL_HOST}"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 100
+        fi
+    fi
+    
+    expiredPasswd=$(cat ~/.mysql_secret | cut -d : -f 4 | cut -d ' ' -f 2)
+    LogMsg "Expired password: '${expiredPasswd}'"
+    LogMsg "New password:     '${MYSQL_PASS}'"
+
+    ssh root@${MYSQL_HOST} "mysqladmin -uroot -p${expiredPasswd} PASSWORD $MYSQL_PASS"
+    if [ $? -ne 0 ]; then
+        msg="Error: Unable to reset expired password for root"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 101
+    fi
+    
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        #
+        # Update MySql to allow connections from other servers such as Load Generator
+        # 
+        LogMsg "Info: Updating MySQL settings to allow connections from other machines"
+
+>>>>>>> 81b319b6a8c1bca3bf198101b89e6db302d988dd
         echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
         echo "flush privileges;" >> /root/setmysql.sql
         
@@ -729,11 +882,21 @@ SlesInstallMySQL()
     # in the test parameter MYSQL_PASS
     #
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+    LogMsg "Info: Updating the MySQL expired password"
+    
+    if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
+        LogMsg "Info: MYSQL is running on '${MYSQL_HOST}'"
+        LogMsg "Info: Copying the MYSQL secret file from remote server"
+=======
+>>>>>>> 81b319b6a8c1bca3bf198101b89e6db302d988dd
     LogMsg "Info : Updating the MySQL expired password"
     
     if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
         LogMsg "Info : MYSQL is running on '${MYSQL_HOST}'"
         LogMsg "Info : Copying the MYSQL secret file from remote server"
+<<<<<<< HEAD
 =======
     LogMsg "Info: Updating the MySQL expired password"
     
@@ -741,6 +904,9 @@ SlesInstallMySQL()
         LogMsg "Info: MYSQL is running on '${MYSQL_HOST}'"
         LogMsg "Info: Copying the MYSQL secret file from remote server"
 >>>>>>> HammerDB improvements and fixes
+=======
+>>>>>>> upstream/master
+>>>>>>> 81b319b6a8c1bca3bf198101b89e6db302d988dd
         scp root@${MYSQL_HOST}:/root/.mysql_secret /root
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy the MYSQL initial password file from host ${MYSQL_HOST}"
@@ -769,10 +935,17 @@ SlesInstallMySQL()
         # Update MySql to allow connections from other servers such as Load Generator
         # 
 <<<<<<< HEAD
+<<<<<<< HEAD
         LogMsg "Info : Updating MySQL settings to allow connections from other machines"
 =======
         LogMsg "Info: Updating MySQL settings to allow connections from other machines"
 >>>>>>> HammerDB improvements and fixes
+=======
+        LogMsg "Info: Updating MySQL settings to allow connections from other machines"
+=======
+        LogMsg "Info : Updating MySQL settings to allow connections from other machines"
+>>>>>>> upstream/master
+>>>>>>> 81b319b6a8c1bca3bf198101b89e6db302d988dd
 
         echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
         echo "flush privileges;" >> /root/setmysql.sql
