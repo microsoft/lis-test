@@ -64,10 +64,12 @@ $sshKey     = $null
 $ipv4       = $null
 $newGrowSize    = $null
 $newShrinkSize    = $null
+$sectorSize	= $null
 $rootDir    = $null
 $TC_COVERED = $null
 $TestLogDir = $null
 $TestName   = $null
+$vhdxDrive	= $null
 
 #######################################################################
 #
@@ -119,6 +121,7 @@ foreach ($p in $params)
     "ipv4"      { $ipv4    = $fields[1].Trim() }
     "growSize"  { $newGrowSize = $fields[1].Trim() }
     "shrinkSize"       { $newShrinkSize = $fields[1].Trim() }
+    "sectorSize"       { $sectorSize = $fields[1].Trim() }
     "rootDIR"   { $rootDir = $fields[1].Trim() }
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
@@ -160,8 +163,18 @@ $newVhdxShrinkSize = ConvertStringToUInt64 $newShrinkSize
 # Lun 0 on the controller has a .vhdx file attached.
 #
 "Info : Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
-$scsi00 = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber 0 -ControllerLocation 0 -ComputerName $hvServer -ErrorAction SilentlyContinue
-if (-not $scsi00)
+$vhdxName = $vmName + "-" + $sectorSize + "-test"
+$vhdxDisks = Get-VMHardDiskDrive -VMName $vmName
+
+foreach ($vhdx in $vhdxDisks)
+{
+	$vhdxPath = $vhdx.Path
+	if ($vhdxPath.Contains($vhdxName))
+	{
+		$vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber $vhdx.ControllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
+	}
+}
+if (-not $vhdxDrive)
 {
     "Error: VM ${vmName} does not have a SCSI 0 Lun 0 drive"
     $error[0].Exception.Message
@@ -169,7 +182,7 @@ if (-not $scsi00)
 }
 
 "Info : Check if the virtual disk file exists"
-$vhdPath = $scsi00.Path
+$vhdPath = $vhdxDrive.Path
 $vhdxInfo = GetRemoteFileInfo $vhdPath $hvServer
 if (-not $vhdxInfo)
 {
