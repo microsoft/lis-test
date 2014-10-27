@@ -356,7 +356,7 @@
             <testName>OperState</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,None,None,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-22</param>
             </testParams>
             <testScript>NET_OPERSTATE.sh</testScript>
