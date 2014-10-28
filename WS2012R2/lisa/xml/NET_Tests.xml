@@ -334,8 +334,8 @@
             <testName>BridgeNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,Private,VP1,001600112200</param>
-                <param>NIC=NetworkAdapter,Private,VP2,001600112201</param>
+                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private2,001600112201</param>
                 <param>TC_COVERED=NET-01</param>
                 <param>Test_IPv6=guest</param>
                 <!-- <param>BRIDGE_IP=10.10.10.1</param> -->
@@ -375,7 +375,7 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=NET-??</param>
-                <param>Switch_Name=ExternalNet</param>
+                <param>Switch_Name=External</param>
             </testparams>
         </test>
 
@@ -389,7 +389,7 @@
             <noReboot>False</noReboot>
             <testparams>
                 <param>TC_COVERED=NET-??</param>
-                <param>Switch_Name=ExternalNet</param>
+                <param>Switch_Name=External</param>
             </testparams>
         </test>
     </testCases>
