@@ -12,41 +12,35 @@
             <subject>LIS Performance Test Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
+		
+       <!-- Optional testParams go here -->
+        <testParams>
+            <param>vmCpuNumber=8</param>
+            <param>vmMemory=16GB</param>
+        </testParams>
     </global>
 
     <testSuites>
         <suite>
-            <suiteName>FIO</suiteName>
+            <suiteName>LINPACK</suiteName>
             <suiteTests>
-                <suiteTest>Performance_FIO</suiteTest>
+                <suiteTest>Performance_LINPACK</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
          <test> 
-            <testName>Performance_FIO</testName> 
-            <testScript>Performance_FIO.sh</testScript>
-            <files>remote-scripts/ica/Performance_FIO.sh,Tools/fio-2.1.10.tar.gz,tools/lis-ssd-test.fio</files>
-            <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
-            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript> 
+            <testName>Performance_LINPACK</testName> 
+            <testScript>Performance_LINPACK.sh</testScript>
+            <files>remote-scripts/ica/Performance_LINPACK.sh,Tools/l_lpk_p_11.2.0.003.tgz</files>
             <timeout>18000</timeout> 
             <testParams>  
-                <param>SCSI=0,0,Fixed,60GB</param> 
-                <param>TOTAL_DISKS=1</param> 
-                <param>TEST_DEVICE1=/dev/sdb</param>  
-                <param>FILE_NAME=fio-2.1.10.tar.gz</param>
-                <param>SnapshotName=ICABase</param> 
-                <param>FIO_SCENARIO_FILE=lis-ssd-test.fio</param>
+                <param>TOOL_NAME=l_lpk_p_11.2.0.003.tgz</param>
+                <param>LINPACK_SCRIPT=runme_xeon64</param>
             </testParams> 
             <uploadFiles>
-                <file>FIOLog-4k.log</file>
-                <file>FIOLog-8k.log</file>
-                <file>FIOLog-16k.log</file>
-                <file>FIOLog-32k.log</file>
-                <file>FIOLog-64k.log</file>
-                <file>FIOLog-128k.log</file>
-                <file>FIOLog-256k.log</file>
+                <file>LINPACK.log</file>
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
@@ -61,7 +55,8 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
-            <suite>FIO</suite>
+            <suite>LINPACK</suite>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
     </VMs>
 </config>

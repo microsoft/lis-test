@@ -10,7 +10,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LISA FTM Test Run on WS2012</subject>
+            <subject>LIS Performance Test Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
 

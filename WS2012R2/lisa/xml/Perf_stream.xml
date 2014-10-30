@@ -12,37 +12,35 @@
             <subject>LIS Performance Test Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
+		
+       <!-- Optional testParams go here -->
+        <testParams>
+            <param>vmCpuNumber=8</param>
+            <param>vmMemory=4GB</param>
+        </testParams>
     </global>
 
     <testSuites>
         <suite>
-            <suiteName>IOZone</suiteName>
+            <suiteName>STREAM</suiteName>
             <suiteTests>
-                <suiteTest>Performance_IOzone</suiteTest>
+                <suiteTest>Performance_STREAM</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
          <test> 
-            <testName>Performance_IOzone</testName> 
-            <testScript>Performance_IOzone.sh</testScript>
-            <files>remote-scripts/ica/Performance_IOzone.sh</files>
-            <files>Tools/iozone3_420.tar</files>
-            <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
-            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript> 
-            <timeout>18000</timeout> 
+            <testName>Performance_STREAM</testName> 
+            <testScript>Performance_STREAM.sh</testScript>
+            <files>remote-scripts/ica/Performance_STREAM.sh,Tools/stream.c,Tools/numactl-2.0.10.tar.gz</files>
+            <timeout>1800</timeout> 
             <testParams>  
-                <param>SCSI=0,0,Fixed,60GB</param> 
-                <param>TOTAL_DISKS=1</param> 
-                <param>TEST_DEVICE1=/dev/sdb</param>  
-                <param>FILE_NAME=iozone3_420.tar</param>
-                <param>SnapshotName=ICABase</param> 
-                <param>IOZONE_PARAMS='-s 4G -r 4K -i 0 -i 1 -i 2 -l 4 -u 4 -I -k 8'</param>
+                <param>STREAM_SOURCE=stream.c</param>
+                <param>LIBNUMA_PACKAGE=numactl-2.0.10.tar.gz</param>
             </testParams> 
             <uploadFiles>
-                <file>IOZoneLog.log</file>
-                <file>IOZoneResult.xls</file>				
+                <file>stream-gcc.log</file>
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
@@ -53,11 +51,12 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>RHEL6.4x64</vmName>
+            <vmName>SLES12Beta9X64</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
-            <suite>IOZone</suite>
+            <suite>STREAM</suite>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
     </VMs>
 </config>

@@ -26,7 +26,7 @@
 # Performance_FIO.sh
 #
 # Description:
-#     For the test to run you have to place the FIO3_420.tar archive in the
+#     For the test to run you have to place the fio-2.1.10.tar.gz archive in the
 #     Tools folder under lisa.
 #
 # Parameters:
