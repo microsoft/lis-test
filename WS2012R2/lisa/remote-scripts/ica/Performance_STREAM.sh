@@ -23,15 +23,15 @@
 
 #######################################################################
 #
-# Performance_LINPACK.sh
+# Performance_STREAM.sh
 #
 # Description:
-#     For the test to run you have to place the l_lpk_p_11.2.0.003.tgz archive in the
+#     For the test to run you have to place the numactl-2.0.10.tar.gz archive and stream.c in the
 #     Tools folder under lisa.
 #
 # Parameters:
-#     TOOL_NAME: the LINPACK toolkit package
-#     LINPACK_SCRIPT: the LINPACK script to run
+#     STREAM_SOURCE: the source code of stream (stream.c)
+#     LIBNUMA_PACKAGE: the libnuma package
 #
 #######################################################################
 
@@ -95,31 +95,31 @@ fi
 #
 # Make sure the required test parameters are defined
 #
-if [ "${TOOL_NAME:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the LINPACK test parameter is missing"
+if [ "${STREAM_SOURCE:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Error: the STREAM_SOURCE test parameter is missing"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 20
 fi
 
-if [ "${LINPACK_SCRIPT:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the LINPACK_SCRIPT test parameter is missing"
+if [ "${LIBNUMA_PACKAGE:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Error: the LIBNUMA_PACKAGE test parameter is missing"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 20
 fi
 
-echo "Linpack package   = ${TOOL_NAME}"
-echo "Linpack scripts   = ${LINPACK_SCRIPT}"
+echo "stream source code= ${STREAM_SOURCE}"
+echo "libnuma package   = ${LIBNUMA_PACKAGE}"
 
 #
 # Extract the files from the tar package
 #
-tar -xzf ./${TOOL_NAME}
+tar -xzf ./${LIBNUMA_PACKAGE}
 if [ $? -ne 0 ]; then
-    msg="Error: Unable extract ${TOOL_NAME}"
+    msg="Error: Unable extract ${LIBNUMA_PACKAGE}"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -129,9 +129,9 @@ fi
 #
 # Get the root directory of the tarball
 #
-rootDir=`tar -tzf ${TOOL_NAME} | sed -e 's@/.*@@' | uniq`
+rootDir=`tar -tzf ${LIBNUMA_PACKAGE} | sed -e 's@/.*@@' | uniq`
 if [ -z ${rootDir} ]; then
-    msg="Error: Unable to determine root directory if ${TOOL_NAME} tarball"
+    msg="Error: Unable to determine root directory if ${LIBNUMA_PACKAGE} tarball"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -139,14 +139,57 @@ if [ -z ${rootDir} ]; then
 fi
 
 LogMsg "rootDir = ${rootDir}"
-cd /root/${rootDir}/benchmarks/linpack/
+cd /root/${rootDir}/
 
 #
-# Start LINPACK
+# Compile libnuma
 #
-LogMsg "Starting LINPACK"
+./configure
+if [ $? -ne 0 ]; then
+    msg="Error: ./configure failed"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 90
+fi
 
-./runme_xeon64 > /root/LINPACK.log
+make
+if [ $? -ne 0 ]; then
+    msg="Error: Unable to make"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 100
+fi
+
+make install
+if [ $? -ne 0 ]; then
+    msg="Error: Unable to install"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 110
+fi
+
+#
+# Compile STREAM.c
+#
+# set the number of threads equal to the number of cores on your machine:
+export OMP_NUM_THREADS=48
+
+cd /root/
+gcc -O3 -std=c99 -fopenmp -lnuma -DN=80000000 -DNTIMES=100 stream.c -o stream-gcc
+if [ $? -ne 0 ]; then
+    msg="Error: ./Compile stream.c by gcc failed"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 90
+fi
+
+LogMsg "Starting stream-gcc"
+
+./stream-gcc > /root/stream-gcc.log
 
 #
 # If we made it here, everything worked.
