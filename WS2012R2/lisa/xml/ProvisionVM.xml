@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved. 
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0  
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LISA Provision Test Run on WS2012</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+        <!-- Optional testParams go here -->
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>Provision</suiteName>
+            <suiteTests>
+                <suiteTest>ProvisionVmForLisa</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>ProvisionVmForLisa</testName>
+            <testScript>provisionLinuxForLisa.sh</testScript>
+            <setupScript>setupScripts\ProvisionSshKeys.ps1</setupScript>
+            <files>remote-scripts\ica\provisionLinuxForLisa.sh</files>
+            <timeout>1800</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=Provisioning</param>
+                <param>publicKey=demo_id_rsa.pub</param>
+            </testparams>
+        </test>
+    </testCases>
+
+    <VMs>        
+	<vm>
+            <hvServer>localhost</hvServer>
+            <vmName>TestVM</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>demo_id_rsa.ppk</sshKey>
+            <suite>Provision</suite>
+            <testParams>
+                <!-- If your password has the $ character, you will need
+                     to escape each $ with the PowerShell escape character,
+                     which is the back tic (same key as the tilda ~).      -->
+                <param>rootpassword=PA`$`$word</param>
+            </testParams>
+        </vm>
+    </VMs>
+
+</config>
