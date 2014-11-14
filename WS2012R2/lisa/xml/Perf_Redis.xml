@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+ Copyright (c) Microsoft Corporation
+
+ All rights reserved. 
+ Licensed under the Apache License, Version 2.0 (the ""License"");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+     http://www.apache.org/licenses/LICENSE-2.0  
+
+ THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+ ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+ PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+ See the Apache Version 2.0 License for specific language governing
+ permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS Performance Test Results</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+
+        <!-- Optional testParams go here -->
+        <testParams>
+            <param>vmCpuNumber=4</param>
+            <param>vmMemory=16GB</param>
+        </testParams>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>Redis</suiteName>
+            <suiteTests>
+                <suiteTest>Perf_Redis</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+         <test>
+            <testName>Perf_Redis</testName>          
+            <testScript>performance_redis.sh</testScript>
+            <files>remote-scripts/ica/performance_redis.sh</files>
+            <files>Tools/redis-2.8.17.tar.gz</files>
+            <testParams>
+                <param>REDIS_PACKAGE=redis-2.8.17.tar.gz</param>
+                <param>REDIS_HOST_IP=192.168.1.100</param>
+				<param>REDIS_HOST_PORT=6379</param>
+                <param>REDIS_CLIENTS=1000</param>
+				<param>REDIS_RANDOM_KEY_SCOPE=100000000000</param>
+				<param>REDIS_DATA_SIZE=1</param>
+				<param>REDIS_TESTSUITES=SET</param>
+				<param>REDIS_NUMBER_REQUESTS=10000000</param>
+            </testParams>
+            <uploadFiles>
+                <file>redis.log</file>
+            </uploadFiles>
+            <timeout>1200</timeout>
+            <OnError>Continue</OnError>
+         </test>
+    </testCases>
+    
+    <VMs>
+        <vm>
+	    <role>SUT</role>
+            <hvServer>localhost</hvServer>
+            <vmName>SLES12Beta9X64</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <suite>Redis</suite>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+        </vm>
+        <vm>
+            <role>NonSUT</role>
+            <hvServer>localhost</hvServer>
+            <vmName>SLES12Beta9X64-NonSUT</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>			
+        </vm>
+    </VMs>
+</config>

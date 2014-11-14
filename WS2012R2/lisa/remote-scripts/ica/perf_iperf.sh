@@ -23,46 +23,20 @@
 
 #######################################################################
 #
-# This test assumes the TARGET_IP machine is a bare metal
-# Linux machine.  This script assumes this machine is running and
-# has been provisioned.
+# perf_iperf.sh
 #
-# This test will download iPerf, build, install, then run iPerf.
-# Before starting iPerf on the local machine, the iPerf binary
-# is copied to the TARGET_IP machine and started in server mode.
+# Description:
+#     For the test to run you have to place the iperf tool package in the
+#     Tools folder under lisa.
 #
-# The iPerf output is directed into a file named ~/iperfdata.log
-#
-# This test script requires the IPERF_PACKAGE test parameter.
-#   IPERF_PACKAGE=iperf-2.0.5.tar.gz
-#   TARGET_IP=192.168.1.100
-#   TARGET_SSHKEY=lisa_id_rsa
-#   IPERF_THREADS=4
-#   IPERF_BUFFER=8KB
-#   IPERF_TCPWINDOW=64KB
-#
-# A typical XML test definition for this test case would look
-# similar to the following:
-#        <test>
-#           <testName>Perf_iPerf</testName>          
-#           <testScript>perf_iperf.sh</testScript>
-#           <files>remote-scripts/ica/perf_iperf.sh,ssh/rhel5_id_rsa</files>
-#           <testParams>
-#               <param>IPERF_PACKAGE=iperf-2.0.5.tar.gz</param>
-#               <param>TARGET_IP=192.168.1.100</param>
-#               <param>TARGET_SSHKEY=rhel5_id_rsa</param>
-#               <param>IPERF_THREADS=10</param>
-#           </testParams>
-#           <uploadFiles>
-#               <file>iperfdata.log</file>
-#           </uploadFiles>
-#           <timeout>1200</timeout>
-#           <OnError>Continue</OnError>
-#        </test>
+# Parameters:
+#     IPERF_PACKAGE: the iperf toolkit package
+#     TARGET_IP:     the ip address for the machine which runs iPerf as server
+#     IPERF_THREADS: how many iPerf connections will be created by iPerf client
+#     IPERF_BUFFER:  the buffer size set in iPerf client
+#     IPERF_TCPWINDOW: the tcp window size set in iPerf client
 #
 #######################################################################
-
-
 
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
@@ -149,18 +123,6 @@ fi
 echo "iPerf package   = ${IPERF_PACKAGE}"
 echo "TARGET_ip       = ${TARGET_IP}"
 echo "IPERF_THREADS   = ${IPERF_THREADS}"
-
-#
-# Download iperf from the website
-#
-#wget "http://sourceforge.net/projects/iperf/files/latest/download/${IPERF_PACKAGE}"
-#if [ $? -ne 0 ]; then
-#    ${msg}="Error: unable to download ${IPERF_PACKAGE}"
-#    LogMsg "${msg}"
-#    echo "${msg}" >> ~/summary.log
-#    UpdateTestState $ICA_TESTFAILED
-#    exit 60
-#fi
 
 #
 # Extract the files from the IPerf tar package

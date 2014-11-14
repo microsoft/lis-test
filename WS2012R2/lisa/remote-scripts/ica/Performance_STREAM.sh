@@ -175,7 +175,7 @@ fi
 # Compile STREAM.c
 #
 # set the number of threads equal to the number of cores on your machine:
-export OMP_NUM_THREADS=48
+export OMP_NUM_THREADS=8
 
 cd /root/
 gcc -O3 -std=c99 -fopenmp -lnuma -DN=80000000 -DNTIMES=100 stream.c -o stream-gcc

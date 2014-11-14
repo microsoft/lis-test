@@ -16,7 +16,7 @@
        <!-- Optional testParams go here -->
         <testParams>
             <param>vmCpuNumber=8</param>
-            <param>vmMemory=4GB</param>
+            <param>vmMemory=16GB</param>
         </testParams>
     </global>
 

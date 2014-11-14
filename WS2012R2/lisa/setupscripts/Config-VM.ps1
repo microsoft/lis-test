@@ -68,6 +68,7 @@ if ($vmCpuNumber -ne 0)
 {
     "CPU: $vmCpuNumber"
     Set-VM -ComputerName $hvServer -VMName $vmName -ProcessorCount $vmCpuNumber
+	Set-VMProcessor -ComputerName $hvServer -VMName $vmName -Reserve 100
 }
 
 if ($vmMemory -ne 0GB)
