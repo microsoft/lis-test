@@ -21,9 +21,10 @@
 #
 ########################################################################
 
-ICA_TESTRUNNING="TestRunning"
-ICA_TESTCOMPLETED="TestCompleted"
-ICA_TESTABORTED="TestAborted"
+ICA_TESTRUNNING="TestRunning"      # The test is running
+ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
+ICA_TESTABORTED="TestAborted"      # Error during setup of test
+ICA_TESTFAILED="TestFailed"        # Error while performing the test
 
 #######################################################################
 # Adds a timestamp to the log file
@@ -69,7 +70,7 @@ NL='
 '
 IFS=${NL}  # set the "internal field separator" (IFS) to something else than space for the loop argument splitting
 
-for udevfile in $(find /etc/udev -name "*.rules*"); do # search for all the .rules files on the system 
+for udevfile in $(find /etc/udev -name "*.rules*"); do # search for all the .rules files
     IFS=${ORIGIFS}
     grep "SUBSYSTEM==\"memory\"" $udevfile | grep "ACTION==\"add\"" | grep "ATTR{state}=\"online\"" > /dev/null 2>&1 # grep for the udev rule
     sts=$?
@@ -78,13 +79,13 @@ for udevfile in $(find /etc/udev -name "*.rules*"); do # search for all the .rul
     fi
 done
 
+# Search in /lib/udev
 ORIGIFS=${IFS} # save the default internal field separator (IFS)
 NL='
 '
-# Search in /lib/udev
 IFS=${NL}  # set the "internal field separator" (IFS) to something else than space for the loop argument splitting
 
-for udevfile in $(find /lib/udev -name "*.rules*"); do # search for all the .rules files on the system 
+for udevfile in $(find /lib/udev -name "*.rules*"); do # search for all the .rules files
     IFS=${ORIGIFS}
     grep "SUBSYSTEM==\"memory\"" $udevfile | grep "ACTION==\"add\"" | grep "ATTR{state}=\"online\"" > /dev/null 2>&1 # grep for the udev rule
     sts=$?
@@ -105,7 +106,7 @@ if [ ${#filelist[@]} -gt 0 ]; then # check if we found anything
         for rulefile in "${filelist[@]}"; do
             LogMsg $rulefile
         done
-        UpdateTestState $ICA_TESTABORTED
+        UpdateTestState $ICA_TESTFAILED
         UpdateSummary "Hot-Add udev rule present: Failed"
         exit 1
     else
@@ -115,7 +116,7 @@ if [ ${#filelist[@]} -gt 0 ]; then # check if we found anything
     fi
 else
     LogMsg "Error: No Hot-Add udev rules found on the System!"
-    UpdateTestState $ICA_TESTABORTED
+    UpdateTestState $ICA_TESTFAILED
     UpdateSummary "Hot-Add udev rules: Failed"
     exit 1
 fi
