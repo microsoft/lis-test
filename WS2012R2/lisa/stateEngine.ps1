@@ -2978,9 +2978,16 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
     $jobID = $vm.jobID
     if ($jobID -ne "none")
     {
-        $jobResults = @(Receive-Job -id $jobID)
+        $error.Clear()
+        $jobResults = @(Receive-Job -id $jobID -ErrorAction SilentlyContinue)
         if ($jobResults)
         {
+            if ($error.Count -gt 0)
+            {
+                "Error: ${currentTest} script encountered an error"
+                $error[0].Exception.Message >> $logfilename
+            }
+
             foreach ($line in $jobResults)
             {
                 $line >> $logFilename
@@ -2990,7 +2997,6 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
             # The last object in the $jobResults array will be the boolean
             # value the script returns on exit.  See if it is true.
             #
-            #if ($jobResults[ $jobResults.Length - 1 ] -eq $True)
             if ($jobResults[-1] -eq $True)
             {
                 $completionCode = "Success"
