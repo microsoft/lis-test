@@ -519,13 +519,13 @@ if (-not $sts[-1])
 {
     Write-Output "Hot-Add udev rules present on VM ${vmName}: Failed"
     Write-Output "Hot-Add udev rules present on VM ${vmName}: Failed" >> $summaryLog
-    del $logfilename
+    del $logfilename -ERRORAction "SilentlyContinue"
     return $False
 }
 else
 {
     Write-Output "Hot-Add udev rules present on VM ${vmName}: Success"
     Write-Output "Hot-Add udev rules present on VM ${vmName}: Success" >> $summaryLog
-    del $logfilename
+    del $logfilename -ERRORAction "SilentlyContinue"
     return $True
 }
