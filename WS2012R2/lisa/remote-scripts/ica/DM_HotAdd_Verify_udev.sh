@@ -30,7 +30,7 @@ ICA_TESTABORTED="TestAborted"
 #######################################################################
 LogMsg()
 {
-    echo `date "+%a %b %d %T %Y"` : ${1}
+    echo $(date "+%a %b %d %T %Y") : ${1}
 }
 
 #######################################################################
@@ -63,12 +63,28 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
+# Search in /etc/udev
 ORIGIFS=${IFS} # save the default internal field separator (IFS)
 NL='
 '
 IFS=${NL}  # set the "internal field separator" (IFS) to something else than space for the loop argument splitting
 
-for udevfile in $(find / -name "*.rules*"); do #search for all the .rules files on the system 
+for udevfile in $(find /etc/udev -name "*.rules*"); do # search for all the .rules files on the system 
+    IFS=${ORIGIFS}
+    grep "SUBSYSTEM==\"memory\"" $udevfile | grep "ACTION==\"add\"" | grep "ATTR{state}=\"online\"" > /dev/null 2>&1 # grep for the udev rule
+    sts=$?
+    if [ 0 -eq ${sts} ]; then
+        filelist=("${filelist[@]}" $udevfile) # populate a array with the results
+    fi
+done
+
+ORIGIFS=${IFS} # save the default internal field separator (IFS)
+NL='
+'
+# Search in /lib/udev
+IFS=${NL}  # set the "internal field separator" (IFS) to something else than space for the loop argument splitting
+
+for udevfile in $(find /lib/udev -name "*.rules*"); do # search for all the .rules files on the system 
     IFS=${ORIGIFS}
     grep "SUBSYSTEM==\"memory\"" $udevfile | grep "ACTION==\"add\"" | grep "ATTR{state}=\"online\"" > /dev/null 2>&1 # grep for the udev rule
     sts=$?
@@ -86,7 +102,7 @@ if [ ${#filelist[@]} -gt 0 ]; then # check if we found anything
         LogMsg "Error: More than one udev rules found. Aborting test"
         LogMsg "Following files were found:"
         # list the files 
-        for rulefile in ${filelist[@]}; do
+        for rulefile in "${filelist[@]}"; do
             LogMsg $rulefile
         done
         UpdateTestState $ICA_TESTABORTED
@@ -95,7 +111,7 @@ if [ ${#filelist[@]} -gt 0 ]; then # check if we found anything
     else
         LogMsg "Hot-Add udev rule present: Success"
         LogMsg "File is:"
-        LogMsg ${filelist[@]}
+        LogMsg "${filelist[@]}"
     fi
 else
     LogMsg "Error: No Hot-Add udev rules found on the System!"
