@@ -1,6 +1,6 @@
-lisa/bin/readme.txt
+#/bin
 
-The lisa/bin directory contains utilities used by the LISA framework.
+The **/bin** directory contains utilities used by the LISA framework.
 Currently, the only utility files required are the Putty SSH client
 for Windows.
 
