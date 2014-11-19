@@ -42,7 +42,7 @@
             </testParams> 
             <uploadFiles>
                 <file>IOZoneLog.log</file>
-                <file>IOZoneResult.xls</file>				
+                <file>IOZoneResult.xls</file>                
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 

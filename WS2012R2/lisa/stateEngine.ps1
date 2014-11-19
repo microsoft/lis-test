@@ -284,11 +284,11 @@ function RunICTests([XML] $xmlConfig)
             $newElement.set_InnerText("SUT")
             $results = $vm.AppendChild($newElement)
         }
-        elseif ($vm.role.ToLower() -eq "nonsut")
+        elseif ($vm.role.ToLower().StartsWith("nonsut"))
         {
             $isSUTVM = $false
         }
-        elseif ($vm.role.ToLower() -eq "sut")
+        elseif ($vm.role.ToLower().StartsWith("sut"))
         {
             $isSUTVM = $true
         }
@@ -337,7 +337,7 @@ function RunICTests([XML] $xmlConfig)
         if ($null -eq (Get-VM $vm.vmName -ComputerName $vm.hvServer))
         {
             LogMsg 0 "Warn : The VM $($vm.vmName) does not exist on server $($vm.hvServer)"
-            if ([string]::Compare($vm.role, "SUT", $true) -eq 0)
+            if ($vm.role.ToLower().StartsWith("sut"))
             {                
                 LogMsg 0 "Warn : Tests will not be run on $($vm.vmName)"
                 UpdateState $vm $Disabled
@@ -741,7 +741,7 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
 
-    if ([string]::Compare($vm.role, "SUT", $true) -eq 0 )
+    if ($vm.role.ToLower().StartsWith("sut"))
     {
         #for SUT VMs:
 
@@ -766,7 +766,7 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
             foreach( $v in $xmlData.config.VMs.vm )
             {
-                if ([string]::Compare($v.role, "SUT", $true) -eq 0)
+                if ($vm.role.ToLower().StartsWith("sut"))
                 {
                     if ($($v.state) -ne $Finished)
                     {
@@ -780,7 +780,7 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 foreach( $v in $xmlData.config.VMs.vm )
                 {
-                    if ([string]::Compare($v.role, "NonSUT", $true) -eq 0)
+                    if ($vm.role.ToLower().StartsWith("nonsut"))
                     {
                         if ($($v.state) -eq $Finished)
                         {
@@ -880,7 +880,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
         LogMsg 9 "Info: VM: $($vm.vmName) does not have preStartConfig script defined"
     }
 
-    if ([string]::Compare($vm.role, "SUT", $true) -eq 0 )
+    if ($vm.role.ToLower().StartsWith("sut"))
     {
         #for SUT VMs:
         #
@@ -1337,7 +1337,7 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #    UpdateState $vm $PushTestFiles
     #}
 
-    If([string]::Compare($vm.role, "SUT", $true) -eq 0)
+    If ($vm.role.ToLower().StartsWith("sut"))
     {
          #for SUT VM, needs to wait for NonSUT VM startup
          UpdateState $vm $WaitForDependencyVM
@@ -1654,7 +1654,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
     else
     {
-        If([string]::Compare($vm.role, "SUT", $true) -eq 0)
+        If ($vm.role.ToLower().StartsWith("sut"))
         {
             #
             # For SUT VMs: Run pretest script if one is specified
@@ -2834,7 +2834,7 @@ function DoWaitForDependencyVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 
     #if this is not a SUT VM, it should not wait for others.
-    If([string]::Compare($vm.role, "SUT", $true) -ne 0)
+    If ($vm.role.ToLower().StartsWith("nonsut"))
     {
          LogMsg 3 "Warn : DoWaitForDependencyVM() should not be called by a NonSUT VM"
          UpdateState $vm $Finished
@@ -2845,7 +2845,7 @@ function DoWaitForDependencyVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $allNonSUTVMFinished = $true
         foreach( $v in $xmlData.config.VMs.vm )
         {
-            if ([string]::Compare($v.role, "SUT", $true) -ne 0)
+            if ($vm.role.ToLower().StartsWith("nonsut"))
             {
                 if ($($v.state) -ne $Finished)
                 {

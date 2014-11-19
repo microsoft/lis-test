@@ -82,20 +82,23 @@
             <param>VMBusVer=2.4</param>
 
     VM specific
-        The behavior here is similar to the test specific behavior.  The difference
-        is that the vmName will be used rather than the test case name.  In the <VMs>
-        section of the .xml file, if there is a VM definition with a <vmName> of
-        SLES12Beta9 and that VM has a VM specific test parameter of SSHKey, the unique
-        name would be:
-            Sles12Beta9.SSHKey
+        The behavior here is similar to the test specific behavior. The difference
+        is that the vm.Role will be used rather than the test case name. 
+        In the <VMs> section of the .xml file, if there is a VM which is defined as SUT1 
+        by <Role>, and that VM has another parameter of hvServer, the unique name for hvServer 
+        would be:
+            SUT1.hvServer
 
-        As an example, if the initial test param for the VM Sles12Beta9 was
-            <param>SSHKey=foo.ppk</param
+        As an example, if the parameter in the .xml file for the SUT1 VM was：
+            <Role>SUT1</Role>
+            <hvServer>DefaultServer</hvServer>
 
-        Since the above parameterized file has an entry for "Sles12Beta9.SSHKey",
-        after substitution, the updated VM specific test param would be
-            <param>SSHKey=Nick_id_rsa.ppk</param>
-
+        Then the VM hvServer param in the parameterized file would be：
+            <param>SUT1.hvServer=LIS-PerfServer</param>
+        
+        If the VM in the .xml file does not have <Role> defined, this script will treat it 
+        as SUT1 by default.
+        
 .parameter inputXml
     The input XML file.
 
@@ -144,6 +147,23 @@ function SubstituteParams( $children, [string] $label)
     }
 }
 
+#######################################################################
+#
+# UpdateParams()
+#
+#######################################################################
+function UpdateParams( $children, [string] $label)
+{
+    foreach ($p in $children)
+    {
+        $parameterizedName = "${label}." + $p.Name
+        if ($params.ContainsKey("$parameterizedName"))
+        {
+            $newValue = $params[ $parameterizedName ]
+            $p.Set_InnerText("${newValue}")
+        }
+    }
+}
 
 #######################################################################
 #
@@ -203,10 +223,15 @@ function ReplaceParameterizedTestParams([String] $paramXmlFile, [System.Xml.XmlD
     #
     foreach ($vm in $xmlTests.config.VMs.vm)
     {
-        if ($vm.testParams)
+        if (($vm.role -eq $null) -or ($vm.role -eq ""))
         {
-            SubstituteParams $vm.testParams.childNodes $vm.vmName
+            $label = "SUT1"
         }
+        else
+        {
+            $label = $vm.role
+        }
+        UpdateParams $vm.childNodes $label
     }
 }
 
