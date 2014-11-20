@@ -55,7 +55,7 @@
         <test>
             <testName>VHDxResizeToBigger512</testName>
 			<testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -70,7 +70,7 @@
         <test>
             <testName>VHDxResizeToBigger4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -85,7 +85,7 @@
         <test>
             <testName>VHDxResizeToSmaller512</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -100,7 +100,7 @@
         <test>
             <testName>VHDxResizeToSmaller4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -115,7 +115,7 @@
         <test>
             <testName>VHDxResizeGrowShrink</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -131,7 +131,7 @@
         <test>
             <testName>VHDxResizeGrowFilesystem512</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -146,7 +146,7 @@
         <test>
             <testName>VHDxResizeGrowFilesystem4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -161,7 +161,7 @@
         <test>
             <testName>VHDxResizeOver2TB</testName>
             <testScript>SetupScripts\STOR_VHDXResize_DiskOver2TB.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>3000</timeout>
             <onError>Continue</onError>
@@ -176,7 +176,7 @@
         <test>
             <testName>VHDxResizeLiveMigration</testName>
             <testScript>SetupScripts\STOR_VHDXResize_BasicLM.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>

@@ -35,7 +35,7 @@
      The .xml entry to specify this startup script would be:
 
 
-         <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+         <setupScript>SetupScripts\Add-VHDXForResize.ps1.ps1</setupScript>
 
 
 	The  scripts will always pass the vmName, hvServer, and a string of testParams from the 
@@ -63,7 +63,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\Add-VHDXHardDisk -vmName VM_NAME -hvServer HYPERV_SERVER -testParams "dynamic=True;sectorSize=512;defaultSize=5GB"
+    setupScripts\Add-VHDXForResize.ps1 -vmName VM_NAME -hvServer HYPERV_SERVER -testParams "dynamic=True;sectorSize=512;defaultSize=5GB"
 #>
 ############################################################################
 
