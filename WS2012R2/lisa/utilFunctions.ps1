@@ -644,11 +644,7 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     #    
     for($i=0; $i -lt $numItems-1; $i++)
     {
-        logMsg 3 ("Info :         $vmName - $($sts[$i])")
-        if ($logFilename)
-        {
-            $($sts[$i]) | out-file -append $logFilename
-        }
+        logMsg 3 ("Info :    $vmName - $($sts[$i])")
     }
 
     return $retVal

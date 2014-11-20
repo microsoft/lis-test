@@ -889,26 +889,72 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $testData = GetTestData $($vm.currentTest) $xmlData
         if ($testData -is [System.Xml.XmlElement])
         {
+            $testName = $testData.testName
+            $abortOnError = $True
+            if ($testData.onError -eq "Continue")
+            {
+                $abortOnError = $False
+            }
+
             if ($testData.setupScript)
             {
-                LogMsg 3 "Info : $($vm.vmName) - starting setup script $($testData.setupScript)"
-            
-                $sts = RunPSScript $vm $($testData.setupScript) $xmlData "Setup"
-                if (-not $sts)
+                if ($testData.setupScript.File)
                 {
-                    #
-                    # Fail the test if setup script fails.  We're already in SystemDown state so no state transition is needed.
-                    #
-                    LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test $($testData.testName) failed"
-                    $vm.emailSummary += "    Test $($vm.currentTest) : Aborted<br />"
+                    foreach ($script in $testData.setupScript.File)
+                    {
+                        LogMsg 3 "Info : $($vm.vmName) - running setup script '${script}'"
+ 
+                        if (-not (RunPSScript $vm $script $xmlData "Setup" $logfile))
+                        {
+                            #
+                            # If the setup script fails, fail the test. If <OnError>
+                            # is continue, continue on to the next test in the suite.
+                            # Otherwise, terminate testing.
+                            #
+                            LogMsg 0 "Error: VM $($vm.vmName) setup script ${script} for test ${testName} failed"
+                            $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - setup script failed")
+                            #$vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
+                            if ($abortOnError)
+                            {
+                                $vm.currentTtest = "done"
+                                UpdateState $vm $finished
+                                return
+                            }
+                            else
+                            {
+                                UpdateState $vm $SystemDown
+                                return
+                            }
+                        }
+                    }
+                }
+                else  # the older, single setup script syntax
+                {
+                    LogMsg 3 "Info : $($vm.vmName) - running single setup script '$($testData.setupScript)'"
+            
+                    if (-not (RunPSScript $vm $($testData.setupScript) $xmlData "Setup" $logfile))
+                    {
+                        #
+                        # If the setup script fails, fail the test. If <OnError>
+                        # is continue, continue on to the next test in the suite.
+                        # Otherwise, terminate testing.
+                        #
+                        LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test ${testName} failed"
+                        #$vm.emailSummary += "    Test $($vm.currentTest) : Failed - setup script failed<br />"
+                        $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - setup script failed")
                     
-                    #comment below code as we may need to continue running next test case
-                    #$vm.currentTest = "done"
-                    #UpdateState $vm $finished
-                    
-                    #need to determine do we need to shutdown system and do cleanup for running next test case if existing
-                    UpdateState $vm $DetermineReboot
-                    return
+                        if ($abortOnError)
+                        {
+                            $vm.currentTest = "done"
+                            UpdateState $vm $finished
+                            return
+                        }
+                        else
+                        {
+                            UpdateState $vm $SystemDown
+                            return
+                        }
+                    }
                 }
             }
             else
