@@ -270,6 +270,21 @@ function RunICTests([XML] $xmlConfig)
     LogMsg 9 "Info : RunICTests($($vm.vmName))"
 
     #
+    # Verify the Putty utilities exist.  Without them, we cannot talk to the Linux VM.
+    #
+    if (-not (Test-Path -Path ".\bin\pscp.exe"))
+    {
+        LogMsg 0 "Error: The putty utility .\bin\pscp.exe does not exist"
+        return
+    }
+
+    if (-not (Test-Path -Path ".\bin\plink.exe"))
+    {
+        LogMsg 0 "Error: The putty utility .\bin\plink.exe does not exist"
+        return
+    }
+
+    #
     # Reset each VM to a known state
     #
     foreach ($vm in $xmlConfig.config.VMs.vm)
