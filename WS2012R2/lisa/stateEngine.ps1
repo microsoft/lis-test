@@ -795,6 +795,17 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $testData = GetTestData $vm.currentTest $xmlData
             if ($testData -is [System.Xml.XmlElement])
             {
+                if (-not (VerifyTestResourcesExist $vm $testData))
+                {
+                    #
+                    # One or more resources used by the VM or test case does not exist - fail the test
+                    #
+                    $testName = $testData.testName
+                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed")
+                    $vm.emailSummary += "          Missing resources<br />"
+                    return
+                }
+
                 if ($vm.preStartConfig -or $testData.setupScript)
                 {
                     UpdateState $vm $RunSetupScript
