@@ -34,11 +34,27 @@
                 <suiteTest>VHDx_4k_MultiDiskSCSI_Fixed</suiteTest>
                 <suiteTest>VHDx_4k_HotADD_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</suiteTest>
+                <suiteTest>TrimSupport</suiteTest>
+
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
+         <test>
+            <testName>TrimSupport</testName>
+            <testScript>SetupScripts\STOR_Trim_Check.ps1</testScript>
+            <files>remote-scripts/ica/STOR_trim.sh</files>
+            <setupScript>SetupScripts\Add-VHDXHardDiskWithLocation.ps1</setupScript>
+            <timeout>18000</timeout>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,512,10GB,H:\Virtual Hard Disks\ssd\</param>
+                <param>TC_COVERED=TRIM-01</param>
+            </testparams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
         <test>
             <testName>VHDx_SCSI_0_1_Dynamic_Big</testName>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
