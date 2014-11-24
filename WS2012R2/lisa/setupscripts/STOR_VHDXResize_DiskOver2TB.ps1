@@ -62,290 +62,12 @@ param( [String] $vmName,
 $sshKey     = $null
 $ipv4       = $null
 $newSize    = $null
+$sectorSize	= $null
 $rootDir    = $null
 $TC_COVERED = $null
 $TestLogDir = $null
 $TestName   = $null
-
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-
-    if (-not $filename)
-    {
-        return $null
-    }
-
-    if (-not $server)
-    {
-        return $null
-    }
-
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-
-    return $fileInfo
-}
-
-#######################################################################
-#
-# Convert size String
-#
-#######################################################################
-function ConvertStringToUInt64([string] $str)
-{
-    $uint64Size = $null
-
-    #
-    # Make sure we received a string to convert
-    #
-    if (-not $str)
-    {
-        Write-Error -Message "ConvertStringToUInt64() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    if ($str.EndsWith("MB"))
-    {
-        $num = $str.Replace("MB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1MB
-    }
-    elseif ($str.EndsWith("GB"))
-    {
-        $num = $str.Replace("GB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1GB
-    }
-    elseif ($str.EndsWith("TB"))
-    {
-        $num = $str.Replace("TB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1TB
-    }
-    else
-    {
-        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    return $uint64Size
-}
-
-function RunTest ([String] $filename)
-{
-
-    "exec ./${filename}.sh &> ${filename}.log " | out-file -encoding ASCII -filepath runtest.sh
-
-	.\bin\pscp.exe -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Error -Message "Error: Unable to copy startstress.sh to the VM" -ErrorAction SilentlyContinue
-       return $False
-    }
-
-     .\.\bin\pscp.exe -i ssh\${sshKey} .\remote-scripts\ica\${filename}.sh root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Error -Message "Error: Unable to copy ${filename}.sh to the VM" -ErrorAction SilentlyContinue
-       return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${filename}.sh  2> /dev/null"
-    if (-not $?)
-    {
-         Write-Error -Message "Error: Unable to run dos2unix on ${filename}.sh" -ErrorAction SilentlyContinue
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-         Write-Error -Message "Error: Unable to run dos2unix on runtest.sh" -ErrorAction SilentlyContinue
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${filename}.sh   2> /dev/null"
-    if (-not $?)
-    {
-         Write-Error -Message "Error: Unable to chmod +x ${filename}.sh" -ErrorAction SilentlyContinue
-        return $False
-    }
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-         Write-Error -Message "Error: Unable to chmod +x runtest.sh " -ErrorAction SilentlyContinue
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh 2> /dev/null"
-    if (-not $?)
-    {
-         Write-Error -Message "Error: Unable to run runtest.sh " -ErrorAction SilentlyContinue
-        return $False
-    }
-
-    del runtest.sh
-    return $True
-}
-#########################################################################
-#    get state.txt file from VM.
-########################################################################
-function CheckResult()
-{
-    $retVal = $False
-    $stateFile     = "state.txt"
-	$localStateFile= "${vmName}_state.txt"
-    $TestCompleted = "TestCompleted"
-    $TestAborted   = "TestAborted"
-    $TestRunning   = "TestRunning"
-    $timeout       = 6000
-
-    "Info :   pscp -q -i ssh\${sshKey} root@${ipv4}:$stateFile} ."
-    while ($timeout -ne 0 )
-    {
-    .\bin\pscp.exe -q -i ssh\${sshKey} root@${ipv4}:${stateFile} ${localStateFile} #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $localStateFile)
-        {
-            $contents = Get-Content -Path $localStateFile
-            if ($null -ne $contents)
-            {
-                    if ($contents -eq $TestCompleted)
-                    {
-						# Write-Host "Info : state file contains Testcompleted"
-                        $retVal = $True
-                        break
-
-                    }
-
-                    if ($contents -eq $TestAborted)
-                    {
-                         Write-Host "Info : State file contains TestAborted failed. "
-                         break
-
-                    }
-
-                    $timeout--
-
-                    if ($timeout -eq 0)
-                    {
-                        Write-Error -Message "Error : Timed out on Test Running , Exiting test execution."   -ErrorAction SilentlyContinue
-                        break
-                    }
-
-            }
-            else
-            {
-                Write-Host "Warn : state file is empty"
-                break
-            }
-
-        }
-        else
-        {
-             Write-Host "Warn : ssh reported success, but state file was not copied"
-             break
-        }
-    }
-    else #
-    {
-         Write-Error -Message "Error : pscp exit status = $sts" -ErrorAction SilentlyContinue
-         Write-Error -Message "Error : unable to pull state.txt from VM." -ErrorAction SilentlyContinue
-         break
-    }
-    }
-    del $localStateFile
-    return $retVal
-}
-#########################################################################
-#    get summary.log file from VM.
-########################################################################
-function SummaryLog()
-{
-    $retVal = $False
-    $summaryFile   = "summary.log"
-    $localVMSummaryLog = "${vmName}_error_summary.log"
-
-    .\bin\pscp.exe -q -i ssh\${sshKey} root@${ipv4}:${summaryFile} ${localVMSummaryLog} #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $localVMSummaryLog)
-        {
-            $contents = Get-Content -Path $localVMSummaryLog
-            if ($null -ne $contents)
-            {
-                   Write-Output "Error: ${contents}" | Tee-Object -Append -file $summaryLog
-            }
-            $retVal = $True
-        }
-        else
-        {
-             Write-Host "Warn : ssh reported success, but summary file was not copied"
-        }
-    }
-    else #
-    {
-         Write-Error -Message "Error : pscp exit status = $sts" -ErrorAction SilentlyContinue
-         Write-Error -Message "Error : unable to pull summary.log from VM." -ErrorAction SilentlyContinue
-    }
-     del $summaryFile
-     return $retVal
-}
-#########################################################################
-#    get runtest.log file from VM.
-########################################################################
-function RunTestLog([String] $filename, [String] $logDir, [String] $TestName)
-{
-    $retVal = $False
-    $RunTestFile   = "${filename}.log"
-
-    .\bin\pscp.exe -q -i ssh\${sshKey} root@${ipv4}:${RunTestFile} . #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $RunTestFile)
-        {
-            $contents = Get-Content -Path $RunTestFile
-            if ($null -ne $contents)
-            {
-                    move "${RunTestFile}" "${logDir}\${TestName}_${filename}_vm.log"
-
-                   #Get-Content -Path $RunTestFile >> {$TestLogDir}\*_ps.log
-                   $retVal = $True
-
-            }
-            else
-            {
-                Write-Host "Warn : RunTestFile is empty"
-            }
-        }
-        else
-        {
-             Write-Host "Warn : ssh reported success, but RunTestFile file was not copied"
-        }
-    }
-    else #
-    {
-         Write-Error -Message "Error : pscp exit status = $sts" -ErrorAction SilentlyContinue
-         Write-Error -Message "Error : unable to pull RunTestFile from VM." -ErrorAction SilentlyContinue
-         return $False
-    }
-
-     return $retVal
-}
+$vhdxDrive	= $null
 
 #######################################################################
 #
@@ -374,7 +96,6 @@ if (-not $testParams)
     return $False
 }
 
-#
 # Debug - display the test parameters so they are captured in the log file
 #
 Write-Output "TestParams : '${testParams}'"
@@ -396,6 +117,7 @@ foreach ($p in $params)
     "SSHKey"    { $sshKey  = $fields[1].Trim() }
     "ipv4"      { $ipv4    = $fields[1].Trim() }
     "newSize"   { $newSize = $fields[1].Trim() }
+    "sectorSize"   { $sectorSize = $fields[1].Trim() }
     "rootDIR"   { $rootDir = $fields[1].Trim() }
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
@@ -403,7 +125,6 @@ foreach ($p in $params)
     default     {}  # unknown param - just ignore it
     }
 }
-
 if (-not $rootDir)
 {
     "Warn : no rootdir was specified"
@@ -411,6 +132,17 @@ if (-not $rootDir)
 else
 {
     cd $rootDir
+}
+
+# Source STOR_VHDXResize_Utils.ps1
+if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
+{
+    . .\setupScripts\STOR_VHDXResize_Utils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
+    return $false
 }
 
 Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
@@ -425,8 +157,18 @@ $sizeFlag = ConvertStringToUInt64 "50GB"
 # Lun 0 on the controller has a .vhdx file attached.
 #
 "Info : Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
-$scsi00 = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber 0 -ControllerLocation 0 -ComputerName $hvServer -ErrorAction SilentlyContinue
-if (-not $scsi00)
+$vhdxName = $vmName + "-" + $sectorSize + "-test"
+$vhdxDisks = Get-VMHardDiskDrive -VMName $vmName
+
+foreach ($vhdx in $vhdxDisks)
+{
+	$vhdxPath = $vhdx.Path
+	if ($vhdxPath.Contains($vhdxName))
+	{
+		$vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber $vhdx.ControllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
+	}
+}
+if (-not $vhdxDrive)
 {
     "Error: VM ${vmName} does not have a SCSI 0 Lun 0 drive"
     $error[0].Exception.Message
@@ -434,7 +176,7 @@ if (-not $scsi00)
 }
 
 "Info : Check if the virtual disk file exists"
-$vhdPath = $scsi00.Path
+$vhdPath = $vhdxDrive.Path
 $vhdxInfo = GetRemoteFileInfo $vhdPath $hvServer
 if (-not $vhdxInfo)
 {
@@ -525,7 +267,7 @@ if (-not $?)
     return $False
 }
 
-$diskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l 2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
+$diskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
 if (-not $?)
 {
     "Error: Unable to determine disk size from within the guest after growing the VHDX"

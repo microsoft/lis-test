@@ -41,10 +41,12 @@
     <testCases>
         <test>
             <testName>VHDx_SCSI_0_1_Dynamic_Big</testName>
-            <setupScript>SetupScripts\Add-VHDXHardDisk.ps1</setupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <testParams>
-                <param>SCSI=0,1,Dynamic,512,2500GB</param>
+                <param>Dynamic=True</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=2500GB</param>
                 <param>TC_COVERED=STOR-30</param>
                 <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
             </testParams>
