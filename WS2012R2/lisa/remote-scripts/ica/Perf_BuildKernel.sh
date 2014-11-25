@@ -27,17 +27,19 @@
 #     This script was created to automate the testing of a Linux
 #     kernel source tree.  It does this by performing the following
 #     steps:
-#	1. Make sure we were given a kernel source tarball
-#	2. Configure and build the new kernel
+#    1. Make sure we were given a kernel source. If a linux-next git address is provided, make sure that
+#       the VM has a NIC (eth1) connect to Internet. This script will configure eth1 to DHCP to access internet.
+#    2. Configure and build the new kernel
 #
 # The outputs are directed into files named:
-# Perf_BuildKernel_make.log, 
-# Perf_BuildKernel_makemodulesinstall.log, 
-# Perf_BuildKernel_makeinstall.log
+#     Perf_BuildKernel_make.log, 
+#     Perf_BuildKernel_makemodulesinstall.log, 
+#     Perf_BuildKernel_makeinstall.log
 #
 # This test script requires the below test parameters:
-#   TARBALL=linux-3.14.tar.xz
-#   KERNELVERSION=linux-3.14
+#     <param>SOURCE_TYPE=ONLINE</param>
+#     <param>LINUX_KERNEL_LOCATION=git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git</param>
+#     <param>KERNEL_VERSION=linux-next</param>
 #
 # A typical XML test definition for this test case would look
 # similar to the following:
@@ -47,8 +49,9 @@
 #             <files>remote-scripts/ica/Perf_BuildKernel.sh</files>
 #             <files>Tools/linux-3.14.tar.xz</files>
 #             <testParams>
-#                 <param>TARBALL=linux-3.14.tar.xz</param>
-#                 <param>KERNELVERSION=linux-3.14</param>
+#                 <param>SOURCE_TYPE=ONLINE</param>
+#                 <param>LINUX_KERNEL_LOCATION=https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git</param>
+#                 <param>KERNEL_VERSION=linux-next</param>
 #             </testParams>
 #             <uploadFiles>
 #                 <file>Perf_BuildKernel_make.log</file>
@@ -109,8 +112,10 @@ dbgprint 1 "buildKernel.sh - Script to automate building of the kernel"
 dbgprint 3 ""
 dbgprint 3 "Global values"
 dbgprint 3 "  DEBUG_LEVEL = ${DEBUG_LEVEL}"
+dbgprint 3 "  SOURCE_TYPE = ${SOURCE_TYPE}"
+dbgprint 3 "  LINUX_KERNEL_LOCATION = ${LINUX_KERNEL_LOCATION}"
 dbgprint 3 "  TARBALL = ${TARBALL}"
-dbgprint 3 "  KERNELVERSION = ${KERNELVERSION}"
+dbgprint 3 "  KERNEL_VERSION = ${KERNEL_VERSION}"
 dbgprint 3 "  CONFIG_FILE = ${CONFIG_FILE}"
 dbgprint 3 ""
 
@@ -124,43 +129,71 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 # adding check for old kernel source tree
-if [ -e ${KERNELVERSION} ]; then
+if [ -e ${KERNEL_VERSION} ]; then
     dbgprint 1 "Cleaning up previous copies of source tree"
-    dbgprint 3 "Removing the ${KERNELVERSION} directory"
-    rm -rf ${KERNELVERSION}
+    dbgprint 3 "Removing the ${KERNEL_VERSION} directory"
+    rm -rf ${KERNEL_VERSION}
 fi
 
-#
-# Make sure we were given the $TARBALL file
-#
-if [ ! ${TARBALL} ]; then
-    dbgprint 0 "The TARBALL variable is not defined."
-    dbgprint 0 "Aborting the test."
-    UpdateTestState "TestAborted"
-    exit 20
-fi
+if [ "${SOURCE_TYPE}" == "TARBALL" ]; then
+    dbgprint 1 "Building linux kernel from tarball..."
+    #
+    # Make sure we were given the $TARBALL file
+    #
+    if [ ! ${TARBALL} ]; then
+        dbgprint 0 "The TARBALL variable is not defined."
+        dbgprint 0 "Aborting the test."
+        UpdateTestState "TestAborted"
+        exit 20
+    fi
 
-dbgprint 3 "Extracting Linux kernel sources from ${TARBALL}"
-tar -xf ${TARBALL}
-sts=$?
-if [ 0 -ne ${sts} ]; then
-    dbgprint 0 "tar failed to extract the kernel from the tarball: ${sts}" 
-    dbgprint 0 "Aborting test."
-    UpdateTestState "TestAborted"
-    exit 40
-fi
+    dbgprint 3 "Extracting Linux kernel sources from ${TARBALL}"
+    tar -xf ${TARBALL}
+    sts=$?
+    if [ 0 -ne ${sts} ]; then
+        dbgprint 0 "tar failed to extract the kernel from the tarball: ${sts}" 
+        dbgprint 0 "Aborting test."
+        UpdateTestState "TestAborted"
+        exit 40
+    fi
 
-#
-# The Linux Kernel is extracted to the folder which is named by the version by default
-#
-if [ ! -e ${KERNELVERSION} ]; then
-    dbgprint 0 "The tar file did not create the directory: ${KERNELVERSION}"
-    dbgprint 0 "Aborting the test."
-    UpdateTestState "TestAborted"
-    exit 50
+    #
+    # The Linux Kernel is extracted to the folder which is named by the version by default
+    #
+    if [ ! -e ${KERNEL_VERSION} ]; then
+        dbgprint 0 "The tar file did not create the directory: ${KERNEL_VERSION}"
+        dbgprint 0 "Aborting the test."
+        UpdateTestState "TestAborted"
+        exit 50
+    fi
+else
+    dbgprint 1 "Building linux-next kernel from git repository..."
+    #
+    # Make sure we were given the linux-next git location
+    #
+    if [ ! ${LINUX_KERNEL_LOCATION} ]; then
+        dbgprint 0 "The LINUX_KERNEL_LOCATION variable is not defined."
+        dbgprint 0 "Aborting the test."
+        UpdateTestState "TestAborted"
+        exit 20
+    fi
+    
+    # for SUSE, config the /etc/sysconfig/network/ifcfg-eth1 file to enable DHCP
+    # dhclient eth1 does not work?
+    SUSE_ETH0_CONFIG=/etc/sysconfig/network/ifcfg-eth0
+    SUSE_ETH1_CONFIG=/etc/sysconfig/network/ifcfg-eth1
+    cp ${SUSE_ETH0_CONFIG} ${SUSE_ETH1_CONFIG}
+    sed --in-place -e s:"^BOOTPROTO='static'":"BOOTPROTO='dhcp'": ${SUSE_ETH1_CONFIG}
+    sed --in-place -e s:"^IPADDR='.*'":"IPADDR=''": ${SUSE_ETH1_CONFIG}
+    # start network of eth1 for internet access
+    ifdown eth1
+    ifup eth1
+    
+    zypper --non-interactive install git-core
+    git clone ${LINUX_KERNEL_LOCATION}
 fi
-
-cd ${KERNELVERSION}
+   
+cd ${KERNEL_VERSION}
 
 #
 # Start the testing
@@ -236,29 +269,6 @@ else
     #
     sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=m\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
 
-    #
-    # Disable the ata_piix driver since this driver loads before the hyperv driver
-    # and causes drives to be initialized as sda* (ata_piix driver) as well as
-    # hda* (hyperv driver).  Removing the ata_piix driver prevents the hard drive
-    # from being claimed by both drivers.
-    #
-    #sed --in-place -e s:"^CONFIG_ATA_PIIX=[m|y]":"# CONFIG_ATA_PIIX is not set": ${CONFIG_FILE}
-    #sed --in-place -e s:"^CONFIG_PATA_OLDPIIX=[m|y]":"# CONFIG_PATA_OLDPIIX is not set": ${CONFIG_FILE}
-
-    #
-    # Enable vesa framebuffer support.  This was needed for SLES 11 as a
-    # workaround for X not initializing properly on boot.  The 'vga=0x317'
-    # line was also necessarily added to the grub configuration.
-    #
-    #sed --in-place -e s:"# CONFIG_FB_VESA is not set":"CONFIG_FB_VESA=y": ${CONFIG_FILE}
-
-    #
-    # ToDo, add support for IC SCSI support
-    #
-
-    # After manually adding lines to .config, run make oldconfig to make
-    # sure config file is setup properly and all appropriate config
-    # options are added. THIS STEP IS NECESSARY!!
     yes "" | make oldconfig
 fi
 UpdateSummary "make oldconfig: Success"
@@ -337,22 +347,27 @@ uname -r > ~/oldKernelVersion.txt
 ### Grub Modification ###
 # Update grub.conf (we only support v1 right now, grub v2 will have to be added
 # later)
+grubversion=1
 if [ -e /boot/grub/grub.conf ]; then
         grubfile="/boot/grub/grub.conf"
 elif [ -e /boot/grub/menu.lst ]; then
         grubfile="/boot/grub/menu.lst"
 else
-        echo "ERROR: grub v1 does not appear to be installed on this system."
-        exit $E_GENERAL
+        echo "grub v1 files does not appear to be installed on this system. it should use grub v2."
+        # the new kernel is the default one to boot next time
+        grubversion=2
 fi
-new_default_entry_num="0"
-# added
 
-sed --in-place=.bak -e "s/^default\([[:space:]]\+\|=\)[[:digit:]]\+/default\1$new_default_entry_num/" $grubfile
+if [ 1 -eq ${grubversion} ]; then
+    echo "Update grub v1 files."
+    new_default_entry_num="0"
+    # added
+    sed --in-place=.bak -e "s/^default\([[:space:]]\+\|=\)[[:digit:]]\+/default\1$new_default_entry_num/" $grubfile
+    # Display grub configuration after our change
+    echo "Here are the new contents of the grub configuration file:"
+    cat $grubfile
+fi
 
-# Display grub configuration after our change
-echo "Here are the new contents of the grub configuration file:"
-cat $grubfile
 #
 # Let the caller know everything worked
 #

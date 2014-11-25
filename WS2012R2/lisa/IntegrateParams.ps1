@@ -143,6 +143,7 @@ function SubstituteParams( $children, [string] $label)
         {
             $newValue = $params[ $parameterizedName ]
             $p.Set_InnerText("${tpName}=${newValue}")
+			"${parameterizedName} is set to: ${tpName}=${newValue}"
         }
     }
 }
@@ -161,6 +162,7 @@ function UpdateParams( $children, [string] $label)
         {
             $newValue = $params[ $parameterizedName ]
             $p.Set_InnerText("${newValue}")
+			"${parameterizedName} is set to: ${newValue}"
         }
     }
 }
