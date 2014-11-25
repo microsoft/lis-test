@@ -916,7 +916,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                             #$vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
                             if ($abortOnError)
                             {
-                                $vm.currentTtest = "done"
+                                $vm.currentTest = "done"
                                 UpdateState $vm $finished
                                 return
                             }
