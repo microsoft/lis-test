@@ -270,6 +270,21 @@ function RunICTests([XML] $xmlConfig)
     LogMsg 9 "Info : RunICTests($($vm.vmName))"
 
     #
+    # Verify the Putty utilities exist.  Without them, we cannot talk to the Linux VM.
+    #
+    if (-not (Test-Path -Path ".\bin\pscp.exe"))
+    {
+        LogMsg 0 "Error: The putty utility .\bin\pscp.exe does not exist"
+        return
+    }
+
+    if (-not (Test-Path -Path ".\bin\plink.exe"))
+    {
+        LogMsg 0 "Error: The putty utility .\bin\plink.exe does not exist"
+        return
+    }
+
+    #
     # Reset each VM to a known state
     #
     foreach ($vm in $xmlConfig.config.VMs.vm)
@@ -334,7 +349,7 @@ function RunICTests([XML] $xmlConfig)
         #
         # Make sure the VM actually exists on the specific HyperV server
         #
-        if ($null -eq (Get-VM $vm.vmName -ComputerName $vm.hvServer))
+        if ($null -eq (Get-VM $vm.vmName -ComputerName $vm.hvServer -ErrorAction SilentlyContinue))
         {
             LogMsg 0 "Warn : The VM $($vm.vmName) does not exist on server $($vm.hvServer)"
             if ($vm.role.ToLower().StartsWith("sut"))
@@ -795,6 +810,17 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $testData = GetTestData $vm.currentTest $xmlData
             if ($testData -is [System.Xml.XmlElement])
             {
+                if (-not (VerifyTestResourcesExist $vm $testData))
+                {
+                    #
+                    # One or more resources used by the VM or test case does not exist - fail the test
+                    #
+                    $testName = $testData.testName
+                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed")
+                    $vm.emailSummary += "          Missing resources<br />"
+                    return
+                }
+
                 if ($vm.preStartConfig -or $testData.setupScript)
                 {
                     UpdateState $vm $RunSetupScript
@@ -1710,12 +1736,30 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 if ($testData.preTest)
                 {
-                    LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.setupScript)"
-                
-                    $sts = RunPSScript $vm $($testData.preTest) $xmlData "PreTest"
-                    if (-not $sts)
+                    #
+                    # If multiple pretest scripts specified
+                    #
+                    if ($testData.preTest.file)
                     {
-                        LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
+                        foreach ($script in $testData.pretest.file)
+                        {
+                            LogMsg 3 "Info : $($vm.vmName) running PreTest script '${script}' for test $($testData.testName)"
+                            $sts = RunPSScript $vm $script $xmlData "PreTest"
+                            if (! $sts)
+                            {
+                                LogMsg 0 "Error: $($vm.vmName) PreTest script ${script} for test $($testData.testName) failed"
+                            }
+                        }
+                    }
+                    else # Original syntax of <pretest>setupscripts\myPretest.ps1</pretest>
+                    {
+                        LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.setupScript)"
+                
+                        $sts = RunPSScript $vm $($testData.preTest) $xmlData "PreTest"
+                        if (-not $sts)
+                        {
+                            LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
+                        }
                     }
                 }
                 else
@@ -2249,12 +2293,29 @@ function DoRunPostTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
     {
         if ($testData.postTest)
         {
-            LogMsg 3 "Info : $($vm.vmName) - starting postTest script $($testData.postTest)"
-            
-            $sts = RunPSScript $vm $($testData.postTest) $xmlData "PostTest"
-            if (-not $sts)
+            #
+            # If multiple PostTest scripts specified
+            #
+            if ($testData.postTest.file)
             {
-                LogMsg 0 "Error: VM $($vm.vmName) postTest script for test $($testData.testName) failed"
+                foreach ($script in $testData.postTest.file)
+                {
+                    LogMsg 3 "Info : $($vm.vmName) running Post Test script '${script}' for test $($testData.testName)"
+                    $sts = RunPSScript $vm $script $xmlData "PostTest"
+                    if (! $sts)
+                    {
+                        LogMsg 0 "Error: $($vm.vmName) PostTest script ${script} for test $($testData.testName) failed"
+                    }
+                }
+            }
+            else # Original syntax of <postTest>setupscripts\myPretest.ps1</postTest>
+            {
+                LogMsg 3 "Info : $($vm.vmName) - starting postTest script $($testData.postTest)"
+                $sts = RunPSScript $vm $($testData.postTest) $xmlData "PostTest"
+                if (-not $sts)
+                {
+                    LogMsg 0 "Error: VM $($vm.vmName) postTest script for test $($testData.testName) failed"
+                }
             }
         }
         else
@@ -2603,21 +2664,36 @@ function DoRunCleanUpScript($vm, $xmlData)
     }
 
     #
-    # Run cleanup script of one is specified
+    # Run cleanup script of one is specified.  Do not fail the test if the script
+    # returns an error. Just log the error and condinue.
     #
     $currentTestData = GetTestData $($vm.currentTest) $xmlData
     if ($currentTestData -is [System.Xml.XmlElement] -and $currentTestData.cleanupScript)
     {
-        LogMsg 3 "Info : $($vm.vmName) running cleanup script $($currentTestData.cleanupScript) for test $($currentTestData.testName)"
-        LogMsg 8 "Info : RunPSScript $($vm.vmName) $($currentTestData.cleanupScript) xmlData"
-        
-        $sts = RunPSScript $vm $($currentTestData.cleanupScript) $xmlData "Cleanup"
-        if (! $sts)
+        #
+        # If multiple cleanup scripts specified
+        #
+        if ($currentTestData.cleanupScript.file)
         {
-            #
-            # Do not terminate test if cleanup script fails.  Just log a message and continue...
-            #
-            LogMsg 0 "Error: $($vm.vmName) cleanup script $($currentTestData.cleanupScript) for test $($currentTestData.testName) failed"
+            foreach ($script in $currentTestData.cleanupScript.file)
+            {
+                LogMsg 3 "Info : $($vm.vmName) running cleanup script '${script}' for test $($currentTestData.testName)"
+                $sts = RunPSScript $vm $script $xmlData "Cleanup"
+                if (! $sts)
+                {
+                    LogMsg 0 "Error: $($vm.vmName) cleanup script ${script} for test $($currentTestData.testName) failed"
+                }
+            }
+        }
+        else  # original syntax of <cleanupscript>setupscripts\myCleanup.ps1</cleanupscript>
+        {
+            LogMsg 3 "Info : $($vm.vmName) running cleanup script $($currentTestData.cleanupScript) for test $($currentTestData.testName)"
+        
+            $sts = RunPSScript $vm $($currentTestData.cleanupScript) $xmlData "Cleanup"
+            if (! $sts)
+            {
+                LogMsg 0 "Error: $($vm.vmName) cleanup script $($currentTestData.cleanupScript) for test $($currentTestData.testName) failed"
+            }
         }
     }
     else

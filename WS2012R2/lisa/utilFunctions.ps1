@@ -1631,3 +1631,180 @@ function GetIPv4([String] $vmName, [String] $server)
 
     return $addr
 }
+
+
+#######################################################################
+#
+# VerifyTestResourcesExist()
+#
+#######################################################################
+function VerifyTestResourcesExist([System.Xml.XmlElement] $vm, [System.Xml.XmlElement] $testData)
+{
+    $retVal = $True
+
+    $vmName = $vm.vmName
+    $testName = $testData.testName
+
+    #
+    # Verify the VM resource <sshKey>
+    #
+    if ($vm.sshKey)
+    {
+        $sshKey = ".\ssh\$($vm.sshKey)"
+        if (-not (Test-Path -Path "${sshKey}"))
+        {
+            LogMsg 0 "Error: ${vmName} - the VM sshkey '${sshKey}' does not exist"
+            $retVal = $False
+        }
+    }
+
+    #
+    # Verify the VM resource <preStartConfig>
+    #
+    if ($vm.preStartConfig)
+    {
+        $script = "$($vm.preStartConfig)"
+        if (-not (Test-Path -Path "${script}"))
+        {
+            LogMsg 0 "Error: ${vmName} - the VM preStartConfig script '${script}' does not exist"
+            $retVal = $False
+        }
+    }
+
+    #
+    # Verify the test resource <setupScript>
+    #
+    if ($testData.setupScript)
+    {
+        if ($testData.setupScript.file)
+        {
+            foreach ($script in $testData.setupScript.file)
+            {
+                if (-not (Test-Path -Path "${script}"))
+                {
+                    LogMsg 0 "Error: ${vmName} - the setup script '${script}' for test '${testName}' does not exist"
+                    $retVal = $False
+                }
+            }
+        }
+        else
+        {
+            if (-not (Test-Path -Path "$($testData.setupScript)"))
+            {
+                LogMsg 0 "Error: ${vmName} - the setup script '$($testData.setupScript)' for test '${testName}' does not exist"
+                $retVal = $False
+            }
+        }
+    }
+
+    #
+    # Verify the test resource <preTest>
+    #
+    if ($testData.preTest)
+    {
+        if ($testData.preTest.file)
+        {
+            foreach ($script in $testData.preTest.file)
+            {
+                if (-not (Test-Path -Path "${script}"))
+                {
+                    LogMsg 0 "Error: ${vmName} - the PreTest script '${script}' for test '${testName}' does not exist"
+                    $retVal = $False
+                }
+            }
+        }
+        else
+        {
+            if (-not (Test-Path -Path "$($testData.preTest)"))
+            {
+                LogMsg 0 "Error: ${vmName} - the PreTest script '$($testData.preTest)' for test '${testName}' does not exist"
+                $retVal = $False
+            }
+        }
+    }
+
+    #
+    # Verify the test resource <postTest>
+    #
+    if ($testData.postTest)
+    {
+        if ($testData.postTest.file)
+        {
+            foreach ($script in $testData.postTest.file)
+            {
+                if (-not (Test-Path -Path "${script}"))
+                {
+                    LogMsg 0 "Error: ${vmName} - the PostTest script '${script}' for test '${testName}' does not exist"
+                    $retVal = $False
+                }
+            }
+        }
+        else
+        {
+            if (-not (Test-Path -Path "$($testData.postTest)"))
+            {
+                LogMsg 0 "Error: ${vmName} - the PostTest script '$($testData.postTest)' for test '${testName}' does not exist"
+                $retVal = $False
+            }
+        }
+    }
+
+    #
+    # Verify the test resource <cleanupScript>
+    #
+    if ($testData.cleanupScript)
+    {
+        if ($testData.cleanupScript.file)
+        {
+            foreach ($script in $testData.cleanupScript.file)
+            {
+                if (-not (Test-Path -Path "${script}"))
+                {
+                    LogMsg 0 "Error: ${vmName} - the cleanup script '${script}' for test '${testName}' does not exist"
+                    $retVal = $False
+                }
+            }
+        }
+        else
+        {
+            if (-not (Test-Path -Path "$($testData.cleanupScript)"))
+            {
+                LogMsg 0 "Error: ${vmName} - the cleanup script '$($testData.cleanupScript)' for test '${testName}' does not exist"
+                $retVal = $False
+            }
+        }
+    }
+
+    #
+    # Verify the test resource <files>
+    #
+    if ($testData.files)
+    {
+        $files = ($testData.files).split(",")
+        foreach ($f in $files)
+        {
+            $testFile = $f.trim()
+            if (-not (Test-Path -Path "${testFile}"))
+            {
+                LogMsg 0 "Error: ${vmName} - the test file '${testFile}' for test '${testName}' does not exist"
+                $retVal = $False
+            }
+        }
+    }
+
+    #
+    # Verify the test resource <testScript> when it is a .ps1
+    #
+    if (($testData.testScript).EndsWith(".ps1"))
+    {
+        $testFile = $testData.TestScript
+        if (-not (Test-Path -Path "${testFile}"))
+        {
+            LogMsg 0 "Error: ${vmName} - the test script '${testFile}' for test '${testName}' does not exist"
+            $retVal = $False
+        }
+    }
+
+    return $retVal
+}
+
