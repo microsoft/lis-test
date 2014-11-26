@@ -65,7 +65,7 @@
     </testCases>
 
     <VMs>        
-	<vm>
+        <vm>
             <vmName>Sles11Sp3x64</vmName>
             <hvServer>localhost</hvServer>
             <os>Linux</os>

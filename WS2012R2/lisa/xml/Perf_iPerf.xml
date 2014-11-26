@@ -85,7 +85,7 @@
     
     <VMs>
         <vm>
-	    <role>SUT</role>
+            <role>SUT1</role>
             <hvServer>localhost</hvServer>
             <vmName>vmName1</vmName>
             <os>Linux</os>
@@ -94,7 +94,7 @@
             <suite>IPerf</suite>
         </vm>
         <vm>
-            <role>NonSUT</role>
+            <role>NonSUT1</role>
             <hvServer>localhost</hvServer>
             <vmName>vmName2</vmName>
             <os>Linux</os>

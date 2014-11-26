@@ -270,6 +270,21 @@ function RunICTests([XML] $xmlConfig)
     LogMsg 9 "Info : RunICTests($($vm.vmName))"
 
     #
+    # Verify the Putty utilities exist.  Without them, we cannot talk to the Linux VM.
+    #
+    if (-not (Test-Path -Path ".\bin\pscp.exe"))
+    {
+        LogMsg 0 "Error: The putty utility .\bin\pscp.exe does not exist"
+        return
+    }
+
+    if (-not (Test-Path -Path ".\bin\plink.exe"))
+    {
+        LogMsg 0 "Error: The putty utility .\bin\plink.exe does not exist"
+        return
+    }
+
+    #
     # Reset each VM to a known state
     #
     foreach ($vm in $xmlConfig.config.VMs.vm)
@@ -284,11 +299,11 @@ function RunICTests([XML] $xmlConfig)
             $newElement.set_InnerText("SUT")
             $results = $vm.AppendChild($newElement)
         }
-        elseif ($vm.role.ToLower() -eq "nonsut")
+        elseif ($vm.role.ToLower().StartsWith("nonsut"))
         {
             $isSUTVM = $false
         }
-        elseif ($vm.role.ToLower() -eq "sut")
+        elseif ($vm.role.ToLower().StartsWith("sut"))
         {
             $isSUTVM = $true
         }
@@ -334,10 +349,10 @@ function RunICTests([XML] $xmlConfig)
         #
         # Make sure the VM actually exists on the specific HyperV server
         #
-        if ($null -eq (Get-VM $vm.vmName -ComputerName $vm.hvServer))
+        if ($null -eq (Get-VM $vm.vmName -ComputerName $vm.hvServer -ErrorAction SilentlyContinue))
         {
             LogMsg 0 "Warn : The VM $($vm.vmName) does not exist on server $($vm.hvServer)"
-            if ([string]::Compare($vm.role, "SUT", $true) -eq 0)
+            if ($vm.role.ToLower().StartsWith("sut"))
             {                
                 LogMsg 0 "Warn : Tests will not be run on $($vm.vmName)"
                 UpdateState $vm $Disabled
@@ -741,7 +756,7 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
 
-    if ([string]::Compare($vm.role, "SUT", $true) -eq 0 )
+    if ($vm.role.ToLower().StartsWith("sut"))
     {
         #for SUT VMs:
 
@@ -766,7 +781,7 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
             foreach( $v in $xmlData.config.VMs.vm )
             {
-                if ([string]::Compare($v.role, "SUT", $true) -eq 0)
+                if ($vm.role.ToLower().StartsWith("sut"))
                 {
                     if ($($v.state) -ne $Finished)
                     {
@@ -780,7 +795,7 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 foreach( $v in $xmlData.config.VMs.vm )
                 {
-                    if ([string]::Compare($v.role, "NonSUT", $true) -eq 0)
+                    if ($vm.role.ToLower().StartsWith("nonsut"))
                     {
                         if ($($v.state) -eq $Finished)
                         {
@@ -795,6 +810,17 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $testData = GetTestData $vm.currentTest $xmlData
             if ($testData -is [System.Xml.XmlElement])
             {
+                if (-not (VerifyTestResourcesExist $vm $testData))
+                {
+                    #
+                    # One or more resources used by the VM or test case does not exist - fail the test
+                    #
+                    $testName = $testData.testName
+                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed")
+                    $vm.emailSummary += "          Missing resources<br />"
+                    return
+                }
+
                 if ($vm.preStartConfig -or $testData.setupScript)
                 {
                     UpdateState $vm $RunSetupScript
@@ -880,7 +906,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
         LogMsg 9 "Info: VM: $($vm.vmName) does not have preStartConfig script defined"
     }
 
-    if ([string]::Compare($vm.role, "SUT", $true) -eq 0 )
+    if ($vm.role.ToLower().StartsWith("sut"))
     {
         #for SUT VMs:
         #
@@ -889,26 +915,72 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $testData = GetTestData $($vm.currentTest) $xmlData
         if ($testData -is [System.Xml.XmlElement])
         {
+            $testName = $testData.testName
+            $abortOnError = $True
+            if ($testData.onError -eq "Continue")
+            {
+                $abortOnError = $False
+            }
+
             if ($testData.setupScript)
             {
-                LogMsg 3 "Info : $($vm.vmName) - starting setup script $($testData.setupScript)"
-            
-                $sts = RunPSScript $vm $($testData.setupScript) $xmlData "Setup"
-                if (-not $sts)
+                if ($testData.setupScript.File)
                 {
-                    #
-                    # Fail the test if setup script fails.  We're already in SystemDown state so no state transition is needed.
-                    #
-                    LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test $($testData.testName) failed"
-                    $vm.emailSummary += "    Test $($vm.currentTest) : Aborted<br />"
+                    foreach ($script in $testData.setupScript.File)
+                    {
+                        LogMsg 3 "Info : $($vm.vmName) - running setup script '${script}'"
+ 
+                        if (-not (RunPSScript $vm $script $xmlData "Setup" $logfile))
+                        {
+                            #
+                            # If the setup script fails, fail the test. If <OnError>
+                            # is continue, continue on to the next test in the suite.
+                            # Otherwise, terminate testing.
+                            #
+                            LogMsg 0 "Error: VM $($vm.vmName) setup script ${script} for test ${testName} failed"
+                            $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - setup script failed")
+                            #$vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
+                            if ($abortOnError)
+                            {
+                                $vm.currentTest = "done"
+                                UpdateState $vm $finished
+                                return
+                            }
+                            else
+                            {
+                                UpdateState $vm $SystemDown
+                                return
+                            }
+                        }
+                    }
+                }
+                else  # the older, single setup script syntax
+                {
+                    LogMsg 3 "Info : $($vm.vmName) - running single setup script '$($testData.setupScript)'"
+            
+                    if (-not (RunPSScript $vm $($testData.setupScript) $xmlData "Setup" $logfile))
+                    {
+                        #
+                        # If the setup script fails, fail the test. If <OnError>
+                        # is continue, continue on to the next test in the suite.
+                        # Otherwise, terminate testing.
+                        #
+                        LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test ${testName} failed"
+                        #$vm.emailSummary += "    Test $($vm.currentTest) : Failed - setup script failed<br />"
+                        $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - setup script failed")
                     
-                    #comment below code as we may need to continue running next test case
-                    #$vm.currentTest = "done"
-                    #UpdateState $vm $finished
-                    
-                    #need to determine do we need to shutdown system and do cleanup for running next test case if existing
-                    UpdateState $vm $DetermineReboot
-                    return
+                        if ($abortOnError)
+                        {
+                            $vm.currentTest = "done"
+                            UpdateState $vm $finished
+                            return
+                        }
+                        else
+                        {
+                            UpdateState $vm $SystemDown
+                            return
+                        }
+                    }
                 }
             }
             else
@@ -1337,7 +1409,7 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #    UpdateState $vm $PushTestFiles
     #}
 
-    If([string]::Compare($vm.role, "SUT", $true) -eq 0)
+    If ($vm.role.ToLower().StartsWith("sut"))
     {
          #for SUT VM, needs to wait for NonSUT VM startup
          UpdateState $vm $WaitForDependencyVM
@@ -1654,7 +1726,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
     else
     {
-        If([string]::Compare($vm.role, "SUT", $true) -eq 0)
+        If ($vm.role.ToLower().StartsWith("sut"))
         {
             #
             # For SUT VMs: Run pretest script if one is specified
@@ -1664,12 +1736,30 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 if ($testData.preTest)
                 {
-                    LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.setupScript)"
-                
-                    $sts = RunPSScript $vm $($testData.preTest) $xmlData "PreTest"
-                    if (-not $sts)
+                    #
+                    # If multiple pretest scripts specified
+                    #
+                    if ($testData.preTest.file)
                     {
-                        LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
+                        foreach ($script in $testData.pretest.file)
+                        {
+                            LogMsg 3 "Info : $($vm.vmName) running PreTest script '${script}' for test $($testData.testName)"
+                            $sts = RunPSScript $vm $script $xmlData "PreTest"
+                            if (! $sts)
+                            {
+                                LogMsg 0 "Error: $($vm.vmName) PreTest script ${script} for test $($testData.testName) failed"
+                            }
+                        }
+                    }
+                    else # Original syntax of <pretest>setupscripts\myPretest.ps1</pretest>
+                    {
+                        LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.setupScript)"
+                
+                        $sts = RunPSScript $vm $($testData.preTest) $xmlData "PreTest"
+                        if (-not $sts)
+                        {
+                            LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
+                        }
                     }
                 }
                 else
@@ -2203,12 +2293,29 @@ function DoRunPostTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
     {
         if ($testData.postTest)
         {
-            LogMsg 3 "Info : $($vm.vmName) - starting postTest script $($testData.postTest)"
-            
-            $sts = RunPSScript $vm $($testData.postTest) $xmlData "PostTest"
-            if (-not $sts)
+            #
+            # If multiple PostTest scripts specified
+            #
+            if ($testData.postTest.file)
             {
-                LogMsg 0 "Error: VM $($vm.vmName) postTest script for test $($testData.testName) failed"
+                foreach ($script in $testData.postTest.file)
+                {
+                    LogMsg 3 "Info : $($vm.vmName) running Post Test script '${script}' for test $($testData.testName)"
+                    $sts = RunPSScript $vm $script $xmlData "PostTest"
+                    if (! $sts)
+                    {
+                        LogMsg 0 "Error: $($vm.vmName) PostTest script ${script} for test $($testData.testName) failed"
+                    }
+                }
+            }
+            else # Original syntax of <postTest>setupscripts\myPretest.ps1</postTest>
+            {
+                LogMsg 3 "Info : $($vm.vmName) - starting postTest script $($testData.postTest)"
+                $sts = RunPSScript $vm $($testData.postTest) $xmlData "PostTest"
+                if (-not $sts)
+                {
+                    LogMsg 0 "Error: VM $($vm.vmName) postTest script for test $($testData.testName) failed"
+                }
             }
         }
         else
@@ -2557,21 +2664,36 @@ function DoRunCleanUpScript($vm, $xmlData)
     }
 
     #
-    # Run cleanup script of one is specified
+    # Run cleanup script of one is specified.  Do not fail the test if the script
+    # returns an error. Just log the error and condinue.
     #
     $currentTestData = GetTestData $($vm.currentTest) $xmlData
     if ($currentTestData -is [System.Xml.XmlElement] -and $currentTestData.cleanupScript)
     {
-        LogMsg 3 "Info : $($vm.vmName) running cleanup script $($currentTestData.cleanupScript) for test $($currentTestData.testName)"
-        LogMsg 8 "Info : RunPSScript $($vm.vmName) $($currentTestData.cleanupScript) xmlData"
-        
-        $sts = RunPSScript $vm $($currentTestData.cleanupScript) $xmlData "Cleanup"
-        if (! $sts)
+        #
+        # If multiple cleanup scripts specified
+        #
+        if ($currentTestData.cleanupScript.file)
         {
-            #
-            # Do not terminate test if cleanup script fails.  Just log a message and continue...
-            #
-            LogMsg 0 "Error: $($vm.vmName) cleanup script $($currentTestData.cleanupScript) for test $($currentTestData.testName) failed"
+            foreach ($script in $currentTestData.cleanupScript.file)
+            {
+                LogMsg 3 "Info : $($vm.vmName) running cleanup script '${script}' for test $($currentTestData.testName)"
+                $sts = RunPSScript $vm $script $xmlData "Cleanup"
+                if (! $sts)
+                {
+                    LogMsg 0 "Error: $($vm.vmName) cleanup script ${script} for test $($currentTestData.testName) failed"
+                }
+            }
+        }
+        else  # original syntax of <cleanupscript>setupscripts\myCleanup.ps1</cleanupscript>
+        {
+            LogMsg 3 "Info : $($vm.vmName) running cleanup script $($currentTestData.cleanupScript) for test $($currentTestData.testName)"
+        
+            $sts = RunPSScript $vm $($currentTestData.cleanupScript) $xmlData "Cleanup"
+            if (! $sts)
+            {
+                LogMsg 0 "Error: $($vm.vmName) cleanup script $($currentTestData.cleanupScript) for test $($currentTestData.testName) failed"
+            }
         }
     }
     else
@@ -2834,7 +2956,7 @@ function DoWaitForDependencyVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 
     #if this is not a SUT VM, it should not wait for others.
-    If([string]::Compare($vm.role, "SUT", $true) -ne 0)
+    If ($vm.role.ToLower().StartsWith("nonsut"))
     {
          LogMsg 3 "Warn : DoWaitForDependencyVM() should not be called by a NonSUT VM"
          UpdateState $vm $Finished
@@ -2845,7 +2967,7 @@ function DoWaitForDependencyVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $allNonSUTVMFinished = $true
         foreach( $v in $xmlData.config.VMs.vm )
         {
-            if ([string]::Compare($v.role, "SUT", $true) -ne 0)
+            if ($vm.role.ToLower().StartsWith("nonsut"))
             {
                 if ($($v.state) -ne $Finished)
                 {
@@ -2978,9 +3100,16 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
     $jobID = $vm.jobID
     if ($jobID -ne "none")
     {
-        $jobResults = @(Receive-Job -id $jobID)
+        $error.Clear()
+        $jobResults = @(Receive-Job -id $jobID -ErrorAction SilentlyContinue)
         if ($jobResults)
         {
+            if ($error.Count -gt 0)
+            {
+                "Error: ${currentTest} script encountered an error"
+                $error[0].Exception.Message >> $logfilename
+            }
+
             foreach ($line in $jobResults)
             {
                 $line >> $logFilename
@@ -2990,7 +3119,6 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
             # The last object in the $jobResults array will be the boolean
             # value the script returns on exit.  See if it is true.
             #
-            #if ($jobResults[ $jobResults.Length - 1 ] -eq $True)
             if ($jobResults[-1] -eq $True)
             {
                 $completionCode = "Success"

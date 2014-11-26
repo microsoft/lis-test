@@ -66,8 +66,8 @@
     </testCases>
 
     <VMs>        
-	<vm>
-            <role>SUT</role>
+        <vm>
+            <role>SUT1</role>
             <hvServer>localhost</hvServer>
             <vmName>Sles11Sp3x64</vmName>
             <os>Linux</os>
@@ -75,8 +75,8 @@
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>TCPing</suite>
         </vm>
-	<vm>
-            <role>NonSUT</role>
+        <vm>
+            <role>NonSUT1</role>
             <hvServer>localhost</hvServer>
             <vmName>SLES11SP3X64-NonSUT</vmName>
             <os>Linux</os>

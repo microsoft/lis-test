@@ -12,7 +12,7 @@
             <subject>LIS Performance Test Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
-		
+        
        <!-- Optional testParams go here -->
         <testParams>
             <param>vmCpuNumber=8</param>

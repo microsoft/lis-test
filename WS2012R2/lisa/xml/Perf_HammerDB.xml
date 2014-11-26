@@ -51,10 +51,10 @@
             <testScript>SetupScripts\Perf_HammerDB.ps1</testScript>
             <files>remote-scripts\ica\perf_hammerdbmysql.sh,tools\lisahdb.tcl,tools\hdb_tpcc.tcl,tools\HammerDB-2.16-Linux-x86-64-Install,tools\MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar</files>
             <!-- MySQL tar bundle might be one of the following, depending on the distro tested:
-					- MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar
-					- MySQL-5.6.16-1.rhel6.6.x86_64.rpm-bundle.tar
-					- MySQL-5.6.16-1.ubuntu14.10.x86_64.deb-bundle.tar -->
-			<timeout>7200</timeout>
+                    - MySQL-5.6.16-1.sles11.x86_64.rpm-bundle.tar
+                    - MySQL-5.6.16-1.rhel6.6.x86_64.rpm-bundle.tar
+                    - MySQL-5.6.16-1.ubuntu14.10.x86_64.deb-bundle.tar -->
+            <timeout>7200</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
@@ -66,7 +66,7 @@
     </testCases>
 
     <VMs>        
-	    <vm>
+        <vm>
             <vmName>TestVM</vmName>
             <hvServer>localhost</hvServer>
             <os>Linux</os>
@@ -75,5 +75,4 @@
             <suite>HammerDB</suite>
         </vm>
     </VMs>
-
 </config>

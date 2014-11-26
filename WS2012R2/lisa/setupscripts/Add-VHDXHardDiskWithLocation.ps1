@@ -91,13 +91,13 @@
                              3GB
                              1TB
                              100MB
-
+    Location            = Where you want the disk to be created
 
    The following are some examples
 
 
-   SCSI=0,0,Dynamic,4096,3GB : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic disk with logical sector size of 4096, 3GB disk size
-   IDE=1,1,Fixed,40963GB  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Fixed disk with logical sector size of 4096, 3GB disk size
+   SCSI=0,0,Dynamic,4096,3GB,H:\ssd\ : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic disk with logical sector size of 4096, 3GB disk size
+   IDE=1,1,Fixed,40963GB,D:\Virtual Hard Disks\  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Fixed disk with logical sector size of 4096, 3GB disk size
 
 
 .Parameter vmName
@@ -113,7 +113,7 @@
 
 
 .Example
-    setupScripts\Add-VHDXHardDisk -vmName VM_NAME -hvServer HYPERV_SERVER} -testParams "SCSI=0,0,Dynamic,4096,3GB;sshkey=YOUR_KEY.ppk;ipv4=255.255.255.255"
+    setupScripts\Add-VHDXHardDisk -vmName VM_NAME -hvServer HYPERV_SERVER -testParams "SCSI=0,0,Dynamic,4096,3GB,H:\ssd\;sshkey=YOUR_KEY.ppk;ipv4=255.255.255.255"
 #>
 ############################################################################
 
@@ -257,7 +257,7 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
 #
 ############################################################################
 function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $SCSI, [int] $ControllerID,
-                          [int] $Lun, [string] $vhdType, [string] $sectorSizes, [String] $newSize)
+                          [int] $Lun, [string] $vhdType, [string] $sectorSizes, [String] $newSize, [String] $location)
 {
     $retVal = $false
     $initialSize = $newSize
@@ -305,7 +305,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     # If the hard drive exists, complain...
     #
     $drive = Get-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
-    
+
     if ($drive)
     {
         "Error: drive $controllerType $controllerID $Lun already exists"
@@ -313,31 +313,20 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     }
     else
     {
-      
-        $vmDrive = Get-VMHardDiskDrive -VMName $vmName -ComputerName $server
-        $lastSlash = $vmDrive.Path.LastIndexOf("\")
 
-
-        #
-        # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
-        #
-        # $hostInfo = Get-VMHost -ComputerName $server
-        # if (-not $hostInfo)
-        # {
-            # "Error: Unable to collect Hyper-V settings for ${server}"
-            # return $False
-        # }
-
-
-        # $defaultVhdPath = $hostInfo.VirtualHardDiskPath
-        $defaultVhdPath = $vmDrive.Path.Substring(0,$lastSlash)
-        if (-not $defaultVhdPath.EndsWith("\"))
-        {
-            $defaultVhdPath += "\"
-        }
         $newVHDSize = ConvertStringToUInt64 $newSize
-        $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $lun + "-" + $vhdType + ".vhdx"
+        if (! $location.EndsWith("\\")) 
+        { 
+            $location += "\";
+        }
+        $vhdName = $location + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $lun + "-" + $vhdType + ".vhdx"
+        # Write-Host $newSize
+        Write-Host $newVHDSize
 
+        if(Test-Path $vhdName)
+        {
+            Remove-Item $vhdName
+        }
 
         $fileInfo = GetRemoteFileInfo -filename $vhdName -server $server
         if (-not $fileInfo)
@@ -444,7 +433,7 @@ foreach ($p in $params)
     $diskArgs = $temp[1].Trim().Split(',')
 
 
-    if ($diskArgs.Length -lt 4 -or $diskArgs.Length -gt 5)
+    if ($diskArgs.Length -ne 6)
     {
         "Error: Incorrect number of arguments: $p"
         $retVal = $false
@@ -459,18 +448,14 @@ foreach ($p in $params)
 
     $sectorSize = 512
     $VHDxSize = $global:MinDiskSize
-    if ($diskArgs.Length -eq 5)
+    $sectorSize = $diskArgs[3].Trim()
+    if ($sectorSize -ne "4096" -and $sectorSize -ne "512")
     {
-        $sectorSize = $diskArgs[3].Trim()
-        if ($sectorSize -ne "4096" -and $sectorSize -ne "512")
-        {
-            "Error: bad sector size: ${sectorSize}"
-            return $False
-        }
-        $VHDxSize = $diskArgs[4].Trim()
+        "Error: bad sector size: ${sectorSize}"
+        return $False
     }
-    
-
+    $VHDxSize = $diskArgs[4].Trim()
+    $location = $diskArgs[5].Trim()
 
     if (@("Fixed", "Dynamic", "PassThrough") -notcontains $vhdType)
     {
@@ -481,7 +466,7 @@ foreach ($p in $params)
 
 
     "CreateHardDrive $vmName $hvServer $scsi $controllerID $Lun $vhdType $sectorSize"
-    $sts = CreateHardDrive -vmName $vmName -server $hvServer -SCSI:$SCSI -ControllerID $controllerID -Lun $Lun -vhdType $vhdType -sectorSize $sectorSize -newSize $VHDxSize
+    $sts = CreateHardDrive -vmName $vmName -server $hvServer -SCSI:$SCSI -ControllerID $controllerID -Lun $Lun -vhdType $vhdType -sectorSize $sectorSize -newSize $VHDxSize -location $location
     if (-not $sts[$sts.Length-1])
     {
         write-output "Failed to create hard drive"

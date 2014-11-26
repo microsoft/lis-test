@@ -57,12 +57,12 @@
             <testParams>
                 <param>REDIS_PACKAGE=redis-2.8.17.tar.gz</param>
                 <param>REDIS_HOST_IP=192.168.1.100</param>
-				<param>REDIS_HOST_PORT=6379</param>
+                <param>REDIS_HOST_PORT=6379</param>
                 <param>REDIS_CLIENTS=1000</param>
-				<param>REDIS_RANDOM_KEY_SCOPE=100000000000</param>
-				<param>REDIS_DATA_SIZE=1</param>
-				<param>REDIS_TESTSUITES=SET</param>
-				<param>REDIS_NUMBER_REQUESTS=10000000</param>
+                <param>REDIS_RANDOM_KEY_SCOPE=100000000000</param>
+                <param>REDIS_DATA_SIZE=1</param>
+                <param>REDIS_TESTSUITES=SET</param>
+                <param>REDIS_NUMBER_REQUESTS=10000000</param>
             </testParams>
             <uploadFiles>
                 <file>redis.log</file>
@@ -74,7 +74,7 @@
     
     <VMs>
         <vm>
-	    <role>SUT</role>
+            <role>SUT1</role>
             <hvServer>localhost</hvServer>
             <vmName>SLES12Beta9X64</vmName>
             <os>Linux</os>
@@ -84,13 +84,13 @@
             <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
         <vm>
-            <role>NonSUT</role>
+            <role>NonSUT1</role>
             <hvServer>localhost</hvServer>
             <vmName>SLES12Beta9X64-NonSUT</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
-            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>			
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>            
         </vm>
     </VMs>
 </config>

@@ -54,7 +54,7 @@
 
     <VMs>        
         <vm>
-            <role>SUT</role>
+            <role>SUT1</role>
             <vmName>VMHadoopMaster</vmName>
             <hvServer>HyperVHost1</hvServer>
             <os>Linux</os>
@@ -64,7 +64,7 @@
             <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
         <vm>
-            <role>NonSUT</role>
+            <role>NonSUT1</role>
             <vmName>VMHadoopSlave1</vmName>
             <hvServer>HyperVHost2</hvServer>
             <os>Linux</os>
@@ -73,7 +73,7 @@
             <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
         <vm>
-            <role>NonSUT</role>
+            <role>NonSUT2</role>
             <vmName>VMHadoopSlave2</vmName>
             <hvServer>HyperVHost3</hvServer>
             <os>Linux</os>
