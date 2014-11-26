@@ -613,7 +613,8 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     $params = CreateTestParamString $vm $xmlData
     $params += "scriptMode=${scriptMode};"
     $params += "TestLogDir=${testDir};"
-
+    $params += "sshKey=$($vm.sshKey);"   
+	
     #
     # Invoke the setup/cleanup script
     #
