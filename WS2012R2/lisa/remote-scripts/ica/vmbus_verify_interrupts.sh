@@ -22,7 +22,7 @@
 
 ########################################################################
 #
-# vmbus_verify_interrupt.sh
+# vmbus_verify_interrupts.sh
 #
 # Description:
 #	This script was created to automate the testing of a Linux
@@ -121,7 +121,7 @@ do
 done < "/proc/interrupts"
 
 if [ $nonCPU0inter -eq $cpu_count ]; then
-	LogMsg "Test Passed! All CPU cores are processing interrupts."
+	LogMsg "Test Passed! All {$cpu_count} CPU cores are processing interrupts."
 	echo "Test Passed! All CPU cores are processing interrupts." >> ~/summary.log
 else
 	LogMsg "Test Failed! Not all CPU cores are processing VMBUS interrupts."
