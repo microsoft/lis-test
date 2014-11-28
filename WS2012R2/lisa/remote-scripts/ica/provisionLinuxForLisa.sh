@@ -79,7 +79,6 @@ ICA_TESTFAILED="TestFailed"        # Error while performing the test
 
 CONSTANTS_FILE="constants.sh" 
 
-
 LogMsg() 
 { 
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file 
@@ -433,8 +432,24 @@ function UbuntuTasks
 	#
 	# Create a list of packages to install, then ensure they are all installed
 	#
+	KernelRelease=$(uname -r | sed 's/-generic//g')
 	installError=0
-	packagesToInstall=(dos2unix dosfstools util-linux parted linux-headers-$(uname -r) build-essential ntp ntpdate e2fsprogs e2fslibs reiserfsprogs at bridge-utils btrfs-tools libgpm2 libaio-dev nano wget xfsprogs)
+	packagesToInstall=(dos2unix dosfstools util-linux parted linux-headers-$KernelRelease build-essential ntp ntpdate e2fsprogs e2fslibs reiserfsprogs at bridge-utils btrfs-tools libgpm2 libaio-dev nano wget xfsprogs)
+	
+	# Add packages for Linux Integration Services depending on Ubuntu version
+	UbuntuVersion=$(lsb_release -r -s)
+	case $UbuntuVersion in
+		12.* | 13.*)
+			packagesToInstall+=(linux-tools-$KernelRelease hv-kvp-daemon-init)
+			;;
+		14.04)
+			packagesToInstall+=(linux-tools-$KernelRelease linux-cloud-tools-$KernelRelease hv-kvp-daemon-init)
+			;;
+		*)
+			packagesToInstall+=(linux-tools-$KernelRelease linux-cloud-tools-$KernelRelease linux-cloud-tools-common)
+			;;
+	esac
+	
     for p in "${packagesToInstall[@]}"
 	do
 	    LogMsg "Info : Processing package '${p}'"
@@ -454,6 +469,12 @@ function UbuntuTasks
 	    LogMsg "Error: Not all packages successfully installed - terminating"
 		UpdateTestState $ICA_TESTFAILED
 		exit 1
+	fi
+	
+	# If Ubuntu version 12.04 or 13.04 then we need to rename the Hyper-V daemon
+	if [[ $UbuntuVersion =~ 12.*|13.* ]]; then
+		LogMsg "Info : Copying /usr/sbin/hv_kvp_daemon_${KernelRelease} to /usr/sbin/hv_kvp_daemon"
+		cp /usr/sbin/hv_kvp_daemon_$KernelRelease /usr/sbin/hv_kvp_daemon
 	fi
 }
 

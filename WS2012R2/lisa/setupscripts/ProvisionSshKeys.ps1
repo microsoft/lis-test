@@ -119,7 +119,7 @@ function GetLinuxDistro([String] $ipv4, [String] $password)
         return $null
     }
 
-    $distro = plink -pw "${password}" root@${ipv4} "grep -ihs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux' /etc/{issue,*release,*version}"
+    $distro = bin\plink -pw "${password}" root@${ipv4} "grep -ihs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux' /etc/{issue,*release,*version}"
     if (-not $distro)
     {
         return $null
@@ -179,7 +179,13 @@ function InstallPackagesRequiredByLisa([String] $ipv4, [String] $password)
         Throw "Error: Unable to install dos2unix and/or at packages on the VM"
     }
 
-    $process = Start-Process bin\plink.exe -ArgumentList " -l root -pw ${password} ${vmIPv4} systemctl enable atd.service" -PassThru -NoNewWindow -Wait
+    switch -regex ($distro)
+    {
+        Ubuntu { $cmd = "update-rc.d atd enable && update-rc.d atd enable" }
+        default { $cmd = "systemctl enable atd.service" }
+    }
+
+    $process = Start-Process bin\plink.exe -ArgumentList " -l root -pw ${password} ${vmIPv4} $cmd" -PassThru -NoNewWindow -Wait
     if ($process.ExitCode -ne 0)
     {
         Throw "Error: Unable to enable the atd service"
@@ -359,11 +365,11 @@ try
         Throw "Error: Unable to chmod 600 ~/.ssh/${pubKey}"
     }
 
-    "info : create the .ssh/authorized_keys"
-    $process = Start-Process bin\plink.exe -ArgumentList " -l root -pw ${password} ${vmIPv4} cp ~/.ssh/$publicKey ~/.ssh/authorized_keys" -PassThru -NoNewWindow -Wait
+    "info : Add public key to the .ssh/authorized_keys"
+    $process = Start-Process bin\plink.exe -ArgumentList " -l root -pw ${password} ${vmIPv4} cat ~/.ssh/$publicKey >> ~/.ssh/authorized_keys" -PassThru -NoNewWindow -Wait
     if ($process.ExitCode -ne 0)
     {
-        Throw "Error: Unable to create ~/.ssh/authorized_keys"
+        Throw "Error: Unable to add public key to ~/.ssh/authorized_keys"
     }
 
     #
