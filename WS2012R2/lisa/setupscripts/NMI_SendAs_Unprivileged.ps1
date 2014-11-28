@@ -51,7 +51,7 @@
     A semicolon separated list of test parameters.
 
 .Example
-    .\NMI_SendAs_Unprivileged.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "rootDir=D:\lisa;TC_COVERED=NMI-03"
+    .\NMI_SendAs_Unprivileged.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "TC_COVERED=NMI-03"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -82,7 +82,7 @@ function CreateLocalUser()
     }
 	else
 	{
-		Write-Output "Successfully created temporary username: $UserName"  | Tee-Object -Append -file $summaryLog
+		"Successfully created temporary username: $UserName"
 		$retval = $true	
 	}
 }
@@ -106,7 +106,7 @@ function DeleteLocalUser()
     }
 	else
 	{
-		Write-Output "Successfully removed the temporary username $UserName"  | Tee-Object -Append -file $summaryLog
+		"Successfully removed the temporary username $UserName"
 		$retval = $true	
 	}
 }
@@ -163,7 +163,6 @@ if (-not $TC_COVERED)
 if (-not $rootDir)
 {
     "Error: Missing testParam rootDir value"
-    return $retVal
 }
 
 #
