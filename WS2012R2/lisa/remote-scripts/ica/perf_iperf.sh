@@ -152,6 +152,11 @@ LogMsg "rootDir = ${rootDir}"
 cd ${rootDir}
 
 #
+# Install gcc-C++ which is required to build iperf
+#
+zypper --non-interactive install gcc-c++
+
+#
 # Build iperf
 #
 ./configure
