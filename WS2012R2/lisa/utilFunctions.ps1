@@ -618,7 +618,7 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     #
     # Invoke the setup/cleanup script
     #
-    $cmd = "powershell -file $scriptName -vmName $vmName -hvServer $hvServer"
+    $cmd = "$scriptName -vmName $vmName -hvServer $hvServer"
 
     #
     # Only add the testParams if something was specified, and it appears reasonable
