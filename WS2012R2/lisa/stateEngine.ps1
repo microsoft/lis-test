@@ -373,7 +373,7 @@ function RunICTests([XML] $xmlConfig)
         else
         {
             LogMsg 10 "Info : Resetting vm $($vm.vmName)"
-            ResetVM $vm
+            ResetVM $vm $xmlConfig
         }
     }
 
@@ -406,7 +406,7 @@ function RunICTests([XML] $xmlConfig)
 # ResetVM()
 #
 ########################################################################
-function ResetVM([System.Xml.XmlElement] $vm)
+function ResetVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 {
     <#
     .Synopsis
@@ -461,13 +461,22 @@ function ResetVM([System.Xml.XmlElement] $vm)
     }
 
     #
-    # Reset the VM to a snapshot to put the VM in a known state.
+    # Reset the VM to a snapshot to put the VM in a known state.  The default name is
+    # ICABase.  This can be overridden by the global.defaultSnapshot in the global section
+    # and then by the vmSnapshotName in the VM definition.
     #
     $snapshotName = "ICABase"
-    if ($vm.ParentSnapshotName)
+
+    if ($xmlData.config.global.defaultSnapshot)
     {
-        $snapshotName = $vm.ParentSnapshotName
-        LogMsg 9 "Info : $($vm.vmName) Over-riding default snapshotName to $snapshotName"
+        $snapshotName = $xmlData.config.global.defaultSnapshot
+        LogMsg 5 "Info : $($vm.vmName) Over-riding default snapshotName from global section to $snapshotName"
+    }
+
+    if ($vm.vmSnapshotName)
+    {
+        $snapshotName = $vm.vmSnapshotName
+        LogMsg 5 "Info : $($vm.vmName) Over-riding default snapshotName from VM section to $snapshotName"
     }
 
     #
