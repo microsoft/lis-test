@@ -143,7 +143,7 @@ function SubstituteParams( $children, [string] $label)
         {
             $newValue = $params[ $parameterizedName ]
             $p.Set_InnerText("${tpName}=${newValue}")
-			"${parameterizedName} is set to: ${tpName}=${newValue}"
+            "${parameterizedName} is set to: ${tpName}=${newValue}"
         }
     }
 }
@@ -162,7 +162,7 @@ function UpdateParams( $children, [string] $label)
         {
             $newValue = $params[ $parameterizedName ]
             $p.Set_InnerText("${newValue}")
-			"${parameterizedName} is set to: ${newValue}"
+            "${parameterizedName} is set to: ${newValue}"
         }
     }
 }
@@ -225,10 +225,14 @@ function ReplaceParameterizedTestParams([String] $paramXmlFile, [System.Xml.XmlD
     #
     foreach ($vm in $xmlTests.config.VMs.vm)
     {
-        if (($vm.role -eq $null) -or ($vm.role -eq ""))
+        if (($vm.role -eq $null) -or ($vm.role -eq "") -or ($vm.role.ToUpper() -eq "SUT"))
         {
             $label = "SUT1"
         }
+		elseif ($vm.role.ToUpper() -eq "NONSUT")
+		{
+		    $label = "NonSUT1"
+		}
         else
         {
             $label = $vm.role
