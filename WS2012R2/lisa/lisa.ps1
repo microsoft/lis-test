@@ -602,7 +602,7 @@ function RunInitShutdownScript([String] $scriptName, [String] $xmlFilename )
     #
     # Invoke the ICA Init/Shutdown script
     #
-    $cmd = "powershell -file $scriptName -xmlFile $xmlFilename"
+    $cmd = "$scriptName -xmlFile $xmlFilename"
     LogMsg 6 ("Info : Invoke-Expression $cmd")
 
     #
