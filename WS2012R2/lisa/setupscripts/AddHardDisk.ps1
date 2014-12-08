@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -30,7 +30,7 @@
      The script will create a .vhd file, and mount it to the
      specified hard drive.  If the hard drive does not exist, it
      will be created.
- 
+
    The .xml entry for a startup script would look like:
 
          <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
@@ -79,12 +79,12 @@
                          Valid VHD types are:
                              Dynamic
                              Fixed
-                            
+
    The following are some examples
 
    SCSI=0,0,Dynamic : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic disk
    IDE=1,1,Fixed  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Fixed disk
-   
+
     A typical XML definition for this test case would look similar
     to the following:
        <test>
@@ -95,7 +95,7 @@
        		<cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
        		<timeout>18000</timeout>
        		<testparams>
-           		    <param>SCSI=0,0,Fixed</param>			      
+           		    <param>SCSI=0,0,Fixed</param>
        		</testparams>
        		<onError>Abort</onError>
     	</test>
@@ -110,7 +110,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\AddHardDisk -vmName sles11sp3x64 -hvServer localhost -testParams "SCSI=0,0,Dynamic;sshkey=rhel5_id_rsa.ppk;ipv4=10.200.50.192;RootDir=" 
+    setupScripts\AddHardDisk -vmName sles11sp3x64 -hvServer localhost -testParams "SCSI=0,0,Dynamic;sshkey=rhel5_id_rsa.ppk;ipv4=IPaddress;RootDir="
 
 .Link
     None.
@@ -138,20 +138,20 @@ $global:MinDiskSize = "1GB"
 function GetRemoteFileInfo([String] $filename, [String] $server )
 {
     $fileInfo = $null
-    
+
     if (-not $filename)
     {
         return $null
     }
-    
+
     if (-not $server)
     {
         return $null
     }
-    
+
     $remoteFilename = $filename.Replace("\", "\\")
     $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -ComputerName $server
-    
+
     return $fileInfo
 }
 
@@ -180,7 +180,7 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
     # Check if the controller already exists
     # Note: If you specify a specific ControllerID, Get-VMDiskController always returns
     #       the last SCSI controller if there is one or more SCSI controllers on the VM.
-    #       To determine if the controller needs to be created, count the number of 
+    #       To determine if the controller needs to be created, count the number of
     #       SCSI controllers.
     #
     $maxControllerID = 0
@@ -197,14 +197,14 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
         {
             $maxControllerID = 1
         }
-        
+
         if ($controllerID -lt $maxControllerID)
         {
             "Info : Controller exists - controller not created"
             $createController = $false
         }
     }
-    
+
     #
     # If needed, create the controller
     #
@@ -219,7 +219,7 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
         else
         {
             "SCSI Controller successfully added"
-        }  
+        }
     }
 }
 
@@ -229,7 +229,7 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
 # GetPhysicalDiskForPassThru
 #
 # Description
-#     
+#
 #
 ############################################################################
 function GetPhysicalDiskForPassThru([string] $server)
@@ -244,15 +244,15 @@ function GetPhysicalDiskForPassThru([string] $server)
     #
     foreach ($a in $PhysicalDiskResource)
     {
-         
+
         $PhysDisksInUse += $a.HostResource
-        
+
     }
 
     #
     # Now that we know which physical drives are in use, enumerate all the physical
     # drives to see if we can find one that is not in the PhysDrivesInUse array
-   
+
     $physDrive = $null
 
     $drives = Get-WmiObject Msvm_DiskDrive -namespace root\virtualization\v2 -computerName $server
@@ -326,18 +326,18 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
                              [string] $controllerID, [string] $Lun)
 {
     $retVal = $false
-    
+
     $controllertype = "IDE"
     if ($scsi)
     {
         $controllertype = "SCSI"
-        
+
         if ($ControllerID -lt 0 -or $ControllerID -gt 3)
         {
             "Error: CreateHardDrive was passed a bad SCSI Controller ID: $ControllerID"
             return $false
         }
-    
+
         #
         # Create the SCSI controller if needed
         #
@@ -350,7 +350,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
         }
 
         $drives = Get-VMScsiController -VMName $vmName -ControllerNumber $ControllerID -ComputerName $server | Get-VMHardDiskDrive -ControllerLocation $lun
-        
+
     }
     else
     {
@@ -383,7 +383,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
     {
         "Error: no free physical drives found"
     }
-    
+
     return $retVal
 }
 
@@ -402,9 +402,9 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     $retVal = $false
 
     "Enter CreateHardDrive $vmName $server $scsi $controllerID $lun $vhdType"
-    
+
     $controllerType = "IDE"
-    
+
     #
     # Make sure it's a valid IDE ControllerID.  For IDE, it must 0 or 1.
     # For SCSI it must be 0, 1, 2, or 3
@@ -416,7 +416,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
             "Error: CreateHardDrive was passed a bad SCSI Controller ID: $ControllerID"
             return $false
         }
-        
+
         #
         # Create the SCSI controller if needed
         #
@@ -437,12 +437,12 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
             return $false
         }
     }
-    
+
     #
     # If the hard drive exists, complain. Otherwise, add it
     #
-    
-    $drives = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun 
+
+    $drives = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun
     if ($drives)
     {
         write-output "Error: drive $controllerType $controllerID $Lun already exists"
@@ -454,9 +454,9 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         # Create the .vhd file if it does not already exist
         #
         $obj = Get-WmiObject -ComputerName $hvServer -Namespace "root\virtualization\v2" -Class "MsVM_VirtualSystemManagementServiceSettingData"
-        
+
         $defaultVhdPath = $obj.DefaultVirtualHardDiskPath
-        
+
         if (-not $defaultVhdPath.EndsWith("\"))
         {
             $defaultVhdPath += "\"
@@ -511,7 +511,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     # Attach the .vhd file to the new drive
     #
     $disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $server -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun -Path $vhdName
-    
+
     if ($disk -contains "Exception")
     {
         write-output "Error: Add_vmharddiskdrive failed to add $($vhdName) to $controllerType $controllerID $Lun $vhdType"
@@ -522,7 +522,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         write-output "Success"
         $retVal = $true
     }
-    
+
     return $retVal
 }
 
@@ -573,35 +573,35 @@ foreach ($p in $params)
     }
 
     $temp = $p.Trim().Split('=')
-    
+
     if ($temp.Length -ne 2)
     {
         "Warn : test parameter '$p' is being ignored because it appears to be malformed"
         continue
     }
-    
+
     $controllerType = $temp[0]
     if (@("IDE", "SCSI") -notcontains $controllerType)
     {
         # Not a test parameter we are concerned with
         continue
     }
-    
+
     $SCSI = $false
     if ($controllerType -eq "SCSI")
     {
         $SCSI = $true
     }
-        
+
     $diskArgs = $temp[1].Trim().Split(',')
-    
+
     if ($diskArgs.Length -ne 4 -and $diskArgs.Length -ne 3)
     {
         "Error: Incorrect number of arguments: $p"
         $retVal = $false
         continue
     }
-    
+
     $controllerID = $diskArgs[0].Trim()
     $lun = $diskArgs[1].Trim()
     $vhdType = $diskArgs[2].Trim()
@@ -610,14 +610,14 @@ foreach ($p in $params)
     {
         $VHDSize = $diskArgs[3].Trim()
     }
-    
+
     if (@("Fixed", "Dynamic", "PassThrough", "Diff") -notcontains $vhdType)
     {
         "Error: Unknown disk type: $p"
         $retVal = $false
         continue
     }
-    
+
     if ($vhdType -eq "PassThrough")
     {
         "CreatePassThruDrive $vmName $hvServer $scsi $controllerID $Lun"
