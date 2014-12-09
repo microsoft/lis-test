@@ -19,8 +19,6 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
     This cleanup script, which runs after the VM is booted, will removes an  differencing hard drive to the specified VM.
@@ -70,16 +68,13 @@
     Test data for this test case
 
 .Example
-    setupScripts\DiffDiskGrowthCleanup.ps1 -vmName sles11sp3x64 -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=10.200.50.192;RootDir=" 
+    setupScripts\DiffDiskGrowthCleanup.ps1 -vmName sles11sp3x64 -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IPaddr;RootDir=" 
 
 .Link
     None.
 #>
 
-
-
 param([String] $vmName, [String] $hvServer, [String] $testParams)
-
 
 #######################################################################
 #
@@ -112,7 +107,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     
     return $fileInfo
 }
-
 
 #######################################################################
 #
@@ -162,7 +156,7 @@ foreach ($p in $params)
     if ($tokens.Length -ne 2)
     {
 	    # Just ignore it
-         continue
+Â Â Â Â      continue
     }
     
     $lValue = $tokens[0].Trim()
