@@ -19,8 +19,6 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
     This setup script, which runs before the VM is booted, will add an additional differencing hard drive to the specified VM.
@@ -61,7 +59,7 @@
     </test>
 
 .Parameter vmName
-    Name of the VM to read intrinsic data from.
+    Name of the VM.
 
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -70,16 +68,10 @@
     Test data for this test case
 
 .Example
-    setupScripts\DiffDiskGrowthSetup.ps1 -vmName sles11sp3x64 -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=10.200.50.192;RootDir=" 
-
-.Link
-    None.
+    setupScripts\DiffDiskGrowthSetup.ps1 -vmName VMname -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IP;RootDir=" 
 #>
 
-
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
 
 #######################################################################
 #
@@ -112,7 +104,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     
     return $fileInfo
 }
-
 
 ############################################################################
 #
@@ -156,7 +147,6 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
     }
     return $True
 }
-
 
 #######################################################################
 #
@@ -207,7 +197,7 @@ foreach ($p in $params)
     if ($tokens.Length -ne 2)
     {
 	    # Just ignore it
-         continue
+Â Â Â Â      continue
     }
     
     $lValue = $tokens[0].Trim()
