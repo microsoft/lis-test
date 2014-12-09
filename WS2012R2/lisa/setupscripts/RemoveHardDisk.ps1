@@ -91,16 +91,13 @@
     Test data for this test case
 
 .Example
-    setupScripts\RemoveHardDisk.ps1 -vmName sles11sp3x64 -hvServer localhost -testParams "SCSI=0,0,Dynamic;sshkey=rhel5_id_rsa.ppk;ipv4=10.200.50.192;RootDir=" 
+    setupScripts\RemoveHardDisk.ps1 -vmName sles11sp3x64 -hvServer localhost -testParams "SCSI=0,0,Dynamic;sshkey=rhel5_id_rsa.ppk;ipv4=IPaddr;RootDir=" 
 
 .Link
     None.
 #>
 
-
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
 
 ############################################################################
 #
@@ -262,7 +259,6 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
     $retVal = $True
     return $retVal
 }
-
 
 ############################################################################
 #
