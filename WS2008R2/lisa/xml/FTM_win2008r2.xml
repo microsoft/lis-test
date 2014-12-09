@@ -2,7 +2,7 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\LisaResults\Ubuntu_14_04</logfileRootDir>
+        <logfileRootDir>C:\LisaResults\</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -109,7 +109,6 @@
         </suite>
 
         <!-- KVP Tests -->
-
         <suite>
             <suiteName>KVP</suiteName>
             <suiteTests>
@@ -166,32 +165,9 @@
                 <suiteTest>Performance_Kernbench</suiteTest>
             </suiteTests>
         </suite>
-
-        <!-- Dynamic Memory - No longer supported on WS2008R2
-        <suite>
-            <suiteName>DynamicMemory</suiteName>
-            <suiteTests>               
-                <suiteTest>DM_HotAddFail</suiteTest> 
-                <suiteTest>DM_MaxMem</suiteTest>
-                <suiteTest>DM_MinMemHnr_Balloon_down</suiteTest>
-                <suiteTest>DM_HotAdd_Save_resume_snapshot</suiteTest>
-                <suiteTest>DM_HotAddFail_AfterUnload</suiteTest>
-                <suiteTest>DM_Loaded</suiteTest>
-                <suiteTest>DM_UnloadLoad</suiteTest>
-                <suiteTest>DM_StartVM</suiteTest>
-                <suiteTest>DM_StartVMHighCompete</suiteTest>
-                <suiteTest>DM_SaveRestore</suiteTest>
-                <suiteTest>DM_LowPressureDemandChange</suiteTest>
-                <suiteTest>DM_HighPriority</suiteTest>        
-                <suiteTest>DM_CleanShutdown</suiteTest>                 
-            </suiteTests>
-        </suite>
-        -->
     </testSuites>
 
-
     <testCases> 
-
         <!-- KVP tests -->
         <test>
             <testName>KVP_Basic</testName>
@@ -1386,243 +1362,5 @@
             <timeout>3200</timeout>
             <OnError>Abort</OnError>
          </test>
-        
-    <!--Dynamic Memory tests 
-    <test>
-        <testName>DM_HotAddFail</testName>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>        
-        <testScript>SetupScripts\DM_HotAddFail.ps1</testScript>
-        <testParams>    
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=10%</param>
-            <param>vm1MaxMem=10%</param>  
-            <param>vm1StartMem=10%</param>
-            <param>vm1MemWeight=100</param>
-        </testParams>                        
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_MaxMem</testName>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>
-        <testScript>SetupScripts\DM_MaxMemHnr.ps1</testScript>
-        <testParams>    
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=10%</param>
-            <param>vm1MaxMem=20%</param>
-            <param>vm1NewMaxMem=40%</param>
-            <param>vm1StartMem=10%</param>
-            <param>vm1MemWeight=100</param>   
-        </testParams>                        
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_MinMemHnr_Balloon_down</testName>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>        
-        <testScript>SetupScripts\DM_MinMemHnr.ps1</testScript>
-        <testParams>    
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=1024MB</param>
-            <param>vm1MaxMem=40%</param>
-            <param>vm1StartMem=20%</param>
-            <param>vm1MemWeight=100</param>     
-            <param>vm2Name=DM1_SLES11SP3</param>
-            <param>vm2MinMem=2000MB</param>
-            <param>vm2MaxMem=30%</param>
-            <param>vm2StartMem=20%</param>
-            <param>vm2NewMinMem=1000MB</param>
-            <param>vm2MemWeight=10</param>
-        </testParams>                        
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_HotAdd_Save_resume_snapshot</testName>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>        
-        <testScript>SetupScripts\DM_HotAdd_Save_resume_snapshot.ps1</testScript>
-        <testParams>    
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=1024MB</param>
-            <param>vm1MaxMem=30%</param>  
-            <param>vm1StartMem=14%</param>
-            <param>vm1MemWeight=100</param>  
-        </testParams>                        
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_HotAddFail_AfterUnload</testName>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>        
-        <testScript>SetupScripts\DM_HotAddFail_AfterUnload.ps1</testScript>
-        <testParams>    
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=1024MB</param>
-            <param>vm1MaxMem=30%</param>  
-            <param>vm1StartMem=14%</param>
-            <param>vm1MemWeight=100</param> 
-        </testParams>                        
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_Loaded</testName>
-        <testScript>SetupScripts\DM_IsLoaded.ps1</testScript>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>
-        <testParams>
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=1024MB</param>
-            <param>vm1MaxMem=1024MB</param>
-            <param>vm1StartMem=1024MB</param>
-        </testParams>
-        <noReboot>False</noReboot>
-        <timeout>600</timeout>
-    </test>
-
-    <test>
-        <testName>DM_UnloadLoad</testName>
-        <testScript>SetupScripts\DM_UnloadLoad.ps1</testScript>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>
-        <testParams>
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=1024MB</param>
-            <param>vm1MaxMem=1024MB</param>
-            <param>vm1StartMem=1024MB</param>
-        </testParams>
-        <noReboot>False</noReboot>
-        <timeout>600</timeout>
-    </test>
-
-    <test>
-        <testName>DM_StartVM</testName>
-        <testScript>SetupScripts\DM_StartVM.ps1</testScript>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>
-        <testParams>
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=256MB</param>
-            <param>vm1MaxMem=70%</param>
-            <param>vm1StartMem=70%</param>
-            <param>vm1MemWeight=0</param>
-            <param>vm2Name=DM1_SLES11SP3</param>
-            <param>vm2MinMem=512MB</param>
-            <param>vm2MaxMem=45%</param>
-            <param>vm2StartMem=45%</param>
-            <param>vm2MemWeight=100</param>
-        </testParams>            
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_StartVMHighCompete</testName>
-        <testScript>SetupScripts\DM_StartVMHighCompete.ps1</testScript>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>
-        <testParams>
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=1024MB</param>
-            <param>vm1MaxMem=40%</param>
-            <param>vm1StartMem=40%</param>
-            <param>vm1MemWeight=0</param>
-            <param>vm2Name=DM1_SLES11SP3</param>
-            <param>vm2MinMem=1024MB</param>
-            <param>vm2MaxMem=40%</param>
-            <param>vm2StartMem=40%</param>
-            <param>vm2MemWeight=0</param>
-            <param>vm3Name=DM2_SLES11SP3</param>
-            <param>vm3MinMem=512MB</param>
-            <param>vm3MaxMem=40%</param>
-            <param>vm3StartMem=40%</param>
-            <param>vm3MemWeight=100</param>
-        </testParams>            
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_SaveRestore</testName>
-        <testScript>SetupScripts\DM_SaveRestore.ps1</testScript>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>
-        <testParams>
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=256MB</param>
-            <param>vm1MaxMem=70%</param>
-            <param>vm1StartMem=70%</param>
-            <param>vm1MemWeight=0</param>
-            <param>vm2Name=DM1_SLES11SP3</param>
-            <param>vm2MinMem=512MB</param>
-            <param>vm2MaxMem=45%</param>
-            <param>vm2StartMem=45%</param>
-            <param>vm2MemWeight=100</param>
-        </testParams>            
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_LowPressureDemandChange</testName>
-        <testScript>SetupScripts\DM_LowPressureDemandChange.ps1</testScript>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>
-        <testParams>
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=512MB</param>
-            <param>vm1MaxMem=20%</param>
-            <param>vm1StartMem=20%</param>
-            <param>vm1MemWeight=50</param>
-        </testParams>
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_HighPriority</testName>
-        <testScript>SetupScripts\DM_HighPriority.ps1</testScript>
-        <files>remote-scripts\ica\growDemand.sh</files>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>
-        <testParams>
-            <param>vm1Name=PPG_ICA</param>
-            <param>vm1MinMem=512MB</param>
-            <param>vm1MaxMem=30%</param>
-            <param>vm1StartMem=30%</param>
-            <param>vm1MemWeight=100</param>
-            <param>vm2Name=PPG_SLES_VM2</param>
-            <param>vm2MinMem=512MB</param>
-            <param>vm2MaxMem=30%</param>
-            <param>vm2StartMem=30%</param>
-            <param>vm2MemWeight=0</param>
-            <param>vm3=PPG_SLES_VM3</param>
-        </testParams>            
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>
-
-    <test>
-        <testName>DM_CleanShutdown</testName>
-        <testScript>SetupScripts\DM_CleanShutdown.ps1</testScript>
-        <setupScript>SetupScripts\ConfigureDynamicMemory.ps1</setupScript>
-        <testParams>
-            <param>vm1Name=SustainSLES11SP3Blue</param>
-            <param>vm1MinMem=512MB</param>
-            <param>vm1MaxMem=60%</param>
-            <param>vm1StartMem=60%</param>
-            <param>vm1MemWeight=0</param>
-            <param>vm2Name=DM1_SLES11SP3</param>
-            <param>vm2MinMem=512MB</param>
-            <param>vm2MaxMem=40%</param>
-            <param>vm2StartMem=40%</param>
-            <param>vm2MemWeight=100</param>
-        </testParams>            
-        <timeout>1200</timeout>
-        <OnError>Continue</OnError>
-    </test>    
-    -->
-
-    <!--Network Tests-->
-    
     </testCases>
 </config>
-
