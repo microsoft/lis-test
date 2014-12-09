@@ -90,20 +90,10 @@
     Test data for this test case
 
 .Example
-    setupScripts\RemoveVhdxHardDisk -vmName sles11sp3x64 -hvServer localhost -testParams "SCSI=0,0,Dynamic,4096;sshkey=rhel5_id_rsa.ppk;ipv4=10.200.50.192;RootDir=" 
-
-.Link
-    None.
+    setupScripts\RemoveVhdxHardDisk -vmName VM -hvServer localhost -testParams "SCSI=0,0,Dynamic,4096;sshkey=rhel5_id_rsa.ppk;ipv4=IP;RootDir=" 
 #>
-############################################################################
-#
-# RemoveVhdxHardDisk.ps1
-#
-#
-############################################################################
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
 
 ############################################################################
 #
