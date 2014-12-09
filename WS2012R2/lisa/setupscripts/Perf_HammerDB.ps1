@@ -19,7 +19,6 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Run HammerDB on the target VM.
@@ -35,7 +34,7 @@
     The default values in the perf_hammerdbmysql.sh script were selected to minimize
     the number of test parameters required.  A typical test run would only require
     one test parameter of:
-        <param>MYSQL_HOST=10.20.30.40</param>
+        <param>MYSQL_HOST=IPforMYSQL</param>
     where the IP address is the address of the server to install MySQL on.
 
     A sample LISA test case definition would look similar to the following:
@@ -113,15 +112,11 @@
     A string with test parameters.
 #>
 
-
-
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
 # DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG
-#$testParams="rootDir=C:\Users\nmeier\github\nickme\lis-test\WS2012R2\lisa;ipv4=10.200.49.130;sshKey=rhel5_id_rsa.ppk;NEW_HDB_FILE=lisahdb.tcl"
+#$testParams="rootDir=C:\WS2012R2\lisa;ipv4=IP;sshKey=rhel5_id_rsa.ppk;NEW_HDB_FILE=lisahdb.tcl"
 # DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG
-
-
 
 #####################################################################
 #
