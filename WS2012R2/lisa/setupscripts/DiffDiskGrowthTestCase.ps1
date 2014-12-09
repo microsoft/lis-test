@@ -19,11 +19,10 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
-    This test script, which runs inside VM it mount the dirve and perform write operation on diff disk. And checks sure parent disk size does not change.
+    This test script, which runs inside VM it mount the dirve and perform write operation on diff disk. 
+    And checks to ensure that parent disk size does not change.
 
 .Description
     ControllerType=Controller Index, Lun or Port, vhd type
@@ -70,16 +69,13 @@
     Test data for this test case
 
 .Example
-    setupScripts\STOR_DiffDiskGrowthTestCase.ps1 -vmName sles11sp3x64 -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=10.200.50.192;RootDir=" 
+    setupScripts\STOR_DiffDiskGrowthTestCase.ps1 -vmName VMname -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IP;RootDir=" 
 
 .Link
     None.
 #>
 
-
-
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
-
 
 #######################################################################
 #
@@ -112,7 +108,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     
     return $fileInfo
 }
-
 
 ############################################################################
 #
