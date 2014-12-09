@@ -1,0 +1,29 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Authors: fuzhouch@microsoft.com
+# Provides: icadaemon
+# Required-Start: $syslog
+# Required-Stop:  $syslog
+# Default-Start: 2 3 5
+# Default-Stop: 0 1 6
+# Description: ICADaemon management script
+### END INIT INFO
+#
+### BEGIN FREEBSD INFO
+# PROVIDE: icadaemon
+# REQUIRE: syslogd
+### END FREEBSD INFO
+#
+# This is the management script that should be put under /etc/init.d/
+# directory to control the start or stop of icadaemon. This script is
+# compatible with SysV style system, mostly RedHat and SUSE family
+# systems.
+#
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+PIDFILE=/var/run/icadaemon.pid
+PROG="ICADaemon"
+
+echo "Error: Not implemented yet."
+
+#vim:ff=unix

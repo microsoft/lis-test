@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+########################################################################
+#
+# Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+# Copyright (c) Microsoft Corporation
+#
+# All rights reserved. 
+# Licensed under the Apache License, Version 2.0 (the ""License"");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0  
+#
+# THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+# OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+# ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+# PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+#
+# See the Apache Version 2.0 License for specific language governing
+# permissions and limitations under the License.
+#
+########################################################################
+
+#####################################################################
+#
+# This is the script to allow triggering a shutdown or reboot action
+# against a VM. The real shutdown/reboot operation is always delayed for
+# one minute to make sure icadaemon can return status correctly.
+#
+# Supported command line:
+#
+#     ica-shutdown set action=reboot
+#     ica-datetime set action=poweroff
+#
+#####################################################################
+import sys
+import icatest
+import icatest.daemon
+import icatest.errors
+
+if len(sys.argv) != 3:
+    print ("Invalid parameter")
+    print ("Usage: %s set action=<poweroff|reboot>" % sys.argv[0])
+    sys.exit(icatest.errors.ERROR_INVALID_PARAMETER)
+if sys.argv[1].lower() != "set":
+    print ("Verb not supported: %s" % sys.argv[1])
+    sys.exit(icatest.errors.ERROR_INVALID_PARAMETER)
+
+params = icatest.daemon.parse_params(sys.argv[2], case_sensitive = False)
+if params is None:
+    print ("Bad parameter format: %s" % sys.argv[2])
+    sys.exit(icatest.errors.ERROR_INVALID_PARAMETER)
+
+action = params.get("action").lower()
+if action is None:
+    print ("Action is missing")
+    sys.exit(icatest.errors.ERROR_INVALID_PARAMETER)
+
+if action == "poweroff":
+    reboot = False
+elif action == "reboot":
+    reboot = True
+else:
+    print ("Action not supported: %s" % action)
+    sys.exit(icatest.errors.ERROR_INVALID_PARAMETER)
+
+try:
+    if reboot:
+        code, msg = icatest.platform_lib.shutdown_system(reboot = True)
+    else:
+        code, msg = icatest.platform_lib.shutdown_system(reboot = False)
+    print (msg)
+    if code != icatest.errors.ERROR_SUCCESS:
+        if reboot:
+            sys.exit(icatest.errors.ERROR_FAIL_RESTART)
+        else:
+            sys.exit(icatest.errors.ERROR_FAIL_SHUTDOWN)
+    else:
+        sys.exit(code)
+except Exception:
+    print ("Failed to shutdown")
+    if reboot:
+        sys.exit(icatest.errors.ERROR_FAIL_RESTART)
+    else:
+        sys.exit(icatest.errors.ERROR_FAIL_SHUTDOWN)
+
+# vim: ff=unix expandtab shiftwidth=4

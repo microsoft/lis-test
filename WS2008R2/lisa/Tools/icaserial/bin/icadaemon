@@ -1,0 +1,184 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+########################################################################
+#
+# Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+# Copyright (c) Microsoft Corporation
+#
+# All rights reserved. 
+# Licensed under the Apache License, Version 2.0 (the ""License"");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0  
+#
+# THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+# OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+# ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+# PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+#
+# See the Apache Version 2.0 License for specific language governing
+# permissions and limitations under the License.
+#
+########################################################################
+
+import os
+import sys
+import time
+import signal
+import atexit
+import syslog
+import subprocess
+import signal
+import traceback
+
+import icatest
+import icatest.daemon
+import icatest.errors
+
+if len(sys.argv) == 2 and sys.argv[1].lower() == "debug":
+    debug_flag = True
+else:
+    debug_flag = False
+
+# The flag channel is used only to make sure we have one instance
+# running.
+singlton = None
+singlton_lockfile = "/var/run/icadaemon.pid"
+launcher_sync_lockfile = "/var/run/icalauncher_sync.pid"
+launcher_async_lockfile = "/var/run/icalauncher_async.pid"
+launcher_sync_fifo_read = "/var/run/icadaemon_launcher_read_sync"
+launcher_sync_fifo_write = "/var/run/icadaemon_launcher_write_sync"
+launcher_async_fifo_read = "/var/run/icadaemon_launcher_read_async"
+launcher_async_fifo_write = "/var/run/icadaemon_launcher_write_async"
+fifo_deletion_list = [
+        [launcher_sync_fifo_read, False],
+        [launcher_sync_fifo_write, False],
+        [launcher_async_fifo_read, False],
+        [launcher_async_fifo_write, False]]
+
+script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+launcher_fullpath = os.path.join(script_path, "icalauncher")
+
+launcher_sync_pair = None
+launcher_async_pair = None
+
+def cleanup_icadaemon():
+    if launcher_sync_pair is not None:
+        os.kill(launcher_sync_pair[0], signal.SIGTERM)
+    if launcher_async_pair is not None:
+        os.kill(launcher_async_pair[0], signal.SIGTERM)
+    for i in range(0, len(fifo_deletion_list)):
+        if fifo_deletion_list[i][1]:
+            if os.path.exists(fifo_deletion_list[i][0]):
+                os.unlink(fifo_deletion_list[i][0])
+            fifo_deletion_list[i][1] = False
+    os.close(singlton)
+    os.unlink(singlton_lockfile)
+
+def on_sigterm(signum, frame):
+    msg = "ICADaemon attempts to exit gracefully."
+    icatest.daemon.write_log(icatest.daemon.STDOUT_FD, None, icatest.errors.ERROR_SUCCESS, msg)
+    cleanup_icadaemon()
+    os._exit(icatest.daemon.ERROR_SUCCESS)
+
+def invoke_launcher(bin_path, fifo_read, fifo_write, pid_file, sync, dbg):
+    cmdline = [bin_path, fifo_read, fifo_write, pid_file]
+    if dbg:
+        out = sys.stdout
+    else:
+        # We don't want launcher process mess up console in production.
+        out = open(icatest.daemon.NULL_TO, "w")
+    # Launcher process is a daemon too, we have to get the process ID
+    # from lock file.
+    launcher = subprocess.Popen(cmdline, stdout=out, stderr=out)
+    exit_code = launcher.wait()
+    if exit_code != icatest.errors.ERROR_SUCCESS:
+        ret = exit_code
+        msg = "Icadaemon can't start when launcher fails to start."
+        raise icatest.daemon.ICAException(ret, msg)
+    pid = None
+    # Wait until we get process ID for each launcher
+    for i in range(0, 10):
+        if os.path.exists(pid_file):
+            fd = open(pid_file, "r")
+            pid_str = fd.readline()
+            fd.close()
+            if len(pid_str) > 1:
+                pid = int(pid_str)
+                break
+        time.sleep(1)
+    if pid is None:
+        ret = icatest.errors.ERROR_BAD_ENVIRONMENT
+        msg = "No PID file or launcher PID not loaded: %s" % pid_file
+        raise icatest.daemon.ICAException(ret, msg)
+    if sync:
+        client = icatest.daemon.ICALauncherClient(fifo_read,
+                                                  fifo_write,
+                                                  wait = True)
+    else:
+        client = icatest.daemon.ICALauncherClient(fifo_read,
+                                                  fifo_write,
+                                                  wait = False)
+    return pid, client
+
+try:
+    if not os.path.exists("/var"):
+        os.mkdir("/var")
+    if not os.path.exists("/var/run"):
+        os.mkdir("/var/run")
+    flag = os.O_CREAT|os.O_EXCL|os.O_WRONLY
+    singlton = os.open(singlton_lockfile, flag, 0600)
+    if singlton < 0:
+        print ("ICADaemon instance already running")
+        sys.exit(icatest.errors.ERROR_ALREADY_EXISTS)
+    for i in range(0, len(fifo_deletion_list)):
+        os.mkfifo(fifo_deletion_list[i][0])
+        fifo_deletion_list[i][1] = True
+except OSError:
+    # We also use this FIFO to make sure there's one and only one
+    # daemon exist in system.
+    print ("ICADaemon instance already running")
+    sys.exit(icatest.errors.ERROR_ALREADY_EXISTS)
+
+atexit.register(cleanup_icadaemon)
+signal.signal(signal.SIGTERM, on_sigterm)
+signal.signal(signal.SIGINT, on_sigterm)
+signal.signal(signal.SIGHUP, on_sigterm)
+try:
+    launcher_sync_pair = invoke_launcher(launcher_fullpath,
+                                         launcher_sync_fifo_read,
+                                         launcher_sync_fifo_write,
+                                         launcher_sync_lockfile,
+                                         sync = True,
+                                         dbg = debug_flag)
+    launcher_async_pair = invoke_launcher(launcher_fullpath,
+                                          launcher_async_fifo_read,
+                                          launcher_async_fifo_write,
+                                          launcher_async_lockfile,
+                                          sync = False,
+                                          dbg = debug_flag)
+except Exception:
+    print ("Failed to create launcher process. See system log for details")
+    sys.exit(icatest.errors.ERROR_BAD_ENVIRONMENT)
+
+
+log_name = os.path.basename(sys.argv[0])
+syslog.openlog(log_name)
+port_device = icatest.platform_lib.DEFAULT_SERIAL_PORT_DEVICE
+try:
+    icatest.platform_lib.disable_tty_echo_mode(port_device)
+    msg = "Launcher started: sync = %d, async = %d" % \
+            (launcher_sync_pair[0], launcher_async_pair[0])
+    icatest.daemon.write_log(icatest.daemon.STDOUT_FD, None, icatest.errors.ERROR_SUCCESS, msg)
+    msg = "Daemon listens to serial port: %s" % port_device
+    icatest.daemon.write_log(icatest.daemon.STDOUT_FD, None, icatest.errors.ERROR_SUCCESS, msg)
+    daemon = icatest.daemon.ICADaemon(launcher_sync_pair[1],
+                                      launcher_async_pair[1],
+                                      port_device)
+    daemon.start(daemon_mode = not debug_flag, pid_fd = singlton)
+    sys.exit(icatest.errors.ERROR_SUCCESS)
+except Exception:
+    traceback.print_exc()
+    sys.exit(icatest.errors.ERROR_BAD_ENVIRONMENT)
+# vim: ff=unix expandtab shiftwidth=4

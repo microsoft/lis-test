@@ -1,0 +1,15 @@
+# Standard Error Messages for Hyper-V IC Scripts
+E_GENERAL=1
+E_BADARGS=65
+E_HYPERVIC_INSTALL_INCOMPLETE=70
+E_INITRD=71
+E_BAD_KERNEL_VERSION=72
+E_NONEXISTENT_FILE=73
+E_HYPERVIC_MODULE_NOT_LOADED=74
+
+### Configuration variables ###
+ICA_BASE_DIR="$HOME/ica"
+
+# The Hyper-V modules that we need to test
+HYPERV_MODULES=( hv_vmbus hv_storvsc hv_netvsc hv_utils )
+HYPERV_MODULE_DIR="kernel/drivers/staging/hv"
