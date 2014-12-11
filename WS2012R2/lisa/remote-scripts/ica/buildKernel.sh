@@ -48,8 +48,7 @@ UpdateSummary()
 }
 
 #
-# Create the state.txt file so the ICA script knows
-# we are running
+# Create the state.txt file so the ICA script knows we are running
 #
 UpdateTestState "TestRunning"
 
@@ -129,9 +128,6 @@ chmod 755 bin/*
 #
 # Copy the tarball from the repository server
 #
-#dbgprint 1 "scp -i .ssh/ica_repos_id_rsa root@${REPOSITORY_SERVER}:${REPOSITORY_PATH}/${TARBALL} ."
-#scp -i .ssh/ica_repos_id_rsa root@${REPOSITORY_SERVER}:${REPOSITORY_PATH}/${TARBALL} .
-
 dbgprint 1 "Mounting Repository NFS share and copying tarball"
 ICATEMPDIR=./icaTempDir
 if [ ! -e ${ICATEMPDIR} ]; then
@@ -221,7 +217,6 @@ else
 	sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=m\nCONFIG_HYPERV_UTILS=m\nCONFIG_HYPERV_BALLOON=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=m\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
 
 	# Disable kernel preempt support , because of this lot of stack trace is coming and some time kernel does not boot at all.
-	#
 	dbgprint 3 "Disabling KERNEL_PREEMPT_VOLUNTARY in ${CONFIG_FILE}"
 	# On this first this is a workaround for known bug that makes kernel lockup once the bug is fixed we can remove this in PS bug ID is 124 and 125
 	sed --in-place -e s:"CONFIG_PREEMPT_VOLUNTARY=y":"# CONFIG_PREEMPT_VOLUNTARY is not set": ${CONFIG_FILE}
@@ -238,29 +233,8 @@ else
 	#
 	sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=m\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
 
-	#
-	# Disable the ata_piix driver since this driver loads before the hyperv driver
-	# and causes drives to be initialized as sda* (ata_piix driver) as well as
-	# hda* (hyperv driver).  Removing the ata_piix driver prevents the hard drive
-	# from being claimed by both drivers.
-	#
-	#sed --in-place -e s:"^CONFIG_ATA_PIIX=[m|y]":"# CONFIG_ATA_PIIX is not set": ${CONFIG_FILE}
-	#sed --in-place -e s:"^CONFIG_PATA_OLDPIIX=[m|y]":"# CONFIG_PATA_OLDPIIX is not set": ${CONFIG_FILE}
-
-	#
-	# Enable vesa framebuffer support.  This was needed for SLES 11 as a
-	# workaround for X not initializing properly on boot.  The 'vga=0x317'
-	# line was also necessarily added to the grub configuration.
-	#
-	#sed --in-place -e s:"# CONFIG_FB_VESA is not set":"CONFIG_FB_VESA=y": ${CONFIG_FILE}
-
-	#
-	# ToDo, add support for IC SCSI support
-	#
-
-	# After manually adding lines to .config, run make oldconfig to make
-	# sure config file is setup properly and all appropriate config
-	# options are added. THIS STEP IS NECESSARY!!
+	# After manually adding lines to .config, run make oldconfig to make sure config file is setup 
+	# properly and all appropriate config options are added. THIS STEP IS NECESSARY!!
 	yes "" | make oldconfig
 
 fi
@@ -309,6 +283,7 @@ if [ 0 -ne ${sts} ]; then
 else
 		UpdateSummary "make modules_install: Success"
 fi
+
 #
 # Install the kernel
 #
@@ -326,7 +301,6 @@ fi
 sts=$?
 if [ 0 -ne ${sts} ]; then
     echo "kernel build failed: ${sts}"
-    # todo - collect diagnostic information to be displayed
     UpdateTestState "TestAborted"
 	UpdateSummary "make install: Failed"
     exit 130
@@ -349,7 +323,6 @@ else
         exit $E_GENERAL
 fi
 new_default_entry_num="0"
-# added
 
 sed --in-place=.bak -e "s/^default\([[:space:]]\+\|=\)[[:digit:]]\+/default\1$new_default_entry_num/" $grubfile
 
