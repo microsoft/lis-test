@@ -28,7 +28,6 @@ cd ~
 #
 # Source the constants.sh file so we know what files to operate on.
 #
-
 source ./constants.sh
 
 dbgprint()
@@ -58,8 +57,6 @@ if [ -e ~/state.txt ]; then
     dbgprint 0 "State.txt file is created "
     dbgprint 0 "Content of state is : " ; echo `cat state.txt`
 fi
-
-
 
 #
 # Write some useful info to the log file
@@ -221,7 +218,7 @@ else
 	dbgprint 3 "Enabling HyperV support in the ${CONFIG_FILE}"
 	# On this first 'sed' command use --in-place=.orig to make a backup
 	# of the original .config file created with 'defconfig'
-	sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=y\nCONFIG_HYPERV_UTILS=y\nCONFIG_HYPERV_BALLOON=y\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=y\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=y\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
+	sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=m\nCONFIG_HYPERV_UTILS=m\nCONFIG_HYPERV_BALLOON=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=m\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
 
 	# Disable kernel preempt support , because of this lot of stack trace is coming and some time kernel does not boot at all.
 	#
@@ -267,7 +264,6 @@ else
 	yes "" | make oldconfig
 
 fi
-
 
 #
 # Build the kernel
@@ -316,7 +312,7 @@ fi
 #
 # Install the kernel
 #
-dbgprint 1 "Installing the kernel."
+dbgprint 1 "Installing the kernel..."
 # Adding support for parallel compilation on SMP systems.  This isn't
 # needed now, but will benefit testing whenever Hyper-V SMP is default in
 # new kernels or if someone decides to have the base system for building
@@ -338,47 +334,12 @@ else
 		UpdateSummary "make install: Success"
 fi
 
-#
-# Validate everything is setup correctly for a successful boot
-# of the new kernel
-#
-#dbgprint 1 "Validate everything is setup correctly to boot the new kernel."
-#if [ -e ~/newKernelVersion ]; then
-#	. ~/newKernelVersion
-#	UpdateSummary "Kernel Version under test is : ##$KERNEL_VERSION"
-#else
-#	echo "ERROR: cannot determine the version number of the #kernel to validate"
-#	UpdateTestState "TestAborted"
-#	exit 140
-#fi
-
-#cd ~/ica
-#./verifyKernelInstall.sh $KERNEL_VERSION
-#sts=$?
-#if [ 0 -ne ${sts} ]; then
-#    echo "ERROR: kernel install validation failed: ${sts}"
-#    UpdateTestState "TestAborted"
-#	UpdateSummary "Verfication of new kernel Install: Failed"
-#    exit 150
-#else
-#	UpdateSummary "Verfication of new kernel Install: Success"
-#fi
-
-#
-# Save the current Kernel version for comparision with the version
-# of the new kernel after the reboot.
-#
 cd ~
 dbgprint 3 "Saving version number of current kernel in oldKernelVersion.txt"
 uname -r > ~/oldKernelVersion.txt
 
-
 # Update Grub Ebtry to boot from new installed Kernel.
-
-
-### Grub Modification ###
-# Update grub.conf (we only support v1 right now, grub v2 will have to be added
-# later)
+# Update grub.conf (we only support v1 right now, grub v2 will have to be added later)
 if [ -e /boot/grub/grub.conf ]; then
         grubfile="/boot/grub/grub.conf"
 elif [ -e /boot/grub/menu.lst ]; then
@@ -396,12 +357,10 @@ sed --in-place=.bak -e "s/^default\([[:space:]]\+\|=\)[[:digit:]]\+/default\1$ne
 echo "Here are the new contents of the grub configuration file:"
 cat $grubfile
 
-
 #
 # Let the caller know everything worked
 #
 dbgprint 1 "Exiting with state: TestCompleted."
 UpdateTestState "TestCompleted"
-
 
 exit 0
