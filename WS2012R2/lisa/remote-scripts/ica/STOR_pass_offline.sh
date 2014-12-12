@@ -64,7 +64,7 @@ LinuxRelease()
             echo "FEDORA";;
         CentOS*)
             echo "CENTOS";;
-        *suse*)
+        *SUSE*)
             echo "SLES";;
         Red*Hat*)
             echo "RHEL";;
