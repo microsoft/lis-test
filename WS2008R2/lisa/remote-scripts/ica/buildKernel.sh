@@ -1,26 +1,7 @@
 #!/bin/bash
-
-########################################################################
 #
-# Linux on Hyper-V and Azure Test Code, ver. 1.0.0
-# Copyright (c) Microsoft Corporation
+# buildKernel.sh
 #
-# All rights reserved. 
-# Licensed under the Apache License, Version 2.0 (the ""License"");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
-#
-# THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
-# OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
-# ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
-# PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
-#
-# See the Apache Version 2.0 License for specific language governing
-# permissions and limitations under the License.
-#
-########################################################################
-
 # Description:
 #     This script was created to automate the testing of a Linux
 #     kernel source tree.  It does this by performing the following
@@ -36,6 +17,7 @@
 #     control server.  It contains definitions like:
 #         TARBALL=linux2.6.tar.gz
 #         ROOTDIR=linux2.6
+#
 
 DEBUG_LEVEL=3
 CONFIG_FILE=.config
@@ -46,8 +28,7 @@ cd ~
 #
 # Source the constants.sh file so we know what files to operate on.
 #
-
-source ~/constants.sh
+source ./constants.sh
 
 dbgprint()
 {
@@ -67,8 +48,7 @@ UpdateSummary()
 }
 
 #
-# Create the state.txt file so the ICA script knows
-# we are running
+# Create the state.txt file so the ICA script knows we are running
 #
 UpdateTestState "TestRunning"
 
@@ -76,8 +56,6 @@ if [ -e ~/state.txt ]; then
     dbgprint 0 "State.txt file is created "
     dbgprint 0 "Content of state is : " ; echo `cat state.txt`
 fi
-
-
 
 #
 # Write some useful info to the log file
@@ -107,7 +85,7 @@ if [ ! ${ROOTDIR} ]; then
     ROOTDIR=`tar -tvjf ${TARBALL} | head -n 1 | awk -F " " '{print $6}' | awk -F "/" '{print $1}'`
     if [ ! -n $ROOTDIR ]; then
         dbgprint 0 "Unable to determine value for ROOTDIR."
-	    UpdateTestState "TestAborted"
+	UpdateTestState "TestAborted"
         exit 10
     fi
 fi
@@ -137,21 +115,19 @@ fi
 # Convert any .sh files to Unix format
 #
 dbgprint 1 "Converting the files in the ica director to unix EOL"
-dos2unix f ~/*
+dos2unix ica/*
+dos2unix bin/*
 
 #
 # set the execute bit on any downloade files we may run
 #
 dbgprint 1 "Setting execute bit on files in the ica and bin directories"
-chmod 755 ~/*
+chmod 755 ica/*
 chmod 755 bin/*
 
 #
 # Copy the tarball from the repository server
 #
-#dbgprint 1 "scp -i .ssh/ica_repos_id_rsa root@${REPOSITORY_SERVER}:${REPOSITORY_PATH}/${TARBALL} ."
-#scp -i .ssh/ica_repos_id_rsa root@${REPOSITORY_SERVER}:${REPOSITORY_PATH}/${TARBALL} .
-
 dbgprint 1 "Mounting Repository NFS share and copying tarball"
 ICATEMPDIR=./icaTempDir
 if [ ! -e ${ICATEMPDIR} ]; then
@@ -189,7 +165,7 @@ fi
 if [ ! -e ${ROOTDIR} ]; then
     dbgprint 0 "The tar file did not create the directory: ${ROOTDIR}"
     dbgprint 0 "Aborting the test."
-    UpdateTestState "TestAborted"
+n    UpdateTestState "TestAborted"
     exit 50
 fi
 
@@ -199,7 +175,7 @@ cd ${ROOTDIR}
 # Create the .config file
 #
 dbgprint 1 "Creating the .config file."
-if [ -f ~/kernel.config.base ]; then
+if [ -f ~/ica/kernel.config.base ]; then
 	# Basing a new kernel config on a previous kernel config file will
 	# provide flexibility in providing know good config files with certain
 	# options enabled/disabled.  Functionality could also potentially be
@@ -209,7 +185,7 @@ if [ -f ~/kernel.config.base ]; then
 	# running 'make oldconfig')
 
 	dbgprint 3 "Creating new config based on a previous .config file"
-	cp ~/kernel.config.base .config
+	cp ~/ica/kernel.config.base .config
 
 	# Base the new config on the old one and select the default config
 	# option for any new options in the newer kernel version
@@ -238,12 +214,9 @@ else
 	dbgprint 3 "Enabling HyperV support in the ${CONFIG_FILE}"
 	# On this first 'sed' command use --in-place=.orig to make a backup
 	# of the original .config file created with 'defconfig'
-	sed --in-place=.orig -e s:"# CONFIG_STAGING is not set":"CONFIG_STAGING=y\nCONFIG_STAGING_EXCLUDE_BUILD=n": ${CONFIG_FILE}
-	sed --in-place -e s:"# CONFIG_HYPERV is not set":"CONFIG_HYPERV=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_BLOCK=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_UTILS=m": ${CONFIG_FILE}
-	#
+	sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=m\nCONFIG_HYPERV_UTILS=m\nCONFIG_HYPERV_BALLOON=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=m\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
 
 	# Disable kernel preempt support , because of this lot of stack trace is coming and some time kernel does not boot at all.
-	#
 	dbgprint 3 "Disabling KERNEL_PREEMPT_VOLUNTARY in ${CONFIG_FILE}"
 	# On this first this is a workaround for known bug that makes kernel lockup once the bug is fixed we can remove this in PS bug ID is 124 and 125
 	sed --in-place -e s:"CONFIG_PREEMPT_VOLUNTARY=y":"# CONFIG_PREEMPT_VOLUNTARY is not set": ${CONFIG_FILE}
@@ -260,34 +233,11 @@ else
 	#
 	sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=m\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
 
-	#
-	# Disable the ata_piix driver since this driver loads before the hyperv driver
-	# and causes drives to be initialized as sda* (ata_piix driver) as well as
-	# hda* (hyperv driver).  Removing the ata_piix driver prevents the hard drive
-	# from being claimed by both drivers.
-	#
-	#sed --in-place -e s:"^CONFIG_ATA_PIIX=[m|y]":"# CONFIG_ATA_PIIX is not set": ${CONFIG_FILE}
-	#sed --in-place -e s:"^CONFIG_PATA_OLDPIIX=[m|y]":"# CONFIG_PATA_OLDPIIX is not set": ${CONFIG_FILE}
-
-	#
-	# Enable vesa framebuffer support.  This was needed for SLES 11 as a
-	# workaround for X not initializing properly on boot.  The 'vga=0x317'
-	# line was also necessarily added to the grub configuration.
-	#
-	#sed --in-place -e s:"# CONFIG_FB_VESA is not set":"CONFIG_FB_VESA=y": ${CONFIG_FILE}
-
-	#
-	# ToDo, add support for IC SCSI support
-	#
-
-	# After manually adding lines to .config, run make oldconfig to make
-	# sure config file is setup properly and all appropriate config
-	# options are added. THIS STEP IS NECESSARY!!
+	# After manually adding lines to .config, run make oldconfig to make sure config file is setup 
+	# properly and all appropriate config options are added. THIS STEP IS NECESSARY!!
 	yes "" | make oldconfig
-	sed --in-place -e s:"# CONFIG_HID_HYPERV_MOUSE is not set":"CONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
 
 fi
-
 
 #
 # Build the kernel
@@ -320,7 +270,7 @@ if [ $proc_count -eq 1 ]; then
 	make modules_install
 	
 else
-	make modules_install -j $((proc_count+1)) install
+	make modules_install -j $((proc_count+1)) 
 fi
 
 sts=$?
@@ -333,15 +283,15 @@ if [ 0 -ne ${sts} ]; then
 else
 		UpdateSummary "make modules_install: Success"
 fi
+
 #
 # Install the kernel
 #
-dbgprint 1 "Installing the kernel."
+dbgprint 1 "Installing the kernel..."
 # Adding support for parallel compilation on SMP systems.  This isn't
 # needed now, but will benefit testing whenever Hyper-V SMP is default in
 # new kernels or if someone decides to have the base system for building
 # kernels SMP enabled (currently requires proper Hyper-V IC patch).
-# proc_count=$(cat /proc/cpuinfo | grep --count processor)
 if [ $proc_count -eq 1 ]; then
 	make install
 else
@@ -351,7 +301,6 @@ fi
 sts=$?
 if [ 0 -ne ${sts} ]; then
     echo "kernel build failed: ${sts}"
-    # todo - collect diagnostic information to be displayed
     UpdateTestState "TestAborted"
 	UpdateSummary "make install: Failed"
     exit 130
@@ -359,48 +308,32 @@ else
 		UpdateSummary "make install: Success"
 fi
 
-#
-# Validate everything is setup correctly for a successful boot
-# of the new kernel
-#
-dbgprint 1 "Validate everything is setup correctly to boot the new kernel."
-if [ -e ~/newKernelVersion ]; then
-	. ~/newKernelVersion
-	UpdateSummary "Kernel Version under test is : $KERNEL_VERSION"
-else
-	echo "ERROR: cannot determine the version number of the kernel to validate"
-	UpdateTestState "TestAborted"
-	exit 140
-fi
-
-cd ~/bin
-./verifyKernelInstall.sh $KERNEL_VERSION
-sts=$?
-if [ 0 -ne ${sts} ]; then
-    echo "ERROR: kernel install validation failed: ${sts}"
-    UpdateTestState "TestAborted"
-	UpdateSummary "Verfication of new kernel Install: Failed"
-    exit 150
-#else
-#	UpdateSummary "Verfication of new kernel Install: Success"
-fi
-
-#
-# Save the current Kernel version for comparision with the version
-# of the new kernel after the reboot.
-#
 cd ~
 dbgprint 3 "Saving version number of current kernel in oldKernelVersion.txt"
 uname -r > ~/oldKernelVersion.txt
 
+# Update Grub Ebtry to boot from new installed Kernel.
+# Update grub.conf (we only support v1 right now, grub v2 will have to be added later)
+if [ -e /boot/grub/grub.conf ]; then
+        grubfile="/boot/grub/grub.conf"
+elif [ -e /boot/grub/menu.lst ]; then
+        grubfile="/boot/grub/menu.lst"
+else
+        echo "ERROR: grub v1 does not appear to be installed on this system."
+        exit $E_GENERAL
+fi
+new_default_entry_num="0"
 
+sed --in-place=.bak -e "s/^default\([[:space:]]\+\|=\)[[:digit:]]\+/default\1$new_default_entry_num/" $grubfile
 
+# Display grub configuration after our change
+echo "Here are the new contents of the grub configuration file:"
+cat $grubfile
 
 #
 # Let the caller know everything worked
 #
 dbgprint 1 "Exiting with state: TestCompleted."
 UpdateTestState "TestCompleted"
-
 
 exit 0
