@@ -28,7 +28,7 @@
                 <to>user@company.com</to>
             </recipients>
             <sender>user@company.com</sender>
-            <subject>LISA Secure Boot on Threshold</subject>
+            <subject>LISA Secure Boot Testing</subject>
             <smtpServer>SMTP_SERVER</smtpServer>
         </email>
     </global>
@@ -36,12 +36,12 @@
 	<testSuites>
         <suite>
             <suiteName>SecureBoot</suiteName>
-            <suiteTests>
-				<suiteTest>SecureBootBasic</suiteTest>
-				<suiteTest>SecureBootMigrateVM</suiteTest>
-				<suiteTest>SecureBootBasicVSSBackup</suiteTest>
-				<suiteTest>SecureBootUpdateKernel</suiteTest>
-			</suiteTests>
+            	<suiteTests>
+			<suiteTest>SecureBootBasic</suiteTest>
+			<suiteTest>SecureBootMigrateVM</suiteTest>
+			<suiteTest>SecureBootBasicVSSBackup</suiteTest>
+			<suiteTest>SecureBootUpdateKernel</suiteTest>
+		</suiteTests>
 		</suite>
 	</testSuites>
 	
