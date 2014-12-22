@@ -4,11 +4,11 @@
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
 
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
 
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -52,7 +52,7 @@
                 <suiteTest>JumboFrame</suiteTest>
                 <suiteTest>CopyLargeFile</suiteTest>
                 <suiteTest>VlanTrunking</suiteTest>
-                <suiteTest>VlanTagging</suiteTest>	
+                <suiteTest>VlanTagging</suiteTest>
                 <suiteTest>BridgeNetwork</suiteTest>
             </suiteTests>
         </suite>
@@ -78,7 +78,7 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-		
+
         <test>
             <testName>InternalNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -97,7 +97,7 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-		
+
         <test>
             <testName>ExternalNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -115,26 +115,26 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-		
+
         <test>
             <testName>GuestOnlyNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-06</param>
-                <param>Test_IPv6=guest</param>
-                <param>STATIC_IP=192.168.0.2</param>
+                <param>STATIC_IP=10.10.10.1</param>
+                <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>PING_SUCC=192.168.0.3</param>
-                <param>PING_FAIL=8.8.8.8</param>
-                <param>PING_FAIL2=192.168.2.1</param>
+                <param>VM2NAME=zsdudaUBUNTU1410-2</param>
+                <param>Test_IPv6=private</param>
+                <param>SnapshotName=ICABase-1</param>
             </testParams>
-            <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/Utils.sh</files>
+            <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-		
+
          <test>
             <testName>MultipleNIC</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -154,7 +154,7 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-		
+
         <test>
             <testName>LegacySyntheticNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -172,7 +172,7 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-		
+
         <test>
             <testName>StaticMAC</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -189,9 +189,9 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-		
+
         <!-- The following three tests are actually one single TC -->
-		
+
         <test>
             <testName>ChangeNetTypeInternal</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -213,7 +213,7 @@
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/Utils.sh</files>
             <timeout>800</timeout>
         </test>
-		
+
         <test>
             <testName>ChangeNetTypeGuest</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -252,7 +252,7 @@
             <noReboot>False</noReboot>
             <timeout>600</timeout>
         </test>
-		
+
         <test>
             <testName>JumboFrame</testName>
             <testScript>NET_JUMBO_FRAMES.sh</testScript>
@@ -310,7 +310,7 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-		
+
         <test>
             <testName>VlanTagging</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -329,7 +329,7 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>1000</timeout>
         </test>
-		
+
         <test>
             <testName>BridgeNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -351,7 +351,7 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-		
+
         <test>
             <testName>OperState</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -393,8 +393,8 @@
             </testparams>
         </test>
     </testCases>
-	
-	
+
+
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
