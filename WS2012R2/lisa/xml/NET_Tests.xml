@@ -74,7 +74,7 @@
                 <param>GATEWAY=192.168.0.1</param>
             </testParams>
             <testScript>NET_CONFIGURE_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_CONFIGURE_NETWORK.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_CONFIGURE_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -93,7 +93,7 @@
                 <param>PING_FAIL2=192.168.2.2</param>
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -111,7 +111,7 @@
                 <param>GATEWAY=192.168.0.1</param>
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -150,7 +150,7 @@
                 <param>GATEWAY=192.168.0.1</param>
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -168,7 +168,7 @@
                 <param>GATEWAY=192.168.0.1</param>
             </testParams>
             <testScript>NET_LEGACY.sh</testScript>
-            <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -185,7 +185,7 @@
                 <param>GATEWAY=192.168.0.1</param>
             </testParams>
             <testScript>NET_STATIC_MAC.sh</testScript>
-            <files>remote-scripts/ica/NET_STATIC_MAC.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_STATIC_MAC.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -210,7 +210,7 @@
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
         </test>
 
@@ -229,8 +229,8 @@
                 <param>PING_FAIL=8.8.8.8</param>
                 <param>PING_FAIL2=192.168.0.1</param>
             </testParams>
-            <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/Utils.sh</files>
+            <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -240,7 +240,7 @@
         <test>
             <testName>NetworkMode</testName>
             <testScript>NET_PROMISC.sh</testScript>
-            <files>remote-scripts/ica/NET_PROMISC.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_PROMISC.sh,remote-scripts/ica/utils.sh</files>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <testParams>
@@ -256,7 +256,7 @@
         <test>
             <testName>JumboFrame</testName>
             <testScript>NET_JUMBO_FRAMES.sh</testScript>
-            <files>remote-scripts/ica/NET_JUMBO_FRAMES.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_JUMBO_FRAMES.sh,remote-scripts/ica/utils.sh</files>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>600</timeout>
@@ -266,26 +266,32 @@
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-14</param>
                 <param>Test_IPv6=external</param>
-                <param>REMOTE_VM=8.8.8.8</param>
+                <param>REMOTE_VM=10.10.10.10</param>
                 <param>SSH_PRIVATE_KEY=sshKey</param>
             </testparams>
         </test>
 
         <test>
             <testName>CopyLargeFile</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
+
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>TC_COVERED=NET-02</param>
-                <param>Test_IPv6=external</param>
-                <param>REMOTE_VM=192.168.0.3</param>
+                <param>TC_COVERED=NET-01</param>
+                <param>STATIC_IP2=10.10.10.10</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>VM2NAME=vm2Name</param>
+                <param>SnapshotName=ICABase</param>
                 <param>SSH_PRIVATE_KEY=sshKey</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=2</param>
                 <param>REMOTE_USER=root</param>
             </testParams>
             <testScript>NET_COPY_LARGE.sh</testScript>
-            <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>8000</timeout>
         </test>
@@ -306,7 +312,7 @@
                 <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TRUNKING.ps1</testScript>
-            <files>remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -325,7 +331,7 @@
                 <param>Test_IPv6=external</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
-            <files>remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>1000</timeout>
         </test>
@@ -347,7 +353,7 @@
                 <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>SetupScripts\NET_BRIDGE.ps1</testScript>
-            <files>remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -360,7 +366,7 @@
                 <param>TC_COVERED=NET-22</param>
             </testParams>
             <testScript>NET_OPERSTATE.sh</testScript>
-            <files>remote-scripts/ica/NET_OPERSTATE.sh,remote-scripts/ica/Utils.sh</files>
+            <files>remote-scripts/ica/NET_OPERSTATE.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
