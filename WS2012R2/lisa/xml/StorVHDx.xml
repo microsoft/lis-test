@@ -156,6 +156,7 @@
                 <param>ParentVhd=VHDXParentDiff.vhdx</param>
                 <param>TC_COVERED=STOR-36</param>
             </testparams>
+            <onError>Continue</onError>
         </test>
         <test>
             <testName>VHDx_AddDiff_Disk_SCSI</testName>
@@ -168,6 +169,7 @@
                 <param>ParentVhd=VHDXParentDiff.vhdx</param>
                 <param>TC_COVERED=STOR-37</param>
             </testparams>
+            <onError>Continue</onError>
         </test>
         <test>
             <testName>VHDx_HotADD_Multi_Dynamic_SCSI</testName>
