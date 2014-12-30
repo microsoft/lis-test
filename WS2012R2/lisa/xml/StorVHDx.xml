@@ -9,7 +9,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LIS_StoreVHDX_tests</subject>
+            <subject>LIS Storage VHDx tests</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -292,10 +292,10 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>sles11sp3x64</vmName>
+            <vmName>VMname</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <sshKey>key_id_rsa.ppk</sshKey>
             <suite>VHDx</suite>
         </vm>
     </VMs>
