@@ -61,6 +61,7 @@ ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
 ICA_TESTFAILED="TestFailed"        # Error while performing the test
+maxdelay=5.0
 
 ########################################################################
 # Adds a timestamp to the log file
@@ -282,10 +283,11 @@ sts=$?
         exit 1
     fi
 
-delay=`ntpdc -p | awk 'NR==3 {print $6}'`
+delay=$(ntpdc -c loopinfo | awk 'NR==1 {print $2}')
+check=$(echo "$delay $maxdelay" | awk '{if ($1 < $2) print 0; else print 1}')
 LogMsg "NTP delay: $delay"
 
-    if [[ $a < 5.00000 ]]; then
+    if [[ 0 -eq $check ]]; then
 
         LogMsg  "NTP Time: synced"
         UpdateSummary "Timesync NTP: Success"
