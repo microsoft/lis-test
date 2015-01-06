@@ -19,14 +19,12 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
-    Reset a VMs CPU count to 1.
+    Reset a VMs CPU count to 3.
 
 .Description
-    Reset a VMs CPU count to 1.
+    Reset a VMs CPU count to 3.
 
 .Parameter vmName
     Name of the VM to modify.
@@ -39,7 +37,7 @@
     This cleanup script does not require any testParams.
 
 .Example
-    .\ResetCPU.ps1 "testVM" "localhost" "rootDir=D:\lisa"
+    .\ResetCPU.ps1 "testVM" "localhost" -testparams ""
 #>
 
 
@@ -77,19 +75,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 #
 # Find the testParams we require.  Complain if not found
 #
-$numCPUs = 1
-
-#
-# HyperVLib version 2
-# Note: For V2, the module can only be imported once into powershell.
-#       If you import it a second time, the Hyper-V library function
-#       calls fail.
-#
-<#$sts = get-module | select-string -pattern HyperV -quiet
-if (! $sts)
-{
-    Import-module .\HyperVLibV2Sp1\Hyperv.psd1
-}#>
+$numCPUs = 3
 
 #
 # Update the CPU count on the VM
