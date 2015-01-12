@@ -37,16 +37,16 @@
         <suite>
             <suiteName>LTP</suiteName>
             <suiteTests>
-				<suiteTest>LTPBasic</suiteTest>
-			</suiteTests>
-		</suite>
+                <suiteTest>LTPBasic</suiteTest>
+            </suiteTests>
+        </suite>
 	</testSuites>
 
     <testCases>
         <test>
             <testName>LTPBasic</testName>
-			<testScript>LTP_test.sh</testScript>
-			<files>remote-scripts/ica/LTP_test.sh</files>
+            <testScript>LTP_test.sh</testScript>
+            <files>remote-scripts/ica/LTP_test.sh</files>
             <timeout>40000</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -56,7 +56,7 @@
 	</testCases>
 	
 	<VMs>
-		<vm>
+        <vm>
             <hvServer>HYPERV_SERVER</hvServer>
             <vmName>VM_NAME</vmName>
             <os>Linux</os>
