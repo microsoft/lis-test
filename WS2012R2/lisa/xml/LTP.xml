@@ -54,8 +54,8 @@
             </testparams>
         </test>
 	</testCases>
-	
-	<VMs>
+
+    <VMs>
         <vm>
             <hvServer>HYPERV_SERVER</hvServer>
             <vmName>VM_NAME</vmName>
