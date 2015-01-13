@@ -22,9 +22,9 @@
 #####################################################################
 
 # Description:
-#	This script verifies that the network doesn't 
-#	loose connection by copying a large file(~10GB)file 
-#	between two VM's with IC installed. 
+#	This script verifies that the network doesn't
+#	loose connection by copying a large file(~10GB)file
+#	between two VM's with IC installed.
 #
 #	Steps:
 #	1. Verify configuration file constants.sh
@@ -39,7 +39,7 @@
 #	9. Make new md5sum of received file and compare to the one calculated earlier
 #
 #	Parameters required:
-#		REMOTE_VM
+#		STATIC_IP2
 #		SSH_PRIVATE_KEY
 #
 #	Optional parameters:
@@ -53,7 +53,7 @@
 #		GATEWAY
 #
 #	Parameter explanation:
-#	REMOTE_VM is the address of the second vm.
+#	STATIC_IP2 is the address of the second vm.
 #	The script assumes that the SSH_PRIVATE_KEY is located in $HOME/.ssh/$SSH_PRIVATE_KEY
 #	TC_COVERED is the test id from LIS testing
 #	NO_DELETE stops the script from deleting the 10GB files locally and remotely
@@ -69,11 +69,11 @@
 
 
 # Convert eol
-dos2unix Utils.sh
+dos2unix utils.sh
 
-# Source Utils.sh
-. Utils.sh || {
-	echo "Error: unable to source Utils.sh!"
+# Source utils.sh
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
 	echo "TestAborted" > state.txt
 	exit 2
 }
@@ -112,14 +112,14 @@ case $? in
 		LogMsg "UtilsInit returned an unknown error. Aborting..."
 		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
 		SetTestStateAborted
-		exit 6 
+		exit 6
 		;;
 esac
 
 # Parameters to check in constants file
 
-if [ "${REMOTE_VM:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter REMOTE_VM is not defined in ${LIS_CONSTANTS_FILE}"
+if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter STATIC_IP2 is not defined in ${LIS_CONSTANTS_FILE}"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateAborted
@@ -163,7 +163,7 @@ if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
 	GATEWAY=''
 else
 	CheckIP "$GATEWAY"
-	
+
 	if [ 0 -ne $? ]; then
 		msg=""
 		LogMsg "$msg"
@@ -191,7 +191,7 @@ else
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# Get the interface associated with the given ipv4
 	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
@@ -201,7 +201,7 @@ if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
 	LogMsg "$msg"
 else
 	if [[ "$DISABLE_NM" =~ [Yy][Ee][Ss] ]]; then
-		
+
 		# work-around for suse where the network gets restarted in order to shutdown networkmanager.
 		declare __orig_netmask
 		GetDistro
@@ -291,11 +291,11 @@ __iterator=0
 # Try to get DHCP address for synthetic adaptor and ping if configured
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
-	if [ 0 -eq $? ]; then		
+	if [ 0 -eq $? ]; then
 		# add some interface output
 		UpdateSummary "Successfully set ip from dhcp on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
-		
+
 		# set default gateway if specified
 		if [ -n "$GATEWAY" ]; then
 			LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -304,20 +304,20 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 				LogMsg "Warning! Failed to set default gateway!"
 			fi
 		fi
-		
+
 		LogMsg "Trying to ping $REMOTE_SERVER"
 		UpdateSummary "Trying to ping $REMOTE_SERVER"
 		sleep 20
-		
+
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`copy`null`dhcp`null`
-		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d00636f7079006468637000" "$REMOTE_VM" >/dev/null 2>&1
+		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d00636f7079006468637000" "$STATIC_IP2" >/dev/null 2>&1
 		if [ 0 -eq $? ]; then
 			# ping worked!
-			LogMsg "Successfully pinged $REMOTE_VM through synthetic ${SYNTH_NET_INTERFACES[$__iterator]} (dhcp)."
-			UpdateSummary "Successfully pinged $REMOTE_VM through synthetic ${SYNTH_NET_INTERFACES[$__iterator]} (dhcp)."
+			LogMsg "Successfully pinged $STATIC_IP2 through synthetic ${SYNTH_NET_INTERFACES[$__iterator]} (dhcp)."
+			UpdateSummary "Successfully pinged $STATIC_IP2 through synthetic ${SYNTH_NET_INTERFACES[$__iterator]} (dhcp)."
 			break
 		else
-			LogMsg "Unable to ping $REMOTE_VM through synthetic ${SYNTH_NET_INTERFACES[$__iterator]}"
+			LogMsg "Unable to ping $STATIC_IP2 through synthetic ${SYNTH_NET_INTERFACES[$__iterator]}"
 		fi
 	fi
 	__invalid_positions=("${__invalid_positions[@]}" "$__iterator")
@@ -340,7 +340,7 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq  ${#__invalid_positions[@]} ]; then
 		if [ 0 -eq $? ]; then
 			LogMsg "Successfully assigned $STATIC_IP ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 			UpdateSummary "Successfully assigned $STATIC_IP ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-			
+
 			# set default gateway if specified
 			if [ -n "$GATEWAY" ]; then
 				LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -350,14 +350,14 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq  ${#__invalid_positions[@]} ]; then
 				fi
 			fi
 			# ping the remote vm using an easily distinguishable pattern 0xcafed00d`null`cop`null`static`null`
-			ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d00636f700073746174696300" "$REMOTE_VM" >/dev/null 2>&1
-			
+			ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 10 -p "cafed00d00636f700073746174696300" "$STATIC_IP2" >/dev/null 2>&1
+
 			if [ 0 -eq $? ]; then
 				# ping worked!
-				UpdateSummary "Successfully pinged $REMOTE_VM on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+				UpdateSummary "Successfully pinged $STATIC_IP2 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 				break
 			else
-				LogMsg "Unable to ping $REMOTE_VM through ${SYNTH_NET_INTERFACES[$__iterator]}"
+				LogMsg "Unable to ping $STATIC_IP2 through ${SYNTH_NET_INTERFACES[$__iterator]}"
 			fi
 		else
 			LogMsg "Unable to set static IP to interface ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -367,10 +367,10 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq  ${#__invalid_positions[@]} ]; then
 		__invalid_positions=("${__invalid_positions[@]}" "$__iterator")
 		: $((__iterator++))
 	done
-	
-	# if no interface was capable of pinging the REMOTE_VM by having its IP address statically assigned, give up
+
+	# if no interface was capable of pinging the STATIC_IP2 by having its IP address statically assigned, give up
 	if [ $__iterator -eq ${#SYNTH_NET_INTERFACES[@]} ]; then
-		msg="Not even with static IPs was any interface capable of pinging $REMOTE_VM . Failed..."
+		msg="Not even with static IPs was any interface capable of pinging $STATIC_IP2 . Failed..."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
@@ -397,7 +397,7 @@ if [ 0 -eq ${#SYNTH_NET_INTERFACES[@]} ]; then
     exit 100
 fi
 
-LogMsg "Successfully pinged $REMOTE_VM on synthetic interface(s) ${SYNTH_NET_INTERFACES[@]}"
+LogMsg "Successfully pinged $STATIC_IP2 on synthetic interface(s) ${SYNTH_NET_INTERFACES[@]}"
 
 # get file size in bytes
 declare -i __file_size
@@ -424,19 +424,19 @@ fi
 LogMsg "Enough free space locally to create the file"
 UpdateSummary "Enough free space locally to create the file"
 
-LogMsg "Checking for disk space on $REMOTE_VM"
-# Check disk size on remote vm. Cannot use IsFreeSpace function directly. Need to export Utils.sh to the remote_vm, source it and then access the functions therein
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no Utils.sh "$REMOTE_USER"@"$REMOTE_VM":/tmp
+LogMsg "Checking for disk space on $STATIC_IP2"
+# Check disk size on remote vm. Cannot use IsFreeSpace function directly. Need to export utils.sh to the remote_vm, source it and then access the functions therein
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no utils.sh "$REMOTE_USER"@"$STATIC_IP2":/tmp
 if [ 0 -ne $? ]; then
-	msg="Cannot copy Utils.sh to $REMOTE_VM:/tmp"
+	msg="Cannot copy utils.sh to $STATIC_IP2:/tmp"
 	LogMsg "$msg"
     UpdateSummary "$msg"
 	SetTestStateFailed
     exit 10
 fi
 
-remote_home=$(ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM" "
-	. /tmp/Utils.sh
+remote_home=$(ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "
+	. /tmp/utils.sh
 	IsFreeSpace \"\$HOME\" $__file_size
 	if [ 0 -ne \$? ]; then
 		exit 1
@@ -449,7 +449,7 @@ remote_home=$(ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking
 sts=$?
 
 if [ 1 -eq $sts ]; then
-	msg="Not enough free space on $REMOTE_VM to create the test file"
+	msg="Not enough free space on $STATIC_IP2 to create the test file"
 	LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
@@ -458,7 +458,7 @@ fi
 
 # if status is neither 1, nor 0 then ssh encountered an error
 if [ 0 -ne $sts ]; then
-	msg="Unable to connect through ssh to $REMOTE_VM"
+	msg="Unable to connect through ssh to $STATIC_IP2"
 	LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
@@ -502,41 +502,41 @@ LogMsg "Successfully created $output_file"
 local_md5sum=$(md5sum $output_file | cut -f 1 -d ' ')
 
 #send file to remote_vm
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@"$REMOTE_VM":"$remote_home"/"$output_file"
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@"$STATIC_IP2":"$remote_home"/"$output_file"
 
 if [ 0 -ne $? ]; then
 	[ $NO_DELETE -eq 0 ] && rm -f "$HOME"/$output_file
-	msg="Unable to copy file $output_file to $REMOTE_VM:$remote_home/$output_file"
+	msg="Unable to copy file $output_file to $STATIC_IP2:$remote_home/$output_file"
 	LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
     exit 10
 fi
 
-LogMsg "Successfully sent $output_file to $REMOTE_VM:$remote_home/$output_file"
-UpdateSummary "Successfully sent $output_file to $REMOTE_VM:$remote_home/$output_file"
+LogMsg "Successfully sent $output_file to $STATIC_IP2:$remote_home/$output_file"
+UpdateSummary "Successfully sent $output_file to $STATIC_IP2:$remote_home/$output_file"
 
 # erase file locally, if set
 [ $NO_DELETE -eq 0 ] && rm -f $output_file
 
 # copy file back from remote vm
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM":"$remote_home"/"$output_file" "$HOME"/"$output_file"
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2":"$remote_home"/"$output_file" "$HOME"/"$output_file"
 
 if [ 0 -ne $? ]; then
 	#try to erase file from remote vm
-	[ $NO_DELETE -eq 0 ] && ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM" "rm -f \$HOME/$output_file"
-	msg="Unable to copy from $REMOTE_VM:$remote_home/$output_file"
+	[ $NO_DELETE -eq 0 ] && ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "rm -f \$HOME/$output_file"
+	msg="Unable to copy from $STATIC_IP2:$remote_home/$output_file"
 	LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
     exit 10
 fi
 
-LogMsg "Received $outputfile from $REMOTE_VM"
-UpdateSummary "Received $outputfile from $REMOTE_VM"
+LogMsg "Received $outputfile from $STATIC_IP2"
+UpdateSummary "Received $outputfile from $STATIC_IP2"
 
 # delete remote file
-[ $NO_DELETE -eq 0 ] && ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM" "rm -f $remote_home/$output_file"
+[ $NO_DELETE -eq 0 ] && ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "rm -f $remote_home/$output_file"
 
 # check md5sums
 remote_md5sum=$(md5sum $output_file | cut -f 1 -d ' ')
@@ -565,10 +565,10 @@ if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
 
 	if [ "$PING_SUCC_IPv6" != false ] && [ "$PING_SUCC_IPv6" = "detect" ] ; then
 
-	full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$REMOTE_VM" "ip addr show | grep -A 2 "$REMOTE_VM" | grep "inet6"|grep "global"" | awk '{print $2}'`
+	full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$STATIC_IP2" "ip addr show | grep -A 2 "$STATIC_IP2" | grep "inet6"|grep "global"" | awk '{print $2}'`
 	IPv6=${full_ipv6:0:${#full_ipv6}-3}
 	fi
-	
+
 
 	dd if=$file_source of="$HOME"/"$output_file" bs=1M count=$((__file_size/1024/1024))
 
@@ -595,7 +595,7 @@ if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
 
 	LogMsg "Successfully sent $output_file to $IPv6:$remote_home/$output_file"
 	UpdateSummary "Successfully sent $output_file to $IPv6:$remote_home/$output_file"
-fi 
+fi
 
 UpdateSummary "Checksums of file match. Test successful"
 LogMsg "Updating test case state to completed"

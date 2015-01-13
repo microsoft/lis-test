@@ -22,7 +22,7 @@
 #####################################################################
 
 # Description:
-#	This script tries to set each synthetic network interface to promiscuous and then ping the REMOTE_SERVER. Afterwards, it disables 
+#	This script tries to set each synthetic network interface to promiscuous and then ping the REMOTE_SERVER. Afterwards, it disables
 #	the promiscuous mode again.
 #
 #	Steps:
@@ -39,7 +39,7 @@
 #
 #	Parameters required:
 #		REMOTE_SERVER
-#		
+#
 #	Optional parameters:
 #		STATIC_IP
 #		TC_COVERED
@@ -59,11 +59,11 @@
 
 
 # Convert eol
-dos2unix Utils.sh
+dos2unix utils.sh
 
-# Source Utils.sh
-. Utils.sh || {
-	echo "Error: unable to source Utils.sh!"
+# Source utils.sh
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
 	echo "TestAborted" > state.txt
 	exit 2
 }
@@ -102,7 +102,7 @@ case $? in
 		LogMsg "UtilsInit returned an unknown error. Aborting..."
 		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
 		SetTestStateAborted
-		exit 6 
+		exit 6
 		;;
 esac
 
@@ -130,11 +130,11 @@ else
 			SetTestStateAborted
 			exit 30
 		fi
-		
+
 	done
-	
+
 	unset __iterator
-	
+
 fi
 
 if [ "${NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -155,7 +155,7 @@ if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
 	GATEWAY=''
 else
 	CheckIP "$GATEWAY"
-	
+
 	if [ 0 -ne $? ]; then
 		msg=""
 		LogMsg "$msg"
@@ -186,7 +186,7 @@ else
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# Get the interface associated with the given ipv4
 	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
@@ -196,7 +196,7 @@ if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
 	LogMsg "$msg"
 else
 	if [[ "$DISABLE_NM" =~ [Yy][Ee][Ss] ]]; then
-		
+
 		# work-around for suse where the network gets restarted in order to shutdown networkmanager.
 		declare __orig_netmask
 		GetDistro
@@ -252,7 +252,7 @@ for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
 		SetTestStateFailed
 		exit 20
 	fi
-	
+
 	# make sure interface is not in promiscuous mode already
 	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -i promisc
 	if [ 0 -eq $? ]; then
@@ -278,9 +278,9 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		LogMsg "Number of static IP addresses in constants.sh is greater than number of concerned interfaces. All extra IP addresses are ignored."
 		break
 	fi
-	
+
 	SetIPstatic "${STATIC_IPS[$__iterator]}" "${SYNTH_NET_INTERFACES[$__iterator]}" "$NETMASK"
-	
+
 	# if failed to assigned address
 	if [ 0 -ne $? ]; then
 		msg="Failed to assign static ip ${STATIC_IPS[$__iterator]} netmask $NETMASK on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -288,9 +288,9 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 20
-	fi	
+	fi
 	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
-	
+
 	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
 
@@ -302,7 +302,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
 	LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
-	
+
 	if [ 0 -ne $? ]; then
 		msg="Unable to get address for ${SYNTH_NET_INTERFACES[$__iterator]} through DHCP"
 		LogMsg "$msg"
@@ -312,7 +312,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 	fi
 	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 	: $((__iterator++))
-	
+
 done
 
 # reset iterator
@@ -325,7 +325,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 	LogMsg "Setting ${SYNTH_NET_INTERFACES[$__iterator]} to promisc mode"
 	# set interfaces to promiscuous mode
 	ip link set dev ${SYNTH_NET_INTERFACES[$__iterator]} promisc on
-	
+
 	# make sure it was set
 	__message_count=$(dmesg | grep -i "device ${SYNTH_NET_INTERFACES[$__iterator]} entered promiscuous mode" | wc -l)
 	if [ "$__message_count" -ne 1 ]; then
@@ -335,7 +335,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# now check ip for promisc
 	ip link show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
 	if [ 0 -ne $? ]; then
@@ -345,9 +345,9 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	UpdateSummary "Successfully set ${SYNTH_NET_INTERFACES[$__iterator]} to promiscuous mode"
-	
+
 	if [ -n "$GATEWAY" ]; then
 		LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
 		CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -355,10 +355,10 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			LogMsg "Warning! Failed to set default gateway!"
 		fi
 	fi
-	
+
 	LogMsg "Trying to ping $REMOTE_SERVER"
 	UpdateSummary "Trying to ping $REMOTE_SERVER"
-	
+
 	# ping the remote server
 	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$REMOTE_SERVER"
 
@@ -369,14 +369,14 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	UpdateSummary "Successfully pinged $REMOTE_SERVER on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	
+
 	# disable promiscuous mode
 	LogMsg "Disabling promisc mode on ${SYNTH_NET_INTERFACES[$__iterator]}"
-	
+
 	ip link set dev ${SYNTH_NET_INTERFACES[$__iterator]} promisc off
-	
+
 	# make sure it was disabled
 	__message_count=$(dmesg | grep -i "device ${SYNTH_NET_INTERFACES[$__iterator]} left promiscuous mode" | wc -l)
 	if [ "$__message_count" -ne 1 ]; then
@@ -386,7 +386,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# now check ip for promisc
 	ip link show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
 	if [ 0 -eq $? ]; then
@@ -396,7 +396,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	UpdateSummary "Successfully disabled promiscuous mode on ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
 

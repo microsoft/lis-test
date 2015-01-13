@@ -256,7 +256,7 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 
     # execute command
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-    "This is returned: $retVal"
+
     return $retVal
 }
 
@@ -333,6 +333,15 @@ $testipv4VM1 = $null
 $tempipv4VM2 = $null
 $testipv4VM2 = $null
 
+#External IP address
+$failIP1 = $null
+
+#Internal IP address
+$failIP2 = $null
+
+#Connection type to switch to
+$switch_nic = $null
+
 #Test IPv6
 $Test_IPv6 = $null
 
@@ -395,6 +404,9 @@ foreach ($p in $params)
     "ipv4"    { $ipv4    = $fields[1].Trim() }
     "STATIC_IP" { $vm1StaticIP = $fields[1].Trim() }
     "STATIC_IP2" { $vm2StaticIP = $fields[1].Trim() }
+    "PING_FAIL" { $failIP1 = $fields[1].Trim() }
+    "PING_FAIL2" { $failIP2 = $fields[1].Trim() }
+    "SWITCH" { $switch_nic = $fields[1].Trim() }
     "Test_IPv6" { $Test_IPv6 = $fields[1].Trim() }
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
@@ -696,6 +708,27 @@ if (-not $retVal)
 
 "Successfully sent utils.sh"
 
+
+#switch network connection type in case is needed
+if ($switch_nic)
+{
+    $retVal = .\setupscripts\NET_SWITCH_NIC_MAC.ps1 -vmName $vmName -hvServer $hvServer -testParams "SWITCH=$switch_nic"
+    if (-not $retVal)
+    {
+        "Failed to switch connection type for $vmName on $hvServer with $switch_nic"
+        return $False
+    }
+
+    $retVal = .\setupscripts\NET_SWITCH_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams "SWITCH=NetworkAdapter,Private,Private,$vm2MacAddress"
+    if (-not $retVal)
+    {
+        "Failed to switch connection type for $vm2Name"
+        return $False
+    }
+
+    "Successfully switched connection type for both VMs"
+}
+
 "Configuring test interface (${vm1MacAddress}) on $vmName (${ipv4}) "
 
 # send ifcfg file to each VM
@@ -730,10 +763,10 @@ start-sleep 20
 "vm2 MAC = ${vm2MacAddress}"
 
 
-# Try to ping with the interfaces in untagged mode
+# Try to ping with the private network interfaces
 "Trying to ping from vm1 with mac $vm1MacAddress to $vm2StaticIP "
 # try to ping
-$retVal = pingVMs $vm1StaticIP $vm2StaticIP $sshKey 10 $vm1MacAddress
+$retVal = pingVMs $ipv4 $vm2StaticIP $sshKey 10 $vm1MacAddress
 
 if (-not $retVal)
 {
@@ -744,7 +777,7 @@ if (-not $retVal)
 "Successfully pinged"
 
 "Trying to ping from vm2 with mac $vm2MacAddress to $vm1StaticIP "
-$retVal = pingVMs $vm2StaticIP $vm1StaticIP $sshKey 10 $vm2MacAddress
+$retVal = pingVMs $vm2ipv4 $vm1StaticIP $sshKey 10 $vm2MacAddress
 
 if (-not $retVal)
 {
@@ -753,6 +786,31 @@ if (-not $retVal)
 }
 
 "Successfully pinged"
+
+# Try to ping external network with the private network interfaces. This should fail
+"Trying to ping from vm1 with mac $vm1MacAddress to $failIP1 "
+# try to ping
+$retVal = pingVMs $ipv4 $failIP1 $sshKey 10 $vm1MacAddress
+
+if ($retVal)
+{
+    "Ping from vm1: Able to ping $failIP1 from $vm1StaticIP with MAC $vm2MacAddress although it should not have worked!"
+    return $false
+}
+
+"Failed to ping (as expected)"
+
+"Trying to ping from vm1 with mac $vm2MacAddress to $failIP2 "
+# try to ping
+$retVal = pingVMs $vm2ipv4 $failIP2 $sshKey 10 $vm1MacAddress
+
+if ($retVal)
+{
+    "Ping from vm2: Able to ping $failIP2 from $vm2StaticIP with MAC $vm2MacAddress although it should not have worked!"
+    return $false
+}
+
+"Failed to ping (as expected)"
 
 "Stopping $vm2Name"
 Stop-VM -Name $vm2Name -force

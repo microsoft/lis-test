@@ -25,44 +25,44 @@
 
  Description:
     Use two VMs to test the VLAN trunking feature.
-    
+
     The first VM is started by the LIS framework, while the second one will be managed by this script.
-    
+
     The script expects a NIC param in the same format as the NET_{ADD|REMOVE|SWITCH}_NIC_MAC.ps1 scripts. It checks both VMs
     for a NIC connected to the specified network. If the first VM's NIC is not found, test will fail. In case the second VM is missing
-    this NIC, it will call the NET_ADD_NIC_MAC.ps1 script directly and add it. If the NIC was added by this script, it will also clean-up 
+    this NIC, it will call the NET_ADD_NIC_MAC.ps1 script directly and add it. If the NIC was added by this script, it will also clean-up
     after itself, unless the LEAVE_TRAIL param is set to `YES'.
-    
-    After both VMs are up, this script will configure each NIC inside the VM to use VLANs with the VM_VLAN_ID parameter. Then 
-    it will configure the NetAdapters to trunk mode and try to ping the other VM. 
-    
+
+    After both VMs are up, this script will configure each NIC inside the VM to use VLANs with the VM_VLAN_ID parameter. Then
+    it will configure the NetAdapters to trunk mode and try to ping the other VM.
+
     If the above ping succeeded, the second VM will change its vlan ID and try to ping the first VM again. This must fail.
-    
+
     The following testParams are mandatory:
-    
+
         NIC=NIC type, Network Type, Network Name, MAC Address
-        
+
             NIC Type can be one of the following:
                 NetworkAdapter
                 LegacyNetworkAdapter
-            
+
             Network Type can be one of the following:
                 External
                 Internal
                 Private
-            
+
             Network Name is the name of a existing network.
-            
-            Only the Network Name parameter is used by this script, but the others are still necessary, in order to have the same 
+
+            Only the Network Name parameter is used by this script, but the others are still necessary, in order to have the same
             parameters as the NET_ADD_NIC_MAC script.
-        
+
             The following is an example of a testParam for removing a NIC
-            
+
                 "NIC=NetworkAdapter,Internal,InternalNet,001600112200"
-        
+
         VM_VLAN_ID=vlan_id
             vlan_id is a positive integer < 4096.
-            
+
         NATIVE_VLAN_ID=native_id
             native_id is a positive integer < 4096.
 
@@ -70,7 +70,7 @@
             this is the name of the second VM. It will not be managed by the LIS framework, but by this script.
 
     The following testParams are optional:
-    
+
         STATIC_IP=xx.xx.xx.xx
             xx.xx.xx.xx is a valid IPv4 Address. If not specified, a default value of 10.10.10.1 will be used.
             This will be assigned to VM1's test NIC.
@@ -78,17 +78,17 @@
 		STATIC_IP2=xx.xx.xx.xx
 			xx.xx.xx.xx is a valid IPv4 Address. If not specified, an IP Address from the same subnet as VM1's STATIC_IP
 			will be computed (usually the first address != STATIC_IP in the subnet).
-		
+
         NETMASK=yy.yy.yy.yy
             yy.yy.yy.yy is a valid netmask (the subnet to which the tested netAdapters belong). If not specified, a default value of 255.255.255.0 will be used.
-        
+
         LEAVE_TRAIL=yes/no
             if set to yes and the NET_ADD_NIC_MAC.ps1 script was called from within this script for VM2, then it will not be removed
             at the end of the script. Also temporary bash scripts generated during the test will not be deleted.
-        
+
     All test scripts must return a boolean ($true or $false)
     to indicate if the script completed successfully or not.
-    
+
    .Parameter vmName
     Name of the first VM implicated in vlan trunking test .
 
@@ -119,25 +119,25 @@ function CreateVlanInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$Mac
 			$i++
 		}
 	}
-	
-	# create command to be sent to VM. This determines the interface based on the MAC Address and calls CreateVlanConfig (from Utils.sh) to create a new vlan interface
-	
+
+	# create command to be sent to VM. This determines the interface based on the MAC Address and calls CreateVlanConfig (from utils.sh) to create a new vlan interface
+
 	$cmdToVM = @"
 #!/bin/bash
 		cd /root
-		if [ -f Utils.sh ]; then
-			sed -i 's/\r//' Utils.sh
-			. Utils.sh
+		if [ -f utils.sh ]; then
+			sed -i 's/\r//' utils.sh
+			. utils.sh
 		else
 			exit 1
 		fi
-		
+
 		# make sure we have synthetic network adapters present
 		GetSynthNetInterfaces
 		if [ 0 -ne `$? ]; then
 			exit 2
 		fi
-		
+
 		# get the interface with the given MAC address
 		__sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address)
 		if [ 0 -ne `$? ]; then
@@ -147,49 +147,49 @@ function CreateVlanInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$Mac
 		if [ -z "`$__sys_interface" ]; then
 			exit 4
 		fi
-		
+
 		LogMsg "CreateVlanConfig: interface `$__sys_interface" >> /root/NET_VLAN_TRUNKING.log 2>&1
 		CreateVlanConfig `$__sys_interface $staticIP $netmask $vlanID >> /root/NET_VLAN_TRUNKING.log 2>&1
 		__retVal=`$?
 		LogMsg "CreateVlanConfig: returned `$__retVal" >> /root/NET_VLAN_TRUNKING.log 2>&1
 		exit `$__retVal
 "@
-	
+
 	$filename = "CreateVlanConfig.sh"
-	
+
 	# check for file
 	if (Test-Path ".\${filename}")
 	{
 		Remove-Item ".\${filename}"
 	}
-	
+
 	Add-Content $filename "$cmdToVM"
-	
+
 	# send file
 	$retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-	
+
 	# delete file unless the Leave_trail param was set to yes.
 	if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
 	{
 		Remove-Item ".\${filename}"
 	}
-	
+
 	# check the return Value of SendFileToVM
 	if (-not $retVal)
 	{
 		return $false
 	}
-	
+
 	# execute sent file
 	$retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-	
+
 	return $retVal
 }
 
 # function which removes an /etc/sysconfig/network-scripts/ifcfg-ethX.ID file for interface ethX with vlan ID
 function RemoveVlanInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr,[String]$vlanID)
 {
-	
+
 	# Add delimiter if needed
 	if (-not $MacAddr.Contains(":"))
 	{
@@ -199,24 +199,24 @@ function RemoveVlanInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$Mac
 			$i++
 		}
 	}
-	
-	# create command to be sent to VM. This determines the interface based on the MAC Address and calls RemoveVlanConfig (from Utils.sh) to remove a previously created vlan interface
+
+	# create command to be sent to VM. This determines the interface based on the MAC Address and calls RemoveVlanConfig (from utils.sh) to remove a previously created vlan interface
 	$cmdToVM = @"
 #!/bin/bash
 		cd /root
-		if [ -f Utils.sh ]; then
-			sed -i 's/\r//' Utils.sh
-			. Utils.sh
+		if [ -f utils.sh ]; then
+			sed -i 's/\r//' utils.sh
+			. utils.sh
 		else
 			exit 1
 		fi
-		
+
 		# make sure we have synthetic network adapters present
 		GetSynthNetInterfaces
 		if [ 0 -ne `$? ]; then
 			exit 2
 		fi
-		
+
 		# get the interface with the given MAC address
 		__sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address)
 		if [ -z "`$__sys_interface" ]; then
@@ -226,45 +226,45 @@ function RemoveVlanInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$Mac
 		if [ -z "`$__sys_interface" ]; then
 			exit 4
 		fi
-		
+
 		LogMsg "RemoveVlanConfig: interface `$__sys_interface" >> /root/NET_VLAN_TRUNKING.log 2>&1
 		RemoveVlanConfig `$__sys_interface $vlanID >> /root/NET_VLAN_TRUNKING.log 2>&1
 		__retVal=`$?
 		LogMsg "RemoveVlanConfig: returned `$__retVal" >> /root/NET_VLAN_TRUNKING.log 2>&1
 		exit `$__retVal
 "@
-	
+
 	#"Sending command to vm: $cmdToVM"
 	$filename = "RemoveVlanConfig.sh"
-	
+
 	# check for file
 	if (Test-Path ".\${filename}")
 	{
 		Remove-Item ".\${filename}"
 	}
-	
+
 	Add-Content $filename "$cmdToVM"
-	
+
 	# send file
 	$retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-	
+
 	# delete file unless the Leave_trail param was set to yes.
 	if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
 	{
 		Remove-Item ".\${filename}"
 	}
-	
+
 	# check the return Value of SendFileToVM
 	if (-not $retVal)
 	{
 		return $false
 	}
-	
+
 	# execute sent file
 	$retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-	
+
 	return $retVal
-	
+
 }
 
 # function which retrieves the interface with MacAddress $macAddr and vlanID $vlanID and then pings $pingTargetIPv4
@@ -276,7 +276,7 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 	{
 		return $false
 	}
-	
+
 	# Add delimiter if needed
 	if (-not $MacAddr.Contains(":"))
 	{
@@ -286,27 +286,27 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 			$i++
 		}
 	}
-	
+
 	$cmdToVM = @"
 #!/bin/bash
-				
+
 				# get interface(s) with $vlanID from /proc
 				__vlan_interface=`$(cat /proc/net/vlan/config | grep " $vlanID " | cut -d "|" -f 1 | sed 's/ *$//')
 				if [ -z "`$__vlan_interface" ]; then
 					exit 1
 				fi
-				
+
 				# get interface with given MAC and select the one found above
 				__sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address | grep "/`$__vlan_interface/")
 				if [ -z "`$__sys_interface" ]; then
 					exit 2
 				fi
-				
+
 				__sys_interface=`$(basename "`$(dirname "`$__sys_interface")")
 				if [ -z "`$__sys_interface" ]; then
 					exit 3
 				fi
-				
+
 				LogMsg "PingVMs: pinging $pingTargetIpv4 using interface `$__sys_interface" >> /root/NET_VLAN_TRUNKING.log 2>&1
 				# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`vlan`null`trunk`null`
 				ping -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e007472756e6b00" $pingTargetIpv4 >> /root/NET_VLAN_TRUNKING.log 2>&1
@@ -330,33 +330,33 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 
 	#"pingVMs: sendig command to vm: $cmdToVM"
 	$filename = "PingVMs.sh"
-	
+
 	# check for file
 	if (Test-Path ".\${filename}")
 	{
 		Remove-Item ".\${filename}"
 	}
-	
+
 	Add-Content $filename "$cmdToVM"
-	
+
 	# send file
 	$retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-	
+
 	# delete file unless the Leave_trail param was set to yes.
 	if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
 	{
 		Remove-Item ".\${filename}"
 	}
-	
+
 	# check the return Value of SendFileToVM
 	if (-not $retVal)
 	{
 		return $false
 	}
-	
+
 	# execute command
 	$retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-	
+
 	return $retVal
 }
 
@@ -488,7 +488,7 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
+
     switch ($fields[0].Trim())
     {
     "VM2NAME" { $vm2Name = $fields[1].Trim() }
@@ -502,7 +502,7 @@ foreach ($p in $params)
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
     "Test_IPv6" { $Test_IPv6 = $fields[1].Trim() }
-    "NIC"   
+    "NIC"
     {
         $nicArgs = $fields[1].Split(',')
         if ($nicArgs.Length -lt 4)
@@ -511,14 +511,14 @@ foreach ($p in $params)
             return $false
 
         }
-        
-        
+
+
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
         $networkName = $nicArgs[2].Trim()
         $vm1MacAddress = $nicArgs[3].Trim()
         $legacy = $false
-		
+
 		#
         # Validate the network adapter type
         #
@@ -527,7 +527,7 @@ foreach ($p in $params)
             "Error: Invalid NIC type: $nicType . Must be 'NetworkAdapter'"
             return $false
         }
-		
+
 		#
         # Validate the Network type
         #
@@ -547,7 +547,7 @@ foreach ($p in $params)
             "Error: Invalid network name: $networkName . The network does not exist."
             return $false
         }
-		
+
 		$retVal = isValidMAC $vm1MacAddress
 
         if (-not $retVal)
@@ -555,8 +555,8 @@ foreach ($p in $params)
             "Invalid Mac Address $vm1MacAddress"
             return $false
         }
-        
-        
+
+
         #
         # Get Nic with given MAC Address
         #
@@ -635,7 +635,7 @@ $vm2nic = $null
 $nic2 = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IsLegacy:$false | where { $_.SwitchName -like "$networkName" }
 
 
-if ($nic2) 
+if ($nic2)
 {
 	# check if we received more than one
 	if ($nic2 -is [system.array])
@@ -647,9 +647,9 @@ if ($nic2)
 	{
 		$vm2nic = $nic2
 	}
-	
+
 	$vm2MacAddress = $vm2nic | select -ExpandProperty MacAddress
-    
+
     $retVal = isValidMAC $vm2MacAddress
     if (-not $retVal)
     {
@@ -658,7 +658,7 @@ if ($nic2)
 
 	# make sure $vm2nic is in untagged mode to begin with
 	Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
-	
+
 }
 else
 {
@@ -681,20 +681,20 @@ else
 
 	#construct NET_ADD_NIC_MAC Parameter
 	$vm2testParam = "NIC=NetworkAdapter,$networkType,$networkName,$vm2MacAddress"
-	
+
 	if ( Test-Path ".\setupScripts\NET_ADD_NIC_MAC.ps1")
 	{
 		# Make sure VM2 is shutdown
 		if (Get-VM -Name $vm2Name |  Where { $_.State -like "Running" })
 		{
 			Stop-VM $vm2Name -force
-			
+
 			if (-not $?)
 			{
 				"Error: Unable to shut $vm2Name down (in order to add a new network Adapter)"
 				return $false
 			}
-			
+
 			# wait for VM to finish shutting down
 			$timeout = 60
 			while (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Off" })
@@ -704,13 +704,13 @@ else
 					"Error: Unable to shutdown $vm2Name"
 					return $false
 				}
-				
+
 				start-sleep -s 5
 				$timeout = $timeout - 5
 			}
-			
+
 		}
-		
+
 		.\setupScripts\NET_ADD_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
 	}
 	else
@@ -718,22 +718,22 @@ else
 		"Error: Could not find setupScripts\NET_ADD_NIC_MAC.ps1 ."
 		return $false
 	}
-	
+
 	if (-Not $?)
 	{
 		"Error Cannot add new NIC to $vm2Name"
 		return $false
 	}
-	
+
 	# get the newly added NIC
 	$vm2nic = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IsLegacy:$false | where { $_.MacAddress -like "$vm2MacAddress" }
-	
+
 	if (-not $vm2nic)
 	{
 		"Could not retrieve the newly added NIC to VM2"
 		return $false
 	}
-	
+
 	$scriptAddedNIC = $true
 }
 
@@ -793,14 +793,14 @@ if (-not $vm2StaticIP)
         $vm2StaticIP = getAddress $vm1StaticIP $netmask $nth
         $nth += 1
     } while ($vm2StaticIP -like $vm1StaticIP)
-    
-	
+
+
 }
 else
 {
     # make sure $vm2StaticIP is in the same subnet as $vm1StaticIP
-    $retVal = containsAddress $vm1StaticIP $netmask $vm2StaticIP 
-    
+    $retVal = containsAddress $vm1StaticIP $netmask $vm2StaticIP
+
     if (-not $retVal)
     {
         "$vm2StaticIP is not in the same subnet as $vm1StaticIP / $netmask"
@@ -881,13 +881,13 @@ $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 "netmask = $netmask"
 "Test vlan id = ${vlanID}"
 "nativ vlan id = ${nativeVlanId}"
-	
+
 # wait for ssh to startg
 $timeout = 120 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "Error: VM ${vm2Name} never started"
-    
+
     Stop-VM -VMName $vm2name -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
@@ -909,10 +909,10 @@ if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
     return $False
 }
 
-# send Utils.sh to VM2
-if (-not (Test-Path ".\remote-scripts\ica\Utils.sh"))
+# send utils.sh to VM2
+if (-not (Test-Path ".\remote-scripts\ica\utils.sh"))
 {
-	"Error: Unable to find remote-scripts\ica\Utils.sh "
+	"Error: Unable to find remote-scripts\ica\utils.sh "
 
     Stop-VM -VMName $vm2name -force
 
@@ -935,8 +935,8 @@ if (-not (Test-Path ".\remote-scripts\ica\Utils.sh"))
 	return $false
 }
 
-"Sending .\remote-scripts\ica\Utils.sh to $vm2ipv4 , authenticating with $sshKey"
-$retVal = SendFileToVM "$vm2ipv4" "$sshKey" ".\remote-scripts\ica\Utils.sh" "/root/Utils.sh"
+"Sending .\remote-scripts\ica\utils.sh to $vm2ipv4 , authenticating with $sshKey"
+$retVal = SendFileToVM "$vm2ipv4" "$sshKey" ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
 
 if (-not $retVal)
 {
@@ -1016,7 +1016,7 @@ if (-not $retVal)
 	return $false
 }
 
-Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Trunk -AllowedVlanIdList $vlanID -NativeVlanId $nativeVlanId 
+Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Trunk -AllowedVlanIdList $vlanID -NativeVlanId $nativeVlanId
 if (-not $?)
 {
 	"Failed to set $vm1Nic to Trunk Mode with an AllowedVlanIdList of $vlanID and a native VlanID $nativeVlanId"
@@ -1044,12 +1044,12 @@ if (-not $?)
 	return $false
 }
 
-Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2NIC -Trunk -AllowedVlanIdList $vlanID -NativeVlanId $nativeVlanId 
+Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2NIC -Trunk -AllowedVlanIdList $vlanID -NativeVlanId $nativeVlanId
 if (-not $?)
 {
 	"Failed to set $vm2Nic to Trunk Mode with an AllowedVlanIdList of $vlanID and a native VlanID $nativeVlanId"
 
-    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
 
@@ -1083,7 +1083,7 @@ if (-not $retVal)
 {
 	"Unable to ping $vm2StaticIP from $vm1StaticIP with MAC $vm1MacAddress"
 
-    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
@@ -1105,7 +1105,7 @@ if (-not $retVal)
             }
         }
     }
-    
+
 	return $false
 }
 
@@ -1115,8 +1115,8 @@ $retVal = pingVMs $vm2ipv4 $vm1StaticIP $sshKey 10 $vm2MacAddress $vlanID
 if (-not $retVal)
 {
 	"Unable to ping $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress"
-    
-    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
@@ -1160,7 +1160,7 @@ if (-not $retVal)
 {
 	"Failed to create Vlan Interface on vm $vm2ipv4 for interface with mac $vm2MacAddress , by setting a static IP of $vm2StaticIP netmask $netmask and vlan ID $vlanID"
 
-    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
@@ -1187,12 +1187,12 @@ if (-not $retVal)
 }
 
 # set the allowedvlanIdlist for the second VM to the new vlanID and try again to ping
-Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Trunk -AllowedVlanIdList $badvlanID -NativeVlanId $nativeVlanId 
+Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Trunk -AllowedVlanIdList $badvlanID -NativeVlanId $nativeVlanId
 if (-not $?)
 {
 	"Failed to set $vm2Nic to Trunk Mode with an AllowedVlanIdList of $vlanID and a native VlanID $nativeVlanId"
 
-    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
@@ -1226,7 +1226,7 @@ if ($retVal)
 {
 	"Ping from vm2: Able to ping $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress although it should not have worked!"
 
-    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
@@ -1253,12 +1253,12 @@ if ($retVal)
 }
 
 # set the allowedVlanIdList of the first VM also to the new vlanID and try to ping again
-Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1NIC -Trunk -AllowedVlanIdList $badvlanID -NativeVlanId $nativeVlanId 
+Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1NIC -Trunk -AllowedVlanIdList $badvlanID -NativeVlanId $nativeVlanId
 if (-not $?)
 {
 	"Failed to set $vm1Nic to Trunk Mode with an AllowedVlanIdList of $vlanID and a native VlanID $nativeVlanId"
 
-    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
@@ -1289,7 +1289,7 @@ if ($retVal)
 {
 	"Able to ping $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress although it should not have worked!"
 
-    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+    Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
@@ -1316,7 +1316,7 @@ if ($retVal)
 }
 
 # undo everything we did
-Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged 
+Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
 Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
 
 RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId

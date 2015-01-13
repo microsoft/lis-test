@@ -33,7 +33,7 @@
 				<suiteTest>MinMemHonored</suiteTest>
 			</suiteTests>
 		</suite>
-		
+
 	</testSuites>
 
 	<testCases>
@@ -52,11 +52,11 @@
 					<param>staticMem=512MB</param>
 			</testParams>
 			<testScript>DM_VERIFY_LOADED.sh</testScript>
-			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh,remote-scripts/ica/Utils.sh</files>
+			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh,remote-scripts/ica/utils.sh</files>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>800</timeout>
 		</test>
-		
+
 		<test>
 			<testName>HotAdd_Verify_udev</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -100,7 +100,7 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>8000</timeout>
 		</test>
-		
+
 		<test>
 			<testName>StartupHighCompete</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -133,7 +133,7 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
-		
+
 		<test>
 			<testName>SaveRestore</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -159,7 +159,7 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>800</timeout>
 		</test>
-		
+
 		<test>
 			<testName>DemandPressure</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -178,7 +178,7 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
-		
+
 		<test>
 			<testName>HighPriority</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -203,7 +203,7 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>3000</timeout>
 		</test>
-		
+
 		<test>
 			<testName>HotAdd</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -243,12 +243,12 @@
 					<param>memWeight=0</param>
 					<param>staticMem=1024MB</param>
 			</testParams>
-			
+
 			<testScript>setupScripts\DM_HotAddRemove.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>3000</timeout>
 		</test>
-		
+
 		<test>
 			<testName>CleanShutdown</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -274,7 +274,7 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
-		
+
 				<test>
 			<testName>MaxMemHonored</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -328,7 +328,7 @@
         </test>
 
 	</testCases>
-	
+
 	<VMs>
 		<vm>
 			<hvServer>localhost</hvServer>
