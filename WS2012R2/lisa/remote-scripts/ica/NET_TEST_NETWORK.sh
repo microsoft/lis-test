@@ -67,11 +67,11 @@
 
 
 # Convert eol
-dos2unix Utils.sh
+dos2unix utils.sh
 
-# Source Utils.sh
-. Utils.sh || {
-	echo "Error: unable to source Utils.sh!"
+# Source utils.sh
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
 	echo "TestAborted" > state.txt
 	exit 2
 }
@@ -110,7 +110,7 @@ case $? in
 		LogMsg "UtilsInit returned an unknown error. Aborting..."
 		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
 		SetTestStateAborted
-		exit 6 
+		exit 6
 		;;
 esac
 
@@ -138,11 +138,11 @@ else
 			SetTestStateAborted
 			exit 30
 		fi
-		
+
 	done
-	
+
 	unset __iterator
-	
+
 fi
 
 if [ "${NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -180,7 +180,7 @@ if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
 	GATEWAY=''
 else
 	CheckIP "$GATEWAY"
-	
+
 	if [ 0 -ne $? ]; then
 		msg=""
 		LogMsg "$msg"
@@ -213,7 +213,7 @@ else
 		SetTestStateAborted
 		exit 10
 	fi
-	
+
 	# Get the interface associated with the given ipv4
 	__iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
 fi
@@ -223,7 +223,7 @@ if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
 	LogMsg "$msg"
 else
 	if [[ "$DISABLE_NM" =~ [Yy][Ee][Ss] ]]; then
-		
+
 		# work-around for suse where the network gets restarted in order to shutdown networkmanager.
 		declare __orig_netmask
 		GetDistro
@@ -296,7 +296,7 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		LogMsg "Number of static IP addresses in constants.sh is greater than number of concerned interfaces. All extra IP addresses are ignored."
 		break
 	fi
-	
+
 	SetIPstatic "${STATIC_IPS[$__iterator]}" "${SYNTH_NET_INTERFACES[$__iterator]}" "$NETMASK"
 	# if failed to assigned address
 	if [ 0 -ne $? ]; then
@@ -305,8 +305,8 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 20
-	fi	
-	
+	fi
+
 	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	LogMsg "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	# add some interface output
@@ -320,9 +320,9 @@ __iterator=${#STATIC_IPS[@]}
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
 	LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	
+
 	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
-	
+
 	if [ 0 -ne $? ]; then
 		msg="Unable to get address for ${SYNTH_NET_INTERFACES[$__iterator]} through DHCP"
 		LogMsg "$msg"
@@ -330,12 +330,12 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# add some interface output
 	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
-	
+
 	: $((__iterator++))
-	
+
 done
 
 # reset iterator
@@ -351,9 +351,9 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			LogMsg "Warning! Failed to set default gateway!"
 		fi
 	fi
-	
+
 	__hex_interface_name=$(echo -n "${__packet_size[$__packet_iterator]}" | od -A n -t x1 | sed 's/ //g' | cut -c1-12)
-	
+
 	LogMsg "Trying to ping $PING_SUCC on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
 	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$PING_SUCC"
@@ -365,9 +365,9 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	UpdateSummary "Successfully pinged $PING_SUCC on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	
+
 	if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "guest" ]  ; then
 
 		LogMsg "Trying to get IPv6 associated with $PING_SUCC"
@@ -377,7 +377,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		LogMsg "Trying to ping $IPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
 		ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$IPv6"
-		
+
 		if [ 0 -ne $? ]; then
 			msg="Failed to ping $IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 			LogMsg "$msg"
@@ -385,11 +385,11 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			SetTestStateFailed
 			exit 10
 		fi
-		
+
 		UpdateSummary "Successfully pinged $IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 
 	elif [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "internal" ] ; then
-		
+
 		if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
 		    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
 		    LogMsg "$msg"
@@ -401,7 +401,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		LogMsg "Trying to ping $PING_SUCCIPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
 		ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$PING_SUCC_IPv6"
-		
+
 		if [ 0 -ne $? ]; then
 			msg="Failed to ping $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 			LogMsg "$msg"
@@ -409,7 +409,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			SetTestStateFailed
 			exit 10
 		fi
-		
+
 		UpdateSummary "Successfully pinged $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 
 	elif [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
@@ -436,7 +436,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 		UpdateSummary "Successfully pinged $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	fi
-	
+
 	# ping the wrong address. should not succeed
 	LogMsg "Trying to ping $PING_FAIL on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$PING_FAIL"
@@ -447,9 +447,9 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	UpdateSummary "Failed pinged $PING_FAIL on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} (as expected)"
-	
+
 	# ping the second wrong address, fi specified. should also not succeed
 	if [ "${PING_FAIL2:-UNDEFINED}" != "UNDEFINED" ]; then
 		LogMsg "Trying to ping $PING_FAIL on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -463,7 +463,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		fi
 		UpdateSummary "Failed pinged $PING_FAIL2 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} (as expected)"
 	fi
-	
+
 done
 
 # everything ok

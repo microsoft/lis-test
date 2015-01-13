@@ -40,7 +40,7 @@
             <suiteTests>
                 <suiteTest>ConfigureNetwork</suiteTest>
                 <suiteTest>InternalNetwork</suiteTest>
-                <suiteTest>ExternalNetwork</suiteTest>
+                <suiteTest>External</suiteTest>
                 <suiteTest>GuestOnlyNetwork</suiteTest>
                 <suiteTest>OperState</suiteTest>
                 <suiteTest>MultipleNIC</suiteTest>
@@ -65,7 +65,6 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-01</param>
-                <param>Test_IPv6=external</param>
                 <!-- As possible, please try to set a static IP not used by the DHCP Server -->
                 <!-- Alternatively, find out which IP is leased by the dhcp server to us and set it to the IP -->
                 <param>STATIC_IP=192.168.0.2</param>
@@ -85,7 +84,6 @@
             <testParams>
                 <param>NIC=NetworkAdapter,Internal,Internal,001600112200</param>
                 <param>TC_COVERED=NET-04</param>
-                <param>Test_IPv6=internal</param>
                 <param>STATIC_IP=192.168.0.2</param>
                 <param>NETMASK=255.255.255.0</param>
                 <param>PING_SUCC=192.168.0.1</param>
@@ -99,16 +97,15 @@
         </test>
 
         <test>
-            <testName>ExternalNetwork</testName>
+            <testName>External</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-05</param>
-                <param>Test_IPv6=external</param>
                 <param>PING_SUCC=8.8.8.8</param>
                 <param>PING_FAIL=192.168.2.1</param>
                 <param>PING_FAIL2=10.10.10.5</param>
-                <param>GATEWAY=192.168.0.1</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
@@ -125,9 +122,8 @@
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>VM2NAME=zsdudaUBUNTU1410-2</param>
-                <param>Test_IPv6=private</param>
-                <param>SnapshotName=ICABase-1</param>
+                <param>VM2NAME=vm2Name</param>
+                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -142,12 +138,11 @@
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>NIC=NetworkAdapter,External,External,001600112201</param>
                 <param>TC_COVERED=NET-07</param>
-                <param>Test_IPv6=external</param>
-                <param>NETMASK=255.255.255.0</param>
+                <!-- <param>NETMASK=255.255.255.0</param> -->
                 <param>PING_SUCC=8.8.8.8</param>
                 <param>PING_FAIL=192.168.2.1</param>
                 <param>PING_FAIL2=10.10.10.5</param>
-                <param>GATEWAY=192.168.0.1</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
@@ -157,15 +152,18 @@
 
         <test>
             <testName>LegacySyntheticNetwork</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\ChangeCPU.ps1</file>
+            </setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>NIC=LegacyNetworkAdapter,External,External,001600112201</param>
                 <param>TC_COVERED=NET-08</param>
-                <param>Test_IPv6=external</param>
                 <param>REMOTE_SERVER=8.8.8.8</param>
                 <param>LO_IGNORE=yes</param>
-                <param>GATEWAY=192.168.0.1</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
+                <param>VCPU=1</param>
             </testParams>
             <testScript>NET_LEGACY.sh</testScript>
             <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/utils.sh</files>
@@ -182,7 +180,7 @@
                 <param>MAC=00:16:00:11:22:33</param>
                 <param>REMOTE_SERVER=8.8.8.8</param>
                 <param>LO_IGNORE=yes</param>
-                <param>GATEWAY=192.168.0.1</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_STATIC_MAC.sh</testScript>
             <files>remote-scripts/ica/NET_STATIC_MAC.sh,remote-scripts/ica/utils.sh</files>
@@ -190,7 +188,7 @@
             <timeout>800</timeout>
         </test>
 
-        <!-- The following three tests are actually one single TC -->
+        <!-- The following two tests are actually one single TC -->
 
         <test>
             <testName>ChangeNetTypeInternal</testName>
@@ -200,7 +198,6 @@
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>SWITCH=NetworkAdapter,Internal,Internal,001600112200</param>
                 <param>TC_COVERED=NET-13</param>
-                <param>Test_IPv6=internal</param>
                 <param>STATIC_IP=192.168.0.2</param>
                 <param>NETMASK=255.255.255.0</param>
                 <param>PING_SUCC=192.168.0.1</param>
@@ -217,17 +214,17 @@
         <test>
             <testName>ChangeNetTypeGuest</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>SWITCH=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-13</param>
-                <param>Test_IPv6=guest</param>
-                <param>STATIC_IP=10.10.10.6</param>
+                <param>STATIC_IP=10.10.10.1</param>
+                <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>PING_SUCC=10.10.10.5</param>
+                <param>VM2NAME=vm2Name</param>
                 <param>PING_FAIL=8.8.8.8</param>
                 <param>PING_FAIL2=192.168.0.1</param>
+                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -247,7 +244,7 @@
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-12</param>
                 <param>REMOTE_SERVER=8.8.8.8</param>
-                <param>GATEWAY=192.168.0.1</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <noReboot>False</noReboot>
             <timeout>600</timeout>
@@ -255,20 +252,26 @@
 
         <test>
             <testName>JumboFrame</testName>
-            <testScript>NET_JUMBO_FRAMES.sh</testScript>
-            <files>remote-scripts/ica/NET_JUMBO_FRAMES.sh,remote-scripts/ica/utils.sh</files>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
+            <setupScript>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
             <testparams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-14</param>
-                <param>Test_IPv6=external</param>
-                <param>REMOTE_VM=10.10.10.10</param>
+                <param>STATIC_IP2=10.10.10.10</param>
+                <param>NETMASK=255.255.254.0</param>
+                <param>VM2NAME=vm2Name</param>
+                <param>SnapshotName=ICABase</param>
                 <param>SSH_PRIVATE_KEY=sshKey</param>
+                <param>REMOTE_USER=root</param>
             </testparams>
+            <testScript>NET_JUMBO_FRAMES.sh</testScript>
+            <files>remote-scripts/ica/NET_JUMBO_FRAMES.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <timeout>1800</timeout>
         </test>
 
         <test>
@@ -277,7 +280,6 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
-
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-01</param>
@@ -302,7 +304,6 @@
             <testParams>
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-01</param>
-                <param>Test_IPv6=guest</param>
                 <!-- <param>STATIC_IP=10.10.10.1</param> -->
                 <!-- <param>STATIC_IP2=10.10.10.2</param> -->
                 <!-- <param>NETMASK=255.255.255.0</param> -->
@@ -326,9 +327,9 @@
 				<!-- <param>STATIC_IP=10.10.10.1</param> -->
 				<!-- <param>STATIC_IP2=10.10.10.2</param> -->
 				<param>NETMASK=255.255.254.0</param>
-				<param>VM2NAME=zsdudaSLES12b5-2</param>
+				<param>VM2NAME=VM2Name</param>
 				<param>VLAN_ID=2</param>
-                <param>Test_IPv6=external</param>
+                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -343,7 +344,6 @@
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>NIC=NetworkAdapter,Private,Private2,001600112201</param>
                 <param>TC_COVERED=NET-01</param>
-                <param>Test_IPv6=guest</param>
                 <!-- <param>BRIDGE_IP=10.10.10.1</param> -->
                 <!-- <param>STATIC_IP=10.10.10.10</param> -->
                 <!-- <param>STATIC_IP2=10.10.10.20</param> -->
@@ -409,10 +409,6 @@
             <ipv4></ipv4>
             <sshKey>sshKey.ppk</sshKey>
             <suite>Network</suite>
-            <testParams>
-                <param>RootDir=D:\Automation</param>
-                <param>sshKey=sshKey.ppk</param>
-            </testParams>
         </vm>
     </VMs>
 
