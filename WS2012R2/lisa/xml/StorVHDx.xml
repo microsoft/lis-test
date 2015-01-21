@@ -34,8 +34,8 @@
                 <suiteTest>VHDx_4k_MultiDiskSCSI_Fixed</suiteTest>
                 <suiteTest>VHDx_4k_HotADD_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</suiteTest>
+                <!-- The below test case requires a SSD disk -->
                 <suiteTest>TrimSupport</suiteTest>
-
             </suiteTests>
         </suite>
     </testSuites>
@@ -64,7 +64,7 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=2500GB</param>
                 <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
-                <param>SCSI=0,0,Dynamic,512,30GB</param>
+                <param>SCSI=0,0,Dynamic,512,2500GB</param>
                 <param>TC_COVERED=STOR-30</param>
             </testParams>
             <testScript>STOR_Big_Disk.sh</testScript>
