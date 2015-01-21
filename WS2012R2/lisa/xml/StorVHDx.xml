@@ -63,8 +63,9 @@
                 <param>Dynamic=True</param>
                 <param>SectorSize=512</param>
                 <param>DefaultSize=2500GB</param>
-                <param>TC_COVERED=STOR-30</param>
                 <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
+                <param>SCSI=0,0,Dynamic,512,30GB</param>
+                <param>TC_COVERED=STOR-30</param>
             </testParams>
             <testScript>STOR_Big_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Big_Disk.sh</files>
@@ -82,8 +83,8 @@
             <testparams>
                 <param>SCSI=0,0,Dynamic,512</param>
                 <param>SCSI=0,1,Dynamic,4096</param>
-                <param>TC_COVERED=STOR-44,STOR-58</param>
                 <param>VCPU=4</param>
+                <param>TC_COVERED=STOR-44,STOR-58</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
