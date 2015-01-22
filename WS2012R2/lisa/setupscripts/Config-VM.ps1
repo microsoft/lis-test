@@ -37,7 +37,7 @@
     Test parameters are a way of passing variables into the test case script.
 
 .Example:
-    .\setupscripts\Config-VM.ps1 SLES11SP3X64 localhost "vmCpuNumber=4;vmMemory=20GB;TC_COVERED=PERF-TeraSort;SLAVE_SSHKEY=id_rsa;"
+    .\setupscripts\Config-VM.ps1 SLES11SP3X64 localhost "vmCpuNumber=4;vmMemory=20GB;defaultSnapshot=ICABase;"
 #>
 
 
