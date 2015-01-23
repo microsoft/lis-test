@@ -1664,11 +1664,24 @@ function VerifyTestResourcesExist([System.Xml.XmlElement] $vm, [System.Xml.XmlEl
     #
     if ($vm.preStartConfig)
     {
-        $script = "$($vm.preStartConfig)"
-        if (-not (Test-Path -Path "${script}"))
+		if ($vm.preStartConfig.file)
         {
-            LogMsg 0 "Error: ${vmName} - the VM preStartConfig script '${script}' does not exist"
-            $retVal = $False
+            foreach ($preStartScript in $vm.preStartConfig.file)
+            {
+                if (-not (Test-Path -Path "${preStartScript}"))
+                {
+					LogMsg 0 "Error: $($vm.vmName) - the VM preStartConfig script '${preStartScript}' does not exist"
+                    $retVal = $False
+                }
+            }
+        }
+        else
+        {
+            if (-not (Test-Path -Path "$($vm.preStartConfig)"))
+            {
+                LogMsg 0 "Error: $($vm.vmName) - the VM preStartConfig script '${preStartScript}' does not exist"
+                $retVal = $False
+            }
         }
     }
 
