@@ -907,7 +907,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
 		    foreach ($preStartScript in $vm.preStartConfig.file)
 			{
 			    LogMsg 3 "Info : $($vm.vmName) running preStartConfig script '${preStartScript}' "
-				$sts = RunPSScript $vm $($vm.preStartConfig) $xmlData "preStartConfig"
+				$sts = RunPSScript $vm $preStartScript $xmlData "preStartConfig"
 				if (-not $sts)
 				{
 				LogMsg 0 "Error: VM $($vm.vmName) preStartConfig script: $preStartScript failed"
