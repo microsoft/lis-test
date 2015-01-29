@@ -86,8 +86,8 @@
     <VMs>
         <vm>
             <role>SUT1</role>
-            <hvServer>localhost</hvServer>
-            <vmName>vmName1</vmName>
+            <hvServer>LIS-HOST01</hvServer>
+            <vmName>VM-iPerf-Client</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
@@ -95,8 +95,8 @@
         </vm>
         <vm>
             <role>NonSUT1</role>
-            <hvServer>localhost</hvServer>
-            <vmName>vmName2</vmName>
+            <hvServer>LIS-HOST02</hvServer>
+            <vmName>VM-iPerf-Server</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>

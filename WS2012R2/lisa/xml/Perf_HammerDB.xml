@@ -94,8 +94,8 @@ If HammerDb is not present, the automation code will try to download it from the
 
     <VMs>        
         <vm>
-            <vmName>lisperfRHEL66-server</vmName>
-            <hvServer>LIS-PERF01</hvServer>
+            <vmName>VM-HammerDb-Client</vmName>
+            <hvServer>LIS-HOST01</hvServer>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
@@ -104,8 +104,8 @@ If HammerDb is not present, the automation code will try to download it from the
         </vm>
         <vm>
             <role>NonSUT</role>
-            <vmName>lisperfRHEL66-client</vmName>
-            <hvServer>LIS-PERF02</hvServer>
+            <vmName>VM-MySQL-Server</vmName>
+            <hvServer>LIS-HOST01</hvServer>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>

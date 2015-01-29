@@ -1,85 +1,72 @@
-<?xml version="1.0" encoding="utf-8"?>
-
+﻿<?xml version="1.0" encoding="utf-8"?>
 <config>
-    <global>
-        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
-        <defaultSnapshot>ICABase</defaultSnapshot>
-        <email>
-            <recipients>
-                <to>myboss@mycompany.com</to>
-                <to>myself@mycompany.com</to>
-            </recipients>
-            <sender>myself@mycompany.com</sender>
-            <subject>LIS Performance Test Results</subject>
-            <smtpServer>mysmtphost.mycompany.com</smtpServer>
-        </email>
-
-        <!-- Optional testParams go here -->
-        <testParams>
-            <param>vmCpuNumber=4</param>
-            <param>vmMemory=20GB</param>
-        </testParams>
-    </global>
-
-    <testSuites>
-        <suite>
-            <suiteName>PerfTeraSort</suiteName>
-            <suiteTests>
-                <suiteTest>Perf_TeraSort</suiteTest>
-            </suiteTests>
-        </suite>
-    </testSuites>
-
-    <testCases>
-        <test>
-            <testName>Perf_TeraSort</testName>
-            <testScript>perf_hadoopterasort.sh</testScript>
-            <files>remote-scripts/ica/perf_hadoopterasort.sh,testdata/perf_hadoopterasort.xml/hadoop-2.4.0.tar.gz</files>
-            <timeout>1800</timeout>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-            <testparams>
-                <param>TC_COVERED=PERF-TeraSort</param>
-                <param>HADOOP_MASTER_HOSTNAME=HadoopMaster</param>
-                <param>RESOURCE_MANAGER_HOSTNAME=HadoopMaster</param>
-                <param>SLAVE_HOSTNAMES=HadoopSlave1 HadoopSlave2</param>
-                <param>TERAGEN_RECORDS=50000000</param>
-            </testparams>
-            <uploadFiles>
-                <file>hadoop.log</file>
-                <file>terasort.log</file>
-            </uploadFiles>
-        </test>
-    </testCases>
-
-    <VMs>        
-        <vm>
-            <role>SUT1</role>
-            <vmName>VMHadoopMaster</vmName>
-            <hvServer>HyperVHost1</hvServer>
-            <os>Linux</os>
-            <ipv4></ipv4>
-            <sshKey>id_rsa.ppk</sshKey>
-            <suite>PerfTeraSort</suite>
-            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
-        </vm>
-        <vm>
-            <role>NonSUT1</role>
-            <vmName>VMHadoopSlave1</vmName>
-            <hvServer>HyperVHost2</hvServer>
-            <os>Linux</os>
-            <ipv4></ipv4>
-            <sshKey>id_rsa.ppk</sshKey>
-            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
-        </vm>
-        <vm>
-            <role>NonSUT2</role>
-            <vmName>VMHadoopSlave2</vmName>
-            <hvServer>HyperVHost3</hvServer>
-            <os>Linux</os>
-            <ipv4></ipv4>
-            <sshKey>id_rsa.ppk</sshKey>
-            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
-        </vm>
-    </VMs>
+  <global>
+    <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+    <defaultSnapshot>ICABase</defaultSnapshot>
+    <email>
+      <recipients>
+        <to>myboss@mycompany.com</to>
+        <to>myself@mycompany.com</to>
+      </recipients>
+      <sender>myself@mycompany.com</sender>
+      <subject>LIS Performance Test Results</subject>
+      <smtpServer>mysmtphost.mycompany.com</smtpServer>
+    </email>
+    <!-- Optional testParams go here -->
+    <testParams>
+      <param>vmCpuNumber=4</param>
+      <param>vmMemory=18GB</param>
+    </testParams>
+  </global>
+  <testSuites>
+    <suite>
+      <suiteName>PerfTeraSort</suiteName>
+      <suiteTests>
+        <suiteTest>Perf_TeraSort</suiteTest>
+      </suiteTests>
+    </suite>
+  </testSuites>
+  <testCases>
+    <test>
+      <testName>Perf_TeraSort</testName>
+      <testScript>perf_hadoopterasort.sh</testScript>
+      <files>remote-scripts/ica/perf_hadoopterasort.sh,testdata/perf_hadoopterasort.xml/hadoop-2.4.0.tar.gz</files>
+      <timeout>18000</timeout>
+      <onError>Continue</onError>
+      <noReboot>False</noReboot>
+      <testparams>
+        <param>TC_COVERED=PERF-TeraSort</param>
+        <param>HADOOP_MASTER_HOSTNAME=SLES12-Client</param>
+        <param>RESOURCE_MANAGER_HOSTNAME=SLES12-Client</param>
+        <param>SLAVE_HOSTNAMES=SLES12-Server</param>
+        <param>TERAGEN_RECORDS=50000000</param>
+      </testparams>
+      <uploadFiles>
+        <file>hadoop.log</file>
+        <file>terasort.log</file>
+      </uploadFiles>
+    </test>
+  </testCases>
+  <VMs>
+    <vm>
+      <vmName>SLES12-Client</vmName>
+      <hvServer>LIS-PERF32</hvServer>
+      <os>Linux</os>
+      <ipv4>
+      </ipv4>
+      <sshKey>id_rsa.ppk</sshKey>
+      <suite>PerfTeraSort</suite>
+      <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+    </vm>
+    <vm>
+      <role>NonSUT</role>
+      <hvServer>LIS-PERF30</hvServer>
+      <vmName>SLES12-Server</vmName>
+      <os>Linux</os>
+      <ipv4>
+      </ipv4>
+      <sshKey>id_rsa.ppk</sshKey>
+      <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+    </vm>
+  </VMs>
 </config>
