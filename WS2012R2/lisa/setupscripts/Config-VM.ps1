@@ -68,7 +68,7 @@ if ($vmCpuNumber -ne 0)
 {
     "CPU: $vmCpuNumber"
     Set-VM -ComputerName $hvServer -VMName $vmName -ProcessorCount $vmCpuNumber
-	Set-VMProcessor -ComputerName $hvServer -VMName $vmName -Reserve 100
+    Set-VMProcessor -ComputerName $hvServer -VMName $vmName -Reserve 100
 }
 
 if ($vmMemory -ne 0GB)
@@ -80,7 +80,7 @@ if ($vmMemory -ne 0GB)
         $mg=$Matches[2].Trim()
         $b=$Matches[3].Trim()
 		
-		[int64]$memorySize = 1024 * 1024
+        [int64]$memorySize = 1024 * 1024
         if ($mg.Contains('G'))
         {
             $memorySize = $memorySize * 1024 * $num
