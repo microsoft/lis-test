@@ -8,7 +8,6 @@
 #
 #     This script will reboot a VM 50 times and check that the VM reboots successfully.  
 #     
-#
 #     The ICA scripts will always pass the vmName, hvServer, and a
 #     string of testParams to the PowerShell test case script. For
 #     example, if the <testParams> section was written as:
@@ -31,13 +30,10 @@
 ############################################################################
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-
 function CheckCurrentStateFor([String] $vmName, $newState)
 {
     $stateChanged = $False
-    
     $vm = Get-VM $vmName -ComputerName $hvServer
-    
     if ($($vm.State) -eq $newState)
     {
         $stateChanged = $True
@@ -45,8 +41,6 @@ function CheckCurrentStateFor([String] $vmName, $newState)
     
     return $stateChanged
 }
-
-
 
 #####################################################################
 #
@@ -85,17 +79,11 @@ function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
         {
             # Nothing we need to do...
         }
-
-        #if($sts)
-        #{
-        #    $retVal = $true
-        #}
     }
     $tcpclient.Close()
 
     return $retVal
 }
-
 
 #####################################################################
 #
@@ -105,13 +93,8 @@ function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
 
 $retVal = $False
 
-"Test50TimesReboot.ps1"
-"VM Name   = ${vmName}"
-"HV Server = ${hvServer}"
-"TestParams= ${testParams}"
 #
 # Check input arguments
-#
 #
 if ($vmName -eq $null)
 {
@@ -144,7 +127,6 @@ foreach ($p in $params)
     if ($tokens.Length -ne 2)
     {
 	"Warn : test parameter '$p' is being ignored because it appears to be malformed"
-     continue
     }
     
     if ($tokens[0].Trim() -eq "RootDir")
@@ -177,27 +159,10 @@ if ($vmIPAddr -eq $null)
 
 cd $rootDir
 
-#
-#
-#
 $summaryLog  = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "Covers TC31" | Out-File $summaryLog
 
-
-#
-# Load the PowerShell HyperV Library
-#
-<#$sts = get-module | select-string -pattern HyperV -quiet
-if (! $sts)
-{
-    Import-module .\HyperVLibV2Sp1\HyperV.psd1
-}#>
-
-#
-# Check that the VM is in a running state, 
-# The VM Running state = 2
-#
 $vm = Get-VM $vmName -ComputerName $hvServer
 if (-not $vm)
 {
@@ -216,7 +181,6 @@ if ($($vm.State) -ne "Running")
 #
 # Set the count and reboot the machine 50 times. 
 #
-
 $count = 50
 $bootcount = 0
 
@@ -270,7 +234,6 @@ while ($count -gt 0)
   #
   # During reboot wait till the TCP port 22 to be available on the VM
   #
-
     while ($testCaseTimeout -gt 0)
   {
 
@@ -307,7 +270,5 @@ While( -not (TestPort $vmIPAddr) )
 }
 
 $retVal = $true
-
 Write-Output "VM rebooted 50 times successfully" | Out-File -Append $summaryLog
-
 return $retVal
