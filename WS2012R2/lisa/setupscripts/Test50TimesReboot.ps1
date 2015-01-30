@@ -188,77 +188,72 @@ Write-Output "setting the count to 50 for rebooting the VM" | Out-File  ${rootDi
 
 while ($count -gt 0)
 {
-   While ( -not (TestPort $vmIPAddr) )
-   {
-       Start-Sleep 5
-   }
-   .\bin\plink.exe -i .\ssh\$sshKey root@$vmIPAddr "init 3 &"
-   if($? -eq "True")
-   {
-       Write-Output "VM goes in to text mode" 
-   }
-   else
-   {
-       Write-Output "VM remains in GUI mode"
-       return $False
-   }
-
+While ( -not (TestPort $vmIPAddr) )
+{
    Start-Sleep 5
+}
+.\bin\plink.exe -i .\ssh\$sshKey root@$vmIPAddr "init 3 &"
+if($? -eq "True")
+{
+   Write-Output "VM goes in to text mode" 
+}
+else
+{
+   Write-Output "VM remains in GUI mode"
+   return $False
+}
 
-   $VMKB = gwmi -namespace "root\virtualization\v2" -class "Msvm_Keyboard" -ComputerName $hvServer -Filter "SystemName='$($vm.Id)'"
+Start-Sleep 5
 
-   $Boot = $VMKB.TypeCtrlAltDel() 
-   
-  # Set the test case time out. 
+$VMKB = gwmi -namespace "root\virtualization\v2" -class "Msvm_Keyboard" -ComputerName $hvServer -Filter "SystemName='$($vm.Id)'"
 
-  $testCaseTimeout = 120
+$Boot = $VMKB.TypeCtrlAltDel() 
 
-  while ($testCaseTimeout -gt 0)
-  {
-    
-    if ( (CheckCurrentStateFor $vmName ( "Running" )))
-    {
-        break
-    }   
+# Set the test case time out. 
 
-    Start-Sleep -seconds 2
-    $testCaseTimeout -= 2
-  }
+$testCaseTimeout = 120
 
-  if ($testCaseTimeout -eq 0)
-  {
-    "Error: Test case timed out waiting for VM to reboot" | Out-File -Append $summaryLog
-    return $False
-  }
+while ($testCaseTimeout -gt 0)
+{
+	if ( (CheckCurrentStateFor $vmName ( "Running" )))
+	{
+		break
+	}   
+	Start-Sleep -seconds 2
+	$testCaseTimeout -= 2
+}
 
-  #
-  # During reboot wait till the TCP port 22 to be available on the VM
-  #
-    while ($testCaseTimeout -gt 0)
-  {
+if ($testCaseTimeout -eq 0)
+{
+	"Error: Test case timed out waiting for VM to reboot" | Out-File -Append $summaryLog
+	return $False
+}
 
-    if ( (TestPort $vmIPAddr) )
-    {
-        break
+#
+# During reboot wait till the TCP port 22 to be available on the VM
+#
+while ($testCaseTimeout -gt 0)
+{
+	if ( (TestPort $vmIPAddr) )
+	{
+		break
+	}	 
+	Start-Sleep -seconds 2
+	$testCaseTimeout -= 2
+}
 
-    }
-     
-    Start-Sleep -seconds 2
-    $testCaseTimeout -= 2
-  }
+if ($testCaseTimeout -eq 0)
+{
+	"Error: Test case timed out for VM to go to Running" | Out-File -Append $summaryLog
+	return $False
+}
 
-  if ($testCaseTimeout -eq 0)
-  {
-    "Error: Test case timed out for VM to go to Running" | Out-File -Append $summaryLog
-    return $False
-  }
+Start-Sleep -seconds 10
 
-  Start-Sleep -seconds 10
-
-   $count -= 1
-   $bootcount += 1
-   Write-Output "Boot count:"$bootcount
-   Write-Output "Boot count:"$bootcount | Out-File -Append ${rootDir}\Test50TimesReboot.log
+$count -= 1
+$bootcount += 1
+Write-Output "Boot count:"$bootcount
+Write-Output "Boot count:"$bootcount | Out-File -Append ${rootDir}\Test50TimesReboot.log
 }
 
 #
