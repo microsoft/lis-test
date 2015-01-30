@@ -145,18 +145,18 @@ else
 			exit 10
 		fi
 
-		declare __state
+		__state=`cat /sys/class/net/${__synth_iface}/operstate`
 
-		cat /sys/class/net/"$__synth_iface"/operstate | grep -i down
-
-		if [ 0 -ne $? ]; then
-			msg="Operstate of $__synth_iface is not down."
+		if [ "$__state" != "down" ]; then
+   			msg="Operstate of $__synth_iface is not down. It is $__state"
 			LogMsg "$msg"
 			UpdateSummary "$msg"
 			SetTestStateFailed
 			exit 10
 		fi
-
+		msg="Operstate is $__state"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
 	done
 fi
 
@@ -201,12 +201,10 @@ else
 					exit 10
 				fi
 
-				declare __state
+				__state=`cat /sys/class/net/${__legacy_iface}/operstate`
 
-				cat /sys/class/net/"$__legacy_iface"/operstate | grep -i down
-
-				if [ 0 -ne $? ]; then
-					msg="Operstate of $__legacy_iface is not down."
+				if [ "$__state" != "down" ]; then
+		   			msg="Operstate of $__legacy_iface is not down. It is $__state"
 					LogMsg "$msg"
 					UpdateSummary "$msg"
 					SetTestStateFailed
