@@ -18,51 +18,61 @@
         <suite>
             <suiteName>Stress</suiteName>
             <suiteTests>
+                <suiteTest>Test50TimesReboot</suiteTest>
                 <suiteTest>Stress_IOzone</suiteTest>
-                <suiteTest>Stress_Dynamo</suiteTest>
                 <suiteTest>Stress_Kernbench</suiteTest>
+                <suiteTest>Stress_Dynamo</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
-    
-         <test> 
-            <testName>Stress_IOzone</testName> 
+        <test>
+            <testName>Test50TimesReboot</testName>
+            <testScript>setupScripts\Test50TimesReboot.ps1</testScript>
+            <files>setupScripts\Test50TimesReboot.ps1</files>
+            <timeout>5000</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+         <test>
+            <testName>Stress_IOzone</testName>
             <testScript>Stress_IOzone.sh</testScript>
             <files>remote-scripts/ica/Stress_IOzone.sh</files>
             <files>Tools/iozone3_420.tar</files>
-            <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
-            <timeout>2500</timeout> 
-            <testParams>  
-                <param>SCSI=0,0,Fixed,60GB</param> 
+            <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
+            <timeout>2500</timeout>
+            <testParams>
+                <param>SCSI=0,0,Fixed,60GB</param>
                 <param>FILE_NAME=iozone3_420.tar</param>
-            </testParams> 
-            <onError>Continue</onError> 
-            <noReboot>False</noReboot> 
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
          </test>
-         
+
 		 <test>
-		    <testName>Stress_Dynamo</testName>     
+		    <testName>Stress_Dynamo</testName>
 		    <testScript>Stress_Dynamo.sh</testScript>
 		    <files>remote-scripts/ica/Stress_Dynamo.sh</files>
 		    <files>Tools/iometer-1.1.0-rc1-src.tar.bz2</files>
-		    <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
+		    <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 		    <testParams>
 		        <param>IOMETER_IP=0.0.0.0</param>
 		        <param>IDE=0,1,Fixed,2GB</param>
-		        <param>SCSI=0,0,Fixed,2GB</param> 
+		        <param>SCSI=0,0,Fixed,2GB</param>
 		        <param>FILE_NAME=iometer-1.1.0-rc1-src.tar.bz2</param>
 		    </testParams>
 		    <timeout>7200</timeout>
 		    <OnError>Abort</OnError>
 		 </test>
 
-         <test>
-            <testName>Stress_Kernbench</testName>          
+        <test>
+            <testName>Stress_Kernbench</testName>
             <testScript>Stress_Kernbench.sh</testScript>
             <files>remote-scripts/ica/Stress_Kernbench.sh</files>
             <files>Tools/kernbench-0.50.tar.bz2</files>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>FILE_NAME=kernbench-0.50.tar.bz2</param>
             </testParams>
@@ -71,8 +81,8 @@
          </test>
 
     </testCases>
-    
-    
+
+
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
