@@ -64,41 +64,6 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-#Checks if the VSS Backup daemon is running on the Linux guest  
-#######################################################################
-function CheckVSSDaemon()
-{
-     $retValue = $False
-    
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_vss_daemon' > /root/vss"
-    if (-not $?)
-    {
-        Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_vs_daemon" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to run ps -ef | grep hv_vs_daemon"
-        return $False
-    }
-
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/vss .
-    if (-not $?)
-    {
-       
-       Write-Error -Message "ERROR: Unable to copy vss from the VM" -ErrorAction SilentlyContinue
-       Write-Output "ERROR: Unable to copy vss from the VM"
-       return $False
-    }
-
-    $filename = ".\vss"
-  
-    # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
-    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" )
-    {
-        Write-Output "VSS Daemon is running"  
-        $retValue =  $True
-    }    
-    del $filename   
-    return  $retValue 
-}
 
 #######################################################################
 # Check boot.msg in Linux VM for Recovering journal. 
@@ -138,7 +103,7 @@ function CheckRecoveringJ()
     return $retValue    
 }
 
-######################################################################
+#######################################################################
 # Runs a remote script on the VM an returns the log.
 #######################################################################
 function RunRemoteScript($remoteScript)
@@ -399,12 +364,14 @@ foreach ($drive in $vm.HardDrives)
 }
 
 # Check to see Linux VM is running VSS backup daemon 
-$sts = CheckVSSDaemon
+$sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
 if (-not $sts[-1])
 {
-    Write-Output "ERROR: VSS backup daemon is not running inside Linux VM"
+    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
+    Write-Output "ERROR: Running $remoteScript script failed on VM!"
     return $False
 }
+
 Write-Output "VSS Daemon is running " >> $summaryLog
 
 # Run the remote script
