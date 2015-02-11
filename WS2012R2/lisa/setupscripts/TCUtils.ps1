@@ -396,6 +396,79 @@ function GetIPv4ViaKVP( [String] $vmName, [String] $server)
 }
 
 
+#######################################################################
+#
+# GetKVPEntry()
+#
+#######################################################################
+function GetKVPEntry( [String] $vmName, [String] $server, [String] $kvpEntryName)
+{
+    <#
+    .Synopsis
+        Try to determine a VMs KVP entry with KVP Intrinsic data.
+    .Description
+        Try to determine a VMs KVP entry with KVP Intrinsic data.
+    .Parameter vmName
+        Name of the VM
+    .Parameter server
+        Name of the server hosting the VM
+    .Parameter kvpEntryName
+        Name of the KVP entry, for example: FullyQualifiedDomainName, IntegrationServicesVersion, NetworkAddressIPv4, NetworkAddressIPv6
+    .Example
+        GetKVPEntry "myTestVM" "localhost" "FullyQualifiedDomainName"
+    #>
+
+    $vmObj = Get-WmiObject -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$vmName`'" -ComputerName $server
+    if (-not $vmObj)
+    {
+        Write-Error -Message "GetKVPEntry: Unable to create Msvm_ComputerSystem object" -Category ObjectNotFound -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    $kvp = Get-WmiObject -Namespace root\virtualization\v2 -Query "Associators of {$vmObj} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent" -ComputerName $server
+    if (-not $kvp)
+    {
+        Write-Error -Message "GetKVPEntry: Unable to create KVP exchange component" -Category ObjectNotFound -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    $rawData = $Kvp.GuestIntrinsicExchangeItems
+    if (-not $rawData)
+    {
+        Write-Error -Message "GetKVPEntry: No KVP Intrinsic data returned" -Category ReadError -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    $kvpValue = $null
+
+    foreach ($dataItem in $rawData)
+    {
+        $found = 0
+        $xmlData = [Xml] $dataItem
+        foreach ($p in $xmlData.INSTANCE.PROPERTY)
+        {
+            if ($p.Name -eq "Name" -and $p.Value -eq $kvpEntryName)
+            {
+                $found += 1
+            }
+
+            if ($p.Name -eq "Data")
+            {
+                $kvpValue = $p.Value
+                $found += 1
+            }
+
+            if ($found -eq 2)
+            {
+                return $kvpValue
+            }
+        }
+    }
+
+    Write-Error -Message "GetKVPEntry: No FQDN found for VM ${vmName}" -Category ObjectNotFound -ErrorAction SilentlyContinue
+    return $null
+}
+
 
 #######################################################################
 #
