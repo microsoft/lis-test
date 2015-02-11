@@ -786,6 +786,12 @@ function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [strin
     {
         $retVal = $True
     }
+    else
+    {
+        LogMsg 1 "ERROR: GetFileFromVM failed. Error message from pscp: "
+        $error = Get-Content .\lisaErr.tmp
+        LogMsg 1 $error
+    }
 
     del lisaOut.tmp -ErrorAction "SilentlyContinue"
     del lisaErr.tmp -ErrorAction "SilentlyContinue"
@@ -835,6 +841,12 @@ function SendFileToVM([System.Xml.XmlElement] $vm, [string] $localFile, [string]
     if ($process.ExitCode -eq 0)
     {
         $retVal = $True
+    }
+    else
+    {
+        LogMsg 1 "ERROR: SendFileToVM failed. Error message from pscp: "
+        $error = Get-Content .\lisaErr.tmp
+        LogMsg 1 $error
     }
 
     del lisaOut.tmp -ErrorAction "SilentlyContinue"
