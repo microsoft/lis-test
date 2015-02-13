@@ -44,29 +44,12 @@
         <suite>
             <suiteName>ApacheBenchmark</suiteName>
             <suiteTests>
-                <suiteTest>Perf_ab_1Kil-10C</suiteTest>
                 <suiteTest>Perf_ab_1Mil-100C</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
-         <test>
-            <testName>Perf_ab_1Kil-10C</testName>          
-            <testScript>performance_ab.sh</testScript>
-            <files>remote-scripts/ica/performance_ab.sh</files>
-            <testParams>
-                <param>APACHE_SERVER=192.168.1.100</param>
-                <param>APACHE_TEST_NUM_REQUESTS=1000</param>
-                <param>APACHE_TEST_NUM_CONCURRENCY=10</param>
-                <param>TEST_FILE_SIZE_IN_KB=200</param>
-            </testParams>
-            <uploadFiles>
-                <file>abtest.log</file>
-            </uploadFiles>
-            <timeout>1200</timeout>
-            <OnError>Continue</OnError>
-         </test>
          <test>
             <testName>Perf_ab_1Mil-100C</testName>          
             <testScript>performance_ab.sh</testScript>

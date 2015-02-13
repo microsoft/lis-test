@@ -465,7 +465,7 @@ function GetKVPEntry( [String] $vmName, [String] $server, [String] $kvpEntryName
         }
     }
 
-    Write-Error -Message "GetKVPEntry: No FQDN found for VM ${vmName}" -Category ObjectNotFound -ErrorAction SilentlyContinue
+    Write-Error -Message "GetKVPEntry: No such KVP entry found for VM ${vmName}" -Category ObjectNotFound -ErrorAction SilentlyContinue
     return $null
 }
 
