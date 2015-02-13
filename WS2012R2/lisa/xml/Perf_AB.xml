@@ -36,7 +36,7 @@
         <testParams>
             <param>vmCpuNumber=4</param>
             <param>vmMemory=8GB</param>
-            <param>ISO_OPTIONS=.\TestData\Perf_AB.xml\SLEs-12-Server-DVD-x86_64-GM-DVD1.iso,BOOT_IDE_FIRST</param>
+            <param>ISO_OPTIONS=.\TestData\DistroISO\SLEs-12-Server-DVD-x86_64-GM-DVD1.iso,BOOT_IDE_FIRST</param>
         </testParams>
     </global>
 
