@@ -16,6 +16,7 @@
     <testParams>
       <param>vmCpuNumber=4</param>
       <param>vmMemory=18GB</param>
+      <param>ISO_OPTIONS=.\TestData\DistroISO\SLEs-12-Server-DVD-x86_64-GM-DVD1.iso,BOOT_IDE_FIRST</param>
     </testParams>
   </global>
   <testSuites>
@@ -56,7 +57,10 @@
       </ipv4>
       <sshKey>id_rsa.ppk</sshKey>
       <suite>PerfTeraSort</suite>
-      <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+      <preStartConfig>
+         <file>.\setupscripts\Config-VM.ps1</file>
+         <file>.\setupscripts\Insert-ISO.ps1</file>
+      </preStartConfig>
     </vm>
     <vm>
       <role>NonSUT</role>
@@ -66,7 +70,10 @@
       <ipv4>
       </ipv4>
       <sshKey>id_rsa.ppk</sshKey>
-      <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+      <preStartConfig>
+         <file>.\setupscripts\Config-VM.ps1</file>
+         <file>.\setupscripts\Insert-ISO.ps1</file>
+      </preStartConfig>
     </vm>
   </VMs>
 </config>
