@@ -509,7 +509,7 @@ foreach ($p in $params)
     {
     "sshKey" { $sshKey  = $fields[1].Trim() }
     "ipv4"   { $ipv4    = $fields[1].Trim() }
-    "rootdir" { $rootDir = $fields[1].Trim() }
+    "rootDir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
      default  {}          
     }
@@ -578,7 +578,7 @@ Write-Output "VSS Daemon is running " >> $summaryLog
 
 # Stop the running VM so we can create New VM from this parent disk.
 # Shutdown gracefully so we dont corrupt VHD.
-Stop-VM –Name $vmName 
+Stop-VM -Name $vmName 
 if (-not $?)
     {
        Write-Output "Error: Unable to Shut Down VM" 
@@ -803,7 +803,7 @@ else
 
 Write-Output "INFO: Test ${results}"
 
-$sts = Stop-VM –Name $vmName1 -TurnOff
+$sts = Stop-VM -Name $vmName1 -TurnOff
 if (-not $?)
     {
        Write-Output "Error: Unable to Shut Down VM $vmName1" 
