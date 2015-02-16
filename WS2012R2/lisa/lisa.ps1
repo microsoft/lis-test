@@ -92,7 +92,7 @@
             <defaultSnapshot>ICABase</defaultSnapshot>
             <email>
                 <recipients>
-                    <to>myemail@mycompany.com,youremail@mycompany.com</to>		
+                    <to>myemail@mycompany.com,youremail@mycompany.com</to>        
                 </recipients>
                 <sender>myemail@mycompany.com</sender>
                 <subject>LISA FTM Test Run on WS2012</subject>
@@ -339,15 +339,15 @@ function Usage()
 #####################################################################
 function Test-Admin()
 {
-	<#
-	.Synopsis
-    	Check if process is running as an Administrator
+    <#
+    .Synopsis
+        Check if process is running as an Administrator
     .Description
         Test if the user context this process is running as
         has Administrator privileges
     .Example
         Test-Admin
-	#> 
+    #> 
     $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
     $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
@@ -818,8 +818,18 @@ function RunTests ([String] $xmlFilename )
     $summary = $summary.Replace("</pre>", "")
 
     LogMsg 0 "$summary"
+    
+    $lisaTestResult = $true
+    foreach($vm in $xmlConfig.config.VMs.vm)
+    {
+        if ($vm.testCaseResults -ne "Success")
+        {
+            $lisaTestResult = $false
+            break
+        }
+    }
 
-    return $true
+    return $lisaTestResult
 }
 
 
@@ -869,7 +879,18 @@ switch ($cmdVerb)
 {
 "run" {
         $sts = RunTests $cmdNoun
-        if (! $sts)
+        
+        # RunTests() (which calls RunICTests() in stateEngine.ps1) may return an array of results. 
+        # we need to check the last one which is the final
+        if($sts.Count -gt 1)
+        {
+            $returnCode = $sts[$sts.Count -1]
+        }
+        else
+        {
+            $returnCode = $sts
+        }
+        if (! $returnCode)
         {
             $retVal = 2
         }
@@ -899,4 +920,5 @@ default    {
     }
 }
 
+LogMsg 0 "Test will exit with error code $retVal"
 exit $retVal
