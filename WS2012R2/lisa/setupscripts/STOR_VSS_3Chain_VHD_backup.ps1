@@ -509,7 +509,7 @@ foreach ($p in $params)
     {
     "sshKey" { $sshKey  = $fields[1].Trim() }
     "ipv4"   { $ipv4    = $fields[1].Trim() }
-    "rootdir" { $rootDir = $fields[1].Trim() }
+    "rootDir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
      default  {}          
     }
@@ -578,7 +578,7 @@ Write-Output "VSS Daemon is running " >> $summaryLog
 
 # Stop the running VM so we can create New VM from this parent disk.
 # Shutdown gracefully so we dont corrupt VHD.
-Stop-VM –Name $vmName 
+Stop-VM -Name $vmName 
 if (-not $?)
     {
        Write-Output "Error: Unable to Shut Down VM" 
@@ -627,14 +627,6 @@ if(-not $CreateVHD)
 
 Write-Output "INFO: Successfully Created GrandChild VHD"
 
-# This is required for new vm creation .
-$Switch = NetworkAdapter $hvServer
-if (-not $?)
-    {
-       Write-Output "Error: Getting Switch Name" 
-       return $False
-    }
-
 # Now create New VM out of this VHD.
 # New VM is static hardcoded since we do not need it to be dynamic
 $GChildVHD = $CreateVHD[-1]
@@ -642,10 +634,19 @@ $GChildVHD = $CreateVHD[-1]
 # Get-VM 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
 
-#get VM Generation
+# Get the VM Network adapter so we can attach it to the new vm.
+$VMNetAdapter = Get-VMNetworkAdapter $vmName
+if (-not $?)
+    {
+       Write-Output "Error: Get-VMNetworkAdapter" 
+       return $false
+    }
+
+#Get VM Generation
 $vm_gen = $vm.Generation
 
-$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $Switch -Generation $vm_gen
+# Create the GChildVM
+$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter.SwitchName -Generation $vm_gen
 if (-not $?)
     {
        Write-Output "Error: Creating New VM" 
@@ -803,7 +804,7 @@ else
 
 Write-Output "INFO: Test ${results}"
 
-$sts = Stop-VM –Name $vmName1 -TurnOff
+$sts = Stop-VM -Name $vmName1 -TurnOff
 if (-not $?)
     {
        Write-Output "Error: Unable to Shut Down VM $vmName1" 

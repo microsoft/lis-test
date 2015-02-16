@@ -368,8 +368,8 @@
             <files></files>
             <timeout>600</timeout>
             <noReboot>True</noReboot>
-        </test>     
-        
+        </test>
+
         <test>
             <testName>TimeSync</testName>
             <testScript>setupScripts\timesync.ps1</testScript>
@@ -395,11 +395,10 @@
              <timeout>600</timeout>
              <onError>Continue</onError>
              <testParams>
-                 <param>TZONE=Europe/Bucharest</param>
-                 <param>TC_COVERED=CORE-04</param>
+                <param>TC_COVERED=CORE-04</param>
              </testParams>
          </test>
-         
+
         <test>
             <testName>SMP_VCPU_Count2</testName>
             <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
@@ -411,7 +410,7 @@
             <timeout>60</timeout>
             <noReboot>True</noReboot>
         </test>
-    
+
         <test>
             <testName>SMP_VCPU_Count3</testName>
             <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
@@ -423,7 +422,7 @@
             <timeout>60</timeout>
             <noReboot>True</noReboot>
         </test>
-    
+
         <test>
             <testName>SMP_VCPU_Count4</testName>
             <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
@@ -445,7 +444,7 @@
             <onError>Continue</onError>
             <timeout>600</timeout>
         </test>
-    
+
         <test>
             <testName>ShutDownVM_CPU3</testName>
             <snapshotname>ICABase</snapshotname>
@@ -455,7 +454,7 @@
             <onError>Continue</onError>
             <timeout>600</timeout>
         </test>
-    
+
         <test>
             <testName>ShutDownVM_CPU4</testName>
             <snapshotname>ICABase</snapshotname>
@@ -476,7 +475,7 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-        
+
         <test>
             <testName>LISShutdownVM</testName>
             <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
@@ -499,7 +498,7 @@
                 <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_netvsc hv_utils hyperv_fb hid_hyperv)</param>
             </testParams>
         </test>
-        
+
         <test>
             <testName>VerifyItegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
@@ -510,7 +509,7 @@
         </test>
 
     <!-- Stress Tests -->
-        
+
      <test>
         <testName>Test50TimesReboot</testName>
         <testScript>setupScripts\Test50TimesReboot.ps1</testScript>
@@ -518,8 +517,8 @@
         <timeout>5000</timeout>
         <onError>Continue</onError>
         <noReboot>False</noReboot>
-    </test>          
-        
+    </test>
+
     <test>
         <testName>Stress_IOzone</testName>
         <testScript>Stress_IOzone.sh</testScript>
@@ -556,19 +555,19 @@
             </testParams>
             <timeout>1200</timeout>
             <OnError>Abort</OnError>
-        </test>
+    </test>
 
-        <test>
-            <testName>Stress_Kernbench</testName>
-            <testScript>Stress_Kernbench.sh</testScript>
-            <files>remote-scripts/ica/Stress_Kernbench.sh</files>
-            <files>Tools/kernbench-0.50.tar.bz2</files>
-            <testParams>
-                <param>FILE_NAME=kernbench-0.50.tar.bz2</param>
-            </testParams>
-            <timeout>3200</timeout>
-            <OnError>Abort</OnError>
-        </test>
+    <test>
+        <testName>Stress_Kernbench</testName>
+        <testScript>Stress_Kernbench.sh</testScript>
+        <files>remote-scripts/ica/Stress_Kernbench.sh</files>
+        <files>Tools/kernbench-0.50.tar.bz2</files>
+        <testParams>
+            <param>FILE_NAME=kernbench-0.50.tar.bz2</param>
+        </testParams>
+        <timeout>3200</timeout>
+        <OnError>Abort</OnError>
+    </test>
         
         <!-- Live migration -->     
        <test>
@@ -602,7 +601,7 @@
                 <param>TC_COVERED=NET_LIVEMIG-03</param>
             </testparams>
         </test>
-		<test>
+        <test>
             <testName>Failover</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <timeout>3600</timeout>
@@ -668,7 +667,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>VMMemory=5GB</param>
+                <param>VMMemory=4GB</param>
                 <param>MigrationType=Live</param>
                 <param>TC_COVERED=NET_LIVEMIG-05c</param>
             </testparams>
@@ -680,7 +679,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>VMMemory=5GB</param>
+                <param>VMMemory=4GB</param>
                 <param>MigrationType=Quick</param>
                 <param>TC_COVERED=NET_LIVEMIG-06c</param>
             </testparams>
@@ -1064,15 +1063,17 @@
             </testparams>
         </test>
 
+<!-- NETWORK -->
+
         <test>
         <testName>Ping_External_Network</testName>
         <snapshotname>ICABase</snapshotname>
         <setupScript>SetupScripts\AddNIC.ps1</setupScript>
         <testParams>
-            <param>NIC=NetworkAdapter,External,external,001600112200</param>
+            <param>NIC=NetworkAdapter,External,external,00155D02287C</param>
             <param>REPOSITORY_SERVER=8.8.8.8</param>
             <param>NW_ADAPTER=1</param>
-            <param>NW_FEDORA_SET_GATEWAY=0</param>
+            <param>NW_FEDORA_SET_GATEWAY=1</param>
             <param>TC_COUNT=NET-95,NET-99</param>
         </testParams>            
         <testScript>LIS_PING_EXTERNAL.sh</testScript>
@@ -1092,7 +1093,7 @@
         <onError>Continue</onError>
         <noReboot>False</noReboot>
         <testparams>
-            <param>NIC=NetworkAdapter,Internal,internal,001600112200</param>
+            <param>NIC=NetworkAdapter,Internal,internal,00155D02287C</param>
             <param>PRIVATE_STATIC_IP=169.254.202.200</param>
             <param>HOST_SERVER_INTERNAL_IP=169.254.202.244</param>
             <param>PRIVATE_NETWORK_MASK=255.255.0.0</param>
@@ -1110,7 +1111,7 @@
         <snapshotname>ICABase</snapshotname>
         <setupScript>SetupScripts\AddNIC.ps1</setupScript>
         <testParams>
-            <param>NIC=NetworkAdapter,Private,PrivateNet,001600112200</param>
+            <param>NIC=NetworkAdapter,Private,PrivateNet,00155D02287C</param>
             <param>VM_GUEST_ONLY_IP=10.10.10.5</param>
             <param>PRIVATE_STATIC_IP=10.10.10.4</param>
             <param>HOST_SERVER_INTERNAL_IP=192.168.0.1</param>
@@ -1131,7 +1132,7 @@
         <snapshotname>ICABase</snapshotname>
         <setupScript>SetupScripts\AddNIC.ps1</setupScript>
         <testParams>
-            <param>NIC=NetworkAdapter,External,External,001600112200</param>
+            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
             <param>REPOSITORY_SERVER=8.8.8.8</param>
             <param>NW_ADAPTER=2</param>
             <param>NW_FEDORA_SET_GATEWAY=0</param>
@@ -1153,7 +1154,7 @@
         <setupScript>SetupScripts\AddNIC.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveNIC.ps1</cleanupScript>
         <testParams>
-            <param>NIC=NetworkAdapter,External,external,001600112200</param>
+            <param>NIC=NetworkAdapter,External,external,00155D02287C</param>
             <param>TC_COUNT=NET-104</param>
             <param>REPOSITORY_SERVER=8.8.8.8</param>
         </testParams>
@@ -1169,9 +1170,9 @@
         <setupScript>SetupScripts\AddNIC.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveNIC.ps1</cleanupScript>
         <testparams>   
-            <param>NIC=NetworkAdapter,External,External,001600112200</param>             
-            <param>REPOSITORY_SERVER=192.168.4.248</param>
-            <param>REPOSITORY_EXPORT=/usr/lisa/public</param>
+            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>             
+            <param>REPOSITORY_SERVER=10.7.1.152</param>
+            <param>REPOSITORY_EXPORT=/tmp/</param>
             <param>TC_COUNT=NET-96</param>                    
         </testparams>
         <timeout>18000</timeout>
@@ -1188,10 +1189,10 @@
         <onError>Continue</onError>
         <noReboot>False</noReboot>
         <testparams>
-            <param>NIC=NetworkAdapter,External,External,0000d3000075</param>
+            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
             <param>TC_COVERED=NET-103</param>
             <param>TARGET_ADDR=10.10.10.10</param>
-            <param>MAC=00:00:D3:00:00:75</param>
+            <param>MAC=00:15:5D:02:28:7C</param>
         </testparams>
         <onError>Continue</onError>
     </test>
@@ -1206,9 +1207,9 @@
         <onError>Continue</onError>
         <noReboot>False</noReboot>
         <testparams>
-            <param>NIC=NetworkAdapter,External,External,001600112200</param>
+            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
             <param>TC_COVERED=NET-106</param>
-            <param>MAC=00155D31E708</param>
+            <param>MAC=00155D02287C</param>
             <param>TARGET_ADDR=8.8.8.8</param>
         </testparams>
         <onError>Continue</onError>
@@ -1218,15 +1219,15 @@
         <testName>SwitchNIC</testName>
         <setupScript>SetupScripts\AddNIC.ps1</setupScript>
         <testParams>
-            <param>NIC=NetworkAdapter,External,External,001600112200</param>
+            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
             <param>REPOSITORY_SERVER=8.8.8.8</param>
             <param>NW_ADAPTER=1</param>
-            <param>GATEWAY=192.168.2.200</param>
+            <param>GATEWAY=10.7.1.1</param>
             <param>TC_COUNT=NET-105</param>
         </testParams> 
         <onError>Continue</onError>
         <noReboot>True</noReboot>           
-        <testScript>LIS_Ping_External.sh</testScript>
+        <testScript>LIS_SwitchNIC.sh</testScript>
         <files>remote-scripts/ica/LIS_SwitchNIC.sh</files>
         <timeout>800</timeout>
         <onError>Continue</onError>
@@ -1241,7 +1242,7 @@
         <onError>Continue</onError>
         <noReboot>True</noReboot>           
         <testparams>
-            <param>NIC=NetworkAdapter,Internal,internal,001600112200</param>
+            <param>NIC=NetworkAdapter,Internal,internal,00155D02287C</param>
             <param>PRIVATE_STATIC_IP=169.254.202.200</param>
             <param>HOST_SERVER_INTERNAL_IP=169.254.202.244</param>
             <param>PRIVATE_NETWORK_MASK=255.255.0.0</param>
@@ -1262,7 +1263,7 @@
         <onError>Continue</onError>
         <noReboot>False</noReboot>
         <testparams>
-            <param>NIC=NetworkAdapter,Private,PrivateNet,001600112200</param>
+            <param>NIC=NetworkAdapter,Private,PrivateNet,00155D02287C</param>
             <param>VM_GUEST_ONLY_IP=10.10.10.5</param>
             <param>PRIVATE_STATIC_IP=10.10.10.4</param>
             <param>HOST_SERVER_INTERNAL_IP=192.168.0.1</param>
@@ -1280,7 +1281,7 @@
         <cleanupScript>SetupScripts\RemoveNic.ps1</cleanupScript>
         <testParams>
             <param>TestCaseTimeout=300</param>
-            <param>NIC=NetworkAdapter,External,External,001600112200</param>
+            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
             <param>TARGET_ADDR=10.10.11.33</param>
         </testParams>
         <timeout>800</timeout>

@@ -167,7 +167,7 @@ if ($procs)
 #
 # Shutdown VM.
 #
-Stop-VM –Name $vmName -ComputerName $hvServer
+Stop-VM -Name $vmName -ComputerName $hvServer
 if (-not $?)
 {
     "Error: Unable to Shut Down VM" 
@@ -226,7 +226,7 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
         #
         # Shutdown gracefully so we dont corrupt VHD
         #
-        Stop-VM –Name $vmName -ComputerName $hvServer
+        Stop-VM -Name $vmName -ComputerName $hvServer
         if (-not $?)
         {
             "Error: Unable to Shut Down VM" 
