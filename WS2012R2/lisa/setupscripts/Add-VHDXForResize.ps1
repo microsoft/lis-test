@@ -131,6 +131,10 @@ function CreateAttachVHDxTestDiskDrive( [string] $vmName, [string] $hvServer,
 	}
 	$newVHDxSize = ConvertStringToUInt64 $defaultSize
 	$vhdxName = $defaultVhdPath + $vmName + "-" + $sectorSize + "-test.vhdx"
+	if(Test-Path $vhdxName)
+        {
+            Remove-Item $vhdxName
+        }
 	
 	$sts = New-VHD -Path $vhdxName -size $newVHDxSize -Dynamic:$vhdxType -LogicalSectorSize $sectorSize	  -ComputerName $hvServer
 	if ($sts -eq $null)
