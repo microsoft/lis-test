@@ -21,7 +21,9 @@
                 <suiteTest>Test50TimesReboot</suiteTest>
                 <suiteTest>Stress_IOzone</suiteTest>
                 <suiteTest>Stress_Kernbench</suiteTest>
-                <suiteTest>Stress_Dynamo</suiteTest>
+                <!-- Obsolete test case
+                <suiteTest>Stress_Dynamo</suiteTest> 
+                -->
             </suiteTests>
         </suite>
     </testSuites>
@@ -42,6 +44,7 @@
             <files>remote-scripts/ica/Stress_IOzone.sh</files>
             <files>Tools/iozone3_420.tar</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
+            <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>2500</timeout>
             <testParams>
                 <param>SCSI=0,0,Fixed,60GB</param>
@@ -51,6 +54,20 @@
             <noReboot>False</noReboot>
          </test>
 
+        <test>
+            <testName>Stress_Kernbench</testName>
+            <testScript>Stress_Kernbench.sh</testScript>
+            <files>remote-scripts/ica/Stress_Kernbench.sh</files>
+            <files>Tools/kernbench-0.50.tar.bz2</files>
+            <files>remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>FILE_NAME=kernbench-0.50.tar.bz2</param>
+            </testParams>
+            <timeout>800</timeout>
+            <OnError>Abort</OnError>
+         </test>
+
+<!-- Obsolete test case
 		 <test>
 		    <testName>Stress_Dynamo</testName>
 		    <testScript>Stress_Dynamo.sh</testScript>
@@ -66,22 +83,8 @@
 		    <timeout>7200</timeout>
 		    <OnError>Abort</OnError>
 		 </test>
-
-        <test>
-            <testName>Stress_Kernbench</testName>
-            <testScript>Stress_Kernbench.sh</testScript>
-            <files>remote-scripts/ica/Stress_Kernbench.sh</files>
-            <files>Tools/kernbench-0.50.tar.bz2</files>
-            <files>remote-scripts/ica/utils.sh</files>
-            <testParams>
-                <param>FILE_NAME=kernbench-0.50.tar.bz2</param>
-            </testParams>
-            <timeout>800</timeout>
-            <OnError>Abort</OnError>
-         </test>
-
+-->
     </testCases>
-
 
     <VMs>
         <vm>
