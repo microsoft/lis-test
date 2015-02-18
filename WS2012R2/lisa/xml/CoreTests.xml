@@ -147,42 +147,6 @@
         </test>
 
     <test>
-            <testName>SMP_VCPU_Count2</testName>
-            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
-            <testScript>INST_LIS_SMP_VCPU.sh</testScript>
-            <files>remote-scripts/ica/INST_LIS_SMP_VCPU.sh</files>
-            <timeout>600</timeout>
-            <testparams>
-                <param>VCPU=2</param>
-                <param>TC_COVERED=CORE-11</param>
-            </testparams>
-        </test>
-
-        <test>
-            <testName>SMP_VCPU_Count3</testName>
-            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
-            <testScript>INST_LIS_SMP_VCPU.sh</testScript>
-            <files>remote-scripts/ica/INST_LIS_SMP_VCPU.sh</files>
-            <timeout>600</timeout>
-            <testparams>
-                <param>VCPU=3</param>
-                <param>TC_COVERED=CORE-11</param>
-            </testparams>
-        </test>
-
-        <test>
-            <testName>SMP_VCPU_Count4</testName>
-            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
-            <testScript>INST_LIS_SMP_VCPU.sh</testScript>
-            <files>remote-scripts/ica/INST_LIS_SMP_VCPU.sh</files>
-            <timeout>600</timeout>
-            <testparams>
-                <param>VCPU=4</param>
-                <param>TC_COVERED=CORE-11</param>
-            </testparams>
-        </test>
-
-    <test>
             <testName>Verify_LISModules_Version</testName>
             <testScript>CORE_LISmodules_version.sh</testScript>
             <files>remote-scripts/ica/CORE_LISmodules_version.sh</files>
