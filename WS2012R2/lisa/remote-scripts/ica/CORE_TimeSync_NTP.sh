@@ -217,8 +217,8 @@ LogMsg "This script tests NTP time syncronization"
 # Try to restart NTP. If it fails we try to install it.
 # We check this distro specific.
 if is_fedora ; then
-    # Check if ntpd is running. On Fedora based distros we have ntpstat.
-    sudo ntpstat 1> /dev/null 2> /dev/null
+    # Check if ntpd is running.
+    service ntpd restart
     if [[ $? -ne 0 ]]; then
         echo "NTPD not installed. Trying to install ..."
         yum install -y ntp ntpdate ntp-doc
@@ -265,7 +265,7 @@ if is_fedora ; then
 
 elif is_ubuntu ; then
     # Check if ntp is running
-    ntpq -p 1> /dev/null 2> /dev/null
+    service ntp restart
     if [[ $? -ne 0 ]]; then
         LogMsg "NTP is not installed. Trying to install ..."
         apt-get install ntp -y
