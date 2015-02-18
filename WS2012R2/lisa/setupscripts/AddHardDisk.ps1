@@ -381,6 +381,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
 
     if(Test-Path $vhdName)
     {
+        Dismount-VHD -Path $vhdName -ErrorAction Ignore
         Remove-Item $vhdName
     }
     $newVhd = $null
