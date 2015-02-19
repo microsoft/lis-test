@@ -32,8 +32,7 @@
         <test>
             <testName>Test50TimesReboot</testName>
             <testScript>setupScripts\Test50TimesReboot.ps1</testScript>
-            <files>setupScripts\Test50TimesReboot.ps1</files>
-            <timeout>5000</timeout>
+            <timeout>3600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
