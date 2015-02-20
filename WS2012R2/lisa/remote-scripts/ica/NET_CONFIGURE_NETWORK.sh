@@ -136,11 +136,19 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" = "UNDEFINED" ]; then
 	REMOTE_SERVER=''
 fi
 
+IFS=',' read -a networkType <<< "$NIC"
+
 # set gateway parameter
 if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
-    LogMsg "$msg"
-	GATEWAY=''
+    if [ "${networkType[2]}" = "External" ]; then
+    	msg="The test parameter GATEWAY is not defined in constants file . The default gateway will be set for all interfaces."
+    	LogMsg "$msg"
+		GATEWAY=$(/sbin/ip route | awk '/default/ { print $3 }')
+	else
+		msg="The test parameter GATEWAY is not defined in constants file . No gateway will be set."
+		LogMsg "$msg"
+		GATEWAY=''
+	fi
 else
 	CheckIP "$GATEWAY"
 
@@ -325,7 +333,7 @@ LogMsg "Synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} successfully se
 # Try to get DHCP address
 LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 
-SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
+CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "dhcp"
 
 # If we fail, we do not try other (if any) synthetic netadapters
 if [ 0 -ne $? ]; then

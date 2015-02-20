@@ -1187,8 +1187,8 @@ CreateIfupConfigFile()
 				fi
 
 				cat <<-EOF > "$__file_path"
-					STARTMODE=manual
-					BOOTPROTO=dhcp
+					STARTMODE='auto'
+					BOOTPROTO='dhcp'
 				EOF
 
 				wicked ifdown "$__interface_name"
