@@ -98,7 +98,6 @@ else
         exit 1
     else
         LogMsg  "Floppy disk module loaded inside the VM"
-        UpdateSummary "Floppy disk module loaded: Success"
         sleep 3
     fi
 fi
@@ -132,7 +131,6 @@ if [ 0 -ne ${sts} ]; then
 else
     LogMsg "Floppy disk is mounted successfully inside the VM"
     LogMsg "Floppy disk is detected inside the VM"
-    UpdateSummary "Floppy disk detected: Success"
 fi
 
 cd /mnt/
@@ -147,8 +145,7 @@ if [ 0 -ne ${sts} ]; then
     UpdateTestState "TestFailed"
     exit 1
 else
-    LogMsg "Sample.txt file created successfully on the Floppy disk"
-    UpdateSummary "File Creation inside floppy disk : Success"
+    LogMsg "Sample.txt file created successfully on the floppy disk"
 fi
 
 LogMsg "Perform read operation on the floppy disk"
@@ -161,8 +158,7 @@ if [ 0 -ne ${sts} ]; then
 	UpdateTestState "TestFailed"
 	exit 1
 else
-	LogMsg "Sample.txt file is read successfully from the Floppy disk"
-	UpdateSummary "File read inside floppy disk : Success"          
+	LogMsg "Sample.txt file is read successfully from the Floppy disk" 
 fi
 
 LogMsg "Perform delete operation on the Floppy disk"
@@ -175,8 +171,7 @@ if [ 0 -ne ${sts} ]; then
 	UpdateTestState "TestFailed"
 	exit 1
 else
-   LogMsg "Sample.txt file is deleted successfully from the Floppy disk"
-   UpdateSummary "File deletion inside floppy disk : Success"           
+   LogMsg "Sample.txt file is deleted successfully from the Floppy disk"      
 fi
 
 LogMsg "Unmounting the floppy disk..."
@@ -184,15 +179,15 @@ cd ~
 umount /mnt/
 sts=$?      
 if [ 0 -ne ${sts} ]; then
-	LogMsg "Unable to unmount the floppy disk"
+	LogMsg "Unable to umount the floppy disk"
 	LogMsg "umount failed: ${sts}"
-	UpdateSummary "Unable to unmount the floppy disk"
+	UpdateSummary "Unable to umount the floppy disk"
 	UpdateTestState "TestFailed"
 	exit 1
 else
 	LogMsg "Floppy disk unmounted successfully"
-	UpdateSummary "Floppy disk unmount: Success"   
 fi
 
+UpdateSummary "Floppy disk read, write and remove operations returned no errors."
 LogMsg "Result: Test Completed Successfully"
 UpdateTestState "TestCompleted"

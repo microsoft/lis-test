@@ -21,7 +21,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -50,7 +50,7 @@
             <suiteTest>VerifyItegratedShutdownService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
             <suiteTest>StressReloadModules</suiteTest>
-			<suiteTest>FloppyDisk</suiteTest>
+            <suiteTest>FloppyDisk</suiteTest>
             <suiteTest>CDmount</suiteTest>
             </suiteTests>
         </suite>
@@ -193,8 +193,8 @@
 
 		<test>
             <testName>FloppyDisk</testName>
-            <testScript>STOR_Floppy_Disk.sh</testScript>
-            <files>remote-scripts\ica\STOR_Floppy_Disk.sh</files>
+            <testScript>Core_Floppy_Disk.sh</testScript>
+            <files>remote-scripts\ica\Core_Floppy_Disk.sh</files>
             <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
             <noReboot>False</noReboot>
@@ -207,8 +207,8 @@
 		
         <test>
             <testName>CDmount</testName>
-            <testScript>LIS_CD.sh</testScript>
-            <files>remote-scripts/ica/LIS_CD.sh</files>
+            <testScript>Core_LIS_CD.sh</testScript>
+            <files>remote-scripts/ica/Core_LIS_CD.sh</files>
             <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testparams>

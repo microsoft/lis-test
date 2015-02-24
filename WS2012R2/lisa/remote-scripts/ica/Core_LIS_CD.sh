@@ -21,13 +21,13 @@
 ########################################################################
 
 ###############################################################
+#
 # Description:
 #     This script was created to automate the testing of a Linux
-#     Integration services.This script detects the CDROM    
-#     and performs read   operations .
+#     Integration services. This script detects the CDROM    
+#     and performs read operations .
 #     
 ################################################################
-
 
 LogMsg()
 {
@@ -64,14 +64,12 @@ fi
 if [ ! ${TC_COVERED} ]; then
     LogMsg "Error: The TC_COVERED variable is not defined."
 	echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
-    UpdateTestState "TestFailed"
-    exit 1
 fi
 
-echo "Covers : ${TC_COVERED}" >> ~/summary.log
+echo "Covers: ${TC_COVERED}" >> ~/summary.log
 
 #
-# check if CDROM  module is loaded or no 
+# Check if the CDROM module is loaded 
 #
 CD=`lsmod | grep ata_piix`
 if [[ $CD != "" ]] ; then
@@ -89,78 +87,52 @@ else
 	    exit 1
     else
 	    LogMsg "ata_piix module loaded inside the VM"
-	    UpdateSummary " ata_piix module loaded : Success"
     fi
 fi
-	
 
-LogMsg "##### Mount the CDROM #####"
+LogMsg "Mount the CDROM"
 mount /dev/dvd /mnt/
 sts=$?
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Unable to mount the CDROM"
-	    LogMsg "Mount CDROM failed: ${sts}"
-	    LogMsg "Aborting test."
-        UpdateTestState "TestFailed"
-	    exit 1
-    else
-	    LogMsg  "CDROM is mounted successfully inside the VM"
-        LogMsg  "CDROM is detected inside the VM"
-	    UpdateSummary " CDROM detected : Success"
-    fi
+if [ 0 -ne ${sts} ]; then
+	LogMsg "Unable to mount the CDROM"
+	LogMsg "Mount CDROM failed: ${sts}"
+	LogMsg "Aborting test."
+	UpdateTestState "TestFailed"
+	exit 1
+else
+	LogMsg  "CDROM is mounted successfully inside the VM"
+	LogMsg  "CDROM is detected inside the VM"
+fi
 
-LogMsg "##### Perform read  operations on the CDROM ######"
+LogMsg "Perform read operations on the CDROM"
 cd /mnt/
 
 ls /mnt
 sts=$?
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Unable to read datafrom the CDROM"
-	    LogMsg "Read data from CDROM failed: ${sts}"
-	    LogMsg "Aborting test."
-        UpdateTestState "TestFailed"
-	    exit 1
-    else
-        LogMsg "Data read successfully from the CDROM"
-	    UpdateSummary "Data read inside CDROM : Success"
-    fi
+if [ 0 -ne ${sts} ]; then
+	LogMsg "Unable to read data from the CDROM"
+	LogMsg "Read data from CDROM failed: ${sts}"
+	UpdateTestState "TestFailed"
+	exit 1
+else
+	LogMsg "Data read successfully from the CDROM"
+fi
+
 cd ~
 umount /mnt/
 sts=$?      
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Unable to unmount the CDROM"
-	    LogMsg "umount failed: ${sts}"
-	    LogMsg "Aborting test."
-            UpdateTestState "TestFailed"
-	    exit 1
-    else
-        LogMsg  "CDROM unmounted successfully"
-	    UpdateSummary " CDROM unmount: Success"
-           
-    fi
+if [ 0 -ne ${sts} ]; then
+	LogMsg "Unable to unmount the CDROM"
+	LogMsg "umount failed: ${sts}"
+	LogMsg "Aborting test."
+		UpdateTestState "TestFailed"
+	exit 1
+else
+	LogMsg  "CDROM unmounted successfully"
+	UpdateSummary " CDROM unmount: Success"
+	   
+fi
 
-
-
-LogMsg "#########################################################"
-LogMsg "Result : Test Completed Succesfully"
-LogMsg "Exiting with state: TestCompleted."
+UpdateSummary "CDROM mount, read and remove operations returned no errors."
+LogMsg "Result: Test Completed Successfully"
 UpdateTestState "TestCompleted"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
