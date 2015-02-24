@@ -91,7 +91,7 @@ else
 fi
 
 LogMsg "Mount the CDROM"
-mount /dev/dvd /mnt/
+mount /dev/cdrom /mnt/
 sts=$?
 if [ 0 -ne ${sts} ]; then
 	LogMsg "Unable to mount the CDROM"
