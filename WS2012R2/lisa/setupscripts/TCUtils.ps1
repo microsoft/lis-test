@@ -683,7 +683,7 @@ function StopVMViaSSH ([String] $vmName, [String] $server="localhost", [int] $ti
     .Example
         StopVmViaSSH "testVM" "localhost" "300" "lisa_id_rsa.ppk"
     #>
-
+	[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.HyperV.PowerShell")
     if (-not $vmName)
     {
         Write-Error -Message "StopVMViaSSH: VM name is null" -Category ObjectNotFound -ErrorAction SilentlyContinue
@@ -969,7 +969,7 @@ function  WaitForVMToStop ([string] $vmName ,[string]  $hvServer, [int] $timeout
     .Example
         WaitForVMToStop "testVM" "localhost" 300
     a#>
-
+	[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.HyperV.PowerShell")
     $tmo = $timeout
     while ($tmo -gt 0)
     {
