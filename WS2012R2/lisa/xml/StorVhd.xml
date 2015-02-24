@@ -20,7 +20,6 @@
         <suite>
             <suiteName>Storage</suiteName>
             <suiteTests>
-                <suiteTest>FloppyDisk</suiteTest>
                 <suiteTest>VHD_IDE_0_1_DYNAMIC</suiteTest>
                 <suiteTest>VHD_MultiDisk_SCSI_Dynamic</suiteTest>
                 <suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
@@ -308,32 +307,6 @@
             <timeout>10800</timeout>
         </test>
 
-        <test>
-            <testName>FloppyDisk</testName>
-            <testScript>STOR_Floppy_Disk.sh</testScript>
-            <files>remote-scripts\ica\STOR_Floppy_Disk.sh</files>
-            <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>
-            <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
-            <noReboot>False</noReboot>
-            <testParams>
-                <param>TC_COVERED=STOR-01</param>
-            </testParams>
-            <timeout>600</timeout>
-        </test>
-         <test>
-            <testName>CDmount</testName>
-            <testScript>LIS_CD.sh</testScript>
-            <files>remote-scripts/ica/LIS_CD.sh</files>
-            <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
-            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
-            <testparams>
-                <param>IsoFilename=CDTEST.iso</param>
-                <param>TC_COVERED=STOR-01a</param>
-            </testparams>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test>
         <test>
             <testName>TakeRevert_SnapShot</testName>
             <setupScript>setupScripts\AddDisk.ps1</setupScript>

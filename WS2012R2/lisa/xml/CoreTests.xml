@@ -50,7 +50,7 @@
             <suiteTest>VerifyItegratedShutdownService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
             <suiteTest>StressReloadModules</suiteTest>
-            <suiteTest>FloppyDisk</suiteTest>
+			<suiteTest>FloppyDisk</suiteTest>
             <suiteTest>CDmount</suiteTest>
             </suiteTests>
         </suite>
@@ -191,18 +191,20 @@
             <noReboot>False</noReboot>
         </test>
 
-    <test>
+		<test>
             <testName>FloppyDisk</testName>
-            <testScript>LIS_Floppy_Disk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Floppy_Disk.sh</files>
+            <testScript>STOR_Floppy_Disk.sh</testScript>
+            <files>remote-scripts\ica\STOR_Floppy_Disk.sh</files>
             <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>
+            <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
             <noReboot>False</noReboot>
             <testParams>
-                <param>TC_COVERED=NLIS-03</param>
+                <param>TC_COVERED=CORE-19</param>
             </testParams>
+			<onError>Continue</onError>
             <timeout>600</timeout>
         </test>
-
+		
         <test>
             <testName>CDmount</testName>
             <testScript>LIS_CD.sh</testScript>
@@ -211,7 +213,7 @@
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testparams>
                 <param>IsoFilename=CDTEST.iso</param>
-                <param>TC_COVERED=NLIS-10</param>
+                <param>TC_COVERED=CORE-20</param>
             </testparams>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -221,7 +223,7 @@
     </testCases>
 
     <VMs>
-    <vm>
+		<vm>
             <hvServer>localhost</hvServer>
             <vmName>LinuxVM</vmName>
             <os>Linux</os>
@@ -230,5 +232,4 @@
             <suite>Core</suite>
         </vm>
     </VMs>
-
 </config>

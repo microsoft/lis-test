@@ -19,8 +19,6 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
     Mount a floppy in the VMs floppy drive.
@@ -40,26 +38,24 @@
 .Parameter testParams
     Semicolon separated list of test parameters.
     This setup script does not use any setup scripts.
-.Exmple
+
+.Example
     <test>
-            <testName>FloppyDisk</testName>
-            <testScript>STOR_Floppy_Disk.sh</testScript>    
-            <files>remote-scripts\ica\STOR_Floppy_Disk.sh</files> 
-            <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript> 
-            <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
-	        <noReboot>False</noReboot>
-     	    <testParams>               
-                <param>TC_COVERED=STOR-01</param>
-            </testParams>
-            <timeout>600</timeout>			
+		<testName>FloppyDisk</testName>
+		<testScript>STOR_Floppy_Disk.sh</testScript>    
+		<files>remote-scripts\ica\STOR_Floppy_Disk.sh</files> 
+		<setupScript>setupscripts\AddFloppyDisk.ps1</setupScript> 
+		<cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
+		<noReboot>False</noReboot>
+		<testParams>               
+			<param>TC_COVERED=STOR-01</param>
+		</testParams>
+		<timeout>600</timeout>			
   </test>
 
 #>
 
-
-
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
-
 
 #######################################################################
 #
@@ -93,14 +89,13 @@ function GetRemoteFileInfo([String] $filename, [String] $hvServer )
     return $fileInfo
 }
 
-
 #############################################################
 #
 # Main script body
 #
 #############################################################
-
 $retVal = $False
+$vfdPath = $null
 
 #
 # Check the required input args are present
@@ -117,27 +112,15 @@ if (-not $hvServer)
     return $False
 }
 
-
-#
-# Display some info for debugging purposes
-#
-"VM name     : ${vmName}"
-"Server      : ${hvServer}"
-
-$vfdPath = $null
-
-
 # If a .vfd file does not exist, create one
 #
 #
 $hostInfo = Get-VMHost -ComputerName $hvServer
-      if (-not $hostInfo)
-        {
-            "Error: Unable to collect Hyper-V settings for ${hvServer}"
-            return $False
-        }
-        
-"vhdfaefpath   : ${$hostInfo.VirtualHardDiskPath}"
+if (-not $hostInfo)
+{
+	"Error: Unable to collect Hyper-V settings for ${hvServer}"
+	return $False
+}
 
 $defaultVhdPath=$hostInfo.VirtualHardDiskPath
         if (-not $defaultVhdPath.EndsWith("\"))
@@ -162,9 +145,8 @@ if (-not $fileInfo)
 }
 else
 {
-    "Info : The file ${vfdPath} already exists"
+    "Info: The file ${vfdPath} already exists"
 }
-
 
 #
 # Add the vfd 

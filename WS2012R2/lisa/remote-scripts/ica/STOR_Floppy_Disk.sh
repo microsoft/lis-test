@@ -22,20 +22,20 @@
 ########################################################################
 
 ########################################################################
+#
 # Description:
 #     This script was created to automate the testing of a Linux
 #     Integration services.This script detects the floppy disk    
-#     and performs read, write and delete operations on the   
-#     Floppy disk.
+#     and performs read, write and delete operations on it.   
+#
 #     Steps:
 #	  1. Make sure that a floppy disk (.vfd) is attached to 
-#          the Diskette drive
+#          the Diskette drive.
 #	  2. Mount the Floppy Disk. 
-#      3. Create a file named Sample.txt on the Floppy Disk
-#      4. Read the file created on the Floppy Disk 
-#	  5. Delete the file created on the Floppy Disk.
-#      6. Unmount the Floppy Disk.
-#
+#     3. Create a file named Sample.txt on the Floppy Disk
+#     4. Read the file created 
+#	  5. Delete the file created
+#     6. Unmount the Floppy Disk.
 #  
 ################################################################
 
@@ -70,18 +70,16 @@ else
 	exit 1
 fi
 
-#Check for Testcase count
+#Check for Testcase ID
 if [ ! ${TC_COVERED} ]; then
     LogMsg "Error: The TC_COVERED variable is not defined."
 	echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
-    UpdateTestState "TestAborted"
-    exit 1
 fi
 
 echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
 #
-# check if floppy module is loaded or no 
+# Check if floppy module is loaded or not 
 #
 LogMsg "Check if floppy module is loaded"
 
@@ -90,18 +88,18 @@ if [[ $FLOPPY != "" ]] ; then
     LogMsg "Floppy disk  module is present"
 else
     LogMsg "Floppy disk module is not present in VM"
-    LogMsg "Loading Floppy disk module "
+    LogMsg "Loading the floppy disk module..."
     modprobe floppy
     sts=$?
     if [ 0 -ne ${sts} ]; then
-        LogMsg "Unable to load Floppy Disk module"
-        LogMsg "Aborting test."
-        UpdateSummary "Floppy disk module loaded : Failed"
+        LogMsg "Unable to load the floppy disk module!"
+	    UpdateSummary "Unable to load the floppy disk module!"
         UpdateTestState "TestFailed"
         exit 1
     else
         LogMsg  "Floppy disk module loaded inside the VM"
-        UpdateSummary "Floppy disk module loaded : Success"
+        UpdateSummary "Floppy disk module loaded: Success"
+        sleep 3
     fi
 fi
 
@@ -122,90 +120,79 @@ fi
 #
 # Mount the floppy disk
 #
-LogMsg "##### Mount the floppy disk #####"
+LogMsg "Mounting the floppy disk..."
 mount /dev/fd0 /mnt/
 sts=$?
 if [ 0 -ne ${sts} ]; then
-    LogMsg "Unable to mount the Floppy Disk"
-    LogMsg "Mount Floppy Disk failed: ${sts}"
-    LogMsg "Aborting test."
-	UpdateSummary "Unable to mount the Floppy Disk"
+    LogMsg "Unable to mount the floppy disk"
+    LogMsg "Mount floppy disk failed: ${sts}"
+	UpdateSummary "Unable to mount the floppy disk!"
     UpdateTestState "TestFailed"
     exit 1
 else
-    LogMsg  "Floppy disk is mounted successfully inside the VM"
+    LogMsg "Floppy disk is mounted successfully inside the VM"
     LogMsg "Floppy disk is detected inside the VM"
-    UpdateSummary "Floppy disk detected : Success"
+    UpdateSummary "Floppy disk detected: Success"
 fi
 
-LogMsg "##### Perform read ,write and delete  operations on the Floppy Disk ######"
 cd /mnt/
-LogMsg "#####Perform write operation on the floppy disk #####"
-LogMsg "Creating a file Sample.txt ........."
+LogMsg "Perform write operation on the floppy disk"
+LogMsg "Creating a file Sample.txt"
 LogMsg "This is a sample file been created for testing..." >Sample.txt
 sts=$?
 if [ 0 -ne ${sts} ]; then
     LogMsg "Unable to create a file on the Floppy Disk"
     LogMsg "Write to Floppy Disk failed: ${sts}"
-    LogMsg "Aborting test."
 	UpdateSummary "Unable to create a file on the Floppy Disk"
     UpdateTestState "TestFailed"
     exit 1
 else
-    LogMsg  "Sample.txt file created successfully on the Floppy disk"
+    LogMsg "Sample.txt file created successfully on the Floppy disk"
     UpdateSummary "File Creation inside floppy disk : Success"
 fi
 
-LogMsg "#####Perform read operation on the floppy disk #####"
-#echo "Sample.txt"
+LogMsg "Perform read operation on the floppy disk"
 cat Sample.txt
 sts=$?
-       if [ 0 -ne ${sts} ]; then
-            LogMsg "Unable to read Sample.txt file from the floppy disk"
-	        LogMsg "Read file from Floppy disk failed: ${sts}"
-	        LogMsg "Aborting test."
-			UpdateSummary "Unable to read Sample.txt file from the floppy disk"
-            UpdateTestState "TestFailed"
-		    exit 1
-        else
-            LogMsg "Sample.txt file is read successfully from the Floppy disk"
-		    UpdateSummary "File read inside floppy disk : Success"          
-       fi
+if [ 0 -ne ${sts} ]; then
+	LogMsg "Unable to read Sample.txt file from the floppy disk"
+	LogMsg "Read file from Floppy disk failed: ${sts}"
+	UpdateSummary "Unable to read Sample.txt file from the floppy disk"
+	UpdateTestState "TestFailed"
+	exit 1
+else
+	LogMsg "Sample.txt file is read successfully from the Floppy disk"
+	UpdateSummary "File read inside floppy disk : Success"          
+fi
 
-LogMsg "##### Perform delete operation on the Floppy disk #####"
-
+LogMsg "Perform delete operation on the Floppy disk"
 rm Sample.txt
-sts=$?
-        
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "Unable to delete Sample.txt file from the floppy disk"
-	        LogMsg "Delete file failed: ${sts}"
-	        LogMsg "Aborting test."
-			UpdateSummary "Unable to delete Sample.txt file from the floppy disk"
-            UpdateTestState "TestFailed"
-		    exit 1
-        else
-           LogMsg "Sample.txt file is deleted successfully from the Floppy disk"
-		   UpdateSummary "File deletion inside floppy disk : Success"           
-       fi
+sts=$?  
+if [ 0 -ne ${sts} ]; then
+	LogMsg "Unable to delete Sample.txt file from the floppy disk"
+	LogMsg "Delete file failed: ${sts}"
+	UpdateSummary "Unable to delete Sample.txt file from the floppy disk"
+	UpdateTestState "TestFailed"
+	exit 1
+else
+   LogMsg "Sample.txt file is deleted successfully from the Floppy disk"
+   UpdateSummary "File deletion inside floppy disk : Success"           
+fi
 
-LogMsg "#### Unmount the floppy disk ####"
+LogMsg "Unmounting the floppy disk..."
 cd ~
 umount /mnt/
 sts=$?      
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "Unable to unmount the floppy disk"
-	        LogMsg "umount failed: ${sts}"
-	        LogMsg "Aborting test."
-			UpdateSummary "Unable to unmount the floppy disk"
-            UpdateTestState "TestFailed"
-		    exit 1
-        else
-            LogMsg  "Floppy disk unmounted successfully"
-		    UpdateSummary "Floppy disk unmount: Success"   
-        fi
+if [ 0 -ne ${sts} ]; then
+	LogMsg "Unable to unmount the floppy disk"
+	LogMsg "umount failed: ${sts}"
+	UpdateSummary "Unable to unmount the floppy disk"
+	UpdateTestState "TestFailed"
+	exit 1
+else
+	LogMsg "Floppy disk unmounted successfully"
+	UpdateSummary "Floppy disk unmount: Success"   
+fi
 
-LogMsg "#########################################################"
-LogMsg "Result : Test Completed Succesfully"
-LogMsg "Exiting with state: TestCompleted."
+LogMsg "Result: Test Completed Successfully"
 UpdateTestState "TestCompleted"
