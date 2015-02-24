@@ -63,7 +63,7 @@ fi
 #Check for Testcase count
 if [ ! ${TC_COVERED} ]; then
     LogMsg "Error: The TC_COVERED variable is not defined."
-	echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
+    echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
 fi
 
 echo "Covers: ${TC_COVERED}" >> ~/summary.log
@@ -125,12 +125,10 @@ if [ 0 -ne ${sts} ]; then
 	LogMsg "Unable to unmount the CDROM"
 	LogMsg "umount failed: ${sts}"
 	LogMsg "Aborting test."
-		UpdateTestState "TestFailed"
+	UpdateTestState "TestFailed"
 	exit 1
 else
 	LogMsg  "CDROM unmounted successfully"
-	UpdateSummary " CDROM unmount: Success"
-	   
 fi
 
 UpdateSummary "CDROM mount, read and remove operations returned no errors."
