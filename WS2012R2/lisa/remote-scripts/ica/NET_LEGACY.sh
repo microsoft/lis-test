@@ -139,6 +139,8 @@ else
 	fi
 fi
 
+IFS=',' read -a networkType <<< "$NIC"
+
 # Parameter provided in constants file
 if [ "${SYNTH_NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
 	msg="The test parameter SYNTH_NETMASK is not defined in constants file . Defaulting to 255.255.255.0"
@@ -163,9 +165,15 @@ fi
 
 # set gateway parameter
 if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
-    LogMsg "$msg"
-	GATEWAY=''
+    if [ "${networkType[2]}" = "External" ]; then
+    	msg="The test parameter GATEWAY is not defined in constants file . The default gateway will be set for all interfaces."
+    	LogMsg "$msg"
+		GATEWAY=$(/sbin/ip route | awk '/default/ { print $3 }')
+	else
+		msg="The test parameter GATEWAY is not defined in constants file . No gateway will be set."
+		LogMsg "$msg"
+		GATEWAY=''
+	fi
 else
 	CheckIP "$GATEWAY"
 
@@ -394,7 +402,7 @@ __synth_iterator=0
 while [ $__synth_iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
 	LogMsg "Trying to get an IP Address via DHCP on synthetic interface ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
-	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__synth_iterator]}"
+	CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "dhcp"
 
 	if [ 0 -eq $? ]; then
 
@@ -505,7 +513,7 @@ __legacy_iterator=0
 
 while [ $__legacy_iterator -lt ${#LEGACY_NET_INTERFACES[@]} ]; do
 	LogMsg "Trying to get an IP Address via DHCP on legacy interface ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
-	SetIPfromDHCP "${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+	CreateIfupConfigFile "${LEGACY_NET_INTERFACES[$__legacy_iterator]}" "dhcp"
 
 	if [ 0 -eq $? ]; then
 		if [ -n "$GATEWAY" ]; then

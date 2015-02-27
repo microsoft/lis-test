@@ -137,6 +137,8 @@ else
 
 fi
 
+IFS=',' read -a networkType <<< "$NIC"
+
 if [ "${NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter NETMASK is not defined in constants file . Defaulting to 255.255.255.0"
     LogMsg "$msg"
@@ -150,9 +152,15 @@ fi
 
 # set gateway parameter
 if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
-    LogMsg "$msg"
-	GATEWAY=''
+    if [ "${networkType[2]}" = "External" ]; then
+    	msg="The test parameter GATEWAY is not defined in constants file . The default gateway will be set for all interfaces."
+    	LogMsg "$msg"
+		GATEWAY=$(/sbin/ip route | awk '/default/ { print $3 }')
+	else
+		msg="The test parameter GATEWAY is not defined in constants file . No gateway will be set."
+		LogMsg "$msg"
+		GATEWAY=''
+	fi
 else
 	CheckIP "$GATEWAY"
 
@@ -301,7 +309,7 @@ __iterator=${#STATIC_IPS[@]}
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
 	LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
+	CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "dhcp"
 
 	if [ 0 -ne $? ]; then
 		msg="Unable to get address for ${SYNTH_NET_INTERFACES[$__iterator]} through DHCP"

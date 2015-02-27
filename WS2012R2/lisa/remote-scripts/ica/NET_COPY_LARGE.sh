@@ -156,11 +156,19 @@ else
     LogMsg "$msg"
 fi
 
+IFS=',' read -a networkType <<< "$NIC"
+
 # set gateway parameter
 if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
-    LogMsg "$msg"
-	GATEWAY=''
+    if [ "${networkType[2]}" = "External" ]; then
+    	msg="The test parameter GATEWAY is not defined in constants file . The default gateway will be set for all interfaces."
+    	LogMsg "$msg"
+		GATEWAY=$(/sbin/ip route | awk '/default/ { print $3 }')
+	else
+		msg="The test parameter GATEWAY is not defined in constants file . No gateway will be set."
+		LogMsg "$msg"
+		GATEWAY=''
+	fi
 else
 	CheckIP "$GATEWAY"
 
@@ -290,7 +298,7 @@ declare -ai __invalid_positions
 __iterator=0
 # Try to get DHCP address for synthetic adaptor and ping if configured
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
-	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
+	CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "dhcp"
 	if [ 0 -eq $? ]; then
 		# add some interface output
 		UpdateSummary "Successfully set ip from dhcp on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
