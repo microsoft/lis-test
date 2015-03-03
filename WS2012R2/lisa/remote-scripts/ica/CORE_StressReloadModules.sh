@@ -139,8 +139,6 @@ fi
 if [ ! ${TC_COVERED} ]; then
     LogMsg "Error: The TC_COVERED variable is not defined."
 	echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
-    UpdateTestState "TestAborted"
-    exit 1
 fi
 
 echo "Covers : ${TC_COVERED}" >> ~/summary.log
@@ -162,11 +160,13 @@ if [ $? -eq 0 ]; then
 fi
 pass=0
 START=$(date +%s)
-while [ $pass -lt 500 ]
+while [ $pass -lt 100 ]
 do
     modprobe -r hv_netvsc
+    sleep 1
     modprobe hv_netvsc
     modprobe -r hv_utils
+    sleep 1
     modprobe hv_utils
     sleep 1
     modprobe -r hid_hyperv
