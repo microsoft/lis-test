@@ -39,20 +39,20 @@
             <suiteName>Network</suiteName>
             <suiteTests>
                 <suiteTest>ConfigureNetwork</suiteTest>
-                <suiteTest>InternalNetwork</suiteTest>
                 <suiteTest>External</suiteTest>
+                <suiteTest>InternalNetwork</suiteTest>
                 <suiteTest>GuestOnlyNetwork</suiteTest>
                 <suiteTest>OperState</suiteTest>
                 <suiteTest>MultipleNIC</suiteTest>
-                <suiteTest>LegacySyntheticNetwork</suiteTest>
                 <suiteTest>StaticMAC</suiteTest>
                 <suiteTest>ChangeNetTypeInternal</suiteTest>
                 <suiteTest>ChangeNetTypeGuest</suiteTest>
-                <suiteTest>NetworkMode</suiteTest>
-                <suiteTest>JumboFrame</suiteTest>
                 <suiteTest>CopyLargeFile</suiteTest>
-                <suiteTest>VlanTrunking</suiteTest>
                 <suiteTest>VlanTagging</suiteTest>
+                <suiteTest>VlanTrunking</suiteTest>
+                <suiteTest>JumboFrame</suiteTest>
+                <suiteTest>NetworkMode</suiteTest>
+                <suiteTest>LegacySyntheticNetwork</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -66,8 +66,8 @@
                 <param>TC_COVERED=NET-01</param>
                 <!-- As possible, please try to set a static IP not used by the DHCP Server -->
                 <!-- Alternatively, find out which IP is leased by the dhcp server to us and set it to the IP -->
-                <param>STATIC_IP=192.168.0.2</param>
-                <param>NETMASK=255.255.255.0</param>
+                <!-- <param>STATIC_IP=192.168.0.2</param> -->
+                <!-- <param>NETMASK=255.255.255.0</param> -->
                 <param>REMOTE_SERVER=8.8.8.8</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
@@ -152,6 +152,7 @@
         <test>
             <testName>LegacySyntheticNetwork</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
                 <file>setupscripts\ChangeCPU.ps1</file>
             </setupScript>
@@ -163,6 +164,7 @@
                 <param>LO_IGNORE=yes</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
                 <param>VCPU=1</param>
+                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>NET_LEGACY.sh</testScript>
             <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/utils.sh</files>
@@ -235,16 +237,20 @@
 
         <test>
             <testName>NetworkMode</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
             <testScript>NET_PROMISC.sh</testScript>
             <files>remote-scripts/ica/NET_PROMISC.sh,remote-scripts/ica/utils.sh</files>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-12</param>
                 <param>REMOTE_SERVER=8.8.8.8</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
+                <param>SnapshotName=ICABase</param>
             </testParams>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <noReboot>False</noReboot>
             <timeout>600</timeout>
         </test>
@@ -252,6 +258,7 @@
         <test>
             <testName>JumboFrame</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
@@ -276,6 +283,7 @@
         <test>
             <testName>CopyLargeFile</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
@@ -299,14 +307,17 @@
 
         <test>
             <testName>VlanTrunking</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-01</param>
                 <!-- <param>STATIC_IP=10.10.10.1</param> -->
                 <!-- <param>STATIC_IP2=10.10.10.2</param> -->
                 <!-- <param>NETMASK=255.255.255.0</param> -->
-                <param>VM2NAME=VM2Name-2</param>
+                <param>VM2NAME=VM2Name</param>
                 <param>VM_VLAN_ID=2</param>
                 <param>NATIVE_VLAN_ID=10</param>
                 <param>SnapshotName=ICABase</param>
@@ -319,7 +330,10 @@
 
         <test>
             <testName>VlanTagging</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
             <testParams>
 				<param>NIC=NetworkAdapter,External,External,001600112200</param>
 				<param>TC_COVERED=NET-01</param>
@@ -342,6 +356,7 @@
             <testParams>
                 <param>NIC=NetworkAdapter,None,None,001600112200</param>
                 <param>TC_COVERED=NET-22</param>
+                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>NET_OPERSTATE.sh</testScript>
             <files>remote-scripts/ica/NET_OPERSTATE.sh,remote-scripts/ica/utils.sh</files>
