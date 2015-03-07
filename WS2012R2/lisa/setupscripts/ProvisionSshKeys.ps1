@@ -119,7 +119,7 @@ function GetLinuxDistro([String] $ipv4, [String] $password)
         return $null
     }
 
-    $distro = bin\plink -pw "${password}" root@${ipv4} "grep -ihs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux' /etc/{issue,*release,*version}"
+    $distro = bin\plink -pw "${password}" root@${ipv4} "grep -ihs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux\|Oracle' /etc/{issue,*release,*version}"
     if (-not $distro)
     {
         return $null
@@ -147,6 +147,9 @@ function GetLinuxDistro([String] $ipv4, [String] $password)
         "*Red Hat*" {  $linuxDistro = "RedHat"
                        break
                     }
+        "*Oracle*" {  $linuxDistro = "Oracle"
+                       break
+                    }
         default     {  $linuxDistro = "Unknown"
                        break
                     }
@@ -168,6 +171,7 @@ function InstallPackagesRequiredByLisa([String] $ipv4, [String] $password)
     {
         CentOS   { $cmd = "yum -y install dos2unix at"                        }
         RedHat   { $cmd = "yum -y install dos2unix at"                        }
+        Oracle   { $cmd = "yum -y install dos2unix at"                        }
         SUSE     { $cmd = "zypper --non-interactive install dos2unix at"      }
         Ubuntu   { $cmd = "apt-get -y install dos2unix at"                    }
         default  { Throw "Error: Unable to determine the VMs OS distribution" }
@@ -182,6 +186,7 @@ function InstallPackagesRequiredByLisa([String] $ipv4, [String] $password)
     switch -regex ($distro)
     {
         Ubuntu { $cmd = "update-rc.d atd enable && update-rc.d atd enable" }
+        Oracle { $cmd = "chkconfig atd on" }
         default { $cmd = "systemctl enable atd.service" }
     }
 
