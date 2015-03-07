@@ -51,7 +51,7 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>SLES12Beta9X64</vmName>
+            <vmName>VM-Under-Test</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>

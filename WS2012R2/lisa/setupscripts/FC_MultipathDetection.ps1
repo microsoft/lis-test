@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    Verify that VM will not crash after stress reloading hv modules.
+    Verify that VM sees all the FC disks attached in MPIO scenario.
 
 .Description
     This script counts the number of connected fibre channel.

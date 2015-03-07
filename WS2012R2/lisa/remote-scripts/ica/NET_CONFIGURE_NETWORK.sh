@@ -22,7 +22,7 @@
 #####################################################################
 
 # Description:
-#	This script verifies that when a network adapter is added to a virtual machine and that its IP address can be manipulated, without loosing connectivity. 
+#	This script verifies that when a network adapter is added to a virtual machine and that its IP address can be manipulated, without loosing connectivity.
 #
 #	Steps:
 #	1. Verify configuration file constants.sh
@@ -32,7 +32,7 @@
 #	4. Get IP through DHCP
 #		4a. If configured, try to ping remote server
 #
-#	The test is successful if at least one synthetic network adapter is able to assign a static ip, 
+#	The test is successful if at least one synthetic network adapter is able to assign a static ip,
 #	as well as receive an IP address from a dhcp server (and ping the remote server, if configured)
 #
 #	Parameters required:
@@ -56,11 +56,11 @@
 #############################################################################################################
 
 # Convert eol
-dos2unix Utils.sh
+dos2unix utils.sh
 
-# Source Utils.sh
-. Utils.sh || {
-	echo "Error: unable to source Utils.sh!"
+# Source utils.sh
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
 	echo "TestAborted" > state.txt
 	exit 2
 }
@@ -99,7 +99,7 @@ case $? in
 		LogMsg "UtilsInit returned an unknown error. Aborting..."
 		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
 		SetTestStateAborted
-		exit 6 
+		exit 6
 		;;
 esac
 
@@ -136,14 +136,22 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" = "UNDEFINED" ]; then
 	REMOTE_SERVER=''
 fi
 
+IFS=',' read -a networkType <<< "$NIC"
+
 # set gateway parameter
 if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
-    LogMsg "$msg"
-	GATEWAY=''
+    if [ "${networkType[2]}" = "External" ]; then
+    	msg="The test parameter GATEWAY is not defined in constants file . The default gateway will be set for all interfaces."
+    	LogMsg "$msg"
+		GATEWAY=$(/sbin/ip route | awk '/default/ { print $3 }')
+	else
+		msg="The test parameter GATEWAY is not defined in constants file . No gateway will be set."
+		LogMsg "$msg"
+		GATEWAY=''
+	fi
 else
 	CheckIP "$GATEWAY"
-	
+
 	if [ 0 -ne $? ]; then
 		msg=""
 		LogMsg "$msg"
@@ -171,7 +179,7 @@ else
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# Get the interface associated with the given ipv4
 	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
@@ -181,7 +189,7 @@ if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
 	LogMsg "$msg"
 else
 	if [[ "$DISABLE_NM" =~ [Yy][Ee][Ss] ]]; then
-		
+
 		# work-around for suse where the network gets restarted in order to shutdown networkmanager.
 		declare __orig_netmask
 		GetDistro
@@ -287,7 +295,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 					LogMsg "Warning! Failed to set default gateway!"
 				fi
 			fi
-			
+
 			LogMsg "Trying to ping $REMOTE_SERVER"
 			UpdateSummary "Trying to ping $REMOTE_SERVER"
 			# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`con`null`static`null`
@@ -325,7 +333,7 @@ LogMsg "Synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} successfully se
 # Try to get DHCP address
 LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 
-SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
+CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "dhcp"
 
 # If we fail, we do not try other (if any) synthetic netadapters
 if [ 0 -ne $? ]; then
@@ -362,7 +370,7 @@ if [ -n "$REMOTE_SERVER" ]; then
 			LogMsg "Warning! Failed to set default gateway!"
 		fi
 	fi
-	
+
 	LogMsg "Trying to ping $REMOTE_SERVER"
 	UpdateSummary "Trying to ping $REMOTE_SERVER"
 	# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`conf`null`dhcp`null`

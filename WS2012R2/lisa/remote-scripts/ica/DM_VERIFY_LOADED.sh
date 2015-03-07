@@ -40,11 +40,11 @@
 #############################################################################################################
 
 # Convert eol
-dos2unix Utils.sh
+dos2unix utils.sh
 
-# Source Utils.sh
-. Utils.sh || {
-	echo "Error: unable to source Utils.sh!"
+# Source utils.sh
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
 	echo "TestAborted" > state.txt
 	exit 2
 }
@@ -83,7 +83,7 @@ case $? in
 		LogMsg "UtilsInit returned an unknown error. Aborting..."
 		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
 		SetTestStateAborted
-		exit 6 
+		exit 6
 		;;
 esac
 

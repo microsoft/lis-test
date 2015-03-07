@@ -65,20 +65,20 @@
         </test>
     </testCases>
 
-    <VMs>        
+    <VMs>
         <vm>
-            <role>SUT1</role>
-            <hvServer>localhost</hvServer>
-            <vmName>Sles11Sp3x64</vmName>
+            <role>SUT</role>
+            <hvServer>LIS-HOST01</hvServer>
+            <vmName>VM-TCPing-Client</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>TCPing</suite>
         </vm>
         <vm>
-            <role>NonSUT1</role>
-            <hvServer>localhost</hvServer>
-            <vmName>SLES11SP3X64-NonSUT</vmName>
+            <role>NonSUT</role>
+            <hvServer>LIS-HOST02</hvServer>
+            <vmName>VM-TCPing-Server</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>

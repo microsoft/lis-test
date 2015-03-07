@@ -41,16 +41,16 @@
 function HasItBeenTooLong([String] $timestamp, [Int] $timeout)
 {
     <#
-	.Synopsis
-    	Check to see if a timeout has occured.
+    .Synopsis
+        Check to see if a timeout has occured.
         
     .Description
         Convert the timestamp from a string to a [DateTime] type,
         add in the timeout value and see if it is less than the
         current date/time.
         
-	.Parameter timestamp
-    	A string representing the timestamp
+    .Parameter timestamp
+        A string representing the timestamp
         Type : [String]
         
     .Parameter timeout
@@ -64,7 +64,7 @@ function HasItBeenTooLong([String] $timestamp, [Int] $timeout)
         
     .Example
         HasItBeenTooLong $myTimeStamp $myTimeOut
-	#>
+    #>
     
     $retVal = $false
 
@@ -109,16 +109,16 @@ function HasItBeenTooLong([String] $timestamp, [Int] $timeout)
 function GetNextTest([System.Xml.XmlElement] $vm, [xml] $xmlData)
 {
     <#
-	.Synopsis
-    	Get the name of the next test the VM is to run
+    .Synopsis
+        Get the name of the next test the VM is to run
         
     .Description
         Examine the $vm.suite field and then walk through the test suite
         to return the string name of the next test the VM is to perform.
         If all tests have been performed, return the string "done".
         
-	.Parameter vm
-    	An XML element representing the VM
+    .Parameter vm
+        An XML element representing the VM
         Type : [System.Xml.XmlElement]
         
     .ReturnValue
@@ -127,7 +127,7 @@ function GetNextTest([System.Xml.XmlElement] $vm, [xml] $xmlData)
         
     .Example
         GetNextTest $myVM
-	#>
+    #>
     LogMsg 9 "Info :    GetNextText($($vm.vmName))"
     LogMsg 9 "Debug:      vm.currentTest = $($vm.currentTest)"
     LogMsg 9 "Debug:      vm.suite = $($vm.suite)"
@@ -251,15 +251,15 @@ function GetNextTest([System.Xml.XmlElement] $vm, [xml] $xmlData)
 function GetTestData([String] $testName, [xml] $xmlData)
 {
     <#
-	.Synopsis
-    	Retrieve the xml object for the specified test
+    .Synopsis
+        Retrieve the xml object for the specified test
         
     .Description
         Find the test named $testName, and return the xml element
         for that test, on $null if the test is not found.
         
-	.Parameter testName
-    	The name of the test to return
+    .Parameter testName
+        The name of the test to return
         Type : [String]
         
     .ReturnValue
@@ -267,7 +267,7 @@ function GetTestData([String] $testName, [xml] $xmlData)
         Output type: [System.Xml.XmlElement]
     .Example
         GetTestData "MyTest"
-	#>
+    #>
     LogMsg 6 ("Info :    GetTestData($($testName))")
     
     $testData = $null
@@ -294,15 +294,15 @@ function GetTestData([String] $testName, [xml] $xmlData)
 function GetTestTimeout([System.Xml.XmlElement] $vm, [XML] $xmlData)
 {
     <#
-	.Synopsis
-    	Retrieve timeout value for the VM's current test
+    .Synopsis
+        Retrieve timeout value for the VM's current test
         
     .Description
         Return the timeout value defined in the .xml file for
         the current test, or $null if no timeout is specified.
         
-	.Parameter vm
-    	The xml element of the virtual machine
+    .Parameter vm
+        The xml element of the virtual machine
         Type : [System.Xml.XmlElement]
         
     .ReturnValue
@@ -311,7 +311,7 @@ function GetTestTimeout([System.Xml.XmlElement] $vm, [XML] $xmlData)
         Output type: [String]
     .Example
         GetTestTimeout $myVM
-	#>
+    #>
     
     $timeout = $null
     $testData = GetTestData $vm.currentTest $xmlData
@@ -333,16 +333,16 @@ function GetTestTimeout([System.Xml.XmlElement] $vm, [XML] $xmlData)
 function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
 {
     <#
-	.Synopsis
-    	Mark the current test as aborted.
+    .Synopsis
+        Mark the current test as aborted.
         
     .Description
         Displayed msg if provided, set the VM's testCaseResults to 
         "False", and set the VM's state to completed, update the
         VM's timestamp
         
-	.Parameter vm
-    	The xml element of the virtual machine
+    .Parameter vm
+        The xml element of the virtual machine
         Type : [System.Xml.XmlElement]
 
     .Parameter msg
@@ -354,7 +354,7 @@ function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
         
     .Example
         AbortCurrentTest $myVM "This is just a test"
-	#>
+    #>
 
     #$TestAborted = "TestAborted"
 
@@ -379,16 +379,16 @@ function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
 function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename)
 {
     <#
-	.Synopsis
-    	Append the summary text from each VM into a single string.
+    .Synopsis
+        Append the summary text from each VM into a single string.
         
     .Description
         Append the summary text from each VM one long string. The
         string includes line breaks so it can be display on a 
         console or included in an e-mail message.
         
-	.Parameter xmlConfig
-    	The parsed xml from the $xmlFilename file.
+    .Parameter xmlConfig
+        The parsed xml from the $xmlFilename file.
         Type : [System.Xml]
 
     .Parameter startTime
@@ -405,7 +405,7 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
         
     .Example
         SummaryToString $testConfig $myStartTime $myXmlTestFile
-	#>
+    #>
     
     $str = "<br />Test Results Summary<br />"
     $str += "LISA test run on " + $startTime
@@ -419,13 +419,13 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
     {
         $str += $vm.emailSummary + "<br />"
     }
-	 
-	$fname = [System.IO.Path]::GetFilenameWithoutExtension($xmlFilename)
-	
-	$hostname = hostname
+     
+    $fname = [System.IO.Path]::GetFilenameWithoutExtension($xmlFilename)
     
-	$str += "Logs can be found at \\$($hostname)\LisaTestResults\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
-	
+    $hostname = hostname
+    
+    $str += "Logs can be found at \\$($hostname)\LisaTestResults\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
+    
     $str += "</pre><br />"
 
     return $str
@@ -440,16 +440,16 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
 function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename)
 {
     <#
-	.Synopsis
-    	Send an e-mail message with test summary information.
+    .Synopsis
+        Send an e-mail message with test summary information.
         
     .Description
         Collect the test summary information from each VM.  Send an
         eMail message with this summary information to emailList defined
         in the xml config file.
         
-	.Parameter xmlConfig
-    	The parsed XML from the test xml file
+    .Parameter xmlConfig
+        The parsed XML from the test xml file
         Type : [System.Xml]
         
     .ReturnValue
@@ -457,7 +457,7 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
         
     .Example
         SendEmail $myConfig
-	#>
+    #>
 
     $to = @()
     foreach($r in $xmlConfig.config.global.email.recipients.to)
@@ -490,16 +490,16 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
 function ShutDownVM([System.Xml.XmlElement] $vm)
 {
     <#
-	.Synopsis
-    	Stop the VM
+    .Synopsis
+        Stop the VM
         
     .Description
         Try to send a halt command to the VM.  If this fails,
         use the HyperV library Stop-VM call to try and stop
         the VM.  If the VM is already stopped, do nothing.
         
-	.Parameter vm
-    	An xml node representing the VM.
+    .Parameter vm
+        An xml node representing the VM.
         Type : [System.Xml.XmlElement]
         
     .ReturnValue
@@ -507,7 +507,7 @@ function ShutDownVM([System.Xml.XmlElement] $vm)
         
     .Example
         ShutDownVM $myVM
-	#>
+    #>
 
     $v = Get-VM -vm $($vm.vmName) -ComputerName $($vm.hvServer)
     if ($($v.State) -ne "Off")
@@ -530,14 +530,14 @@ function ShutDownVM([System.Xml.XmlElement] $vm)
 function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $xmlData, [string] $mode, [string] $logFilename)
 {
     <#
-	.Synopsis
-    	Run a separate PowerShell script.
+    .Synopsis
+        Run a separate PowerShell script.
         
     .Description
         Run the specified PowerShell script.
         
-	.Parameter vmName
-    	Name of the VM
+    .Parameter vmName
+        Name of the VM
         Type : [String]
 
     .Parameter scriptName
@@ -554,7 +554,7 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
 
     .Example
         RunPSScript "fed13" "hvServer1" ".\AddNic.ps1" $testData ".\myLog.log"
-	#>
+    #>
 
     $retVal = $False
 
@@ -614,7 +614,7 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     $params += "scriptMode=${scriptMode};"
     $params += "TestLogDir=${testDir};"
     $params += "sshKey=$($vm.sshKey);"   
-	
+    
     #
     # Invoke the setup/cleanup script
     #
@@ -659,15 +659,15 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
 #####################################################################
 function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
 {
-	<#
-	.Synopsis
-    	Check to see if a specific TCP port is open on a server.
+    <#
+    .Synopsis
+        Check to see if a specific TCP port is open on a server.
     .Description
         Try to create a TCP connection to a specific port (22 by default)
         on the specified server. If the connect is successful return
         true, false otherwise.
-	.Parameter Host
-    	The name of the host to test
+    .Parameter Host
+        The name of the host to test
     .Parameter Port
         The port number to test. Default is 22 if not specified.
     .Parameter Timeout
@@ -676,7 +676,7 @@ function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
         Test-Port $serverName
     .Example
         Test-Port $serverName -port 22 -timeout 5
-	#>
+    #>
 
     $retVal = $False
     $timeout = $to * 1000
@@ -728,19 +728,19 @@ function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
 #####################################################################
 function UpdateState([System.Xml.XmlElement] $vm, [string] $newState)
 {
-	<#
-	.Synopsis
-    	Update the VM's state in the XML object representing the VM.
+    <#
+    .Synopsis
+        Update the VM's state in the XML object representing the VM.
     .Description
         Update the VMs state in the XML object, log a message,
         and update the timestamp of the last state transition.
-	.Parameter vm
-    	The XML object representing the VM who's state needs updating.
+    .Parameter vm
+        The XML object representing the VM who's state needs updating.
     .Parameter newState
         The VMs new state.
     .ReturnValue
         None
-	#>
+    #>
     
     $oldState = $vm.state
     $vm.state = $newState
@@ -756,21 +756,21 @@ function UpdateState([System.Xml.XmlElement] $vm, [string] $newState)
 #####################################################################
 function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [string] $localFile)
 {
-	<#
-	.Synopsis
-    	Copy a file from a remote system, the VM, to a local copy.
+    <#
+    .Synopsis
+        Copy a file from a remote system, the VM, to a local copy.
     .Description
         Use SSH to copy a file from a remote system, to a local file,
         possibly renaming the file in the process.
-	.Parameter vm
-    	The XML object representing the VM to copy from.
+    .Parameter vm
+        The XML object representing the VM to copy from.
     .Parameter remoteFile
         The name, including path, of the file on the remote system.
     .Parameter localFile
         The name, including path, the file is to be copied to.
     .ReturnValue
         True if the file was successfully copied, false otherwise.
-	#>
+    #>
 
     $retVal = $False
 
@@ -785,6 +785,12 @@ function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [strin
     if ($process.ExitCode -eq 0)
     {
         $retVal = $True
+    }
+    else
+    {
+        LogMsg 1 "ERROR: GetFileFromVM failed. Error message from pscp: "
+        $error = Get-Content .\lisaErr.tmp
+        LogMsg 1 $error
     }
 
     del lisaOut.tmp -ErrorAction "SilentlyContinue"
@@ -801,13 +807,13 @@ function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [strin
 #####################################################################
 function SendFileToVM([System.Xml.XmlElement] $vm, [string] $localFile, [string] $remoteFile)
 {
-	<#
-	.Synopsis
-    	Copy a file To a remote system, the VM, to a local copy.
+    <#
+    .Synopsis
+        Copy a file To a remote system, the VM, to a local copy.
     .Description
         Use SSH to copy a file to a remote system.
-	.Parameter vm
-    	The XML object representing the VM to copy from.
+    .Parameter vm
+        The XML object representing the VM to copy from.
     .Parameter localFile
         The name of the file is to be copied to the remote system.
     .Parameter remoteFile
@@ -835,6 +841,12 @@ function SendFileToVM([System.Xml.XmlElement] $vm, [string] $localFile, [string]
     if ($process.ExitCode -eq 0)
     {
         $retVal = $True
+    }
+    else
+    {
+        LogMsg 1 "ERROR: SendFileToVM failed. Error message from pscp: "
+        $error = Get-Content .\lisaErr.tmp
+        LogMsg 1 $error
     }
 
     del lisaOut.tmp -ErrorAction "SilentlyContinue"
@@ -905,20 +917,20 @@ function SendCommandToVM([System.Xml.XmlElement] $vm, [string] $command)
 #####################################################################
 function TestRemotePath ([String] $path, [String] $hvServer)
 {
-	<#
-	.Synopsis
-    	Check to see if a file exists on a remote HyperV server
+    <#
+    .Synopsis
+        Check to see if a file exists on a remote HyperV server
     .Description
         User WMI to see if a file exists on a remote HyperV server
-	.Parameter path
-    	The name of the host to test
+    .Parameter path
+        The name of the host to test
     .Parameter hvServer
         The name, or IP address, of the HyperV server
     .Example
         TestRemoteFile "C:\HyperV\VHDs\test.vhd" "myHvServer"
     .Example
         TestRemoteFile -path "C:\HyperV\VHDs\test.vhd" -hvServer "myHvServer"
-	#>
+    #>
 
     $retVal = $False
 
@@ -1027,15 +1039,15 @@ function TestRemotePath ([String] $path, [String] $hvServer)
 #####################################################################
 function Test-Admin ()
 {
-	<#
-	.Synopsis
-    	Check if process is running as an Administrator
+    <#
+    .Synopsis
+        Check if process is running as an Administrator
     .Description
         Test if the user context this process is running as
         has Administrator privileges
     .Example
         Test-Admin
-	#> 
+    #> 
     $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
     $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
@@ -1671,11 +1683,24 @@ function VerifyTestResourcesExist([System.Xml.XmlElement] $vm, [System.Xml.XmlEl
     #
     if ($vm.preStartConfig)
     {
-        $script = "$($vm.preStartConfig)"
-        if (-not (Test-Path -Path "${script}"))
+        if ($vm.preStartConfig.file)
         {
-            LogMsg 0 "Error: ${vmName} - the VM preStartConfig script '${script}' does not exist"
-            $retVal = $False
+            foreach ($preStartScript in $vm.preStartConfig.file)
+            {
+                if (-not (Test-Path -Path "${preStartScript}"))
+                {
+                    LogMsg 0 "Error: $($vm.vmName) - the VM preStartConfig script '${preStartScript}' does not exist"
+                    $retVal = $False
+                }
+            }
+        }
+        else
+        {
+            if (-not (Test-Path -Path "$($vm.preStartConfig)"))
+            {
+                LogMsg 0 "Error: $($vm.vmName) - the VM preStartConfig script '${preStartScript}' does not exist"
+                $retVal = $False
+            }
         }
     }
 

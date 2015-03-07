@@ -902,14 +902,28 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #run preStartScript if has
     if ($vm.preStartConfig)
     {
-        LogMsg 3 "Info : $($vm.vmName) - starting preStart script $($vm.preStartConfig)"
-
-        $sts = RunPSScript $vm $($vm.preStartConfig) $xmlData "preStartConfig"
-        if (-not $sts)
-        {
-            LogMsg 0 "Error: Info: VM $($vm.vmName) preStartConfig script for test $($vm.postStartConfig) failed"
-        }
-    }
+        if ($vm.preStartConfig.File)	
+	    {
+		    foreach ($preStartScript in $vm.preStartConfig.file)
+			{
+			    LogMsg 3 "Info : $($vm.vmName) running preStartConfig script '${preStartScript}' "
+				$sts = RunPSScript $vm $preStartScript $xmlData "preStartConfig"
+				if (-not $sts)
+				{
+				LogMsg 0 "Error: VM $($vm.vmName) preStartConfig script: $preStartScript failed"
+				}
+			}
+		}
+		else  # original syntax of <preStartConfig>.\setupscripts\Config-VM.ps1</preStartConfig>
+		{
+		    LogMsg 3 "Info : $($vm.vmName) - starting preStart script $($vm.preStartConfig)"
+			$sts = RunPSScript $vm $($vm.preStartConfig) $xmlData "preStartConfig"
+			if (-not $sts)
+			{
+				LogMsg 0 "Error: VM $($vm.vmName) preStartConfig script: $($vm.preStartConfig) failed"
+			}
+		}
+	}
     else
     {
         LogMsg 9 "Info: VM: $($vm.vmName) does not have preStartConfig script defined"

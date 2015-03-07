@@ -31,6 +31,54 @@
 #
 ############################################################################
 
+# Convert eol
+dos2unix utils.sh
+
+# Source utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
+# Source constants file and initialize most common variables
+UtilsInit
+
+# In case of error
+case $? in
+    0)
+        #do nothing, init succeeded
+        ;;
+    1)
+        LogMsg "Unable to cd to $LIS_HOME. Aborting..."
+        UpdateSummary "Unable to cd to $LIS_HOME. Aborting..."
+        SetTestStateAborted
+        exit 3
+        ;;
+    2)
+        LogMsg "Unable to use test state file. Aborting..."
+        UpdateSummary "Unable to use test state file. Aborting..."
+        # need to wait for test timeout to kick in
+            # hailmary try to update teststate
+            sleep 60
+            echo "TestAborted" > state.txt
+        exit 4
+        ;;
+    3)
+        LogMsg "Error: unable to source constants file. Aborting..."
+        UpdateSummary "Error: unable to source constants file"
+        SetTestStateAborted
+        exit 5
+        ;;
+    *)
+        # should not happen
+        LogMsg "UtilsInit returned an unknown error. Aborting..."
+        UpdateSummary "UtilsInit returned an unknown error. Aborting..."
+        SetTestStateAborted
+        exit 6
+        ;;
+esac
+
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
@@ -47,28 +95,6 @@ LogMsg()
 UpdateTestState()
 {
     echo $1 > ~/state.txt
-}
-
-# Checks what Linux distribution is running
-
-LinuxRelease()
-{
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
-
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-    esac
 }
 
 
@@ -139,50 +165,53 @@ fi
 #
 
 VERSION=$(uname -r)
-OLD="include/linux/kernel.h"
 
-case $(LinuxRelease) in
-    "CENTOS" | "RHEL")
-        NEW="/usr/src/kernels/${VERSION}/include/linux/kernel.h"
+GetDistro
+echo $DISTRO
+    case "$DISTRO" in
+    redhat* | centos*)
+        path="/usr/src/kernels/${VERSION}/"
     ;;
-    "UBUNTU")
+    ubuntu*)
         apt-get install linux-headers-$(uname -r)
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Error:  kernel headers  ${sts}" >> ~/summary.log
             UpdateTestState "TestAborted"
-            echo "kernel headers installation failed" 
+            echo "kernel headers installation failed"
             exit 50
         fi
-        NEW="/usr/src/linux-headers-${VERSION}/include/linux/kernel.h"
+        path="/usr/src/linux-headers-${VERSION}/"
     ;;
-    "DEBIAN")
+    debian*)
         apt-get install linux-headers-$(uname -r)
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Error:  kernel headers  ${sts}" >> ~/summary.log
             UpdateTestState "TestAborted"
-            echo "kernel headers installation failed" 
+            echo "kernel headers installation failed"
             exit 50
         fi
-        NEW="/usr/include/linux/kernel.h"
+        path="/usr/"
     ;;
-    "SLES")
+    suse*)
         VERSION=${VERSION:0:${#VERSION}-8}
-        NEW="/usr/src/linux-${VERSION}/include/linux/kernel.h"
+        path="/usr/src/linux-${VERSION}/"
     ;;
      *)
         LogMsg "Distro not supported"
         UpdateTestState "TestAborted"
         UpdateSummary " Distro not supported, test aborted"
         exit 1
-    ;; 
+    ;;
 esac
 
 
 cd ${ROOTDIR}
 
-sed -i.bak "s;$OLD;$NEW;g" kernbench
+mv kernbench $path
+
+cd "$path"
 
 #
 # run Kernbench
@@ -205,6 +234,20 @@ if grep -q "No kernel source found" <<<$output; then
     exit 60
 fi
 sleep 1
+
+#Check if benchmark ran on kernel
+results=($(awk -F "[()]" '{ for (i=2; i<NF; i+=2) print $i }' kernbench.log))
+
+for i in "${results[@]}"
+do
+  :
+  if [ $i == 0 ]; then
+    LogMsg "Something went wrong. Check logfiles."
+    UpdateSummary "$msg"
+    UpdateTestState $ICA_TESTFAILED
+    exit 60
+  fi
+done
 
 LogMsg "Kernbench test completed successfully"
 echo "Kernbench test completed successfully" >> ~/summary.log

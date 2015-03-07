@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# http://archive.ubuntu.com/ubuntu/pool/universe/m/mysql-5.6/mysql-server-5.6_5.6.16-1~exp1_amd64.deb
+# http://archive.ubuntu.com/ubuntu/pool/universe/m/mysql-5.6/mysql-common-5.6_5.6.16-1~exp1_all.deb
+# http://archive.ubuntu.com/ubuntu/pool/universe/m/mysql-5.6/mysql-client-core-5.6_5.6.16-1~exp1_amd64.deb
+# http://archive.ubuntu.com/ubuntu/pool/universe/m/mysql-5.6/mysql-client-5.6_5.6.16-1~exp1_amd64.deb
+# http://archive.ubuntu.com/ubuntu/pool/universe/m/mysql-5.6/mysql-server-core-5.6_5.6.16-1~exp1_amd64.deb
+# MUST INSTALL libdbi-perl libdbd-mysql-perl libterm-readkey-perl libaio libaio-dev mysqltcl in base image
+
+# For RHEL 6.6 dirty workaround is to install tcl which is 8.5 and link it as 8.6
+# rhel & ubuntu: gdm 
+
+
 ########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
@@ -64,7 +75,7 @@
 #         <param>MYSQL_HOST=192.168.1.10</param>
 #         <param>MYSQL_PORT=3306</param>
 #         <param>MYSQL_USER=root</param>
-#         <param>MYSQL_PASS=redhat</param>
+#         <param>MYSQL_PASS=mysqlpassword</param>
 #         <param>HDB_COUNT_WAREHOUSE=2</param>
 #         <param>HDB_NUM_VIRTUALUSER=4</param>
 #         <param>HDB_DBASE=tpcc</param>
@@ -77,6 +88,7 @@
 # </test>
 #
 #######################################################################
+
 
 #
 # LISA related constants
@@ -93,12 +105,15 @@ HAMMERDB_VERSION="2.16"
 HAMMERDB_PACKAGE="HammerDB-${HAMMERDB_VERSION}-Linux-x86-64-Install"
 HAMMERDB_URL="http://sourceforge.net/projects/hammerora/files/HammerDB/HammerDB-${HAMMERDB_VERSION}</param>"
 HDB_CONFIG="/usr/local/HammerDB-${HAMMERDB_VERSION}/config.xml"
+
+NEW_HDB_FILE=lisahdb.tcl
+NEW_TPCC_FILE=hdb_tpcc.tcl
 RDBMS=MySQL                     # Identifies the target database
 
-MYSQL_HOST=192.168.1.2            # IP address of the MySQL host - the non-SUT VM
-MYSQL_PORT=3306               # Port the MySQL server is listening on
-MYSQL_USER=root                 # Username to use when connecting to the MySQL server 
-MYSQL_PASS=redhat               # Password to use when connecting to the MySQL server 
+MYSQL_HOST=192.168.1.100        # IP address of the MySQL host
+MYSQL_PORT=3306                 # Port the MySQL server is listening on
+MYSQL_USER=root                 # Username to use when connecting to the MySQL server
+MYSQL_PASS=mysqlpassword        # Password to use when connecting to the MySQL server
 
 HDB_COUNT_WAREHOUSE=100         # Number of ware houses to create
 HDB_NUM_VIRTUALUSER=16          # Number of virtual users to create
@@ -170,12 +185,12 @@ UbuntuInstallMySQL()
     #       in advanced, and strict mode be disabled for both the SSH
     #       server and client.
     #
-    LogMsg "Info: Install MySQL on Ubuntu"
+    LogMsg "Info: Ubuntu Install MySQL"
 
     #
     # Ubuntu installs an older version of the MySQL client by default.
     # This older version conflicts with the newer MySQL we will 
-    # install. Quietly remove the older version if it is installed.
+    # install.  Quietly remove the older version if it is installed.
     #
 	ssh root@${MYSQL_HOST} "apt-get remove mysql-server-5.5 mysql-server-core-5.5 mysql-client-5.5 mysql-client-core-5.5 2>&1"
 
@@ -293,7 +308,7 @@ UbuntuInstallMySQL()
         # 
         # Update MySql to allow connections from other servers such as Load Generator
         # 
-        LogMsg "Info: Updating MySQL settings to allow connections from other machines"
+        LogMsg "Info : Updating MySQL settings to allow connections from other machines"
 
         echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
         echo "flush privileges;" >> /root/setmysql.sql
@@ -320,7 +335,7 @@ UbuntuInstallMySQL()
     #
     # Add an export LD_LIBRARY_PATH to the .bashrc file
     #
-    LogMsg "Info: Updating .bashrc"
+    LogMsg "Info : Updating .bashrc"
     clientPath=/usr/lib/x86_64-linux-gnu/libmysqlclient.so.18
     if [ ! -e $clientPath ]; then
         LogMsg "Info: Searching for libmysqlclient.so.18"
@@ -337,13 +352,11 @@ UbuntuInstallMySQL()
     dirPath=$(dirname ${clientPath})
     grep ${dirPath} ~/.bashrc
     if [ $? -ne 0 ]; then
-        LogMsg "Info: Adding LD_LIBRARY_PATH to .bashrc"
+        LogMsg "Info : Adding LD_LIBRARY_PATH to .bashrc"
         echo "export LD_LIBRARY_PATH=${dirPath}" >> ~/.bashrc
     fi
 	
 	ssh root@${MYSQL_HOST} "service mysql restart"
-	
-	# Fixing tclsh path for script compatibility
 	ln -s /usr/bin/tclsh8.6 /usr/local/bin/tclsh8.6
 }
 
@@ -381,10 +394,10 @@ RhelInstallMySQL()
     #       in advanced, and strict mode be disabled for both the SSH
     #       server and client.
     #
-    LogMsg "Info: Install MySQL on RHEL/CentOS"
+    LogMsg "Info: RHEL/CentOS Install MySQL"
 
     #
-    # RHEL/CentOS might have an older version of the MySQL client by default.
+    # Ubuntu installs an older version of the MySQL client by default.
     # This older version conflicts with the newer MySQL we will 
     # install.  Quietly remove the older version if it is installed.
     #
@@ -474,7 +487,7 @@ RhelInstallMySQL()
     #
     # Start the MySQL daemon
     #
-    LogMsg "Info: Starting the MySQL daemon..."
+    LogMsg "Info : Starting the MySQL daemon"
 
     #
     # The command "service mysql start" does not work until after a reboot.
@@ -512,11 +525,11 @@ RhelInstallMySQL()
     # .mysql_secret file, and then use mysqladmin to reset the password to value specified
     # in the test parameter MYSQL_PASS
     #
-    LogMsg "Info: Updating the MySQL expired password"
+    LogMsg "Info : Updating the MySQL expired password"
     
     if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
-        LogMsg "Info: MYSQL is running on '${MYSQL_HOST}'"
-        LogMsg "Info: Copying the MYSQL secret file from remote server"
+        LogMsg "Info : MYSQL is running on '${MYSQL_HOST}'"
+        LogMsg "Info : Copying the MYSQL secret file from remote server"
         scp root@${MYSQL_HOST}:/root/.mysql_secret /root
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy the MYSQL initial password file from host ${MYSQL_HOST}"
@@ -544,7 +557,7 @@ RhelInstallMySQL()
         #
         # Update MySql to allow connections from other servers such as Load Generator
         # 
-        LogMsg "Info: Updating MySQL settings to allow connections from other machines"
+        LogMsg "Info : Updating MySQL settings to allow connections from other machines"
 
         echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
         echo "flush privileges;" >> /root/setmysql.sql
@@ -571,7 +584,7 @@ RhelInstallMySQL()
     #
     # Add an export LD_LIBRARY_PATH to the .bashrc file
     #
-    LogMsg "Info: Updating .bashrc"
+    LogMsg "Info : Updating .bashrc"
     clientPath=/usr/lib64/libmysqlclient.so.18
     if [ ! -e $clientPath ]; then
         LogMsg "Info: Searching for libmysqlclient.so.18"
@@ -588,13 +601,11 @@ RhelInstallMySQL()
     dirPath=$(dirname ${clientPath})
     grep ${dirPath} ~/.bashrc
     if [ $? -ne 0 ]; then
-        LogMsg "Info: Adding LD_LIBRARY_PATH to .bashrc"
+        LogMsg "Info : Adding LD_LIBRARY_PATH to .bashrc"
         echo "export LD_LIBRARY_PATH=${dirPath}" >> ~/.bashrc
     fi
 	
 	ssh root@${MYSQL_HOST} "service mysql restart"
-	
-	# RHEL 6.x doesn't have tclsh v8.6, forcing a link between versions
 	ln -s /usr/bin/tclsh8.5 /usr/local/bin/tclsh8.6
 }
 
@@ -614,7 +625,7 @@ SlesInstallMySQL()
     #       in advanced, and strict mode be disabled for both the SSH
     #       server and client.
     #
-    LogMsg "Info: MySQL installation on SLES"
+    LogMsg "Info : SlesInstallMySQL"
 
     #
     # Sles installs an older version of the MySQL client by default.
@@ -628,7 +639,7 @@ SlesInstallMySQL()
     # localhost.
     #
     if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
-        LogMsg "Info: Copy MYSQL package to mysql_host '${MYSQL_HOST}'"
+        LogMsg "Info : Copy MYSQL package to mysql_host '${MYSQL_HOST}'"
 
         scp "./${MYSQL_PACKAGE}" root@${MYSQL_HOST}:
         if [ $? -ne 0 ]; then
@@ -649,15 +660,15 @@ SlesInstallMySQL()
     #         If there is a MySQL client already installed, the MYSQL install will
     #         most likely fail with a conflict error.
     #       
-    LogMsg "Info: Install the MySQL package"
+    LogMsg "Info : Install the MySQL package"
 
-    LogMsg "Info: Deleting old MySQL rpm files"
+    LogMsg "Info : Deleting old MySQL rpm files"
     ssh root@${MYSQL_HOST} "rm -f ~/MySQL*.rpm"
 
-    LogMsg "Info: Extracting the ${MYSQL_PACKAGE} package"
+    LogMsg "Info : Extracting the ${MYSQL_PACKAGE} package"
     ssh root@${MYSQL_HOST} "tar -xf ${MYSQL_PACKAGE}"
 
-    LogMsg "Info: Installing MySQL"
+    LogMsg "Info : Installing MySQL"
     ssh root@${MYSQL_HOST} "rpm -i MySQL*.rpm"
     if [ $? -ne 0 ]; then
         msg="Error: Unable to install the MySQL packages"
@@ -670,7 +681,7 @@ SlesInstallMySQL()
     #
     # Start the MySQL daemon
     #
-    LogMsg "Info: Starting the MySQL daemon"
+    LogMsg "Info : Starting the MySQL daemon"
 
     #
     # The command "service mysql start" does not work until after a reboot.
@@ -699,8 +710,8 @@ SlesInstallMySQL()
     #
     # Give MySQL a few seconds to start
     #
-    LogMsg "Info: sleep for a few seconds so mysqld can start"
-    sleep 9
+    LogMsg "Info : sleep for a few seconds so mysqld can start"
+    sleep 10
 
     #
     # MySQL sets the password for the root user as expired.  The current, expired, password
@@ -708,11 +719,11 @@ SlesInstallMySQL()
     # .mysql_secret file, and then use mysqladmin to reset the password to value specified
     # in the test parameter MYSQL_PASS
     #
-    LogMsg "Info: Updating the MySQL expired password"
+    LogMsg "Info : Updating the MySQL expired password"
     
     if [ ${MYSQL_HOST} != "127.0.0.1" ]; then
-        LogMsg "Info: MYSQL is running on '${MYSQL_HOST}'"
-        LogMsg "Info: Copying the MYSQL secret file from remote server"
+        LogMsg "Info : MYSQL is running on '${MYSQL_HOST}'"
+        LogMsg "Info : Copying the MYSQL secret file from remote server"
         scp root@${MYSQL_HOST}:/root/.mysql_secret /root
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy the MYSQL initial password file from host ${MYSQL_HOST}"
@@ -740,7 +751,7 @@ SlesInstallMySQL()
         #
         # Update MySql to allow connections from other servers such as Load Generator
         # 
-        LogMsg "Info: Updating MySQL settings to allow connections from other machines"
+        LogMsg "Info : Updating MySQL settings to allow connections from other machines"
 
         echo "grant all on *.* to root@'${ipv4}' identified by '${MYSQL_PASS}';" > /root/setmysql.sql
         echo "flush privileges;" >> /root/setmysql.sql
@@ -767,10 +778,10 @@ SlesInstallMySQL()
     #
     # Add an export LD_LIBRARY_PATH to the .bashrc file
     #
-    LogMsg "Info: Updating .bashrc"
+    LogMsg "Info : Updating .bashrc"
     clientPath=/usr/lib64/libmysqlclient.so.18
     if [ ! -e $clientPath ]; then
-        LogMsg "Info: Searching for libmysqlclient.so.18"
+        LogMsg "Info : Searching for libmysqlclient.so.18"
         clientPath=$(find / -name "libmysqlclient.so.18")
         if [ -z ${clientPath} ]; then
             msg="Error: The MySQL client library is not installed"
@@ -784,7 +795,7 @@ SlesInstallMySQL()
     dirPath=$(dirname ${clientPath})
     grep ${dirPath} ~/.bashrc
     if [ $? -ne 0 ]; then
-        LogMsg "Info: Adding LD_LIBRARY_PATH to .bashrc"
+        LogMsg "Info : Adding LD_LIBRARY_PATH to .bashrc"
         echo "export LD_LIBRARY_PATH=${dirPath}" >> ~/.bashrc
     fi
 }
@@ -874,7 +885,7 @@ fi
 # Make sure we have the MySQL package, then install it on the
 # host defined by the MYSQL_HOST test parameter
 #
-LogMsg "Info: Checking if MYSQL package '${MYSQL_PACKAGE}' exists"
+LogMsg "Info : Checking if MYSQL package '${MYSQL_PACKAGE}' exists"
 
 if [ ! -e "./${MYSQL_PACKAGE}" ]; then
     msg="Error: The package '${MYSQL_PACKAGE}' is not present"
@@ -1069,7 +1080,7 @@ echo "cd /usr/local/HammerDB-${HAMMERDB_VERSION}" >> /root/launchhammerdb.sh
 echo "./${NEW_HDB_FILE}" >> /root/launchhammerdb.sh
 chmod 755 /root/launchhammerdb.sh
 
-LogMsg "Info: Create the autostart file"
+LogMsg "Info : Create the autostart file"
 AUTOSTART=/root/.config/autostart/hammerdb.desktop
 mkdir /root/.config/autostart
 echo "[Desktop Entry]"                 >  $AUTOSTART

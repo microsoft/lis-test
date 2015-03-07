@@ -24,14 +24,15 @@
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
-count=0
+
+declare os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
 
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
 LogMsg()
 {
-    echo $(date "+%a %b %d %T %Y") : ${1}
+    echo `date "+%a %b %d %T %Y"` : ${1}
 }
 
 #######################################################################
@@ -141,7 +142,6 @@ function GetOSVersion {
     fi
     export os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
 }
-
 #######################################################################
 # Determine if current distribution is a Fedora-based distribution
 # (Fedora, RHEL, CentOS, etc).
@@ -154,10 +154,10 @@ function is_fedora {
     [ "$os_VENDOR" = "Fedora" ] || [ "$os_VENDOR" = "Red Hat" ] || \
         [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ]
 }
-
 #######################################################################
 # Determine if current distribution is a Rhel/CentOS 7 distribution
 #######################################################################
+
 function is_rhel7 {
     if [[ -z "$os_RELEASE" ]]; then
         GetOSVersion
@@ -167,7 +167,6 @@ function is_rhel7 {
         [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ] && \
         [ "$os_RELEASE" = "7" ]
 }
-
 #######################################################################
 # Determine if current distribution is a SUSE-based distribution
 # (openSUSE, SLE).
@@ -191,86 +190,8 @@ function is_ubuntu {
     [ "$os_PACKAGE" = "deb" ]
 }
 
-#######################################################################
-# Connects to a iscsi target. It takes the target ip as an argument. 
-#######################################################################
-function iscsiConnect() {
-# Start the iscsi service. This is distro-specific.
-    if is_suse ; then
-        /etc/init.d/open-iscsi start
-        sts=$?
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "ERROR: iSCSI start failed. Please check if iSCSI initiator is installed"
-            UpdateTestState "TestAborted"
-            UpdateSummary "iSCSI service: Failed"
-            exit 1
-        else
-            LogMsg "iSCSI start: Success"
-            UpdateSummary "iSCSI start: Success"
-        fi
-    elif is_ubuntu ; then
-        service open-iscsi restart
-        sts=$?
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "ERROR: iSCSI start failed. Please check if iSCSI initiator is installed"
-            UpdateTestState "TestAborted"
-            UpdateSummary "iSCSI service: Failed"
-            exit 1
-        else
-            LogMsg "iSCSI start: Success"
-            UpdateSummary "iSCSI start: Success"
-        fi
-
-    elif is_fedora ; then
-        service iscsi restart
-        sts=$?
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "ERROR: iSCSI start failed. Please check if iSCSI initiator is installed"
-            UpdateTestState "TestAborted"
-            UpdateSummary "iSCSI service: Failed"
-            exit 1
-        else
-            LogMsg "iSCSI start: Success"
-            UpdateSummary "iSCSI start: Success"
-        fi
-    else
-        LogMsg "Distro not supported"
-        UpdateTestState "TestAborted"
-        UpdateSummary "Distro not supported, test aborted"
-        exit 1
-    fi
-
-    # Discover the IQN
-    iscsiadm -m discovery -t st -p ${TargetIP}
-    if [ 0 -ne $? ]; then
-        LogMsg "ERROR: iSCSI discovery failed. Please check the target IP address (${TargetIP})"
-        UpdateTestState "TestAborted"
-        UpdateSummary " iSCSI service: Failed"
-        exit 1
-    elif [ ! ${IQN} ]; then  # Check if IQN Variable is present in constants.sh, else select the first target. 
-        # We take the first IQN target
-        IQN=`iscsiadm -m discovery -t st -p ${TargetIP} | head -n 1 | cut -d ' ' -f 2` 
-    fi
-    
-    # Now we have all data necesary to connect to the iscsi target
-    iscsiadm -m node -T ${IQN} -p  ${TargetIP} -l
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "ERROR: iSCSI connection failed ${sts}"
-        UpdateTestState "TestAborted"
-        UpdateSummary "iSCSI connection: Failed"
-        exit 1
-    else
-        LogMsg "iSCSI connection to ${TargetIP} >> ${IQN} : Success"
-        UpdateSummary " SCSI connection: Success"
-    fi
-}
-
-
 ####################################################################### 
-# 
 # Main script body 
-# 
 #######################################################################
 
 # Create the state.txt file so ICA knows we are running
@@ -281,141 +202,35 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
-# Make sure the constants.sh file exists
-if [ ! -e ./constants.sh ];
-then
-    LogMsg "Cannot find constants.sh file."
-    UpdateTestState $ICA_TESTABORTED
-    exit 1
-fi
-
 # Source the constants file
-if [ -e $HOME/constants.sh ]; then
-    . $HOME/constants.sh
+if [ -e constants.sh ]; then
+    . constants.sh
 else
-    LogMsg "ERROR: Unable to source the constants file."
-    exit 1
+    LogMsg "WARN: Unable to source the constants file."
 fi
 
-# Check if Variable in Const file is present or not
-if [ ! ${FILESYS} ]; then
-    LogMsg "No FILESYS variable in constants.sh"
-    UpdateTestState "TestAborted"
-    exit 1
-else
-    LogMsg "File System: ${FILESYS}"
-fi
-
-if [ ! ${TargetIP} ]; then
-    LogMsg "No TargetIP variable in constants.sh"
-    UpdateTestState "TestAborted"
-    exit 1
-else
-    LogMsg "Target IP: ${TargetIP}"
-fi
-
-if [ ! ${IQN} ]; then
-    LogMsg "No IQN variable in constants.sh. Will try to autodiscover it"
-else
-    LogMsg "IQN: ${IQN}"
-fi
-
-# Connect to the iSCSI Target  
-iscsiConnect
-sts=$?
-if [ 0 -ne ${sts} ]; then
-    LogMsg "ERROR: iSCSI connect failed ${sts}"
-    UpdateTestState "TestAborted"
-    UpdateSummary "iSCSI connection to $TargetIP: Failed"
-    exit 1
-else
-    LogMsg "iSCSI connection to $TargetIP: Success"
-fi
-
-# Count the Number of partition present in added new Disk . 
-for disk in $(cat /proc/partitions | grep sd | awk '{print $4}')
-do
-        if [[ "$disk" != "sda"* ]];
-        then
-                ((count++))
-        fi
-done
-
-((count--))
-
-# Format, Partition and mount all the new disk on this system.
-firstDrive=1
-for drive in $(find /sys/devices/ -name 'sd*' | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
-do
-    #
-    # Skip /dev/sda
-    #
-    if [ $drive != "sda"  ] ; then 
-
-    driveName="${drive}"
-    # Delete the exisiting partition
-
-    for (( c=1 ; c<=count; count--))
-        do
-            (echo d; echo $c ; echo ; echo w) | fdisk /dev/$driveName
-        done
-
-
-    # Partition Drive
-    (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) | fdisk /dev/$driveName 
-    (echo n; echo p; echo 2; echo ; echo; echo ; echo w) | fdisk /dev/$driveName 
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        echo "ERROR:  Partitioning disk Failed ${sts}"
-        UpdateTestState "TestAborted"
-        UpdateSummary " Partitioning disk $driveName : Failed"
+# rhel, centos, etc.. 
+if is_rhel7 ; then
+    systemctl list-units --type=service | grep hypervvssd
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: VSS Daemon not running, test aborted"
+        UpdateTestState $ICA_TESTABORTED
         exit 1
     else
-        LogMsg "Partitioning disk $driveName : Sucsess"
-        UpdateSummary " Partitioning disk $driveName : Sucsess"
+        LogMsg "VSS Daemon is running"
+        UpdateTestState $ICA_TESTCOMPLETED
+        exit 0
     fi
-
-   sleep 1
-
-# Create file sytem on it . 
-   echo "y" | mkfs.$FILESYS /dev/${driveName}1  ; echo "y" | mkfs.$FILESYS /dev/${driveName}2  
-   sts=$?
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "ERROR:  creating filesystem  Failed ${sts}"
-            UpdateTestState "TestAborted"
-            UpdateSummary " Creating FileSystem $filesys on disk $driveName : Failed"
-            exit 1
-        else
-            LogMsg "Creating FileSystem $FILESYS on disk  $driveName : Sucsess"
-            UpdateSummary " Creating FileSystem $FILESYS on disk $driveName : Sucsess"
-        fi
-
-   sleep 1
-
-# mount the disk .
-   MountName=${driveName}1
-   if [ ! -e ${MountName} ]; then
-       mkdir $MountName
-   fi
-   MountName1=${driveName}2
-   if [ ! -e ${MountName1} ]; then
-       mkdir $MountName1
-   fi
-   mount  /dev/${driveName}1 $MountName ; mount  /dev/${driveName}2 $MountName1
-   sts=$?
-       if [ 0 -ne ${sts} ]; then
-           LogMsg "ERROR:  mounting disk Failed ${sts}"
-           UpdateTestState "TestAborted"
-           UpdateSummary " Mounting disk $driveName on $MountName: Failed"
-           exit 1
-       else
-       LogMsg "mounting disk ${driveName}1 on ${MountName}"
-       LogMsg "mounting disk ${driveName}2 on ${MountName1}"
-           UpdateSummary " Mounting disk ${driveName}1 : Sucsess"
-           UpdateSummary " Mounting disk ${driveName}2 : Sucsess"
-       fi
+else
+    ps -ef | grep '[h]v_vss_daemon'
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: VSS Daemon not running, test aborted"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    else
+        LogMsg "VSS Daemon is running"
+        UpdateTestState $ICA_TESTCOMPLETED
+        exit 0
+    fi
 fi
-done
 
-UpdateTestState $ICA_TESTCOMPLETED
-exit 0

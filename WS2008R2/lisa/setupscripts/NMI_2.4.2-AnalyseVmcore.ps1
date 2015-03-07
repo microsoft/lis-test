@@ -246,7 +246,7 @@ while ($testCaseTimeout -gt 0)
 #
 # Sending NMI interrupt to the linux VM
 #
-Debug-VM –Name $vmName -InjectNonMaskableInterrupt -ComputerName $hvServer
+Debug-VM -Name $vmName -InjectNonMaskableInterrupt -ComputerName $hvServer
 if(!$?)
     {
         "Error: Failed to send NMI to VM."

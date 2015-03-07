@@ -24,7 +24,7 @@
 # Description:
 #	This script tries to set the mtu of each synthetic network adapter to 65536 or whatever the maximum it accepts
 #	and ping a second VM with large packet sizes. All synthetic interfaces need to have the same max MTU.
-#	The REMOTE_VM also needs to have its interface set to the high MTU.
+#	The STATIC_IP2 also needs to have its interface set to the high MTU.
 #
 #	Steps:
 #	1. Verify configuration file constants.sh
@@ -32,16 +32,16 @@
 #	3. Set static IPs on these interfaces
 #		3a. If static IP is not configured, get address(es) via dhcp
 #	4. Set MTU to 65536 or the maximum that the interface accepts
-#	5. If SSH_PRIVATE_KEY was passed, ssh into the REMOTE_VM and set the MTU to the same value as above, on the interface
+#	5. If SSH_PRIVATE_KEY was passed, ssh into the STATIC_IP2 and set the MTU to the same value as above, on the interface
 #		owning that IP Address
-#	5. Ping REMOTE_VM
+#	5. Ping STATIC_IP2
 #
 #	The test is successful if all synthetic interfaces were able to set the same maximum MTU and then
-#	were able to ping the REMOTE_VM with all various packet-sizes.
+#	were able to ping the STATIC_IP2 with all various packet-sizes.
 #
 #	Parameters required:
-#		REMOTE_VM
-#		
+#		STATIC_IP2
+#
 #	Optional parameters:
 #		STATIC_IP
 #		TC_COVERED
@@ -51,7 +51,7 @@
 #		GATEWAY
 #
 #	Parameter explanation:
-#	REMOTE_VM is an IP address of a ping-able machine. All interfaces found will have to be able to ping this REMOTE_VM
+#	STATIC_IP2 is an IP address of a ping-able machine. All interfaces found will have to be able to ping this STATIC_IP2
 #	The script assumes that the SSH_PRIVATE_KEY is located in $HOME/.ssh/$SSH_PRIVATE_KEY
 #	REMOTE_USER is the user used to ssh into the remote VM. Default is root
 #	STATIC_IP is the address that will be assigned to the interface(s) corresponding to the given MAC. Multiple Addresses can be specified
@@ -65,11 +65,11 @@
 
 
 # Convert eol
-dos2unix Utils.sh
+dos2unix utils.sh
 
-# Source Utils.sh
-. Utils.sh || {
-	echo "Error: unable to source Utils.sh!"
+# Source utils.sh
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
 	echo "TestAborted" > state.txt
 	exit 2
 }
@@ -108,7 +108,7 @@ case $? in
 		LogMsg "UtilsInit returned an unknown error. Aborting..."
 		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
 		SetTestStateAborted
-		exit 6 
+		exit 6
 		;;
 esac
 
@@ -136,12 +136,14 @@ else
 			SetTestStateAborted
 			exit 30
 		fi
-		
+
 	done
-	
+
 	unset __iterator
-	
+
 fi
+
+IFS=',' read -a networkType <<< "$NIC"
 
 if [ "${NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter NETMASK is not defined in constants file . Defaulting to 255.255.255.0"
@@ -149,8 +151,8 @@ if [ "${NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
 	NETMASK=255.255.255.0
 fi
 
-if [ "${REMOTE_VM:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter REMOTE_VM is not defined in constants file. No network connectivity test will be performed."
+if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter STATIC_IP2 is not defined in constants file. No network connectivity test will be performed."
     LogMsg "$msg"
 	SetTestStateAborted
 	exit 30
@@ -173,12 +175,18 @@ fi
 
 # set gateway parameter
 if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
-    LogMsg "$msg"
-	GATEWAY=''
+    if [ "${networkType[2]}" = "External" ]; then
+    	msg="The test parameter GATEWAY is not defined in constants file . The default gateway will be set for all interfaces."
+    	LogMsg "$msg"
+		GATEWAY=$(/sbin/ip route | awk '/default/ { print $3 }')
+	else
+		msg="The test parameter GATEWAY is not defined in constants file . No gateway will be set."
+		LogMsg "$msg"
+		GATEWAY=''
+	fi
 else
 	CheckIP "$GATEWAY"
-	
+
 	if [ 0 -ne $? ]; then
 		msg=""
 		LogMsg "$msg"
@@ -208,7 +216,7 @@ else
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# Get the interface associated with the given ipv4
 	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
@@ -218,7 +226,7 @@ if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
 	LogMsg "$msg"
 else
 	if [[ "$DISABLE_NM" =~ [Yy][Ee][Ss] ]]; then
-		
+
 		# work-around for suse where the network gets restarted in order to shutdown networkmanager.
 		declare __orig_netmask
 		GetDistro
@@ -321,7 +329,7 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 20
-	fi	
+	fi
 	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
 
@@ -332,8 +340,9 @@ __iterator=${#STATIC_IPS[@]}
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
 	LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	SetIPfromDHCP "${SYNTH_NET_INTERFACES[$__iterator]}"
-	
+
+	CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "dhcp"
+
 	if [ 0 -ne $? ]; then
 		msg="Unable to get address for ${SYNTH_NET_INTERFACES[$__iterator]} through DHCP"
 		LogMsg "$msg"
@@ -341,12 +350,12 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# add some interface output
 	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
-	
+
 	: $((__iterator++))
-	
+
 done
 
 # reset iterator
@@ -365,20 +374,20 @@ declare -i __max_set=0
 for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 	while [ "$__current_mtu" -lt "$__const_max_mtu" ]; do
-	
+
 		__current_mtu=$((__current_mtu+__const_increment_size))
-		
+
 		ip link set dev "${SYNTH_NET_INTERFACES[$__iterator]}" mtu "$__current_mtu"
-		
+
 		if [ 0 -ne $? ]; then
 			# we reached the maximum mtu for this interface. break loop
 			__current_mtu=$((__current_mtu-__const_increment_size))
 			break
 		fi
-		
+
 		# make sure mtu was set. otherwise, set test to failed
 		__actual_mtu=$(ip -o link show "${SYNTH_NET_INTERFACES[$__iterator]}" | cut -d ' ' -f5)
-		
+
 		if [ x"$__actual_mtu" != x"$__current_mtu" ]; then
 			msg="Set mtu on interface ${SYNTH_NET_INTERFACES[$__iterator]} to $__current_mtu but ip reports mtu to be $__actual_mtu"
 			LogMsg "$msg"
@@ -388,16 +397,16 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		fi
 
 	done
-	
+
 	LogMsg "Successfully set mtu to $__current_mtu on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	
+
 	# update max mtu to the maximum of the first interface
 	if [ "$__max_set" -eq 0 ]; then
 		__max_mtu="$__current_mtu"
 		# all subsequent __current_mtu must be equal to the max of the first one
 		__max_set=1
 	fi
-	
+
 	if [ "$__max_mtu" -ne "$__current_mtu" ]; then
 		msg="Maximum mtu for interface ${SYNTH_NET_INTERFACES[$__iterator]} is $__current_mtu but maximum mtu for previous interfaces is $__max_mtu"
 		LogMsg "$msg"
@@ -405,7 +414,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# reset __current_mtu for next interface
 	__current_mtu=0
 
@@ -419,7 +428,7 @@ if [ -n "$__iface_ignore" ]; then
 	ip link set dev "$__iface_ignore" mtu "$__max_mtu"
 	# make sure mtu was set. otherwise, issue a warning
 	__actual_mtu=$(ip -o link show "$__iface_ignore" | cut -d ' ' -f5)
-	
+
 	if [ x"$__actual_mtu" != x"$__max_mtu" ]; then
 		msg="Set mtu on interface $__iface_ignore (which is used by the LIS Framework) to $__max_mtu but ip reports mtu to be $__actual_mtu"
 		LogMsg "$msg"
@@ -430,17 +439,17 @@ fi
 # reset iterator
 __iterator=0
 
-# if SSH_PRIVATE_KEY was specified, ssh into the REMOTE_VM and set the MTU of all interfaces to $__max_mtu
+# if SSH_PRIVATE_KEY was specified, ssh into the STATIC_IP2 and set the MTU of all interfaces to $__max_mtu
 # if not, assume that it was already set.
 
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
-	LogMsg "Setting all interfaces on $REMOTE_VM mtu to $__max_mtu"
-	ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$REMOTE_VM" "
-		__remote_interface=\$(ip -o addr show | grep \"$REMOTE_VM\" | cut -d ' ' -f2)
+	LogMsg "Setting all interfaces on $STATIC_IP2 mtu to $__max_mtu"
+	ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "
+		__remote_interface=\$(ip -o addr show | grep \"$STATIC_IP2\" | cut -d ' ' -f2)
 		if [ x\"\$__remote_interface\" = x ]; then
 			exit 1
 		fi
-		
+
 		# make sure no legacy interfaces are present
 		__legacy_interface_no=\$(find /sys/devices -name net -a ! -path '*vmbus*' -a ! -path '*virtual*' -a ! -path '*lo*' | wc -l)
 
@@ -453,40 +462,41 @@ if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
 
 		for __interface in \$__all_interfaces; do
 			ip link set dev \$__interface mtu \"$__max_mtu\"
-			
+
 			if [ 0 -ne \$? ]; then
 				exit 2
 			fi
-		
-			__remote_actual_mtu=\$(ip -o link show \"\$__remote_interface\" | cut -d ' ' -f5)
-			
+
+		done
+
+		__remote_actual_mtu=\$(ip -o link show \"\$__remote_interface\" | cut -d ' ' -f5)
+
 			if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
 				exit 3
 			fi
-		done
 
 		exit 0
 		"
-		
+
 	if [ 0 -ne $? ]; then
-		msg="Unable to set $REMOTE_VM mtu to $__max_mtu"
+		msg="Unable to set $STATIC_IP2 mtu to $__max_mtu"
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 fi
 
 UpdateSummary "Successfully set mtu to $__max_mtu on both local and remote NICs."
 
 declare -ai __packet_size=(0 1 2 48 64 512 1440 1500 1505 4096 4192 25152 65500)
 declare -i __packet_iterator
-# 20 bytes IP header + 8 bytes ICMP header 
+# 20 bytes IP header + 8 bytes ICMP header
 declare -i __const_ping_header=28
 declare __hex_ping_value
 
-# for each interface, ping the REMOTE_VM with different-sized packets
+# for each interface, ping the STATIC_IP2 with different-sized packets
 for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 	for __packet_iterator in ${!__packet_size[@]}; do
@@ -494,7 +504,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			# reached the max packet size for our max mtu
 			break
 		fi
-		
+
 		if [ -n "$GATEWAY" ]; then
 			LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
 			CreateDefaultGateway "$GATEWAY" "${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -502,23 +512,23 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 				LogMsg "Warning! Failed to set default gateway!"
 			fi
 		fi
-		
+
 		__hex_ping_value=$(echo -n "${__packet_size[$__packet_iterator]}" | od -A n -t x1 | sed 's/ //g' | cut -c1-10)
-		
-		LogMsg "Trying to ping $REMOTE_VM from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
-		UpdateSummary "Trying to ping $REMOTE_VM from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
-		
+
+		LogMsg "Trying to ping $STATIC_IP2 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
+		UpdateSummary "Trying to ping $STATIC_IP2 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
+
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`jumb`null`packet_size`null`
-		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 20 -p "cafed00d006a756d6200${__hex_ping_value}00" -s "${__packet_size[$__packet_iterator]}" "$REMOTE_VM"
+		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 20 -p "cafed00d006a756d6200${__hex_ping_value}00" -s "${__packet_size[$__packet_iterator]}" "$STATIC_IP2"
 
 		if [ 0 -ne $? ]; then
-			msg="Failed to ping $REMOTE_VM through interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
+			msg="Failed to ping $STATIC_IP2 through interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
 			LogMsg "$msg"
 			UpdateSummary "$msg"
 			SetTestStateFailed
 			exit 10
 		fi
-		
+
 		if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
 
 			if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -531,14 +541,14 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 			if [ "$PING_SUCC_IPv6" != false ] && [ "$PING_SUCC_IPv6" = "detect" ] ; then
 
-			full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$REMOTE_VM" "ip addr show | grep -A 2 "$REMOTE_VM" | grep "inet6"|grep "global"" | awk '{print $2}'`
+			full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$STATIC_IP2" "ip addr show | grep -A 2 "$STATIC_IP2" | grep "inet6"|grep "global"" | awk '{print $2}'`
 			IPv6=${full_ipv6:0:${#full_ipv6}-3}
 			fi
-			
+
 			LogMsg "Trying to ping $IPv6 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
 			UpdateSummary "Trying to ping $IPv6 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
-			
-			ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10  "$IPv6" -s "${__packet_size[$__packet_iterator]}" 
+
+			ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10  "$IPv6" -s "${__packet_size[$__packet_iterator]}"
 			if [ 0 -ne $? ]; then
 				msg="Failed to ping $IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 				LogMsg "$msg"

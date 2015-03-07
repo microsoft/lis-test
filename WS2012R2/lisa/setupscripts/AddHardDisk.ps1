@@ -88,17 +88,17 @@
     A typical XML definition for this test case would look similar
     to the following:
        <test>
-      	 	<testName>VHD_SCSI_Fixed</testName>
-      		<testScript>STOR_Lis_Disk.sh</testScript>
-       		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
-       		<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
-       		<cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-       		<timeout>18000</timeout>
-       		<testparams>
-           		    <param>SCSI=0,0,Fixed</param>
-       		</testparams>
-       		<onError>Abort</onError>
-    	</test>
+            <testName>VHD_SCSI_Fixed</testName>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>18000</timeout>
+            <testparams>
+                    <param>SCSI=0,0,Fixed</param>
+            </testparams>
+            <onError>Abort</onError>
+        </test>
 
 .Parameter vmName
     Name of the VM to remove disk from .
@@ -363,27 +363,54 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
         return $false
     }
 
-    #
-    # Make sure the drive number exists
-    #
-    $drivenumber = GetPhysicalDiskForPassThru $server
-
-    Write-Output "drive number available - $drivenumber"
-
-    if ($drivenumber -ne $null)
+    # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
+    $hostInfo = Get-VMHost -ComputerName $server
+    if (-not $hostInfo)
     {
-        $pt = Add-VMHardDiskDrive -VMName $vmName -ComputerName $server -ControllerType $controllertype -ControllerNumber $ControllerID -ControllerLocation $lun -DiskNumber $drivenumber -Passthru
+        "ERROR: Unable to collect Hyper-V settings for ${server}"
+        return $false
+    }
 
-        if ($pt)
-        {
-            $retVal = $true
-        }
+    $defaultVhdPath = $hostInfo.VirtualHardDiskPath
+    if (-not $defaultVhdPath.EndsWith("\"))
+    {
+        $defaultVhdPath += "\"
+    }
+
+    $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-pass"  + ".vhd"
+
+    if(Test-Path $vhdName)
+    {
+        Dismount-VHD -Path $vhdName -ErrorAction Ignore
+        Remove-Item $vhdName
+    }
+    $newVhd = $null
+
+    $newVhd = New-VHD -Path $vhdName -size 1GB -ComputerName $server -Fixed
+    if ($newVhd -eq $null)
+    {
+        "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
+        return $false
+    }
+
+    $newVhd = $newVhd | Mount-VHD -Passthru
+    $phys_disk = $newVhd | Initialize-Disk -PartitionStyle MBR -PassThru
+    $phys_disk | Set-Disk -IsOffline $true
+
+    $ERROR.Clear()
+    $phys_disk | Add-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
+    if ($ERROR.Count -gt 0)
+    {
+        "ERROR: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
+        $ERROR[0].Exception
+        return $false
     }
     else
     {
-        "Error: no free physical drives found"
+        $retVal=$true
     }
 
+     "INFO: Successfully attached passthrough drive"
     return $retVal
 }
 
@@ -466,6 +493,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-" + $vhdType + ".vhd"
         if(Test-Path $vhdName)
         {
+            Dismount-VHD -Path $vhdName -ErrorAction Ignore
             Remove-Item $vhdName
         }
         $fileInfo = GetRemoteFileInfo -filename $vhdName -server $hvServer

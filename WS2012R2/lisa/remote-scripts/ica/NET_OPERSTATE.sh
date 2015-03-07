@@ -44,11 +44,11 @@
 
 
 # Convert eol
-dos2unix Utils.sh
+dos2unix utils.sh
 
-# Source Utils.sh
-. Utils.sh || {
-	echo "Error: unable to source Utils.sh!"
+# Source utils.sh
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
 	echo "TestAborted" > state.txt
 	exit 2
 }
@@ -87,7 +87,7 @@ case $? in
 		LogMsg "UtilsInit returned an unknown error. Aborting..."
 		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
 		SetTestStateAborted
-		exit 6 
+		exit 6
 		;;
 esac
 
@@ -111,7 +111,7 @@ else
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# Get the interface associated with the given ipv4
 	__iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
 fi
@@ -133,9 +133,9 @@ else
 	fi
 
 	LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
-	
+
 	declare __synth_iface
-	
+
 	for __synth_iface in ${SYNTH_NET_INTERFACES[@]}; do
 		if [ ! -e /sys/class/net/"$__synth_iface"/operstate ]; then
 			msg="Could not find /sys/class/net/$__synth_iface/operstate ."
@@ -144,19 +144,19 @@ else
 			SetTestStateFailed
 			exit 10
 		fi
-		
-		declare __state
-		
-		cat /sys/class/net/"$__synth_iface"/operstate | grep -i down
-		
-		if [ 0 -ne $? ]; then
-			msg="Operstate of $__synth_iface is not down."
+
+		__state=`cat /sys/class/net/${__synth_iface}/operstate`
+
+		if [ "$__state" != "down" ]; then
+   			msg="Operstate of $__synth_iface is not down. It is $__state"
 			LogMsg "$msg"
 			UpdateSummary "$msg"
 			SetTestStateFailed
 			exit 10
 		fi
-		
+		msg="Operstate is $__state"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
 	done
 fi
 
@@ -168,7 +168,7 @@ if [ 0 -ne $? ]; then
 	LogMsg "$msg"
 	UpdateSummary "$msg"
 else
-	
+
 	# Remove loopback interface
 	LEGACY_NET_INTERFACES=(${LEGACY_NET_INTERFACES[@]/lo/})
 
@@ -189,9 +189,9 @@ else
 		else
 
 			LogMsg "Found ${#LEGACY_NET_INTERFACES[@]} legacy interface(s): ${LEGACY_NET_INTERFACES[*]} in VM"
-			
+
 			declare __legacy_iface
-		
+
 			for __legacy_iface in ${LEGACY_NET_INTERFACES[@]}; do
 				if [ ! -e /sys/class/net/"$__legacy_iface"/operstate ]; then
 					msg="Could not find /sys/class/net/$__legacy_iface/operstate ."
@@ -200,21 +200,19 @@ else
 					SetTestStateFailed
 					exit 10
 				fi
-				
-				declare __state
-				
-				cat /sys/class/net/"$__legacy_iface"/operstate | grep -i down
-				
-				if [ 0 -ne $? ]; then
-					msg="Operstate of $__legacy_iface is not down."
+
+				__state=`cat /sys/class/net/${__legacy_iface}/operstate`
+
+				if [ "$__state" != "down" ]; then
+		   			msg="Operstate of $__legacy_iface is not down. It is $__state"
 					LogMsg "$msg"
 					UpdateSummary "$msg"
 					SetTestStateFailed
 					exit 10
 				fi
-				
+
 			done
-			
+
 		fi
 	fi
 fi

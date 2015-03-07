@@ -62,39 +62,160 @@
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 #######################################################################
-# Checks if the VSS Backup daemon is running on the Linux guest  
+# Runs a remote script on the VM an returns the log.
 #######################################################################
-function CheckVSSDaemon()
+function RunRemoteScript($remoteScript)
 {
-     $retValue = $False
-    
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_vss_daemon' > /root/vss"
-    if (-not $?)
-    {
-        Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_vs_daemon" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to run ps -ef | grep hv_vs_daemon"
-        return $False
-    }
+    $retValue = $False
+    $stateFile     = "state.txt"
+    $TestCompleted = "TestCompleted"
+    $TestAborted   = "TestAborted"
+    $TestRunning   = "TestRunning"
+    $timeout       = 6000    
 
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/vss .
+    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
+
+    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)
     {
-       
-       Write-Error -Message "ERROR: Unable to copy vss from the VM" -ErrorAction SilentlyContinue
-       Write-Output "ERROR: Unable to copy vss from the VM"
+       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
+       return $False
+    }      
+
+     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+    if (-not $?)
+    {
+       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
        return $False
     }
 
-    $filename = ".\vss"
-  
-    # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
-    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" )
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
+    if (-not $?)
     {
-        Write-Output "VSS Daemon is running"  
-        $retValue =  $True
-    }    
-    del $filename   
-    return  $retValue 
+        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
+        return $False
+    }
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to run dos2unix on runtest.sh" 
+        return $False
+    }
+    
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x ${remoteScript}" 
+        return $False
+    }
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
+        return $False
+    }
+
+    # Run the script on the vm
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
+    
+    # Return the state file
+    while ($timeout -ne 0 )
+    {
+    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $stateFile)
+        {
+            $contents = Get-Content -Path $stateFile
+            if ($null -ne $contents)
+            {
+                    if ($contents -eq $TestCompleted)
+                    {                    
+                        Write-Output "Info : state file contains Testcompleted"              
+                        $retValue = $True
+                        break                                             
+                                     
+                    }
+
+                    if ($contents -eq $TestAborted)
+                    {
+                         Write-Output "Info : State file contains TestAborted failed. "                                  
+                         break
+                          
+                    }
+                    #Start-Sleep -s 1
+                    $timeout-- 
+
+                    if ($timeout -eq 0)
+                    {                        
+                        Write-Output "Error : Timed out on Test Running , Exiting test execution."                    
+                        break                                               
+                    }                                
+                  
+            }    
+            else
+            {
+                Write-Output "Warn : state file is empty"
+                break
+            }
+           
+        }
+        else
+        {
+             Write-Host "Warn : ssh reported success, but state file was not copied"
+             break
+        }
+    }
+    else #
+    {
+         Write-Output "Error : pscp exit status = $sts"
+         Write-Output "Error : unable to pull state.txt from VM." 
+         break
+    }     
+    }
+
+    # Get the logs
+    $remoteScriptLog = $remoteScript+".log"
+    
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} . 
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $remoteScriptLog)
+        {
+            $contents = Get-Content -Path $remoteScriptLog
+            if ($null -ne $contents)
+            {
+                    if ($null -ne ${TestLogDir})
+                    {
+                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
+                
+                    }
+
+                    else 
+                    {
+                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"                                
+                    }                              
+                  
+            }    
+            else
+            {
+                Write-Output "Warn: $remoteScriptLog is empty"                
+            }           
+        }
+        else
+        {
+             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"             
+        }
+    }
+    
+    # Cleanup 
+    del state.txt -ErrorAction "SilentlyContinue"
+    del runtest.sh -ErrorAction "SilentlyContinue"
+
+    return $retValue
 }
 
 #######################################################################
@@ -388,7 +509,7 @@ foreach ($p in $params)
     {
     "sshKey" { $sshKey  = $fields[1].Trim() }
     "ipv4"   { $ipv4    = $fields[1].Trim() }
-    "rootdir" { $rootDir = $fields[1].Trim() }
+    "rootDir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
      default  {}          
     }
@@ -445,19 +566,19 @@ foreach ($drive in $vm.HardDrives)
 }
 
 # Check to see Linux VM is running VSS backup daemon 
-$sts = CheckVSSDaemon
+$sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
 if (-not $sts[-1])
 {
-    Write-Output "Error:  VSS backup daemon is not running inside Linux VM "
+    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
+    Write-Output "ERROR: Running $remoteScript script failed on VM!"
     return $False
 }
 
-echo "VSS Daemon is running " >> $summaryLog
-Write-Output "INFO: VSS Daemon is running on $vmName"
+Write-Output "VSS Daemon is running " >> $summaryLog
 
 # Stop the running VM so we can create New VM from this parent disk.
 # Shutdown gracefully so we dont corrupt VHD.
-Stop-VM –Name $vmName 
+Stop-VM -Name $vmName 
 if (-not $?)
     {
        Write-Output "Error: Unable to Shut Down VM" 
@@ -506,14 +627,6 @@ if(-not $CreateVHD)
 
 Write-Output "INFO: Successfully Created GrandChild VHD"
 
-# This is required for new vm creation .
-$Switch = NetworkAdapter $hvServer
-if (-not $?)
-    {
-       Write-Output "Error: Getting Switch Name" 
-       return $False
-    }
-
 # Now create New VM out of this VHD.
 # New VM is static hardcoded since we do not need it to be dynamic
 $GChildVHD = $CreateVHD[-1]
@@ -521,10 +634,19 @@ $GChildVHD = $CreateVHD[-1]
 # Get-VM 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
 
-#get VM Generation
+# Get the VM Network adapter so we can attach it to the new vm.
+$VMNetAdapter = Get-VMNetworkAdapter $vmName
+if (-not $?)
+    {
+       Write-Output "Error: Get-VMNetworkAdapter" 
+       return $false
+    }
+
+#Get VM Generation
 $vm_gen = $vm.Generation
 
-$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $Switch -Generation $vm_gen
+# Create the GChildVM
+$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter.SwitchName -Generation $vm_gen
 if (-not $?)
     {
        Write-Output "Error: Creating New VM" 
@@ -682,7 +804,7 @@ else
 
 Write-Output "INFO: Test ${results}"
 
-$sts = Stop-VM –Name $vmName1 -TurnOff
+$sts = Stop-VM -Name $vmName1 -TurnOff
 if (-not $?)
     {
        Write-Output "Error: Unable to Shut Down VM $vmName1" 
