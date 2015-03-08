@@ -161,11 +161,14 @@ if [ $? -eq 0 ]; then
 fi
 pass=0
 START=$(date +%s)
-while [ $pass -lt 500 ]
+while [ $pass -lt 100 ]
 do
     modprobe -r hv_netvsc
+    sleep 1
     modprobe hv_netvsc
+    sleep 1
     modprobe -r hv_utils
+    sleep 1
     modprobe hv_utils
     sleep 1
     modprobe -r hid_hyperv
