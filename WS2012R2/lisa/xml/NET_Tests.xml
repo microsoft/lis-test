@@ -352,7 +352,10 @@
 
         <test>
             <testName>OperState</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,None,None,001600112200</param>
                 <param>TC_COVERED=NET-22</param>
