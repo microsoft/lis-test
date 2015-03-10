@@ -22,45 +22,37 @@
 #####################################################################
 
 # Description:
-#	This script verifies that all synthetic interfaces can ping an IP Address and cannot ping at least one IP Address.
-#	Usually there is one ping-able address specified, that is on the same network as the interface(s) and two for
-#	the other two network adapter types, which should not be ping-able.
+#	This script tries to set each synthetic network interface to promiscuous and then ping the REMOTE_SERVER. Afterwards, it disables
+#	the promiscuous mode again.
 #
 #	Steps:
 #	1. Verify configuration file constants.sh
-#	2. Determine synthetic network interfaces
-#	3. Set static IPs on interfaces
+#	2. Determine synthetic interface(s)
+#	3. Set static IPs on these interfaces
 #		3a. If static IP is not configured, get address(es) via dhcp
-#	4. Ping IPs
+#	4. Make sure synthetic interfaces are not in promiscuous mode and then set them to it
+#	5. Ping REMOTE_SERVER
+#	6. Disable promiscuous mode again
 #
-#	The test is successful if all available synthetic interfaces are able to ping the $PING_SUCC IP address
-#	and fail to ping the $PING_FAIL IP address(es). One common test-scenario is to have an external network adapter
-#	be able to ping an IP on the same external network, but fails to ping the internal network and the guest-only network.
+#	The test is successful if all synthetic interfaces were in normal mode at the beggining of the test and were able to be set in promisc mode afterwards.
+#	Each interface must have an IP Address (static or via dhcp)
 #
 #	Parameters required:
-#		PING_SUCC
-#		PING_FAIL
-#
+#		REMOTE_SERVER
 #
 #	Optional parameters:
 #		STATIC_IP
 #		TC_COVERED
 #		NETMASK
-#		PING_FAIL2
-#		DISABLE_NM
 #		GATEWAY
-#		TC_COVERED
 #
 #	Parameter explanation:
-#	STATIC_IP is the address that will be assigned to the VM's synthetic network adapter. Multiple Addresses can be specified
+#	REMOTE_SERVER is an IP address of a ping-able machine. All interfaces found will have to be able to ping this REMOTE_SERVER
+#	STATIC_IP is the address that will be assigned to the interface(s) corresponding to the given MAC. Multiple Addresses can be specified
 #	separated by , (comma) and they will be assigned in order to each interface found.
 #	NETMASK of this VM's subnet. Defaults to /24 if not set.
-#	PING_SUCC is an IP address of a ping-able machine, which should succeed
-#	PING_FAIL is an IP address of a non-ping-able machine
-#	PING_FAIL2 is an IP address of a non-ping-able machine
-#	DISABLE_NM can be set to 'yes' to disable the NetworkManager.
-#	GATEWAY is the IP Address of the default gateway
 #	TC_COVERED is the LIS testcase number
+#	GATEWAY is the IP Address of the default gateway
 #
 #
 #############################################################################################################
@@ -153,25 +145,8 @@ if [ "${NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
 	NETMASK=255.255.255.0
 fi
 
-if [ "${PING_SUCC:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter PING_SUCC is not defined in constants file"
-    LogMsg "$msg"
-	UpdateSummary "$msg"
-	SetTestStateAborted
-	exit 30
-fi
-
-
-if [ "${PING_FAIL:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter PING_FAIL is not defined in constants file"
-    LogMsg "$msg"
-	UpdateSummary "$msg"
-	SetTestStateAborted
-	exit 30
-fi
-
-if [ "${PING_FAIL2:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter PING_FAIL2 is not defined in constants file."
+if [ "${REMOTE_SERVER:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter REMOTE_SERVER is not defined in constants file. No network connectivity test will be performed."
     LogMsg "$msg"
 fi
 
@@ -198,18 +173,16 @@ else
 	fi
 fi
 
+
 declare __iface_ignore
 
 # Parameter provided in constants file
-#	ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
-#	it is not touched during this test (no dhcp or static ip assigned to it)
-
 if [ "${ipv4:-UNDEFINED}" = "UNDEFINED" ]; then
 	msg="The test parameter ipv4 is not defined in constants file! Make sure you are using the latest LIS code."
 	LogMsg "$msg"
 	UpdateSummary "$msg"
-	SetTestStateAborted
-	exit 30
+	SetTestStateFailed
+    exit 10
 else
 
 	CheckIP "$ipv4"
@@ -218,12 +191,12 @@ else
 		msg="Test parameter ipv4 = $ipv4 is not a valid IP Address"
 		LogMsg "$msg"
 		UpdateSummary "$msg"
-		SetTestStateAborted
+		SetTestStateFailed
 		exit 10
 	fi
 
 	# Get the interface associated with the given ipv4
-	__iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
+	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
 
 if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -274,7 +247,6 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
 	exit 10
 fi
 
-
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
 # Test interfaces
@@ -283,6 +255,16 @@ for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
 	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
 	if [ 0 -ne $? ]; then
 		msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 20
+	fi
+
+	# make sure interface is not in promiscuous mode already
+	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" | grep -i promisc
+	if [ 0 -eq $? ]; then
+		msg="Synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} is already in promiscuous mode"
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
@@ -306,6 +288,7 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 	fi
 
 	SetIPstatic "${STATIC_IPS[$__iterator]}" "${SYNTH_NET_INTERFACES[$__iterator]}" "$NETMASK"
+
 	# if failed to assigned address
 	if [ 0 -ne $? ]; then
 		msg="Failed to assign static ip ${STATIC_IPS[$__iterator]} netmask $NETMASK on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -314,11 +297,9 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		SetTestStateFailed
 		exit 20
 	fi
+	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 
 	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	LogMsg "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	# add some interface output
-	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 done
 
 # set the iterator to point to the next element in the SYNTH_NET_INTERFACES array
@@ -328,7 +309,6 @@ __iterator=${#STATIC_IPS[@]}
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
 	LogMsg "Trying to get an IP Address via DHCP on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-
 	CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "dhcp"
 
 	if [ 0 -ne $? ]; then
@@ -338,19 +318,43 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		SetTestStateFailed
 		exit 10
 	fi
-
-	# add some interface output
 	LogMsg "$(ip -o addr show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
-
 	: $((__iterator++))
 
 done
 
 # reset iterator
 __iterator=0
-declare __hex_interface_name
+
+declare -i __message_count=0
 
 for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
+
+	LogMsg "Setting ${SYNTH_NET_INTERFACES[$__iterator]} to promisc mode"
+	# set interfaces to promiscuous mode
+	ip link set dev ${SYNTH_NET_INTERFACES[$__iterator]} promisc on
+
+	# make sure it was set
+	__message_count=$(dmesg | grep -i "device ${SYNTH_NET_INTERFACES[$__iterator]} entered promiscuous mode" | wc -l)
+	if [ "$__message_count" -ne 1 ]; then
+		msg="$__message_count messages were found in dmesg log concerning synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} entering promiscuous mode"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 10
+	fi
+
+	# now check ip for promisc
+	ip link show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
+	if [ 0 -ne $? ]; then
+		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is not set to promiscuous mode according to ip. Dmesg however contained an entry stating that it did."
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 10
+	fi
+
+	UpdateSummary "Successfully set ${SYNTH_NET_INTERFACES[$__iterator]} to promiscuous mode"
 
 	if [ -n "$GATEWAY" ]; then
 		LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -360,119 +364,50 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		fi
 	fi
 
-	__hex_interface_name=$(echo -n "${__packet_size[$__packet_iterator]}" | od -A n -t x1 | sed 's/ //g' | cut -c1-12)
+	LogMsg "Trying to ping $REMOTE_SERVER"
+	UpdateSummary "Trying to ping $REMOTE_SERVER"
 
-	LogMsg "Trying to ping $PING_SUCC on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
-	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$PING_SUCC"
+	# ping the remote server
+	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$REMOTE_SERVER"
 
 	if [ 0 -ne $? ]; then
-		msg="Failed to ping $PING_SUCC on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+		msg="Failed to ping $REMOTE_SERVER on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 10
 	fi
 
-	UpdateSummary "Successfully pinged $PING_SUCC on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+	UpdateSummary "Successfully pinged $REMOTE_SERVER on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 
-	if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "guest" ]  ; then
+	# disable promiscuous mode
+	LogMsg "Disabling promisc mode on ${SYNTH_NET_INTERFACES[$__iterator]}"
 
-		LogMsg "Trying to get IPv6 associated with $PING_SUCC"
-		full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$PING_SUCC" "ip addr show | grep -A 2 "$PING_SUCC" | grep "link"" | awk '{print $2}'`
-		IPv6=${full_ipv6:0:${#full_ipv6}-3}
+	ip link set dev ${SYNTH_NET_INTERFACES[$__iterator]} promisc off
 
-		LogMsg "Trying to ping $IPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-		# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
-		ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$IPv6"
-
-		if [ 0 -ne $? ]; then
-			msg="Failed to ping $IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 10
-		fi
-
-		UpdateSummary "Successfully pinged $IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-
-	elif [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "internal" ] ; then
-
-		if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
-		    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
-		    LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateAborted
-			exit 30
-		fi
-
-		LogMsg "Trying to ping $PING_SUCCIPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-		# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
-		ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$PING_SUCC_IPv6"
-
-		if [ 0 -ne $? ]; then
-			msg="Failed to ping $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 10
-		fi
-
-		UpdateSummary "Successfully pinged $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-
-	elif [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
-
-		if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
-		    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
-		    LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateAborted
-			exit 30
-		fi
-
-		LogMsg "Trying to ping $PING_SUCC_IPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-		# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
-
-		ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10  "$PING_SUCC_IPv6"
-		if [ 0 -ne $? ]; then
-			msg="Failed to ping $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 10
-		fi
-
-		UpdateSummary "Successfully pinged $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+	# make sure it was disabled
+	__message_count=$(dmesg | grep -i "device ${SYNTH_NET_INTERFACES[$__iterator]} left promiscuous mode" | wc -l)
+	if [ "$__message_count" -ne 1 ]; then
+		msg="$__message_count messages were found in dmesg log concerning synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} leaving promiscuous mode"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 10
 	fi
 
-	# ping the wrong address. should not succeed
-	LogMsg "Trying to ping $PING_FAIL on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$PING_FAIL"
+	# now check ip for promisc
+	ip link show ${SYNTH_NET_INTERFACES[$__iterator]} | grep -i promisc
 	if [ 0 -eq $? ]; then
-		msg="Succeeded to ping $PING_FAIL on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} . Make sure you have the right PING_FAIL constant set"
+		msg="Interface ${SYNTH_NET_INTERFACES[$__iterator]} is set to promiscuous mode according to ip. Dmesg however contained an entry stating that it left that mode."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 10
 	fi
 
-	UpdateSummary "Failed pinged $PING_FAIL on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} (as expected)"
-
-	# ping the second wrong address, fi specified. should also not succeed
-	if [ "${PING_FAIL2:-UNDEFINED}" != "UNDEFINED" ]; then
-		LogMsg "Trying to ping $PING_FAIL on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-		ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$PING_FAIL2"
-		if [ 0 -eq $? ]; then
-			msg="Succeeded to ping $PING_FAIL2 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} . Make sure you have the right PING_FAIL2 constant set"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 10
-		fi
-		UpdateSummary "Failed pinged $PING_FAIL2 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} (as expected)"
-	fi
-
+	UpdateSummary "Successfully disabled promiscuous mode on ${SYNTH_NET_INTERFACES[$__iterator]}"
 done
+
 
 # everything ok
 UpdateSummary "Test successful"
