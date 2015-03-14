@@ -115,6 +115,7 @@ InstallSLESDependencies()
 	zypper --non-interactive in 'automake>=1.10.2'
 	zypper --non-interactive in 'autoconf>=2.61'
 	zypper --non-interactive in gcc
+	zypper --non-interactive in git-core
 }
 
 #######################################################################
