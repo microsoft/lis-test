@@ -19,7 +19,6 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Check the VM shuts down using the LIS 
@@ -38,7 +37,6 @@
             <noReboot>True</noReboot>
             <testParams>
                 <param>TC_COVERED=CORE-05</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testParams>
         </test>
 
@@ -52,13 +50,10 @@
     A semicolon separated list of test parameters.
 
 .Example
-    .\INST_LIS_TestVMShutdown.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "rootDir=D:\lisa;TC_COVERED=CORE-05"
+    .\INST_LIS_TestVMShutdown.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "TC_COVERED=CORE-05"
 #>
 
-
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
 
 #####################################################################
 #
@@ -77,8 +72,6 @@ function CheckVMState([String] $vmName, [String] $newState)
     
     return $stateChanged
 }
-
-
 
 #####################################################################
 #
@@ -125,21 +118,14 @@ function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
     return $retVal
 }
 
-
 #####################################################################
 #
 # Main script body
 #
 #####################################################################
 
-"TestVMShutdown.ps1"
-"VM Name   = ${vmName}"
-"HV Server = ${hvServer}"
-"TestParams= ${testParams}"
-
 #
 # Check input arguments
-#
 #
 if ($vmName -eq $null)
 {
@@ -196,9 +182,6 @@ if (-not (Test-Path $rootDir) )
 
 cd $rootDir
 
-#
-#
-#
 $summaryLog  = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "Covers ${tcCovered}" | Out-File $summaryLog
@@ -206,10 +189,10 @@ Write-Output "Covers ${tcCovered}" | Out-File $summaryLog
 #
 # Set the test timeout to 15 minutes
 #
-$testCaseTimeout = 900
+$testCaseTimeout = 600
 
 #
-# The VM should be in a running state.  Ask HyyperV to invoke
+# The VM should be in a running state.  Ask Hyper-V to invoke
 # a shutdown.  The VMs state will go from Running to Stopping,
 # then Stopped.
 #
@@ -245,7 +228,7 @@ if ($vcpu)
 }
 
 #
-# Ask HyperV to request the VM to shutdown, then wait for the 
+# Ask Hyper-V to request the VM to shutdown, then wait for the 
 # VM to go into a Stopped state
 #
 "Shutting down the VM"
@@ -270,7 +253,7 @@ if ($testCaseTimeout -eq 0)
 "VM Shutdown successful"
 
 #
-# Now start the VM so the automation scripts can do what they need to do
+# Now start the VM so the automation scripts can finish
 #
 "Starting the VM"
 Start-VM -Name $vmName -ComputerName $hvServer -Confirm:$false
@@ -319,7 +302,7 @@ if ($testCaseTimeout -eq 0)
     return $False
 }
 
-"SSH is runningn on the test VM"
+"SSH is running on the test VM"
 
 #
 # If we got here, the VM was shutdown and restarted
