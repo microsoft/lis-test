@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -192,7 +192,7 @@ function is_ubuntu {
 }
 
 #######################################################################
-# Connects to a iscsi target. It takes the target ip as an argument. 
+# Connects to a iscsi target. It takes the target ip as an argument.
 #######################################################################
 function iscsiConnect() {
 # Start the iscsi service. This is distro-specific.
@@ -247,11 +247,11 @@ function iscsiConnect() {
         UpdateTestState "TestAborted"
         UpdateSummary " iSCSI service: Failed"
         exit 1
-    elif [ ! ${IQN} ]; then  # Check if IQN Variable is present in constants.sh, else select the first target. 
+    elif [ ! ${IQN} ]; then  # Check if IQN Variable is present in constants.sh, else select the first target.
         # We take the first IQN target
-        IQN=`iscsiadm -m discovery -t st -p ${TargetIP} | head -n 1 | cut -d ' ' -f 2` 
+        IQN=`iscsiadm -m discovery -t st -p ${TargetIP} | head -n 1 | cut -d ' ' -f 2`
     fi
-    
+
     # Now we have all data necesary to connect to the iscsi target
     iscsiadm -m node -T ${IQN} -p  ${TargetIP} -l
     sts=$?
@@ -267,10 +267,10 @@ function iscsiConnect() {
 }
 
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Create the state.txt file so ICA knows we are running
@@ -320,7 +320,7 @@ else
     LogMsg "IQN: ${IQN}"
 fi
 
-# Connect to the iSCSI Target  
+# Connect to the iSCSI Target
 iscsiConnect
 sts=$?
 if [ 0 -ne ${sts} ]; then
@@ -332,7 +332,7 @@ else
     LogMsg "iSCSI connection to $TargetIP: Success"
 fi
 
-# Count the Number of partition present in added new Disk . 
+# Count the Number of partition present in added new Disk .
 for disk in $(cat /proc/partitions | grep sd | awk '{print $4}')
 do
         if [[ "$disk" != "sda"* ]];
@@ -344,26 +344,24 @@ done
 ((count--))
 
 # Format, Partition and mount all the new disk on this system.
-firstDrive=1
-for drive in $(find /sys/devices/ -name 'sd*' | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for driveName in /dev/sd*[^0-9];
 do
     #
     # Skip /dev/sda
     #
-    if [ $drive != "sda"  ] ; then 
+    if [ $driveName != "/dev/sda"  ] ; then
 
-    driveName="${drive}"
     # Delete the exisiting partition
 
     for (( c=1 ; c<=count; count--))
         do
-            (echo d; echo $c ; echo ; echo w) | fdisk /dev/$driveName
+            (echo d; echo $c ; echo ; echo w) | fdisk $driveName
         done
 
 
     # Partition Drive
-    (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) | fdisk /dev/$driveName 
-    (echo n; echo p; echo 2; echo ; echo; echo ; echo w) | fdisk /dev/$driveName 
+    (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) | fdisk $driveName
+    (echo n; echo p; echo 2; echo ; echo; echo ; echo w) | fdisk $driveName
     sts=$?
     if [ 0 -ne ${sts} ]; then
         echo "ERROR:  Partitioning disk Failed ${sts}"
@@ -377,8 +375,8 @@ do
 
    sleep 1
 
-# Create file sytem on it . 
-   echo "y" | mkfs.$FILESYS /dev/${driveName}1  ; echo "y" | mkfs.$FILESYS /dev/${driveName}2  
+# Create file sytem on it .
+   echo "y" | mkfs.$FILESYS ${driveName}1  ; echo "y" | mkfs.$FILESYS ${driveName}2
    sts=$?
         if [ 0 -ne ${sts} ]; then
             LogMsg "ERROR:  creating filesystem  Failed ${sts}"
@@ -393,15 +391,15 @@ do
    sleep 1
 
 # mount the disk .
-   MountName=${driveName}1
+   MountName="/mnt/1"
    if [ ! -e ${MountName} ]; then
        mkdir $MountName
    fi
-   MountName1=${driveName}2
+   MountName1="/mnt/2"
    if [ ! -e ${MountName1} ]; then
        mkdir $MountName1
    fi
-   mount  /dev/${driveName}1 $MountName ; mount  /dev/${driveName}2 $MountName1
+   mount  ${driveName}1 $MountName ; mount  ${driveName}2 $MountName1
    sts=$?
        if [ 0 -ne ${sts} ]; then
            LogMsg "ERROR:  mounting disk Failed ${sts}"

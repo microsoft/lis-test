@@ -6,11 +6,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -29,9 +29,9 @@
 #    This script will first check the existence of Hyper-V kernel modules.
 #    Then it will reload the modules 500 times to stress the system.
 #    It also checks that hyperv_fb cannot be unloaded.
-#    When done it will bring up the eth0 interface and check again for 
+#    When done it will bring up the eth0 interface and check again for
 #    the presence of Hyper-V modules.
-#     
+#
 #    To pass test parameters into test cases, the host will create
 #    a file named constants.sh. This file contains one or more
 #    variable definition.
@@ -72,7 +72,7 @@ VerifyModules()
         exit 20
     fi
     LogMsg "hv_vmbus loaded OK"
-	
+
     #
     # Did storvsc load
     #
@@ -87,7 +87,7 @@ VerifyModules()
         exit 30
     fi
     LogMsg "hv_storvsc loaded OK"
-	
+
     #
     # Did netvsc load
     #
@@ -144,7 +144,7 @@ fi
 echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
 #
-# Start the test 
+# Start the test
 #
 LogMsg "Starting test"
 
@@ -165,12 +165,15 @@ do
     modprobe -r hv_netvsc
     sleep 1
     modprobe hv_netvsc
+    sleep 1
     modprobe -r hv_utils
     sleep 1
     modprobe hv_utils
     sleep 1
     modprobe -r hid_hyperv
+    sleep 1
     modprobe hid_hyperv
+    sleep 1
     pass=$((pass+1))
     echo $pass
 done
@@ -181,7 +184,7 @@ echo "Finished testing, bringing up eth0"
 ifdown eth0
 ifup eth0
 VerifyModules
- 
+
 echo "Test ran for ${DIFF} seconds" >> ~/summary.log
 
 LogMsg "#########################################################"

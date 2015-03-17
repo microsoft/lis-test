@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -49,10 +49,10 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Create the state.txt file so ICA knows we are running
@@ -86,7 +86,7 @@ if [ ! ${FILESYS} ]; then
     exit 1
 fi
 
-# Count the Number of partition present in added new Disk . 
+# Count the Number of partition present in added new Disk .
 count=0
 for disk in $(cat /proc/partitions | grep sd | awk '{print $4}')
 do
@@ -99,26 +99,24 @@ done
 ((count--))
 
 # Format, Partition and mount all the new disk on this system.
-firstDrive=1
-for drive in $(find /sys/devices/ -name 'sd*' | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for driveName in /dev/sd*[^0-9];
 do
     #
     # Skip /dev/sda
     #
-    if [ $drive != "sda"  ] ; then 
+    if [ $driveName != "/dev/sda"  ] ; then
 
-    driveName="${drive}"
     # Delete the exisiting partition
 
     for (( c=1 ; c<=count; count--))
         do
-            (echo d; echo $c ; echo ; echo w) |  fdisk /dev/$driveName
+            (echo d; echo $c ; echo ; echo w) |  fdisk $driveName
         done
 
 
 # Partition Drive
-    (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) |  fdisk /dev/$driveName 
-    (echo n; echo p; echo 2; echo ; echo; echo ; echo w) |  fdisk /dev/$driveName 
+    (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) | fdisk $driveName
+    (echo n; echo p; echo 2; echo ; echo; echo ; echo w) | fdisk $driveName
     sts=$?
   if [ 0 -ne ${sts} ]; then
       echo "Error:  Partitioning disk Failed ${sts}"
@@ -126,14 +124,14 @@ do
       UpdateSummary " Partitioning disk $driveName : Failed"
       exit 1
   else
-      echo "Partitioning disk $driveName : Sucsess"
-      UpdateSummary " Partitioning disk $driveName : Sucsess"
+      echo "Partitioning disk $driveName : Success"
+      UpdateSummary " Partitioning disk $driveName : Success"
   fi
 
    sleep 1
 
-# Create file sytem on it . 
-   echo "y" | mkfs.$FILESYS /dev/${driveName}1  ; echo "y" | mkfs.$FILESYS /dev/${driveName}2  
+# Create file sytem on it .
+   echo "y" | mkfs.$FILESYS ${driveName}1  ; echo "y" | mkfs.$FILESYS ${driveName}2
    sts=$?
         if [ 0 -ne ${sts} ]; then
             LogMsg "Error:  creating filesystem  Failed ${sts}"
@@ -141,22 +139,22 @@ do
             UpdateSummary " Creating FileSystem $filesys on disk $driveName : Failed"
             exit 1
         else
-            LogMsg "Creating FileSystem $FILESYS on disk  $driveName : Sucsess"
-            UpdateSummary " Creating FileSystem $FILESYS on disk $driveName : Sucsess"
+            LogMsg "Creating FileSystem $FILESYS on disk  $driveName : Success"
+            UpdateSummary " Creating FileSystem $FILESYS on disk $driveName : Success"
         fi
 
    sleep 1
 
 # mount the disk .
-   MountName=${driveName}1
+   MountName="/mnt/1"
    if [ ! -e ${MountName} ]; then
      mkdir $MountName
    fi
-   MountName1=${driveName}2
+   MountName1="/mnt/2"
    if [ ! -e ${MountName1} ]; then
      mkdir $MountName1
    fi
-   mount  /dev/${driveName}1 $MountName ; mount  /dev/${driveName}2 $MountName1
+   mount ${driveName}1 $MountName ; mount ${driveName}2 $MountName1
    sts=$?
        if [ 0 -ne ${sts} ]; then
            LogMsg "Error:  mounting disk Failed ${sts}"
@@ -166,8 +164,8 @@ do
        else
      LogMsg "mounting disk ${driveName}1 on ${MountName}"
      LogMsg "mounting disk ${driveName}2 on ${MountName1}"
-           UpdateSummary " Mounting disk ${driveName}1 : Sucsess"
-           UpdateSummary " Mounting disk ${driveName}2 : Sucsess"
+           UpdateSummary " Mounting disk ${driveName}1 : Success"
+           UpdateSummary " Mounting disk ${driveName}2 : Success"
        fi
 fi
 done

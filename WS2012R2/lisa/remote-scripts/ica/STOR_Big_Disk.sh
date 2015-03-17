@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -70,7 +70,7 @@ if [ "$targetSize" -gt "$_gb" ] ; then
   targetSize=$_gb
   let "blocks=$targetSize / $blockSize"
  fi
- 
+
 blocks=$((blocks-1))
  mount $targetDevice /mnt/
  targetDevice="/mnt/1"
@@ -82,14 +82,14 @@ LogMsg "Creating test source file... ($BLOCKSIZE)"
 
 dd if=/dev/urandom of=$testFile bs=$blockSize count=1 status=noxfer 2> /dev/null
 
-LogMsg "Calculating source checksum..."        
-        
+LogMsg "Calculating source checksum..."
+
 checksum=$(sha1sum $testFile | cut -d " " -f 1)
 echo $checksum
 
 LogMsg "Checking ${blocks} blocks"
 for ((y=0 ; y<$blocks ; y++)) ; do
-  LogMsg "Writing block $y to device $targetDevice ..." 
+  LogMsg "Writing block $y to device $targetDevice ..."
   dd if=$testFile of=$targetDevice bs=$blockSize count=1 seek=$y status=noxfer 2> /dev/null
   echo -n "Checking block $y ..."
   testChecksum=$(dd if=$targetDevice bs=$blockSize count=1 skip=$y status=noxfer 2> /dev/null | sha1sum | cut -d " " -f 1)
@@ -113,7 +113,7 @@ TestFileSystem()
 {
     drive=$1
     fs=$2
-    # Format the Disk and Create a file system , Mount and create file on it . 
+    # Format the Disk and Create a file system , Mount and create file on it .
     parted -s -- $drive mklabel gpt
     parted -s -- $drive mkpart primary 64s -64s
     if [ "$?" = "0" ]; then
@@ -159,9 +159,9 @@ TestFileSystem()
         LogMsg "Error in executing parted  ${driveName}1 for ${fs}"
         echo "Error in executing parted  ${driveName}1 for ${fs}" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
-    fi  
+    fi
 
-    # Perform Data integrity test 
+    # Perform Data integrity test
 
     IntegrityCheck ${driveName}1
 }
@@ -237,7 +237,7 @@ echo "constants disk count = $diskCount"
 # Compute the number of sd* drives on the system.
 #
 sdCount=0
-for drive in $(find /sys/devices/ -name sd* | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for drive in /dev/sd*[^0-9]
 do
     sdCount=$((sdCount+1))
 done
@@ -247,26 +247,24 @@ done
 # sure the two disk counts match
 #
 sdCount=$((sdCount-1))
-echo "/sys/devices disk count = $sdCount"
+echo "/dev/sd* disk count = $sdCount"
 
 if [ $sdCount != $diskCount ];
 then
-    echo "constants.sh disk count ($diskCount) does not match disk count from /sys/devices ($sdCount)"
+    echo "constants.sh disk count ($diskCount) does not match disk count from /dev/sd* ($sdCount)"
     UpdateTestState $ICA_TESTABORTED
     exit 1
 fi
 
-for drive in $(find /sys/devices/ -name sd* | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for driveName in /dev/sd*[^0-9];
 do
     #
     # Skip /dev/sda
     #
-  if [ ${drive} = "sda" ];
-    then
+    if [ ${driveName} = "/dev/sda" ]; then
         continue
     fi
 
-    driveName="/dev/${drive}"
     for fs in ${fileSystems[@]}; do
         LogMsg "Testing filesystem: $fs"
         TestFileSystem $driveName $fs
