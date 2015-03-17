@@ -60,18 +60,20 @@
 			</testParams>
 		</test>
 
-		<test>
-			<testName>FC_stressTest</testName>
-			<testScript>FC_stressTest.sh</testScript>
-			<files>remote-scripts\ica\FC_stressTest.sh</files>
-			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-			<timeout>7200</timeout>
-			<testParams>
-				<param>TC_COVERED=FC-04</param>
-				<param>vSANName=FC_NAME</param>
-			</testParams>
-		</test>
+        <test>
+            <testName>FC_stressTest</testName>
+            <testScript>FC_stressTest.sh</testScript>
+            <files>remote-scripts\ica\FC_stressTest.sh</files>
+            <files>Tools/iozone3_420.tar</files>
+            <setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+            <timeout>7200</timeout>
+            <testParams>
+                <param>TC_COVERED=FC-04</param>
+                <param>vSANName=FC_NAME</param>
+                <param>FILE_NAME=iozone3_420.tar</param>
+            </testParams>
+        </test>
 
 		<test>
 			<testName>FC_SaveRestore_VM</testName>
