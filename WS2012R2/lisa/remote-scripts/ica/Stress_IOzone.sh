@@ -4,11 +4,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -121,7 +121,7 @@ echo "constants disk count = $diskCount"
 # Compute the number of sd* drives on the system.
 #
 sdCount=0
-for drive in $(find /sys/devices/ -name sd* | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for drive in /dev/sd*[^0-9]
 do
     sdCount=$((sdCount+1))
 done
@@ -131,11 +131,11 @@ done
 # sure the two disk counts match
 #
 sdCount=$((sdCount-1))
-echo "/sys/devices disk count = $sdCount"
+echo "//dev/sd* disk count = $sdCount"
 
 if [ $sdCount != $diskCount ];
 then
-    echo "constants.sh disk count ($diskCount) does not match disk count from /sys/devices ($sdCount)"
+    echo "constants.sh disk count ($diskCount) does not match disk count from /dev/sd* ($sdCount)"
     UpdateTestState $ICA_TESTABORTED
     exit 1
 fi
@@ -156,7 +156,7 @@ case $(LinuxRelease) in
         FS="ext4"
         COMMAND="timeout 1800 ./iozone -az -g 50G /mnt &"
         EVAL=""
-    ;; 
+    ;;
 esac
 
 #
@@ -168,20 +168,17 @@ FixedDiskSize=1073741824
 Disk4KSize=4096
 DynamicDiskSize=136365211648
 
-firstDrive=1
-for drive in $(find /sys/devices/ -name sd* | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for driveName in /dev/sd*[^0-9];
 do
     #
     # Skip /dev/sda
     #
-  if [ ${drive} = "sda" ];
-    then
+    if [ ${driveName} = "/dev/sda" ]; then
         continue
     fi
 
-    driveName="/dev/${drive}"
     fdisk -l $driveName > fdisk.dat 2> /dev/null
-    # Format the Disk and Create a file system , Mount and create file on it . 
+    # Format the Disk and Create a file system , Mount and create file on it .
     (echo d;echo;echo w)|fdisk  $driveName
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk  $driveName
     if [ "$?" = "0" ]; then
@@ -226,7 +223,7 @@ do
         echo "Error in executing fdisk  ${driveName}1" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
         exit 90
-    fi  
+    fi
 done
 
 
@@ -257,7 +254,7 @@ if [ 0 -ne ${sts} ]; then
     exit 30
 fi
 
-# cd in to directory    
+# cd in to directory
 if [ !  ${ROOTDIR} ];
 then
     echo "Cannot find ROOTDIR." >> ~/summary.log
@@ -276,7 +273,7 @@ sts=$?
     if [ 0 -ne ${sts} ]; then
         echo "Error:  make linux  ${sts}" >> ~/summary.log
         UpdateTestState "TestAborted"
-        echo "make linux : Failed" 
+        echo "make linux : Failed"
         exit 50
     else
         echo "make linux : Success"
@@ -286,7 +283,7 @@ sts=$?
 
 LogMsg "IOzone installed successfully"
 
-# 
+#
 # Run iozone for 30 minutes
 #
 

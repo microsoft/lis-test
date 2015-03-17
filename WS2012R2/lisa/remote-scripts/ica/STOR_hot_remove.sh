@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -99,10 +99,10 @@ done
 LogMsg "constants disk count = $diskCount"
 
 ### do fdisk to rescan the scsi bus
-fdisk -l > /dev/null 
-fdisk -l > /dev/null 
-fdisk -l > /dev/null 
-fdisk -l > /dev/null 
+fdisk -l > /dev/null
+fdisk -l > /dev/null
+fdisk -l > /dev/null
+fdisk -l > /dev/null
 
 #
 # Compute the number of sd* drives on the system.
@@ -119,10 +119,10 @@ sdCount=$((sdCount-1))
 LogMsg "fdisk -l disk count = $sdCount"
 
 if [ $sdCount == $diskCount ]; then
-    LogMsg "constants.sh disk count ($diskCount) does match disk count from /sys/devices ($sdCount)"
-	echo "constants.sh disk count ($diskCount) does match disk count from /sys/devices ($sdCount)" >> ~/summary.log
+    LogMsg "constants.sh disk count ($diskCount) does match disk count from /dev/sd* ($sdCount)"
+	echo "constants.sh disk count ($diskCount) does match disk count from /dev/sd* ($sdCount)" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
-    exit 30 
+    exit 30
 else
     if [ "$sdCount" == "0" ]; then
 	    LogMsg "Hot remove of Disk was successful"

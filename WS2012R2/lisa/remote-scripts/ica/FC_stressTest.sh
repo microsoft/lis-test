@@ -26,12 +26,12 @@
 # FC_stressTest.sh
 # Description:
 #   This script was created to automate the testing of a Linux
-#   Integration services. This script will identify the number of 
+#   Integration services. This script will identify the number of
 #   total disks detected inside the guest VM.
 #   It will then format one FC disk and perform stress test on it.
 #   This test verifies the first FC disk, if you want to check every disk
 #   move the exit statement from line 271 to line 273.
-#     
+#
 #    To pass test parameters into test cases, the host will create
 #    a file named constants.sh. This file contains one or more
 #    variable definition.
@@ -68,7 +68,7 @@ LinuxRelease()
             echo "CENTOS";;
         *SUSE*)
             echo "SLES";;
-        Red*Hat*)
+        *Red*Hat*)
             echo "RHEL";;
         Debian*)
             echo "DEBIAN";;
@@ -116,33 +116,10 @@ fi
 echo "Covers ${TC_COVERED}" > ~/summary.log
 
 #
-# Count the number of SCSI= and IDE= entries in constants
-#
-diskCount=0
-for entry in $(cat ./constants.sh)
-do
-    # Convert to lower case
-    lowStr="$(tr '[A-Z]' '[a-z' <<<"$entry")"
-
-    # does it start wtih ide or scsi
-    if [[ $lowStr == ide* ]];
-    then
-        diskCount=$((diskCount+1))
-    fi
-
-    if [[ $lowStr == scsi* ]];
-    then
-        diskCount=$((diskCount+1))
-    fi
-done
-
-echo "Constants variable file disk count: $diskCount"
-
-#
-# Compute the number of drives on the system
+# Compute the number of sd* drives on the system.
 #
 sdCount=0
-for drive in $(find /sys/devices/ -name 'sd*' | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for drive in /dev/sd*[^0-9]
 do
     sdCount=$((sdCount+1))
 done
@@ -151,10 +128,10 @@ done
 # Subtract the boot disk, then make sure the two disk counts match
 #
 sdCount=$((sdCount-1))
-echo "/sys/devices disk count = $sdCount"
+echo "/dev/sd* disk count = $sdCount"
 
 if [ $sdCount -lt 1 ]; then
-    echo " disk count ($diskCount) from /sys/devices ($sdCount) returns only the boot disk"
+    echo " disk count from /dev/sd* ($sdCount) returns only the boot disk"
     UpdateTestState $ICA_TESTABORTED
     exit 1
 fi
@@ -171,32 +148,33 @@ case $(LinuxRelease) in
         EVAL="eval"
     ;;
      *)
-        FS="ext4"
+        FS="ext3"
         COMMAND="timeout 900 iozone -s 4G /mnt &"
         EVAL=""
-    ;; 
+    ;;
 esac
 
-firstDrive=1
-for drive in $(find /sys/devices/ -name 'sd*' | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+#
+# For each drive, run fdisk -l and extract the drive size in bytes
+#
+for driveName in /dev/sd*[^0-9];
 do
-	#
-	# Skip /dev/sda
-	#
-	if [ ${drive} = "sda" ]; then
-		continue
-	fi
+    #
+    # Skip /dev/sda
+    #
+    if [ ${driveName} = "/dev/sda" ]; then
+        continue
+    fi
 
 	eligible=false;
-	size=`fdisk -l /dev/$drive | grep "Disk /dev/sd*" | awk '{print $5}'`; 
+	size=`fdisk -l /dev/$drive | grep "Disk /dev/sd*" | awk '{print $5}'`;
 
 	if [ $size -lt 4294967296 ]; then
 		continue
 		else
 			eligible = true;
-	fi 
+	fi
 
-    driveName="/dev/${drive}"
     fdisk -l $driveName > fdisk.dat 2> /dev/null
 
     # Format the disk, create a file-system, mount and create file on it
@@ -275,5 +253,5 @@ if [ "$eligible" = false ] ; then
 	LogMsg "No disk larger than 4GB!"
 	echo "No disk larger than 4GB, can't test iozone!" >> ~/summary.log
 	UpdateTestState $ICA_TESTFAILED
-	exit 90	
+	exit 90
 fi

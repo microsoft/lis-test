@@ -116,7 +116,7 @@ echo "constants disk count = $diskCount"
 # Compute the number of sd* drives on the system.
 #
 sdCount=0
-for drive in $(find /sys/devices/ -name sd* | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for drive in /dev/sd*[^0-9]
 do
     sdCount=$((sdCount+1))
 done
@@ -126,26 +126,24 @@ done
 # sure the two disk counts match
 #
 sdCount=$((sdCount-1))
-echo "/sys/devices disk count = $sdCount"
+echo "/dev/sd* disk count = $sdCount"
 
 if [ $sdCount != $diskCount ];
 then
-    echo "constants.sh disk count ($diskCount) does not match disk count from /sys/devices ($sdCount)"
+    echo "constants.sh disk count ($diskCount) does not match disk count from /dev/sd* ($sdCount)"
     UpdateTestState $ICA_TESTABORTED
     exit 1
 fi
 
-for drive in $(find /sys/devices/ -name sd* | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for driveName in /dev/sd*[^0-9];
 do
     #
     # Skip /dev/sda
     #
-  if [ ${drive} = "sda" ];
+  if [ ${driveName} = "/dev/sda" ];
     then
         continue
     fi
-
-    driveName="/dev/${drive}"
 
     (echo d;echo;echo w)|fdisk  $driveName
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk  $driveName

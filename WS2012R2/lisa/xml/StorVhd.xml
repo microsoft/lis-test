@@ -101,7 +101,7 @@
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>SCSI=0,1,Dynamic,2GB</param>
-                <param>TC_COVERED=STOR-26,STOR-27</param>
+                <param>TC_COVERED=STOR-12</param>
                 <param>fileSystems=(btrfs)</param>
             </testParams>
             <testScript>STOR_Big_Disk.sh</testScript>
@@ -114,7 +114,7 @@
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>SCSI=0,1,Dynamic,2039GB</param>
-                <param>TC_COVERED=STOR-26,STOR-27</param>
+                <param>TC_COVERED=STOR-13</param>
                 <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
             </testParams>
             <testScript>STOR_Big_Disk.sh</testScript>

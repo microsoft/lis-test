@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -65,7 +65,7 @@ LinuxRelease()
             echo "CENTOS";;
         *SUSE*)
             echo "SLES";;
-        Red*Hat*)
+        *Red*Hat*)
             echo "RHEL";;
         Debian*)
             echo "DEBIAN";;
@@ -112,7 +112,7 @@ NEW_DISK=$((NEW_DISK-1))
 if [ "$NEW_DISK" = "$TOTAL_DISKS" ] ; then
     LogMsg "Result : New disk is present inside guest VM "
     LogMsg " fdisk -l is : "
-    fdisk -l    
+    fdisk -l
 else
     LogMsg "Result : New disk is not present in Guest VM "
     UpdateTestState $ICA_TESTFAILED
@@ -133,7 +133,7 @@ case $(LinuxRelease) in
     ;;
      *)
         FS="ext4"
-    ;; 
+    ;;
 esac
 
 i=1
@@ -160,7 +160,7 @@ do
         LogMsg "mkfs.$FS /dev/${DISK}1 successful..."
         mount /dev/${DISK}1 /mnt
         if [ "$?" = "0" ]; then
-            LogMsg "Drive mounted successfully..."    
+            LogMsg "Drive mounted successfully..."
         else
             LogMsg "Error in mounting drive..."
             echo "Drive mount : Failed" >> ~/summary.log
@@ -198,7 +198,7 @@ if [ 0 -ne ${sts} ]; then
     UpdateTestState $ICA_TESTABORTED
     exit 30
 fi
- 
+
 if [ !  ${ROOTDIR} ];
 then
     echo "Cannot find ROOTDIR." >> ~/summary.log
@@ -216,7 +216,7 @@ sts=$?
     if [ 0 -ne ${sts} ]; then
         echo "Error: make linux  ${sts}" >> ~/summary.log
         UpdateTestState "TestAborted"
-        echo "make linux : Failed" 
+        echo "make linux : Failed"
         exit 50
     else
         echo "make linux: Success"
@@ -226,10 +226,10 @@ sts=$?
 
 LogMsg "iometer was installed successfully!"
 
-# 
+#
 # Run iozone for throughput test
 # IOZONE_PARAMS: -s 48G -r 4K -i 0 -i 1 -i 2 -l 4 -u 4 -I -k 8
-# 
+#
 cd /mnt
 /root/${ROOTDIR}/src/current/iozone ${IOZONE_PARAMS} -b /root/IOZoneResult.xls /mnt > /root/IOZoneLog.log
 
