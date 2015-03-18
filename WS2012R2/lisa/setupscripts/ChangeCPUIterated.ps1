@@ -175,6 +175,10 @@ if (-not $sts)
 #
 for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 ) 
 {
+    if ($numCPUs -gt 1 -and $numCPUs -lt 2) {
+        $numCPUs = 1;
+    }
+    
     $cpu = Set-VM -Name $vmName -ComputerName $hvServer -ProcessorCount $numCPUs
     if ($? -eq "True")
     {
