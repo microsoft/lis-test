@@ -89,6 +89,7 @@ else
 	    LogMsg "ata_piix module loaded inside the VM"
     fi
 fi
+sleep 3
 
 LogMsg "Mount the CDROM"
 mount /dev/cdrom /mnt/
