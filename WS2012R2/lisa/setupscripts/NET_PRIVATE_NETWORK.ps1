@@ -669,19 +669,18 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
     }
 }
 
-$timeout = 60 # seconds
+$timeout = 120 # seconds
 if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 {
     "Warning: $vm2Name never started KVP"
 }
 
 # get vm2 ipv4
-
 $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
 "netmask = $netmask"
 
-# wait for ssh to startg
+# wait for ssh to start
 $timeout = 120 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
@@ -707,7 +706,6 @@ if (-not $retVal)
 }
 
 "Successfully sent utils.sh"
-
 
 #switch network connection type in case is needed
 if ($switch_nic)
@@ -750,7 +748,6 @@ if (-not $retVal)
 }
 
 #get the ipv4 of the test adapter allocated by DHCP
-
 start-sleep 20
 
 "sshKey   = ${sshKey}"
@@ -761,7 +758,6 @@ start-sleep 20
 "vm2 Name = ${vm2Name}"
 "vm2 ipv4 = ${vm2ipv4}"
 "vm2 MAC = ${vm2MacAddress}"
-
 
 # Try to ping with the private network interfaces
 "Trying to ping from vm1 with mac $vm1MacAddress to $vm2StaticIP "
