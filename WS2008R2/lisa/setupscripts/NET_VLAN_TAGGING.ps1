@@ -826,6 +826,8 @@ if (-not $?)
 
 "Successfully changed the vlanID"
 
+Start-sleep 10
+
 "Trying to ping from vm2 with mac $vm2MacAddress to $vm1StaticIP (must NOT work)"
 # ping from the second VM to the first
 $retVal = pingVMs $vm2ipv4 $vm1StaticIP $sshKey 10 $vm2MacAddress
