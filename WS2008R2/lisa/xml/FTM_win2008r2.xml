@@ -71,7 +71,8 @@
                 <suiteTest>MultiDiskSCSI_Fixed</suiteTest>
                 <suiteTest>HotADD_Multi_Disk_SCSI_Dynamic</suiteTest>
                 <suiteTest>HotRemove_Multi_Disk_SCSI_Dynamic</suiteTest>
-                <suiteTest>TakeSnapShot</suiteTest>
+                <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteName>
+                 <suiteTest>TakeSnapShot</suiteTest>
                 <suiteTest>RevertSnapShot</suiteTest>
                 <suiteTest>TestExportImport</suiteTest>
             </suiteTests>
@@ -930,6 +931,22 @@
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>VHD_SCSI_0_1_Dynamic_Big</testName>
+            <snapshotname>ICABase</snapshotname>
+            <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
+            <testParams>
+                <param>SCSI=0,1,Dynamic,250GB</param>
+                <param>NO=1</param>
+                <param>TEST_DEVICE1=/dev/sdb</param>
+                <param>TC_COUNT=STOR-13</param>
+            </testParams>
+            <testScript>LIS_Addnewdisk.sh</testScript>
+            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>10800</timeout>
         </test>
 
         <test>
