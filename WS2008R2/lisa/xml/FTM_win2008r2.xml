@@ -35,29 +35,20 @@
         <suite>
             <suiteName>Core</suiteName>
             <suiteTests>
-                <!-- Legacy TCs
-                <suiteTest>Install-LIS</suiteTest>
-                <suiteTest>ICVersion</suiteTest>
-                <suiteTest>Upgrade-LIS</suiteTest>
-                <suiteTest>VerifyLISInstall</suiteTest>
-                <suiteTest>UnInstall-LIS</suiteTest>
-                <suiteTest>VerifyNoLIS</suiteTest>
-                <suiteTest>LIS-GetTarBall</suiteTest>
-                -->
-            <suiteTest>VMHeartbeat</suiteTest>
-            <suiteTest>TimeSync</suiteTest>
-            <suiteTest>TimeSync_NTP</suiteTest> 
-            <suiteTest>TimeSync_SavedVM</suiteTest>
-            <suiteTest>LISShutdownVM</suiteTest>
-            <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
-            <suiteTest>VerifyLisModules</suiteTest>
-            <suiteTest>Multi_Cpu_Test</suiteTest>
-            <suiteTest>Verify_LISModules_Version</suiteTest>
-            <suiteTest>VerifyItegratedShutdownService</suiteTest> 
-             <suiteTest>RebootDifferentMemSettings</suiteTest>
-            <suiteTest>StressReloadModules</suiteTest> 
-            <suiteTest>FloppyDisk</suiteTest>
-            <suiteTest>CDmount</suiteTest>
+                <suiteTest>VMHeartbeat</suiteTest>
+                <suiteTest>TimeSync</suiteTest>
+                <suiteTest>TimeSync_NTP</suiteTest> 
+                <suiteTest>TimeSync_SavedVM</suiteTest>
+                <suiteTest>LISShutdownVM</suiteTest>
+                <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
+                <suiteTest>VerifyLisModules</suiteTest>
+                <suiteTest>Multi_Cpu_Test</suiteTest>
+                <suiteTest>Verify_LISModules_Version</suiteTest>
+                <suiteTest>VerifyItegratedShutdownService</suiteTest> 
+                <suiteTest>RebootDifferentMemSettings</suiteTest>
+                <suiteTest>StressReloadModules</suiteTest> 
+                <suiteTest>FloppyDisk</suiteTest>
+                <suiteTest>CDmount</suiteTest>
             </suiteTests>
         </suite>  
 
@@ -65,8 +56,6 @@
         <suite>
             <suiteName>Storage</suiteName>
             <suiteTests>
-                <suiteTest>FloppyDisk</suiteTest>
-                <suiteTest>CDmount</suiteTest>
                 <suiteTest>AddDisk_IDE_1_DYNAMIC</suiteTest>
                 <suiteTest>AddDisk_IDE_0_DYNAMIC</suiteTest>
                 <suiteTest>AddDisk_SCSI_DYNAMIC</suiteTest>
@@ -283,64 +272,6 @@
             <param>IsoFilename=CDTEST.iso</param>
             <param>TC_COVERED=NLIS-9</param>
         </testparams>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-    </test> 
-    
-    <test>
-        <testName>Install-LIS</testName>
-        <snapshotname>ICABase</snapshotname>
-        <testScript>LIS_Installation.sh</testScript>
-        <files>remote-scripts/ica/LIS_Installation.sh</files>
-        <timeout>18000</timeout>
-        <testparams>
-            <param>TARBALL=lisV3.1.tar.gz</param>
-            <param>REPOSITORY_SERVER=10.200.49.171</param>
-            <param>REPOSITORY_PATH=/icaRepository/LIS</param>
-            <param>TC_COUNT=BVT-15</param>
-            <param>MODE=script</param>
-        </testparams>
-       <onError>Continue</onError>
-    </test>
-    
-    <test>
-        <testName>ICVersion</testName>
-        <testScript>LIS_IC_version.sh</testScript>
-        <files>remote-scripts\ica\LIS_IC_version.sh</files>
-        <testparams>
-            <param>TC_COUNT=BVT-31</param>
-        </testparams>            
-        <timeout>600</timeout>
-        <OnError>Continue</OnError>
-        <noReboot>False</noReboot>
-    </test>
-
-    <test>
-        <testName>Upgrade-LIS</testName>
-        <snapshotname>ICABase</snapshotname>
-        <testScript>LIS_Upgrade.sh</testScript>
-        <files>remote-scripts/ica/LIS_Upgrade.sh</files>
-        <timeout>18000</timeout>
-        <testparams>
-            <param>TARBALL=lisV3.4.tar.gz</param>
-            <param>REPOSITORY_SERVER=10.200.49.171</param>
-            <param>REPOSITORY_PATH=/icaRepository/LIS</param>
-            <param>TC_COUNT=BVT-16</param>
-        </testparams>
-        <onError>Continue</onError>
-    </test>
-
-    <test>
-        <testName>VerifyLISInstall</testName>
-        <testScript>LIS_verifyLIS.sh</testScript>
-        <files>remote-scripts\ica\LIS_verifyLIS.sh</files>
-        <setupScript>SetupScripts\AddNic.ps1</setupScript>
-        <testparams>
-            <param>TC_COUNT=BVT-26,BVT-27</param>
-            <param>NIC=NetworkAdapter,External,ExternalNet</param>
-        </testparams>
-        <cleanupScript>SetupScripts\RemoveNic.ps1</cleanupScript>
         <timeout>600</timeout>
         <onError>Continue</onError>
         <noReboot>False</noReboot>
