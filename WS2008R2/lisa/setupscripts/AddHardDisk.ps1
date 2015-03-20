@@ -129,6 +129,8 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
 }
 
 
+
+
 ############################################################################
 #
 # CreateController
@@ -211,15 +213,15 @@ function GetPhysicalDiskForPassThru([string] $server)
     $VMs = Get-VM -server $server
     foreach ($vm in $VMs)
     {
-        $query = "Associators of {$Vm} Where ResultClass=Msvm_VirtualSystemSettingData AssocClass=Msvm_SettingsDefineState"
-        $VMSettingData = Get-WmiObject -Namespace "root\virtualization" -Query $query -ComputerName $server
+       $query = "Associators of {$Vm} Where ResultClass=Msvm_VirtualSystemSettingData AssocClass=Msvm_SettingsDefineState"
+       $VMSettingData = Get-WmiObject -Namespace "root\virtualization" -Query $query -ComputerName $server
 
         if ($VMSettingData)
         {
             # 
             # Get the Disk Attachments for Passthrough Disks, and add their drive number to the PhysDisksInUse array 
             #
-            $query = "Associators of {$VMSettingData} Where ResultClass=Msvm_ResourceAllocationSettingData AssocClass=Msvm_VirtualSystemSettingDataComponent"
+           $query = "Associators of {$VMSettingData} Where ResultClass=Msvm_ResourceAllocationSettingData AssocClass=Msvm_VirtualSystemSettingDataComponent"
             $PhysicalDiskResource = Get-WmiObject -Namespace "root\virtualization" -Query $query `
                 -ComputerName $server | Where-Object { $_.ResourceSubType -match "Microsoft Physical Disk Drive" }
 
@@ -270,6 +272,45 @@ function GetPhysicalDiskForPassThru([string] $server)
     return $physDrive
 }
 
+function ConvertStringToUInt64([string] $newSize)
+{
+    $uint64Size = $null
+
+
+    #
+    # Make sure we received a string to convert
+    #
+    if (-not $newSize)
+    {
+        Write-Error -Message "ConvertStringToUInt64() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+
+    if ($newSize.EndsWith("MB"))
+    {
+        $num = $newSize.Replace("MB","")
+        $uint64Size = ([Convert]::ToUInt64($num)) * 1MB
+    }
+    elseif ($newSize.EndsWith("GB"))
+    {
+        $num = $newSize.Replace("GB","")
+        $uint64Size = ([Convert]::ToUInt64($num)) * 1GB
+    }
+    elseif ($newSize.EndsWith("TB"))
+    {
+        $num = $newSize.Replace("TB","")
+        $uint64Size = ([Convert]::ToUInt64($num)) * 1TB
+    }
+    else
+    {
+        Write-Error -Message "Invalid newSize parameter: ${newSize}" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+
+    return $uint64Size
+}
 
 ############################################################################
 #
@@ -335,6 +376,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
 }
 
 
+
 ############################################################################
 #
 # CreateHardDrive
@@ -344,7 +386,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
 #
 ############################################################################
 function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $SCSI, [int] $ControllerID,
-                          [int] $Lun, [string] $vhdType)
+                          [int] $Lun, [string] $vhdType, [String] $newSize)
 {
     $retVal = $false
 
@@ -413,9 +455,16 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         $defaultVhdPath += "\"
     }
     
-    $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-" + $vhdType + ".vhd"
-    $fileInfo = GetRemoteFileInfo -filename $vhdName -server $hvServer
+    $newVHDSize = ConvertStringToUInt64 $newSize
+    
+     $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-" + $vhdType + ".vhd"
 
+    if(Test-Path $vhdName)
+    {
+        Remove-Item $vhdName
+    }
+    
+    $fileInfo = GetRemoteFileInfo -filename $vhdName -server $hvServer
     if (-not $fileInfo)
     {
         $newVhd = $null
@@ -423,11 +472,11 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         {
             "Dynamic"
                 {
-                    $newVhd = New-Vhd -vhdPaths $vhdName -server $server -force -wait
+                    $newVhd = New-Vhd -vhdPaths $vhdName -size $newVHDSize  -server $server -force -wait
                 }
             "Fixed"
                 {
-                    $newVhd = New-Vhd -vhdPaths $vhdName -size $global:MinDiskSize -server $server -fixed -force -wait
+                    $newVhd = New-Vhd -vhdPaths $vhdName -size $newVHDSize  -server $server -fixed -force -wait
                 }
             "Diff"
                 {
@@ -446,7 +495,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
                     return $retVal
                 }
         }
-        #$nv = New-Vhd -vhdPaths $vhdName -size $global:MinDiskSize -server $server -fixed:($vhdType -eq "Fixed") -force -wait
+        #$nv = New-Vhd -vhdPaths $vhdName -size $$newVHDSize -server $server -fixed:($vhdType -eq "Fixed") -force -wait
         if ($newVhd -eq $null)
         {
             write-output "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
@@ -512,7 +561,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 $sts = get-module | select-string -pattern HyperV -quiet
 if (! $sts)
 {
-    Import-module .\HyperVLibV2SP1\Hyperv.psd1
+   Import-module .\HyperVLibV2SP1\Hyperv.psd1
 }
 
 #
@@ -530,7 +579,7 @@ foreach ($p in $params)
     
     if ($temp.Length -ne 2)
     {
-	"Warn : test parameter '$p' is being ignored because it appears to be malformed"
+    "Warn : test parameter '$p' is being ignored because it appears to be malformed"
      continue
     }
     
@@ -549,16 +598,26 @@ foreach ($p in $params)
         
     $diskArgs = $temp[1].Trim().Split(',')
     
-    if ($diskArgs.Length -ne 3)
+
+   
+    if ($diskArgs.Length -ne 4 -and $diskArgs.Length -ne 3)
     {
         "Error: Incorrect number of arguments: $p"
         $retVal = $false
         continue
     }
+
     
     $controllerID = $diskArgs[0].Trim()
     $lun = $diskArgs[1].Trim()
     $vhdType = $diskArgs[2].Trim()
+    $VHDSize = $global:MinDiskSize
+   
+    if ($diskArgs.Length -eq 4)
+    {
+        $VHDSize = $diskArgs[3].Trim()
+    }
+   
     
     if (@("Fixed", "Dynamic", "PassThrough", "Diff") -notcontains $vhdType)
     {
@@ -582,8 +641,8 @@ foreach ($p in $params)
     }
     else # Must be Fixed, Dynamic, or Diff
     {
-        "CreateHardDrive $vmName $hvServer $scsi $controllerID $Lun $vhdType"
-        $sts = CreateHardDrive -vmName $vmName -server $hvServer -SCSI:$SCSI -ControllerID $controllerID -Lun $Lun -vhdType $vhdType
+        "CreateHardDrive $vmName $hvServer $scsi $controllerID $Lun $vhdType $VHDSize"
+        $sts = CreateHardDrive -vmName $vmName -server $hvServer -SCSI:$SCSI -ControllerID $controllerID -Lun $Lun -vhdType $vhdType -newSize $VHDSize
         if (! $sts[$sts.Length-1])
         {
             write-output "Failed to create hard drive"
