@@ -110,6 +110,7 @@ else
     fi
 fi
 	
+sleep 3
 
 LogMsg "##### Mount the CDROM #####"
 mount /dev/dvd /mnt/
