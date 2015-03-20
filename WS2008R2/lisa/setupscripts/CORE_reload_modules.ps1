@@ -58,18 +58,6 @@ $remoteScript = "CORE_StressReloadModules.sh"
 $summaryLog  = "${vmName}_summary.log"
 $retVal = $False
 
-#
-# HyperVLib version 2
-# Note: For V2, the module can only be imported once into powershell.
-#       If you import it a second time, the Hyper-V library function
-#       calls fail.
-#
-$sts = get-module | select-string -pattern HyperV -quiet
-if (! $sts)
-{
-    Import-module .\HyperVLibV2Sp1\Hyperv.psd1
-}
-
 #########################################################################
 #    
 #	get state.txt file from VM.
@@ -113,11 +101,11 @@ function CheckResult()
             Start-Sleep -s 1
             $attempts--
             if ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {                     
-                Write-Output "Error : Lost Communication to vm" | Out-File -Append $summaryLog                  
+                Write-Output "Error : Lost Communication to vm" | Out-File -filepath $summaryLog                  
                 break
             }
             if ($attempts -eq 0){                        
-                Write-Output "Error : Reached max number of attempts to extract state file" | Out-File -Append $summaryLog         
+                Write-Output "Error : Reached max number of attempts to extract state file" | Out-File -filepath $summaryLog         
                 break                                               
             }    
         }
@@ -254,9 +242,30 @@ if (-not (Test-Path $rootDir)) {
     return $False
 }
 
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+Write-output "This script covers test case: ${TC_COVERED}" 
 
 cd $rootDir
+
+#
+# HyperVLib version 2
+# Note: For V2, the module can only be imported once into powershell.
+#       If you import it a second time, the Hyper-V library function
+#       calls fail.
+#
+$sts = get-module | select-string -pattern HyperV -quiet
+if (! $sts)
+{ 
+    $HYPERV_LIBRARY = ".\HyperVLibV2Sp1\HyperV.psd1"
+    if ( (Test-Path $HYPERV_LIBRARY) ) 
+    { 
+        Import-module .\HyperVLibV2Sp1\HyperV.psd1
+    } 
+    else 
+    {
+        "Error: The PowerShell HyperV library does not exist" 
+        return $False 
+    } 
+}
 
 #
 # Source the TCUtils.ps1 file
@@ -264,13 +273,13 @@ cd $rootDir
 . .\setupscripts\TCUtils.ps1
 
 $sts = RunTest
-if (-not $($sts[-1])) {         
+if (-not $sts) {         
     "Error: Running CORE_StressReloadModules script failed on the VM, exiting test!"  
     return $False 
 }
 
 $status = CheckResult 
-if (-not $($status[-1])) {
+if (-not $status) {
     "Error: Something went wrong during execution of CORE_StressReloadModules script!" 
     return $False    
 }
