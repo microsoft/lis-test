@@ -72,7 +72,7 @@
                 <suiteTest>HotADD_Multi_Disk_SCSI_Dynamic</suiteTest>
                 <suiteTest>HotRemove_Multi_Disk_SCSI_Dynamic</suiteTest>
                 <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteName>
-                 <suiteTest>TakeSnapShot</suiteTest>
+                <suiteTest>TakeSnapShot</suiteTest>
                 <suiteTest>RevertSnapShot</suiteTest>
                 <suiteTest>TestExportImport</suiteTest>
             </suiteTests>
@@ -938,7 +938,7 @@
             <snapshotname>ICABase</snapshotname>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
-                <param>SCSI=0,1,Dynamic,250GB</param>
+                <param>SCSI=0,1,Dynamic,900GB</param>
                 <param>NO=1</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TC_COUNT=STOR-13</param>
@@ -957,7 +957,7 @@
             <timeout>600</timeout>
             <testparams>
                 <param>SnapshotName=LIS_Snapshot</param>
-                <param>TC_COVERED=SNAP-58</param>
+                <param>TC_COVERED=STOR-58</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -972,7 +972,7 @@
             <timeout>600</timeout>
             <testparams>
                 <param>SnapshotName=LIS_Snapshot</param>
-                <param>TC_COVERED=SNAP-59</param>
+                <param>TC_COVERED=STOR-59</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
