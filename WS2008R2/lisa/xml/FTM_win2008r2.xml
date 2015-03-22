@@ -264,6 +264,15 @@
     <!-- Core -->
             
     <test>
+        <testName>VMHeartBeat</testName>
+        <snapshotname>ICABase</snapshotname>
+        <testScript>SetupScripts\TestVMHeartbeat.ps1</testScript>
+        <files></files>
+        <timeout>600</timeout>
+        <noReboot>True</noReboot>
+    </test>
+            
+    <test>
         <testName>CDmount</testName>
         <testScript>LIS_CD.sh</testScript>
         <files>remote-scripts/ica/LIS_CD.sh</files>
@@ -271,20 +280,11 @@
         <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         <testparams>
             <param>IsoFilename=CDTEST.iso</param>
-            <param>TC_COVERED=NLIS-9</param>
+            <param>TC_COVERED=CORE-20</param>
         </testparams>
         <timeout>600</timeout>
         <onError>Continue</onError>
         <noReboot>False</noReboot>
-    </test>
-
-    <test>
-        <testName>VMHeartBeat</testName>
-        <snapshotname>ICABase</snapshotname>
-        <testScript>SetupScripts\TestVMHeartbeat.ps1</testScript>
-        <files></files>
-        <timeout>600</timeout>
-        <noReboot>True</noReboot>
     </test>
 
     <test>
@@ -301,7 +301,7 @@
         <testScript>setupScripts\timesync_savedVM.ps1</testScript>
         <files>setupScripts\timesync_savedVM.ps1</files>
         <timeout>1000</timeout>
-        <onError>Abort</onError>
+        <onError>Continue</onError>
         <noReboot>True</noReboot>            
     </test>
     
@@ -377,7 +377,7 @@
         <onError>Continue</onError>
         <noReboot>True</noReboot>
         <testParams>
-            <param>TC_COVERED=CORE-14</param>
+            <param>TC_COVERED=CORE-09</param>
             <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_netvsc hv_utils hyperv_fb hid_hyperv)</param>
         </testParams>
     </test>
@@ -1201,8 +1201,8 @@
             <testparams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-14</param>
-                <param>STATIC_IP2=10.200.51.200</param>
-                <param>NETMASK=255.255.252.0</param>
+                <param>STATIC_IP2=IP2</param>
+                <param>NETMASK=255.255.255.0</param>
                 <param>VM2NAME=vm2Name</param>
                 <param>SnapshotName=ICABase</param>
                 <param>SSH_PRIVATE_KEY=sshKey</param>
@@ -1226,8 +1226,8 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-01</param>
-                <param>STATIC_IP2=10.200.51.200</param>
-                <param>NETMASK=255.255.252.0</param>
+                <param>STATIC_IP2=IP2</param>
+                <param>NETMASK=255.255.255.0</param>
                 <param>VM2NAME=vm2Name</param>
                 <param>SnapshotName=ICABase</param>
                 <param>SSH_PRIVATE_KEY=sshKey</param>
@@ -1273,9 +1273,9 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-01</param>
-                <param>STATIC_IP=10.200.51.200</param>
-                <param>STATIC_IP2=10.200.51.201</param>
-                <param>NETMASK=255.255.252.0</param>
+                <param>STATIC_IP=IP</param>
+                <param>STATIC_IP2=IP2</param>
+                <param>NETMASK=255.255.255.0</param>
                 <param>VM2NAME=vm2Name</param>
                 <param>VLAN_ID=2</param>
                 <param>SnapshotName=ICABase</param>
