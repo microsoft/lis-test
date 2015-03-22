@@ -200,7 +200,6 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
     }
     if($scsi)
     {
-        write-host "INFO : Get-VMScsiController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID"
         $controller = Get-VMScsiController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID
     }
     
