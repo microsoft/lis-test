@@ -182,7 +182,7 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
     $cpu = Set-VM -Name $vmName -ComputerName $hvServer -ProcessorCount $numCPUs
     if ($? -eq "True")
     {
-        "CPU count updated to $numCPUs"     
+       Write-output "CPU count updated to $numCPUs" | Tee-Object -Append -file $summaryLog
     }
     else
     {
