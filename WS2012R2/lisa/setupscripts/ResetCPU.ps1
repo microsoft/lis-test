@@ -69,7 +69,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 #
 # Find the testParams we require.  Complain if not found
 #
-$numCPUs = 3
+$numCPUs = 4
 
 #
 # Update the CPU count on the VM
@@ -78,12 +78,12 @@ $cpu = Set-VM -Name $vmName -ComputerName $hvServer -ProcessorCount $numCPUs
 
 if ($? -eq "True")
 {
-    Write-output "CPU count updated to $numCPUs" | Tee-Object -Append -file $summaryLog
+    Write-output "CPU count updated to $numCPUs"
     $retVal = $true
 }
 else
 {
-    Write-output "Error: Unable to update CPU count" | Tee-Object -Append -file $summaryLog
+    Write-host "Error: Unable to update CPU count"
 }
 
 return $retVal
