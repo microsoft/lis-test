@@ -246,8 +246,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-18</param>
                 <param>DriveLetter=C:</param>
-                <param>SCSI=0,1,Dynamic</param>
-                <param>IDE=0,1,Dynamic</param>
+                    <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext3</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
