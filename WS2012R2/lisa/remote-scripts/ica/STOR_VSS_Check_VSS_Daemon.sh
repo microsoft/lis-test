@@ -142,6 +142,7 @@ function GetOSVersion {
     fi
     export os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
 }
+
 #######################################################################
 # Determine if current distribution is a Fedora-based distribution
 # (Fedora, RHEL, CentOS, etc).
@@ -154,6 +155,7 @@ function is_fedora {
     [ "$os_VENDOR" = "Fedora" ] || [ "$os_VENDOR" = "Red Hat" ] || \
         [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ]
 }
+
 #######################################################################
 # Determine if current distribution is a Rhel/CentOS 7 distribution
 #######################################################################
@@ -167,6 +169,7 @@ function is_rhel7 {
         [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ] && \
         [ "$os_RELEASE" = "7" ]
 }
+
 #######################################################################
 # Determine if current distribution is a SUSE-based distribution
 # (openSUSE, SLE).
@@ -209,30 +212,29 @@ else
     LogMsg "WARN: Unable to source the constants file."
 fi
 
-# rhel, centos, etc.. 
-if is_rhel7 ; then
+if is_rhel7 ; then #If the system is using systemd we use systemctl
     if [[ $(systemctl list-units --type=service | grep hypervvssd) ]] || \
        [[ $(systemctl list-units --type=service | grep hv_vss_daemon) ]]; then
-        
+
         LogMsg "VSS Daemon is running"
         UpdateTestState $ICA_TESTCOMPLETED
         exit 0
-
     else
         LogMsg "ERROR: VSS Daemon not running, test aborted"
         UpdateTestState $ICA_TESTABORTED
         exit 1
     fi
-else
-    ps -ef | grep '[h]v_vss_daemon'
-    if [[ $? -ne 0 ]]; then
-        LogMsg "ERROR: VSS Daemon not running, test aborted"
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
-    else
+
+else # For older systems we use ps
+    if [[ $(ps -ef | grep 'hypervvssd') ]] || \
+       [[ $(ps -ef | grep '[h]v_vss_daemon') ]]; then
+
         LogMsg "VSS Daemon is running"
         UpdateTestState $ICA_TESTCOMPLETED
         exit 0
+    else
+        LogMsg "ERROR: VSS Daemon not running, test aborted"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
     fi
 fi
-
