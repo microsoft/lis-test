@@ -56,6 +56,10 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$testfile = $null
+$gsi = $null
+# 10GB file size
+$filesize = 10737418240
 
 #######################################################################
 #
@@ -107,46 +111,6 @@ function check_file([String] $testfile)
 
 #######################################################################
 #
-#	Resize VHD
-#
-#######################################################################
-function resize_vhd([Long] $vhdSize)
-{
-    #
-    # Make sure the VM has a SCSI 0 controller, and that
-    # Lun 0 on the controller has a .vhdx file attached.
-    #
-    "Info : Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
-    $scsi00 = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber 0 -ControllerLocation 0 -ComputerName $hvServer -ErrorAction SilentlyContinue
-    if (-not $scsi00)
-    {
-        "Error: VM ${vmName} does not have a SCSI 0 Lun 0 drive"
-        $error[0].Exception.Message
-        return $False
-    }
-
-    $vhdPath = $scsi00.Path
-
-    "Info : Verify the file is a .vhdx"
-    if (-not $vhdPath.EndsWith(".vhdx") -and -not $vhdPath.EndsWith(".avhdx"))
-    {
-        "Error: SCSI 0 Lun 0 virtual disk is not a .vhdx file."
-        "       Path = ${vhdPath}"
-        return $False
-    }
-
-    Resize-VHD -Path $vhdPath -SizeBytes $vhdSize -ComputerName $hvServer -ErrorAction SilentlyContinue
-    if (-not $?)
-    {
-       "Error: Unable to resize VHDX file '${vhdPath}"
-       return $False
-    }
-
-    return $True
-}
-
-#######################################################################
-#
 #	Mount disk
 #
 #######################################################################
@@ -185,7 +149,6 @@ function mount_disk()
     return $True
 }
 
-
 #######################################################################
 #
 #	Main body script
@@ -193,10 +156,6 @@ function mount_disk()
 #######################################################################
 
 $retVal = $false
-$testfile = $null
-$gsi = $null
-# 10GB file size
-$filesize = 10737418240
 
 # Checking the input arguments
 if (-not $vmName) {
@@ -308,14 +267,6 @@ if (-not $sts[-1]) {
     $retVal = $False
 }
 
-#
-# Expand the SCSI disk to 15GB, and then mount it in the VM
-#
-$sts = resize_vhd 16106127360
-if (-not $sts[-1]) {
-    Write-Output "ERROR: Failed to expand the VHD." | Tee-Object -Append -file $summaryLog
-    $retVal = $False
-}
 $sts = mount_disk
 if (-not $sts[-1]) {
     Write-Output "ERROR: Failed to mount the disk in the VM." | Tee-Object -Append -file $summaryLog
@@ -331,7 +282,7 @@ if ($Error.Count -eq 0) {
 	Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" | Tee-Object -Append -file $summaryLog
 }
 else {
-	Write-Output "ERROR: Test failed! File could not be copied." | Tee-Object -Append -file $summaryLog
+	Write-Output "ERROR: File could not be copied!" | Tee-Object -Append -file $summaryLog
 	$retVal = $False
 }
 

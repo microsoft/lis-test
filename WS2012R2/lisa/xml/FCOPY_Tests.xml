@@ -21,7 +21,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -29,7 +29,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>File Copy test run on WS2012</subject>
+            <subject>File Copy test run on WS2012R2</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
 
