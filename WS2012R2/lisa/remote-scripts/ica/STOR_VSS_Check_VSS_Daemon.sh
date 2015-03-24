@@ -211,15 +211,17 @@ fi
 
 # rhel, centos, etc.. 
 if is_rhel7 ; then
-    systemctl list-units --type=service | grep hypervvssd
-    if [[ $? -ne 0 ]]; then
-        LogMsg "ERROR: VSS Daemon not running, test aborted"
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
-    else
+    if [[ $(systemctl list-units --type=service | grep hypervvssd) ]] || \
+       [[ $(systemctl list-units --type=service | grep hv_vss_daemon) ]]; then
+        
         LogMsg "VSS Daemon is running"
         UpdateTestState $ICA_TESTCOMPLETED
         exit 0
+
+    else
+        LogMsg "ERROR: VSS Daemon not running, test aborted"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
     fi
 else
     ps -ef | grep '[h]v_vss_daemon'
