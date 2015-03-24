@@ -21,7 +21,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -29,7 +29,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>File Copy test run on WS2012</subject>
+            <subject>File Copy test run on WS2012R2</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
 
@@ -81,13 +81,16 @@
 		
 		<test>
 			<testName>FCOPY_large_file</testName>
-			<setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript> 
+			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
 			<testScript>setupscripts\FCOPY_large_file.ps1</testScript>
-			<cleanupScript>setupscripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 			<timeout>900</timeout>
 			<testParams>
 				<param>TC_COVERED=FCopy-04</param>
-				<param>SCSI=0,0,Dynamic,512</param>
+                		<param>Dynamic=True</param>
+                		<param>SectorSize=512</param>
+                		<param>DefaultSize=15GB</param>
+				<param>SCSI=1,0,Dynamic,512,15GB</param>
 			</testParams>
 			<noReboot>False</noReboot>
 		</test>
