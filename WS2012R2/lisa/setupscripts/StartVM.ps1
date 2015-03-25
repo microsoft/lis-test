@@ -84,7 +84,7 @@
     Test data for this test case
 
     .Example
-    StartVM -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM2NAME=second_sles11sp3x64"
+    StartVM -vmName myVM -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM2NAME=second_VM"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -171,14 +171,11 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr
     return $retVal
 }
 
-
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
-#StopVMViaSSH $vmName $hvServer $sshKey 300
 
 #
 # Check input arguments
@@ -406,7 +403,6 @@ Start-sleep -s 5
 #
 # Verify the VMs exists
 #
-
 $vm2 = Get-VM -Name $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $vm2)
 {
@@ -498,11 +494,9 @@ if (-not $vm2nic)
 
 $scriptAddedNIC = $true
 
-
 #
 # Start VM2
 #
-
 if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 {
     Start-VM -Name $vm2Name -ComputerName $hvServer
@@ -514,14 +508,13 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
     }
 }
 
-$timeout = 60 # seconds
+$timeout = 120 # seconds
 if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 {
     "Warning: $vm2Name never started KVP"
 }
 
 # get vm2 ipv4
-
 $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
 "netmask = $netmask"
@@ -553,7 +546,6 @@ if (-not $retVal)
 
 "Successfully sent utils.sh"
 
-
 "Configuring test interface (${vm2MacAddress}) on $vm2Name (${vm2ipv4}) "
 $retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vm2StaticIP $netmask
 if (-not $retVal)
@@ -563,7 +555,6 @@ if (-not $retVal)
 }
 
 #get the ipv4 of the test adapter allocated by DHCP
-
 "vm2 Name = ${vm2Name}"
 "vm2 ipv4 = ${vm2ipv4}"
 "vm2 MAC = ${vm2MacAddress}"
