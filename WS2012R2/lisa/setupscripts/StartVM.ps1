@@ -514,7 +514,8 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
     }
 }
 
-$timeout = 60 # seconds
+
+$timeout = 200 # seconds
 if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 {
     "Warning: $vm2Name never started KVP"
