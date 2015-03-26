@@ -95,16 +95,16 @@
                 <suiteTest>ConfigureNetwork</suiteTest>
                 <suiteTest>External</suiteTest>
                 <suiteTest>InternalNetwork</suiteTest>
-                <!-- <suiteTest>GuestOnlyNetwork</suiteTest> -->
+                <suiteTest>GuestOnlyNetwork</suiteTest>
                 <suiteTest>OperState</suiteTest>
                 <suiteTest>MultipleNIC</suiteTest>
                 <suiteTest>StaticMAC</suiteTest>
                 <!-- <suiteTest>ChangeNetTypeInternal</suiteTest> -->
                 <!-- <suiteTest>ChangeNetTypeGuest</suiteTest>       -->
-                <!-- <suiteTest>CopyLargeFile</suiteTest> -->
-                <!-- <suiteTest>VlanTagging</suiteTest> -->
+                <suiteTest>CopyLargeFile</suiteTest>
+                <suiteTest>VlanTagging</suiteTest>
                 <!-- <suiteTest>VlanTrunking</suiteTest> -->
-                <!-- <suiteTest>JumboFrame</suiteTest> -->
+                <suiteTest>JumboFrame</suiteTest>
                 <suiteTest>NetworkMode</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
             </suiteTests>
@@ -1122,7 +1122,11 @@
 
         <test>
             <testName>GuestOnlyNetwork</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-06</param>
