@@ -370,6 +370,21 @@ else
     return $false
 }
 
+$sts = get-module | select-string -pattern HyperV -quiet
+if (! $sts)
+{
+    $HYPERV_LIBRARY = ".\HyperVLibV2SP1\Hyperv.psd1"
+    if ( (Test-Path $HYPERV_LIBRARY) )
+    {
+        Import-module .\HyperVLibV2SP1\Hyperv.psd1
+    }
+    else
+    {
+        "Error: The PowerShell HyperV library does not exist"
+        return $False
+    }
+}
+
 # Source TCUitls.ps1 for getipv4 and other functions
 if (Test-Path ".\setupScripts\TCUtils.ps1")
 {
@@ -450,7 +465,7 @@ foreach ($p in $params)
         #
         # Make sure the network exists
         #
-        $vmSwitch = Get-VMSwitch -Name $networkName -ComputerName $hvServer
+        $vmSwitch = Get-VMSwitch -VirtualSwitchName $networkName -Server $hvServer
         if (-not $vmSwitch)
         {
             "Error: Invalid network name: $networkName . The network does not exist."
@@ -468,7 +483,7 @@ foreach ($p in $params)
         #
         # Get Nic with given MAC Address
         #
-        $vm1nic = Get-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IsLegacy:$false | where {$_.MacAddress -eq $vm1MacAddress }
+        $vm1nic = Get-VMNIC -VM $vmName -Server $hvServer -Legacy:$false | where {$_.Address -eq $vm1MacAddress }
         if ($vm1nic)
         {
             "$vmName found NIC with MAC $vm1MacAddress ."
@@ -518,14 +533,14 @@ Start-sleep -s 5
 #
 # Verify the VMs exists
 #
-$vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
+$vm1 = Get-VM -Name $vmName -Server $hvServer -ErrorAction SilentlyContinue
 if (-not $vm1)
 {
     "Error: VM ${vmName} does not exist"
     return $False
 }
 
-$vm2 = Get-VM -Name $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
+$vm2 = Get-VM -Name $vm2Name -Server $hvServer -ErrorAction SilentlyContinue
 if (-not $vm2)
 {
     "Error: VM ${vm2Name} does not exist"
@@ -541,7 +556,7 @@ $scriptAddedNIC = $false
 
 # Check for a NIC of the given network type on VM2
 $vm2nic = $null
-$nic2 = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IsLegacy:$false | where { $_.SwitchName -like "$networkName" }
+$nic2 = Get-VMNIC -VM $vm2Name -Server $hvServer -Legacy:$false | where { $_.SwitchName -like "$networkName" }
 
 
 for ($i = 0 ; $i -lt 3; $i++)
@@ -606,7 +621,7 @@ if (-Not $?)
 }
 
 # get the newly added NIC
-$vm2nic = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IsLegacy:$false | where { $_.MacAddress -like "$vm2MacAddress" }
+$vm2nic = Get-VMNIC -VM $vm2Name -Server $hvServer -Legacy:$false | where { $_.Address -like "$vm2MacAddress" }
 
 if (-not $vm2nic)
 {
@@ -660,7 +675,7 @@ else
 
 if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 {
-    Start-VM -Name $vm2Name -ComputerName $hvServer
+    Start-VM -VM $vm2Name -Server $hvServer
     if (-not $?)
     {
         "Error: Unable to start VM ${vm2Name}"
@@ -669,7 +684,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
     }
 }
 
-$timeout = 60 # seconds
+$timeout = 200 # seconds
 if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 {
     "Warning: $vm2Name never started KVP"
@@ -686,7 +701,7 @@ $timeout = 120 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "Error: VM ${vm2Name} never started"
-    Stop-VM $vm2Name -ComputerName $hvServer -force | out-null
+    Stop-VM $vm2Name -Server $hvServer -force | out-null
     return $False
 }
 
