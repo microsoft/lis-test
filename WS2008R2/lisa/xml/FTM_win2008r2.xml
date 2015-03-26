@@ -31,31 +31,42 @@
         </vm>
     </VMs>
 
-    <testSuites> 
+    <testSuites>
         <suite>
             <suiteName>Core</suiteName>
             <suiteTests>
-                <suiteTest>VMHeartbeat</suiteTest>
-                <suiteTest>TimeSync</suiteTest>
-                <suiteTest>TimeSync_NTP</suiteTest> 
-                <suiteTest>TimeSync_SavedVM</suiteTest>
-                <suiteTest>LISShutdownVM</suiteTest>
-                <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
+                <!-- Legacy TCs
+                <suiteTest>Install-LIS</suiteTest>
+                <suiteTest>ICVersion</suiteTest>
+                <suiteTest>Upgrade-LIS</suiteTest>
+                <suiteTest>VerifyLISInstall</suiteTest>
+                <suiteTest>UnInstall-LIS</suiteTest>
+                <suiteTest>VerifyNoLIS</suiteTest>
+                <suiteTest>LIS-GetTarBall</suiteTest>
+                -->
                 <suiteTest>VerifyLisModules</suiteTest>
-                <suiteTest>Multi_Cpu_Test</suiteTest>
-                <suiteTest>Verify_LISModules_Version</suiteTest>
-                <suiteTest>VerifyItegratedShutdownService</suiteTest> 
-                <suiteTest>RebootDifferentMemSettings</suiteTest>
-                <suiteTest>StressReloadModules</suiteTest> 
-                <suiteTest>FloppyDisk</suiteTest>
-                <suiteTest>CDmount</suiteTest>
+                <suiteTest>HeartBeat</suiteTest>
+                <suiteTest>TimeSync</suiteTest>
+                <suiteTest>TimeSync_SavedVM</suiteTest>
+                <suiteTest>TimeSyncNTP</suiteTest>
+                <suiteTest>LISShutdownVM</suiteTest>
+                <suiteTest>VerifyItegratedShutdownService</suiteTest>
+                <suiteTest>SMP_VCPU_Count2</suiteTest>
+                <suiteTest>ShutDownVM_CPU2</suiteTest>
+                <suiteTest>SMP_VCPU_Count3</suiteTest>
+                <suiteTest>ShutDownVM_CPU3</suiteTest>
+                <suiteTest>SMP_VCPU_Count4</suiteTest>
+                <suiteTest>ShutDownVM_CPU4</suiteTest>
+                <suiteTest>StressReloadModules</suiteTest>
             </suiteTests>
-        </suite>  
+        </suite>
 
         <!-- Storage -->
         <suite>
             <suiteName>Storage</suiteName>
             <suiteTests>
+                <suiteTest>FloppyDisk</suiteTest>
+                <suiteTest>CDmount</suiteTest>
                 <suiteTest>AddDisk_IDE_1_DYNAMIC</suiteTest>
                 <suiteTest>AddDisk_IDE_0_DYNAMIC</suiteTest>
                 <suiteTest>AddDisk_SCSI_DYNAMIC</suiteTest>
@@ -71,7 +82,6 @@
                 <suiteTest>MultiDiskSCSI_Fixed</suiteTest>
                 <suiteTest>HotADD_Multi_Disk_SCSI_Dynamic</suiteTest>
                 <suiteTest>HotRemove_Multi_Disk_SCSI_Dynamic</suiteTest>
-                <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteName>
                 <suiteTest>TakeSnapShot</suiteTest>
                 <suiteTest>RevertSnapShot</suiteTest>
                 <suiteTest>TestExportImport</suiteTest>
@@ -91,10 +101,10 @@
                 <suiteTest>StaticMAC</suiteTest>
                 <!-- <suiteTest>ChangeNetTypeInternal</suiteTest> -->
                 <!-- <suiteTest>ChangeNetTypeGuest</suiteTest>       -->
-                <!-- <suiteTest>CopyLargeFile</suiteTest> -->
-                <!-- <suiteTest>VlanTagging</suiteTest> -->
+                <suiteTest>CopyLargeFile</suiteTest>
+                <suiteTest>VlanTagging</suiteTest>
                 <!-- <suiteTest>VlanTrunking</suiteTest> -->
-                <!-- <suiteTest>JumboFrame</suiteTest> -->
+                <suiteTest>JumboFrame</suiteTest>
                 <suiteTest>NetworkMode</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
             </suiteTests>
@@ -261,162 +271,244 @@
             </testparams>
         </test>
 
-    <!-- Core -->
-            
-    <test>
-        <testName>VMHeartBeat</testName>
-        <snapshotname>ICABase</snapshotname>
-        <testScript>SetupScripts\TestVMHeartbeat.ps1</testScript>
-        <files></files>
-        <timeout>600</timeout>
-        <noReboot>True</noReboot>
-    </test>
-            
-    <test>
-        <testName>CDmount</testName>
-        <testScript>LIS_CD.sh</testScript>
-        <files>remote-scripts/ica/LIS_CD.sh</files>
-        <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
-        <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
-        <testparams>
-            <param>IsoFilename=CDTEST.iso</param>
-            <param>TC_COVERED=CORE-20</param>
-        </testparams>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-    </test>
 
-    <test>
-        <testName>TimeSync</testName>
-        <testScript>setupScripts\timesync.ps1</testScript>
-        <files>setupScripts\timesync.ps1</files>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>            
-    </test>
 
-    <test>
-        <testName>TimeSync_SavedVM</testName>
-        <testScript>setupScripts\timesync_savedVM.ps1</testScript>
-        <files>setupScripts\timesync_savedVM.ps1</files>
-        <timeout>1000</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>            
-    </test>
-    
-    <test>
-         <testName>TimeSync_NTP</testName>
-         <testScript>CORE_TimeSync_NTP.sh</testScript>
-         <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
-         <timeout>600</timeout>
-         <onError>Continue</onError>
-         <testParams>
-            <param>TC_COVERED=CORE-04</param>
-         </testParams>
-     </test>
+        <!-- Core -->
 
-    <test>
-        <testName>Multi_Cpu_Test</testName>
-        <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
-        <timeout>1600</timeout>
-        <noReboot>False</noReboot>
-        <testParams>
-            <param>TC_COVERED=CORE-11</param>
-        </testParams>
-    </test>
-    
-    <test>
-        <testName>StressReloadModules</testName>
-        <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
-        <timeout>10600</timeout>
-        <testParams>
-            <param>TC_COVERED=CORE-18</param>
-        </testParams>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-    </test>
+        <test>
+            <testName>FloppyDisk</testName>
+            <snapshotname>ICABase</snapshotname>
+            <testScript>LIS_Floppy_Disk.sh</testScript>
+            <files>remote-scripts/ica/LIS_Floppy_Disk.sh</files>
+            <setupScript>SetupScripts\AddFloppyDisk.ps1</setupScript>
+            <cleanupScript>SetupScripts\RemoveFloppyDisk.ps1</cleanupScript>
+            <timeout>18000</timeout>
+            <testparams>
+                <param>TC_COUNT=BVT-15</param>
+                <param>MODE=script</param>
+            </testparams>
+           <onError>Continue</onError>
+        </test>
 
-    <test>
-        <testName>RebootDifferentMemSettings</testName>
-        <testParams>
-            <param>TC_COVERED=CORE-17</param>
-            <param>MemSize=8GB,6GB</param>
-        </testParams>
-        <testScript>setupscripts\CORE_RebootDiffMemory.ps1</testScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-    </test>
+        <test>
+            <testName>CDmount</testName>
+            <testScript>LIS_CD.sh</testScript>
+            <files>remote-scripts/ica/LIS_CD.sh</files>
+            <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
+            <testparams>
+                <param>IsoFilename=CDTEST.iso</param>
+                <param>TC_COVERED=NLIS-9</param>
+            </testparams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
 
-    <test>
-        <testName>LISShutdownVM</testName>
-        <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <testParams>
-            <param>TC_COVERED=CORE-07</param>
-        </testParams>
-    </test>
+        <test>
+            <testName>Install-LIS</testName>
+            <snapshotname>ICABase</snapshotname>
+            <testScript>LIS_Installation.sh</testScript>
+            <files>remote-scripts/ica/LIS_Installation.sh</files>
+            <timeout>18000</timeout>
+            <testparams>
+                <param>TARBALL=lisV3.1.tar.gz</param>
+                <param>REPOSITORY_SERVER=10.200.49.171</param>
+                <param>REPOSITORY_PATH=/icaRepository/LIS</param>
+                <param>TC_COUNT=BVT-15</param>
+                <param>MODE=script</param>
+            </testparams>
+           <onError>Continue</onError>
+        </test>
 
-    <test>
-        <testName>LISShutDownVMAndResetCpuCount</testName>
-        <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
-        <cleanupScript>setupScripts\ResetCPU.ps1</cleanupScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <testParams>
-            <param>TC_COVERED=CORE-08</param>
-        </testParams>
-    </test>
+        <test>
+            <testName>ICVersion</testName>
+            <testScript>LIS_IC_version.sh</testScript>
+            <files>remote-scripts\ica\LIS_IC_version.sh</files>
+            <testparams>
+                <param>TC_COUNT=BVT-31</param>
+            </testparams>
+            <timeout>600</timeout>
+            <OnError>Continue</OnError>
+            <noReboot>False</noReboot>
+        </test>
 
-    <test>
-        <testName>VerifyLisModules</testName>
-        <testScript>LIS_VerifyHyperVIC.sh</testScript>
-        <files>remote-scripts/ica/LIS_VerifyHyperVIC.sh</files>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>
-        <testParams>
-            <param>TC_COVERED=CORE-09</param>
-            <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_netvsc hv_utils hyperv_fb hid_hyperv)</param>
-        </testParams>
-    </test>
+        <test>
+            <testName>Upgrade-LIS</testName>
+            <snapshotname>ICABase</snapshotname>
+            <testScript>LIS_Upgrade.sh</testScript>
+            <files>remote-scripts/ica/LIS_Upgrade.sh</files>
+            <timeout>18000</timeout>
+            <testparams>
+                <param>TARBALL=lisV3.4.tar.gz</param>
+                <param>REPOSITORY_SERVER=10.200.49.171</param>
+                <param>REPOSITORY_PATH=/icaRepository/LIS</param>
+                <param>TC_COUNT=BVT-16</param>
+            </testparams>
+            <onError>Continue</onError>
+        </test>
 
-    <test>
-        <testName>Verify_LISModules_Version</testName>
-        <testScript>CORE_LISmodules_version.sh</testScript>
-        <files>remote-scripts/ica/CORE_LISmodules_version.sh</files>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>
-        <testparams>
-            <param>TC_COVERED=CORE-15</param>
-            <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
-        </testparams>
-    </test>
+        <test>
+            <testName>VerifyLISInstall</testName>
+            <testScript>LIS_verifyLIS.sh</testScript>
+            <files>remote-scripts\ica\LIS_verifyLIS.sh</files>
+            <setupScript>SetupScripts\AddNic.ps1</setupScript>
+            <testparams>
+                <param>TC_COUNT=BVT-26,BVT-27</param>
+                <param>NIC=NetworkAdapter,External,ExternalNet</param>
+            </testparams>
+            <cleanupScript>SetupScripts\RemoveNic.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
 
-    <test>
-        <testName>VerifyItegratedShutdownService</testName>
-        <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
-        <timeout>600</timeout>
-        <testParams>
-            <param>TC_COVERED=CORE-16</param>
-        </testParams>
-    </test>
+        <test>
+            <testName>HeartBeat</testName>
+            <snapshotname>ICABase</snapshotname>
+            <testScript>SetupScripts\TestVMHeartbeat.ps1</testScript>
+            <files></files>
+            <timeout>600</timeout>
+            <noReboot>True</noReboot>
+        </test>
 
-    <test>
-        <testName>FloppyDisk</testName>
-        <testScript>Core_Floppy_Disk.sh</testScript>
-        <files>remote-scripts\ica\Core_Floppy_Disk.sh</files>
-        <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>
-        <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
-        <noReboot>False</noReboot>
-        <testParams>
-            <param>TC_COVERED=CORE-19</param>
-        </testParams>
-        <onError>Continue</onError>
-        <timeout>600</timeout>
-    </test>
+        <test>
+            <testName>TimeSync</testName>
+            <testScript>setupScripts\timesync.ps1</testScript>
+            <files>setupScripts\timesync.ps1</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>TimeSync_SavedVM</testName>
+            <testScript>setupScripts\timesync_savedVM.ps1</testScript>
+            <files>setupScripts\timesync_savedVM.ps1</files>
+            <timeout>1000</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+             <testName>TimeSyncNTP</testName>
+             <testScript>CORE_TimeSync_NTP.sh</testScript>
+             <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
+             <timeout>600</timeout>
+             <onError>Continue</onError>
+             <testParams>
+                <param>TC_COVERED=CORE-04</param>
+             </testParams>
+         </test>
+
+        <test>
+            <testName>SMP_VCPU_Count2</testName>
+            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
+            <testScript>TC-3-VCPU.sh</testScript>
+            <files>remote-scripts/ica/TC-3-VCPU.sh</files>
+            <testparams>
+                <param>VCPU=2</param>
+            </testparams>
+            <timeout>60</timeout>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>SMP_VCPU_Count3</testName>
+            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
+            <testScript>TC-3-VCPU.sh</testScript>
+            <files>remote-scripts/ica/TC-3-VCPU.sh</files>
+            <testparams>
+                <param>VCPU=3</param>
+            </testparams>
+            <timeout>60</timeout>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>SMP_VCPU_Count4</testName>
+            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
+            <testScript>TC-3-VCPU.sh</testScript>
+            <files>remote-scripts/ica/TC-3-VCPU.sh</files>
+            <testparams>
+                <param>VCPU=4</param>
+            </testparams>
+            <timeout>60</timeout>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>ShutDownVM_CPU2</testName>
+            <snapshotname>ICABase</snapshotname>
+            <testScript>SetupScripts\TestVMShutdown.ps1</testScript>
+            <files></files>
+            <timeout></timeout>
+            <onError>Continue</onError>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>ShutDownVM_CPU3</testName>
+            <snapshotname>ICABase</snapshotname>
+            <testScript>SetupScripts\TestVMShutdown.ps1</testScript>
+            <files></files>
+            <timeout></timeout>
+            <onError>Continue</onError>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>ShutDownVM_CPU4</testName>
+            <snapshotname>ICABase</snapshotname>
+            <testScript>SetupScripts\TestVMShutdown.ps1</testScript>
+            <files></files>
+            <timeout></timeout>
+            <onError>Continue</onError>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>StressReloadModules</testName>
+            <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
+            <timeout>10600</timeout>
+            <testParams>
+                <param>TC_COVERED=CORE-18</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>LISShutdownVM</testName>
+            <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testParams>
+                <param>TC_COVERED=CORE-07</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>VerifyLisModules</testName>
+            <testScript>LIS_VerifyHyperVIC.sh</testScript>
+            <files>remote-scripts/ica/LIS_VerifyHyperVIC.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testParams>
+                <param>TC_COVERED=CORE-14</param>
+                <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_netvsc hv_utils hyperv_fb hid_hyperv)</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>VerifyItegratedShutdownService</testName>
+            <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=CORE-16</param>
+            </testParams>
+        </test>
 
     <!-- Stress Tests -->
 
@@ -934,22 +1026,6 @@
         </test>
 
         <test>
-            <testName>VHD_SCSI_0_1_Dynamic_Big</testName>
-            <snapshotname>ICABase</snapshotname>
-            <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
-            <testParams>
-                <param>SCSI=0,1,Dynamic,900GB</param>
-                <param>NO=1</param>
-                <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=STOR-13</param>
-            </testParams>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>10800</timeout>
-        </test>
-
-        <test>
             <testName>TakeSnapShot</testName>
             <testScript>CreateData.sh</testScript>
             <files>remote-scripts/ica/CreateData.sh</files>
@@ -957,7 +1033,7 @@
             <timeout>600</timeout>
             <testparams>
                 <param>SnapshotName=LIS_Snapshot</param>
-                <param>TC_COVERED=STOR-58</param>
+                <param>TC_COVERED=SNAP-58</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -972,7 +1048,7 @@
             <timeout>600</timeout>
             <testparams>
                 <param>SnapshotName=LIS_Snapshot</param>
-                <param>TC_COVERED=STOR-59</param>
+                <param>TC_COVERED=SNAP-59</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -1046,7 +1122,11 @@
 
         <test>
             <testName>GuestOnlyNetwork</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-06</param>
@@ -1150,7 +1230,11 @@
 
         <test>
             <testName>ChangeNetTypeGuest</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>SWITCH=NetworkAdapter,Private,Private,001600112200</param>
@@ -1201,8 +1285,8 @@
             <testparams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-14</param>
-                <param>STATIC_IP2=IP2</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>STATIC_IP2=10.200.51.200</param>
+                <param>NETMASK=255.255.252.0</param>
                 <param>VM2NAME=vm2Name</param>
                 <param>SnapshotName=ICABase</param>
                 <param>SSH_PRIVATE_KEY=sshKey</param>
@@ -1226,8 +1310,8 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-01</param>
-                <param>STATIC_IP2=IP2</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>STATIC_IP2=10.200.51.200</param>
+                <param>NETMASK=255.255.252.0</param>
                 <param>VM2NAME=vm2Name</param>
                 <param>SnapshotName=ICABase</param>
                 <param>SSH_PRIVATE_KEY=sshKey</param>
@@ -1273,9 +1357,9 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-01</param>
-                <param>STATIC_IP=IP</param>
-                <param>STATIC_IP2=IP2</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>STATIC_IP=10.200.51.200</param>
+                <param>STATIC_IP2=10.200.51.201</param>
+                <param>NETMASK=255.255.252.0</param>
                 <param>VM2NAME=vm2Name</param>
                 <param>VLAN_ID=2</param>
                 <param>SnapshotName=ICABase</param>
