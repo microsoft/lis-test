@@ -25,50 +25,50 @@
 
  Description:
     Use three VMs to test that one of them can act as a bridge for the other two.
-    
+
     The first VM is started by the LIS framework, while the other two will be managed by this script.
-    
+
     The script expects two NIC parameters in the same format as the NET_{ADD|REMOVE|SWITCH}_NIC_MAC.ps1 scripts, each connecting to a different network switch.
-    It checks the first VM for these NICs. If these are not present, the test will fail. It checks the second VM for the first NIC and if not found, it will call 
+    It checks the first VM for these NICs. If these are not present, the test will fail. It checks the second VM for the first NIC and if not found, it will call
     the NET_ADD_NIC_MAC.ps1 script directly and add it. It checks the third VM for the second NIC, and if not found, will also call the NET_ADD_NIC_MAC.ps1 script
     and add it. If the NICs were added by this script, it will also clean-up after itself, unless the LEAVE_TRAIL param is set to `YES'.
-    
+
     After all VMs are up, the first VM (with the 2 NICs) will add them to a bridge. Afterwards, the second VM will try to ping the third one.
-    
+
     The following testParams are mandatory:
-    
+
     2x   NIC=NIC type, Network Type, Network Name, MAC Address
-        
+
             NIC Type can be one of the following:
                 NetworkAdapter
                 LegacyNetworkAdapter
-            
+
             Network Type can be one of the following:
                 External
                 Internal
                 Private
-            
+
             Network Name is the name of a existing network.
-            
-            Only the Network Name parameter is used by this script, but the others are still necessary, in order to have the same 
+
+            Only the Network Name parameter is used by this script, but the others are still necessary, in order to have the same
             parameters as the NET_ADD_NIC_MAC script.
-        
+
             The following is an example of a testParam for removing a NIC
-            
+
                 "NIC=NetworkAdapter,Internal,InternalNet,001600112200"
-        
+
         VM2NAME=name_of_second_VM
             this is the name of the second VM. It will not be managed by the LIS framework, but by this script.
-        
+
         VM3NAME=name_of_third_VM
             this is the name of the third VM. It will not be managed by the LIS framework, but by this script.
 
     The following testParams are optional:
-    
+
         BRIDGE_IP=xx.xx.xx.xx
             xx.xx.xx.xx is a valid IPv4 Address. If not specified, a default value of 10.10.10.1 will be used.
             This will be assigned to VM1's bridge.
-        
+
         STATIC_IP=xx.xx.xx.xx
             xx.xx.xx.xx is a valid IPv4 Address. If not specified, a default value of 10.10.10.2 will be used.
             This will be assigned to VM2's test NIC.
@@ -76,17 +76,17 @@
         STATIC_IP2=xx.xx.xx.xx
             xx.xx.xx.xx is a valid IPv4 Address. If not specified, an IP Address from the same subnet as VM2's STATIC_IP
             will be computed (usually the first address != STATIC_IP in the subnet).
-        
+
         NETMASK=yy.yy.yy.yy
             yy.yy.yy.yy is a valid netmask (the subnet to which the tested netAdapters belong). If not specified, a default value of 255.255.255.0 will be used.
-        
+
         LEAVE_TRAIL=yes/no
             if set to yes and the NET_ADD_NIC_MAC.ps1 script was called from within this script for VM2, then it will not be removed
             at the end of the script. Also temporary bash scripts generated during the test will not be deleted.
-        
+
     All test scripts must return a boolean ($true or $false)
     to indicate if the script completed successfully or not.
-    
+
    .Parameter vmName
     Name of the first VM implicated in vlan trunking test .
 
@@ -119,7 +119,7 @@ function ConfigureBridge([String]$conIpv4, [String]$sshKey, [String] $bridgeIP, 
                 $j++
             }
         }
-    
+
     }
 
     $cmdToVM = @"
@@ -133,7 +133,7 @@ function ConfigureBridge([String]$conIpv4, [String]$sshKey, [String] $bridgeIP, 
                 fi
 
                 declare -a __bridge_ifaces
-                
+
                 # get interfaces with given MAC
                 for MacAddr in $macAddrs ; do
                     echo ConfigureBridge: searching for interface with MAC `$MacAddr >> /root/NET_BRIDGE.log 2>&1
@@ -150,43 +150,43 @@ function ConfigureBridge([String]$conIpv4, [String]$sshKey, [String] $bridgeIP, 
                     echo ConfigureBridge: found interface "`$__sys_interface" >> /root/NET_BRIDGE.log 2>&1
                     __bridge_ifaces=("`${__bridge_ifaces[@]}" "`$__sys_interface")
                 done
-                
+
                 echo ConfigureBridge: adding interfaces `${__bridge_ifaces[@]} to bridge br0 >> /root/NET_BRIDGE.log 2>&1
                 SetupBridge $bridgeIP $bridgeNetmask `${__bridge_ifaces[@]} >> /root/NET_BRIDGE.log 2>&1
                 __retVal=`$?
                 echo ConfigureBridge: SetupBridge returned `$__retVal >> /root/NET_BRIDGE.log 2>&1
                 exit `$__retVal
 "@
-    
+
 
     $filename = "ConfigureBridge.sh"
-    
+
     # check for file
     if (Test-Path ".\${filename}")
     {
         Remove-Item ".\${filename}"
     }
-    
+
     Add-Content $filename "$cmdToVM"
-    
+
     # send file
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-    
+
     # delete file unless the Leave_trail param was set to yes.
     if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
     {
         Remove-Item ".\${filename}"
     }
-    
+
     # check the return Value of SendFileToVM
     if (-not $retVal)
     {
         return $false
     }
-    
+
     # execute sent file
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-    
+
     return $retVal
 
 }
@@ -204,9 +204,9 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr
             $i++
         }
     }
-    
+
     # create command to be sent to VM. This determines the interface based on the MAC Address and calls CreateVlanConfig (from utils.sh) to create a new vlan interface
-    
+
     $cmdToVM = @"
 #!/bin/bash
         cd /root
@@ -216,13 +216,13 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr
         else
             exit 1
         fi
-        
+
         # make sure we have synthetic network adapters present
         GetSynthNetInterfaces
         if [ 0 -ne `$? ]; then
             exit 2
         fi
-        
+
         # get the interface with the given MAC address
         __sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address)
         if [ 0 -ne `$? ]; then
@@ -232,42 +232,42 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr
         if [ -z "`$__sys_interface" ]; then
             exit 4
         fi
-        
+
         echo CreateIfupConfigFile: interface `$__sys_interface >> /root/NET_BRIDGE.log 2>&1
         CreateIfupConfigFile `$__sys_interface static $staticIP $netmask >> /root/NET_BRIDGE.log 2>&1
         __retVal=`$?
         echo CreateIfupConfigFile: returned `$__retVal >> /root/NET_BRIDGE.log 2>&1
         exit `$__retVal
 "@
-    
+
     $filename = "CreateInterfaceConfig.sh"
-    
+
     # check for file
     if (Test-Path ".\${filename}")
     {
         Remove-Item ".\${filename}"
     }
-    
+
     Add-Content $filename "$cmdToVM"
-    
+
     # send file
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-    
+
     # delete file unless the Leave_trail param was set to yes.
     if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
     {
         Remove-Item ".\${filename}"
     }
-    
+
     # check the return Value of SendFileToVM
     if (-not $retVal)
     {
         return $false
     }
-    
+
     # execute sent file
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-    
+
     return $retVal
 }
 
@@ -280,7 +280,7 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
     {
         return $false
     }
-    
+
     # Add delimiter if needed
     if (-not $MacAddr.Contains(":"))
     {
@@ -292,7 +292,7 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
     }
     $cmdToVM = @"
 #!/bin/bash
-                
+
                 # get interface with given MAC
                 __sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address)
                 if [ 0 -ne `$? ]; then
@@ -302,7 +302,7 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
                 if [ -z "`$__sys_interface" ]; then
                     exit 2
                 fi
-                
+
                 echo PingVMs: pinging $pingTargetIpv4 using interface `$__sys_interface >> /root/NET_BRIDGE.log 2>&1
                 # ping the remote host using an easily distinguishable pattern 0xcafed00d
                 ping -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e0074616700" $pingTargetIpv4 >> /root/NET_BRIDGE.log 2>&1
@@ -326,33 +326,33 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 "@
     #"pingVMs: sendig command to vm: $cmdToVM"
     $filename = "PingVMs.sh"
-    
+
     # check for file
     if (Test-Path ".\${filename}")
     {
         Remove-Item ".\${filename}"
     }
-    
+
     Add-Content $filename "$cmdToVM"
-    
+
     # send file
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-    
+
     # delete file unless the Leave_trail param was set to yes.
     if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
     {
         Remove-Item ".\${filename}"
     }
-    
+
     # check the return Value of SendFileToVM
     if (-not $retVal)
     {
         return $false
     }
-    
+
     # execute command
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-    
+
     return $retVal
 }
 
@@ -487,7 +487,7 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
+
     switch ($fields[0].Trim())
     {
     "VM2NAME" { $vm2Name = $fields[1].Trim() }
@@ -503,7 +503,7 @@ foreach ($p in $params)
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
     "NIC"
     {
-        
+
         $nicArgs = $fields[1].Split(',')
         if ($nicArgs.Length -lt 4)
         {
@@ -511,8 +511,8 @@ foreach ($p in $params)
             return $false
 
         }
-        
-        
+
+
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
         $netAdapterName = $netAdapterName + $nicArgs[2].Trim()
@@ -526,7 +526,7 @@ foreach ($p in $params)
             "Error: Invalid NIC type: $nicType . Must be 'NetworkAdapter'"
             return $false
         }
-        
+
         #
         # Validate the Network type
         #
@@ -546,7 +546,7 @@ foreach ($p in $params)
             "Error: Invalid network name: $networkName . The network does not exist."
             return $false
         }
-        
+
         $retVal = isValidMAC $vm1MacAddress[${netAdapterNameIterator}]
 
         if (-not $retVal)
@@ -554,8 +554,8 @@ foreach ($p in $params)
             "Invalid Mac Address $vm1MacAddress[${netAdapterNameIterator}]"
             return $false
         }
-    
-        
+
+
         #
         # Get Nic with given MAC Address
         #
@@ -570,7 +570,7 @@ foreach ($p in $params)
             "Error: $vmName - No NIC found with MAC $vm1MacAddress[${netAdapterNameIterator}] ."
             return $false
         }
-        
+
         Set-VMNetworkAdapter $vm1nic -MacAddressSpoofing on
         $netAdapterNameIterator = $netAdapterNameIterator + 1
     }
@@ -671,7 +671,7 @@ $vm2nic = $null
 $vm2switchName = $netAdapterName[0]
 $nic2 = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IsLegacy:$false | where { $_.SwitchName -like "$vm2switchName" }
 
-if ($nic2) 
+if ($nic2)
 {
     # check if we received more than one
     if ($nic2 -is [system.array])
@@ -683,9 +683,9 @@ if ($nic2)
     {
         $vm2nic = $nic2
     }
-    
+
     $vm2MacAddress = $vm2nic | select -ExpandProperty MacAddress
-    
+
     $retVal = isValidMAC $vm2MacAddress
 
     if (-not $retVal)
@@ -721,7 +721,7 @@ else
     $netname = $netAdapterName[0]
     "Going to create a new $networkType netadapter for $vm2Name, attached to $netname with a static MAC of $vm2MacAddress"
     $vm2testParam = "NIC=NetworkAdapter,$networkType,$netname,$vm2MacAddress"
-    
+
     if ( Test-Path ".\setupScripts\NET_ADD_NIC_MAC.ps1")
     {
         # Make sure VM2 is shutdown
@@ -729,13 +729,13 @@ else
         {
             "Stopping VM2 $vm2Name"
             Stop-VM $vm2Name -force
-            
+
             if (-not $?)
             {
                 "Error: Unable to shut $vm2Name down (in order to add a new network Adapter)"
                 return $false
             }
-            
+
             # wait for VM to finish shutting down
             $timeout = 60
             while (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Off" })
@@ -745,13 +745,13 @@ else
                     "Error: Unable to shutdown $vm2Name"
                     return $false
                 }
-                
+
                 start-sleep -s 5
                 $timeout = $timeout - 5
             }
-            
+
         }
-        
+
         .\setupScripts\NET_ADD_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
     }
     else
@@ -759,22 +759,22 @@ else
         "Error: Could not find setupScripts\NET_ADD_NIC_MAC.ps1 ."
         return $false
     }
-    
+
     if (-Not $?)
     {
         "Error: Cannot add new NIC to $vm2Name"
         return $false
     }
-    
+
     # get the newly added NIC
     $vm2nic = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IsLegacy:$false | where { $_.MacAddress -like "$vm2MacAddress" }
-    
+
     if (-not $vm2nic)
     {
         "Error: Could not retrieve the newly added NIC to VM2"
         return $false
     }
-    
+
     $scriptAddedNIC = $true
 }
 
@@ -783,7 +783,7 @@ $vm3nic = $null
 $vm3switchName = $netAdapterName[1]
 $nic3 = Get-VMNetworkAdapter -VMName $vm3Name -ComputerName $hvServer -IsLegacy:$false | where { $_.SwitchName -like "$vm3switchName" }
 
-if ($nic3) 
+if ($nic3)
 {
     # check if we received more than one
     if ($nic3 -is [system.array])
@@ -795,9 +795,9 @@ if ($nic3)
     {
         $vm3nic = $nic3
     }
-    
+
     $vm3MacAddress = $vm3nic | select -ExpandProperty MacAddress
-    
+
     $retVal = isValidMAC $vm3MacAddress
     if (-not $retVal)
     {
@@ -810,7 +810,7 @@ if ($nic3)
 else
 {
     # we need to add it here
-    # try a few times 
+    # try a few times
     for ($i = 0; $i -lt 3; $i++)
     {
 
@@ -849,20 +849,20 @@ else
     $netname = $netAdapterName[1]
     "Going to create a new $networkType netadapter for $vm3Name, attached to $netname with a static MAC of $vm3MacAddress"
     $vm3testParam = "NIC=NetworkAdapter,$networkType,$netname,$vm3MacAddress"
-    
+
     if ( Test-Path ".\setupScripts\NET_ADD_NIC_MAC.ps1")
     {
         # Make sure VM3 is shutdown
         if (Get-VM -Name $vm3Name |  Where { $_.State -like "Running" })
         {
             Stop-VM $vm3Name -force
-            
+
             if (-not $?)
             {
                 "Error: Unable to shut $vm3Name down (in order to add a new network Adapter)"
                 return $false
             }
-            
+
             # wait for VM to finish shutting down
             $timeout = 60
             while (Get-VM -Name $vm3Name |  Where { $_.State -notlike "Off" })
@@ -872,11 +872,11 @@ else
                     "Error: Unable to shutdown $vm3Name"
                     return $false
                 }
-                
+
                 start-sleep -s 5
                 $timeout = $timeout - 5
             }
-            
+
         }
         .\setupScripts\NET_ADD_NIC_MAC.ps1 -vmName $vm3Name -hvServer $hvServer -testParams $vm3testParam
     }
@@ -900,7 +900,7 @@ else
         }
         return $false
     }
-    
+
     if (-Not $?)
     {
         "Error: Cannot add new NIC to $vm3Name"
@@ -921,10 +921,10 @@ else
         }
         return $false
     }
-    
+
     # get the newly added NIC
     $vm3nic = Get-VMNetworkAdapter -VMName $vm3Name -ComputerName $hvServer -IsLegacy:$false | where { $_.MacAddress -like "$vm3MacAddress" }
-    
+
     if (-not $vm3nic)
     {
         "Error: Could not retrieve the newly added NIC to VM3"
@@ -945,7 +945,7 @@ else
         }
         return $false
     }
-    
+
     $scriptAddedNIC = $true
 }
 
@@ -973,8 +973,8 @@ if (-not $vm2StaticIP)
 else
 {
     # make sure $vm3StaticIP is in the same subnet as $vm2StaticIP
-    $retVal = containsAddress $bridgeStaticIP $netmask $vm2StaticIP 
-    
+    $retVal = containsAddress $bridgeStaticIP $netmask $vm2StaticIP
+
     if (-not $retVal)
     {
         "$vm2StaticIP is not in the same subnet as $bridgeStaticIP $netmask"
@@ -1010,13 +1010,13 @@ if (-not $vm3StaticIP)
         $vm3StaticIP = getAddress $vm2StaticIP $netmask $nth
         $nth += 1
     } while ($vm3StaticIP -like $vm2StaticIP -or $vm3StaticIP -like $bridgeStaticIP)
-    
+
 }
 else
 {
     # make sure $vm3StaticIP is in the same subnet as $vm2StaticIP
-    $retVal = containsAddress $vm2StaticIP $netmask $vm3StaticIP 
-    
+    $retVal = containsAddress $vm2StaticIP $netmask $vm3StaticIP
+
     if (-not $retVal)
     {
         "$vm3StaticIP is not in the same subnet as $vm2StaticIP $netmask"
@@ -1083,7 +1083,8 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
     }
 }
 
-$timeout = 60 # seconds
+
+$timeout = 200 # seconds
 if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 {
     "Warning: $vm2Name never started KVP"
@@ -1097,7 +1098,7 @@ $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 "vm2 ipv4 = ${vm2ipv4}"
 "vm2 MAC = ${vm2MacAddress}"
 "vm2 static IP = ${vm2StaticIP}"
-    
+
 # wait for ssh to startg
 $timeout = 120 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
@@ -1223,7 +1224,7 @@ $vm3ipv4 = GetIPv4 $vm3Name $hvServer
 "vm3 ipv4 = ${vm3ipv4}"
 "vm3 MAC = ${vm3MacAddress}"
 "vm3 static IP = ${vm3StaticIP}"
-    
+
 # wait for ssh to start
 $timeout = 120 #seconds
 if (-not (WaitForVMToStartSSH $vm3ipv4 $timeout))

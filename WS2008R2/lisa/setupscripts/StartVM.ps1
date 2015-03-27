@@ -21,21 +21,13 @@
 
 <#
 .Synopsis
- Run the Private network test.
+ Run the StartVM test.
 
  Description:
-    Use two VMs to test a Private Network.
+    This script sets up additional Network Adapters for a second (dependency) VM, starts it first and configures the interface files
+    in the OS. Afterwards the main test is started together with the main VM.
 
-    The first VM is started by the LIS framework, while the second one will be managed by this script.
-
-    The script expects a NIC param in the same format as the NET_{ADD|REMOVE|SWITCH}_NIC_MAC.ps1 scripts. It checks both VMs
-    for a NIC connected to the specified network. If the first VM's NIC is not found, test will fail. In case the second VM is missing
-    this NIC, it will call the NET_ADD_NIC_MAC.ps1 script directly and add it. If the NIC was added by this script, it will also clean-up
-    after itself, unless the LEAVE_TRAIL param is set to `YES'.
-
-    After both VMs are up, one VM will try to ping the other through the test interfaces which are set to be pivate.
-
-    If the above ping succeeded, the test passed.
+    It can be used with the main Linux distributions. For the time being it is customized for use with the Networking tests.
 
     The following testParams are mandatory:
 
@@ -46,6 +38,8 @@
                 LegacyNetworkAdapter
 
             Network Type can be one of the following:
+                External
+                Internal
                 Private
 
             Network Name is the name of a existing network.
@@ -55,7 +49,7 @@
 
             The following is an example of a testParam for removing a NIC
 
-                "NIC=NetworkAdapter,Private,MyPrivateNetwork,001600112200"
+                "NIC=NetworkAdapter,Internal,InternalNet,001600112200"
 
         VM2NAME=name_of_second_VM
             this is the name of the second VM. It will not be managed by the LIS framework, but by this script.
@@ -68,7 +62,7 @@
 
         STATIC_IP2=xx.xx.xx.xx
             xx.xx.xx.xx is a valid IPv4 Address. If not specified, an IP Address from the same subnet as VM1's STATIC_IP
-            will be computed (usually the first address != STATIC_IP in the subnet). This will be assigned as VM2's test NIC.
+            will be computed (usually the first address != STATIC_IP in the subnet).This will be assigned as VM2's test NIC.
 
         NETMASK=yy.yy.yy.yy
             yy.yy.yy.yy is a valid netmask (the subnet to which the tested netAdapters belong). If not specified, a default value of 255.255.255.0 will be used.
@@ -90,7 +84,7 @@
     Test data for this test case
 
     .Example
-    NET_PRIVATE_NETWORK -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM2NAME=second_sles11sp3x64"
+    StartVM -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM2NAME=second_sles11sp3x64"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -139,10 +133,10 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr
             exit 4
         fi
 
-        echo CreateIfupConfigFile: interface `$__sys_interface >> /root/NET_PRIVATE_NETWORK.log 2>&1
-        CreateIfupConfigFile `$__sys_interface static $staticIP $netmask >> /root/NET_PRIVATE_NETWORK.log 2>&1
+        echo CreateIfupConfigFile: interface `$__sys_interface >> /root/StartVM.log 2>&1
+        CreateIfupConfigFile `$__sys_interface static $staticIP $netmask >> /root/StartVM.log 2>&1
         __retVal=`$?
-        echo CreateIfupConfigFile: returned `$__retVal >> /root/NET_PRIVATE_NETWORK.log 2>&1
+        echo CreateIfupConfigFile: returned `$__retVal >> /root/StartVM.log 2>&1
         exit `$__retVal
 "@
 
@@ -178,89 +172,6 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr
 }
 
 
-function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$noPackets,[String]$macAddr)
-{
-    # check the number of Packets to be sent to the VM
-    if ($noPackets -lt 0)
-    {
-        return $false
-    }
-
-    # Add delimiter if needed
-    if (-not $MacAddr.Contains(":"))
-    {
-        for ($i=2; $i -lt 16; $i=$i+2)
-        {
-            $MacAddr = $MacAddr.Insert($i,':')
-            $i++
-        }
-    }
-
-    $cmdToVM = @"
-#!/bin/bash
-
-                # get interface with given MAC
-                __sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address)
-                if [ 0 -ne `$? ]; then
-                    exit 1
-                fi
-                __sys_interface=`$(basename "`$(dirname "`$__sys_interface")")
-                if [ -z "`$__sys_interface" ]; then
-                    exit 2
-                fi
-
-                echo PingVMs: pinging $pingTargetIpv4 using interface `$__sys_interface >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                # ping the remote host using an easily distinguishable pattern
-                ping -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e0074616700" $pingTargetIpv4 >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                __retVal=`$?
-
-                 if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
-                    echo "Trying to get IPv6 associated with $pingTargetIpv4" >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                    full_ipv6=``ssh -i .ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no root@$pingTargetIpv4 "ip addr show | grep -A 2 $pingTargetIpv4 | grep "link"" | awk '{print `$2}'``
-                    IPv6=`${full_ipv6:0:`${#full_ipv6}-3}
-                    "Trying to ping `$IPv6 on interface `$__sys_interface" >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                    # ping the right address
-                    ping6 -I `$__sys_interface -c $noPackets "`$IPv6" >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                    __retVal=`$(( __retVal && _rVal ))
-                fi
-
-                echo PingVMs: ping returned `$__retVal >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                exit `$__retVal
-"@
-
-    #"pingVMs: sendig command to vm: $cmdToVM"
-    $filename = "PingVMs.sh"
-
-    # check for file
-    if (Test-Path ".\${filename}")
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    Add-Content $filename "$cmdToVM"
-
-    # send file
-    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
-    # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
-        return $false
-    }
-
-    # execute command
-    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
-    return $retVal
-}
-
-
 #######################################################################
 #
 # Main script body
@@ -272,11 +183,6 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 #
 # Check input arguments
 #
-if ($vmName -eq $null)
-{
-    "Error: VM name is null"
-    return $False
-}
 
 if ($hvServer -eq $null)
 {
@@ -332,15 +238,6 @@ $testipv4VM1 = $null
 
 $tempipv4VM2 = $null
 $testipv4VM2 = $null
-
-#External IP address
-$failIP1 = $null
-
-#Internal IP address
-$failIP2 = $null
-
-#Connection type to switch to
-$switch_nic = $null
 
 #Test IPv6
 $Test_IPv6 = $null
@@ -419,9 +316,6 @@ foreach ($p in $params)
     "ipv4"    { $ipv4    = $fields[1].Trim() }
     "STATIC_IP" { $vm1StaticIP = $fields[1].Trim() }
     "STATIC_IP2" { $vm2StaticIP = $fields[1].Trim() }
-    "PING_FAIL" { $failIP1 = $fields[1].Trim() }
-    "PING_FAIL2" { $failIP2 = $fields[1].Trim() }
-    "SWITCH" { $switch_nic = $fields[1].Trim() }
     "Test_IPv6" { $Test_IPv6 = $fields[1].Trim() }
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
@@ -517,12 +411,6 @@ if (-not $sshKey)
     return $False
 }
 
-if (-not $ipv4)
-{
-    "Error: test parameter ipv4 was not specified"
-    return $False
-}
-
 #set the parameter for the snapshot
 $snapshotParam = "SnapshotName = ${SnapshotName}"
 
@@ -533,12 +421,6 @@ Start-sleep -s 5
 #
 # Verify the VMs exists
 #
-$vm1 = Get-VM -Name $vmName -Server $hvServer -ErrorAction SilentlyContinue
-if (-not $vm1)
-{
-    "Error: VM ${vmName} does not exist"
-    return $False
-}
 
 $vm2 = Get-VM -Name $vm2Name -Server $hvServer -ErrorAction SilentlyContinue
 if (-not $vm2)
@@ -632,45 +514,8 @@ if (-not $vm2nic)
 $scriptAddedNIC = $true
 
 
-"Tests Private network"
-
-if (-not $netmask)
-{
-    $netmask = 255.255.255.0
-}
-
-
-if (-not $vm1StaticIP)
-{
-    $vm1StaticIP = getAddress "10.10.10.10" $netmask 1
-}
-
-# compute another ipv4 address for vm2
-if (-not $vm2StaticIP)
-{
-    [int]$nth = 2
-    do
-    {
-        $vm2StaticIP = getAddress $vm1StaticIP $netmask $nth
-        $nth += 1
-    } while ($vm2StaticIP -like $vm1StaticIP)
-
-}
-else
-{
-    # make sure $vm2StaticIP is in the same subnet as $vm1StaticIP
-    $retVal = containsAddress $vm1StaticIP $netmask $vm2StaticIP
-
-    if (-not $retVal)
-    {
-        "$vm2StaticIP is not in the same subnet as $vm1StaticIP / $netmask"
-        return $false
-    }
-}
-
-
 #
-# LIS Started VM1, so start VM2
+# Start VM2
 #
 
 if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
@@ -724,117 +569,18 @@ if (-not $retVal)
 "Successfully sent utils.sh"
 
 
-#switch network connection type in case is needed
-if ($switch_nic)
-{
-    $retVal = .\setupscripts\NET_SWITCH_NIC_MAC.ps1 -vmName $vmName -hvServer $hvServer -testParams "SWITCH=$switch_nic"
-    if (-not $retVal)
-    {
-        "Failed to switch connection type for $vmName on $hvServer with $switch_nic"
-        return $False
-    }
-
-    $retVal = .\setupscripts\NET_SWITCH_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams "SWITCH=NetworkAdapter,Private,Private,$vm2MacAddress"
-    if (-not $retVal)
-    {
-        "Failed to switch connection type for $vm2Name"
-        return $False
-    }
-
-    "Successfully switched connection type for both VMs"
-}
-
-"Configuring test interface (${vm1MacAddress}) on $vmName (${ipv4}) "
-
-# send ifcfg file to each VM
-$retVal = CreateInterfaceConfig $ipv4 $sshKey $vm1MacAddress $vm1StaticIP $netmask
-if (-not $retVal)
-{
-    "Failed to create Interface-File on vm $ipv4 for interface with mac $vm1MacAddress, by setting a static IP of $vm1StaticIP netmask $netmask"
-    return $false
-}
-
-"Successfully configured interface"
-
 "Configuring test interface (${vm2MacAddress}) on $vm2Name (${vm2ipv4}) "
 $retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vm2StaticIP $netmask
 if (-not $retVal)
 {
-    "Failed to create Interface File on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $vm2StaticIP netmask $netmask"
+    "Failed to create Interface on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $vm2StaticIP netmask $netmask"
     return $false
 }
 
 #get the ipv4 of the test adapter allocated by DHCP
 
-start-sleep 20
-
-"sshKey   = ${sshKey}"
-"vm1 Name = ${vmName}"
-"vm1 ipv4 = ${ipv4}"
-"vm1 MAC = ${vm1MacAddress}"
-
 "vm2 Name = ${vm2Name}"
 "vm2 ipv4 = ${vm2ipv4}"
 "vm2 MAC = ${vm2MacAddress}"
-
-
-# Try to ping with the private network interfaces
-"Trying to ping from vm1 with mac $vm1MacAddress to $vm2StaticIP "
-# try to ping
-$retVal = pingVMs $ipv4 $vm2StaticIP $sshKey 10 $vm1MacAddress
-
-if (-not $retVal)
-{
-    "Unable to ping $vm2StaticIP from $vm1StaticIP with MAC $vm1MacAddress"
-    return $false
-}
-
-"Successfully pinged"
-
-"Trying to ping from vm2 with mac $vm2MacAddress to $vm1StaticIP "
-$retVal = pingVMs $vm2ipv4 $vm1StaticIP $sshKey 10 $vm2MacAddress
-
-if (-not $retVal)
-{
-    "Unable to ping $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress"
-    return $false
-}
-
-"Successfully pinged"
-
-# Try to ping external network with the private network interfaces. This should fail
-"Trying to ping from vm1 with mac $vm1MacAddress to $failIP1 "
-# try to ping
-$retVal = pingVMs $ipv4 $failIP1 $sshKey 10 $vm1MacAddress
-
-if ($retVal)
-{
-    "Ping from vm1: Able to ping $failIP1 from $vm1StaticIP with MAC $vm2MacAddress although it should not have worked!"
-    return $false
-}
-
-"Failed to ping (as expected)"
-
-"Trying to ping from vm1 with mac $vm2MacAddress to $failIP2 "
-# try to ping
-$retVal = pingVMs $vm2ipv4 $failIP2 $sshKey 10 $vm1MacAddress
-
-if ($retVal)
-{
-    "Ping from vm2: Able to ping $failIP2 from $vm2StaticIP with MAC $vm2MacAddress although it should not have worked!"
-    return $false
-}
-
-"Failed to ping (as expected)"
-
-"Stopping $vm2Name"
-Stop-VM -Name $vm2Name -force
-
-if (-not $?)
-{
-    "Warning: Unable to shut down $vm2Name"
-}
-
-"Test successful!"
 
 return $true
