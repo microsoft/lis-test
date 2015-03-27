@@ -19,24 +19,6 @@
     permissions and limitations under the License.
 -->
 
-<!-- USAGE
-For the NET Tests to work properly, it is recommended to do the following setup:
-If you have RHEL 5 or RHEL 6:
-- Disable network manager
-- Delete NET rules (70-persistent-net.rules)
-- Be sure to have only one ifcfg file, ifcfg-eth0 with dhcp enabled (https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Deployment_Guide/s1-networkscripts-interfaces.html)
-
-In other cases Network Manager can be left on, just be sure that the main interface, which will be used by LISA, is ifcfg-eth0.
-
-For Copy Large File and Jumbo Frames to work:
-- The Identity file must be present in .ssh on both VMs, with permission 600. This needs to be specified in the XML (SSH_PRIVATE_KEY)
-- You need to manually specify in the XML an IP for the second VMs test interface. This must be in the same range and same netmask as the main NIC.
-
-The commented parameters are optional, these can be used in case something goes wrong (DHCP server is down or allcoates IP from a different range, in which case some tests does not work)
-
-
--->
-
 <config>
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
