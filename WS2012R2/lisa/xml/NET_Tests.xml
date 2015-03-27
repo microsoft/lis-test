@@ -19,6 +19,24 @@
     permissions and limitations under the License.
 -->
 
+<!-- USAGE
+For the NET Tests to work properly, it is recommended to do the following setup:
+If you have RHEL 5 or RHEL 6:
+- Disable network manager
+- Delete NET rules (70-persistent-net.rules)
+- Be sure to have only one ifcfg file, ifcfg-eth0 with dhcp enabled (https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Deployment_Guide/s1-networkscripts-interfaces.html)
+
+In other cases Network Manager can be left on, just be sure that the main interface, which will be used by LISA, is ifcfg-eth0.
+
+For Copy Large File and Jumbo Frames to work:
+- The Identity file must be present in .ssh on both VMs, with permission 600. This needs to be specified in the XML (SSH_PRIVATE_KEY)
+- You need to manually specify in the XML an IP for the second VMs test interface. This must be in the same range and same netmask as the main NIC.
+
+The commented parameters are optional, these can be used in case something goes wrong (DHCP server is down or allcoates IP from a different range, in which case some tests does not work)
+
+
+-->
+
 <config>
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
@@ -214,7 +232,7 @@
                 <param>PING_FAIL2=10.10.10.5</param>
             </testParams>
             <onError>Continue</onError>
-            <noReboot>True</noReboot>
+            <noReboot>False</noReboot>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
@@ -351,7 +369,7 @@
 				<param>TC_COVERED=NET-01</param>
 				<!-- <param>STATIC_IP=10.10.10.1</param> -->
 				<!-- <param>STATIC_IP2=10.10.10.2</param> -->
-				<param>NETMASK=255.255.254.0</param>
+				<!-- <param>NETMASK=255.255.254.0</param> -->
 				<param>VM2NAME=VM2Name</param>
 				<param>VLAN_ID=2</param>
                 <param>SnapshotName=ICABase</param>

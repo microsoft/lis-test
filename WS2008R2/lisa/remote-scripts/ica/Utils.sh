@@ -248,10 +248,10 @@ GetDistro()
 		*SUSE*)
 			DISTRO=suse_x
 			;;
-		*CentOS*5*)
+		*CentOS*5.*)
 			DISTRO=centos_5
 			;;
-		*CentOS*6*)
+		*CentOS*6.*)
 			DISTRO=centos_6
 			;;
 		*CentOS*7*)
@@ -272,10 +272,10 @@ GetDistro()
 		*Fedora*)
 			DISTRO=fedora_x
 			;;
-		*Red*5*)
+		*Red*5.*)
 			DISTRO=redhat_5
 			;;
-		*Red*6*)
+		*Red*6.*)
 			DISTRO=redhat_6
 			;;
 		*Red*7*)
