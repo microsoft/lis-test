@@ -91,7 +91,7 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-$global:MinDiskSize = "1GB
+$global:MinDiskSize = "1GB"
 
 #######################################################################
 #
