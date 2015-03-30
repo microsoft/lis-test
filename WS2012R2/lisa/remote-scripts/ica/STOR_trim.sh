@@ -21,7 +21,6 @@
 #
 ########################################################################
 
-
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
@@ -84,11 +83,9 @@ fi
 if [ ! ${TC_COVERED} ]; then
     LogMsg "Error: The TC_COVERED variable is not defined."
     echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
-    UpdateTestState "TestAborted"
-    exit 1
 fi
 
-echo "Covers : ${TC_COVERED}" >> ~/summary.log
+echo "Covers: ${TC_COVERED}" >> ~/summary.log
 
 # Count the number of SCSI= and IDE= entries in constants
 #
@@ -183,7 +180,8 @@ do
         UpdateTestState $ICA_TESTFAILED
         exit 90
     fi
-
+    
+    drive=`echo $driveName | cut -d '/' -f 3`
     discard_max_bytes=`cat /sys/block/${drive}/queue/discard_max_bytes`
     if [ $discard_max_bytes -eq 0 ]; then
         LogMsg " ${driveName}1 is not ready for TRIM."
@@ -197,5 +195,4 @@ do
 done
 
 UpdateTestState $ICA_TESTCOMPLETED
-
 exit 0
