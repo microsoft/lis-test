@@ -19,10 +19,8 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
-    
 
 .Description
     This setup script, which runs before the VM is booted, will
@@ -93,8 +91,7 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-$global:MinDiskSize = 1GB
-
+$global:MinDiskSize = "1GB
 
 #######################################################################
 #
@@ -127,9 +124,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     
     return $fileInfo
 }
-
-
-
 
 ############################################################################
 #
@@ -194,7 +188,6 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
     }
 }
 
-
 ############################################################################
 #
 # GetPhysicalDiskForPassThru
@@ -234,25 +227,6 @@ function GetPhysicalDiskForPassThru([string] $server)
             }
         }
     }
-
-    #
-    # Now that we know which physical drives are in use, enumerate all the physical
-    # drives to see if we can find one that is not in the PhysDrivesInUse array
-    #
-    #$query = "Select * from Msvm_ResourcePool where ResourceSubType = 'Microsoft Physical Disk Drive'"
-    #$diskPool = get-wmiobject -computername $server -Namespace root\virtualization -query $query
-    #if ($diskPool)
-    #{
-    #    $drives = $diskPool.getRelated("Msvm_DiskDrive")
-    #    foreach ($drive in $drives)
-    #    {
-    #        if ($PhysDisksInUse -notcontains $($drive.DriveNumber))
-    #        {
-    #            $physDrive = $drive
-    #            break
-    #        }
-    #    }
-    #
 
     $physDrive = $null
 
@@ -375,8 +349,6 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
     return $retVal
 }
 
-
-
 ############################################################################
 #
 # CreateHardDrive
@@ -495,7 +467,6 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
                     return $retVal
                 }
         }
-        #$nv = New-Vhd -vhdPaths $vhdName -size $$newVHDSize -server $server -fixed:($vhdType -eq "Fixed") -force -wait
         if ($newVhd -eq $null)
         {
             write-output "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
@@ -520,8 +491,6 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     
     return $retVal
 }
-
-
 
 ############################################################################
 #
@@ -580,7 +549,7 @@ foreach ($p in $params)
     if ($temp.Length -ne 2)
     {
     "Warn : test parameter '$p' is being ignored because it appears to be malformed"
-     continue
+    continue
     }
     
     $controllerType = $temp[0]
@@ -597,8 +566,6 @@ foreach ($p in $params)
     }
         
     $diskArgs = $temp[1].Trim().Split(',')
-    
-
    
     if ($diskArgs.Length -ne 4 -and $diskArgs.Length -ne 3)
     {
@@ -617,7 +584,6 @@ foreach ($p in $params)
     {
         $VHDSize = $diskArgs[3].Trim()
     }
-   
     
     if (@("Fixed", "Dynamic", "PassThrough", "Diff") -notcontains $vhdType)
     {
