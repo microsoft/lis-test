@@ -676,7 +676,7 @@
                 <param>IDE=1,1,Dynamic</param>
                 <param>NO=1</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-35</param>
+                <param>TC_COUNT=DSK_VHD-35</param>
             </testParams>
             <testScript>LIS_Addnewdisk.sh</testScript>
             <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
@@ -693,7 +693,7 @@
                 <param>IDE=0,1,Dynamic</param>
                 <param>NO=1</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-36</param>
+                <param>TC_COUNT=DSK_VHD-36</param>
             </testParams>
             <testScript>LIS_Addnewdisk.sh</testScript>
             <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
@@ -710,7 +710,7 @@
                 <param>SCSI=0,1,Dynamic</param>
                 <param>NO=1</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-37</param>
+                <param>TC_COUNT=DSK_VHD-37</param>
             </testParams>
             <testScript>LIS_Addnewdisk.sh</testScript>
             <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
@@ -727,7 +727,7 @@
                 <param>IDE=1,1,Fixed</param>
                 <param>NO=1</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-37</param>
+                <param>TC_COUNT=DSK_VHD-37</param>
             </testParams>
             <testScript>LIS_Addnewdisk.sh</testScript>
             <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
@@ -744,7 +744,7 @@
                 <param>SCSI=0,1,Fixed</param>
                 <param>NO=1</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-38</param>
+                <param>TC_COUNT=DSK_VHD-38</param>
             </testParams>
             <testScript>LIS_Addnewdisk.sh</testScript>
             <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
@@ -766,7 +766,7 @@
                 <param>NO=1</param>
                 <param>IDE=1,1,Diff</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-38</param>
+                <param>TC_COUNT=DSK_VHD-38</param>
             </testparams>
         </test>
 
@@ -784,7 +784,7 @@
                 <param>NO=1</param>
                 <param>SCSI=0,0,Diff</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-39</param>
+                <param>TC_COUNT=DSK_VHD-39</param>
             </testparams>
         </test>
 
@@ -796,7 +796,7 @@
                 <param>NO=1</param>
                 <param>IDE=0,1,PassThrough</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-43</param>
+                <param>TC_COUNT=DSK_VHD-43</param>
             </testParams>
             <testScript>LIS_Addnewdisk.sh</testScript>
             <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
@@ -813,7 +813,7 @@
                 <param>NO=1</param>
                 <param>IDE=1,1,PassThrough</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-42</param>
+                <param>TC_COUNT=DSK_VHD-42</param>
             </testParams>
             <testScript>LIS_Addnewdisk.sh</testScript>
             <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
@@ -831,7 +831,7 @@
                 <param>NO=1</param>
                 <param>SCSI=0,1,PassThrough</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COVERED=DSK_VHD-44</param>
+                <param>TC_COUNT=DSK_VHD-44</param>
             </testParams>
             <testScript>LIS_Addnewdisk.sh</testScript>
             <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
@@ -853,7 +853,7 @@
                 <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
-                <param>TC_COVERED=DSK_VHD-45,DSK_VHD-46</param>
+                <param>TC_COUNT=DSK_VHD-45,DSK_VHD-46</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -872,7 +872,7 @@
                 <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
-                <param>TC_COVERED=DSK_VHD-45,DSK_VHD-46</param>
+                <param>TC_COUNT=DSK_VHD-45,DSK_VHD-46</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -891,7 +891,7 @@
                 <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
-                <param>TC_COVERED=DSK_VHD-47</param>
+                <param>TC_COUNT=DSK_VHD-47</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -910,7 +910,7 @@
                 <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
-                <param>TC_COVERED=DSK_VHD-51,DSK_VHD-53</param>
+                <param>TC_COUNT=DSK_VHD-51,DSK_VHD-53</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
@@ -926,7 +926,7 @@
             <testparams>
                 <param>SCSI=0,0,Dynamic</param>
                 <param>SCSI=0,1,Dynamic</param>
-                <param>TC_COVERED=DSK_VHD-52,DSK_VHD-54</param>
+                <param>TC_COUNT=DSK_VHD-52,DSK_VHD-54</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
