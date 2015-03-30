@@ -5,7 +5,7 @@ This document is intended as a guide to LIS framework’s networking scripts. Th
 For per-script information please consult the header of each script, as it contains more detailed information.
 
 ### Host
-- Before starting the tests, the host needs to have configured at least 3 vSwitches (External, Internal and Private:
+- Before starting the tests, the host needs to have configured at least 3 vSwitches (External, Internal and Private)
 - The names of these switches will be filled inside the xml in the ‘NIC’ parameter.
 - All switches must be running in Untagged mode.
 - At least one of the External or Internal Switches needs to have a DHCP Server present on its network (or running its own) in order for the ConfigureNetwork test to pass. All other tests do not require a DHCP server handing out addresses, but it is more convenient to have one still.
@@ -14,23 +14,23 @@ For per-script information please consult the header of each script, as it conta
 
 ### Guest
 ###### General setup
-- linux guests need to ensure that they have the hv_netvsc kernel module
+- Linux guests need to ensure that they have the hv_netvsc kernel module
 - the LIS Framework requires a network connection to the guest in order to send commands. The network tests will ignore this interface when running the tests. This NIC is identified by the ipv4 parameter set inside the constants.sh file (sent by the LIS framework to the guest)
 - it must be ensured that this NIC (used by the LIS connection) is always brought up inside the VM by the network service (by having a configuration file defined for it, e.g. ifcfg-eth0 in case of RHEL distributions)
-- it is preferred to disable network manager manually before running the tests. Otherwise, set the NM_DISABLE=yes parameter inside the xml.
+- it is preferred to disable Network Manager manually before running the tests. Otherwise, set the NM_DISABLE=yes parameter inside the xml.
 - the guest must ensure no firewall rules interfere with the tests
 - when using the ‘NIC=’ parameter and setting a MAC Address, please ensure that it is not colliding with another MAC on the same host (it needs to be outside the dynamic MAC Address pool and also different from any previously set static MAC Addresses)
 - NET_UTILS.ps1 contains a function that determines a valid, random and unused MAC Address
 - When setting the static address for the ConfigureNetwork script, make sure it is not colliding with another IPv4 on that same network (the DHCP server is leasing out addresses on that network, so either choose one outside the DHCP pool, or set the static address that the DHCP server would lease out to this machine)
 
 **For Copy Large File and Jumbo Frames to work:**
-- The Identity file must be present in .ssh on both VMs, with permission 600. This needs to be specified in the XML (SSH_PRIVATE_KEY)
+- The Identity file must be present in the /root/.ssh folder on both VMs, with permission 600. This needs to be specified in the XML (SSH_PRIVATE_KEY)
 - You need to manually specify in the XML an IP for the second VMs test interface. This must be in the same range and same netmask as the main NIC.
 
 
-###### If you have RHEL 5 or RHEL 6:
-- It is strongly recommended to disable network manager
-- Delete NET rules (70-persistent-net.rules)
+###### Notes for RHEL 5 and RHEL 6:
+- It is strongly recommended to disable Network Manager
+- Delete NET rules (/etc/udev/rules.d/70-persistent-net.rules)
 - Be sure to have only one ifcfg file, ifcfg-eth0 with dhcp enabled (https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Deployment_Guide/s1-networkscripts-interfaces.html). This will be used by LISA
 
 **In the XML the commented parameters are optional, these can be used in case something goes wrong (DHCP server is down or allcoates IP from a different range, in which case some tests does not work)**
