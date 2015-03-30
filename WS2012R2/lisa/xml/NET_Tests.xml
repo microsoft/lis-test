@@ -214,7 +214,7 @@
                 <param>PING_FAIL2=10.10.10.5</param>
             </testParams>
             <onError>Continue</onError>
-            <noReboot>True</noReboot>
+            <noReboot>False</noReboot>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
@@ -351,7 +351,7 @@
 				<param>TC_COVERED=NET-01</param>
 				<!-- <param>STATIC_IP=10.10.10.1</param> -->
 				<!-- <param>STATIC_IP2=10.10.10.2</param> -->
-				<param>NETMASK=255.255.254.0</param>
+				<!-- <param>NETMASK=255.255.254.0</param> -->
 				<param>VM2NAME=VM2Name</param>
 				<param>VLAN_ID=2</param>
                 <param>SnapshotName=ICABase</param>
