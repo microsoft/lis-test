@@ -148,7 +148,7 @@ if (-not $vm) {
 # Stop the VM.
 #
 while ($testCaseTimeout -gt 0) {
-    Stop-VM -Name $vmName -ComputerName $hvServer -Force
+    Stop-VM -Name $vmName -ComputerName $hvServer -Force -ErrorAction SilentlyContinue
 
     if ( (CheckCurrentStateFor $vmName ("Off"))) {
         break
