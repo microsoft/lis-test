@@ -71,7 +71,7 @@
                 <suiteTest>MultiDiskSCSI_Fixed</suiteTest>
                 <suiteTest>HotADD_Multi_Disk_SCSI_Dynamic</suiteTest>
                 <suiteTest>HotRemove_Multi_Disk_SCSI_Dynamic</suiteTest>
-                <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteName>
+                <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteTest>
                 <suiteTest>TakeSnapShot</suiteTest>
                 <suiteTest>RevertSnapShot</suiteTest>
                 <suiteTest>TestExportImport</suiteTest>
