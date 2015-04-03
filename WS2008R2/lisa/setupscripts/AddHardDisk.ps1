@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-
+    
 .Description
     This setup script, which runs before the VM is booted, will
     add additional hard drives to the specified VM.
@@ -78,20 +78,17 @@
 
 .Parameter vmName
     
-
 .Parameter hvServer
     
-
 .Parameter testParams
     
-
 .Example
     
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-$global:MinDiskSize = "1GB"
+$global:MinDiskSize = 1GB
 
 #######################################################################
 #
@@ -250,7 +247,6 @@ function ConvertStringToUInt64([string] $newSize)
 {
     $uint64Size = $null
 
-
     #
     # Make sure we received a string to convert
     #
@@ -259,7 +255,6 @@ function ConvertStringToUInt64([string] $newSize)
         Write-Error -Message "ConvertStringToUInt64() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
         return $null
     }
-
 
     if ($newSize.EndsWith("MB"))
     {
@@ -322,6 +317,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
     }
 
     $drives = Get-VMDiskController -vm $vmName -ControllerID $ControllerID -server $server -SCSI:$SCSI -IDE:(-not $SCSI) | Get-VMDriveByController -Lun $Lun
+    
     if ($drives)
     {
         "Error: drive $controllerType $controllerID $Lun already exists"
@@ -467,6 +463,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
                     return $retVal
                 }
         }
+        #$nv = New-Vhd -vhdPaths $vhdName -size $$newVHDSize -server $server -fixed:($vhdType -eq "Fixed") -force -wait
         if ($newVhd -eq $null)
         {
             write-output "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
@@ -549,7 +546,7 @@ foreach ($p in $params)
     if ($temp.Length -ne 2)
     {
     "Warn : test parameter '$p' is being ignored because it appears to be malformed"
-    continue
+     continue
     }
     
     $controllerType = $temp[0]
@@ -573,7 +570,6 @@ foreach ($p in $params)
         $retVal = $false
         continue
     }
-
     
     $controllerID = $diskArgs[0].Trim()
     $lun = $diskArgs[1].Trim()
@@ -584,6 +580,7 @@ foreach ($p in $params)
     {
         $VHDSize = $diskArgs[3].Trim()
     }
+   
     
     if (@("Fixed", "Dynamic", "PassThrough", "Diff") -notcontains $vhdType)
     {
