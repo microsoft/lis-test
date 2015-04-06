@@ -6,8 +6,8 @@
 		<defaultSnapshot>ICABase</defaultSnapshot>
 		<email>
 			<recipients>
-				<to>myboss@mycompany.com</to>
-                <to>myself@mycompany.com</to>
+			<to>myboss@mycompany.com</to>
+	                <to>myself@mycompany.com</to>
 			</recipients>
 			<sender>myself@mycompany.com</sender>
 			<subject>LIS_DM_tests_run_on_2012R2</subject>
@@ -40,9 +40,8 @@
 	</testSuites>
 
 	<testCases>
-
 		<test>
-			<testName>DMLoaded</testName>
+			<testName>DM_loaded</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
 				<param>TC_COVERED=DM-01</param>
@@ -98,7 +97,6 @@
 				<param>memWeight=0</param>
 				<param>staticMem=512MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_StartupLowCompete.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>8000</timeout>
@@ -131,7 +129,6 @@
 				<param>memWeight=100</param>
 				<param>staticMem=512MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_RemoveUnderPressure.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
@@ -157,7 +154,6 @@
 				<param>memWeight=0</param>
 				<param>staticMem=512MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_SaveRestore.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>800</timeout>
@@ -176,7 +172,6 @@
 				<param>memWeight=0</param>
 				<param>staticMem=512MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_PressureChangesDemand.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
@@ -220,7 +215,6 @@
 				<param>memWeight=100</param>
 				<param>staticMem=512MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_HotAdd.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>3000</timeout>
@@ -246,7 +240,6 @@
 				<param>memWeight=0</param>
 				<param>staticMem=1024MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_HotAddRemove.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>3000</timeout>
@@ -272,13 +265,12 @@
 				<param>memWeight=100</param>
 				<param>staticMem=512MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_CleanShutdown.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
 
-				<test>
+		<test>
 			<testName>MaxMemHonored</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
@@ -305,7 +297,7 @@
 		</test>
 
 		<test>
-            <testName>MinMemHonored</testName>
+            	<testName>MinMemHonored</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
 				<param>TC_COVERED=DM-12</param>
@@ -328,8 +320,7 @@
 			<testScript>setupScripts\DM_MinMemHonor.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>3000</timeout>
-        </test>
-
+        	</test>
 	</testCases>
 
 	<VMs>
@@ -345,3 +336,4 @@
 		</testParams>
 		</vm>
 	</VMs>
+</config>
