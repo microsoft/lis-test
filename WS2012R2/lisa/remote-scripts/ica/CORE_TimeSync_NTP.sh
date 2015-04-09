@@ -308,7 +308,6 @@ elif is_suse ; then
 
     service ntpd stop
 
-
     # Edit NTP Server config and set the timeservers
     sed -i 's/^server.*/ /g' /etc/ntp.conf
     echo "
@@ -339,7 +338,7 @@ elif is_suse ; then
         exit 10
     fi
 
-else # other distro's
+else # other distro
     LogMsg "Distro not suported. Aborting"
     UpdateTestState $ICA_TESTABORTED
     exit 10
@@ -379,7 +378,7 @@ fi
 
 # If we reached this point, time is synced.
 LogMsg "NTP offset is $delay seconds."
-LogMsg "SUCCES: NTP time synced!"
+LogMsg "SUCCESS: NTP time synced!"
 
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
