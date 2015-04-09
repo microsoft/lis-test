@@ -294,7 +294,6 @@ elif is_ubuntu ; then
     fi
 
 elif is_suse ; then
-    # TODO
     service ntpd restart
     if [[ $? -ne 0 ]]; then
         LogMsg "NTP is not installed. Trying to install ..."
