@@ -19,7 +19,6 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Functions that make up the Lisa state engine.
@@ -171,7 +170,6 @@
 .Link
     None.
 #>
-
 
 #
 # As a safety measure, try to unload hyperv module just in case someone
@@ -924,15 +922,11 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
 			}
 		}
 	}
-    else
-    {
-        LogMsg 9 "Info: VM: $($vm.vmName) does not have preStartConfig script defined"
-    }
 
     if ($vm.role.ToLower().StartsWith("sut"))
     {
-        #for SUT VMs:
         #
+        # for SUT VMs:
         # Run setup script if one is specified (this setup Script is defined in testcase level)
         #
         $testData = GetTestData $($vm.currentTest) $xmlData
@@ -1027,7 +1021,6 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
         UpdateState $vm $StartSystem
     }
 }
-
 
 ########################################################################
 #
@@ -2482,8 +2475,6 @@ function DoDetermineReboot([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 LogMsg 0 "Warn : $($vm.vmName) The <NoReboot> flag prevented running cleanup script for test $($testData.testName)"
             }
 
-            #$nextTest = GetNextTest $vm $xmlData
-            #$vm.currentTest = [string] $nextTest
             UpdateCurrentTest $vm $xmlData
 
             $iterationMsg = $null
@@ -2520,7 +2511,6 @@ function DoDetermineReboot([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
     }
 }
-
 
 ########################################################################
 #
@@ -2561,7 +2551,6 @@ function DoShutdownSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
     ShutDownVM $vm
     UpdateState $vm $ShuttingDown
 }
-
 
 ########################################################################
 #
@@ -2614,7 +2603,6 @@ function DoShuttingDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # If vm is stopped, update its state
     #
-    #$v = Get-VM $vm.vmName -ComputerName $vm.hvServer
     $v = Get-VM -Name $vm.vmName -ComputerName $vm.hvServer
     if ($($v.State) -eq "Off")
     {
