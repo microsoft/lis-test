@@ -522,13 +522,10 @@ if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 }
 
 # get vm2 ipv4
-
 $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
-"netmask = $netmask"
-
-# wait for ssh to startg
-$timeout = 120 #seconds
+# wait for ssh to start
+$timeout = 200 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "Error: VM ${vm2Name} never started"
@@ -554,7 +551,6 @@ if (-not $retVal)
 
 "Successfully sent utils.sh"
 
-
 "Configuring test interface (${vm2MacAddress}) on $vm2Name (${vm2ipv4}) "
 $retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vm2StaticIP $netmask
 if (-not $retVal)
@@ -564,7 +560,6 @@ if (-not $retVal)
 }
 
 #get the ipv4 of the test adapter allocated by DHCP
-
 "vm2 Name = ${vm2Name}"
 "vm2 ipv4 = ${vm2ipv4}"
 "vm2 MAC = ${vm2MacAddress}"
