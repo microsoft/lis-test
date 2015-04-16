@@ -480,11 +480,11 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         {
             "Dynamic"
                 {
-                    $newvhd = New-VHD -Path $vhdName  -size $newVHDSize -ComputerName $server -Dynamic
+                    $newvhd = New-VHD -Path $vhdName  -size $newVHDSize -ComputerName $server -Dynamic -ErrorAction SilentlyContinue
                 }
             "Fixed"
                 {
-                    $newVhd = New-VHD -Path $vhdName -size $newVHDSize -ComputerName $server -Fixed
+                    $newVhd = New-VHD -Path $vhdName -size $newVHDSize -ComputerName $server -Fixed -ErrorAction SilentlyContinue
                 }
             "Diff"
                 {
@@ -505,8 +505,13 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         }
         if ($newVhd -eq $null)
         {
-            write-output "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
-            return $retVal
+            #On WS2012R2, New-VHD cmdlet throws error even after successfully creation of VHD so re-checking if the VHD available on the server or not
+            $newVhdInfo = GetRemoteFileInfo -filename $vhdName -server $hvServer
+            if ($newVhdInfo -eq $null)
+            {
+                write-output "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
+                return $retVal
+            }
         }
     }
     #

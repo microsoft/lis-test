@@ -129,7 +129,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 13)
     # The minimum length testParams string is "IDE=1,1,Fixed"
     #
     "Error: No testParams provided"
-    "       The script $MyInvocation.InvocationName requires test parameters"
+    "The script $MyInvocation.InvocationName requires test parameters"
     return $retVal
 }
 
@@ -181,7 +181,7 @@ foreach ($p in $params)
     }
 }
 $vhdName = $vmName + "-" + $controllerType
-$vhdDisks = Get-VMHardDiskDrive -VMName $vmName
+$vhdDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 foreach ($vhd in $vhdDisks)
 {
     $vhdPath = $vhd.Path
@@ -207,12 +207,13 @@ if (-not $hostInfo)
 }
 
 $defaultVhdPath = $hostInfo.VirtualHardDiskPath
+$defaultVhdPath = $defaultVhdPath.Replace(':','$')
 if (-not $defaultVhdPath.EndsWith("\"))
 {
     $defaultVhdPath += "\"
 }
 
-Get-ChildItem $defaultVhdPath -Filter $vhdName* | `
+Get-ChildItem \\$hvServer\$defaultVhdPath -Filter $vhdName* | `
 Foreach-Object  {
     $_ | Dismount-VHD -ErrorAction Ignore
     $error.Clear()
