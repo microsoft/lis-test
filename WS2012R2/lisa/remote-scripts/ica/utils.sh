@@ -900,6 +900,15 @@ CreateVlanConfig()
 			ifup "$__interface.$__vlanID"
 			;;
 		debian*|ubuntu*)
+			#Check for vlan package and install it in case of absence
+			dpkg -s vlan
+			if [ 0 -ne $? ]; then
+				apt-get -y install vlan
+				if [ 0 -ne $? ]; then
+					LogMsg "Failed to install VLAN package. Please try manually."
+					return 90
+				fi
+			fi
 			__file_path="/etc/network/interfaces"
 			if [ ! -e "$__file_path" ]; then
 				LogMsg "CreateVlanConfig: warning, $__file_path does not exist. Creating it..."
