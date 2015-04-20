@@ -99,7 +99,6 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-
 ############################################################################
 #
 # Main entry point for script
@@ -107,7 +106,6 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 ############################################################################
 
 $retVal = $false
-$remotePath = $_.FullName
 
 #
 # Check input arguments
@@ -201,6 +199,7 @@ if (-not $defaultVhdPath.EndsWith("\"))
 
 Get-ChildItem \\$hvServer\$defaultVhdPath -Filter $vhdName* | `
 Foreach-Object  {
+    $remotePath = $_.FullName
     $localPath = $remotePath.Substring($hvServer.Length+3).Replace('$',':')
     Invoke-Command $hvServer -ScriptBlock  {Dismount-VHD -Path $args[0] -ErrorAction SilentlyContinue} -ArgumentList $localPath
     $error.Clear()
