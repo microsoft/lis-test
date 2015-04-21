@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -307,7 +307,7 @@ function GetIPv4ViaICASerial( [String] $vmName, [String] $server)
             Write-Error -Message "GetIPv4ViaICASerial: ICAserical returned an error: ${response}" -Category ReadError -ErrorAction SilentlyContinue
             return $null
         }
-            
+
         $ipv4 = $tokens[2].Trim()
     }
 
@@ -499,20 +499,20 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     #>
 
     $fileInfo = $null
-    
+
     if (-not $filename)
     {
         return $null
     }
-    
+
     if (-not $server)
     {
         return $null
     }
-    
+
     $remoteFilename = $filename.Replace("\", "\\")
     $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server -ErrorAction SilentlyContinue
-    
+
     return $fileInfo
 }
 
@@ -633,7 +633,7 @@ function SendFileToVM([String] $ipv4, [String] $sshkey, [string] $localFile, [st
     {
         $recurse = "-r"
     }
-    
+
     # get around plink questions
     echo y | bin\plink.exe -i ssh\${sshKey} root@${ipv4} "exit 0"
 
@@ -947,7 +947,7 @@ function WaitForVMToStartSSH([String] $ipv4addr, [int] $timeout)
 }
 
 
- 
+
 #######################################################################
 #
 # WaiForVMToStop()
@@ -990,4 +990,161 @@ function  WaitForVMToStop ([string] $vmName ,[string]  $hvServer, [int] $timeout
 
     Write-Error -Message "StopVM: VM did not stop within timeout period" -Category OperationTimeout -ErrorAction SilentlyContinue
     return $False
+}
+
+#######################################################################
+# Runs a remote script on the VM an returns the log.
+#######################################################################
+function RunRemoteScript($remoteScript)
+{
+    $retValue = $False
+    $stateFile     = "state.txt"
+    $TestCompleted = "TestCompleted"
+    $TestAborted   = "TestAborted"
+    $TestRunning   = "TestRunning"
+    $timeout       = 6000
+
+    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
+
+    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
+    if (-not $?)
+    {
+       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
+       return $False
+    }
+
+     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+    if (-not $?)
+    {
+       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
+       return $False
+    }
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
+        return $False
+    }
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to run dos2unix on runtest.sh"
+        return $False
+    }
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x ${remoteScript}"
+        return $False
+    }
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
+        return $False
+    }
+
+    # Run the script on the vm
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
+
+    # Return the state file
+    while ($timeout -ne 0 )
+    {
+    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $stateFile)
+        {
+            $contents = Get-Content -Path $stateFile
+            if ($null -ne $contents)
+            {
+                    if ($contents -eq $TestCompleted)
+                    {
+                        Write-Output "Info : state file contains Testcompleted"
+                        $retValue = $True
+                        break
+
+                    }
+
+                    if ($contents -eq $TestAborted)
+                    {
+                         Write-Output "Info : State file contains TestAborted failed. "
+                         break
+
+                    }
+                    #Start-Sleep -s 1
+                    $timeout--
+
+                    if ($timeout -eq 0)
+                    {
+                        Write-Output "Error : Timed out on Test Running , Exiting test execution."
+                        break
+                    }
+
+            }
+            else
+            {
+                Write-Output "Warn : state file is empty"
+                break
+            }
+
+        }
+        else
+        {
+             Write-Host "Warn : ssh reported success, but state file was not copied"
+             break
+        }
+    }
+    else #
+    {
+         Write-Output "Error : pscp exit status = $sts"
+         Write-Output "Error : unable to pull state.txt from VM."
+         break
+    }
+    }
+
+    # Get the logs
+    $remoteScriptLog = $remoteScript+".log"
+
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} .
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $remoteScriptLog)
+        {
+            $contents = Get-Content -Path $remoteScriptLog
+            if ($null -ne $contents)
+            {
+                    if ($null -ne ${TestLogDir})
+                    {
+                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
+
+                    }
+
+                    else
+                    {
+                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
+                    }
+
+            }
+            else
+            {
+                Write-Output "Warn: $remoteScriptLog is empty"
+            }
+        }
+        else
+        {
+             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"
+        }
+    }
+
+    # Cleanup
+    del state.txt -ErrorAction "SilentlyContinue"
+    del runtest.sh -ErrorAction "SilentlyContinue"
+
+    return $retValue
 }

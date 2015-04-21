@@ -2,7 +2,7 @@
 
 <config>
 	<global>
-		<logfileRootDir>LisaTestResults</logfileRootDir>
+		<logfileRootDir>TestResults</logfileRootDir>
 		<defaultSnapshot>ICABase</defaultSnapshot>
 		<email>
 			<recipients>
@@ -25,12 +25,12 @@
 				<!-- Dynamic Memory – Hot Add -->
 				<suiteTest>HotAdd</suiteTest>
 				<suiteTest>HotRemove</suiteTest>
-				<suiteTest>StartupLowCompete</suiteTest>
 				<suiteTest>StartupHighCompete</suiteTest>
 				<suiteTest>DemandPressure</suiteTest>
 				<suiteTest>HighPriority</suiteTest>
- 
+
 				<!-- Dynamic Memory – Ballooning -->
+				<suiteTest>StartupLowCompete</suiteTest>
 				<suiteTest>MinMemHonored</suiteTest>
 				<suiteTest>MaxMemHonored</suiteTest>
 				<suiteTest>SaveRestore</suiteTest>
@@ -323,15 +323,12 @@
 
 	<VMs>
 		<vm>
-		<hvServer>localhost</hvServer>
-		<vmName>VMName</vmName>
-		<os>Linux</os>
-		<ipv4></ipv4>
-		<sshKey>sshKey.ppk</sshKey>
-		<suite>DM</suite>
-		<testParams>
-			<param>sshKey=sshKey.ppk</param>
-		</testParams>
+			<hvServer>localhost</hvServer>
+			<vmName>VMName</vmName>
+			<os>Linux</os>
+			<ipv4></ipv4>
+			<sshKey>sshKey.ppk</sshKey>
+			<suite>DM</suite>
 		</vm>
 	</VMs>
 </config>

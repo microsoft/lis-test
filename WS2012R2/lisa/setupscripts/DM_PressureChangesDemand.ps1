@@ -31,8 +31,8 @@
 
    The testParams have the format of:
 
-      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%], 
-      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100) 
+      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%],
+      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100)
 
    Only the vmName param is taken into consideration. This needs to appear at least twice for
    the test to start.
@@ -50,7 +50,7 @@
        vmName=sles11x64sp3_2;enable=yes;minMem=512MB;maxMem=25%;startupMem=25%;memWeight=0"
 
    All scripts must return a boolean to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
     Name of the VM to remove NIC from .
 
@@ -68,6 +68,55 @@
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 Set-PSDebug -Strict
+
+function checkStressapptest([String]$conIpv4, [String]$sshKey)
+{
+
+
+    $cmdToVM = @"
+#!/bin/bash
+        command -v stressapptest
+        sts=`$?
+        if [ 0 -ne `$sts ]; then
+            echo "Stressapptest is not installed! Please install it before running the memory stress tests." >> /root/HotAdd.log 2>&1
+        else
+            echo "Stressapptest is installed! Will begin running memory stress tests shortly." >> /root/HotAdd.log 2>&1
+        fi
+        echo "CheckStressappreturned `$sts"
+        exit `$sts
+"@
+
+    #"pingVMs: sendig command to vm: $cmdToVM"
+    $filename = "CheckStressapp.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal)
+    {
+        return $false
+    }
+
+    # execute command
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+}
 
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
@@ -103,8 +152,8 @@ $scriptBlock = {
     "Error: Could not find setupScripts\TCUtils.ps1"
     return $false
   }
-  
-  
+
+
       $cmdToVM = @"
 #!/bin/bash
 
@@ -141,33 +190,33 @@ $scriptBlock = {
 
     #"pingVMs: sendig command to vm: $cmdToVM"
     $filename = "ConsumeMem.sh"
-    
+
     # check for file
     if (Test-Path ".\${filename}")
     {
       Remove-Item ".\${filename}"
     }
-    
+
     Add-Content $filename "$cmdToVM"
-    
+
     # send file
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-    
+
     # delete file unless the Leave_trail param was set to yes.
     if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
     {
       Remove-Item ".\${filename}"
     }
-    
+
     # check the return Value of SendFileToVM
     if (-not $retVal[-1])
     {
       return $false
     }
-    
+
     # execute command as job
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-  
+
     return $retVal
 
   }
@@ -259,7 +308,7 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
+
     switch ($fields[0].Trim())
     {
       "vmName"  { $vm1Name =$fields[1].Trim() }
@@ -267,7 +316,7 @@ foreach ($p in $params)
       "sshKey"  { $sshKey  = $fields[1].Trim() }
       "tries"  { $tries  = $fields[1].Trim() }
     }
-    
+
 }
 
 if (-not $sshKey)
@@ -296,6 +345,19 @@ if (-not $vm1)
   "Error: VM $vm1Name does not exist"
   return $false
 }
+
+# Check if stressapptest is installed
+"Checking if Stressapptest is installed"
+
+$retVal = checkStressapptest $ipv4 $sshKey
+
+if (-not $retVal)
+{
+    "Stressapptest is not installed! Please install it before running the memory stress tests."
+    return $false
+}
+
+"Stressapptest is installed! Will begin running memory stress tests shortly."
 
 # get memory stats from vm1
 # wait up to 2 min for it
@@ -338,7 +400,7 @@ $job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $memMB) ConsumeMe
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
-  
+
   return $false
 }
 
@@ -381,7 +443,7 @@ while ($timeout -gt 0)
   {
     break
   }
-  
+
   $timeout -= 1
   start-sleep -s 1
 
