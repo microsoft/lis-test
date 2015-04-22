@@ -436,16 +436,6 @@ if (-not $retVal)
 
 "Stressapptest is installed on $vm1Name! Will begin running memory stress tests shortly."
 
-$retVal = checkStressapptest $vm2ipv4 $sshKey
-
-if (-not $retVal)
-{
-    "Stressapptest is not installed on $vm2Name! Please install it before running the memory stress tests."
-    return $false
-}
-
-"Stressapptest is installed on $vm2Name! Will begin running memory stress tests shortly."
-
 # get memory stats from vm1 and vm2
 # wait up to 2 min for it
 
