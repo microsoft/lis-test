@@ -138,16 +138,15 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-# Source TCUitls.ps1 for getipv4 and other functions
+# Source TCUtils.ps1 for test related functions
 if (Test-Path ".\setupScripts\TCUtils.ps1")
 {
-. .\setupScripts\TCUtils.ps1
-"Sourced TCUtils.ps1"
+	. .\setupScripts\TCUtils.ps1
 }
 else
 {
-"Error: Could not find setupScripts\TCUtils.ps1"
-return $false
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
 }
 
 #
