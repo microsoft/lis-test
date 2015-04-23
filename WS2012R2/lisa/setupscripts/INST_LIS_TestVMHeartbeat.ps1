@@ -93,7 +93,7 @@ foreach ($p in $params)
     if ($tokens.Length -ne 2)
     {
 	"Warn: test parameter '$p' is being ignored because it appears to be malformed"
-     continue
+Â Â Â Â  continue
     }
     
     if ($tokens[0].Trim() -eq "RootDir")
@@ -131,11 +131,10 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-# Source TCUitls.ps1 for test related functions
+# Source TCUtils.ps1 for test related functions
   if (Test-Path ".\setupScripts\TCUtils.ps1")
   {
     . .\setupScripts\TCUtils.ps1
-    "Sourced TCUtils.ps1"
   }
   else
   {
