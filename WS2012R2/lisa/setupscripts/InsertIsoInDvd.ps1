@@ -117,8 +117,8 @@ foreach ($p in $params)
     
     if ($tokens.Length -ne 2)
     {
-	    # Just ignore it
-        continue
+	# Just ignore it
+	continue
     }
     
     $lValue = $tokens[0].Trim()
