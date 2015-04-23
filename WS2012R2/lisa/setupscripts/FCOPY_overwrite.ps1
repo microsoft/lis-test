@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    This script tests the file copy overwrite functionality.
+    This script tests the file copy from host to guest overwrite functionality.
 
 .Description
     The script will copy a text file from a Windows host to the Linux VM,
@@ -51,11 +51,14 @@
     Test data for this test case.
 
 .Example
-    setupScripts\FCOPY_overwrite.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress'
+    setupScripts\FCOPY_overwrite.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$retVal = $false
+$testfile = $null
+$gsi = $null
 
 #######################################################################
 #
@@ -66,10 +69,10 @@ function check_fcopy_daemon()
 {
 	$filename = ".\fcopy_present"
     
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon' > /root/fcopy_present"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep "[h]v_fcopy_daemon\|[h]ypervfcopyd" > /root/fcopy_present"
     if (-not $?) {
-        Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_fcopy_daemon" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to run ps -ef | grep hv_fcopy_daemon"
+        Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
         return $False
     }
 
@@ -212,10 +215,6 @@ if (-not $testParams) {
     "This script requires the test case ID and VM details as the test parameters."
     return $retVal
 }
-
-$retVal = $false
-$testfile = $null
-$gsi = $null
 
 #
 # Checking the mandatory testParams. New parameters must be validated here.

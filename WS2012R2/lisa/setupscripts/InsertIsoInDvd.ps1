@@ -19,7 +19,6 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Mount a .iso in the default DVD drive.
@@ -40,10 +39,10 @@
     .\InsertIsoInDvd.ps1 "testVM" "localhost" "isoFilename=test.iso"
 #>
 
-
-
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
+$retVal = $False
+$isoFilename = $null
 
 #######################################################################
 #
@@ -83,18 +82,8 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
 # Main script body
 #
 #######################################################################
-"insertIsoInDvd.ps1"
-"  vmName = ${vmName}"
-"  hvServer = ${hvServer}"
-"  testParams = ${testParams}"
 
-$retVal = $False
-
-$isoFilename = $null
-
-#
 # Check arguments
-#
 if (-not $vmName)
 {
     "Error: Missing vmName argument"
@@ -142,7 +131,7 @@ foreach ($p in $params)
 }
 
 #
-# Make sure we found the parameters we need to do our job
+# Checking the mandatory testParams. New parameters must be validated here.
 #
 if (-not $isoFilename)
 {

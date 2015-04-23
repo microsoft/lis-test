@@ -51,7 +51,7 @@
     Test data for this test case.
 
 .Example
-    setupScripts\FCOPY_file_exists.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress'
+    setupScripts\FCOPY_file_exists.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -69,10 +69,10 @@ function check_fcopy_daemon()
 {
 	$filename = ".\fcopy_present"
     
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon' > /root/fcopy_present"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep "[h]v_fcopy_daemon\|[h]ypervfcopyd" > /root/fcopy_present"
     if (-not $?) {
-        Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_fcopy_daemon" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to run ps -ef | grep hv_fcopy_daemon"
+        Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
         return $False
     }
 

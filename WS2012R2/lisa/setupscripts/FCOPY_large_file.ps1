@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    This script tests the functionality of copying large file.
+    This script tests the functionality of copying a 10GB large file.
 
 .Description
     The script will copy a random generated 10GB file from a Windows host to 
@@ -51,7 +51,7 @@
     Test data for this test case.
 
 .Example
-    setupScripts\FCOPY_large_file.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress'
+    setupScripts\FCOPY_large_file.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -70,10 +70,10 @@ function check_fcopy_daemon()
 {
 	$filename = ".\fcopy_present"
     
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon' > /root/fcopy_present"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep "[h]v_fcopy_daemon\|[h]ypervfcopyd" > /root/fcopy_present"
     if (-not $?) {
-        Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_fcopy_daemon" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to run ps -ef | grep hv_fcopy_daemon"
+        Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
         return $False
     }
 

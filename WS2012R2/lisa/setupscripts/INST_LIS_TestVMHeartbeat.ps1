@@ -19,7 +19,6 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Verify the VM is providing heartbeat.
@@ -37,7 +36,6 @@
             <noReboot>True</noReboot>
             <testParams>
                 <param>TC_COVERED=CORE-02</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testParams>
         </test>
 
@@ -54,74 +52,11 @@
     .\INST_LIS_TestVMHeartbeat.ps1 "myVM" "localhost" "rootDir"
 #>
 
-
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-
-#####################################################################
-#
-# TestPort
-#
-#####################################################################
-function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
-{
-    <#
-    .Synopsis
-        Test if a port is open on a remote server.
-
-    .Description
-        Test if a remote server is listening on a specific TCP
-        port.  The default port is the SSH port, port 22.
-
-    .Parameter serverName
-        Name of the remote serever to check.
-
-    .Parameter port
-        The TCP port number to check.  Default is 22.
-
-    .Parameter to
-        Timeout value in seconds.  Default is 3 seconds.
-
-    .Example
-        TestPort "192.168.1.101" 22 5
-    #>
-
-    $retVal = $False
-    $timeout = $to * 1000
-
-    #
-    # Try an async connect to the specified machine/port
-    #
-    $tcpclient = new-Object system.Net.Sockets.TcpClient
-    $iar = $tcpclient.BeginConnect($serverName,$port,$null,$null)
-
-    #
-    # Wait for the connect to complete. Also set a timeout
-    # so we don't wait all day
-    #
-    $connected = $iar.AsyncWaitHandle.WaitOne($timeout,$false)
-
-    # Check to see if the connection is done
-    if($connected)
-    {
-        #
-        # Close our connection
-        #
-        try
-        {
-            $sts = $tcpclient.EndConnect($iar) | out-Null
-            $retVal = $true
-        }
-        catch
-        {
-            # Nothing we need to do...
-        }
-    }
-    $tcpclient.Close()
-
-    return $retVal
-}
+$retVal = $False
+$vmIPAddr = $null
+$rootDir = $null
 
 #####################################################################
 #
@@ -129,16 +64,7 @@ function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
 #
 #####################################################################
 
-$retVal = $False
-
-"TestVMHeartbeat.ps1"
-"VM Name   = ${vmName}"
-"HV Server = ${hvServer}"
-"TestParams= ${testParams}"
-
-#
 # Check input arguments
-#
 if ($vmName -eq $null)
 {
     "Error: VM name is null"
@@ -154,10 +80,6 @@ if ($hvServer -eq $null)
 #
 # Parse the testParams string
 #
-$vmIPAddr = $null
-$rootDir = $null
-$tcCovered = "Undefined"
-
 $params = $testParams.Split(';')
 foreach ($p in $params)
 {
@@ -170,7 +92,7 @@ foreach ($p in $params)
     
     if ($tokens.Length -ne 2)
     {
-	"Warn : test parameter '$p' is being ignored because it appears to be malformed"
+	"Warn: test parameter '$p' is being ignored because it appears to be malformed"
      continue
     }
     
@@ -204,17 +126,26 @@ if ($rootDir -eq $null)
 
 cd $rootDir
 
-#
-# 
-#
-$summaryLog  = "${vmName}_summary.log"
+# Delete any previous summary.log file, then create a new one
+$summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
-Write-Output "Covers ${tcCovered}" | Out-File $summaryLog
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+
+# Source TCUitls.ps1 for test related functions
+  if (Test-Path ".\setupScripts\TCUtils.ps1")
+  {
+    . .\setupScripts\TCUtils.ps1
+    "Sourced TCUtils.ps1"
+  }
+  else
+  {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+  }
 
 #
 # Test VM if its running.
 #
-
 $vm = Get-VM $vmName -ComputerName $hvServer 
 $hvState = $vm.State
 if ($hvState -ne "Running")
@@ -255,7 +186,7 @@ if ($($hb.Enabled) -eq "True")
 }
 else
 {
-    "HeartBeat not detected"
+    "Test failed: VM heartbeat not detected!"
      Write-Output "Heartbeat not detected" | Out-File -Append $summaryLog
      return $False
 }
@@ -263,5 +194,4 @@ else
 #
 # If we made it here, everything worked
 #
-
 return $retVal
