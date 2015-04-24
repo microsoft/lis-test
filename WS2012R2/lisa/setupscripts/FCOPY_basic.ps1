@@ -67,7 +67,7 @@ function check_fcopy_daemon()
 {
 	$filename = ".\fcopy_present"
     
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep "[h]v_fcopy_daemon\|[h]ypervfcopyd" > /root/fcopy_present"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /root/fcopy_present"
     if (-not $?) {
         Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
         Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
