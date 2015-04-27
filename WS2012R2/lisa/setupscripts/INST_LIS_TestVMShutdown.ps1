@@ -24,9 +24,8 @@
     Check the VM shuts down using the LIS 
 
 .Description
-    TestVMShutdown will send a shutdown request to the specific
-    VM.  It then will wait to confirm the VM left the Running
-    state.
+	TestVMShutdown will send a shutdown request to the specific VM.
+	It then will wait to confirm the VM left the Running state.
 
     The test case definition for this test case would look similar to:
         <test>
@@ -55,6 +54,11 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$rootDir = $null
+$vmIPAddr = $null
+$vcpu = $null
+$testCaseTimeout = 600
+
 #####################################################################
 #
 # CheckVMState()
@@ -75,58 +79,11 @@ function CheckVMState([String] $vmName, [String] $newState)
 
 #####################################################################
 #
-# TestPort
-#
-#####################################################################
-function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
-{
-    $retVal = $False
-    $timeout = $to * 1000
-
-    #
-    # Try an async connect to the specified machine/port
-    #
-    $tcpclient = new-Object system.Net.Sockets.TcpClient
-    $iar = $tcpclient.BeginConnect($serverName,$port,$null,$null)
-
-    #
-    # Wait for the connect to complete. Also set a timeout
-    # so we don't wait all day
-    #
-    $connected = $iar.AsyncWaitHandle.WaitOne($timeout,$false)
-
-    #
-    # Check to see if the connection is done
-    #
-    if($connected)
-    {
-        #
-        # Close our connection
-        #
-        try
-        {
-            $sts = $tcpclient.EndConnect($iar) | out-Null
-            $retVal = $true
-        }
-        catch
-        {
-            # Nothing we need to do...
-        }
-    }
-    $tcpclient.Close()
-
-    return $retVal
-}
-
-#####################################################################
-#
 # Main script body
 #
 #####################################################################
 
-#
 # Check input arguments
-#
 if ($vmName -eq $null)
 {
     "Error: VM name is null"
@@ -142,12 +99,6 @@ if ($hvServer -eq $null)
 #
 # Parse the testParams string
 #
-$rootDir = $null
-$vmIPAddr = $null
-$tcCovered = "Undefined"
-$vcpu = $null
-
-"Parsing testParams"
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -182,19 +133,25 @@ if (-not (Test-Path $rootDir) )
 
 cd $rootDir
 
-$summaryLog  = "${vmName}_summary.log"
+# Delete any previous summary.log file, then create a new one
+$summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
-Write-Output "Covers ${tcCovered}" | Out-File $summaryLog
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+
+# Source TCUtils.ps1 for test related functions
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+	. .\setupScripts\TCUtils.ps1
+}
+else
+{
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
 
 #
-# Set the test timeout to 15 minutes
-#
-$testCaseTimeout = 600
-
-#
-# The VM should be in a running state.  Ask Hyper-V to invoke
-# a shutdown.  The VMs state will go from Running to Stopping,
-# then Stopped.
+# The VM should be in a running state.  Ask Hyper-V to invoke a shut-down.
+# The VMs state will go from Running to Stopping, then Stopped.
 #
 "Verifying VM is running"
 $vm = Get-VM $vmName -ComputerName $hvServer
@@ -228,7 +185,7 @@ if ($vcpu)
 }
 
 #
-# Ask Hyper-V to request the VM to shutdown, then wait for the 
+# Ask Hyper-V to request the VM to shut-down, then wait for the 
 # VM to go into a Stopped state
 #
 "Shutting down the VM"
@@ -250,7 +207,7 @@ if ($testCaseTimeout -eq 0)
     return $False
 }
 
-"VM Shutdown successful"
+"VM Shut-down successful"
 
 #
 # Now start the VM so the automation scripts can finish
@@ -305,7 +262,7 @@ if ($testCaseTimeout -eq 0)
 "SSH is running on the test VM"
 
 #
-# If we got here, the VM was shutdown and restarted
+# If we got here, the VM was shut-down and restarted
 #
 "Test completed successfully"
 return $True
