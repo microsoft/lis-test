@@ -19,7 +19,7 @@
 
      <VMs>
         <vm>
-             <hvServer>localhost</hvServer>
+            <hvServer>localhost</hvServer>
             <vmName>Test_VM_Name</vmName>
             <os>Linux</os>
             <ipv4>192.168.1.100</ipv4>
@@ -27,6 +27,7 @@
             <suite>Networking</suite>
             <testparams>
                 <param>RootDir=C:\lis-test\WS2008R2\lisa</param>
+            </testparams>
         </vm>
     </VMs>
 
@@ -55,25 +56,23 @@
         <suite>
             <suiteName>Storage</suiteName>
             <suiteTests>
-           <!--      <suiteTest>VHD_IDE_0_1_DYNAMIC</suiteTest>                
+                <suiteTest>VHD_IDE_0_1_DYNAMIC</suiteTest>                
                 <suiteTest>VHD_MultiDisk_SCSI_Dynamic</suiteTest>
                 <suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
                 <suiteTest>VHD_MultiDisk_SCSI_Fixed</suiteTest>           
                 <suiteTest>AddDifferencing_Disk_IDE</suiteTest>
                 <suiteTest>AddDifferencing_Disk_SCSI</suiteTest>
                 <suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest>               
-                <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest>   -->    
+                <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest>      
                 <suiteTest>VHD_HotADD_Multi_Dynamic_SCSI_SMP</suiteTest>
                 <suiteTest>VHD_HotRemove_Multi_Dynamic_SCSI_SMP</suiteTest>
-                
-               
-               <!--  <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
+                <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
                 <suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest>
                 <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteTest>
                 <suiteTest>VHD_SCSI_0_1_Format_btrfs</suiteTest>
                 <suiteTest>TakeSnapShot</suiteTest>
                 <suiteTest>RevertSnapShot</suiteTest>
-                <suiteTest>TestExportImport</suiteTest> -->
+                <suiteTest>TestExportImport</suiteTest>
             </suiteTests>
         </suite>
 
@@ -669,54 +668,48 @@
         <!--Storage -->
         <test>
             <testName>VHD_IDE_0_1_DYNAMIC</testName>
-            <snapshotname>ICABase</snapshotname>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
                 <!-- <param>IDE_DISK=1</param> -->
                 <param>IDE=0,1,Dynamic</param>
                 <param>IDE=1,1,Dynamic</param>
-                <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-02</param>
             </testParams>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>10800</timeout>
         </test>
 
         <test>
             <testName>VHD_MultiDisk_SCSI_Dynamic</testName>
-            <snapshotname>ICABase</snapshotname>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
                 <!-- <param>SCSI_DISK=1</param> -->
                 <param>SCSI=0,1,Dynamic</param>
                 <param>SCSI=1,1,Dynamic</param>
-                <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-03,STOR-08</param>
             </testParams>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>10800</timeout>
         </test>
 
          <test>
             <testName>AddDifferencing_Disk_IDE</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
-                <param>NO=1</param>
                 <param>IDE=1,1,Diff</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TC_COUNT=STOR-06</param>
@@ -725,16 +718,14 @@
 
         <test>
             <testName>AddDifferencing_Disk_SCSI</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
-                <param>NO=1</param>
                 <param>SCSI=0,0,Diff</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TC_COUNT=STOR-07</param>
@@ -743,18 +734,16 @@
 
          <test>
             <testName>VHD_AddPassThrough_Disk_IDE_0_1</testName>
-            <snapshotname>ICABase</snapshotname>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
-                <param>NO=2</param>
                 <param>IDE=0,1,PassThrough</param>
                 <param>IDE=1,1,PassThrough</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-16</param>
             </testParams>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <onError>Continue</onError>
             <timeout>10800</timeout>
@@ -762,11 +751,9 @@
 
         <test>
             <testName>VHD_AddPassThrough_MultiDisk_SCSI</testName>
-            <snapshotname>ICABase</snapshotname>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
                 <!--<param>SCSI_DISK=1</param>-->
-                <param>NO=2</param>
                <!-- <param>SCSI=0,0,PassThrough</param> -->
                 <param>SCSI=0,1,PassThrough</param>
                 <param>SCSI=0,2,PassThrough</param>
@@ -774,8 +761,8 @@
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-17,STOR-18</param>
             </testParams>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <onError>Continue</onError>
             <timeout>10800</timeout>
@@ -783,15 +770,14 @@
 
         <test>
             <testName>VHD_IDE_0_1_Fixed</testName>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
                 <param>IDE=1,0,Fixed</param>
                 <param>IDE=1,1,Fixed</param>
-                <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-04</param>
@@ -802,15 +788,14 @@
 
         <test>
             <testName>VHD_MultiDisk_SCSI_Fixed</testName>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
                 <param>SCSI=0,0,Fixed</param>
                 <param>SCSI=0,1,Fixed</param>
-                <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-05</param>
@@ -821,9 +806,9 @@
 
         <test>
             <testName>VHD_HotADD_Multi_Dynamic_SCSI_SMP</testName>
-            <testScript>LIS_Addnewdisk.sh</testScript>
+            <testScript>STOR_Lis_Disk.sh</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 
             <preTest>setupScripts\AddHardDisk.ps1</preTest>
             <!-- <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>          -->
@@ -831,7 +816,6 @@
             <testparams>
                 <param>SCSI=0,0,Dynamic</param>
                 <param>SCSI=0,1,Dynamic</param>
-                <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-09,STOR-10,STOR-11</param>
@@ -861,15 +845,14 @@
 
         <test>
            <testName>HotADD_Multi_PassThrough_SCSI</testName>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <preTest>setupScripts\AddHardDisk.ps1</preTest>
             <!-- <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>          -->
             <timeout>18000</timeout>
             <testparams>
                 <param>SCSI=0,0,PassThrough</param>
                 <param>SCSI=0,1,PassThrough</param>
-                <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-19,STOR-20</param>
@@ -896,28 +879,24 @@
 
          <test>
             <testName>VHD_SCSI_0_1_Dynamic_Big</testName>
-            <snapshotname>ICABase</snapshotname>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
                 <param>SCSI=0,1,Dynamic,250GB</param>
-                <param>NO=1</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TC_COUNT=STOR-13</param>
             </testParams>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>10800</timeout>
         </test>
 
         <test>
             <testName>VHD_SCSI_0_1_Format_btrfs</testName>
-            <snapshotname>ICABase</snapshotname>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
                 <!-- <param>SCSI_DISK=1</param> -->
                 <param>SCSI=0,1,Dynamic</param>
-                <param>NO=1</param>
                 <param>fileSystems=btrfs</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TC_COUNT=STOR-12</param>
