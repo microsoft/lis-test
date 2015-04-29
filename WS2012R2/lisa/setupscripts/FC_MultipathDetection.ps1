@@ -62,104 +62,6 @@ $summaryLog  = "${vmName}_summary.log"
 $retVal = $False
 
 
-#########################################################################
-#
-#   get state.txt file from VM.
-#
-########################################################################
-function CheckResult()
-{
-    $retVal = $False
-    $stateFile     = "state.txt"
-    $TestCompleted = "TestCompleted"
-    $TestAborted   = "TestAborted"
-    $TestRunning   = "TestRunning"
-    $attempts       = 3
-
-    Write-Output "Info : pscp -q -i ssh\${sshKey} root@${ipv4}:$stateFile}"
-    while ($attempts -ne 0 ){
-        bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . 2>&1 | out-null
-        $sts = $?
-
-        if ($sts) {
-            if (test-path $stateFile){
-                $contents = Get-Content -Path $stateFile
-                if ($null -ne $contents){
-                    if ($contents -eq $TestCompleted) {
-                        Write-Output "Info: state file contains TestCompleted"
-                        $retVal = $True
-                        break
-                    }
-                    if ($contents -eq $TestAborted) {
-                        Write-Output "Info: State file contains TestAborted failed"
-                        break
-                    }
-                }
-                else {
-                    Write-Output "Warning: state file is empty!"
-                    break
-                }
-            }
-        }
-        else {
-            Start-Sleep -s 1
-            $attempts--
-            if ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {
-                Write-Output "Error : Lost Communication to vm" | Out-File -Append $summaryLog
-                break
-            }
-            if ($attempts -eq 0){
-                Write-Output "Error : Reached max number of attempts to extract state file" | Out-File -Append $summaryLog
-                break
-            }
-        }
-
-        if (test-path $stateFile){
-            del $stateFile
-        }
-    }
-
-    if (test-path $stateFile){
-        del $stateFile
-    }
-    return $retVal
-}
-
-#########################################################################
-#    get summary.log file from VM.
-########################################################################
-function SummaryLog()
-{
-    $retVal = $False
-    $summaryFile   = "summary.log"
-    $localVMSummaryLog = "${vmName}_error_summary.log"
-
-    .\bin\pscp.exe -q -i ssh\${sshKey} root@${ipv4}:${summaryFile} ${localVMSummaryLog} #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $localVMSummaryLog)
-        {
-            $contents = Get-Content -Path $localVMSummaryLog
-            if ($null -ne $contents)
-            {
-                   Write-Output "Error: ${contents}" | Tee-Object -Append -file $summaryLog
-            }
-            $retVal = $True
-        }
-        else
-        {
-             Write-Host "Warn : ssh reported success, but summary file was not copied"
-        }
-    }
-    else #
-    {
-         Write-Error -Message "Error : pscp exit status = $sts" -ErrorAction SilentlyContinue
-         Write-Error -Message "Error : unable to pull summary.log from VM." -ErrorAction SilentlyContinue
-    }
-     del $summaryFile
-     return $retVal
-}
 ######################################################################
 #
 #   Helper function to execute command on remote machine.
@@ -170,63 +72,169 @@ function Execute ([string] $command)
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} $command
     return $?
 }
-
-
-######################################################################
-#
-#   Push the remote script to VM.
-#
 #######################################################################
-function RunTest ()
+# Runs a remote script on the VM an returns the log.
+#######################################################################
+function RunRemoteScript($remoteScript)
 {
-    "./${remoteScript} &> FC_multipath_detect.log " | out-file -encoding ASCII -filepath runtest.sh
+    $retValue = $False
+    $stateFile     = "state.txt"
+    $TestCompleted = "TestCompleted"
+    $TestAborted   = "TestAborted"
+    $TestRunning   = "TestRunning"
+    $TestFailed    ="TestFailed"
+    $timeout       = 6000
+
+    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
 
     .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
-    if (-not $?) {
-        Write-Error -Message "Error: Unable to copy runtest.sh to the VM" -ErrorAction SilentlyContinue
-        return $False
+    if (-not $?)
+    {
+       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
+       return $False
     }
 
      .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
-    if (-not $?) {
-        Write-Error -Message "Error: Unable to copy ${remoteScript} to the VM" -ErrorAction SilentlyContinue
+    if (-not $?)
+    {
+       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
+       return $False
+    }
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
         return $False
     }
 
-    $result = Execute("dos2unix ${remoteScript} 2> /dev/null");
-    if (-not $result) {
-        Write-Error -Message "Error: Unable to run dos2unix on ${remoteScript}" -ErrorAction SilentlyContinue
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to run dos2unix on runtest.sh"
         return $False
     }
 
-    $result = Execute("dos2unix runtest.sh 2> /dev/null");
-    if (-not $result) {
-        Write-Error -Message "Error: Unable to run dos2unix on runtest.sh" -ErrorAction SilentlyContinue
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x ${remoteScript}"
+        return $False
+    }
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
+    if (-not $?)
+    {
+        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
         return $False
     }
 
-    $result = Execute("chmod +x ${remoteScript} 2> /dev/null");
-    if (-not $result) {
-        Write-Error -Message "Error: Unable to chmod +x ${remoteScript}" -ErrorAction SilentlyContinue
-        return $False
+    # Run the script on the vm
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
+
+    # Return the state file
+    while ($timeout -ne 0 )
+    {
+    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $stateFile)
+        {
+            $contents = Get-Content -Path $stateFile
+            if ($null -ne $contents)
+            {
+                    if ($contents -eq $TestCompleted)
+                    {
+                        Write-Output "Info : state file contains Testcompleted"
+                        $retValue = $True
+                        break
+
+                    }
+
+                    if ($contents -eq $TestAborted)
+                    {
+                         Write-Output "Info : State file contains TestAborted failed. "
+                         break
+
+                    }
+                    if ($contents -eq $TestFailed)
+                    {
+                        Write-Output "Test failed."
+                        break
+                    }
+                    #Start-Sleep -s 1
+                    $timeout--
+
+                    if ($timeout -eq 0)
+                    {
+                        Write-Output "Error : Timed out on Test Running , Exiting test execution."
+                        break
+                    }
+
+            }
+            else
+            {
+                Write-Output "Warn : state file is empty"
+                break
+            }
+
+        }
+        else
+        {
+             Write-Host "Warn : ssh reported success, but state file was not copied"
+             break
+        }
+    }
+    else #
+    {
+         Write-Output "Error : pscp exit status = $sts"
+         Write-Output "Error : unable to pull state.txt from VM."
+         break
+    }
     }
 
-    $result = Execute("chmod +x runtest.sh 2> /dev/null");
-    if (-not $result) {
-        Write-Error -Message "Error: Unable to chmod +x runtest.sh " -ErrorAction SilentlyContinue
-        return $False
+    # Get the logs
+    $remoteScriptLog = $remoteScript+".log"
+
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} .
+    $sts = $?
+    if ($sts)
+    {
+        if (test-path $remoteScriptLog)
+        {
+            $contents = Get-Content -Path $remoteScriptLog
+            Write-Output $contents | Tee-Object -Append -file $summaryLog
+            if ($null -ne $contents)
+            {
+                    if ($null -ne ${TestLogDir})
+                    {
+                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
+
+                    }
+
+                    else
+                    {
+                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
+                    }
+
+            }
+            else
+            {
+                Write-Output "Warn: $remoteScriptLog is empty"
+            }
+        }
+        else
+        {
+             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"
+        }
     }
 
-    $result = Execute("./runtest.sh");
-    if (-not $result) {
-        Write-Error -Message "Error: Unable to submit runtest.sh to atd" -ErrorAction SilentlyContinue
-        return $False
-    }
+    # Cleanup
+    del state.txt -ErrorAction "SilentlyContinue"
+    del runtest.sh -ErrorAction "SilentlyContinue"
 
-    del runtest.sh
-    return $True
+    return $retValue
 }
-
 
 #######################################################################
 #
@@ -258,6 +266,7 @@ foreach ($p in $params) {
         "ipv4"   { $ipv4    = $fields[1].Trim() }
         "rootdir" { $rootDir = $fields[1].Trim() }
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
+        "TestLogDir" { $TestLogDir = $fields[1].Trim() }
         default  {}
     }
 }
@@ -299,26 +308,6 @@ if (-not $result) {
     Write-Error -Message "Error: Unable to submit ${cmd} to vm" -ErrorAction SilentlyContinue
     return $False
 }
+$sts = RunRemoteScript  $remoteScript
 
-$sts = RunTest
-if (-not $($sts[-1])) {
-    "Error: Running $remoteScript script failed on the VM, exiting test!"
-    return $False
-}
-$sts = SummaryLog
-if (-not $($sts[-1]))
-{
-    "Warning : Failed getting summary.log from VM"
-}
-
-$status = CheckResult
-if (-not $($status[-1])) {
-    "Error: Something went wrong during execution of $remoteScript script!"
-    return $False
-}
-else {
-    $results = "Passed"
-    $retVal = $True
-}
-
-return $retVal
+return $sts
