@@ -144,7 +144,7 @@ if [ ! ${TC_COVERED} ]; then
     exit 1
 fi
 
-echo "Covers : ${TC_COVERED}" >> ~/summary.log
+echo "Covers : ${TC_COVERED}"
 
 #
 # Start the test
