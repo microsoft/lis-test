@@ -60,6 +60,7 @@
     <testCases>
         <test>
             <testName>STOR_VSS_BackupRestore</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-17,VSS-06</param>
@@ -68,12 +69,14 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_ext3_vhd</testName>
-            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\AddHardDisk.ps1</file>
+            </setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-01</param>
@@ -85,12 +88,14 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_ext4_vhd</testName>
-            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\AddHardDisk.ps1</file>
+            </setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-02</param>
@@ -102,12 +107,14 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_reiserfs_vhd</testName>
-            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\AddHardDisk.ps1</file>
+            </setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-03</param>
@@ -119,12 +126,14 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_ext4_vhdx</testName>
-            <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\AddVhdxHardDisk.ps1</file>
+            </setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-05</param>
@@ -136,11 +145,11 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_ISO_NoNetwork</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-11</param>
@@ -149,11 +158,11 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_3Chain_VHD</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_3Chain_VHD_backup.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-12</param>
@@ -162,27 +171,27 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_ISCSI</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_ISCSI.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-13</param>
                 <param>DriveLetter=C:</param>
                 <param>TargetIP=10.7.1.10</param>
-                <param>IQN=iqn.2000-01.com:test-iqn</param> <!--optional, use it if more than one IQN is present -->
+                <param>IQN=iqn.2000-01.com:test-iqn</param>
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_DiskStress</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_DiskStress.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-14</param>
@@ -192,11 +201,11 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_State_Off</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-15</param>
@@ -206,11 +215,11 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_State_Paused</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-15</param>
@@ -220,12 +229,14 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_PassTru</testName>
-            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\AddHardDisk.ps1</file>
+            </setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-16</param>
@@ -236,12 +247,14 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
             <testName>STOR_VSS_BackupRestore_Fail</testName>
-            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\AddHardDisk.ps1</file>
+            </setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Fail.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-18</param>
@@ -252,7 +265,6 @@
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
-            <cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
     </testCases>
 
