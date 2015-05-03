@@ -440,34 +440,6 @@ function CreateGChildVHD($ParentVHD)
 
 }
 
-######################################################################
-# Get Network Adapter 
-#######################################################################
-function NetworkAdapter($hvServer)
-{
-
-    $NetworkAdapter = $null
-    
-
-    $hostInfo = Get-VMHost -ComputerName $hvServer
-        if (-not $hostInfo)
-        {
-             Write-Error -Message "Error: Unable to collect Hyper-V settings for ${hvServer}" -ErrorAction SilentlyContinue
-             return $False
-        }
-
-    $NetworkAdapter = $hostInfo.ExternalNetworkAdapters.SwitchName
-        if (-not $NetworkAdapter)
-        {
-            Write-Error -Message "Error: Unable to collect Hyper-V ExternalNetworkAdapters for ${hvServer}" -ErrorAction SilentlyContinue
-             return $False
-        }
-
-
-    return $NetworkAdapter    
-
-}
-
 #######################################################################
 #
 # Main script body
@@ -646,7 +618,7 @@ if (-not $?)
 $vm_gen = $vm.Generation
 
 # Create the GChildVM
-$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter.SwitchName -Generation $vm_gen
+$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
     {
        Write-Output "Error: Creating New VM" 
