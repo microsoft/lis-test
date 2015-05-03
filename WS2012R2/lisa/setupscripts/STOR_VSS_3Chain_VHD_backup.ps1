@@ -328,7 +328,7 @@ function GetParentVHD($vmName, $hvServer)
                     if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  ))
                         {
                             $Path = Get-VHD $VHD.Path
-                            if ( $Path.ParentPath -eq "")
+                            if ([string]::IsNullOrEmpty($Path.ParentPath))
                                 {
                                     $ParentVHD = $VHD.Path
                                 }
@@ -348,7 +348,7 @@ function GetParentVHD($vmName, $hvServer)
                     if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  ))
                         {
                             $Path = Get-VHD $VHD.Path
-                            if ( $Path.ParentPath -eq "")
+                            if ([string]::IsNullOrEmpty($Path.ParentPath))
                                 {
                                     $ParentVHD = $VHD.Path
                                 }
