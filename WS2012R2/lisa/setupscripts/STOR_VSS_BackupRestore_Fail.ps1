@@ -177,34 +177,32 @@ function RunRemoteScript($remoteScript)
             {
                     if ($contents -eq $TestCompleted)
                     {                    
-                        Write-Output "Info : state file contains Testcompleted"              
+                        Write-Output "Info : state file contains Testcompleted"
                         $retValue = $True
-                        break                                             
-                                     
+                        break
                     }
 
                     if ($contents -eq $TestAborted)
                     {
-                         Write-Output "Info : State file contains TestAborted failed. "                                  
+                         Write-Output "Info : State file contains TestAborted failed. "
                          break
-                          
                     }
                     #Start-Sleep -s 1
                     $timeout-- 
 
                     if ($timeout -eq 0)
                     {                        
-                        Write-Output "Error : Timed out on Test Running , Exiting test execution."                    
-                        break                                               
-                    }                                
-                  
-            }    
+                        Write-Output "Error : Timed out on Test Running , Exiting test execution."
+                        break
+                    }
+
+            }
             else
             {
                 Write-Output "Warn : state file is empty"
                 break
             }
-           
+
         }
         else
         {
@@ -217,7 +215,7 @@ function RunRemoteScript($remoteScript)
          Write-Output "Error : pscp exit status = $sts"
          Write-Output "Error : unable to pull state.txt from VM." 
          break
-    }     
+    }
     }
 
     # Get the logs
@@ -240,21 +238,21 @@ function RunRemoteScript($remoteScript)
 
                     else 
                     {
-                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"                                
+                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
                     }                              
                   
             }    
             else
             {
-                Write-Output "Warn: $remoteScriptLog is empty"                
+                Write-Output "Warn: $remoteScriptLog is empty"
             }           
         }
         else
         {
-             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"             
+             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"
         }
     }
-    
+
     # Cleanup 
     del state.txt -ErrorAction "SilentlyContinue"
     del runtest.sh -ErrorAction "SilentlyContinue"
@@ -428,9 +426,10 @@ Write-Output "Backup duration: $BackupTime minutes"
 "Backup duration: $BackupTime minutes" >> $summaryLog
 
 $sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 {
-    Write-Output "ERROR: VSS WBBackup failed"
+    Write-Output "ERROR: VSS Backup failed"
+    Write-Output $sts.ErrorDescription
     $retVal = $false
     return $retVal
 }
