@@ -328,7 +328,7 @@ function GetParentVHD($vmName, $hvServer)
                     if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  ))
                         {
                             $Path = Get-VHD $VHD.Path
-                            if ( $Path.ParentPath -eq "")
+                            if ([string]::IsNullOrEmpty($Path.ParentPath))
                                 {
                                     $ParentVHD = $VHD.Path
                                 }
@@ -348,7 +348,7 @@ function GetParentVHD($vmName, $hvServer)
                     if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  ))
                         {
                             $Path = Get-VHD $VHD.Path
-                            if ( $Path.ParentPath -eq "")
+                            if ([string]::IsNullOrEmpty($Path.ParentPath))
                                 {
                                     $ParentVHD = $VHD.Path
                                 }
@@ -437,34 +437,6 @@ function CreateGChildVHD($ParentVHD)
     }
 
     return $GChildVHD    
-
-}
-
-######################################################################
-# Get Network Adapter 
-#######################################################################
-function NetworkAdapter($hvServer)
-{
-
-    $NetworkAdapter = $null
-    
-
-    $hostInfo = Get-VMHost -ComputerName $hvServer
-        if (-not $hostInfo)
-        {
-             Write-Error -Message "Error: Unable to collect Hyper-V settings for ${hvServer}" -ErrorAction SilentlyContinue
-             return $False
-        }
-
-    $NetworkAdapter = $hostInfo.ExternalNetworkAdapters.SwitchName
-        if (-not $NetworkAdapter)
-        {
-            Write-Error -Message "Error: Unable to collect Hyper-V ExternalNetworkAdapters for ${hvServer}" -ErrorAction SilentlyContinue
-             return $False
-        }
-
-
-    return $NetworkAdapter    
 
 }
 
@@ -646,7 +618,7 @@ if (-not $?)
 $vm_gen = $vm.Generation
 
 # Create the GChildVM
-$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter.SwitchName -Generation $vm_gen
+$newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
     {
        Write-Output "Error: Creating New VM" 
@@ -715,9 +687,10 @@ Write-Output "Backup duration: $BackupTime minutes"
 "Backup duration: $BackupTime minutes" >> $summaryLog
 
 $sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 {
-    Write-Output "ERROR: VSS WBBackup failed"
+    Write-Output "ERROR: VSS Backup failed"
+    Write-Output $sts.ErrorDescription
     $retVal = $false
     return $retVal
 }
@@ -735,9 +708,10 @@ $BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
 # Start Restore
 Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force -WarningAction SilentlyContinue
 $sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 {
-    Write-Output "ERROR: VSS WB Restore failed"
+    Write-Output "ERROR: VSS Restore failed"
+    Write-Output $sts.ErrorDescription
     $retVal = $false
     return $retVal
 }

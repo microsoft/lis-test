@@ -115,8 +115,8 @@ do
 
 
 # Partition Drive
-    (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) |  fdisk $driveName
-    (echo n; echo p; echo 2; echo ; echo; echo ; echo w) |  fdisk $driveName
+    (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) | fdisk $driveName
+    (echo n; echo p; echo 2; echo ; echo; echo ; echo w) | fdisk $driveName
     sts=$?
   if [ 0 -ne ${sts} ]; then
       echo "Error:  Partitioning disk Failed ${sts}"
@@ -154,18 +154,18 @@ do
    if [ ! -e ${MountName1} ]; then
      mkdir $MountName1
    fi
-   mount  ${driveName}1 $MountName ; mount  ${driveName}2 $MountName1
+   mount ${driveName}1 $MountName ; mount ${driveName}2 $MountName1
    sts=$?
        if [ 0 -ne ${sts} ]; then
-            LogMsg "Error:  mounting disk Failed ${sts}"
-            UpdateTestState "TestAborted"
-            UpdateSummary " Mounting disk $driveName on $MountName: Failed"
-            exit 1
+           LogMsg "Error:  mounting disk Failed ${sts}"
+           UpdateTestState "TestAborted"
+           UpdateSummary " Mounting disk $driveName on $MountName: Failed"
+           exit 1
        else
-            LogMsg "mounting disk ${driveName}1 on ${MountName}"
-            LogMsg "mounting disk ${driveName}2 on ${MountName1}"
-            UpdateSummary " Mounting disk ${driveName}1 : Success"
-            UpdateSummary " Mounting disk ${driveName}2 : Success"
+     LogMsg "mounting disk ${driveName}1 on ${MountName}"
+     LogMsg "mounting disk ${driveName}2 on ${MountName1}"
+           UpdateSummary " Mounting disk ${driveName}1 : Success"
+           UpdateSummary " Mounting disk ${driveName}2 : Success"
        fi
 
     # Now Freeze one of the volume.
