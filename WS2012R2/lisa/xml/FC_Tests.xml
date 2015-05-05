@@ -93,6 +93,7 @@
 			<testName>FC_disks_multipath_detection</testName>
 			<testScript>setupscripts\FC_MultipathDetection.ps1</testScript>
 			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+            <files>remote-scripts\ica\utils.sh</files>
 			<timeout>3600</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-08</param>

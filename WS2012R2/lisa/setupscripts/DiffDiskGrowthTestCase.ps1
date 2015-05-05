@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    This test script, which runs inside VM it mount the dirve and perform write operation on diff disk. 
+    This test script, which runs inside VM it mount the dirve and perform write operation on diff disk.
     And checks to ensure that parent disk size does not change.
 
 .Description
@@ -41,7 +41,7 @@
 
    SCSI=0,0,Diff : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic
    IDE=1,1,Diff  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Diff
-   
+
    Note: This setup script only adds differencing disks.
 
     A typical XML definition for this test case would look similar
@@ -52,10 +52,10 @@
         <setupScript>setupscripts\DiffDiskGrowthSetup.ps1</setupScript>
         <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
         <timeout>18000</timeout>
-        <testparams>                
-                <param>IDE=1,1,Diff</param>      
+        <testparams>
+                <param>IDE=1,1,Diff</param>
                 <param>ParentVhd=VHDXParentDiff.vhdx</param>
-                <param>TC_COUNT=DSK_VHDX-75</param>            
+                <param>TC_COUNT=DSK_VHDX-75</param>
         </testparams>
     </test>
 
@@ -69,7 +69,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\STOR_DiffDiskGrowthTestCase.ps1 -vmName VMname -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IP;RootDir=" 
+    setupScripts\STOR_DiffDiskGrowthTestCase.ps1 -vmName VMname -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IP;RootDir="
 
 .Link
     None.
@@ -92,20 +92,20 @@ param ([String] $vmName, [String] $hvServer, [String] $testParams)
 function GetRemoteFileInfo([String] $filename, [String] $server )
 {
     $fileInfo = $null
-    
+
     if (-not $filename)
     {
         return $null
     }
-    
+
     if (-not $server)
     {
         return $null
     }
-    
+
     $remoteFilename = $filename.Replace("\", "\\")
     $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-    
+
     return $fileInfo
 }
 
@@ -149,6 +149,7 @@ $vhdName = $null
 $parentVhd = $null
 $sshKey = $null
 $ipv4 = $null
+$TC_COVERED = $null
 
 #
 # Parse the testParams string and make sure all
@@ -161,14 +162,14 @@ foreach ($p in $params)
     {
         continue
     }
-    
+
     $tokens = $p.Trim().Split('=')
-    
+
     if ($tokens.Length -ne 2)
     {
         Continue
     }
-    
+
     $lValue = $tokens[0].Trim()
     $rValue = $tokens[1].Trim()
 
@@ -180,38 +181,44 @@ foreach ($p in $params)
         $parentVhd = $rValue
         continue
     }
-    
+
+    if($lValue -eq "TC_COVERED")
+    {
+        $TC_COVERED = $rValue
+        continue
+    }
+
     if (@("IDE", "SCSI") -contains $lValue)
     {
         $controllerType = $lValue
-            
+
         $diskArgs = $rValue.Trim().Split(',')
-        
+
         if ($diskArgs.Length -ne 3)
         {
             "Error: Incorrect number of arguments: $p"
             $retVal = $false
             Continue
         }
-        
+
         $controllerID = $diskArgs[0].Trim()
         $lun = $diskArgs[1].Trim()
         $vhdType = $diskArgs[2].Trim()
         Continue
     }
-    
+
     if ($lValue -eq "MountPoint")
     {
         $mountPoint = $rValue
         Continue
     }
-    
+
     if ($lValue -eq "sshKey")
     {
         $sshKey = $rValue
-        Continue  
+        Continue
     }
-    
+
     if ($lValue -eq "ipv4")
     {
         $ipv4 = $rValue
@@ -225,7 +232,9 @@ foreach ($p in $params)
 }
 
 cd $rootdir
-
+del $summaryLog -ErrorAction SilentlyContinue
+$summaryLog = "${vmName}_summary.log"
+"Covers : ${TC_COVERED}" >> $summaryLog
 #
 # Make sure we have all the data we need to do our job
 #
@@ -292,12 +301,12 @@ if (-not $defaultVhdPath.EndsWith("\"))
 
 if ($parentVhd.EndsWith(".vhd"))
 {
-    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"  
+    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"
 }
 else
 {
-    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhdx"  
-} 
+    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhdx"
+}
 
 #
 # The .vhd file should have been created by our
@@ -363,7 +372,7 @@ if (-not $?)
 #
 # Tell the guest OS to write a few MB to the differencing disk
 #
-$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dd if=/dev/sda1 of=/mnt/ica/test.dat count=2048 > /dev/null 2>&1" | out-null 
+$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dd if=/dev/sda1 of=/mnt/ica/test.dat count=2048 > /dev/null 2>&1" | out-null
 if (-not $?)
 {
     "Error: Unable to send cp command to VM to grow the .vhd"
@@ -372,8 +381,8 @@ if (-not $?)
 
 #
 # Tell the guest OS on the VM to unmount the differencing disk
-# 
-$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "umount /mnt" | out-null 
+#
+$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "umount /mnt" | out-null
 if (-not $?)
 {
     "Warn : Unable to send umount request to VM"

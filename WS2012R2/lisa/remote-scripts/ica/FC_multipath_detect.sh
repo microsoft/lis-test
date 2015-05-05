@@ -34,10 +34,10 @@
 #
 ################################################################
 
-LogMsg()
-{
-    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
-}
+ICA_TESTRUNNING="TestRunning"      # The test is running
+ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
+ICA_TESTABORTED="TestAborted"      # Error during setup of test
+ICA_TESTFAILED="TestFailed"        # Error during execution of test
 
 UpdateTestState()
 {
@@ -49,68 +49,132 @@ UpdateSummary()
     echo $1 >> ~/summary.log
 }
 
+ConfigRedHat()
+{
+    yum install device-mapper-multipath >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        echo "Unable to install device-mapper-multipath package. The system is not registered."
+        echo "Please install from ISO device-mapper-multipath package."
+        UpdateTestState $ICA_TESTABORTED
+    fi
+    if [[ ! -e "/etc/multipath.conf" ]]; then
+        /sbin/mpathconf --enable >/dev/null 2>&1
+        service multipathd restart >/dev/null 2>&1
+        service multipathd restart >/dev/null 2>&1
+        if [[ $? -ne 0 ]]; then
+            echo "Error during service multipathd restart."
+            UpdateTestState $ICA_TESTABORTED
+        fi
+    fi
+}
+
+ConfigDebian()
+{
+    apt-get install -y multipath-tools
+    if [[ $? -ne 0 ]]; then
+        echo "Unable to install device-mapper-multipath package."
+        UpdateTestState $ICA_TESTABORTED
+    fi
+
+}
+
+ConfigSuse()
+{
+    multipath -l >/dev/null 2>&1
+    if [[ $? -eq 127 ]]; then
+        zypper in -y multipath-tools
+        if [[ $? -ne 0 ]]; then
+            echo "Unable to install multipath-tools package."
+            echo "Please install from ISO multipath-tools package."
+            UpdateTestState $ICA_TESTABORTED
+        fi
+    fi
+    chkconfig multipathd on
+    if [[ $? -ne 0 ]]; then
+        echo "Unable to enable multipathd."
+        UpdateTestState $ICA_TESTABORTED
+    fi
+    service multipathd restart
+    if [[ $? -ne 0 ]]; then
+        echo "Unable to restart multipathd."
+        UpdateTestState $ICA_TESTABORTED
+    fi
+
+}
+
+ConfigureMultipath()
+{
+    GetDistro
+    case $DISTRO in
+        redhat*|centos*)
+            ConfigRedHat
+        ;;
+        debian*|ubuntu*)
+            ConfigDebian
+        ;;
+        suse*)
+            ConfigSuse
+        ;;
+        *)
+        echo "Platform not supported yet!"
+        UpdateTestState $ICA_TESTFAILED
+        exit 3
+        ;;
+    esac
+}
 cd ~
 UpdateTestState "TestRunning"
 
 if [ -e ~/summary.log ]; then
-    LogMsg "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
 fi
 
 if [ -e $HOME/constants.sh ]; then
-	. $HOME/constants.sh
+    . $HOME/constants.sh
 else
-	LogMsg "ERROR: Unable to source the constants file."
-	UpdateTestState "TestAborted"
-	exit 1
-fi
-
-#Check for Testcase covered
-if [ ! ${TC_COVERED} ]; then
-    LogMsg "Error: The TC_COVERED variable is not defined."
-	echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
+    echo "ERROR: Unable to source the constants file."
     UpdateTestState "TestAborted"
     exit 1
 fi
 
-echo "Covers : ${TC_COVERED}" >> ~/summary.log
+#Check for Testcase covered
+if [ ! ${TC_COVERED} ]; then
+    echo "Error: The TC_COVERED variable is not defined."
+    UpdateTestState "TestAborted"
+    exit 1
+fi
+
+echo "Covers : ${TC_COVERED}"
 
 #
 # Start the test
 #
-LogMsg "Starting test"
+dos2unix utils.sh
+. utils.sh
 
-multipath
+multipath > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-    msg="multipath utility not found. Please install it first."
-    LogMsg "Error: ${msg}"
-    echo $msg >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 30
+    ConfigureMultipath
 fi
 
 fcDiskCount=`multipath -ll | grep "sd" | wc -l`
 if [ $? -ne 0 ]; then
     msg="Failed to count multipath disks."
-    LogMsg "Error: ${msg}"
-    echo $msg >> ~/summary.log
+    echo "Error: ${msg}"
+    echo $msg
     UpdateTestState $ICA_TESTFAILED
     exit 30
 fi
 
-if [ $fcDiskCount -ne $expectedCount ]; then
+if [[ $fcDiskCount -ne $expectedCount ]]; then
     msg="Count missmatch between expected $expectedCount and actual $fcDiskCount"
-    LogMsg "Error: ${msg}"
-    echo $msg >> ~/summary.log
+    echo $msg
     UpdateTestState $ICA_TESTFAILED
     exit 30
 else
     msg="Count match between expected $expectedCount and actual $fcDiskCount"
-    LogMsg "Success: ${msg}"
-    echo $msg >> ~/summary.log
+    echo $msg
 fi
 
-LogMsg "#########################################################"
-LogMsg "Result : Test Completed Successfully"
-LogMsg "Exiting with state: TestCompleted."
+echo "Test Completed Successfully"
 UpdateTestState "TestCompleted"
