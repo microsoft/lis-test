@@ -618,7 +618,7 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     #
     # Invoke the setup/cleanup script
     #
-    $cmd = "$scriptName -vmName $vmName -hvServer $hvServer"
+    $cmd = "$scriptName -vmName `"$vmName`" -hvServer `"$hvServer`""
 
     #
     # Only add the testParams if something was specified, and it appears reasonable
@@ -629,7 +629,7 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
         $cmd += " -testParams `"$params`""
     }
 
-    LogMsg 6 ("Info : Invoke-Expression $cmd")
+    LogMsg 3 ("Info : Invoke-Expression $cmd")
     $sts = Invoke-Expression $cmd
 
     $numItems = $sts.length
@@ -1119,6 +1119,13 @@ function CreateTestParamString([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
     }
     
+    # Add IPv4 address if it exists
+    if ($vm.ipv4)
+    {
+        LogMsg 9 "Info : $($vm.vmName) Adding IPv4 address"
+        $tp += "ipv4=$($vm.ipv4);"
+    }
+
     #
     # Add the iteration information if test case is being iterated
     #

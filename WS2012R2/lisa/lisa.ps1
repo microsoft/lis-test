@@ -836,9 +836,44 @@ function RunTests ([String] $xmlFilename )
         }
     }
 
-    LogMsg 10 "Info : Calling RunICTests"
-    . .\stateEngine.ps1
-    RunICTests $xmlConfig
+    # Find all non hyper-v and hyper-v hosted machines
+    $nonHvMachines = @()
+    $hvMachines = @()
+    $xmlConfig.Config.VMs.vm | % {
+        if ($_.HasAttribute("hvHosted") -and $_.hvHosted -eq $false) { $nonHvMachines += $_ }
+        else { $hvMachines += $_ }
+    }
+
+    # Run HyperV-less state machine if any machines are defined as not being in Hyper-V
+    if ($nonHvMachines.Count)
+    {
+        # Prune out all of the Hyper-V hosted machines from the config
+        $hvMachines | % { $xmlConfig.Config.VMs.RemoveChild($_) }
+
+        LogMsg 10 "Info : Calling RunICTestsWithoutHv from nonHvStateEngine.ps1"
+        . .\nonHvStateEngine.ps1
+        
+        RunICTestsWithoutHv $xmlConfig
+
+        # Add back all of the Hyper-V hosted machines to the config
+        $hvMachines | % { $xmlConfig.Config.VMs.InsertBefore($_, $null) }
+    }
+    
+    # Run HyperV state machine if any machines are hosted in Hyper-V
+    if ($hvMachines.Count)
+    {
+        # Prune out all of the non-HyperV hosted machines
+        $nonHvMachines | % { $xmlConfig.Config.VMs.RemoveChild($_) }
+
+        LogMsg 10 "Info : Calling RunICTests from stateEngine.ps1"
+        . .\stateEngine.ps1
+
+        RunICTests $xmlConfig
+
+        # Add the non-HyperV machines back to the config (needed for results)
+        $nonHvMachines | % { $xmlConfig.Config.VMs.InsertBefore($_, $null) }
+    }
+    
 
     #
     # email the test results if requested
