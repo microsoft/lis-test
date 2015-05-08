@@ -497,7 +497,7 @@ SetIPfromDHCP()
 				return 2
 			fi
 			;;
-		ubuntu*)
+		debian*|ubuntu*)
 			dhclient -r "$1" ; dhclient "$1"
 			if [ 0 -ne $? ]; then
 				LogMsg "Unable to get dhcpd address for interface $1"
@@ -1266,7 +1266,7 @@ CreateIfupConfigFile()
 				ifup "$__interface_name"
 
 				;;
-			ubuntu*)
+			debian*|ubuntu*)
 				__file_path="/etc/network/interfaces"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
@@ -1377,7 +1377,7 @@ CreateIfupConfigFile()
 				ifup "$__interface_name"
 				;;
 
-			ubuntu*)
+			debian*|ubuntu*)
 				__file_path="/etc/network/interfaces"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
@@ -1511,7 +1511,7 @@ ControlNetworkManager()
 
 			LogMsg "Successfully ${1}ed NetworkManager."
 			;;
-		ubuntu*)
+		debian*|ubuntu*)
 			# check that we have a NetworkManager service running
 			service network-manager status
 			if [ 0 -ne $? ]; then
