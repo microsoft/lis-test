@@ -213,14 +213,22 @@ else
 fi
 
 if is_rhel7 ; then #If the system is using systemd we use systemctl
-    if [[ $(systemctl list-units --type=service | grep hypervvssd) ]] || \
-       [[ $(systemctl list-units --type=service | grep hv_vss_daemon) ]]; then
+    if [[ "$(systemctl is-active hypervvssd)" == "active" ]] || \
+       [[ "$(systemctl is-active hv_vss_daemon)" == "active" ]]; then
 
         LogMsg "VSS Daemon is running"
         UpdateTestState $ICA_TESTCOMPLETED
         exit 0
+    
+    elif [[ "$(systemctl is-active hypervvssd)" == "unknown" ]] && \
+         [[ "$(systemctl is-active hv_vss_daemon)" == "unknown" ]]; then
+        
+        LogMsg "ERROR: VSS Daemon not installed, test aborted"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    
     else
-        LogMsg "ERROR: VSS Daemon not running, test aborted"
+        LogMsg "ERROR: VSS Daemon is installed but not running. Test aborted"
         UpdateTestState $ICA_TESTABORTED
         exit 1
     fi
