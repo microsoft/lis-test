@@ -31,26 +31,26 @@
         </vm>
     </VMs>
 
-    <testSuites> 
+    <testSuites>
         <suite>
             <suiteName>Core</suiteName>
             <suiteTests>
                 <suiteTest>VMHeartbeat</suiteTest>
                 <suiteTest>TimeSync</suiteTest>
-                <suiteTest>TimeSync_NTP</suiteTest> 
+                <suiteTest>TimeSync_NTP</suiteTest>
                 <suiteTest>TimeSync_SavedVM</suiteTest>
                 <suiteTest>LISShutdownVM</suiteTest>
                 <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
                 <suiteTest>VerifyLisModules</suiteTest>
                 <suiteTest>Multi_Cpu_Test</suiteTest>
                 <suiteTest>Verify_LISModules_Version</suiteTest>
-                <suiteTest>VerifyItegratedShutdownService</suiteTest> 
+                <suiteTest>VerifyItegratedShutdownService</suiteTest>
                 <suiteTest>RebootDifferentMemSettings</suiteTest>
-                <suiteTest>StressReloadModules</suiteTest> 
+                <suiteTest>StressReloadModules</suiteTest>
                 <suiteTest>FloppyDisk</suiteTest>
                 <suiteTest>CDmount</suiteTest>
             </suiteTests>
-        </suite>  
+        </suite>
 
         <!-- Storage -->
         <suite>
@@ -85,15 +85,14 @@
                 <suiteTest>ConfigureNetwork</suiteTest>
                 <suiteTest>External</suiteTest>
                 <suiteTest>InternalNetwork</suiteTest>
-                <!-- <suiteTest>GuestOnlyNetwork</suiteTest> -->
+                <suiteTest>GuestOnlyNetwork</suiteTest>
                 <suiteTest>OperState</suiteTest>
                 <suiteTest>MultipleNIC</suiteTest>
                 <suiteTest>StaticMAC</suiteTest>
-                <!-- <suiteTest>ChangeNetTypeInternal</suiteTest> -->
-                <!-- <suiteTest>ChangeNetTypeGuest</suiteTest>       -->
+                <suiteTest>ChangeNetTypeInternal</suiteTest>
+                <suiteTest>ChangeNetTypeGuest</suiteTest>
                 <suiteTest>CopyLargeFile</suiteTest>
                 <suiteTest>VlanTagging</suiteTest>
-                <!-- <suiteTest>VlanTrunking</suiteTest> -->
                 <suiteTest>JumboFrame</suiteTest>
                 <suiteTest>NetworkMode</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
@@ -262,7 +261,7 @@
         </test>
 
     <!-- Core -->
-            
+
     <test>
         <testName>CDmount</testName>
         <testScript>LIS_CD.sh</testScript>
@@ -293,7 +292,7 @@
         <files>setupScripts\timesync.ps1</files>
         <timeout>600</timeout>
         <onError>Continue</onError>
-        <noReboot>True</noReboot>            
+        <noReboot>True</noReboot>
     </test>
 
     <test>
@@ -302,9 +301,9 @@
         <files>setupScripts\timesync_savedVM.ps1</files>
         <timeout>1000</timeout>
         <onError>Abort</onError>
-        <noReboot>True</noReboot>            
+        <noReboot>True</noReboot>
     </test>
-    
+
     <test>
          <testName>TimeSync_NTP</testName>
          <testScript>CORE_TimeSync_NTP.sh</testScript>
@@ -325,7 +324,7 @@
             <param>TC_COVERED=CORE-11</param>
         </testParams>
     </test>
-    
+
     <test>
         <testName>StressReloadModules</testName>
         <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
@@ -1129,12 +1128,10 @@
             <timeout>800</timeout>
         </test>
 
-        <!-- The following two tests are actually one single TC -->
-
         <test>
             <testName>ChangeNetTypeInternal</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>
+            <pretest>setupScripts\NET_SWITCH_NIC_MAC1.ps1</pretest>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>SWITCH=NetworkAdapter,Internal,Internal,001600112200</param>
@@ -1154,6 +1151,7 @@
 
         <test>
             <testName>ChangeNetTypeGuest</testName>
+            <pretest>setupScripts\NET_SWITCH_NIC_MAC1.ps1</pretest>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
@@ -1163,8 +1161,8 @@
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>SWITCH=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-13</param>
-                <param>STATIC_IP=10.10.10.1</param>
-                <param>STATIC_IP2=10.10.10.2</param>
+                <param>STATIC_IP=10.10.10.10</param>
+                <param>STATIC_IP2=10.10.10.20</param>
                 <param>NETMASK=255.255.255.0</param>
                 <param>VM2NAME=vm2Name</param>
                 <param>PING_FAIL=8.8.8.8</param>
@@ -1176,8 +1174,6 @@
             <cleanupScript>setupscripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-
-        <!-- The preceding three tests are actually one single TC -->
 
         <test>
             <testName>NetworkMode</testName>
@@ -1247,29 +1243,6 @@
             <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>setupscripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>8000</timeout>
-        </test>
-
-        <test>
-            <testName>VlanTrunking</testName>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
-            </setupScript>
-            <testParams>
-                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
-                <param>TC_COVERED=NET-01</param>
-                <!-- <param>STATIC_IP=10.10.10.1</param> -->
-                <!-- <param>STATIC_IP2=10.10.10.2</param> -->
-                <!-- <param>NETMASK=255.255.255.0</param> -->
-                <param>VM2NAME=vm2Name</param>
-                <param>VM_VLAN_ID=2</param>
-                <param>NATIVE_VLAN_ID=10</param>
-                <param>SnapshotName=ICABase</param>
-            </testParams>
-            <testScript>SetupScripts\NET_VLAN_TRUNKING.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files>
-            <cleanupScript>setupscripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>800</timeout>
         </test>
 
         <test>

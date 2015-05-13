@@ -40,10 +40,10 @@
       Private
       None
 
-     The Network Type is ignored by this script, but is still necessary, in order to have the same 
+     The Network Type is ignored by this script, but is still necessary, in order to have the same
       parameters as the NET_ADD_NIC_MAC script.
-      
-      
+
+
    Network Name is the name of a existing network.
 
    This script will not create the network.  It will connect the NIC to the specified network.
@@ -54,7 +54,7 @@
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
     Name of the VM to remove NIC from.
 
@@ -127,33 +127,33 @@ $params = $testParams.Split(';')
 foreach ($p in $params)
 {
     $temp = $p.Trim().Split('=')
-    
+
     if ($temp.Length -ne 2)
     {
         # Ignore and move on to the next parameter
         continue
     }
-    
+
     #
     # Is this a SWITCH=* parameter
     #
     if ($temp[0].Trim() -eq "SWITCH")
     {
         $nicArgs = $temp[1].Split(',')
-        
+
         if ($nicArgs.Length -lt 4)
         {
             "Error: Incorrect number of arguments for SWITCH test parameter: $p"
             return $false
 
         }
-        
+
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
         $networkName = $nicArgs[2].Trim()
         $macAddress = $nicArgs[3].Trim()
         $legacy = $false
-        
+
         #
         # Validate the network adapter type
         #
@@ -163,7 +163,7 @@ foreach ($p in $params)
             "       Must be either 'NetworkAdapter' or 'LegacyNetworkAdapter'"
             return $false
         }
-        
+
         if ($nicType -eq "LegacyNetworkAdapter")
         {
             $legacy = $true
@@ -203,7 +203,7 @@ foreach ($p in $params)
            "Error: Invalid mac address: $p"
              return $false
         }
-        
+
         #
         # Make sure each character is a hex digit
         #
@@ -216,24 +216,24 @@ foreach ($p in $params)
                return $false
             }
         }
-        
+
         #
         # Get Nic with given MAC Address
         #
         # $nic = Get-VmNic -VMName $vmName -server $hvServer -IsLegacy:$legacy | where {$_.MacAddress -eq $macAddress }
-        $nic = Get-VmNic -VM $vmName -Legacy:$legacy -server $hvServer | where {$macAddress -eq $macAddress }
+        $nic = Get-VmNic -VM $vmName -Legacy:$legacy -server $hvServer | where {$_.Address -eq $macAddress }
         if ($nic)
         {
             if ($networkType -like "None")
             {
                 remove-VMSwitchNIC $nic
             }
-            else 
+            else
             {
-                add-VMSwitchNIC $nic -SwitchName $networkName -Confirm:$False
+                Set-VMNICSwitch -NIC $nic -Virtualswitch $networkName -Force
 
             }
-            
+
             $retVal = $?
         }
         else
