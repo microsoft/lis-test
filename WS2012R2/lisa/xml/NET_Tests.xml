@@ -239,6 +239,7 @@
                 <param>PING_FAIL2=192.168.0.1</param>
                 <param>SnapshotName=ICABase</param>
             </testParams>
+            <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>
             <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
