@@ -99,6 +99,7 @@ for ((y=0 ; y<$blocks ; y++)) ; do
   else
     echo "Checksum mismatch at block $y"
     echo "Checksum mismatch on  block $y for ${targetDevice} " >> ~/summary.log
+      echo "constants.sh disk count ($diskCount) does not match disk count from /dev/sd* ($sdCount)" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 80
   fi
