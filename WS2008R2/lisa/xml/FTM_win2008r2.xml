@@ -24,7 +24,7 @@
             <os>Linux</os>
             <ipv4>192.168.1.100</ipv4>
             <sshKey>demo_id_rsa.ppk</sshKey>
-            <suite>Networking</suite>
+            <suite>Core</suite>
             <testparams>
                 <param>RootDir=C:\lis-test\WS2008R2\lisa</param>
             </testparams>
@@ -56,16 +56,16 @@
         <suite>
             <suiteName>Storage</suiteName>
             <suiteTests>
-                <suiteTest>VHD_IDE_0_1_DYNAMIC</suiteTest>                
+                <suiteTest>VHD_IDE_0_1_DYNAMIC</suiteTest>
                 <suiteTest>VHD_MultiDisk_SCSI_Dynamic</suiteTest>
                 <suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
-                <suiteTest>VHD_MultiDisk_SCSI_Fixed</suiteTest>           
+                <suiteTest>VHD_MultiDisk_SCSI_Fixed</suiteTest>
                 <suiteTest>AddDifferencing_Disk_IDE</suiteTest>
                 <suiteTest>AddDifferencing_Disk_SCSI</suiteTest>
-                <suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest>               
-                <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest>      
                 <suiteTest>VHD_HotADD_Multi_Dynamic_SCSI_SMP</suiteTest>
                 <suiteTest>VHD_HotRemove_Multi_Dynamic_SCSI_SMP</suiteTest>
+                <suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest>
+                <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest>
                 <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
                 <suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest>
                 <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteTest>
@@ -740,6 +740,7 @@
                 <param>IDE=1,1,PassThrough</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
+                <param>passDriveNumbers=2,3</param>
                 <param>TC_COUNT=STOR-16</param>
             </testParams>
             <testScript>STOR_Lis_Disk.sh</testScript>
@@ -755,10 +756,11 @@
             <testParams>
                 <!--<param>SCSI_DISK=1</param>-->
                <!-- <param>SCSI=0,0,PassThrough</param> -->
+                <param>SCSI=0,0,PassThrough</param>
                 <param>SCSI=0,1,PassThrough</param>
-                <param>SCSI=0,2,PassThrough</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
+                <param>passDriveNumbers=2,3</param>
                 <param>TC_COUNT=STOR-17,STOR-18</param>
             </testParams>
             <testScript>STOR_Lis_Disk.sh</testScript>
@@ -794,8 +796,8 @@
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
-                <param>SCSI=0,0,Fixed</param>
                 <param>SCSI=0,1,Fixed</param>
+                <param>SCSI=0,2,Fixed</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-05</param>
@@ -811,11 +813,11 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
 
             <preTest>setupScripts\AddHardDisk.ps1</preTest>
-            <!-- <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>          -->
+            <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>         
             <timeout>18000</timeout>
             <testparams>
-                <param>SCSI=0,0,Dynamic</param>
                 <param>SCSI=0,1,Dynamic</param>
+                <param>SCSI=0,2,Dynamic</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>TC_COUNT=STOR-09,STOR-10,STOR-11</param>
@@ -855,6 +857,7 @@
                 <param>SCSI=0,1,PassThrough</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
+                <param>passDriveNumbers=2,3</param>
                 <param>TC_COUNT=STOR-19,STOR-20</param>
             </testparams>
             <onError>Continue</onError>
@@ -871,6 +874,7 @@
             <testparams>
                 <param>SCSI=0,0,PassThrough</param>
                 <param>SCSI=0,1,PassThrough</param>
+                <param>passDriveNumbers=2,3</param>
                 <param>TC_COUNT=STOR-19,STOR-20</param>
             </testparams>
             <onError>Continue</onError>
@@ -949,6 +953,7 @@
             <testparams>
             </testparams>
         </test>
+
 
 <!-- NETWORK -->
         <test>

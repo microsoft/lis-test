@@ -182,7 +182,7 @@ echo "/dev/sd* disk count = $sdCount"
 if [ $sdCount != $diskCount ];
 then
     echo "constants.sh disk count ($diskCount) does not match disk count from /dev/sd* ($sdCount)"
-      echo "constants.sh disk count ($diskCount) does not match disk count from /dev/sd* ($sdCount)" >> ~/summary.log
+        echo "constants.sh disk count ($diskCount) does not match disk count from /dev/sd* ($sdCount)" >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 1
 fi

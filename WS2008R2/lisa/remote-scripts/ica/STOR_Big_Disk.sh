@@ -179,7 +179,7 @@ else
 fi
 
 echo "Covers : ${TC_COUNT}" >> ~/summary.log
-
+ echo "constants.sh disk count ($diskCount) does not match disk count from /dev/sd* ($sdCount)" >> ~/summary.log
 #
 # Create the state.txt file so ICA knows we are running
 #
