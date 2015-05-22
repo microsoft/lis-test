@@ -193,37 +193,13 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
 #     
 #
 ############################################################################
-function GetPhysicalDiskForPassThru([string] $server)
+function GetPhysicalDiskForPassThru([string] $server, [string] $passDriveNumber)
 {
     #
     # Find all the Physical drives that are in use
     #
     $PhysDisksInUse = @()
 
-    $VMs = Get-VM -server $server
-    foreach ($vm in $VMs)
-    {
-       $query = "Associators of {$Vm} Where ResultClass=Msvm_VirtualSystemSettingData AssocClass=Msvm_SettingsDefineState"
-       $VMSettingData = Get-WmiObject -Namespace "root\virtualization" -Query $query -ComputerName $server
-
-        if ($VMSettingData)
-        {
-            # 
-            # Get the Disk Attachments for Passthrough Disks, and add their drive number to the PhysDisksInUse array 
-            #
-           $query = "Associators of {$VMSettingData} Where ResultClass=Msvm_ResourceAllocationSettingData AssocClass=Msvm_VirtualSystemSettingDataComponent"
-            $PhysicalDiskResource = Get-WmiObject -Namespace "root\virtualization" -Query $query `
-                -ComputerName $server | Where-Object { $_.ResourceSubType -match "Microsoft Physical Disk Drive" }
-
-            #
-            # Add the drive number for the in-use drive to the PhyDisksInUse array
-            #
-            if ($PhysicalDiskResource)
-            {
-                ForEach-Object -InputObject $PhysicalDiskResource -Process { $PhysDisksInUse += ([WMI]$_.HostResource[0]).DriveNumber }
-            }
-        }
-    }
 
     $physDrive = $null
 
@@ -232,7 +208,7 @@ function GetPhysicalDiskForPassThru([string] $server)
     {
         if ($($drive.DriveNumber))
         {
-            if ($PhysDisksInUse -notcontains $($drive.DriveNumber))
+            if ([Convert]::ToUint64($passDriveNumber) -eq $($drive.DriveNumber))
             {
                 $physDrive = $drive
                 break
@@ -290,7 +266,7 @@ function ConvertStringToUInt64([string] $newSize)
 #
 ############################################################################
 function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
-                             [string] $controllerID, [string] $Lun)
+                             [string] $controllerID, [string] $Lun, [string] $passDriveNumber)
 {
     $retVal = $false
     
@@ -327,7 +303,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
     #
     # Make sure the drive number exists
     #
-    $physDisk = GetPhysicalDiskForPassThru $server
+    $physDisk = GetPhysicalDiskForPassThru $server $passDriveNumber
     if ($physDisk -ne $null)
     {
         $pt = Add-VMPassThrough -vm $vmName -controllerID $controllerID -Lun $Lun -PhysicalDisk $physDisk `
@@ -534,6 +510,22 @@ if (! $sts)
 # Parse the testParams string
 #
 $params = $testParams.Split(';')
+
+foreach ($p in $params)
+{
+    if ($p.Trim().Length -eq 0)
+    {
+        continue
+    }
+
+    $temp = $p.Trim().Split('=')
+    if ( $temp[0] -eq "passDriveNumbers" )
+    {
+        $passDrives = $temp[1].Trim().Split(',')
+        $diskDriveIndex = 0
+    }
+}
+
 foreach ($p in $params)
 {
     if ($p.Trim().Length -eq 0)
@@ -592,7 +584,7 @@ foreach ($p in $params)
     if ($vhdType -eq "PassThrough")
     {
         "CreatePassThruDrive $vmName $hvServer $scsi $controllerID $Lun"
-        $sts = CreatePassThruDrive $vmName $hvServer -SCSI:$scsi $controllerID $Lun
+        $sts = CreatePassThruDrive $vmName $hvServer -SCSI:$scsi $controllerID $Lun $passDrives[$diskDriveIndex]
         $results = [array]$sts
         if (! $results[$results.Length-1])
         {
@@ -601,6 +593,7 @@ foreach ($p in $params)
             $retVal = $false
             continue
         }
+        $diskDriveIndex += 1
     }
     else # Must be Fixed, Dynamic, or Diff
     {
