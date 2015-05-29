@@ -374,7 +374,7 @@ declare -i __max_set=0
 for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 	while [ "$__current_mtu" -lt "$__const_max_mtu" ]; do
-
+		sleep 2
 		__current_mtu=$((__current_mtu+__const_increment_size))
 
 		ip link set dev "${SYNTH_NET_INTERFACES[$__iterator]}" mtu "$__current_mtu"
