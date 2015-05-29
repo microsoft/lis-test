@@ -6,8 +6,8 @@
 #     This is a PowerShell test case script that runs on the on
 #     the ICA host rather than the VM.
 #
-#     This script will reboot a VM 50 times and check that the VM reboots successfully.  
-#     
+#     This script will reboot a VM 50 times and check that the VM reboots successfully.
+#
 #     The ICA scripts will always pass the vmName, hvServer, and a
 #     string of testParams to the PowerShell test case script. For
 #     example, if the <testParams> section was written as:
@@ -38,7 +38,7 @@ function CheckCurrentStateFor([String] $vmName, $newState)
     {
         $stateChanged = $True
     }
-    
+
     return $stateChanged
 }
 
@@ -51,19 +51,19 @@ function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
 {
     $retVal = $False
     $timeout = $to * 1000
-  
+
     #
     # Try an async connect to the specified machine/port
     #
     $tcpclient = new-Object system.Net.Sockets.TcpClient
     $iar = $tcpclient.BeginConnect($serverName,$port,$null,$null)
-    
+
     #
     # Wait for the connect to complete. Also set a timeout
     # so we don't wait all day
     #
     $connected = $iar.AsyncWaitHandle.WaitOne($timeout,$false)
-    
+
     # Check to see if the connection is done
     if($connected)
     {
@@ -123,17 +123,17 @@ foreach ($p in $params)
     }
 
     $tokens = $p.Trim().Split('=')
-    
+
     if ($tokens.Length -ne 2)
     {
 	"Warn : test parameter '$p' is being ignored because it appears to be malformed"
     }
-    
+
     if ($tokens[0].Trim() -eq "RootDir")
     {
         $rootDir = $tokens[1].Trim()
     }
-    
+
     if ($tokens[0].Trim() -eq "ipv4")
     {
         $vmIPAddr = $tokens[1].Trim()
@@ -179,7 +179,7 @@ if ($($vm.State) -ne "Running")
 }
 
 #
-# Set the count and reboot the machine 50 times. 
+# Set the count and reboot the machine 50 times.
 #
 $count = 50
 $bootcount = 0
@@ -192,10 +192,10 @@ While ( -not (TestPort $vmIPAddr) )
 {
    Start-Sleep 5
 }
-.\bin\plink.exe -i .\ssh\$sshKey root@$vmIPAddr "init 3 &"
+Restart-VM -VMName $vmName -Force
 if($? -eq "True")
 {
-   Write-Output "VM goes in to text mode" 
+   Write-Output "VM goes in to text mode"
 }
 else
 {
@@ -207,9 +207,9 @@ Start-Sleep 5
 
 $VMKB = gwmi -namespace "root\virtualization\v2" -class "Msvm_Keyboard" -ComputerName $hvServer -Filter "SystemName='$($vm.Id)'"
 
-$Boot = $VMKB.TypeCtrlAltDel() 
+$Boot = $VMKB.TypeCtrlAltDel()
 
-# Set the test case time out. 
+# Set the test case time out.
 
 $testCaseTimeout = 120
 
@@ -218,7 +218,7 @@ while ($testCaseTimeout -gt 0)
 	if ( (CheckCurrentStateFor $vmName ( "Running" )))
 	{
 		break
-	}   
+	}
 	Start-Sleep -seconds 2
 	$testCaseTimeout -= 2
 }
@@ -237,7 +237,7 @@ while ($testCaseTimeout -gt 0)
 	if ( (TestPort $vmIPAddr) )
 	{
 		break
-	}	 
+	}
 	Start-Sleep -seconds 2
 	$testCaseTimeout -= 2
 }
@@ -257,7 +257,7 @@ Write-Output "Boot count:"$bootcount | Out-File -Append ${rootDir}\Test50TimesRe
 }
 
 #
-# If we got here, the VM was rebooted 50 times successfully 
+# If we got here, the VM was rebooted 50 times successfully
 #
 While( -not (TestPort $vmIPAddr) )
 {
