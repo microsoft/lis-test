@@ -395,6 +395,43 @@ function GetIPv4ViaKVP( [String] $vmName, [String] $server)
     return $null
 }
 
+#######################################################################
+#
+# GenerateIpv4()
+#
+#######################################################################
+
+
+function GenerateIpv4($tempipv4)
+{
+    <#
+    .Synopsis
+        Generates an unused IP address based on an old IP address.
+    .Description
+        Generates an unused IP address based on an old IP address.
+    .Parameter tempipv4
+        The ipv4 address on which the new ipv4 will be based and generated in the same subnet
+    .Example
+        GenerateIpv4 $testIPv4Address
+    #>
+    [int]$i= $null
+    [int]$check = $null
+    [int]$octet = 102
+    $ipPart = $tempipv4.Split(".")
+    $newAddress = ($ipPart[0]+"."+$ipPart[1]+"."+$ipPart[2])
+
+    while ($check -ne 1 -and $octet -lt 255){
+        $octet = 1 + $octet
+        if (!(Test-Connection "$newAddress.$octet" -Count 1 -Quiet))
+        {
+            $splitip = $newAddress + "." + $octet
+            $check = 1
+        }
+    }
+
+    return $splitip.ToString()
+}
+
 
 #######################################################################
 #
