@@ -52,6 +52,7 @@
                 <suiteTest>VlanTrunking</suiteTest>
                 <suiteTest>JumboFrame</suiteTest>
                 <suiteTest>NetworkMode</suiteTest>
+                <suiteTest>IPInjection</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
             </suiteTests>
         </suite>
@@ -378,6 +379,20 @@
             <files>remote-scripts/ica/NET_OPERSTATE.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>IPInjection</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>TC_COVERED=NET-10</param>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <timeout>1000</timeout>
         </test>
 
         <!-- The following test requires a Gen 2 VM -->
