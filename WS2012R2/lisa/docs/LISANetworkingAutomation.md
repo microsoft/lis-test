@@ -27,6 +27,8 @@ For per-script information please consult the header of each script, as it conta
 - The Identity file must be present in the /root/.ssh folder on both VMs, with permission 600. This needs to be specified in the XML (SSH_PRIVATE_KEY)
 - You need to manually specify in the XML an IP for the second VMs test interface. This must be in the same range and same netmask as the main NIC.
 
+**For Legacy adapter:**
+- The VM must be set with either 1 vCPU or have the irqbalance / irqbalancer daemon stopped inside the VM.
 
 ###### Notes for RHEL 5 and RHEL 6:
 - It is strongly recommended to disable Network Manager
