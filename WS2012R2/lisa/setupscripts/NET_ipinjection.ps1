@@ -92,9 +92,6 @@ function MonitorJob($opresult)
         $jobid = $opresult.Job.Split('=')[1]
         $concreteJob = Get-WmiObject -Query "select * from CIM_ConcreteJob where InstanceId=$jobid"  -namespace $NamespaceV2 -ComputerName $hvServer
 
-		$top = [Console]::CursorTop
-		$left = [Console]::CursorLeft
-
 	# This line returns an error, requires further data type parsing correction
     # PrintJobInformation $concreteJob
 
@@ -228,52 +225,6 @@ function PrintNetworkAdapterSettingData($nasd)
 # Main script body
 #
 ##############################################################################
-# change working directory to root dir
-$testParams -match "RootDir=([^;]+)"
-if (-not $?)
-{
-    "Mandatory param RootDir=Path; not found!"
-    return $false
-}
-$rootDir = $Matches[1]
-
-if (Test-Path $rootDir)
-{
-    Set-Location -Path $rootDir
-    if (-not $?)
-    {
-        "Error: Could not change directory to $rootDir !"
-        return $false
-    }
-    "Changed working directory to $rootDir"
-}
-else
-{
-    "Error: RootDir = $rootDir is not a valid path"
-    return $false
-}
-
-# Source TCUitls.ps1 for getipv4 and other functions
-if (Test-Path ".\setupScripts\TCUtils.ps1")
-{
-    . .\setupScripts\TCUtils.ps1
-}
-else
-{
-    "Error: Could not find setupScripts\TCUtils.ps1"
-    return $false
-}
-
-# Source NET_UTILS.ps1 for network functions
-if (Test-Path ".\setupScripts\NET_UTILS.ps1")
-{
-    . .\setupScripts\NET_UTILS.ps1
-}
-else
-{
-    "Error: Could not find setupScripts\NET_Utils.ps1"
-    return $false
-}
 
 #
 # Check input arguments
@@ -295,24 +246,6 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     "The script $MyInvocation.InvocationName requires the VCPU test parameter"
     return $retVal
 }
-
-$testIPv4Address = GetIPv4 $vmName $hvServer
-$IPv4Address = GenerateIpv4 $testIPv4Address
-
-$colItems = get-wmiobject -class "Win32_NetworkAdapterConfiguration"  -namespace "root\CIMV2" -computername localhost
-
-
-foreach ($objItem in $colItems) {
-    if ($objItem.DNSHostName -ne $NULL) {
-        $netAdp = get-wmiobject -class "Win32_NetworkAdapter"  -Filter "GUID=`'$($objItem.SettingID)`'" -namespace "root\CIMV2" -computername localhost
-        if ($netAdp.NetConnectionID -like '*External*'){
-            $IPv4subnet = $objItem.IPSubnet[0]
-            $IPv4Gateway = $objItem.DefaultIPGateway[0]
-            $DnsServer = $objItem.DNSServerSearchOrder[0]
-        }
-    }
-}
-
 
 #
 # Parse the testParams
@@ -349,14 +282,72 @@ foreach ($p in $params)
 #
 if (-not $rootDir)
 {
-    "Warn : no rootDir test parameter was specified"
+    "Error: The rootDir test parameter is not defined!"
+    return $False
 }
 
-cd $rootDir
+if (Test-Path $rootDir)
+{
+    Set-Location -Path $rootDir
+    if (-not $?)
+    {
+        "Error: Could not change directory to $rootDir !"
+        return $false
+    }
+    "Changed working directory to $rootDir"
+}
+else
+{
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
+}
+
+#
+# Source TCUitls.ps1 and Net_Utils.ps1
+#
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+    . .\setupScripts\TCUtils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+}
+
+if (Test-Path ".\setupScripts\NET_UTILS.ps1")
+{
+    . .\setupScripts\NET_UTILS.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\NET_Utils.ps1"
+    return $false
+}
 
 $summaryLog  = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 echo "Covers : ${tcCovered}" > $summarylog
+
+#
+# Compute an IPv4 address to inject
+#
+$testIPv4Address = GetIPv4 $vmName $hvServer
+$IPv4Address = GenerateIpv4 $testIPv4Address
+
+$colItems = get-wmiobject -class "Win32_NetworkAdapterConfiguration"  -namespace "root\CIMV2" -computername localhost
+
+
+foreach ($objItem in $colItems) {
+    if ($objItem.DNSHostName -ne $NULL) {
+        $netAdp = get-wmiobject -class "Win32_NetworkAdapter"  -Filter "GUID=`'$($objItem.SettingID)`'" -namespace "root\CIMV2" -computername localhost
+        if ($netAdp.NetConnectionID -like '*External*'){
+            $IPv4subnet = $objItem.IPSubnet[0]
+            $IPv4Gateway = $objItem.DefaultIPGateway[0]
+            $DnsServer = $objItem.DNSServerSearchOrder[0]
+        }
+    }
+}
 
 #
 # Get the VMs IP addresses before injecting, then make sure the
@@ -405,11 +396,6 @@ $nwconfig.ProtocolIFType = $ProtocolIFType
 #
 $opresult = $vmservice.SetGuestNetworkAdapterConfiguration($vm.Path, @($nwconfig.GetText(1)))
 MonitorJob($opresult)
-
-# Write-Host "Msvm_GuestNetworkAdapterConfiguration After update .. please make sure VM is running ..."
-#[System.Management.ManagementObject] $nwconfig = @(GetGuestNetworkAdapterConfiguration($VmName))[0];
-#
-# PrintNetworkAdapterSettingData($nwconfig)
 
 #
 # Now collect the IP addresses assigned to the VM and make
