@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+ Copyright (c) Microsoft Corporation
+
+ All rights reserved. 
+ Licensed under the Apache License, Version 2.0 (the ""License"");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+     http://www.apache.org/licenses/LICENSE-2.0  
+
+ THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+ ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+ PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+ See the Apache Version 2.0 License for specific language governing
+ permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS Performance Test Results</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+       <!-- Optional testParams go here -->
+        <testParams>
+            <param>vmCpuNumber=12</param>
+            <param>vmMemory=8GB</param>
+        </testParams>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>iPerf3</suiteName>
+            <suiteTests>
+                <suiteTest>iPerf3_Panorama</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+         <test>
+            <testName>iPerf3_Panorama</testName>          
+            <testScript>perf_iperf_panorama_client.sh</testScript>
+            <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh</files>
+            <files>Tools/iperf-3.0.5.tar.gz</files>
+            <testParams>
+                <param>IPERF_PACKAGE=iperf-3.0.5.tar.gz</param>
+                <param>SERVER_OS_USERNAME=root</param>
+                <param>IPERF3_SERVER_IP=192.168.1.100</param>
+                <param>INDIVIDUAL_TEST_DURATION=600</param>
+                <param>CONNECTIONS_PER_IPERF3=4</param>
+                <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
+                <param>TEST_RUN_LOG_FOLDER=iperf3-test-logs</param>
+                <param>IPERF3_TEST_CONNECTION_POOL=(1 2 3 4 5 6 7 8 16 32 64 128 256 512 1024 2000 3000 6000)</param>
+            </testParams>
+            <uploadFiles>
+                <file>iperfdata.log</file>
+            </uploadFiles>
+            <timeout>1200</timeout>
+            <OnError>Continue</OnError>
+         </test>
+    </testCases>
+    
+    <VMs>
+        <vm>
+            <role>SUT1</role>
+            <hvServer>LIS-PERF02</hvServer>
+            <vmName>LIS-SLES12-Client</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <suite>iPerf3</suite>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+        </vm>
+        <vm>
+            <role>NonSUT1</role>
+            <hvServer>LIS-PERF01</hvServer>
+            <vmName>LIS-SLES12-Server</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+        </vm>
+    </VMs>
+</config>
