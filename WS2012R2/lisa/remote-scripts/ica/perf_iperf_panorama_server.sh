@@ -128,11 +128,11 @@ if [ "${TEST_RUN_LOG_FOLDER:="UNDEFINED"}" = "UNDEFINED" ]; then
     echo "${msg}" >> ~/summary.log
 fi
 
-echo "iPerf package name                = ${IPERF_PACKAGE}"
-echo "individual test duration (sec)    = ${INDIVIDUAL_TEST_DURATION}"
-echo "connections per iperf3            = ${CONNECTIONS_PER_IPERF3}"
-echo "test signal file                  = ${TEST_SIGNAL_FILE}"
-echo "test run log folder               = ${TEST_RUN_LOG_FOLDER}"
+echo "iPerf package name		= ${IPERF_PACKAGE}"
+echo "individual test duration (sec)	= ${INDIVIDUAL_TEST_DURATION}"
+echo "connections per iperf3		= ${CONNECTIONS_PER_IPERF3}"
+echo "test signal file			= ${TEST_SIGNAL_FILE}"
+echo "test run log folder		= ${TEST_RUN_LOG_FOLDER}"
 
 #
 # Extract the files from the IPerf tar package
@@ -220,9 +220,8 @@ while true; do
     then
         number_of_connections=$(head -n 1 ${TEST_SIGNAL_FILE})
         rm -rf ${TEST_SIGNAL_FILE}
-        echo "Reset iperf3 server..."
+        echo "Reset iperf3 server for test. Connections: ${number_of_connections} ..."
         pkill -f iperf3
-        echo "All iperf3 servers are killed."
         sleep 1 
     
         echo "Start new iperf3 instances..."
@@ -233,7 +232,7 @@ while true; do
             /root/${rootDir}/src/iperf3 -s -D -p $i
         done
         x=$(ps -aux | grep iperf | wc -l)
-        echo "New iperf3 started: $x"
+        echo "ps -aux | grep iperf | wc -l: $x"
         
         mkdir ./${TEST_RUN_LOG_FOLDER}/$number_of_connections
         

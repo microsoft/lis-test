@@ -147,19 +147,19 @@ fi
 
 if [ "${IPERF3_TEST_CONNECTION_POOL:="UNDEFINED"}" = "UNDEFINED" ]; then
     IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024 2000 3000 6000)
-    msg="Warning: the IPERF3_TEST_CONNECTION_POOL test parameter is is missing and the default value will be used:${IPERF3_TEST_CONNECTION_POOL}"
+    msg="Warning: the IPERF3_TEST_CONNECTION_POOL test parameter is is missing and the default value will be used:(1 2 4 8 16 32 64 128 256 512 1024 2000 3000 6000)"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
 fi
 
-echo "iPerf package name                  = ${IPERF_PACKAGE}"
-echo "iPerf server ip                     = ${IPERF3_SERVER_IP}"
-echo "individual test duration (sec)      = ${INDIVIDUAL_TEST_DURATION}"
-echo "connections per iperf3              = ${CONNECTIONS_PER_IPERF3}"
-echo "user name on server                 = ${SERVER_OS_USERNAME}"
-echo "test signal file                    = ${TEST_SIGNAL_FILE}"
-echo "test run log folder                 = ${TEST_RUN_LOG_FOLDER}"
-echo "iperf3 test connection pool         = ${IPERF3_TEST_CONNECTION_POOL}"
+echo "iPerf package name		= ${IPERF_PACKAGE}"
+echo "iPerf server ip			= ${IPERF3_SERVER_IP}"
+echo "individual test duration (sec)	= ${INDIVIDUAL_TEST_DURATION}"
+echo "connections per iperf3		= ${CONNECTIONS_PER_IPERF3}"
+echo "user name on server		= ${SERVER_OS_USERNAME}"
+echo "test signal file		= ${TEST_SIGNAL_FILE}"
+echo "test run log folder		= ${TEST_RUN_LOG_FOLDER}"
+echo "iperf3 test connection pool	= ${IPERF3_TEST_CONNECTION_POOL}"
 
 #
 # Extract the files from the IPerf tar package
@@ -249,8 +249,7 @@ scp ~/constants.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
 # Start iPerf in server mode on the Target server side
 #
 LogMsg "Starting iPerf in server mode on ${IPERF3_SERVER_IP}"
-
-ssh ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo '~/perf_iperf_panorama_server.sh' | at now"
+ssh ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo '~/perf_iperf_panorama_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf3 server scripts on the target server machine"
     LogMsg "${msg}"
@@ -307,7 +306,7 @@ do
     echo "================================================="
 
     touch ${TEST_SIGNAL_FILE}
-    echo ${threads[$i]} > ${TEST_SIGNAL_FILE}
+    echo ${IPERF3_TEST_CONNECTION_POOL[$i]} > ${TEST_SIGNAL_FILE}
     scp ${TEST_SIGNAL_FILE} $server_username@${IPERF3_SERVER_IP}:
     sleep 7
 
@@ -340,5 +339,20 @@ do
     sleep 10
 done
 
+# Test Finished. Collect logs
+# zip client side logs
+zip -r iPerf3_Client_Logs.zip ~/${TEST_RUN_LOG_FOLDER}
+#Get logs from server side
+ssh ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}' | at now"
+sleep 20
+scp -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
+scp -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
+
+#
+# If we made it here, everything worked.
+# Indicate success
+#
+LogMsg "Test completed successfully"
+UpdateTestState $ICA_TESTCOMPLETED
 exit 0
 
