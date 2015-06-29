@@ -19,10 +19,9 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
-    This setup script, that will run before the VM is booted, will add VHDx Hard Driver on
+    This setup script, that will run before the VM is booted, will add a VHDx disk on
     a SCSI controller to VM.
 
 
@@ -31,33 +30,30 @@
      The script will create a minimum 3GB vhdx file, and mount it to the
      specified hard drive.
 
-
      The .xml entry to specify this startup script would be:
-
-
          <setupScript>SetupScripts\Add-VHDXForResize.ps1.ps1</setupScript>
-
 
     The  scripts will always pass the vmName, hvServer, and a string of testParams from the
     test definition separated by semicolons. The testParams for this script identifies VHDx
     type, sector size and the default size.
     It's also possible to optionally specify a custom path where the vhdx will be create.
     In it's absence the disk will be created in the default path.
-    The following are some examples
+    
+    The following are some examples:
 
-    "dynamic=True;sectorSize=512;defaultSize=5GB"   : Add a 5GB, 512 sector size, dynamic VHDx
-    "dynamic=False;sectorSize=4096;defaultSize=5GB" : Add a 5GB, 4096 sector size, static VHDx
+    "type=Dynamic;sectorSize=512;defaultSize=5GB"   : Add a 5GB, 512 sector size, dynamic VHDx
+    "type=Fixed;sectorSize=4096;defaultSize=5GB" : Add a 5GB, 4096 sector size, static VHDx
 
     Test params xml entry:
     <testParams>
-        <param>Path=G:\VHDs</param> <<< OPTIONAL
+        <param>Path=D:\Hyper-V\VHD</param> <<< OPTIONAL
         <param>Type=Dynamic</param>
         <param>sectorSize=512</param>
         <param>defaultSize=5GB</param>
     <testParams>
 
 .Parameter vmName
-    Name of the VM to add disk from .
+    Name of the VM to add disk to.
 
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -68,8 +64,6 @@
 .Example
     setupScripts\Add-VHDXForResize.ps1 -vmName VM_NAME -hvServer HYPERV_SERVER -testParams "dynamic=True;sectorSize=512;defaultSize=5GB"
 #>
-############################################################################
-
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
@@ -117,7 +111,7 @@ function CheckCreateSCSIController([string] $vmName, [string] $hvServer)
 # CreateAttachVHDxTestDiskDrive
 #
 # Description
-#   Creates and attach a new VHDx test hard disk
+#   Creates and attach a new test VHDx hard-disk
 #
 ############################################################################
 function CreateAttachVHDxTestDiskDrive( [string] $vmName, [string] $hvServer,
@@ -126,7 +120,6 @@ function CreateAttachVHDxTestDiskDrive( [string] $vmName, [string] $hvServer,
 {
     $vmDrive = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
     $lastSlash = $vmDrive[0].Path.LastIndexOf("\")
-
 
     if (-not $vhdPath)
     {
@@ -169,26 +162,21 @@ function CreateAttachVHDxTestDiskDrive( [string] $vmName, [string] $hvServer,
     Add-VMHardDiskDrive -VMName $vmName -Path $vhdxName -ControllerType SCSI -ComputerName $hvServer
     if ($error.Count -gt 0)
     {
-        "Error: Add-VMHardDiskDrive failed to add drive on SCSI controller "
+        "Error: Add-VMHardDiskDrive failed to add drive on SCSI controller"
         $error[0].Exception
         return $False
     }
 
-    "VHDx disk drive successfully added"
+    "Info: VHDx disk drive successfully added"
     return $True
 }
 
-############################################################################
 #
 # Main entry point for script
 #
-############################################################################
-
 $retVal = $False
-
-$dynamic        = $False
-$sectorSize     = $null
-$defaultSize    = 3GB
+$sectorSize = $null
+$defaultSize = 3GB
 
 #
 # Check input arguments
@@ -199,13 +187,11 @@ if ($vmName -eq $null -or $vmName.Length -eq 0)
     return $False
 }
 
-
 if ($hvServer -eq $null -or $hvServer.Length -eq 0)
 {
     "Error: hvServer is null"
     return $False
 }
-
 
 if ($testParams -eq $null -or $testParams.Length -lt 3)
 {
@@ -241,23 +227,22 @@ else
 }
 
 #
-# Check/create SCSI controller
+# Check and create SCSI controller
 #
 $sts = CheckCreateSCSIController $vmName $hvServer
 if (-not $sts[$sts.Length-1])
 {
-    "Error: Unable to create SCSI controller"
+    "Error: Unable to create the SCSI controller"
     return $retVal
 }
 
 #
-# Create/attach new VHDx hard disk drive
+# Create and attach a new VHDx hard-disk
 #
-Write-Output "$type"
 $sts = CreateAttachVHDxTestDiskDrive $vmName $hvServer $type $sectorSize $defaultSize $vhdPath
 if (-not $sts[$sts.Length-1])
 {
-    Write-Output "Failed to create hard drive"
+    Write-Output "Error: Failed to create the VHDx file or attach it"
     return $retVal
 }
 
