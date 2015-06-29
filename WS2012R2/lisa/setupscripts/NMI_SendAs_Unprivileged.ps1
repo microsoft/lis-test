@@ -34,9 +34,8 @@
             <testScript>setupscripts\NMI_SendAs_Unprivileged.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
-			<testParams>
+            <testParams>
                 <param>TC_COVERED=NMI-03</param>
-                <param>rootDir=D:\lisa</param>
             </testParams>
             <noReboot>True</noReboot>
         </test>
@@ -75,12 +74,13 @@ function CreateLocalUser()
     $User = $Computer.Create("user",$UserName)
     $User.SetPassword($Password)
     $User.SetInfo()
+    
     if(!$?)
     {
-		Write-Output "Unable to create a temporary username."  | Tee-Object -Append -file $summaryLog
+	Write-Output "Unable to create a temporary username."  | Tee-Object -Append -file $summaryLog
         return $false
     }
-	else
+    else
 	{
 		"Successfully created temporary username: $UserName"
 		$retval = $true	
@@ -104,7 +104,7 @@ function DeleteLocalUser()
 		Write-Output "Unable to delete the temporary username $UserName"  | Tee-Object -Append -file $summaryLog
         return $false
     }
-	else
+    else
 	{
 		"Successfully removed the temporary username $UserName"
 		$retval = $true	
@@ -237,7 +237,7 @@ While ($job.State -ne "Completed")
 {
     if($job.State -eq "Failed")
     {
-        Write-Output "Job Failed!" | Tee-Object -Append -file $summaryLog
+        Write-Output "Error: Task job to send the NMI interrupt has failed!" | Tee-Object -Append -file $summaryLog
         return $false
     }
     start-sleep 2
@@ -256,7 +256,7 @@ if(!$?)
 #
 # Verifying the job output
 #
-$errorstr = "A parameter is invalid. Hyper-V was unable to find a virtual machine with name $vmname."
+$errorstr = "Hyper-V was unable to find a virtual machine with name"
 $match = $nmi_status | select-string -Pattern $errorstr -Quiet
 if ($match -eq "True")
 {
@@ -265,7 +265,7 @@ if ($match -eq "True")
 }
 else
 {
-    Write-Output "Test failed! Error: NMI request was sent to Linux VM using unprivileged user account!" | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: NMI request was sent to Linux VM using unprivileged user account!" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
