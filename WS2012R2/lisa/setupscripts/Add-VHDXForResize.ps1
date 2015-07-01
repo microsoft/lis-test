@@ -143,7 +143,7 @@ function CreateAttachVHDxTestDiskDrive( [string] $vmName, [string] $hvServer,
 
     if ($vhdxType -eq "Fixed")
     {
-        $sts = New-VHD -Path $vhdxName -size $newVHDxSize -Fixed -LogicalSectorSize $sectorSize -ComputerName $hvServer –BlockSizeBytes 1MB
+        $sts = New-VHD -Path $vhdxName -size $newVHDxSize -Fixed -LogicalSectorSize $sectorSize -ComputerName $hvServer -BlockSizeBytes 1MB
     }
     elseif ($vhdxType -eq "Dynamic") {
         $sts = New-VHD -Path $vhdxName -size $newVHDxSize -Dynamic -LogicalSectorSize $sectorSize -ComputerName $hvServer
