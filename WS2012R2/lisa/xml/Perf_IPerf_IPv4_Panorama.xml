@@ -4,11 +4,11 @@
  Linux on Hyper-V and Azure Test Code, ver. 1.0.0
  Copyright (c) Microsoft Corporation
 
- All rights reserved. 
+ All rights reserved.
  Licensed under the Apache License, Version 2.0 (the ""License"");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
-     http://www.apache.org/licenses/LICENSE-2.0  
+     http://www.apache.org/licenses/LICENSE-2.0
 
  THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
  OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -49,7 +49,7 @@
 
     <testCases>
          <test>
-            <testName>iPerf3_Panorama</testName>          
+            <testName>iPerf3_Panorama</testName>
             <testScript>perf_iperf_panorama_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh</files>
             <files>Tools/iperf-3.0.5.tar.gz</files>
@@ -61,6 +61,7 @@
                 <param>CONNECTIONS_PER_IPERF3=4</param>
                 <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
                 <param>TEST_RUN_LOG_FOLDER=iperf3-test-logs</param>
+                <param>SSH_PRIVATE_KEY=sshKey</param>
                 <param>IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024 2000 3000 6000)</param>
             </testParams>
             <uploadFiles>
@@ -73,7 +74,7 @@
             <OnError>Continue</OnError>
          </test>
     </testCases>
-    
+
     <VMs>
         <vm>
             <role>SUT1</role>

@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -234,7 +234,7 @@ chmod 755 ~/*.sh
 # Copy server side scripts and trigger server side scripts
 #
 LogMsg "Copy files to server: ${IPERF3_SERVER_IP}"
-scp ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
 if [ $? -ne 0 ]; then
     msg="Error: Unable to copy test scripts to target server machine: ${IPERF3_SERVER_IP}. scp command failed."
     LogMsg "${msg}"
@@ -242,14 +242,14 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 120
 fi
-scp ~/${IPERF_PACKAGE} ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
-scp ~/constants.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
 
 #
 # Start iPerf in server mode on the Target server side
 #
 LogMsg "Starting iPerf in server mode on ${IPERF3_SERVER_IP}"
-ssh ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo '~/perf_iperf_panorama_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo '~/perf_iperf_panorama_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf3 server scripts on the target server machine"
     LogMsg "${msg}"
@@ -265,7 +265,7 @@ wait_for_server=600
 server_state_file=serverstate.txt
 while [ $wait_for_server -gt 0 ]; do
     # Try to copy and understand server state
-    scp ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/state.txt ~/${server_state_file}
+    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/state.txt ~/${server_state_file}
 
     if [ -f ~/${server_state_file} ];
     then
@@ -307,7 +307,7 @@ do
 
     touch ${TEST_SIGNAL_FILE}
     echo ${IPERF3_TEST_CONNECTION_POOL[$i]} > ${TEST_SIGNAL_FILE}
-    scp ${TEST_SIGNAL_FILE} $server_username@${IPERF3_SERVER_IP}:
+    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${TEST_SIGNAL_FILE} $server_username@${IPERF3_SERVER_IP}:
     sleep 7
 
     number_of_connections=${IPERF3_TEST_CONNECTION_POOL[$i]}
@@ -326,12 +326,12 @@ do
     then
         echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
     fi
-    
+
     sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
     chmod 755 the_generated_client.sh
 
     cat ./the_generated_client.sh
-    ./the_generated_client.sh > /dev/null 
+    ./the_generated_client.sh > /dev/null
 
     i=$(($i + 1))
 
@@ -343,10 +343,10 @@ done
 # zip client side logs
 zip -r iPerf3_Client_Logs.zip ~/${TEST_RUN_LOG_FOLDER}
 #Get logs from server side
-ssh ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}' | at now"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}' | at now"
 sleep 20
-scp -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
-scp -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
 
 #
 # If we made it here, everything worked.
