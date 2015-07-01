@@ -2,7 +2,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -21,8 +21,9 @@
                 <suiteTest>Test50TimesReboot</suiteTest>
                 <suiteTest>Stress_IOzone</suiteTest>
                 <suiteTest>Stress_Kernbench</suiteTest>
+                <suiteTest>Sysbench</suiteTest>
                 <!-- Obsolete test case
-                <suiteTest>Stress_Dynamo</suiteTest> 
+                <suiteTest>Stress_Dynamo</suiteTest>
                 -->
             </suiteTests>
         </suite>
@@ -65,6 +66,19 @@
             <timeout>800</timeout>
             <OnError>Abort</OnError>
          </test>
+
+        <test>
+            <testName>Sysbench</testName>
+            <testScript>Sysbench.sh</testScript>
+            <files>remote-scripts/ica/Sysbench.sh</files>
+            <testParams>
+                    <param>NO_THREAD=1</param>
+                    <param>CPU=cpu</param>
+                    <param>TEST_FILE=seqwr</param>
+            </testParams>
+            <timeout>800</timeout>
+            <OnError>Abort</OnError>
+        </test>
 
 <!-- Obsolete test case
 		 <test>
