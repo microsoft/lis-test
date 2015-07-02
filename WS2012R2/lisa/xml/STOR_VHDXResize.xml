@@ -60,7 +60,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Dynamic=True</param>
+                <param>Type=Dynamic</param>
 				<param>SectorSize=512</param>
 				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
@@ -75,7 +75,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Dynamic=True</param>
+                <param>Type=Dynamic</param>
 				<param>SectorSize=4096</param>
 				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
@@ -90,7 +90,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Dynamic=True</param>
+                <param>Type=Dynamic</param>
 				<param>SectorSize=512</param>
 				<param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
@@ -105,7 +105,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Dynamic=True</param>
+                <param>Type=Dynamic</param>
 				<param>SectorSize=4096</param>
 				<param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
@@ -120,7 +120,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Dynamic=True</param>
+                <param>Type=Dynamic</param>
 				<param>SectorSize=512</param>
 				<param>DefaultSize=3GB</param>
                 <param>growSize=4GB</param>
@@ -136,7 +136,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Dynamic=True</param>
+                <param>Type=Dynamic</param>
 				<param>SectorSize=512</param>
 				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
@@ -151,7 +151,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Dynamic=True</param>
+                <param>Type=Dynamic</param>
 				<param>SectorSize=4096</param>
 				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
@@ -166,7 +166,7 @@
             <timeout>3000</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Dynamic=True</param>
+                <param>Type=Dynamic</param>
 				<param>SectorSize=512</param>
 				<param>DefaultSize=127GB</param>
                 <param>NewSize=2304GB</param>
@@ -181,7 +181,7 @@
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Dynamic=True</param>
+                <param>Type=Dynamic</param>
 				<param>SectorSize=512</param>
 				<param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
