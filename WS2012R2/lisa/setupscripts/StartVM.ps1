@@ -92,7 +92,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 Set-PSDebug -Strict
 
 # function which creates an /etc/sysconfig/network-scripts/ifcfg-ethX file for interface ethX
-function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr,[String]$staticIP,[String]$netmask)
+function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$bootproto,[String]$MacAddr,[String]$staticIP,[String]$netmask)
 {
 
     # Add delimiter if needed
@@ -134,7 +134,7 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr
         fi
 
         echo CreateIfupConfigFile: interface `$__sys_interface >> /root/StartVM.log 2>&1
-        CreateIfupConfigFile `$__sys_interface static $staticIP $netmask >> /root/StartVM.log 2>&1
+        CreateIfupConfigFile `$__sys_interface $bootproto $staticIP $netmask >> /root/StartVM.log 2>&1
         __retVal=`$?
         echo CreateIfupConfigFile: returned `$__retVal >> /root/StartVM.log 2>&1
         exit `$__retVal
@@ -242,6 +242,12 @@ $testipv4VM2 = $null
 #Test IPv6
 $Test_IPv6 = $null
 
+#Test IPv6
+$vm2MacAddress = $null
+
+#ifcfg bootproto
+$bootproto = $null
+
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
@@ -303,6 +309,7 @@ foreach ($p in $params)
     "STATIC_IP2" { $vm2StaticIP = $fields[1].Trim() }
     "Test_IPv6" { $Test_IPv6 = $fields[1].Trim() }
     "NETMASK" { $netmask = $fields[1].Trim() }
+    "MAC" { $vm2MacAddress = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
     "NIC"
@@ -396,6 +403,20 @@ if (-not $sshKey)
     return $False
 }
 
+if (-not $netmask)
+{
+    $netmask = 255.255.255.0
+}
+
+if (-not $vm2StaticIP)
+{
+    $bootproto = "dhcp"
+}
+else
+{
+    $bootproto = "static"
+}
+
 #set the parameter for the snapshot
 $snapshotParam = "SnapshotName = ${SnapshotName}"
 
@@ -416,7 +437,6 @@ if (-not $vm2)
 
 # hold testParam data for NET_ADD_NIC_MAC script
 $vm2testParam = $null
-$vm2MacAddress = $null
 
 # remember if we added the NIC or it was already there.
 $scriptAddedNIC = $false
@@ -425,20 +445,23 @@ $scriptAddedNIC = $false
 $vm2nic = $null
 $nic2 = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IsLegacy:$false | where { $_.SwitchName -like "$networkName" }
 
+#Generate a Mac address for the VM's test nic, if this is not a specified parameter
+if (-not $vm2MacAddress) {
 
-for ($i = 0 ; $i -lt 3; $i++)
-{
-   $vm2MacAddress = getRandUnusedMAC $hvServer
-   if ($vm2MacAddress)
-   {
-        break
-   }
-}
-$retVal = isValidMAC $vm2MacAddress
-if (-not $retVal)
-{
-    "Could not find a valid MAC for $vm2Name. Received $vm2MacAddress"
-    return $false
+    for ($i = 0 ; $i -lt 3; $i++)
+        {
+           $vm2MacAddress = getRandUnusedMAC $hvServer
+           if ($vm2MacAddress)
+           {
+                break
+           }
+        }
+        $retVal = isValidMAC $vm2MacAddress
+        if (-not $retVal)
+        {
+            "Could not find a valid MAC for $vm2Name. Received $vm2MacAddress"
+            return $false
+        }
 }
 
 #construct NET_ADD_NIC_MAC Parameter
@@ -552,7 +575,7 @@ if (-not $retVal)
 "Successfully sent utils.sh"
 
 "Configuring test interface (${vm2MacAddress}) on $vm2Name (${vm2ipv4}) "
-$retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vm2StaticIP $netmask
+$retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $bootproto $vm2MacAddress $vm2StaticIP $netmask
 if (-not $retVal)
 {
     "Failed to create Interface on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $vm2StaticIP netmask $netmask"
