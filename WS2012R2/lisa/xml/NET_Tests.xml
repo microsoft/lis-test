@@ -126,8 +126,6 @@
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>VM2NAME=vm2Name</param>
-                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -150,7 +148,6 @@
                 <param>PING_FAIL=192.168.2.1</param>
                 <param>PING_FAIL2=10.10.10.5</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
-                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
@@ -173,7 +170,6 @@
                 <param>LO_IGNORE=yes</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
                 <param>VCPU=1</param>
-                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>NET_LEGACY.sh</testScript>
             <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/utils.sh</files>
@@ -235,10 +231,8 @@
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>VM2NAME=vm2Name</param>
                 <param>PING_FAIL=8.8.8.8</param>
                 <param>PING_FAIL2=192.168.0.1</param>
-                <param>SnapshotName=ICABase</param>
             </testParams>
             <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>
             <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
@@ -262,7 +256,6 @@
                 <param>TC_COVERED=NET-12</param>
                 <param>REMOTE_SERVER=8.8.8.8</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
-                <param>SnapshotName=ICABase</param>
             </testParams>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <noReboot>False</noReboot>
@@ -276,14 +269,11 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testparams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-14</param>
-                <param>STATIC_IP2=10.10.10.10</param>
-                <param>NETMASK=255.255.254.0</param>
-                <param>VM2NAME=vm2Name</param>
-                <param>SnapshotName=ICABase</param>
-                <param>SSH_PRIVATE_KEY=sshKey</param>
+                <param>MAC=001600112233</param>
                 <param>REMOTE_USER=root</param>
             </testparams>
             <testScript>NET_JUMBO_FRAMES.sh</testScript>
@@ -301,14 +291,11 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-01</param>
-                <param>STATIC_IP2=10.10.10.10</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>VM2NAME=vm2Name</param>
-                <param>SnapshotName=ICABase</param>
-                <param>SSH_PRIVATE_KEY=sshKey</param>
+                <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=2</param>
                 <param>REMOTE_USER=root</param>
@@ -331,10 +318,8 @@
                 <!-- <param>STATIC_IP=10.10.10.1</param> -->
                 <!-- <param>STATIC_IP2=10.10.10.2</param> -->
                 <!-- <param>NETMASK=255.255.255.0</param> -->
-                <param>VM2NAME=VM2Name</param>
                 <param>VM_VLAN_ID=2</param>
                 <param>NATIVE_VLAN_ID=10</param>
-                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TRUNKING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -354,9 +339,7 @@
 				<!-- <param>STATIC_IP=10.10.10.1</param> -->
 				<!-- <param>STATIC_IP2=10.10.10.2</param> -->
 				<!-- <param>NETMASK=255.255.254.0</param> -->
-				<param>VM2NAME=VM2Name</param>
 				<param>VLAN_ID=2</param>
-                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -373,7 +356,6 @@
             <testParams>
                 <param>NIC=NetworkAdapter,None,None,001600112200</param>
                 <param>TC_COVERED=NET-22</param>
-                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>NET_OPERSTATE.sh</testScript>
             <files>remote-scripts/ica/NET_OPERSTATE.sh,remote-scripts/ica/utils.sh</files>
@@ -388,7 +370,6 @@
             </setupScript>
             <testParams>
                 <param>TC_COVERED=NET-10</param>
-                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -432,6 +413,11 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>sshKey.ppk</sshKey>
+            <testParams>
+                <param>VM2NAME=vm2Name</param>
+                <param>SSH_PRIVATE_KEY=identity_file</param>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
             <suite>Network</suite>
         </vm>
     </VMs>
