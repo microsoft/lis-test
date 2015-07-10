@@ -297,13 +297,15 @@ with open(configfilename) as configfile:
         listtofile()
 
         # clean up
-#        tfiles = glob.glob(tmp+'/*')
-#        for delitem in tfiles:
-#            os.remove(delitem)
-#        newfilenamelist[:] = []
-#        difffilelist[:] = []
-#        commitfilelist[:] = []
-#        missinglist[:] = []
-#        commitinfo_dict.clear()
+        tfiles = glob.glob(tmp+'/*')
+        for delitem in tfiles:
+            os.remove(delitem)
+        newfilenamelist[:] = []
+        difffilelist[:] = []
+        commitfilelist[:] = []
+        missinglist[:] = []
+        commitinfo_dict.clear()
 
-#shutil.rmtree(tmp)
+shutil.rmtree(tmp)
+
+print '\033[1;32m' + 'Missing commit id is in '  +outfilename+ ' file' + '\033[1;m'
