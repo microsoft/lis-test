@@ -76,7 +76,7 @@
         
         <test>
 		<testName>VMBus_PanicNotifier</testName>
-		<testScript>VMBus_PanicNotifier.ps1</testScript>
+		<testScript>SetupScripts\VMBus_PanicNotifier.ps1</testScript>
 		<timeout>800</timeout>
 		<onError>Continue</onError>
 		<noReboot>False</noReboot>
