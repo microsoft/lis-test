@@ -34,13 +34,11 @@
 #       No optional parameters needed
 #
 ########################################################################
-ICA_TESTRUNNING="TestRunning"      # The test is running
-ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
-ICA_TESTABORTED="TestAborted"      # Error during setup of test
-ICA_TESTFAILED="TestFailed"        # Error while performing the test
-NO_THREAD="1"                     # Number of threads for testing
-CPU="cpu"                         # Test name
-TEST_FILE="seqwr"                 # Test file type
+ICA_TESTRUNNING="TestRunning"                                      # The test is running
+ICA_TESTCOMPLETED="TestCompleted"                                  # The test completed successfully
+ICA_TESTABORTED="TestAborted"                                      # Error during setup of test
+ICA_TESTFAILED="TestFailed"                                        # Error while performing the test
+
 
 CONSTANTS_FILE="constants.sh"
 
@@ -181,10 +179,7 @@ function LogMsg() {
 #######################################################################
 # Updates the summary.log file
 #######################################################################
-function UpdateSummary()
-{
-    echo $1 >> ~/summary.log
-}
+
 
 #######################################################################
 # Keeps track of the state of the test
@@ -205,6 +200,27 @@ else
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
+UpdateSummary()
+{
+ if [ -f "$__LIS_SUMMARY_FILE" ]; then
+  if [ -w "$__LIS_SUMMARY_FILE" ]; then
+   echo "$1" >> "$__LIS_SUMMARY_FILE"
+  else
+   LogMsg "Warning: summary file $__LIS_SUMMARY_FILE exists and is a normal file, but is not writable"
+   chmod u+w "$__LIS_SUMMARY_FILE" && echo "$1" >> "$__LIS_SUMMARY_FILE" || LogMsg "Warning: unable to make $__LIS_SUMMARY_FILE writeable"
+   return 1
+  fi
+ else
+  LogMsg "Warning: summary file $__LIS_SUMMARY_FILE either does not exist or is not a regular file. Trying to create it..."
+  echo "$1" >> "$__LIS_SUMMARY_FILE" || return 2
+ fi
+
+ return 0
+}
+function UpdateSummary()
+{
+    echo $1 >> ~/summary.log
+}
 #######################################################################
 #
 # Main script body
@@ -232,11 +248,14 @@ LogMsg "This script tests sysbench on VM."
 
 if is_fedora ; then
     # Installing dependencies of sysbench on fedora.
-     yum install -y mysql-devel
+    # yum install -y mysql-devel
+    wget ftp://mirror.switch.ch/pool/4/mirror/mysql/Downloads/MySQL-5.6/MySQL-devel-5.6.24-1.el7.x86_64.rpm
+    rpm -iv MySQL-devel-5.6.24-1.el7.x86_64.rpm
+
     if [ $? -eq 0 ]; then
         LogMsg "Dependecies are installed ..."
         bash ./autogen.sh
-        bash ./configure
+        bash ./configure --without-mysql
         make
         make install
         if [ $? -ne 0 ]; then
@@ -274,10 +293,10 @@ if is_fedora ; then
   #   UpdateTestState $ICA_TESTABORTED
   #   exit 10
 # fi
-
- CPU_PASS=-1
  FILEIO_PASS=-1
-  function cputest ()
+ CPU_PASS=-1
+
+function cputest ()
 {
     LogMsg "Creating cpu.log."
     sysbench --test=cpu --num-threads=1 run > /root/cpu.log
@@ -285,51 +304,69 @@ if is_fedora ; then
         LogMsg "ERROR: Unable to exectute sysbench CPU. Aborting..."
         UpdateTestState $ICA_TESTABORTED
     fi
-        PASS_VALUE_CPU=`cat /root/cpu.log |awk '/approx./ {print $2;}'`
+
+    PASS_VALUE_CPU=`cat /root/cpu.log |awk '/approx./ {print $2;}'`
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Cannot find cpu.log."
         UpdateTestState $ICA_TESTABORTED
     fi
-        RESULT_VALUE=$((PASS_VALUE_CPU+0))
+
+    RESULT_VALUE=$((PASS_VALUE_CPU+0))
     if  [ $RESULT_VALUE -gt 80 ]; then
-         CPU_PASS=0
+        CPU_PASS=0
         LogMsg "CPU Test passed. "
-        UpdateTestState $ICA_TESTCOMPLETED
+        UpdateSummary "CPU Test passed."
 
     fi
-   return "$CPU_PASS"
+    LogMsg "`cat /root/cpu.log`"
+    return "$CPU_PASS"
 }
+
 cputest
-LogMsg "CputestPAss= $CPU_PASS"
 
 function fileio ()
  {
-    LogMsg " Testing fileio. Creating fileio.log."
-    sysbench --test=fileio --num-threads=1 --file-test-mode=seqwr run > /root/fileio.log
+    sysbench --test=fileio --num-threads=1 --file-test-mode=$1 run > /root/$1.log
     if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Unable to exectute sysbench fileio. Aborting..."
+        LogMsg "ERROR: Unable to execute sysbench fileio mode $1. Aborting..."
         UpdateTestState $ICA_TESTFAILED
     fi
-        PASS_VALUE_FILEIO=`cat /root/fileio.log |awk '/approx./ {print $2;}'`
+
+    PASS_VALUE_FILEIO=`cat /root/$1.log |awk '/approx./ {print $2;}'`
     if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Cannot find fileio.log."
+        LogMsg "ERROR: Cannot find $1.log."
         UpdateTestState $ICA_TESTFAILED
     fi
-        RESULT_VALUE_FILEIO=$((PASS_VALUE_FILEIO+0))
+
+    RESULT_VALUE_FILEIO=$((PASS_VALUE_FILEIO+0))
     if  [ $RESULT_VALUE_FILEIO -gt 80 ]; then
         FILEIO_PASS=0
-        LogMsg "Fileio Test passed. "
-        UpdateTestState $ICA_TESTCOMPLETED
+        LogMsg "Fileio Test -$1- passed with approx. $RESULT_VALUE_FILEIO percentils."
+        UpdateSummary "Fileio Test -$1- passed with approx. $RESULT_VALUE_FILEIO percentils."
 
     fi
+
+    LogMsg "`cat /root/$1.log`"
+    cat /root/$1.log >> /root/fileio.log
+    rm /root/$1.log
     return "$FILEIO_PASS"
  }
 
-fileio
-LogMsg "FILE PASS= $FILEIO_PASS"
+
+LogMsg " Testing fileio. Writing to fileio.log."
+for test_item in ${TEST_FILE[*]}
+do
+    fileio $test_item
+    if [ $FILEIO_PASS -eq -1 ]; then
+        LogMsg "ERROR: Test mode $test_item failed "
+        UpdateTestState $ICA_TESTFAILED
+    fi
+done
+UpdateSummary "Fileio Tests passed."
 
 if [ "$FILEIO_PASS" = "$CPU_PASS" ]; then
-    LogMsg "Test succesfully."
+    UpdateSummary "All tests completed."
+    LogMsg "All tests completed."
     UpdateTestState $ICA_TESTCOMPLETED
 else
     LogMsg "Test Failed."
