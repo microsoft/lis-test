@@ -72,9 +72,7 @@
             <testScript>Sysbench.sh</testScript>
             <files>remote-scripts/ica/Sysbench.sh</files>
             <testParams>
-                    <param>NO_THREAD=1</param>
-                    <param>CPU=cpu</param>
-                    <param>TEST_FILE=seqwr</param>
+                    <param>TEST_FILE=(seqwr seqrewr seqrd rndrd rndwr rndrw)</param>
             </testParams>
             <timeout>800</timeout>
             <OnError>Abort</OnError>
