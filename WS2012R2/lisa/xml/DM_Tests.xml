@@ -103,15 +103,15 @@
 				<param>vmName=VMName</param>
 				<param>enableDM=yes</param>
 				<param>minMem=1024MB</param>
-				<param>maxMem=4GB</param>
+				<param>maxMem=6GB</param>
 				<param>startupMem=1024MB</param>
 				<param>memWeight=100</param>
 				<param>staticMem=1024MB</param>
 				<param>vmName=VM2Name</param>
 				<param>enableDM=yes</param>
 				<param>minMem=512MB</param>
-				<param>maxMem=92%</param>
-				<param>startupMem=92%</param>
+				<param>maxMem=70%</param>
+				<param>startupMem=70%</param>
 				<param>memWeight=0</param>
 				<param>staticMem=1024MB</param>
 			</testParams>
