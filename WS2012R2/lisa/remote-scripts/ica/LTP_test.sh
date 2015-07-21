@@ -138,6 +138,7 @@ InstallUbuntuDependencies()
 	apt-get -y install automake
 	apt-get -y install autoconf
 	apt-get -y install gcc
+	apt-get -y install git
 }
 
 #######################################################################
@@ -160,6 +161,7 @@ InstallRHELDependencies()
 	yum install -y automake
 	yum install -y autoconf
 	yum install -y gcc
+	yum install -y git
 }
 
 if [ -e ~/summary.log ]; then
