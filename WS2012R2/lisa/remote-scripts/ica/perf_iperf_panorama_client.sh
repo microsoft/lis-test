@@ -29,6 +29,9 @@
 #     For the test to run you have to place the iperf tool package in the
 #     Tools folder under lisa.
 #
+# Requirements:
+#   The sar utility must be installed, package named sysstat
+#
 # Parameters:
 #     IPERF_PACKAGE: the iperf3 tool package
 #     IPERF3_SERVER_IP: the ipv4 address of the server
