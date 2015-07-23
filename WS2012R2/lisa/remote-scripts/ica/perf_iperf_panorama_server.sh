@@ -29,6 +29,9 @@
 #     For the test to run you have to place the iperf3 tool package in the
 #     Tools folder under lisa.
 #
+# Requirements:
+#   The sar utility must be installed, package named sysstat
+#
 # Parameters:
 #     IPERF_PACKAGE: the iperf3 tool package
 #     INDIVIDUAL_TEST_DURATION: the test duration of each iperf3 test
