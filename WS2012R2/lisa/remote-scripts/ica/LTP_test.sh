@@ -264,6 +264,10 @@ if [ $? -gt 0 ]; then
         exit 10
 fi
 
+# Features not supported:
+#   CPU hotplug - not available on Hyper-V VM
+#   OOM - will break the automation
+
 LogMsg "Creating skip file"
 cat <<-EOF > "$LTP_SKIPFILE"
 cpuhotplug01
@@ -273,6 +277,11 @@ cpuhotplug04
 cpuhotplug05
 cpuhotplug06
 cpuhotplug07
+oom01
+oom02
+oom03
+oom04
+oom05
 EOF
 
 
