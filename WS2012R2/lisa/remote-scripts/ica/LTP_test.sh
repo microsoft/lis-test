@@ -139,6 +139,7 @@ InstallUbuntuDependencies()
 	apt-get -y install autoconf
 	apt-get -y install gcc
 	apt-get -y install git
+	apt-get -y install expect
 }
 
 #######################################################################
