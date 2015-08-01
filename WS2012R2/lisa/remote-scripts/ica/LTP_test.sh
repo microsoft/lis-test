@@ -31,7 +31,7 @@
 #	3. Runs LTP
 #	4. Collects results
 #
-#	No optional parameters needed
+#	No optional parameters are needed
 #
 ########################################################################
 ICA_TESTRUNNING="TestRunning"      # The test is running
@@ -262,21 +262,9 @@ if [ $? -gt 0 ]; then
         exit 10
 fi
 
-LogMsg "Creating skip file"
-cat <<-EOF > "$LTP_SKIPFILE"
-cpuhotplug01
-cpuhotplug02
-cpuhotplug03
-cpuhotplug04
-cpuhotplug05
-cpuhotplug06
-cpuhotplug07
-EOF
-
-
 cd $TOP_BUILDDIR
 LogMsg "Running LTP"
-./runltp -c 2 -i 2 -p -q -S $LTP_SKIPFILE -l $LTP_RESULTS -o $LTP_OUTPUT -C $LTP_FAILED -g $LTP_HTML -d $TOP_BUILDDIR 
+./runltplite 
 
 LogMsg "Updating summary log"
 grep -A 5 "Total Tests" $LTP_RESULTS >> ~/summary.log
