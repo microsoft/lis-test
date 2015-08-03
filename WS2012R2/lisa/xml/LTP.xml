@@ -31,6 +31,12 @@
             <subject>LISA LTP Run on WS2012R2</subject>
             <smtpServer>smtp.your.company.com</smtpServer>
         </email>
+        
+	<!-- Optional testParams go here -->
+        <testParams>
+            <param>vmCpuNumber=8</param>
+            <param>vmMemory=8GB</param>
+        </testParams>
     </global>
 
     <testSuites>
@@ -47,22 +53,23 @@
             <testName>LTPBasic</testName>
             <testScript>LTP_test.sh</testScript>
             <files>remote-scripts/ica/LTP_test.sh</files>
-            <timeout>40000</timeout>
+            <timeout>7200</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>TC_COVERED=LTP-01</param>
+            <param>TC_COVERED=LTP-01</param>
             </testparams>
         </test>
 	</testCases>
 
     <VMs>
         <vm>
-            <hvServer>HYPERV_SERVER</hvServer>
-            <vmName>VM_NAME</vmName>
+            <hvServer>.</hvServer>
+            <vmName>vmName</vmName>
             <os>Linux</os>
-            <ipv4>255.255.255.255</ipv4>
-            <sshKey>YOUR_KEY.ppk</sshKey>
+            <ipv4></ipv4>
+            <sshKey>pki_id_rsa.ppk</sshKey>
             <suite>LTP</suite>
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
     </VMs>
 
