@@ -51,7 +51,7 @@
          <test>
             <testName>iPerf3_Panorama</testName>
             <testScript>perf_iperf_panorama_client.sh</testScript>
-            <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh</files>
+            <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
             <files>Tools/iperf-3.0.5.tar.gz</files>
             <testParams>
                 <param>IPERF_PACKAGE=iperf-3.0.5.tar.gz</param>
