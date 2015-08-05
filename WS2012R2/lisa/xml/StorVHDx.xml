@@ -176,8 +176,9 @@
             <timeout>18000</timeout>
             <testparams>
                 <param>IDE=1,1,Diff</param>
-                <param>ParentVhd=VHDXParentDiff.vhdx</param>
                 <param>TC_COVERED=STOR-26</param>
+                <param>FILESYS=ext3</param>
+                <param>vhdFormat=vhdx</param>
             </testparams>
             <onError>Continue</onError>
         </test>
@@ -189,8 +190,9 @@
             <timeout>18000</timeout>
             <testparams>
                 <param>SCSI=0,0,Diff</param>
-                <param>ParentVhd=VHDXParentDiff.vhdx</param>
                 <param>TC_COVERED=STOR-27</param>
+                <param>FILESYS=ext3</param>
+                <param>vhdFormat=vhdx</param>
             </testparams>
             <onError>Continue</onError>
         </test>
