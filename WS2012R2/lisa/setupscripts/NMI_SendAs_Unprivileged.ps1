@@ -223,6 +223,7 @@ $creds = New-Object -Typename System.Management.Automation.PSCredential -Argumen
 if(!$?)
 {
     Write-Output "Error: Could not created the credential object" | Tee-Object -Append -file $summaryLog
+    DeleteLocalUser
     return $false
 }
 
@@ -238,6 +239,7 @@ While ($job.State -ne "Completed")
     if($job.State -eq "Failed")
     {
         Write-Output "Error: Task job to send the NMI interrupt has failed!" | Tee-Object -Append -file $summaryLog
+        DeleteLocalUser
         return $false
     }
     start-sleep 2
