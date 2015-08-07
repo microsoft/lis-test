@@ -108,9 +108,9 @@ case $? in
         LogMsg "Unable to use test state file. Aborting..."
         UpdateSummary "Unable to use test state file. Aborting..."
         # need to wait for test timeout to kick in
-            # hailmary try to update teststate
-            sleep 60
-            echo "TestAborted" > state.txt
+        # hailmary try to update teststate
+        sleep 60
+        echo "TestAborted" > state.txt
         exit 4
         ;;
     3)
@@ -242,30 +242,80 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 85
     fi
-esac
-case "$DISTRO" in
-redhat*)
-    LogMsg "Disabling firewall on Redhat"
-    iptables -F
-    if [ $? -ne 0 ]; then
-        msg="Error: Failed to flush iptables rules. Continuing"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
+    ;;
+redhat_5|redhat_6)
+    LogMsg "Check iptables status on RHEL"
+    service iptables status
+    if [ $? -ne 3 ]; then
+        LogMsg "Disabling firewall on Redhat"
+        iptables -F
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to flush iptables rules. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+        service iptables stop
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop iptables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
+        chkconfig iptables off
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off iptables. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
     fi
-    service iptables stop
-    if [ $? -ne 0 ]; then
-        msg="Error: Failed to stop iptables"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 85
+    ;;
+redhat_7)
+    LogMsg "Check iptables status on RHEL"
+    systemctl status firewalld
+    if [ $? -ne 3 ]; then
+        LogMsg "Disabling firewall on Redhat 7"
+        systemctl disable firewalld
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop firewalld"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
+        systemctl stop firewalld
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off firewalld. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
     fi
-    chkconfig iptables off
-    if [ $? -ne 0 ]; then
-        msg="Error: Failed to turn off iptables. Continuing"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
+
+    LogMsg "Check iptables status on RHEL7"
+    service iptables status
+    if [ $? -ne 3 ]; then
+        iptables -F;
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to flush iptables rules. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+        service iptables stop
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop iptables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
+        chkconfig iptables off
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off iptables. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
     fi
+    ;;
 esac
 
 #
