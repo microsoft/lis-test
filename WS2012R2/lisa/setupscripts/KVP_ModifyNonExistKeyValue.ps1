@@ -191,7 +191,7 @@ if ($job.ErrorCode -ne 0)
 
     if ($job.ErrorCode -eq 32773)
     {  
-        Write-Output "Error: Key = '${key} ,Non-existing key cannot be modified Error Code-' $($Job.ErrorCode) " | Out-File -Append $summaryLog
+        "Error (as expected): Key = '${key} ,Non-existing key cannot be modified Error Code-' $($Job.ErrorCode) "
         return $True
     }
     else
