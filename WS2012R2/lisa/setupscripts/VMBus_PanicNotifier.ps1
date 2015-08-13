@@ -164,6 +164,11 @@ if ($vm.State -ne "Running")
     return $Falsehelp 
 }
 
+# If RHEL we'll stop the kdump service
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "service kdump stop"
+
+Start-Sleep -S 9
+
 #
 # Note the current time, then panic the VM
 #
@@ -175,7 +180,7 @@ $prePanicTime = [DateTime]::Now
 #
 # Give the host a few seconds to record the event
 #
-Start-Sleep -S 5
+Start-Sleep -S 90
 
 #
 # Check the event log for the 18590 event from our VM

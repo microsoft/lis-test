@@ -125,8 +125,9 @@ fi
 
 case $(LinuxRelease) in
     "UBUNTU")
-        LogMsg "Run test on Ubuntu. Install libaio-dev..."
-        apt-get install make
+        LogMsg "Run test on Ubuntu. Install dependencies..."
+        apt-get -y install make
+        apt-get -y install gcc
         apt-get install libaio-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then

@@ -47,7 +47,7 @@
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>2500</timeout>
             <testParams>
-                <param>SCSI=0,0,Fixed,60GB</param>
+                <param>SCSI=0,1,Fixed,60GB</param>
                 <param>FILE_NAME=iozone3_420.tar</param>
             </testParams>
             <onError>Continue</onError>
