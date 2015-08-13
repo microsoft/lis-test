@@ -19,91 +19,99 @@
 #
 ########################################################################
 
-
-
-<#
-.Synopsis
-    Parse the network bandwidth data from the BuildKernel test log.
-
-.Description
-    Parse the network bandwidth data from the BuildKernel test log.
+function GetValueFromLog([String] $logFilePath, [String] $key)
+{
+    <#
+    .Synopsis
+        Get the value of a key from the specified log file.
+        
+    .Description
+        From the specified text log file, find the key-value pair and return the value part.
+        Only return the first item if multiple key-value items existing in the log file.
+        The key-value item is formatted as:TheKey=TheValue.
+        For example: LinuxRelease=Linux-3.14
+        
+    .Parameter logFilePath
+        A string representing the full path of the text log file.
+        Type : [String]
+        
+    .Parameter key
+        A string representing the key.
+        Type : [String]
+        
+    .ReturnValue
+        Return the value of the key if found in the log file;
+               return empty otherwise.
+        Output type : [String]
+        
+    .Example
+        GetValueFromLog $summary.log $linuxRelease
+    #>
     
-.Parameter LogFolder
-    The LISA log folder. 
+    $retVal = [string]::Empty
 
-.Parameter XMLFileName
-    The LISA XML file. 
-
-.Parameter LisaInfraFolder
-    The LISA Infrastructure folder. This is used to located the LisaRecorder.exe when running by Start-Process 
-
-.Exmple
-    Parse-Log.Perf_BuildKernel.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_BuildKernel.xml D:\Lisa\Infrastructure
-
-#>
-
-param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
-
-#----------------------------------------------------------------------------
-# Print running information
-#----------------------------------------------------------------------------
-Write-Host "Running [Parse-Log.Perf_BuildKernel.ps1]..." -foregroundcolor cyan
-Write-Host "`$LogFolder        = $LogFolder" 
-Write-Host "`$XMLFileName      = $XMLFileName" 
-Write-Host "`$LisaInfraFolder  = $LisaInfraFolder" 
-
-#----------------------------------------------------------------------------
-# Verify required parameters
-#----------------------------------------------------------------------------
-if ($LogFolder -eq $null -or $LogFolder -eq "")
-{
-    Throw "Parameter LogFolder is required."
-}
-
-# Check the XML file provided
-if ($XMLFileName -eq $null -or $XMLFileName -eq "")
-{
-    Throw "Parameter XMLFileName is required."
-}
-else
-{
-    if (! (test-path $XMLFileName))
+    if (-not $logFilePath)
     {
-        write-host -f Red "Error: XML config file '$XMLFileName' does not exist."
-        Throw "Parameter XmlFilename is required."
+        return $retVal    
     }
+
+    if (-not $key)
+    {
+        return $retVal
+    }
+
+    $resultsMatched = Select-String "$logFilePath" -pattern "$key"
+    Write-Host "Number of matches found: " $resultsMatched.Count
+    
+    $found = $false
+    foreach($line in $resultsMatched)
+    {
+        Write-Host $line
+        if ($found -eq $false)
+        {
+            $lineContent = $line.Line
+            if ($lineContent.StartsWith($key + "="))
+            {           
+                $retVal = $lineContent.Split("=")[1].Trim()
+            }
+            $found = $true
+        }
+    }
+    
+    return $retVal
 }
 
-$xmlConfig = [xml] (Get-Content -Path $xmlFilename)
-if ($null -eq $xmlConfig)
-{
-    write-host -f Red "Error: Unable to parse the .xml file"
-    return $false
-}
 
-if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
-{
-    Throw "Parameter LisaInfraFolder is required."
-}
-
-#----------------------------------------------------------------------------
-# The log file pattern. The log is produced by the BuildKernel tool
-#----------------------------------------------------------------------------
-$BuildKernelLofFiles = "*_Perf_BuildKernel_*.log"
-
-#----------------------------------------------------------------------------
-# Read the BuildKernel log file
-#----------------------------------------------------------------------------
-
-#Function to parse time from string
-    #result example: 
-    #real	4m32.412s
-    #user	0m2.388s
-    #sys	0m5.832s
 function ParseTimeInSec([string] $rawTime)
 {
-    $posTab = $rawTime.IndexOf("	")
-    $timeString = $rawTime.Substring($posTab + 1)
+    <#
+    .Synopsis
+        Parse the network bandwidth data from the BuildKernel test log.
+
+    .Description
+        Parse the network bandwidth data from the BuildKernel test log.
+    
+    .Parameter LogFolder
+        The LISA log folder. 
+
+    .Parameter XMLFileName
+        The LISA XML file. 
+
+    .Parameter LisaInfraFolder
+        The LISA Infrastructure folder. This is used to located the LisaRecorder.exe when running by Start-Process 
+
+    .Exmple
+        Parse-Log.Perf_BuildKernel.ps1 C:\Lisa\TestResults D:\Lisa\XML\Perf_BuildKernel.xml D:\Lisa\Infrastructure
+
+    #>
+
+    #Function to parse time from string
+    #result example: 
+    #real    4m32.412s
+    #user    0m2.388s
+    #sys    0m5.832s
+    $elements = $rawTime -split '\s+'
+    $timeString = $elements[1]
     
     $timeString = $timeString.Trim()
     $posM = $timeString.IndexOf("m")
@@ -114,159 +122,147 @@ function ParseTimeInSec([string] $rawTime)
     return  [int]$timeM * 60 + [double]$timeS
 }
 
-$icaLogs = Get-ChildItem "$LogFolder\$BuildKernelLofFiles" -Recurse
-Write-Host "Number of Log files found: "
-Write-Host $icaLogs.Count
 
-if($icaLogs.Count -eq 0)
+function ParseBenchmarkLogFile( [string]$LogFolder, [string]$XMLFileName )
 {
-    return -1
-}
+    #----------------------------------------------------------------------------
+    # The log file pattern. The log is produced by the BuildKernel tool
+    #----------------------------------------------------------------------------
+    $BuildKernelLofFiles = "*_BuildKernel_*.log"
 
-$realTimeInSec = 0
-$userTimeInSec = 0
-$sysTimeInSec = 0
-foreach ($logFile  in $icaLogs)
-{
-    Write-Host "One log file has been found: $logFile" 
+    #----------------------------------------------------------------------------
+    # Read the BuildKernel log file
+    #----------------------------------------------------------------------------
+    $icaLogs = Get-ChildItem "$LogFolder\$BuildKernelLofFiles" -Recurse
+    Write-Host "Number of Log files found: "
+    Write-Host $icaLogs.Count
     
-    #we should find the result in the last 4 line
-    #result example: 
-    #real	4m32.412s
-    #user	0m2.388s
-    #sys	0m5.832s
-    $resultFound = $false
-    $iTry=1
-    while (($resultFound -eq $false) -and ($iTry -lt 4))
+    # there should be 3 log files:
+    # Perf_BuildKernel_make.log
+    # Perf_BuildKernel_makemodulesinstall.log
+    # Perf_BuildKernel_makeinstall.log
+    if($icaLogs.Count -ne 3)
     {
-        $line = (Get-Content $logFile)[-1* $iTry]
-        Write-Host $line
+        Write-Host "Expecting 3 log files for make, make modulesinstall, and make install."
+        return $false
+    }
 
-        $iTry++
-        $line = $line.Trim()
-        if ($line.Trim() -eq "")
+    $realTimeInSec = $null
+    $userTimeInSec = $null
+    $sysTimeInSec = $null
+    foreach ($logFile  in $icaLogs)
+    {
+        Write-Host "One log file has been found: $logFile" 
+        
+        #we should find the result in the last 4 line
+        #result example: 
+        #real    4m32.412s
+        #user    0m2.388s
+        #sys    0m5.832s
+        $resultFound = $false
+        $iTry=1
+        while (($resultFound -eq $false) -and ($iTry -lt 4))
         {
-            continue
+            $line = (Get-Content $logFile)[-1* $iTry]
+            Write-Host $line
+
+            $iTry++
+            $line = $line.Trim()
+            if ($line.Trim() -eq "")
+            {
+                continue
+            }
+            elseif ($line.StartsWith("sys") -eq $true)
+            {
+                $sysTimeInSec += ParseTimeInSec($line)
+                Write-Host "sys time parsed in seconds: $sysTimeInSec" 
+                continue
+            }
+            elseif ($line.StartsWith("user") -eq $true)
+            {
+                $userTimeInSec += ParseTimeInSec($line)
+                Write-Host "user time parsed in seconds: $userTimeInSec" 
+                continue
+            }
+            elseif ($line.StartsWith("real") -eq $true)
+            {
+                $realTimeInSec += ParseTimeInSec($line)
+                Write-Host "real time parsed in seconds: $realTimeInSec" 
+                continue
+            }
+            else
+            {
+                break
+            }
         }
-        elseif ($line.StartsWith("sys") -eq $true)
+    }
+    Write-Host "realTimeInSec = $realTimeInSec"
+    Write-Host "userTimeInSec = $userTimeInSec"
+    Write-Host "sysTimeInSec  = $sysTimeInSec"
+    if (($realTimeInSec -eq $null) -or ($userTimeInSec -eq $null) -or ($sysTimeInSec -eq $null))
+    {
+        Write-Host "ERROR: Cannot find performance result from the log file"
+        return $false
+    }
+    
+    #----------------------------------------------------------------------------
+    # Read the test summary log file
+    #----------------------------------------------------------------------------
+    $TestSummaryLogPattern = "$LogFolder\*\*_summary.log"
+   
+    $kernelRelease = GetValueFromLog $TestSummaryLogPattern "KernelRelease"
+    $processorCount = GetValueFromLog $TestSummaryLogPattern "ProcessorCount"
+    if ($kernelRelease -eq [string]::Empty)
+    { 
+        $kernelRelease = "Unknown"
+    }
+    if ($processorCount -eq [string]::Empty)
+    { 
+        $processorCount = "0"
+    }
+
+    #----------------------------------------------------------------------------
+    # Read BuildKernel configuration from XML file
+    #----------------------------------------------------------------------------
+    $newLinuxKernel = [string]::Empty
+    $xmlConfig = [xml] (Get-Content -Path $xmlFilename)
+    foreach($param in $xmlConfig.config.testCases.test.testParams.ChildNodes)
+    {
+        $paramText = $param.InnerText
+        if ($paramText.ToUpper().StartsWith("KERNEL_VERSION="))
         {
-            $sysTimeInSec += ParseTimeInSec($line)
-            Write-Host "sys time parsed in seconds: $sysTimeInSec" 
-            continue
-        }
-        elseif ($line.StartsWith("user") -eq $true)
-        {
-            $userTimeInSec += ParseTimeInSec($line)
-            Write-Host "user time parsed in seconds: $userTimeInSec" 
-            continue
-        }
-        elseif ($line.StartsWith("real") -eq $true)
-        {
-            $realTimeInSec += ParseTimeInSec($line)
-            Write-Host "real time parsed in seconds: $realTimeInSec" 
-            continue
-        }
-        else
-        {
+            $newLinuxKernel = $paramText.Split('=')[1]
             break
         }
     }
+
+    Write-Host "KernelVersion" $newLinuxKernel
+
+    #----------------------------------------------------------------------------
+    # Return to caller script
+    #----------------------------------------------------------------------------
+    #1st element: the DataTable Name
+    $dataTableName = "LisPerfTest_BuildKernel"
+    #2nd element: an array of datatable field names for String columns
+    $stringFieldNames = New-Object System.Collections.Specialized.StringCollection
+    $stringFieldNames.Add("newlinuxkernel")
+    #3rdd element: an array of datatable values for String columns
+    $stringFieldValues = New-Object System.Collections.Specialized.StringCollection
+    $stringFieldValues.Add($newLinuxKernel)
+    #4th element: an array of datatable field names for Non-String columns
+    $nonStringFieldNames = New-Object System.Collections.Specialized.StringCollection
+    $nonStringFieldNames.Add("realtimeinsec")
+    $nonStringFieldNames.Add("usertimeinsec")
+    $nonStringFieldNames.Add("systimeinsec")
+    $nonStringFieldNames.Add("processorcount")
+    #5th element: an array of datatable values for Non-String columns
+    $nonStringFieldValues = New-Object System.Collections.Specialized.StringCollection
+    $nonStringFieldValues.Add($realtimeinsec)
+    $nonStringFieldValues.Add($usertimeinsec)
+    $nonStringFieldValues.Add($systimeinsec)
+    $nonStringFieldValues.Add($processorcount)
+    $array = $dataTableName, $stringFieldNames, $stringFieldValues, $nonStringFieldNames, $nonStringFieldValues
+    #return the results:
+    $array
+    return $true
 }
-
-#----------------------------------------------------------------------------
-# Read the test summary log file
-#----------------------------------------------------------------------------
-$TestSummaryLogPattern = "$LogFolder\*\*_summary.log"
-# Source the library functions
-. $LisaInfraFolder\LoggerFunctions.ps1 | out-null
-
-$kernelRelease = GetValueFromLog $TestSummaryLogPattern "KernelRelease"
-$processorCount = GetValueFromLog $TestSummaryLogPattern "ProcessorCount"
-if ($kernelRelease -eq [string]::Empty)
-{ 
-    $kernelRelease = "Unknown"
-}
-if ($processorCount -eq [string]::Empty)
-{ 
-    $processorCount = "0"
-}
-
-#----------------------------------------------------------------------------
-# Read BuildKernel configuration from XML file
-#----------------------------------------------------------------------------
-$VMName = [string]::Empty
-$newLinuxKernel = [string]::Empty
-
-$numberOfVMs = $xmlConfig.config.VMs.ChildNodes.Count
-Write-Host "Number of VMs defined in the XML file: $numberOfVMs"
-if ($numberOfVMs -eq 0)
-{
-    Throw "No VM is defined in the LISA XML file."
-}
-elseif ($numberOfVMs -gt 1)
-{
-    foreach($node in $xmlConfig.config.VMs.ChildNodes)
-    {
-        if (($node.role -eq $null) -or ($node.role.ToLower() -ne "nonsut"))
-        {
-            #just use the 1st SUT VM name
-            $VMName = $node.vmName
-            break
-        }
-    }
-}
-else
-{
-    $VMName = $xmlConfig.config.VMs.VM.VMName
-}
-if ($VMName -eq [string]::Empty)
-{
-    Write-Host "!!! No VM is found from the LISA XML file."
-}
-
-foreach($param in $xmlConfig.config.testCases.test.testParams.ChildNodes)
-{
-    $paramText = $param.InnerText
-    if ($paramText.ToUpper().StartsWith("KERNELVERSION="))
-    {
-        $newLinuxKernel = $paramText.Split('=')[1]
-    }
-}
-
-Write-Host "VMName: " $VMName
-Write-Host "KernelVersion" $newLinuxKernel
-$XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
-
-#----------------------------------------------------------------------------
-# Call LisaRecorder to log data into database
-#----------------------------------------------------------------------------
-$LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
-$params = "LisPerfTest_BuildKernel"
-$params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
-$params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
-$params = $params+" "+"guestos:`"" + $kernelRelease + "`""
-$params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + $XMLFileNameWithoutExt + "`""
-
-$params = $params+" "+"newlinuxkernel:`"" + "$newLinuxKernel" + "`""
-$params = $params+" "+"realtimeinsec:`"" + $realTimeInSec + "`""
-$params = $params+" "+"usertimeinsec:`"" + $userTimeInSec + "`""
-$params = $params+" "+"systimeinsec:`"" + $sysTimeInSec + "`""
-$params = $params+" "+"processorcount:`"" + $processorCount + "`""
-
-
-Write-Host "Executing LisaRecorder to record test result into database"
-Write-Host $params
-
-$result = Start-Process -FilePath $LisaRecorder -Wait -ArgumentList $params -PassThru -RedirectStandardOutput "$LogFolder\LisaRecorderOutput.log" -RedirectStandardError "$LogFolder\LisaRecorderError.log"
-if ($result.ExitCode -eq 0)
-{
-    Write-Host "Executing LisaRecorder finished with Success."
-}
-else
-{
-    Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
-}
-
-return $result.ExitCode
-
