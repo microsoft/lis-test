@@ -23,5 +23,4 @@ drivers/net/hyperv/netvsc_drv.c
 drivers/net/hyperv/hyperv_net.h
 drivers/net/hyperv/rndis_filter.c
 drivers/scsi/storvsc_drv.c
-drivers/video/hyperv_fb.c
 drivers/hid/hid-hyperv.c

@@ -435,7 +435,7 @@ if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 
 Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 30
 
 # Start the Restore
 Write-Output "`nNow let's do restore ...`n"
@@ -476,7 +476,7 @@ if ( $vm.state -ne "Off" )
 }
 
 # Now Start the VM
-$timeout = 500
+$timeout = 300
 $sts = Start-VM -Name $vmName -ComputerName $hvServer 
 if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
 {
