@@ -2,7 +2,7 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
