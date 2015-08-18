@@ -44,6 +44,7 @@
 			<suiteTest>FCOPY_file_exists</suiteTest> 
 			<suiteTest>FCOPY_overwrite</suiteTest>
 			<suiteTest>FCOPY_large_file</suiteTest>
+			<suiteTest>FCOPY_non_ascii</suiteTest>
 		</suiteTests>
         </suite>
     </testSuites>
@@ -93,6 +94,16 @@
 				<param>SCSI=1,0,Dynamic,512,15GB</param>
 			</testParams>
 			<noReboot>False</noReboot>
+		</test>
+
+		<test>
+			<testName>FCOPY_non_ascii</testName>
+			<testScript>setupscripts\FCOPY_non_ascii.ps1</testScript>
+			<timeout>2000</timeout>
+			<testParams>
+				<param>TC_COVERED=FCopy-05</param>
+			</testParams>
+			<noReboot>True</noReboot>
 		</test>
 	</testCases>
 
