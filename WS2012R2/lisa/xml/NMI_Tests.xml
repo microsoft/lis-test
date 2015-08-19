@@ -22,7 +22,7 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
