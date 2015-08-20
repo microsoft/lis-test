@@ -294,12 +294,6 @@ if ($hvModule -eq $NULL)
     $hvModule = Get-Module Hyper-V
 }
 
-if ($hvModule.companyName -ne "Microsoft Corporation")
-{
-    "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $False
-}
-
 $controllerType = $null
 $controllerID = $null
 $lun = $null
