@@ -21,34 +21,31 @@
 #
 ########################################################################
 
-
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 CONSTANTS_FILE="constants.sh"
 
-LogMsg()
+function LogMsg()
 {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
 }
 
-
-
-UpdateSummary()
+function UpdateSummary()
 {
     echo $1 >> ~/summary.log
 }
 
-UpdateTestState()
+function UpdateTestState()
 {
     echo $1 > ~/state.txt
 }
 
- CheckForError()
+function CheckForError()
 {
     while true; do
-        a=`tail /var/log/messages | grep "No additional sense information"`
+        a=$(tail /var/log/messages | grep "No additional sense information")
         if [[ -n $a ]]; then
             UpdateSummary "System hanging at mkfs $1"
             sleep 1
@@ -58,63 +55,61 @@ UpdateTestState()
     done
  }
 
+function IntegrityCheck()
+{
+    targetDevice=$1
+    testFile="/dev/shm/testsource"
+    blockSize=$((32*1024*1024))
+    _gb=$((1*1024*1024*1024))
+    targetSize=$(blockdev --getsize64 $targetDevice)
+    let "blocks=$targetSize / $blockSize"
 
-IntegrityCheck(){
-targetDevice=$1
-testFile="/dev/shm/testsource"
-blockSize=$((32*1024*1024))
-_gb=$((1*1024*1024*1024))
-targetSize=$(blockdev --getsize64 $targetDevice)
-let "blocks=$targetSize / $blockSize"
+    if [ "$targetSize" -gt "$_gb" ] ; then
+      targetSize=$_gb
+      let "blocks=$targetSize / $blockSize"
+     fi
 
-if [ "$targetSize" -gt "$_gb" ] ; then
-  targetSize=$_gb
-  let "blocks=$targetSize / $blockSize"
- fi
+    blocks=$((blocks-1))
+     mount $targetDevice /mnt/
+     targetDevice="/mnt/1"
+    LogMsg "Creating test data file $testfile with size $blockSize"
+    echo "We will fill the device $targetDevice (of size $targetSize) with this gata (in $blocks) and then will check if the data is not corrupted."
+    echo "This will erase all data in $targetDevice"
 
-blocks=$((blocks-1))
- mount $targetDevice /mnt/
- targetDevice="/mnt/1"
-LogMsg "Creating test data file $testfile with size $blockSize"
-echo "We will fill the device $targetDevice (of size $targetSize) with this gata (in $blocks) and then will check if the data is not corrupted."
-echo "This will erase all data in $targetDevice"
+    LogMsg "Creating test source file... ($BLOCKSIZE)"
 
-LogMsg "Creating test source file... ($BLOCKSIZE)"
+    dd if=/dev/urandom of=$testFile bs=$blockSize count=1 status=noxfer 2> /dev/null
 
-dd if=/dev/urandom of=$testFile bs=$blockSize count=1 status=noxfer 2> /dev/null
+    LogMsg "Calculating source checksum..."
 
-LogMsg "Calculating source checksum..."
+    checksum=$(sha1sum $testFile | cut -d " " -f 1)
+    echo $checksum
 
-checksum=$(sha1sum $testFile | cut -d " " -f 1)
-echo $checksum
-
-LogMsg "Checking ${blocks} blocks"
-for ((y=0 ; y<$blocks ; y++)) ; do
-  LogMsg "Writing block $y to device $targetDevice ..."
-  dd if=$testFile of=$targetDevice bs=$blockSize count=1 seek=$y status=noxfer 2> /dev/null
-  echo -n "Checking block $y ..."
-  testChecksum=$(dd if=$targetDevice bs=$blockSize count=1 skip=$y status=noxfer 2> /dev/null | sha1sum | cut -d " " -f 1)
-  if [ "$checksum" == "$testChecksum" ] ; then
-    echo "Checksum matched for block $y"
-  else
-    echo "Checksum mismatch at block $y"
-    echo "Checksum mismatch on  block $y for ${targetDevice} " >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 80
-  fi
-done
-echo "Data integrity test on ${blocks} blocks on drive $1 : success " >> ~/summary.log
-umount /mnt/
-rm -f $testFile
+    LogMsg "Checking ${blocks} blocks"
+    for ((y=0 ; y<$blocks ; y++)) ; do
+      LogMsg "Writing block $y to device $targetDevice ..."
+      dd if=$testFile of=$targetDevice bs=$blockSize count=1 seek=$y status=noxfer 2> /dev/null
+      echo -n "Checking block $y ..."
+      testChecksum=$(dd if=$targetDevice bs=$blockSize count=1 skip=$y status=noxfer 2> /dev/null | sha1sum | cut -d " " -f 1)
+      if [ "$checksum" == "$testChecksum" ] ; then
+        echo "Checksum matched for block $y"
+      else
+        echo "Checksum mismatch at block $y"
+        echo "Checksum mismatch on  block $y for ${targetDevice} " >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+      fi
+    done
+    echo "Data integrity test on ${blocks} blocks on drive $1 : success " >> ~/summary.log
+    umount /mnt/
+    rm -f $testFile
 }
 
-
-
-TestFileSystem()
+# Format the disk and create a file system, mount and create file on it.
+function TestFileSystem()
 {
     drive=$1
     fs=$2
-    # Format the Disk and Create a file system , Mount and create file on it .
     parted -s -- $drive mklabel gpt
     parted -s -- $drive mkpart primary 64s -64s
     if [ "$?" = "0" ]; then
@@ -163,9 +158,9 @@ TestFileSystem()
     fi
 
     # Perform Data integrity test
-
     IntegrityCheck ${driveName}1
 }
+
 # Source the constants file
 if [ -e ~/${CONSTANTS_FILE} ]; then
     source ~/${CONSTANTS_FILE}
@@ -179,22 +174,16 @@ fi
 
 echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
-#
 # Create the state.txt file so ICA knows we are running
-#
 UpdateTestState $ICA_TESTRUNNING
 
-#
 # Cleanup any old summary.log files
-#
 if [ -e ~/summary.log ]; then
     LogMsg "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
 fi
 
-#
 # Make sure the constants.sh file exists
-#
 if [ ! -e ./constants.sh ];
 then
     echo "Cannot find constants.sh file."
@@ -213,7 +202,6 @@ fi
 echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
 # Count the number of SCSI= and IDE= entries in constants
-#
 diskCount=0
 for entry in $(cat ./constants.sh)
 do
@@ -234,19 +222,15 @@ done
 
 echo "constants disk count = $diskCount"
 
-#
 # Compute the number of sd* drives on the system.
-#
 sdCount=0
 for drive in /dev/sd*[^0-9]
 do
     sdCount=$((sdCount+1))
 done
 
-#
 # Subtract the boot disk from the sdCount, then make
 # sure the two disk counts match
-#
 sdCount=$((sdCount-1))
 echo "/dev/sd* disk count = $sdCount"
 
@@ -259,16 +243,19 @@ fi
 
 for driveName in /dev/sd*[^0-9];
 do
-    #
+
     # Skip /dev/sda
-    #
     if [ ${driveName} = "/dev/sda" ]; then
         continue
     fi
 
-    for fs in ${fileSystems[@]}; do
-        LogMsg "Testing filesystem: $fs"
+    for fs in "${fileSystems[@]}"; do
+        LogMsg "Start testing filesystem: $fs"
+        StartTst=$(date +%s.%N)
         TestFileSystem $driveName $fs
+        EndTst=$(date +%s.%N)
+        DiffTst=$(echo "$EndTst - $StartTst" | bc)
+        LogMsg "End testing filesystem: $fs; Test duration: $DiffTst seconds."
     done
 done
 

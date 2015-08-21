@@ -63,10 +63,10 @@
             <testParams>
                 <param>Type=Dynamic</param>
                 <param>SectorSize=512</param>
-                <param>DefaultSize=8TB</param>
+                <param>DefaultSize=3TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
                 <param>fileSystems=(ext4 xfs btrfs)</param>
-                <param>SCSI=0,0,Fixed,512,8TB</param>
+                <param>SCSI=0,0,Fixed,512,3TB</param>
                 <param>TC_COVERED=STOR-32</param>
             </testParams>
             <testScript>STOR_Big_Disk.sh</testScript>
