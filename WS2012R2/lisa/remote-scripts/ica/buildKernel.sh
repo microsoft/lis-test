@@ -128,7 +128,7 @@ chmod 755 bin/*
 #
 # If distro is Ubuntu we need to install some packages first
 #
-apt-get -y install nfs-common
+apt-get -y install nfs-common libssl-dev
 
 #
 # Copy the tarball from the repository server
