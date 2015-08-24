@@ -226,8 +226,9 @@
             <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
-                <param>ParentVhd=DynamicParent.vhd</param>
                 <param>IDE=1,1,Diff</param>
+                <param>FILESYS=ext3</param>
+                <param>vhdFormat=vhd</param>
                 <param>TC_COVERED=STOR-06</param>
             </testparams>
             <onError>Continue</onError>
@@ -240,8 +241,9 @@
             <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
-                <param>ParentVhd=DynamicParent.vhd</param>
                 <param>SCSI=0,0,Diff</param>
+                <param>FILESYS=ext3</param>
+                <param>vhdFormat=vhd</param>
                 <param>TC_COVERED=STOR-07</param>
             </testparams>
             <onError>Continue</onError>
