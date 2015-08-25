@@ -2,7 +2,7 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -63,10 +63,10 @@
             <testParams>
                 <param>Type=Dynamic</param>
                 <param>SectorSize=512</param>
-                <param>DefaultSize=8TB</param>
+                <param>DefaultSize=3TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
                 <param>fileSystems=(ext4 xfs btrfs)</param>
-                <param>SCSI=0,0,Fixed,512,8TB</param>
+                <param>SCSI=0,0,Fixed,512,3TB</param>
                 <param>TC_COVERED=STOR-32</param>
             </testParams>
             <testScript>STOR_Big_Disk.sh</testScript>
@@ -176,8 +176,9 @@
             <timeout>18000</timeout>
             <testparams>
                 <param>IDE=1,1,Diff</param>
-                <param>ParentVhd=VHDXParentDiff.vhdx</param>
                 <param>TC_COVERED=STOR-26</param>
+                <param>FILESYS=ext3</param>
+                <param>vhdFormat=vhdx</param>
             </testparams>
             <onError>Continue</onError>
         </test>
@@ -189,8 +190,9 @@
             <timeout>18000</timeout>
             <testparams>
                 <param>SCSI=0,0,Diff</param>
-                <param>ParentVhd=VHDXParentDiff.vhdx</param>
                 <param>TC_COVERED=STOR-27</param>
+                <param>FILESYS=ext3</param>
+                <param>vhdFormat=vhdx</param>
             </testparams>
             <onError>Continue</onError>
         </test>
