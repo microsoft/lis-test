@@ -43,7 +43,6 @@
 			<suiteTest>FCOPY_basic</suiteTest>
 			<suiteTest>FCOPY_file_exists</suiteTest> 
 			<suiteTest>FCOPY_overwrite</suiteTest>
-			<suiteTest>FCOPY_large_file</suiteTest>
 			<suiteTest>FCOPY_non_ascii</suiteTest>
 		</suiteTests>
         </suite>
@@ -77,24 +76,8 @@
 			<testParams>
 				<param>TC_COVERED=FCopy-03</param>
 			</testParams>
-			<noReboot>False</noReboot>
+			<noReboot>True</noReboot>
 		</test>		
-		
-		<test>
-			<testName>FCOPY_large_file</testName>
-			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
-			<testScript>setupscripts\FCOPY_large_file.ps1</testScript>
-			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-			<timeout>900</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-04</param>
-                		<param>Type=Fixed</param>
-                		<param>SectorSize=512</param>
-                		<param>DefaultSize=15GB</param>
-				<param>SCSI=1,0,Dynamic,512,15GB</param>
-			</testParams>
-			<noReboot>False</noReboot>
-		</test>
 
 		<test>
 			<testName>FCOPY_non_ascii</testName>
