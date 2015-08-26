@@ -302,6 +302,9 @@ if (-not $sts[-1]) {
 # Define the file-name to use with the current time-stamp
 $testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file" 
 
+# Removing previous test files on the VM
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f testfile-*"
+
 #
 # Initial file copy, which must be successful. Create a text file with 20 characters, and then copy it.
 #
