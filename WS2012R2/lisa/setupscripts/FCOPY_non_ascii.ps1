@@ -412,6 +412,9 @@ else {
     }
 }
 
+# Removing previous test files on the VM
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f testfile-*"
+
 #
 # Sending the test file to VM
 #

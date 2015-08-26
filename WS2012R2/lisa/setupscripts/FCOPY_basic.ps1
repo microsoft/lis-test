@@ -220,6 +220,9 @@ if (-not $sts[-1]) {
     $retVal = $False
 }
 
+# Removing previous test files on the VM
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f testfile-*"
+
 # If we got here then all checks have passed and we can copy the file to the Linux guest VM
 $Error.Clear()
 Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/root/" -FileSource host -ErrorAction SilentlyContinue
