@@ -413,14 +413,22 @@ else {
 }
 
 # Removing previous test files on the VM
-.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f testfile-*"
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f /tmp/testfile-*"
+
+
+# Verifying if /tmp folder on guest exists; if not, it will be created
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /tmp ]"
+if (-not $?){
+    Write-Output "Folder /tmp not present on guest. It will be created"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir /tmp"
+}
 
 #
 # Sending the test file to VM
 #
 
 $Error.Clear()
-Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/root/" -FileSource host -ErrorAction SilentlyContinue
+Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
 if ($Error.Count -eq 0) {
     Write-Output "File has been successfully copied to guest VM '${vmName}'" >> $summaryLog
 }

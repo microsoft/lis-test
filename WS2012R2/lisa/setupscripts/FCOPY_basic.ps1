@@ -67,14 +67,14 @@ function check_fcopy_daemon()
 {
 	$filename = ".\fcopy_present"
     
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /root/fcopy_present"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /tmp/fcopy_present"
     if (-not $?) {
         Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
         Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
         return $False
     }
 
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/fcopy_present .
+    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/tmp/fcopy_present .
     if (-not $?) {
 		Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
 		Write-Output "ERROR: Unable to copy the confirmation file from the VM"
@@ -98,7 +98,7 @@ function check_fcopy_daemon()
 #######################################################################
 function check_file([String] $testfile)
 {
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /root/$testfile"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /tmp/$testfile"
     if (-not $?) {
         Write-Output "ERROR: Unable to read file" -ErrorAction SilentlyContinue
         return $False
@@ -213,6 +213,13 @@ else {
 	}
 }
 
+# Verifying if /tmp folder on guest exists; if not, it will be created
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /tmp ]"
+if (-not $?){
+    Write-Output "Folder /tmp not present on guest. It will be created"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir /tmp"
+}
+
 # The fcopy daemon must be running on the Linux guest VM
 $sts = check_fcopy_daemon
 if (-not $sts[-1]) {
@@ -221,11 +228,11 @@ if (-not $sts[-1]) {
 }
 
 # Removing previous test files on the VM
-.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f testfile-*"
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f /tmp/testfile-*"
 
 # If we got here then all checks have passed and we can copy the file to the Linux guest VM
 $Error.Clear()
-Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/root/" -FileSource host -ErrorAction SilentlyContinue
+Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
 if ($Error.Count -eq 0) {
 	Write-Output "File has been successfully copied to guest VM '${vmName}'" | Tee-Object -Append -file $summaryLog
 }
