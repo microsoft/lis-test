@@ -64,7 +64,7 @@ if [ -e ~/summary.log ]; then
 fi
 
 # Check if file exists on VM
-if ! [ -e /root/testfile-* ]; then
+if ! [ -e /tmp/testfile-* ]; then
     LogMsg "ERROR: Testfile is not present on the VM"
     UpdateTestState "TestAborted"
     exit 1
@@ -73,7 +73,7 @@ else
 fi
 
 # Get MD5 checksum 
-chksum=$(openssl md5 testfile-*)
+chksum=$(openssl md5 /tmp/testfile-*)
 if [ $? -ne 0 ]; then 
 	LogMsg "ERROR: Cannot get MD5 checksum"
     UpdateTestState "TestAborted"

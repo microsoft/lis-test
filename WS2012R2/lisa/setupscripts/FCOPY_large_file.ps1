@@ -70,14 +70,14 @@ function check_fcopy_daemon()
 {
 	$filename = ".\fcopy_present"
     
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /root/fcopy_present"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /tmp/fcopy_present"
     if (-not $?) {
         Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
         Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
         return $False
     }
 
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/fcopy_present .
+    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/tmp/fcopy_present .
     if (-not $?) {
 		Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
 		Write-Output "ERROR: Unable to copy the confirmation file from the VM"
@@ -256,6 +256,13 @@ else {
 		"Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
 		$retVal = $False
 	}
+}
+
+# Verifying if /tmp folder on guest exists; if not, it will be created
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /tmp ]"
+if (-not $?){
+    Write-Output "Folder /tmp not present on guest. It will be created"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir /tmp"
 }
 
 #
