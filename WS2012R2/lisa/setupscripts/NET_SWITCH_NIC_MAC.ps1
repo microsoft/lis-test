@@ -19,7 +19,6 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
  Switch an existing NIC (with a certain MAC address) to a different network.
@@ -65,7 +64,7 @@
     Test data for this test case.
 
     .Example
-    setupScripts\SwitchNic_Mac -vmName VM -hvServer localhost -testParams "SWITCH=NetworkAdapter,Internal,Internal,001600112200,NIC=NetworkAdapter,External,External,001600112200"
+    setupScripts\NET_SWITCH_NIC_MAC.ps1 -vmName VM -hvServer localhost -testParams "SWITCH=NetworkAdapter,Internal,Internal,001600112200,NIC=NetworkAdapter,External,External,001600112200"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -108,7 +107,6 @@ if (-not $hvServer)
     "Error: hvServer is null"
     return $retVal
 }
-
 
 #
 # Parse the testParams string, then process each parameter
@@ -170,7 +168,6 @@ foreach ($p in $params)
         }
 
         #
-        #
         # Make sure the network exists
         #
 
@@ -208,7 +205,7 @@ foreach ($p in $params)
         }
         
         #
-        # Get Nic with given MAC Address
+        # Get NIC with given MAC Address
         #
         $nic = Get-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IsLegacy:$legacy | where {$_.MacAddress -eq $macAddress }
         if ($nic)
@@ -219,7 +216,7 @@ foreach ($p in $params)
             }
             else 
             {
-                Connect-VMNetworkAdapter $nic -SwitchName $networkName -Confirm:$False
+                Connect-VMNetworkAdapter -VMNetworkAdapter $nic -SwitchName $networkName -Confirm:$False
 
             }
             

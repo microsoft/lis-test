@@ -99,11 +99,11 @@ if ($procs)
 {
     if ($procs -is [array])
     {
-        $maxCPUs = $procs[0].NumberOfCores
+        $maxCPUs = $procs[0].NumberOfLogicalProcessors
     }
     else
     {
-        $maxCPUs = $procs.NumberOfCores
+        $maxCPUs = $procs.NumberOfLogicalProcessors
     }
 }
 
@@ -127,8 +127,8 @@ $cpu = Set-VMCPUCount $vmName -CPUCount $numCPUs -server $hvServer
 if ($? -eq "True")
 {
     write-host "CPU count updated to $numCPUs"
-    $retVal = $true
-}
+    return $true
+    }
 
 write-host "Error: Unable to update CPU count"
 return $retVal

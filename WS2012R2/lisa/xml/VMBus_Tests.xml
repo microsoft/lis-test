@@ -4,17 +4,16 @@
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
 
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
 
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
     ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
     PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
-
 
     See the Apache Version 2.0 License for specific language governing
     permissions and limitations under the License.
@@ -22,7 +21,7 @@
 
 <config>
     <global>
-        <logfileRootDir>D:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -30,7 +29,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LISA VMBus tests for WS2012R2</subject>
+            <subject>VMBus tests for WS2012R2</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
 
@@ -39,44 +38,56 @@
 
 	<testSuites>
 		<suite>
-			<suiteName>VMBus</suiteName>
-			<suiteTests>
-				<suiteTest>VMBus_protocol_version</suiteTest>
-				<suiteTest>VMBus_verify_interrupts</suiteTest>
-			</suiteTests>
+		<suiteName>VMBus</suiteName>
+		<suiteTests>
+			<suiteTest>VMBus_protocol_version</suiteTest>
+			<suiteTest>VMBus_verify_interrupts</suiteTest>
+			<suiteTest>VMBus_PanicNotifier</suiteTest>
+		</suiteTests>
 		</suite>
 	</testSuites>
 
     <testCases>
         <test>
-            <testName>VMBus_protocol_version</testName>
-            <testScript>vmbus_protocol_version.sh</testScript>
-			<files>remote-scripts/ica/vmbus_protocol_version.sh</files>
-            <timeout>300</timeout>
-            <onError>Continue</onError>
-			<noReboot>False</noReboot>	
-			<testParams>
-				<param>TC_COVERED=VMBus-01</param>
-            </testParams>
+		<testName>VMBus_protocol_version</testName>
+		<testScript>vmbus_protocol_version.sh</testScript>
+		<files>remote-scripts/ica/vmbus_protocol_version.sh</files>
+		<timeout>300</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>	
+		<testParams>
+			<param>TC_COVERED=VMBus-01</param>
+		</testParams>
         </test>
 
         <test>
-            <testName>VMBus_verify_interrupts</testName>
-            <testScript>vmbus_verify_interrupts.sh</testScript>
-			<setupScript>setupScripts\ChangeCPU.ps1</setupScript>
-			<files>remote-scripts/ica/vmbus_verify_interrupts.sh</files>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-			<noReboot>False</noReboot>
-			<testParams>
-            	<param>TC_COVERED=VMBus-02</param>
-				<param>vCPU=4</param>
-            </testParams>
+		<testName>VMBus_verify_interrupts</testName>
+		<testScript>vmbus_verify_interrupts.sh</testScript>
+		<setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+		<files>remote-scripts/ica/vmbus_verify_interrupts.sh</files>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+            		<param>TC_COVERED=VMBus-02</param>
+			<param>vCPU=4</param>
+            	</testParams>
+        </test>
+        
+        <test>
+		<testName>VMBus_PanicNotifier</testName>
+		<testScript>SetupScripts\VMBus_PanicNotifier.ps1</testScript>
+		<timeout>800</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+			<param>TC_COVERED=VMBus-03</param>
+		</testParams>
         </test>
     </testCases>
 
     <VMs>
-		<vm>
+	<vm>
             <hvServer>localhost</hvServer>
             <vmName>LinuxVM</vmName>
             <os>Linux</os>

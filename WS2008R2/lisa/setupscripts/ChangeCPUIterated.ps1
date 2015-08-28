@@ -68,6 +68,24 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+#####################################################################
+#
+# CheckCurrentStateFor()
+#
+#####################################################################
+function CheckCurrentStateFor([String] $vmName, [UInt16] $newState)
+{
+    $stateChanged = $False
+    $vm = Get-VM $vmName -server $hvServer
+    if ($($vm.EnabledState) -eq $newState)
+    {
+        $stateChanged = $True
+    }
+    return $stateChanged
+}
+
+#####################################################################
+
 $retVal = $false
 
 #
@@ -92,34 +110,49 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $retVal
 }
 
-#
-# for debugging - to be removed
-#
-"ChangeCPUIterated.ps1 -vmName $vmName -hvServer $hvServer -testParams $testParams"
+$rootDir = $null
+$tcCovered = "Undefined"
+$ipv4 = $null
 
-#
-# Find the testParams we require.  Complain if not found
-#
-$numCPUs = 0
-
+"Parsing testParams"
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
-    # the iterationParam has the information of vcpu.	
-    if ($fields[0].Trim() -eq "iterationParam")
+    switch ($fields[0].Trim())
     {
-        $numCPUs = $fields[1].Trim()
-        break
+        "ipv4" { $ipv4 = $fields[1].Trim() }
+        "rootDir" { $rootDir = $fields[1].Trim() }
+        "sshKey" { $sshKey = $fields[1].Trim() }
+        "TC_COVERED" { $tcCovered = $fields[1].Trim() }
+        default {}
     }
 }
 
-if ($numCPUs -eq 0)
+cd $rootDir
+
+#Importing HyperV library module
+$sts = get-module | select-string -pattern HyperV -quiet
+if (! $sts)
 {
-    "Error: VCPU test parameter not found in testParams"
-    return $retVal
+    $HYPERV_LIBRARY = ".\HyperVLibV2SP1\Hyperv.psd1"
+    if ( (Test-Path $HYPERV_LIBRARY) )
+    {
+        Import-module .\HyperVLibV2SP1\Hyperv.psd1
+    }
+    else
+    {
+        "Error: The PowerShell HyperV library does not exist"
+        return $False
+    }
 }
+
+. .\setupscripts\TCUtils.ps1
+
+#
+# for debugging - to be removed
+#
+"ChangeCPUIterated.ps1 -vmName $vmName -hvServer $hvServer -testParams $testParams"
 
 #
 # do a sanity check on the value provided in the testParams
@@ -138,37 +171,71 @@ if ($procs)
     }
 }
 
-if ($numCPUs -lt 1 -or $numCPUs -gt $maxCPUs)
+#
+# Now iterate through different CPU counts and assign to VM
+#
+for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 ) 
+
 {
-    "Error: Invalid VCPU value: $numCPUs (max CPUs = $maxCPUs)"
-    return $retVal
+#
+# Stop the VM to export it.
+#
+    $testCaseTimeout = 180
+    
+    Stop-VM -VM $vmName -Server $hvServer -force    
+    while ($testCaseTimeout -gt 0)
+    {
+        if ( (CheckCurrentStateFor $vmName ([UInt16] [VMState]::stopped)))
+        {
+            break
+        }
+        Start-Sleep -seconds 2
+        $testCaseTimeout -= 2
+    }
+    
+    $cpu = Set-VMCPUCount -VM $vmName -CPUCount $numCPUs -server $hvServer
+
+    if ($cpu -is [System.Management.ManagementObject])
+    {
+        write-host "CPU count updated to $numCPUs"
+        $retVal = $true
+    }
+    else
+    {
+        write-host "Error: Unable to update CPU count"
+        return $false
+    }
+
+    Start-VM -VM $vmName -Server $hvServer 
+
+   
+    $testCaseTimeout = 300
+    while ($testCaseTimeout -gt 0)
+    {
+        if ( (TestPort $ipv4) )
+        {
+            break
+        }
+        Start-Sleep -seconds 2
+        $testCaseTimeout -= 2
+    }
+
+
+    "Info: VM $vmName started with $numCPUs cores"
+    $Vcpu = .\bin\plink -i .\ssh\${sshKey} root@${ipv4} "cat /proc/cpuinfo | grep processor | wc -l"
+    if($Vcpu -eq $numCPUs)
+    {
+        "CPU count inside VM is $numCPUs"
+        echo "CPU count inside VM is : $numCPUs" >> $summaryLog
+        $retVal=$true
+
+    }
+    else
+    {
+        "Error: Wrong vCPU count detected on the VM!"
+        return $False
+    }
 }
 
-#
-# HyperVLib version 2
-# Note: For V2, the module can only be imported once into powershell.
-#       If you import it a second time, the Hyper-V library function
-#       calls fail.
-#
-$sts = get-module | select-string -pattern HyperV -quiet
-if (! $sts)
-{
-    Import-module .\HyperVLibV2Sp1\Hyperv.psd1
-}
-
-#
-# Update the CPU count on the VM
-#
-$cpu = Set-VMCPUCount $vmName -CPUCount $numCPUs -server $hvServer
-
-if ($cpu -is [System.Management.ManagementObject])
-{
-    write-host "CPU count updated to $numCPUs"
-    $retVal = $true
-}
-else
-{
-    write-host "Error: Unable to update CPU count"
-}
 
 return $retVal

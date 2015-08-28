@@ -23,7 +23,7 @@
 
 # Description:
 #	This script verifies that the static MAC assigned to a network adapter in Hyper-v is mirrored inside the VM.
-#	After finding the corresponding interface for each (passed) MAC address, it will try to ping REMOTE_SERVER 
+#	After finding the corresponding interface for each (passed) MAC address, it will try to ping REMOTE_SERVER
 #	through it, if so configured. Both synthetic, as well as legacy network adapters are searched.
 #
 #	Steps:
@@ -33,7 +33,7 @@
 #		3a. If static IP is not configured, get address(es) via dhcp
 #	4. Ping REMOTE_SERVER
 #
-#	The test is successful if all MAC addresses passed to the script are assigned to a (different) interface and that 
+#	The test is successful if all MAC addresses passed to the script are assigned to a (different) interface and that
 #	each of these interfaces is able to ping the REMOTE_SERVER, if that parameter is specified.
 #
 #	Parameters required:
@@ -66,11 +66,11 @@
 
 
 # Convert eol
-dos2unix Utils.sh
+dos2unix utils.sh
 
-# Source Utils.sh
-. Utils.sh || {
-	echo "Error: unable to source Utils.sh!"
+# Source utils.sh
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
 	echo "TestAborted" > state.txt
 	exit 2
 }
@@ -109,7 +109,7 @@ case $? in
 		LogMsg "UtilsInit returned an unknown error. Aborting..."
 		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
 		SetTestStateAborted
-		exit 6 
+		exit 6
 		;;
 esac
 
@@ -141,12 +141,14 @@ else
 			SetTestStateAborted
 			exit 30
 		fi
-		
+
 	done
-	
+
 	unset __iterator
-	
+
 fi
+
+IFS=',' read -a networkType <<< "$NIC"
 
 # Parameter provided in constants file
 declare -a STATIC_IPS=()
@@ -172,11 +174,11 @@ else
 			SetTestStateAborted
 			exit 30
 		fi
-		
+
 	done
-	
+
 	unset __iterator
-	
+
 fi
 
 if [ "${NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -192,12 +194,18 @@ fi
 
 # set gateway parameter
 if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter GATEWAY is not defined in constants file . No default gateway will be set for any interface."
-    LogMsg "$msg"
-	GATEWAY=''
+    if [ "${networkType[2]}" = "External" ]; then
+    	msg="The test parameter GATEWAY is not defined in constants file . The default gateway will be set for all interfaces."
+    	LogMsg "$msg"
+		GATEWAY=$(/sbin/ip route | awk '/default/ { print $3 }')
+	else
+		msg="The test parameter GATEWAY is not defined in constants file . No gateway will be set."
+		LogMsg "$msg"
+		GATEWAY=''
+	fi
 else
 	CheckIP "$GATEWAY"
-	
+
 	if [ 0 -ne $? ]; then
 		msg=""
 		LogMsg "$msg"
@@ -228,7 +236,7 @@ else
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# Get the interface associated with the given ipv4
 	__iface_ignore=$(ip -o addr show| grep "$ipv4" | cut -d ' ' -f2)
 fi
@@ -238,7 +246,7 @@ if [ "${DISABLE_NM:-UNDEFINED}" = "UNDEFINED" ]; then
 	LogMsg "$msg"
 else
 	if [[ "$DISABLE_NM" =~ [Yy][Ee][Ss] ]]; then
-		
+
 		# work-around for suse where the network gets restarted in order to shutdown networkmanager.
 		declare __orig_netmask
 		GetDistro
@@ -276,7 +284,7 @@ else
 	else
 		__lo_ignore=lo
 	fi
-	
+
 fi
 
 # Retrieve synthetic network interfaces
@@ -319,7 +327,7 @@ else
 			LogMsg "$msg"
 		fi
 	fi
-	
+
 	LogMsg "Found ${#LEGACY_NET_INTERFACES[@]} legacy interface(s): ${LEGACY_NET_INTERFACES[*]} in VM"
 fi
 
@@ -356,14 +364,14 @@ for __iterator in ${!MACS[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# get just the interface name from the path
 	__sys_interface=$(basename "$(dirname "$__sys_interface")")
 
 	# verify that ip link give us the same information
-	
+
 	__ip_interface=$(ip -o link | grep -i "${MACS[$__iterator]}" | awk -F': ' '{ NF == 2; print $2 }')
-	
+
 	if [ x"$__sys_interface" != x"$__ip_interface" ]; then
 		msg="Interface $__sys_interface found from /sys is different than $__ip_interface found from ip link command."
 		LogMsg "$msg"
@@ -371,10 +379,10 @@ for __iterator in ${!MACS[@]}; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	# add interface to list of interfaces used to ping remote-vm
 	__MAC_NET_INTERFACES=("${__MAC_NET_INTERFACES[@]}" "$__sys_interface")
-	
+
 done
 
 unset __sys_interface
@@ -394,13 +402,13 @@ declare -i __iterator=0
 
 # set static ips
 for __iterator in ${!STATIC_IPS[@]} ; do
-	
+
 	# if number of static ips is greater than number of interfaces, just break.
 	if [ "$__iterator" -ge "${#__MAC_NET_INTERFACES[@]}" ]; then
 		LogMsg "Number of static IP addresses in constants.sh is greater than number of concerned interfaces. All extra IP addresses are ignored."
 		break
 	fi
-	
+
 	SetIPstatic "${STATIC_IPS[$__iterator]}" "${__MAC_NET_INTERFACES[$__iterator]}" "$NETMASK"
 	# if failed to assigned address
 	if [ 0 -ne $? ]; then
@@ -409,7 +417,7 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 20
-	fi	
+	fi
 	LogMsg "$(ip -o addr show ${__MAC_NET_INTERFACES[$__iterator]} | grep -vi inet6)"
 	UpdateSummary "Successfully assigned ${STATIC_IPS[$__iterator]} ($NETMASK) to synthetic interface ${__MAC_NET_INTERFACES[$__iterator]}"
 done
@@ -421,8 +429,8 @@ __iterator=${#STATIC_IPS[@]}
 while [ $__iterator -lt ${#__MAC_NET_INTERFACES[@]} ]; do
 
 	LogMsg "Trying to get an IP Address via DHCP on interface ${__MAC_NET_INTERFACES[$__iterator]}"
-	SetIPfromDHCP "${__MAC_NET_INTERFACES[$__iterator]}"
-	
+	CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "dhcp"
+
 	if [ 0 -ne $? ]; then
 		msg="Unable to get address for ${__MAC_NET_INTERFACES[$__iterator]} through DHCP"
 		LogMsg "$msg"
@@ -430,11 +438,11 @@ while [ $__iterator -lt ${#__MAC_NET_INTERFACES[@]} ]; do
 		SetTestStateFailed
 		exit 10
 	fi
-	
+
 	UpdateSummary "Successfully set ip from dhcp on interface ${__MAC_NET_INTERFACES[$__iterator]}"
-	
+
 	: $((__iterator++))
-	
+
 done
 
 
@@ -443,7 +451,7 @@ declare -i __iterator
 # ping REMOTE_SERVER if set
 if [ "${REMOTE_SERVER:-UNDEFINED}" != "UNDEFINED" ]; then
 	for __iterator in ${!__MAC_NET_INTERFACES[@]}; do
-	
+
 		# set default gateway if specified
 		if [ -n "$GATEWAY" ]; then
 			LogMsg "Setting $GATEWAY as default gateway on dev ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -452,7 +460,7 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" != "UNDEFINED" ]; then
 				LogMsg "Warning! Failed to set default gateway!"
 			fi
 		fi
-		
+
 		LogMsg "Trying to ping $REMOTE_SERVER"
 		UpdateSummary "Trying to ping $REMOTE_SERVER"
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`static`null`mac`null`

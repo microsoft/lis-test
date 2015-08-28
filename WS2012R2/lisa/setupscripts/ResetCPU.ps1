@@ -62,35 +62,28 @@ if ($hvServer -eq $null)
 
 if ($testParams -eq $null -or $testParams.Length -lt 3)
 {
-    "Error: No testParams provided"
-    "       The script $MyInvocation.InvocationName requires the VCPU test parameter"
+    "The script $MyInvocation.InvocationName requires the VCPU test parameter"
     return $retVal
 }
 
 #
-# for debugging - to be removed
-#
-"ChangeCPU.ps1 -vmName $vmName -hvServer $hvServer -testParams $testParams"
-
-#
 # Find the testParams we require.  Complain if not found
 #
-$numCPUs = 3
+$numCPUs = 4
 
 #
 # Update the CPU count on the VM
 #
-#$cpu = Set-VMCPUCount $vmName -CPUCount $numCPUs -server $hvServer
 $cpu = Set-VM -Name $vmName -ComputerName $hvServer -ProcessorCount $numCPUs
 
 if ($? -eq "True")
 {
-    write-host "CPU count updated to $numCPUs"
+    Write-output "CPU count updated to $numCPUs"
     $retVal = $true
 }
 else
 {
-    write-host "Error: Unable to update CPU count"
+    Write-host "Error: Unable to update CPU count"
 }
 
 return $retVal

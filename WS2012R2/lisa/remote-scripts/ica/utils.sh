@@ -248,10 +248,10 @@ GetDistro()
 		*SUSE*)
 			DISTRO=suse_x
 			;;
-		*CentOS*5*)
+		*CentOS*5.*)
 			DISTRO=centos_5
 			;;
-		*CentOS*6*)
+		*CentOS*6.*)
 			DISTRO=centos_6
 			;;
 		*CentOS*7*)
@@ -272,10 +272,10 @@ GetDistro()
 		*Fedora*)
 			DISTRO=fedora_x
 			;;
-		*Red*5*)
+		*Red*5.*)
 			DISTRO=redhat_5
 			;;
-		*Red*6*)
+		*Red*6.*)
 			DISTRO=redhat_6
 			;;
 		*Red*7*)
@@ -298,43 +298,65 @@ GetDistro()
 # Takes no arguments
 GetSynthNetInterfaces()
 {
+	#Check for distribuion version
+	case $DISTRO in
+        redhat_5)
+            check="net:*"
+            extract_ifname=`echo "${__SYNTH_NET_ADAPTERS_PATHS[$__index]}" | awk -F: '{print $2}'`
+            ;;
+        *)
+            check="net"
+            extract_ifname=$(ls "${__SYNTH_NET_ADAPTERS_PATHS[$__index]}" | head -n 1)
+            ;;
+    esac
+    extraction() {
+        case $DISTRO in
+        redhat_5)
+             SYNTH_NET_INTERFACES[$1]=`echo "${__SYNTH_NET_ADAPTERS_PATHS[$1]}" | awk -F: '{print $2}'`
+            ;;
+        *)
+             SYNTH_NET_INTERFACES[$1]=$(ls "${__SYNTH_NET_ADAPTERS_PATHS[$1]}" | head -n 1)
+            ;;
+    esac
+    }
 
-	# declare array
-	declare -a __SYNTH_NET_ADAPTERS_PATHS
-	# Add synthetic netadapter paths into __SYNTH_NET_ADAPTERS_PATHS array
-	if [ -d '/sys/devices' ]; then
-		while IFS= read -d $'\0' -r path ; do
-			__SYNTH_NET_ADAPTERS_PATHS=("${__SYNTH_NET_ADAPTERS_PATHS[@]}" "$path")
-		done < <(find /sys/devices -name net -a -path '*vmbus*' -print0)
-	else
-		LogMsg "Cannot find Synthetic network interfaces. No /sys/devices directory."
-		return 1
-	fi
 
-	# Check if we found anything
-	if [ 0 -eq ${#__SYNTH_NET_ADAPTERS_PATHS[@]} ]; then
-		LogMsg "No synthetic network adapters found."
-		return 2
-	fi
+    # declare array
+    declare -a __SYNTH_NET_ADAPTERS_PATHS
+    # Add synthetic netadapter paths into __SYNTH_NET_ADAPTERS_PATHS array
+    if [ -d '/sys/devices' ]; then
+            while IFS= read -d $'\0' -r path ; do
+                    __SYNTH_NET_ADAPTERS_PATHS=("${__SYNTH_NET_ADAPTERS_PATHS[@]}" "$path")
+            done < <(find /sys/devices -name $check -a -path '*vmbus*' -print0)
+    else
+            LogMsg "Cannot find Synthetic network interfaces. No /sys/devices directory."
+            return 1
+    fi
 
-	# Loop __SYNTH_NET_ADAPTERS_PATHS and get interfaces
-	declare -i __index
-	for __index in "${!__SYNTH_NET_ADAPTERS_PATHS[@]}"; do
-		if [ ! -d "${__SYNTH_NET_ADAPTERS_PATHS[$__index]}" ]; then
-			LogMsg "Synthetic netadapter dir ${__SYNTH_NET_ADAPTERS_PATHS[$__index]} disappeared during processing!"
-			return 3
-		fi
-		# ls should not yield more than one interface, but doesn't hurt to be sure
-		SYNTH_NET_INTERFACES[$__index]=$(ls "${__SYNTH_NET_ADAPTERS_PATHS[$__index]}" | head -n 1)
-		if [ -z "${SYNTH_NET_INTERFACES[$__index]}" ]; then
-			LogMsg "No network interface found in ${__SYNTH_NET_ADAPTERS_PATHS[$__index]}"
-			return 4
-		fi
-	done
+    # Check if we found anything
+    if [ 0 -eq ${#__SYNTH_NET_ADAPTERS_PATHS[@]} ]; then
+            LogMsg "No synthetic network adapters found."
+            return 2
+    fi
 
-	unset __SYNTH_NET_ADAPTERS_PATHS
-	# Everything OK
-	return 0
+    # Loop __SYNTH_NET_ADAPTERS_PATHS and get interfaces
+    declare -i __index
+    for __index in "${!__SYNTH_NET_ADAPTERS_PATHS[@]}"; do
+            if [ ! -d "${__SYNTH_NET_ADAPTERS_PATHS[$__index]}" ]; then
+                    LogMsg "Synthetic netadapter dir ${__SYNTH_NET_ADAPTERS_PATHS[$__index]} disappeared during processing!"
+                    return 3
+            fi
+            # extract the interface names
+            extraction $__index
+            if [ -z "${SYNTH_NET_INTERFACES[$__index]}" ]; then
+                    LogMsg "No network interface found in ${__SYNTH_NET_ADAPTERS_PATHS[$__index]}"
+                    return 4
+            fi
+    done
+
+    unset __SYNTH_NET_ADAPTERS_PATHS
+    # Everything OK
+    return 0
 }
 
 
@@ -475,7 +497,7 @@ SetIPfromDHCP()
 				return 2
 			fi
 			;;
-		ubuntu*)
+		debian*|ubuntu*)
 			dhclient -r "$1" ; dhclient "$1"
 			if [ 0 -ne $? ]; then
 				LogMsg "Unable to get dhcpd address for interface $1"
@@ -878,6 +900,15 @@ CreateVlanConfig()
 			ifup "$__interface.$__vlanID"
 			;;
 		debian*|ubuntu*)
+			#Check for vlan package and install it in case of absence
+			dpkg -s vlan
+			if [ 0 -ne $? ]; then
+				apt-get -y install vlan
+				if [ 0 -ne $? ]; then
+					LogMsg "Failed to install VLAN package. Please try manually."
+					return 90
+				fi
+			fi
 			__file_path="/etc/network/interfaces"
 			if [ ! -e "$__file_path" ]; then
 				LogMsg "CreateVlanConfig: warning, $__file_path does not exist. Creating it..."
@@ -1235,7 +1266,7 @@ CreateIfupConfigFile()
 				ifup "$__interface_name"
 
 				;;
-			ubuntu*)
+			debian*|ubuntu*)
 				__file_path="/etc/network/interfaces"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
@@ -1346,7 +1377,7 @@ CreateIfupConfigFile()
 				ifup "$__interface_name"
 				;;
 
-			ubuntu*)
+			debian*|ubuntu*)
 				__file_path="/etc/network/interfaces"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
@@ -1480,7 +1511,7 @@ ControlNetworkManager()
 
 			LogMsg "Successfully ${1}ed NetworkManager."
 			;;
-		ubuntu*)
+		debian*|ubuntu*)
 			# check that we have a NetworkManager service running
 			service network-manager status
 			if [ 0 -ne $? ]; then

@@ -14,7 +14,7 @@
             <smtpServer>oursmtphost.mycompany.com</smtpServer>
         </email>
         <!-- Optional testParams go here -->
-        
+
     </global>
 
      <VMs>
@@ -24,87 +24,76 @@
             <os>Linux</os>
             <ipv4>192.168.1.100</ipv4>
             <sshKey>demo_id_rsa.ppk</sshKey>
-            <suite>Networking</suite>
+            <suite>Core</suite>
             <testparams>
-                <param>RootDir=C:\lis-test\WS2008R2\lisa</param>                 
+                <param>RootDir=C:\lis-test\WS2008R2\lisa</param>
             </testparams>
-        </vm>  
+        </vm>
     </VMs>
 
-    <testSuites> 
+    <testSuites>
         <suite>
             <suiteName>Core</suiteName>
             <suiteTests>
-                <!-- Legacy TCs
-                <suiteTest>Install-LIS</suiteTest>
-                <suiteTest>ICVersion</suiteTest>
-                <suiteTest>Upgrade-LIS</suiteTest>
-                <suiteTest>VerifyLISInstall</suiteTest>             
-                <suiteTest>UnInstall-LIS</suiteTest>
-                <suiteTest>VerifyNoLIS</suiteTest>
-                <suiteTest>LIS-GetTarBall</suiteTest>   
-                -->
-                <suiteTest>VerifyLisModules</suiteTest>
-                <suiteTest>HeartBeat</suiteTest>
+                <suiteTest>VMHeartbeat</suiteTest>
                 <suiteTest>TimeSync</suiteTest>
+                <suiteTest>TimeSync_NTP</suiteTest>
                 <suiteTest>TimeSync_SavedVM</suiteTest>
-                <suiteTest>TimeSyncNTP</suiteTest>
-                <suiteTest>LISShutdownVM</suiteTest> 
+                <suiteTest>LISShutdownVM</suiteTest>
+                <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
+                <suiteTest>VerifyLisModules</suiteTest>
+                <suiteTest>Multi_Cpu_Test</suiteTest>
+                <suiteTest>Verify_LISModules_Version</suiteTest>
                 <suiteTest>VerifyItegratedShutdownService</suiteTest>
-                <suiteTest>SMP_VCPU_Count2</suiteTest>
-                <suiteTest>ShutDownVM_CPU2</suiteTest>
-                <suiteTest>SMP_VCPU_Count3</suiteTest>
-                <suiteTest>ShutDownVM_CPU3</suiteTest>
-                <suiteTest>SMP_VCPU_Count4</suiteTest>
-                <suiteTest>ShutDownVM_CPU4</suiteTest>
+                <suiteTest>RebootDifferentMemSettings</suiteTest>
                 <suiteTest>StressReloadModules</suiteTest>
+                <suiteTest>FloppyDisk</suiteTest>
+                <suiteTest>CDmount</suiteTest>
             </suiteTests>
-        </suite>  
+        </suite>
 
         <!-- Storage -->
         <suite>
             <suiteName>Storage</suiteName>
             <suiteTests>
-                <suiteTest>FloppyDisk</suiteTest>
-                <suiteTest>CDmount</suiteTest>
-                <suiteTest>AddDisk_IDE_1_DYNAMIC</suiteTest>
-                <suiteTest>AddDisk_IDE_0_DYNAMIC</suiteTest>
-                <suiteTest>AddDisk_SCSI_DYNAMIC</suiteTest>
-                <suiteTest>AddDisk_IDE_1_FIXED</suiteTest>
-                <suiteTest>AddDisk_SCSI_FIXED</suiteTest>
-                <suiteTest>AddDifferencing_Disk_IDE</suiteTest>   
+                <suiteTest>VHD_IDE_0_1_DYNAMIC</suiteTest>
+                <suiteTest>VHD_MultiDisk_SCSI_Dynamic</suiteTest>
+                <suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
+                <suiteTest>VHD_MultiDisk_SCSI_Fixed</suiteTest>
+                <suiteTest>AddDifferencing_Disk_IDE</suiteTest>
                 <suiteTest>AddDifferencing_Disk_SCSI</suiteTest>
-                <suiteTest>AddPassThrough_Disk_IDE_0</suiteTest>
-                <suiteTest>AddPassThrough_Disk_IDE_1</suiteTest>
-                <suiteTest>AddPassThrough_Disk_SCSI</suiteTest>
-                <suiteTest>MultiDiskIDE_Dynamic</suiteTest>
-                <suiteTest>MultiDiskIDE_Fixed</suiteTest>
-                <suiteTest>MultiDiskSCSI_Fixed</suiteTest>
-                <suiteTest>HotADD_Multi_Disk_SCSI_Dynamic</suiteTest>
-                <suiteTest>HotRemove_Multi_Disk_SCSI_Dynamic</suiteTest>
+                <suiteTest>VHD_HotADD_Multi_Dynamic_SCSI_SMP</suiteTest>
+                <suiteTest>VHD_HotRemove_Multi_Dynamic_SCSI_SMP</suiteTest>
+                <suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest>
+                <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest>
+                <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
+                <suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest>
+                <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteTest>
+                <suiteTest>VHD_SCSI_0_1_Format_btrfs</suiteTest>
                 <suiteTest>TakeSnapShot</suiteTest>
                 <suiteTest>RevertSnapShot</suiteTest>
                 <suiteTest>TestExportImport</suiteTest>
             </suiteTests>
         </suite>
-        
-        <!-- Networking -->    
+
+        <!-- Networking -->
         <suite>
-            <suiteName>Networking</suiteName>
+            <suiteName>Network</suiteName>
             <suiteTests>
-                <suiteTest>Ping_External_Network</suiteTest>
-                <suiteTest>Ping_Internal_Network</suiteTest>
-                <suiteTest>Ping_Private_Network</suiteTest>
-                <suiteTest>AddMultipleNIC</suiteTest>
-                <suiteTest>NETWORK_MODE</suiteTest>
-                <suiteTest>Copy_Large_File</suiteTest>
-                <suiteTest>StaticMac</suiteTest>
-                <suiteTest>SetMTU</suiteTest>                
-                <suiteTest>SwitchNIC</suiteTest>               
-                <suiteTest>SwitchNICInternal</suiteTest>
-                <suiteTest>SwitchNICPrivate</suiteTest>               
-                <suiteTest>Read_Verify_IP_of_NIC</suiteTest>
-                <suiteTest>VerifyVlanTagExt</suiteTest>
+                <suiteTest>ConfigureNetwork</suiteTest>
+                <suiteTest>External</suiteTest>
+                <suiteTest>InternalNetwork</suiteTest>
+                <suiteTest>GuestOnlyNetwork</suiteTest>
+                <suiteTest>OperState</suiteTest>
+                <suiteTest>MultipleNIC</suiteTest>
+                <suiteTest>StaticMAC</suiteTest>
+                <suiteTest>ChangeNetTypeInternal</suiteTest>
+                <suiteTest>ChangeNetTypeGuest</suiteTest>
+                <suiteTest>CopyLargeFile</suiteTest>
+                <suiteTest>VlanTagging</suiteTest>
+                <suiteTest>JumboFrame</suiteTest>
+                <suiteTest>NetworkMode</suiteTest>
+                <suiteTest>LegacySyntheticNetwork</suiteTest>
             </suiteTests>
         </suite>
 
@@ -132,7 +121,7 @@
                 <suiteTest>Stress_Kernbench</suiteTest>
             </suiteTests>
         </suite>
-        
+
         <!-- Live Migration -->
         <suite>
             <suiteName>LiveMigration</suiteName>
@@ -167,7 +156,7 @@
         </suite>
     </testSuites>
 
-    <testCases> 
+    <testCases>
         <!-- KVP tests -->
         <test>
             <testName>KVP_Basic</testName>
@@ -240,7 +229,7 @@
                 <param>sshKey=demo_id_rsa.ppk</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>KVP_DeleteNonExistKVPOnGuest</testName>
             <testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
@@ -253,8 +242,8 @@
                 <param>Value=000</param>
                 <param>Pool=0</param>
             </testparams>
-        </test> 
-        
+        </test>
+
         <test>
             <testName>KVP_ModifyNonExistKVPOnGuest</testName>
             <testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
@@ -269,244 +258,162 @@
             </testparams>
         </test>
 
+    <!-- Core -->
 
+    <test>
+        <testName>CDmount</testName>
+        <testScript>LIS_CD.sh</testScript>
+        <files>remote-scripts/ica/LIS_CD.sh</files>
+        <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
+        <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
+        <testparams>
+            <param>IsoFilename=CDTEST.iso</param>
+            <param>TC_COVERED=NLIS-9</param>
+        </testparams>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+    </test>
 
-        <!-- Core -->
-        
-        <test>
-            <testName>FloppyDisk</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>LIS_Floppy_Disk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Floppy_Disk.sh</files>
-            <setupScript>SetupScripts\AddFloppyDisk.ps1</setupScript>
-            <cleanupScript>SetupScripts\RemoveFloppyDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
-            <testparams>
-                <param>TC_COUNT=BVT-15</param>
-                <param>MODE=script</param>
-            </testparams>
-           <onError>Continue</onError>
-        </test>
-        
-        <test>
-            <testName>CDmount</testName>
-            <testScript>LIS_CD.sh</testScript>
-            <files>remote-scripts/ica/LIS_CD.sh</files>
-            <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
-            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
-            <testparams>
-                <param>IsoFilename=CDTEST.iso</param>
-                <param>TC_COVERED=NLIS-9</param>
-            </testparams>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test> 
-        
-        <test>
-            <testName>Install-LIS</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>LIS_Installation.sh</testScript>
-            <files>remote-scripts/ica/LIS_Installation.sh</files>
-            <timeout>18000</timeout>
-            <testparams>
-                <param>TARBALL=lisV3.1.tar.gz</param>
-                <param>REPOSITORY_SERVER=10.200.49.171</param>
-                <param>REPOSITORY_PATH=/icaRepository/LIS</param>
-                <param>TC_COUNT=BVT-15</param>
-                <param>MODE=script</param>
-            </testparams>
-           <onError>Continue</onError>
-        </test>
-        
-        <test>
-            <testName>ICVersion</testName>
-            <testScript>LIS_IC_version.sh</testScript>
-            <files>remote-scripts\ica\LIS_IC_version.sh</files>
-            <testparams>
-                <param>TC_COUNT=BVT-31</param>
-            </testparams>            
-            <timeout>600</timeout>
-            <OnError>Continue</OnError>
-            <noReboot>False</noReboot>
-        </test>
+    <test>
+        <testName>VMHeartBeat</testName>
+        <snapshotname>ICABase</snapshotname>
+        <testScript>SetupScripts\TestVMHeartbeat.ps1</testScript>
+        <files></files>
+        <timeout>600</timeout>
+        <noReboot>True</noReboot>
+    </test>
 
-        <test>
-            <testName>Upgrade-LIS</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>LIS_Upgrade.sh</testScript>
-            <files>remote-scripts/ica/LIS_Upgrade.sh</files>
-            <timeout>18000</timeout>
-            <testparams>
-                <param>TARBALL=lisV3.4.tar.gz</param>
-                <param>REPOSITORY_SERVER=10.200.49.171</param>
-                <param>REPOSITORY_PATH=/icaRepository/LIS</param>
-                <param>TC_COUNT=BVT-16</param>
-            </testparams>
-            <onError>Continue</onError>
-        </test>
+    <test>
+        <testName>TimeSync</testName>
+        <testScript>setupScripts\timesync.ps1</testScript>
+        <files>setupScripts\timesync.ps1</files>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
+    </test>
 
-        <test>
-            <testName>VerifyLISInstall</testName>
-            <testScript>LIS_verifyLIS.sh</testScript>
-            <files>remote-scripts\ica\LIS_verifyLIS.sh</files>
-            <setupScript>SetupScripts\AddNic.ps1</setupScript>
-            <testparams>
-                <param>TC_COUNT=BVT-26,BVT-27</param>
-                <param>NIC=NetworkAdapter,External,ExternalNet</param>
-            </testparams>
-            <cleanupScript>SetupScripts\RemoveNic.ps1</cleanupScript>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test>
+    <test>
+        <testName>TimeSync_SavedVM</testName>
+        <testScript>setupScripts\timesync_savedVM.ps1</testScript>
+        <files>setupScripts\timesync_savedVM.ps1</files>
+        <timeout>1000</timeout>
+        <onError>Abort</onError>
+        <noReboot>True</noReboot>
+    </test>
 
-        <test>
-            <testName>HeartBeat</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>SetupScripts\TestVMHeartbeat.ps1</testScript>
-            <files></files>
-            <timeout>600</timeout>
-            <noReboot>True</noReboot>
-        </test>
+    <test>
+         <testName>TimeSync_NTP</testName>
+         <testScript>CORE_TimeSync_NTP.sh</testScript>
+         <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
+         <timeout>600</timeout>
+         <onError>Continue</onError>
+         <testParams>
+            <param>TC_COVERED=CORE-04</param>
+         </testParams>
+     </test>
 
-        <test>
-            <testName>TimeSync</testName>
-            <testScript>setupScripts\timesync.ps1</testScript>
-            <files>setupScripts\timesync.ps1</files>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>            
-        </test>
+    <test>
+        <testName>Multi_Cpu_Test</testName>
+        <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
+        <timeout>1600</timeout>
+        <noReboot>False</noReboot>
+        <testParams>
+            <param>TC_COVERED=CORE-11</param>
+        </testParams>
+    </test>
 
-        <test>
-            <testName>TimeSync_SavedVM</testName>
-            <testScript>setupScripts\timesync_savedVM.ps1</testScript>
-            <files>setupScripts\timesync_savedVM.ps1</files>
-            <timeout>1000</timeout>
-            <onError>Abort</onError>
-            <noReboot>True</noReboot>            
-        </test>
-        
-        <test>
-             <testName>TimeSyncNTP</testName>
-             <testScript>CORE_TimeSync_NTP.sh</testScript>
-             <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
-             <timeout>600</timeout>
-             <onError>Continue</onError>
-             <testParams>
-                <param>TC_COVERED=CORE-04</param>
-             </testParams>
-         </test>
+    <test>
+        <testName>StressReloadModules</testName>
+        <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
+        <timeout>10600</timeout>
+        <testParams>
+            <param>TC_COVERED=CORE-18</param>
+        </testParams>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+    </test>
 
-        <test>
-            <testName>SMP_VCPU_Count2</testName>
-            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
-            <testScript>TC-3-VCPU.sh</testScript>
-            <files>remote-scripts/ica/TC-3-VCPU.sh</files>
-            <testparams>        
-                <param>VCPU=2</param>                
-            </testparams>
-            <timeout>60</timeout>
-            <noReboot>True</noReboot>
-        </test>
+    <test>
+        <testName>RebootDifferentMemSettings</testName>
+        <testParams>
+            <param>TC_COVERED=CORE-17</param>
+            <param>MemSize=8GB,6GB</param>
+        </testParams>
+        <testScript>setupscripts\CORE_RebootDiffMemory.ps1</testScript>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+    </test>
 
-        <test>
-            <testName>SMP_VCPU_Count3</testName>
-            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
-            <testScript>TC-3-VCPU.sh</testScript>
-            <files>remote-scripts/ica/TC-3-VCPU.sh</files>
-            <testparams>        
-                <param>VCPU=3</param>                
-            </testparams>
-            <timeout>60</timeout>
-            <noReboot>True</noReboot>
-        </test>
+    <test>
+        <testName>LISShutdownVM</testName>
+        <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <testParams>
+            <param>TC_COVERED=CORE-07</param>
+        </testParams>
+    </test>
 
-        <test>
-            <testName>SMP_VCPU_Count4</testName>
-            <setupScript>SetupScripts\ChangeCPU.ps1</setupScript>
-            <testScript>TC-3-VCPU.sh</testScript>
-            <files>remote-scripts/ica/TC-3-VCPU.sh</files>
-            <testparams>        
-                <param>VCPU=4</param>                
-            </testparams>
-            <timeout>60</timeout>
-            <noReboot>True</noReboot>
-        </test>
+    <test>
+        <testName>LISShutDownVMAndResetCpuCount</testName>
+        <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
+        <cleanupScript>setupScripts\ResetCPU.ps1</cleanupScript>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <testParams>
+            <param>TC_COVERED=CORE-08</param>
+        </testParams>
+    </test>
 
-        <test>
-            <testName>ShutDownVM_CPU2</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>SetupScripts\TestVMShutdown.ps1</testScript>
-            <files></files>
-            <timeout></timeout>
-            <onError>Continue</onError>
-            <timeout>600</timeout>
-        </test>
+    <test>
+        <testName>VerifyLisModules</testName>
+        <testScript>LIS_VerifyHyperVIC.sh</testScript>
+        <files>remote-scripts/ica/LIS_VerifyHyperVIC.sh</files>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
+        <testParams>
+            <param>TC_COVERED=CORE-14</param>
+            <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_netvsc hv_utils hyperv_fb hid_hyperv)</param>
+        </testParams>
+    </test>
 
-        <test>
-            <testName>ShutDownVM_CPU3</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>SetupScripts\TestVMShutdown.ps1</testScript>
-            <files></files>
-            <timeout></timeout>
-            <onError>Continue</onError>
-            <timeout>600</timeout>
-        </test>
+    <test>
+        <testName>Verify_LISModules_Version</testName>
+        <testScript>CORE_LISmodules_version.sh</testScript>
+        <files>remote-scripts/ica/CORE_LISmodules_version.sh</files>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+            <param>TC_COVERED=CORE-15</param>
+            <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
+        </testparams>
+    </test>
 
-        <test>
-            <testName>ShutDownVM_CPU4</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>SetupScripts\TestVMShutdown.ps1</testScript>
-            <files></files>
-            <timeout></timeout>
-            <onError>Continue</onError>
-            <timeout>600</timeout>
-        </test>
-        
-        <test>
-            <testName>StressReloadModules</testName>
-            <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
-            <timeout>10600</timeout>
-            <testParams>
-                <param>TC_COVERED=CORE-18</param>
-            </testParams>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test>
+    <test>
+        <testName>VerifyItegratedShutdownService</testName>
+        <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
+        <timeout>600</timeout>
+        <testParams>
+            <param>TC_COVERED=CORE-16</param>
+        </testParams>
+    </test>
 
-        <test>
-            <testName>LISShutdownVM</testName>
-            <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <testParams>
-                <param>TC_COVERED=CORE-07</param>
-            </testParams>
-        </test>
-
-        <test>
-            <testName>VerifyLisModules</testName>
-            <testScript>LIS_VerifyHyperVIC.sh</testScript>
-            <files>remote-scripts/ica/LIS_VerifyHyperVIC.sh</files>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>
-            <testParams>
-                <param>TC_COVERED=CORE-14</param>
-                <param>HYPERV_MODULES=(hv_vmbus hv_storvsc hv_netvsc hv_utils hyperv_fb hid_hyperv)</param>
-            </testParams>
-        </test>
-
-        <test>
-            <testName>VerifyItegratedShutdownService</testName>
-            <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
-            <timeout>600</timeout>
-            <testParams>
-                <param>TC_COVERED=CORE-16</param>
-            </testParams>
-        </test>
+    <test>
+        <testName>FloppyDisk</testName>
+        <testScript>Core_Floppy_Disk.sh</testScript>
+        <files>remote-scripts\ica\Core_Floppy_Disk.sh</files>
+        <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>
+        <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
+        <noReboot>False</noReboot>
+        <testParams>
+            <param>TC_COVERED=CORE-19</param>
+        </testParams>
+        <onError>Continue</onError>
+        <timeout>600</timeout>
+    </test>
 
     <!-- Stress Tests -->
 
@@ -568,8 +475,8 @@
         <timeout>3200</timeout>
         <OnError>Abort</OnError>
     </test>
-        
-        <!-- Live migration -->     
+
+        <!-- Live migration -->
        <test>
             <testName>LiveMigrate</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
@@ -759,268 +666,248 @@
 
         <!--Storage -->
         <test>
-            <testName>AddDisk_IDE_1_DYNAMIC</testName>
-            <snapshotname>ICABase</snapshotname>
-            <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
-            <testParams>
-                <!-- <param>IDE_DISK=1</param> -->
-                <param>IDE=1,1,Dynamic</param>
-                <param>NO=1</param>
-                <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-35</param>
-            </testParams>           
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>10800</timeout>
-        </test>
-
-        <test>
-            <testName>AddDisk_IDE_0_DYNAMIC</testName>
-            <snapshotname>ICABase</snapshotname>
+            <testName>VHD_IDE_0_1_DYNAMIC</testName>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
                 <!-- <param>IDE_DISK=1</param> -->
                 <param>IDE=0,1,Dynamic</param>
-                <param>NO=1</param>
+                <param>IDE=1,1,Dynamic</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-36</param>
-            </testParams>           
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+                <param>TEST_DEVICE2=/dev/sdc</param>
+                <param>TC_COUNT=STOR-02</param>
+            </testParams>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>10800</timeout>
         </test>
 
         <test>
-            <testName>AddDisk_SCSI_DYNAMIC</testName>
-            <snapshotname>ICABase</snapshotname>
+            <testName>VHD_MultiDisk_SCSI_Dynamic</testName>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
-                <!-- <param>SCSI_DISK=1</param> -->               
+                <!-- <param>SCSI_DISK=1</param> -->
                 <param>SCSI=0,1,Dynamic</param>
-                <param>NO=1</param>
+                <param>SCSI=1,1,Dynamic</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-37</param>
-            </testParams>          
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+                <param>TEST_DEVICE2=/dev/sdc</param>
+                <param>TC_COUNT=STOR-03,STOR-08</param>
+            </testParams>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>10800</timeout>
         </test>
 
-        <test>
-            <testName>AddDisk_IDE_1_FIXED</testName>
-            <snapshotname>ICABase</snapshotname>
-            <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
-            <testParams>
-                <!-- <param>IDE_DISK=1</param> -->
-                <param>IDE=1,1,Fixed</param>
-                <param>NO=1</param>
-                <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-37</param>
-            </testParams>           
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>10800</timeout>
-        </test>
-
-        <test>
-            <testName>AddDisk_SCSI_FIXED</testName>
-            <snapshotname>ICABase</snapshotname>
-            <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
-            <testParams>
-                <!-- <param>SCSI_DISK=1</param> -->               
-                <param>SCSI=0,1,Fixed</param>
-                <param>NO=1</param>
-                <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-38</param>
-            </testParams>          
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>10800</timeout>
-        </test>
-
-        <test>
+         <test>
             <testName>AddDifferencing_Disk_IDE</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
-                <param>NO=1</param>
                 <param>IDE=1,1,Diff</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-38</param>
+                <param>TC_COUNT=STOR-06</param>
             </testparams>
-        </test> 
+        </test>
 
         <test>
             <testName>AddDifferencing_Disk_SCSI</testName>
-            <snapshotname>ICABase</snapshotname>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
-                <param>NO=1</param>
                 <param>SCSI=0,0,Diff</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-39</param>
+                <param>TC_COUNT=STOR-07</param>
             </testparams>
         </test>
-        
-         <test>
-            <testName>AddPassThrough_Disk_IDE_0</testName>
-            <snapshotname>ICABase</snapshotname>
-            <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
-            <testParams>                
-                <param>NO=1</param>
-                <param>IDE=0,1,PassThrough</param>
-                <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-43</param>
-            </testParams>            
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <onError>Continue</onError>
-            <timeout>10800</timeout>
-        </test>        
 
-        <test>
-            <testName>AddPassThrough_Disk_IDE_1</testName>
-            <snapshotname>ICABase</snapshotname>
+         <test>
+            <testName>VHD_AddPassThrough_Disk_IDE_0_1</testName>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
-                <param>NO=1</param>
+                <param>IDE=0,1,PassThrough</param>
                 <param>IDE=1,1,PassThrough</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-42</param>
-            </testParams>            
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+                <param>TEST_DEVICE2=/dev/sdc</param>
+                <param>passDriveNumbers=2,3</param>
+                <param>TC_COUNT=STOR-16</param>
+            </testParams>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <onError>Continue</onError>
             <timeout>10800</timeout>
         </test>
 
         <test>
-            <testName>AddPassThrough_Disk_SCSI</testName>
-            <snapshotname>ICABase</snapshotname>
+            <testName>VHD_AddPassThrough_MultiDisk_SCSI</testName>
             <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
             <testParams>
                 <!--<param>SCSI_DISK=1</param>-->
-                <param>NO=1</param>
+               <!-- <param>SCSI=0,0,PassThrough</param> -->
+                <param>SCSI=0,0,PassThrough</param>
                 <param>SCSI=0,1,PassThrough</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TC_COUNT=DSK_VHD-44</param>
-            </testParams>            
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+                <param>TEST_DEVICE2=/dev/sdc</param>
+                <param>passDriveNumbers=2,3</param>
+                <param>TC_COUNT=STOR-17,STOR-18</param>
+            </testParams>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <onError>Continue</onError>
             <timeout>10800</timeout>
         </test>
 
         <test>
-            <testName>MultiDiskIDE_Dynamic</testName>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
-            <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-            <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
-            <testparams>
-                <param>IDE=1,0,Dynamic</param>
-                <param>IDE=1,1,Dynamic</param>
-                <param>NO=2</param>
-                <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TEST_DEVICE2=/dev/sdc</param>
-                <param>TC_COUNT=DSK_VHD-45,DSK_VHD-46</param>
-            </testparams>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test>
-
-       <test>
-            <testName>MultiDiskIDE_Fixed</testName>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testName>VHD_IDE_0_1_Fixed</testName>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
                 <param>IDE=1,0,Fixed</param>
                 <param>IDE=1,1,Fixed</param>
-                <param>NO=2</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
-                <param>TC_COUNT=DSK_VHD-45,DSK_VHD-46</param>
+                <param>TC_COUNT=STOR-04</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
 
         <test>
-            <testName>MultiDiskSCSI_Fixed</testName>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testName>VHD_MultiDisk_SCSI_Fixed</testName>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
-                <param>SCSI=0,0,Fixed</param>
                 <param>SCSI=0,1,Fixed</param>
-                <param>NO=2</param>
+                <param>SCSI=0,2,Fixed</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
-                <param>TC_COUNT=DSK_VHD-47</param>
+                <param>TC_COUNT=STOR-05</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
 
         <test>
-            <testName>HotADD_Multi_Disk_SCSI_Dynamic</testName>
-            <testScript>LIS_Addnewdisk.sh</testScript>
-            <files>remote-scripts/ica/LIS_Addnewdisk.sh</files>
+            <testName>VHD_HotADD_Multi_Dynamic_SCSI_SMP</testName>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+
             <preTest>setupScripts\AddHardDisk.ps1</preTest>
-            <!-- <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>          -->
+            <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>         
             <timeout>18000</timeout>
             <testparams>
-                <param>SCSI=0,0,Dynamic</param>  
-                <param>SCSI=0,1,Dynamic</param>  
-                <param>NO=2</param>
+                <param>SCSI=0,1,Dynamic</param>
+                <param>SCSI=0,2,Dynamic</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
-                <param>TC_COUNT=DSK_VHD-51,DSK_VHD-53</param>           
+                <param>TC_COUNT=STOR-09,STOR-10,STOR-11</param>
+                <param>VCPU=4</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
         </test>
 
         <test>
-            <testName>HotRemove_Multi_Disk_SCSI_Dynamic</testName>
+            <testName>VHD_HotRemove_Multi_Dynamic_SCSI_SMP</testName>
+            <testScript>hot_remove.sh</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <!-- <setupScript>setupScripts\AddHardDisk.ps1</setupScript> -->
+            <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
+            <files>remote-scripts/ica/hot_remove.sh</files>
+            <timeout>18000</timeout>
+            <testparams>
+                <param>SCSI=0,0,Dynamic</param>
+                <param>SCSI=0,1,Dynamic</param>
+                <param>TC_COUNT=STOR-09,STOR-10,STOR-11</param>
+                <param>VCPU=4</param>
+            </testparams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+           <testName>HotADD_Multi_PassThrough_SCSI</testName>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <preTest>setupScripts\AddHardDisk.ps1</preTest>
+            <!-- <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>          -->
+            <timeout>18000</timeout>
+            <testparams>
+                <param>SCSI=0,0,PassThrough</param>
+                <param>SCSI=0,1,PassThrough</param>
+                <param>TEST_DEVICE1=/dev/sdb</param>
+                <param>TEST_DEVICE2=/dev/sdc</param>
+                <param>passDriveNumbers=2,3</param>
+                <param>TC_COUNT=STOR-19,STOR-20</param>
+            </testparams>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>   
+       
+    <test>
+            <testName>HotRemove_Multi_PassThrough_SCSI</testName>
             <testScript>hot_remove.sh</testScript>
             <files>remote-scripts/ica/hot_remove.sh</files>
             <!-- <setupScript>setupScripts\AddHardDisk.ps1</setupScript> -->
             <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
             <timeout>18000</timeout>
             <testparams>
-                <param>SCSI=0,0,Dynamic</param>
-                <param>SCSI=0,1,Dynamic</param>
-                <param>TC_COUNT=DSK_VHD-52,DSK_VHD-54</param>              
+                <param>SCSI=0,0,PassThrough</param>
+                <param>SCSI=0,1,PassThrough</param>
+                <param>passDriveNumbers=2,3</param>
+                <param>TC_COUNT=STOR-19,STOR-20</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
+        </test>
+
+         <test>
+            <testName>VHD_SCSI_0_1_Dynamic_Big</testName>
+            <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
+            <testParams>
+                <param>SCSI=0,1,Dynamic,250GB</param>
+                <param>TEST_DEVICE1=/dev/sdb</param>
+                <param>TC_COUNT=STOR-13</param>
+            </testParams>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>10800</timeout>
+        </test>
+
+        <test>
+            <testName>VHD_SCSI_0_1_Format_btrfs</testName>
+            <setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
+            <testParams>
+                <!-- <param>SCSI_DISK=1</param> -->
+                <param>SCSI=0,1,Dynamic</param>
+                <param>fileSystems=btrfs</param>
+                <param>TEST_DEVICE1=/dev/sdb</param>
+                <param>TC_COUNT=STOR-12</param>
+            </testParams>
+            <testScript>STOR_Big_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Big_Disk.sh</files>
+            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>10800</timeout>
         </test>
 
         <test>
@@ -1031,7 +918,7 @@
             <timeout>600</timeout>
             <testparams>
                 <param>SnapshotName=LIS_Snapshot</param>
-                <param>TC_COVERED=SNAP-58</param>
+                <param>TC_COVERED=STOR-14</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -1046,7 +933,7 @@
             <timeout>600</timeout>
             <testparams>
                 <param>SnapshotName=LIS_Snapshot</param>
-                <param>TC_COVERED=SNAP-59</param>
+                <param>TC_COVERED=STOR-15</param>
             </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -1057,303 +944,355 @@
             <testScript>setupScripts\TestExportImport.ps1</testScript>
             <files>setupScripts\TestExportImport.ps1</files>
             <timeout>600</timeout>
+            <testparams>
+                <param>TC_COVERED=STOR-43</param>
+            </testparams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
             </testparams>
         </test>
 
+
 <!-- NETWORK -->
+        <test>
+            <testName>ConfigureNetwork</testName>
+            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>TC_COVERED=NET-01</param>
+                <!-- As possible, please try to set a static IP not used by the DHCP Server -->
+                <!-- Alternatively, find out which IP is leased by the dhcp server to us and set it to the IP -->
+                <!-- <param>STATIC_IP=192.168.0.2</param> -->
+                <!-- <param>NETMASK=255.255.255.0</param> -->
+                <param>REMOTE_SERVER=8.8.8.8</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
+            </testParams>
+            <testScript>NET_CONFIGURE_NETWORK.sh</testScript>
+            <files>remote-scripts/ica/NET_CONFIGURE_NETWORK.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
 
         <test>
-        <testName>Ping_External_Network</testName>
-        <snapshotname>ICABase</snapshotname>
-        <setupScript>SetupScripts\AddNIC.ps1</setupScript>
-        <testParams>
-            <param>NIC=NetworkAdapter,External,external,00155D02287C</param>
-            <param>REPOSITORY_SERVER=8.8.8.8</param>
-            <param>NW_ADAPTER=1</param>
-            <param>NW_FEDORA_SET_GATEWAY=1</param>
-            <param>TC_COUNT=NET-95,NET-99</param>
-        </testParams>            
-        <testScript>LIS_PING_EXTERNAL.sh</testScript>
-        <files>remote-scripts/ica/LIS_PING_EXTERNAL.sh</files>
-        <cleanupScript>SetupScripts\RemoveNIC.ps1</cleanupScript>
-        <timeout>10800</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-    </test>
-        
-    <test>
-        <testName>Ping_Internal_Network</testName>
-        <testScript>LIS_Internal_Network.sh</testScript>
-        <files>remote-scripts/ica/LIS_Internal_Network.sh</files>
-        <setupScript>setupScripts\AddNIC.ps1</setupScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-        <testparams>
-            <param>NIC=NetworkAdapter,Internal,internal,00155D02287C</param>
-            <param>PRIVATE_STATIC_IP=169.254.202.200</param>
-            <param>HOST_SERVER_INTERNAL_IP=169.254.202.244</param>
-            <param>PRIVATE_NETWORK_MASK=255.255.0.0</param>
-            <param>REPOSITORY_SERVER=8.8.8.8</param>
-            <param>TC_COUNT=NET-98</param>
-            <param>NW_ADAPTER=1</param>
-        </testparams>
-        <cleanupScript>SetupScripts\RemoveNIC.ps1</cleanupScript>
-                   <onError>Continue</onError>
+            <testName>InternalNetwork</testName>
+            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,Internal,Internal,001600112200</param>
+                <param>TC_COVERED=NET-04</param>
+                <param>STATIC_IP=10.10.10.2</param>
+                <param>NETMASK=255.255.0.0</param>
+                <param>PING_SUCC=10.10.10.1</param>
+                <param>PING_FAIL=8.8.8.8</param>
+                <param>PING_FAIL2=192.168.0.2</param>
+            </testParams>
+            <testScript>NET_TEST_NETWORK.sh</testScript>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
 
-        </test> 
+        <test>
+            <testName>External</testName>
+            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>TC_COVERED=NET-05</param>
+                <param>PING_SUCC=8.8.8.8</param>
+                <param>PING_FAIL=192.168.0.1</param>
+                <param>PING_FAIL2=10.10.10.5</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
+            </testParams>
+            <testScript>NET_TEST_NETWORK.sh</testScript>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
 
-    <test>
-        <testName>Ping_Private_Network</testName>
-        <snapshotname>ICABase</snapshotname>
-        <setupScript>SetupScripts\AddNIC.ps1</setupScript>
-        <testParams>
-            <param>NIC=NetworkAdapter,Private,PrivateNet,00155D02287C</param>
-            <param>VM_GUEST_ONLY_IP=10.10.10.5</param>
-            <param>PRIVATE_STATIC_IP=10.10.10.4</param>
-            <param>HOST_SERVER_INTERNAL_IP=192.168.0.1</param>
-            <param>REPOSITORY_SERVER=8.8.8.8</param>
-            <param>NW_ADAPTER=1</param>
-            <param>TC_COUNT=NET-100</param>                   
-        </testParams>            
-        <testScript>LIS_GuestOnly_Network.sh</testScript>
-        <files>remote-scripts/ica/LIS_GuestOnly_Network.sh</files>
-        <cleanupScript>SetupScripts\RemoveNIC.ps1</cleanupScript>
-        <timeout>10800</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-    </test>        
-        
-    <test>
-        <testName>AddMultipleNIC</testName>
-        <snapshotname>ICABase</snapshotname>
-        <setupScript>SetupScripts\AddNIC.ps1</setupScript>
-        <testParams>
-            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
-            <param>REPOSITORY_SERVER=8.8.8.8</param>
-            <param>NW_ADAPTER=2</param>
-            <param>NW_FEDORA_SET_GATEWAY=0</param>
-            <param>TC_COUNT=NET-100</param>
-        </testParams>            
-        <testScript>LIS_PING_EXTERNAL_Multi.sh</testScript>
-        <files>remote-scripts/ica/LIS_PING_EXTERNAL_Multi.sh</files>
-        <cleanupScript>SetupScripts\RemoveNIC.ps1</cleanupScript>
-        <timeout>10800</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-    </test>
-        
-        
-    <test>
-        <testName>NETWORK_MODE</testName>
-        <testScript>LIS_NETWORK_MODE.sh</testScript>
-        <files>remote-scripts/ica/LIS_NETWORK_MODE.sh</files>
-        <setupScript>SetupScripts\AddNIC.ps1</setupScript>
-        <cleanupScript>SetupScripts\RemoveNIC.ps1</cleanupScript>
-        <testParams>
-            <param>NIC=NetworkAdapter,External,external,00155D02287C</param>
-            <param>TC_COUNT=NET-104</param>
-            <param>REPOSITORY_SERVER=8.8.8.8</param>
-        </testParams>
-        <noReboot>False</noReboot>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-     </test>
+        <test>
+            <testName>GuestOnlyNetwork</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>TC_COVERED=NET-06</param>
+                <param>STATIC_IP=10.10.10.1</param>
+                <param>STATIC_IP2=10.10.10.2</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>VM2NAME=vm2Name</param>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
 
-     <test>
-        <testName>Copy_Large_File</testName>
-        <testScript>LIS_Secure_Copy.sh</testScript>
-        <files>remote-scripts/ica/LIS_Secure_Copy.sh</files>
-        <setupScript>SetupScripts\AddNIC.ps1</setupScript>
-        <cleanupScript>SetupScripts\RemoveNIC.ps1</cleanupScript>
-        <testparams>   
-            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>             
-            <param>REPOSITORY_SERVER=10.7.1.152</param>
-            <param>REPOSITORY_EXPORT=/tmp/</param>
-            <param>TC_COUNT=NET-96</param>                    
-        </testparams>
-        <timeout>18000</timeout>
-        <onError>Continue</onError>
-    </test>
-     
-    <test>
-        <testName>StaticMac</testName>
-        <testScript>LIS_StaticMAC.sh</testScript>
-        <files>remote-scripts/ica/LIS_StaticMAC.sh</files>
-        <setupScript>setupScripts\AddNIC_MAC.ps1</setupScript>
-        <cleanupScript>setupScripts\RemoveNIC_MAC.ps1</cleanupScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-        <testparams>
-            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
-            <param>TC_COVERED=NET-103</param>
-            <param>TARGET_ADDR=10.10.10.10</param>
-            <param>MAC=00:15:5D:02:28:7C</param>
-        </testparams>
-        <onError>Continue</onError>
-    </test>
-        
-    <test>
-        <testName>SetMTU</testName>
-        <testScript>LIS_SetMTU_New.sh</testScript>
-        <files>remote-scripts/ica/LIS_SetMTU_New.sh</files>
-        <setupScript>setupScripts\LegacyToVMBusNIC.ps1</setupScript>
-        <cleanupScript>setupScripts\VMBusToLegacyNIC.ps1</cleanupScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-        <testparams>
-            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
-            <param>TC_COVERED=NET-106</param>
-            <param>MAC=00155D02287C</param>
-            <param>TARGET_ADDR=8.8.8.8</param>
-        </testparams>
-        <onError>Continue</onError>
-    </test>
+         <test>
+            <testName>MultipleNIC</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External,001600112201</param>
+                <param>TC_COVERED=NET-07</param>
+                <!-- <param>NETMASK=255.255.255.0</param> -->
+                <param>PING_SUCC=8.8.8.8</param>
+                <param>PING_FAIL=192.168.0.1</param>
+                <param>PING_FAIL2=10.10.10.5</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <testScript>NET_TEST_NETWORK.sh</testScript>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
 
-    <test>
-        <testName>SwitchNIC</testName>
-        <setupScript>SetupScripts\AddNIC.ps1</setupScript>
-        <testParams>
-            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
-            <param>REPOSITORY_SERVER=8.8.8.8</param>
-            <param>NW_ADAPTER=1</param>
-            <param>GATEWAY=10.7.1.1</param>
-            <param>TC_COUNT=NET-105</param>
-        </testParams> 
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>           
-        <testScript>LIS_SwitchNIC.sh</testScript>
-        <files>remote-scripts/ica/LIS_SwitchNIC.sh</files>
-        <timeout>800</timeout>
-        <onError>Continue</onError>
-    </test>
+        <test>
+            <testName>LegacySyntheticNetwork</testName>
+            <setupScript>
+                 <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\ChangeCPU.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=LegacyNetworkAdapter,External,External,001600112201</param>
+                <param>TC_COVERED=NET-08</param>
+                <param>REMOTE_SERVER=8.8.8.8</param>
+                <param>LO_IGNORE=yes</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
+                <param>VCPU=1</param>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <testScript>NET_LEGACY.sh</testScript>
+            <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
 
-    <test>
-        <testName>SwitchNICInternal</testName>
-        <testScript>LIS_Internal_Network.sh</testScript>
-        <files>remote-scripts/ica/LIS_Internal_Network.sh</files>
-        <pretest>setupScripts\SwitchNIC.ps1</pretest>
-        <timeout>800</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>           
-        <testparams>
-            <param>NIC=NetworkAdapter,Internal,internal,00155D02287C</param>
-            <param>PRIVATE_STATIC_IP=169.254.202.200</param>
-            <param>HOST_SERVER_INTERNAL_IP=169.254.202.244</param>
-            <param>PRIVATE_NETWORK_MASK=255.255.0.0</param>
-            <param>REPOSITORY_SERVER=8.8.8.8</param>
-            <param>TC_COUNT=NET-105</param>
-            <param>NW_ADAPTER=1</param>
-        </testparams>
-        <onError>Continue</onError>
-    </test>
-       
-    <test>
-        <testName>SwitchNICPrivate</testName>
-        <testScript>LIS_GuestOnly_Network.sh</testScript>
-        <files>remote-scripts/ica/LIS_GuestOnly_Network.sh</files>
-        <pretest>setupScripts\SwitchNIC.ps1</pretest>
-        <cleanupScript>setupScripts\RemoveNIC.ps1</cleanupScript>
-        <timeout>800</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-        <testparams>
-            <param>NIC=NetworkAdapter,Private,PrivateNet,00155D02287C</param>
-            <param>VM_GUEST_ONLY_IP=10.10.10.5</param>
-            <param>PRIVATE_STATIC_IP=10.10.10.4</param>
-            <param>HOST_SERVER_INTERNAL_IP=192.168.0.1</param>
-            <param>REPOSITORY_SERVER=8.8.8.8</param>
-            <param>NW_ADAPTER=1</param>
-            <param>TC_COUNT=NET-105</param>
-        </testparams>
-        <onError>Continue</onError>
-    </test>
-       
-    <test>
-        <testName>Read_Verify_IP_of_NIC</testName>
-        <setupScript>SetupScripts\AddNic.ps1</setupScript>
-        <testScript>setupScripts\ReadVerifyIP.ps1</testScript>
-        <cleanupScript>SetupScripts\RemoveNic.ps1</cleanupScript>
-        <testParams>
-            <param>TestCaseTimeout=300</param>
-            <param>NIC=NetworkAdapter,External,External,00155D02287C</param>
-            <param>TARGET_ADDR=10.10.11.33</param>
-        </testParams>
-        <timeout>800</timeout>
-        <onError>Abort</onError>
-        <noReboot>False</noReboot> 
-        <onError>Continue</onError>           
-    </test>
+        <test>
+            <testName>StaticMAC</testName>
+            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112233</param>
+                <param>TC_COVERED=NET-09</param>
+                <param>MAC=00:16:00:11:22:33</param>
+                <param>REMOTE_SERVER=8.8.8.8</param>
+                <param>LO_IGNORE=yes</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
+            </testParams>
+            <testScript>NET_STATIC_MAC.sh</testScript>
+            <files>remote-scripts/ica/NET_STATIC_MAC.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
 
-    <test> 
-        <testName>VerifyVlanTagExt</testName> 
-        <testScript>setupScripts\VerifyVlanTag.ps1</testScript> 
-        <files>setupScripts\VerifyVlanTag.ps1</files> 
-        <setupScript>setupScripts\ConfigureVlan.ps1</setupScript> 
-        <cleanupScript>setupScripts\vlansnap.ps1</cleanupScript> 
-        <timeout>600</timeout> 
-        <testparams> 
-            <param>VM2=DM1_SLES11SP3</param> 
-            <param>switchName=ExternalNet</param> 
-            <param>VM1VlanIP=192.168.3.22</param> 
-            <param>VM2VlanIP=192.168.3.11</param> 
-            <param>ipv4=10.10.99.44</param> 
-            <param>ipv4vm2=10.10.98.55</param> 
-            <param>RootDir=D:\SustainingTests-ICA\UpdatedCode</param> 
-            <param>TC_COVERED=NET-100</param> 
-        </testparams> 
-        <onError>Continue</onError> 
-        <noReboot>False</noReboot> 
-    </test>
+        <test>
+            <testName>ChangeNetTypeInternal</testName>
+            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <pretest>setupScripts\NET_SWITCH_NIC_MAC1.ps1</pretest>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>SWITCH=NetworkAdapter,Internal,Internal,001600112200</param>
+                <param>TC_COVERED=NET-13</param>
+                <param>STATIC_IP=192.168.0.2</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>PING_SUCC=192.168.0.1</param>
+                <param>PING_FAIL=8.8.8.8</param>
+                <param>PING_FAIL2=10.10.10.5</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testScript>NET_TEST_NETWORK.sh</testScript>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>ChangeNetTypeGuest</testName>
+            <pretest>setupScripts\NET_SWITCH_NIC_MAC1.ps1</pretest>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>SWITCH=NetworkAdapter,Private,Private,001600112200</param>
+                <param>TC_COVERED=NET-13</param>
+                <param>STATIC_IP=10.10.10.10</param>
+                <param>STATIC_IP2=10.10.10.20</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>VM2NAME=vm2Name</param>
+                <param>PING_FAIL=8.8.8.8</param>
+                <param>PING_FAIL2=192.168.0.1</param>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <cleanupScript>setupscripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>NetworkMode</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testScript>NET_PROMISC.sh</testScript>
+            <files>remote-scripts/ica/NET_PROMISC.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>TC_COVERED=NET-12</param>
+                <param>REMOTE_SERVER=8.8.8.8</param>
+                <!-- <param>GATEWAY=192.168.0.1</param> -->
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <noReboot>False</noReboot>
+            <timeout>600</timeout>
+            <cleanupScript>setupscripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+        </test>
+
+        <test>
+            <testName>JumboFrame</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
+            <testparams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>TC_COVERED=NET-14</param>
+                <param>STATIC_IP2=10.200.51.200</param>
+                <param>NETMASK=255.255.252.0</param>
+                <param>VM2NAME=vm2Name</param>
+                <param>SnapshotName=ICABase</param>
+                <param>SSH_PRIVATE_KEY=sshKey</param>
+                <param>REMOTE_USER=root</param>
+            </testparams>
+            <testScript>NET_JUMBO_FRAMES.sh</testScript>
+            <files>remote-scripts/ica/NET_JUMBO_FRAMES.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>setupscripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <timeout>1800</timeout>
+        </test>
+
+        <test>
+            <testName>CopyLargeFile</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>TC_COVERED=NET-01</param>
+                <param>STATIC_IP2=10.200.51.200</param>
+                <param>NETMASK=255.255.252.0</param>
+                <param>VM2NAME=vm2Name</param>
+                <param>SnapshotName=ICABase</param>
+                <param>SSH_PRIVATE_KEY=sshKey</param>
+                <param>ZERO_FILE=yes</param>
+                <param>FILE_SIZE_GB=4</param>
+                <param>REMOTE_USER=root</param>
+            </testParams>
+            <testScript>NET_COPY_LARGE.sh</testScript>
+            <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>setupscripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>8000</timeout>
+        </test>
+
+        <test>
+            <testName>VlanTagging</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>TC_COVERED=NET-01</param>
+                <param>STATIC_IP=10.200.51.200</param>
+                <param>STATIC_IP2=10.200.51.201</param>
+                <param>NETMASK=255.255.252.0</param>
+                <param>VM2NAME=vm2Name</param>
+                <param>VLAN_ID=2</param>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <cleanupScript>setupscripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>1000</timeout>
+        </test>
+
+        <test>
+            <testName>OperState</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,None,None,001600112200</param>
+                <param>TC_COVERED=NET-22</param>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <testScript>NET_OPERSTATE.sh</testScript>
+            <files>remote-scripts/ica/NET_OPERSTATE.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
 
     <!-- Stress Tests -->
-    <test> 
-            <testName>Performance_IOzone</testName> 
+    <test>
+            <testName>Performance_IOzone</testName>
             <testScript>Performance_IOzone.sh</testScript>
             <files>remote-scripts/ica/Performance_IOzone.sh</files>
             <files>Tools/iozone3_420.tar</files>
-            <setupScript>setupScripts\Performance_IOzone_AddVhd.ps1</setupScript> 
-            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript> 
-            <timeout>18000</timeout> 
-            <testParams>  
-                <param>SCSI=0,0,Fixed</param> 
-                <param>TOTAL_DISKS=1</param> 
-                <param>TEST_DEVICE1=/dev/sdb</param>  
+            <setupScript>setupScripts\Performance_IOzone_AddVhd.ps1</setupScript>
+            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
+            <timeout>18000</timeout>
+            <testParams>
+                <param>SCSI=0,0,Fixed</param>
+                <param>TOTAL_DISKS=1</param>
+                <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>FILE_NAME=iozone3_420.tar</param>
-                <param>SnapshotName=ICABase</param> 
-            </testParams> 
-            <onError>Continue</onError> 
-            <noReboot>False</noReboot> 
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
         </test>
-         
+
          <test>
-            <testName>Performance_Dynamo</testName>     
+            <testName>Performance_Dynamo</testName>
             <testScript>Performance_Dynamo.sh</testScript>
             <files>remote-scripts/ica/Performance_Dynamo.sh</files>
             <files>Tools/iometer-1.1.0-rc1-src.tar.bz2</files>
-            <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
+            <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
             <testParams>
                 <param>IOMETER_IP=0.0.0.0</param>
                 <param>IDE=0,1,Fixed</param>
-                <param>SCSI=0,0,Fixed</param> 
-                <param>TOTAL_DISKS=2</param> 
-                <param>TEST_DEVICE1=/dev/sdb</param> 
-                <param>TEST_DEVICE2=/dev/sdc</param> 
+                <param>SCSI=0,0,Fixed</param>
+                <param>TOTAL_DISKS=2</param>
+                <param>TEST_DEVICE1=/dev/sdb</param>
+                <param>TEST_DEVICE2=/dev/sdc</param>
                 <param>FILE_NAME=iometer-1.1.0-rc1-src.tar.bz2</param>
-                <param>SnapshotName=ICABase</param> 
+                <param>SnapshotName=ICABase</param>
             </testParams>
             <timeout>1200</timeout>
             <OnError>Abort</OnError>
          </test>
 
          <test>
-            <testName>Performance_Kernbench</testName>          
+            <testName>Performance_Kernbench</testName>
             <testScript>Performance_Kernbench.sh</testScript>
             <files>remote-scripts/ica/Performance_Kernbench.sh</files>
             <files>Tools/kernbench-0.50.tar.bz2</files>

@@ -42,11 +42,12 @@
 #
 ########################################################################
 
-ICA_TESTRUNNING="TestRunning"      # The test is running
-ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
-ICA_TESTABORTED="TestAborted"      # Error during setup of test
-ICA_TESTFAILED="TestFailed"        # Error while performing the test
+ICA_TESTRUNNING="TestRunning"       # The test is running
+ICA_TESTCOMPLETED="TestCompleted"   # The test completed successfully
+ICA_TESTABORTED="TestAborted"       # Error during setup of test
+ICA_TESTFAILED="TestFailed"         # Error while performing the test
 maxdelay=5.0                        # max offset in seconds.
+zerodelay=0.0                       # zero
 declare os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
 
 ########################################################################
@@ -293,10 +294,51 @@ elif is_ubuntu ; then
     fi
 
 elif is_suse ; then
-    # TODO
-    LogMsg "SUSE: TODO" 
+    service ntpd restart
+    if [[ $? -ne 0 ]]; then
+        LogMsg "NTP is not installed. Trying to install ..."
+        zypper install ntp -y
+        if [[ $? -ne 0 ]] ; then
+            LogMsg "ERROR: Unable to install ntp. Aborting"
+            UpdateTestState $ICA_TESTABORTED
+            exit 10
+        fi
+        LogMsg "NTP installed succesfully!"
+    fi
 
-else # other distro's
+    service ntpd stop
+
+    # Edit NTP Server config and set the timeservers
+    sed -i 's/^server.*/ /g' /etc/ntp.conf
+    echo "
+    server 0.pool.ntp.org
+    server 1.pool.ntp.org
+    server 2.pool.ntp.org
+    server 3.pool.ntp.org
+    " >> /etc/ntp.conf
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+    # set rtc clock to system time
+    hwclock --systohc 
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+    # Restart NTP service
+    service ntpd restart
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to restart ntpd. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+else # other distro
     LogMsg "Distro not suported. Aborting"
     UpdateTestState $ICA_TESTABORTED
     exit 10
@@ -319,9 +361,12 @@ delay=$(ntpdc -c loopinfo | awk 'NR==1 {print $2}')
 # Using awk for float comparison
 check=$(echo "$delay $maxdelay" | awk '{if ($1 < $2) print 0; else print 1}')
 
-if [[ $delay -eq "0" ]]; then
+# Also check if delay is 0.0
+checkzero=$(echo "$delay $zerodelay" | awk '{if ($1 == $2) print 0; else print 1}')
+
+if [[ $checkzero -eq 0 ]]; then
     # If delay is 0, something is wrong, so we abort.
-    LogMsg "WARNING: Delay cannot be 0. Aborting"
+    LogMsg "ERROR: Delay cannot be 0.000; Please check NTP sync manually."
     UpdateTestState $ICA_TESTABORTED
     exit 10
 elif [[ 0 -ne $check ]] ; then    
@@ -333,7 +378,7 @@ fi
 
 # If we reached this point, time is synced.
 LogMsg "NTP offset is $delay seconds."
-LogMsg "SUCCES: NTP time synced!"
+LogMsg "SUCCESS: NTP time synced!"
 
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0

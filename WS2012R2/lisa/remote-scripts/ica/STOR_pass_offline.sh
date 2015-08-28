@@ -66,7 +66,7 @@ LinuxRelease()
             echo "CENTOS";;
         *SUSE*)
             echo "SLES";;
-        Red*Hat*)
+        *Red*Hat*)
             echo "RHEL";;
         Debian*)
             echo "DEBIAN";;
@@ -241,7 +241,7 @@ fi
 # Compute the number of sd* drives on the system.
 #
 initialSdCount=0
-for drive in $(find /sys/devices/ -name sd* | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for drive in /dev/sd*[^0-9]
 do
     initialSdCount=$((initialSdCount+1))
 done

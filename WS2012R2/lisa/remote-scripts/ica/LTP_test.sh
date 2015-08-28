@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -28,10 +28,10 @@
 #	Steps:
 #	1. Installs dependencies
 #	2. Compiles and installs LTP
-#	3. Runs LTP
+#	3. Runs LTP in lite mode
 #	4. Collects results
 #
-#	No optional parameters needed
+#	No optional parameters are needed
 #
 ########################################################################
 ICA_TESTRUNNING="TestRunning"      # The test is running
@@ -41,35 +41,42 @@ ICA_TESTFAILED="TestFailed"        # Error while performing the test
 
 CONSTANTS_FILE="constants.sh"
 
+TOP_BUILDDIR="/opt/ltp"
+TOP_SRCDIR="$HOME/src"
+LTP_RESULTS="/root/ltp-results.log"
+LTP_OUTPUT="/root/ltp-output.log"
+LTP_FAILED="/root/ltp-failed.log"
+LTP_HTML="/root/ltp-results.html"
+LTP_SKIPFILE="/root/ltp-skipfile"
+DMESG_LOG_DIR="/root/ltp-kernel.log"
+
+MAKE_JOBS=$(getconf _NPROCESSORS_ONLN)
+
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
-LogMsg()
-{
+LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1}
 }
 
 #######################################################################
 # Updates the summary.log file
 #######################################################################
-UpdateSummary()
-{
+UpdateSummary() {
     echo $1 >> ~/summary.log
 }
 
 #######################################################################
 # Keeps track of the state of the test
 #######################################################################
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
 
 #######################################################################
 # Checks what Linux distro we are running
 #######################################################################
-LinuxRelease()
-{
+LinuxRelease() {
     DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
 
     case $DISTRO in
@@ -97,8 +104,7 @@ LinuxRelease()
 #######################################################################
 # Installs SLES LTP dependencies
 #######################################################################
-InstallSLESDependencies()
-{
+InstallSLESDependencies() {
 	
 	zypper --non-interactive in autoconf
 	zypper --non-interactive in automake
@@ -115,13 +121,13 @@ InstallSLESDependencies()
 	zypper --non-interactive in 'automake>=1.10.2'
 	zypper --non-interactive in 'autoconf>=2.61'
 	zypper --non-interactive in gcc
+	zypper --non-interactive in git-core
 }
 
 #######################################################################
 # Installs UBUNTU LTP dependencies
 #######################################################################
-InstallUbuntuDependencies()
-{
+InstallUbuntuDependencies() {
 	apt-get -y install autoconf
 	apt-get -y install automake
 	apt-get -y install m4
@@ -137,13 +143,14 @@ InstallUbuntuDependencies()
 	apt-get -y install automake
 	apt-get -y install autoconf
 	apt-get -y install gcc
+	apt-get -y install git
+	apt-get -y install expect
 }
 
 #######################################################################
 # Installs RHEL LTP dependencies
 #######################################################################
-InstallRHELDependencies()
-{
+InstallRHELDependencies() {
 	yum install -y autoconf
 	yum install -y automake
 	yum install -y m4
@@ -196,17 +203,6 @@ fi
 #
 echo "Covers ${TC_COVERED}" > ~/summary.log
 
-TOP_BUILDDIR="/opt/ltp"
-TOP_SRCDIR="$HOME/src"
-LTP_RESULTS="/root/ltp-results.log"
-LTP_OUTPUT="/root/ltp-output.log"
-LTP_FAILED="/root/ltp-failed.log"
-LTP_HTML="/root/ltp-results.html"
-LTP_SKIPFILE="/root/ltp-skipfile"
-DMESG_LOG_DIR="/root/ltp-kernel.log"
-
-MAKE_JOBS=$(getconf _NPROCESSORS_ONLN)
-
 LogMsg "Installing dependencies"
 case $(LinuxRelease) in
 	"SLES")
@@ -243,39 +239,30 @@ cd $TOP_BUILDDIR && "$TOP_SRCDIR/configure"
 cd "$TOP_SRCDIR"
 ./configure
 
-LogMsg "Compiling LTP"
+LogMsg "Compiling LTP..."
 make all
 if [ $? -gt 0 ]; then
-	Logmsg "Failed to compile LTP"
-	UpdateSummary "Compiling LTP failed"
+	Logmsg "Error: Failed to compile LTP!"
+	UpdateSummary "Error: Failed to compile LTP!"
 	UpdateTestState $ICA_TESTFAILED
 	exit 10
 fi
 
-LogMsg "Installing LTP"
+LogMsg "Installing LTP..."
 make install
 if [ $? -gt 0 ]; then
-        Logmsg "Failed to install LTP"
-        UpdateSummary "Installing LTP failed"
+        Logmsg "Error: Failed to install LTP!"
+        UpdateSummary "Error: Failed to install LTP!"
         UpdateTestState $ICA_TESTFAILED
         exit 10
 fi
 
-LogMsg "Creating skip file"
-cat <<-EOF > "$LTP_SKIPFILE"
-cpuhotplug01
-cpuhotplug02
-cpuhotplug03
-cpuhotplug04
-cpuhotplug05
-cpuhotplug06
-cpuhotplug07
-EOF
-
-
 cd $TOP_BUILDDIR
-LogMsg "Running LTP"
-./runltp -c 2 -i 2 -p -q -S $LTP_SKIPFILE -l $LTP_RESULTS -o $LTP_OUTPUT -C $LTP_FAILED -g $LTP_HTML -d $TOP_BUILDDIR 
+LogMsg "Running LTP..."
+# Old method can break the test run, using lite mode instead
+#./runltp -c 4 -i 4 -p -q -S $LTP_SKIPFILE -l $LTP_RESULTS -o $LTP_OUTPUT -C $LTP_FAILED -g $LTP_HTML -d $TOP_BUILDDIR
+
+./runltplite.sh -c 4 -p -q -l $LTP_RESULTS -o $LTP_OUTPUT
 
 LogMsg "Updating summary log"
 grep -A 5 "Total Tests" $LTP_RESULTS >> ~/summary.log

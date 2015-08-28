@@ -2,7 +2,7 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\Lisa\TestResult</logfileRootDir>
+        <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -101,7 +101,7 @@
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>SCSI=0,1,Dynamic,2GB</param>
-                <param>TC_COVERED=STOR-26,STOR-27</param>
+                <param>TC_COVERED=STOR-12</param>
                 <param>fileSystems=(btrfs)</param>
             </testParams>
             <testScript>STOR_Big_Disk.sh</testScript>
@@ -114,7 +114,7 @@
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>SCSI=0,1,Dynamic,2039GB</param>
-                <param>TC_COVERED=STOR-26,STOR-27</param>
+                <param>TC_COVERED=STOR-13</param>
                 <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
             </testParams>
             <testScript>STOR_Big_Disk.sh</testScript>
@@ -226,8 +226,9 @@
             <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
-                <param>ParentVhd=DynamicParent.vhd</param>
                 <param>IDE=1,1,Diff</param>
+                <param>FILESYS=ext3</param>
+                <param>vhdFormat=vhd</param>
                 <param>TC_COVERED=STOR-06</param>
             </testparams>
             <onError>Continue</onError>
@@ -240,8 +241,9 @@
             <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
-                <param>ParentVhd=DynamicParent.vhd</param>
                 <param>SCSI=0,0,Diff</param>
+                <param>FILESYS=ext3</param>
+                <param>vhdFormat=vhd</param>
                 <param>TC_COVERED=STOR-07</param>
             </testparams>
             <onError>Continue</onError>

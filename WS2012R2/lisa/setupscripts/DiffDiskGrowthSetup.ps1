@@ -148,10 +148,46 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
     return $True
 }
 
+
 #######################################################################
-#
+# Create parentVhd
+#######################################################################
+function CreateParentVhd([string] $vhdFormat, [string] $server)
+{
+    $hostInfo = Get-VMHost -ComputerName $server
+    if (-not $hostInfo)
+        {
+            "Error: Unable to collect Hyper-V settings for ${server}"
+            return $False
+        }
+
+    $defaultVhdPath = $hostInfo.VirtualHardDiskPath
+    if (-not $defaultVhdPath.EndsWith("\"))
+        {
+            $defaultVhdPath += "\"
+        }
+
+    $parentVhdName = $defaultVhdPath + $vmName + "_Parent." + $vhdFormat
+    if(Test-Path $parentVhdName)
+        {
+            Remove-Item $parentVhdName
+        }
+
+    $fileInfo = GetRemoteFileInfo -filename $parentVhdName -server $server
+    if (-not $fileInfo)
+        {
+        $nv = New-Vhd -Path $parentVhdName -SizeBytes 2GB -Dynamic -ComputerName $server
+        if ($nv -eq $null)
+            {
+                "Error: New-VHD failed to create the new .vhd file: $parentVhdName"
+                return $False
+            }
+        }
+        return $parentVhdName
+}
+
+#######################################################################
 # Main script body
-#
 #######################################################################
 
 "DiffDiskGrowthSetup.ps1"
@@ -180,7 +216,7 @@ $controllerID = $null
 $lun = $null
 $vhdType = $null
 $parentVhd = $null
-
+$vhdFormat =$null
 #
 # Parse the testParams string
 #
@@ -196,7 +232,7 @@ foreach ($p in $params)
     
     if ($tokens.Length -ne 2)
     {
-	    # Just ignore it
+        # Just ignore it
          continue
     }
     
@@ -209,6 +245,15 @@ foreach ($p in $params)
     if ($lValue -eq "ParentVHD")
     {
         $parentVhd = $rValue
+        continue
+    }
+
+    #
+    # vhdFormat test param?
+    #
+    if ($lValue -eq "vhdFormat")
+    {
+        $vhdFormat = $rValue
         continue
     }
 
@@ -271,15 +316,29 @@ if (-not $lun)
     return $False
 }
 
-if (-not $parentVhd)
+if (-not $vhdFormat)
 {
-    $parentVhd = "DynamicParent.vhd"
-    "Info : no parent vhd specified.  Defaulting to ${parentVhd}"
+    "Error: No vhdFormat specified in the test parameters"
+    return $False
 }
 
-#
+###################################
+if (-not $parentVhd)
+{
+    # Create a new ParentVHD
+    $parentVhd = CreateParentVhd $vhdFormat $hvServer
+    if ($parentVhd -eq $False)
+    {
+        "Error: Failed to create parent $vhdFormat on $hvServer"
+        return $False
+    }
+    else 
+    {
+        "Info: Parent disk $parentVhd created"
+    }
+}
+
 # Make sure the disk does not already exist
-#
 if ($SCSI)
 {
     if ($ControllerID -lt 0 -or $ControllerID -gt 3)
@@ -287,10 +346,8 @@ if ($SCSI)
         "Error: CreateHardDrive was passed a bad SCSI Controller ID: $ControllerID"
         return $false
     }
-        
-    #
+    
     # Create the SCSI controller if needed
-    #
     $sts = CreateController $vmName $hvServer $controllerID
     if (-not $sts[$sts.Length-1])
     {
@@ -330,7 +387,7 @@ if (-not $defaultVhdPath.EndsWith("\"))
 
 if ($parentVhd.EndsWith(".vhd"))
 {
-    # To Make sure we do not use exisiting  Diff disk , del if exisit 
+    # To Make sure we do not use exisiting Diff disk, del if exisit 
     $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"  
 }
 else
@@ -368,7 +425,7 @@ if (-not $parentFileInfo)
 
 #
 # Create the .vhd file
-$newVhd = New-Vhd -Path $vhdName  -ParentPath $parentVhdFilename  -ComputerName $hvServer -Differencing          
+$newVhd = New-Vhd -Path $vhdName -ParentPath $parentVhdFilename -ComputerName $hvServer -Differencing          
 if (-not $newVhd)
 {
     "Error: unable to create a new .vhd file"
@@ -396,7 +453,7 @@ if ($error.Count -gt 0)
 }
 else
 {
-    write-output "Success"
+    "Info: Child disk $vhdName created and attached to ${controllerType} : ${controllerID} : ${Lun}"
     $retVal = $true
 }
     

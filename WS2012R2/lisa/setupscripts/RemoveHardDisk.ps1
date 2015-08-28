@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    This setup script, that will run after the VM shuts down, will delete VHD Hard Driver to VM.
+    This setup script will run after the VM shuts down, then delete the VHD.
 
 .Description
    This is a cleanup script that will run after the VM shuts down.
@@ -91,14 +91,13 @@
     Test data for this test case
 
 .Example
-    setupScripts\RemoveHardDisk.ps1 -vmName sles11sp3x64 -hvServer localhost -testParams "SCSI=0,0,Dynamic;sshkey=rhel5_id_rsa.ppk;ipv4=IPaddr;RootDir="
+    setupScripts\RemoveHardDisk.ps1 -vmName VM -hvServer localhost -testParams "SCSI=0,0,Dynamic;sshkey=pki.ppk;ipv4=IPaddr;RootDir="
 
 .Link
     None.
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
 
 ############################################################################
 #
@@ -129,23 +128,8 @@ if ($testParams -eq $null -or $testParams.Length -lt 13)
     # The minimum length testParams string is "IDE=1,1,Fixed"
     #
     "Error: No testParams provided"
-    "       The script $MyInvocation.InvocationName requires test parameters"
+    "The script $MyInvocation.InvocationName requires test parameters"
     return $retVal
-}
-
-# Make sure we have access to the Microsoft Hyper-V snapin
-#
-$hvModule = Get-Module Hyper-V
-if ($hvModule -eq $NULL)
-{
-    import-module Hyper-V
-    $hvModule = Get-Module Hyper-V
-}
-
-if ($hvModule.companyName -ne "Microsoft Corporation")
-{
-    "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $Falses
 }
 
 #
@@ -181,7 +165,7 @@ foreach ($p in $params)
     }
 }
 $vhdName = $vmName + "-" + $controllerType
-$vhdDisks = Get-VMHardDiskDrive -VMName $vmName
+$vhdDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 foreach ($vhd in $vhdDisks)
 {
     $vhdPath = $vhd.Path
@@ -207,14 +191,17 @@ if (-not $hostInfo)
 }
 
 $defaultVhdPath = $hostInfo.VirtualHardDiskPath
+$defaultVhdPath = $defaultVhdPath.Replace(':','$')
 if (-not $defaultVhdPath.EndsWith("\"))
 {
     $defaultVhdPath += "\"
 }
 
-Get-ChildItem $defaultVhdPath -Filter $vhdName* | `
+Get-ChildItem \\$hvServer\$defaultVhdPath -Filter $vhdName* | `
 Foreach-Object  {
-    $_ | Dismount-VHD -ErrorAction Ignore
+    $remotePath = $_.FullName
+    $localPath = $remotePath.Substring($hvServer.Length+3).Replace('$',':')
+    Invoke-Command $hvServer -ScriptBlock  {Dismount-VHD -Path $args[0] -ErrorAction SilentlyContinue} -ArgumentList $localPath
     $error.Clear()
     Remove-Item -Path $_.FullName
     if ($error.Count -gt 0)

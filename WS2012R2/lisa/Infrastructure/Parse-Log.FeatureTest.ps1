@@ -19,172 +19,69 @@
 #
 ########################################################################
 
-
-
-<#
-.Synopsis
-    Parse the number of passed test cases from test log.
-
-.Description
-    Parse the number of passed test cases from test log.
-    
-.Parameter LogFolder
-    The LISA log folder. 
-
-.Parameter XMLFileName
-    The LISA XML file. 
-
-.Parameter LisaInfraFolder
-    The LISA Infrastructure folder. This is used to located the LisaRecorder.exe when running by Start-Process 
-
-.Exmple
-    Parse-Log.FeatureTest.ps1 C:\Lisa\TestResults D:\Lisa\XML\KVPTests.xml D:\Lisa\Infrastructure
-
-#>
-
-param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
-
-#----------------------------------------------------------------------------
-# Print running information
-#----------------------------------------------------------------------------
-Write-Host "Running [Parse-Log.FeatureTest.ps1]..." -foregroundcolor cyan
-Write-Host "`$LogFolder        = $LogFolder" 
-Write-Host "`$XMLFileName      = $XMLFileName" 
-Write-Host "`$LisaInfraFolder  = $LisaInfraFolder" 
-
-#----------------------------------------------------------------------------
-# Verify required parameters
-#----------------------------------------------------------------------------
-if ($LogFolder -eq $null -or $LogFolder -eq "")
+function ParseBenchmarkLogFile( [string]$LogFolder, [string]$XMLFileName )
 {
-    Throw "Parameter LogFolder is required."
-}
+    # this is the XML log file parsed from LISA log for Atlas use
+    $xmlResultFiles = Get-ChildItem "$LogFolder\*-*-*-*-*.xml"
 
-# check the XML file provided
-if ($XMLFileName -eq $null -or $XMLFileName -eq "")
-{
-    Throw "Parameter XMLFileName is required."
-}
-else
-{
-    if (! (test-path $XMLFileName))
+    #----------------------------------------------------------------------------
+    # Read the log file
+    #----------------------------------------------------------------------------
+    Write-Host "Number of Log files found: "
+    Write-Host $xmlResultFiles.Count
+
+    if($xmlResultFiles.Count -eq 0)
     {
-        write-host -f Red "Error: XML config file '$XMLFileName' does not exist."
-        Throw "Parameter XmlFilename is required."
+        return $false
     }
-}
 
-$xmlConfig = [xml] (Get-Content -Path $xmlFilename)
-if ($null -eq $xmlConfig)
-{
-    write-host -f Red "Error: Unable to parse the .xml file"
-    return $false
-}
-
-if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
-{
-    Throw "Parameter LisaInfraFolder is required."
-}
-
-#----------------------------------------------------------------------------
-# The log file pattern. This log file is the XML file produced by Parse-LisaResultAsXmlLog.ps1
-#----------------------------------------------------------------------------
-$xmlResultFiles = Get-ChildItem "$LogFolder\*-*-*-*-*.xml"
-
-#----------------------------------------------------------------------------
-# Read the log file
-#----------------------------------------------------------------------------
-Write-Host "Number of Log files found: "
-Write-Host $xmlResultFiles.Count
-
-if($xmlResultFiles.Count -eq 0)
-{
-    return -1
-}
-
-$passed = 0
-$failed = 0
-$aborted = 0
-foreach ($logFile in $xmlResultFiles)
-{
-    Write-Host "A XML result file was found: " $logFile.FullName
-    $xmlFile = [xml] (Get-Content -Path $logFile)
-    if ($null -eq $xmlFile)
+    $passed = 0
+    $failed = 0
+    $aborted = 0
+    foreach ($logFile in $xmlResultFiles)
     {
-        continue
-    }
-    elseif ($xmlFile.FirstChild.Name -ne "TaskResult")
-    {
-        continue
-    }
-    else
-    {
-        $passed = $xmlFile.FirstChild.Pass
-        $failed = $xmlFile.FirstChild.Failed
-        $aborted = 0  #unused
-    }
-}
-
-#----------------------------------------------------------------------------
-# Read test configuration from XML file
-#----------------------------------------------------------------------------
-$VMName = [string]::Empty
-$numberOfVMs = $xmlConfig.config.VMs.ChildNodes.Count
-Write-Host "Number of VMs defined in the XML file: $numberOfVMs"
-if ($numberOfVMs -eq 0)
-{
-    Throw "No VM is defined in the LISA XML file."
-}
-elseif ($numberOfVMs -gt 1)
-{
-    foreach($node in $xmlConfig.config.VMs.ChildNodes)
-    {
-        if (($node.role -eq $null) -or ($node.role.ToLower() -ne "nonsut"))
+        Write-Host "A XML result file was found: " $logFile.FullName
+        $xmlFile = [xml] (Get-Content -Path $logFile)
+        if ($null -eq $xmlFile)
         {
-            #just use the 1st SUT VM name
-            $VMName = $node.vmName
-            break
+            continue
+        }
+        elseif ($xmlFile.FirstChild.Name -ne "TaskResult")
+        {
+            continue
+        }
+        else
+        {
+            $passed = $xmlFile.FirstChild.Pass
+            $failed = $xmlFile.FirstChild.Failed
+            $aborted = 0  #unused
         }
     }
-}
-else
-{
-    $VMName = $xmlConfig.config.VMs.VM.VMName
-}
-if ($VMName -eq [string]::Empty)
-{
-    Write-Host "!!! No VM is found from the LISA XML file."
-}
-Write-Host "VMName: " $VMName
-$XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
 
-#----------------------------------------------------------------------------
-# Call LisaRecorder to log data into database
-#----------------------------------------------------------------------------
-$LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
-$params = "LisFeatureTest"
-$params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
-$params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
-$params = $params+" "+"guestos:`"" + "Linux" + "`""
-$params = $params+" "+"linuxdistro:`"" + $VMName + "`""
-$params = $params+" "+"testcasename:`"" + $XMLFileNameWithoutExt + "`""
-
-$params = $params+" "+"passed:`"" + $passed + "`""
-$params = $params+" "+"failed:`"" + $failed + "`""
-$params = $params+" "+"aborted:`"" + $aborted + "`""
-
-Write-Host "Executing LisaRecorder to record test result into database"
-Write-Host $params
-
-$result = Start-Process -FilePath $LisaRecorder -Wait -ArgumentList $params -PassThru -RedirectStandardOutput "$LogFolder\LisaRecorderOutput.log" -RedirectStandardError "$LogFolder\LisaRecorderError.log"
-if ($result.ExitCode -eq 0)
-{
-    Write-Host "Executing LisaRecorder finished with Success."
-}
-else
-{
-    Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
-}
+    #----------------------------------------------------------------------------
+    # Return to caller script
+    #----------------------------------------------------------------------------
+    #1st element: the DataTable Name
+    $dataTableName = "LisFeatureTest"
+    #2nd element: an array of datatable field names for String columns
+    $stringFieldNames = New-Object System.Collections.Specialized.StringCollection
+    $stringFieldNames.Add("TestTime")
+    #3rdd element: an array of datatable values for String columns
+    $stringFieldValues = New-Object System.Collections.Specialized.StringCollection
+    $stringFieldValues.Add([DATETIME]::NOW.ToString("yyyy-MM-dd HH:mm:ss"))  
+    #4th element: an array of datatable field names for Non-String columns
+    $nonStringFieldNames = New-Object System.Collections.Specialized.StringCollection
+    $nonStringFieldNames.Add("passed")
+    $nonStringFieldNames.Add("failed")
+    $nonStringFieldNames.Add("aborted")  
+    #5th element: an array of datatable values for Non-String columns
+    $nonStringFieldValues = New-Object System.Collections.Specialized.StringCollection
+    $nonStringFieldValues.Add($passed)
+    $nonStringFieldValues.Add($failed)
+    $nonStringFieldValues.Add($aborted)
     
-return $result.ExitCode
-
+    $array = $dataTableName, $stringFieldNames, $stringFieldValues, $nonStringFieldNames, $nonStringFieldValues
+    #return the results:
+    $array
+    return $true
+}

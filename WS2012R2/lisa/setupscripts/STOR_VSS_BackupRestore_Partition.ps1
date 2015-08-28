@@ -276,7 +276,7 @@ Catch { Write-Output "No existing backup's to remove"}
 $summaryLog  = "${vmName}_summary.log"
 echo "Covers VSS Backup" > $summaryLog
 
-$remoteScript = "STOR_VSS_PartitionDisks.sh"
+$remoteScript = "PartitionDisks.sh"
 
 # Check input arguments
 if ($vmName -eq $null)
@@ -430,16 +430,17 @@ Write-Output "Backup duration: $BackupTime minutes"
 "Backup duration: $BackupTime minutes" >> $summaryLog
 
 $sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 {
-    Write-Output "ERROR: VSS WBBackup failed"
+    Write-Output "ERROR: VSS Backup failed"
+    Write-Output $sts.ErrorDescription
     $retVal = $false
     return $retVal
 }
 
 Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 30
 
 # Start the Restore
 Write-Output "`nNow let's do restore ...`n"
@@ -450,9 +451,10 @@ $BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
 # Start Restore
 Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force -WarningAction SilentlyContinue
 $sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 {
-    Write-Output "ERROR: VSS WB Restore failed"
+    Write-Output "ERROR: VSS Restore failed"
+    Write-Output $sts.ErrorDescription
     $retVal = $false
     return $retVal
 }
@@ -479,7 +481,7 @@ if ( $vm.state -ne "Off" )
 }
 
 # Now Start the VM
-$timeout = 500
+$timeout = 300
 $sts = Start-VM -Name $vmName -ComputerName $hvServer 
 if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
 {

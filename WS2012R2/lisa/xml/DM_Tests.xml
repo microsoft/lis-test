@@ -2,12 +2,12 @@
 
 <config>
 	<global>
-		<logfileRootDir>LisaTestResults</logfileRootDir>
+		<logfileRootDir>TestResults</logfileRootDir>
 		<defaultSnapshot>ICABase</defaultSnapshot>
 		<email>
 			<recipients>
-				<to>myboss@mycompany.com</to>
-                <to>myself@mycompany.com</to>
+			<to>myboss@mycompany.com</to>
+	                <to>myself@mycompany.com</to>
 			</recipients>
 			<sender>myself@mycompany.com</sender>
 			<subject>LIS_DM_tests_run_on_2012R2</subject>
@@ -19,37 +19,39 @@
 		<suite>
 			<suiteName>DM</suiteName>
 			<suiteTests>
-				<suiteTest>DMLoaded</suiteTest>
+				<suiteTest>DM_loaded</suiteTest>
 				<suiteTest>HotAdd_Verify_udev</suiteTest>
-				<suiteTest>StartupLowCompete</suiteTest>
-				<suiteTest>StartupHighCompete</suiteTest>
-				<suiteTest>SaveRestore</suiteTest>
-				<suiteTest>DemandPressure</suiteTest>
-				<suiteTest>HighPriority</suiteTest>
+
+				<!-- Dynamic Memory – Hot Add -->
 				<suiteTest>HotAdd</suiteTest>
 				<suiteTest>HotRemove</suiteTest>
-				<suiteTest>CleanShutdown</suiteTest>
-				<suiteTest>MaxMemHonored</suiteTest>
+				<suiteTest>StartupHighCompete</suiteTest>
+				<suiteTest>DemandPressure</suiteTest>
+				<suiteTest>HighPriority</suiteTest>
+
+				<!-- Dynamic Memory – Ballooning -->
+				<suiteTest>StartupLowCompete</suiteTest>
 				<suiteTest>MinMemHonored</suiteTest>
+				<suiteTest>MaxMemHonored</suiteTest>
+				<suiteTest>SaveRestore</suiteTest>
+				<suiteTest>CleanShutdown</suiteTest>
 			</suiteTests>
 		</suite>
-
 	</testSuites>
 
 	<testCases>
-
 		<test>
-			<testName>DMLoaded</testName>
+			<testName>DM_loaded</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
-					<param>TC_COVERED=DM-01</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=1GB</param>
-					<param>startupMem=512MB</param>
-					<param>memWeight=0</param>
-					<param>staticMem=512MB</param>
+				<param>TC_COVERED=DM-01</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=1GB</param>
+				<param>startupMem=512MB</param>
+				<param>memWeight=0</param>
+				<param>staticMem=512MB</param>
 			</testParams>
 			<testScript>DM_VERIFY_LOADED.sh</testScript>
 			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh,remote-scripts/ica/utils.sh</files>
@@ -61,13 +63,13 @@
 			<testName>HotAdd_Verify_udev</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
-					<param>TC_COVERED=DM-02</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=2GB</param>
-					<param>startupMem=1024MB</param>
-					<param>memWeight=20</param>
-					<param>staticMem=512MB</param>
+				<param>TC_COVERED=DM-02</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=2GB</param>
+				<param>startupMem=1024MB</param>
+				<param>memWeight=20</param>
+				<param>staticMem=512MB</param>
 			</testParams>
 			<testScript>DM_HotAdd_Verify_udev.sh</testScript>
 			<files>remote-scripts/ica/DM_HotAdd_Verify_udev.sh</files>
@@ -76,148 +78,18 @@
 		</test>
 
 		<test>
-			<testName>StartupLowCompete</testName>
-			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
-			<testParams>
-					<param>TC_COVERED=DM-03</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=80%</param>
-					<param>startupMem=79%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=512MB</param>
-					<param>vmName=VM2Name</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=20%</param>
-					<param>startupMem=19%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=512MB</param>
-			</testParams>
-
-			<testScript>setupScripts\DM_StartupLowCompete.ps1</testScript>
-			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>8000</timeout>
-		</test>
-
-		<test>
-			<testName>StartupHighCompete</testName>
-			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
-			<testParams>
-					<param>TC_COVERED=DM-04</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=60%</param>
-					<param>startupMem=60%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=1024MB</param>
-					<param>vmName=VM2Name</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=40%</param>
-					<param>startupMem=40%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=512MB</param>
-					<param>vmName=VM3Name</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=25%</param>
-					<param>startupMem=25%</param>
-					<param>memWeight=100</param>
-					<param>staticMem=512MB</param>
-			</testParams>
-
-			<testScript>setupScripts\DM_RemoveUnderPressure.ps1</testScript>
-			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>1800</timeout>
-		</test>
-
-		<test>
-			<testName>SaveRestore</testName>
-			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
-			<testParams>
-					<param>TC_COVERED=DM-04</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=80%</param>
-					<param>startupMem=80%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=512MB</param>
-					<param>vmName=VM2Name</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=20%</param>
-					<param>startupMem=20%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=512MB</param>
-			</testParams>
-
-			<testScript>setupScripts\DM_SaveRestore.ps1</testScript>
-			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>800</timeout>
-		</test>
-
-		<test>
-			<testName>DemandPressure</testName>
-			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
-			<testParams>
-					<param>TC_COVERED=DM-05</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=20%</param>
-					<param>startupMem=20%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=512MB</param>
-			</testParams>
-
-			<testScript>setupScripts\DM_PressureChangesDemand.ps1</testScript>
-			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>1800</timeout>
-		</test>
-
-		<test>
-			<testName>HighPriority</testName>
-			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
-			<testParams>
-					<param>TC_COVERED=DM-01</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=50%</param>
-					<param>startupMem=50%</param>
-					<param>memWeight=100</param>
-					<param>staticMem=1024MB</param>
-					<param>vmName=VM2Name</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=50%</param>
-					<param>startupMem=50%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=1024MB</param>
-			</testParams>
-			<testScript>setupScripts\DM_HighPriority.ps1</testScript>
-			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>3000</timeout>
-		</test>
-
-		<test>
 			<testName>HotAdd</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
-					<param>TC_COVERED=DM-05</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=1024MB</param>
-					<param>maxMem=4GB</param>
-					<param>startupMem=1024MB</param>
-					<param>memWeight=100</param>
-					<param>staticMem=512MB</param>
+				<param>TC_COVERED=DM-03</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=4GB</param>
+				<param>startupMem=1024MB</param>
+				<param>memWeight=100</param>
+				<param>staticMem=512MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_HotAdd.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>3000</timeout>
@@ -227,106 +99,226 @@
 			<testName>HotRemove</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
-					<param>TC_COVERED=DM-09</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=1024MB</param>
-					<param>maxMem=4GB</param>
-					<param>startupMem=1024MB</param>
-					<param>memWeight=100</param>
-					<param>staticMem=1024MB</param>
-					<param>vmName=VM2Name</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=92%</param>
-					<param>startupMem=92%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=1024MB</param>
+				<param>TC_COVERED=DM-04</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=6GB</param>
+				<param>startupMem=1024MB</param>
+				<param>memWeight=100</param>
+				<param>staticMem=1024MB</param>
+				<param>vmName=VM2Name</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=70%</param>
+				<param>startupMem=70%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=1024MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_HotAddRemove.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>3000</timeout>
 		</test>
 
 		<test>
-			<testName>CleanShutdown</testName>
+			<testName>StartupLowCompete</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
-					<param>TC_COVERED=DM-09</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=20%</param>
-					<param>startupMem=20%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=512MB</param>
-					<param>vmName=VM2Name</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=75%</param>
-					<param>startupMem=75%</param>
-					<param>memWeight=100</param>
-					<param>staticMem=512MB</param>
+				<param>TC_COVERED=DM-05</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=80%</param>
+				<param>startupMem=79%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=512MB</param>
+				<param>vmName=VM2Name</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=20%</param>
+				<param>startupMem=19%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=512MB</param>
 			</testParams>
+			<testScript>setupScripts\DM_StartupLowCompete.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>8000</timeout>
+		</test>
 
-			<testScript>setupScripts\DM_CleanShutdown.ps1</testScript>
+		<test>
+			<testName>StartupHighCompete</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-06</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=60%</param>
+				<param>startupMem=60%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=1024MB</param>
+				<param>vmName=VM2Name</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=40%</param>
+				<param>startupMem=40%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=512MB</param>
+				<param>vmName=VM3Name</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=25%</param>
+				<param>startupMem=25%</param>
+				<param>memWeight=100</param>
+				<param>staticMem=512MB</param>
+			</testParams>
+			<testScript>setupScripts\DM_RemoveUnderPressure.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
 
-				<test>
+		<test>
+			<testName>DemandPressure</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-07</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=20%</param>
+				<param>startupMem=20%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=512MB</param>
+			</testParams>
+			<testScript>setupScripts\DM_PressureChangesDemand.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>1800</timeout>
+		</test>
+
+		<test>
+			<testName>HighPriority</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-08</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=50%</param>
+				<param>startupMem=50%</param>
+				<param>memWeight=100</param>
+				<param>staticMem=1024MB</param>
+				<param>vmName=VM2Name</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=50%</param>
+				<param>startupMem=50%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=1024MB</param>
+			</testParams>
+			<testScript>setupScripts\DM_HighPriority.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>3000</timeout>
+		</test>
+
+		<test>
+            	<testName>MinMemHonored</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-09</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=50%</param>
+				<param>maxMem=80%</param>
+				<param>startupMem=80%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=1024MB</param>
+				<param>vmName=VM2Name</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=50%</param>
+				<param>startupMem=50%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=1024MB</param>
+			</testParams>
+			<testScript>setupScripts\DM_MinMemHonor.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>3000</timeout>
+        	</test>
+
+		<test>
 			<testName>MaxMemHonored</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
-					<param>TC_COVERED=DM-01</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=80%</param>
-					<param>startupMem=80%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=1024MB</param>
-					<param>vmName=VM2Name</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=40%</param>
-					<param>startupMem=40%</param>
-					<param>memWeight=100</param>
-					<param>staticMem=1024MB</param>
+				<param>TC_COVERED=DM-10</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=80%</param>
+				<param>startupMem=80%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=1024MB</param>
+				<param>vmName=VM2Name</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=40%</param>
+				<param>startupMem=40%</param>
+				<param>memWeight=100</param>
+				<param>staticMem=1024MB</param>
 			</testParams>
-
 			<testScript>setupScripts\DM_MaxMemHonor.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>3000</timeout>
 		</test>
 
 		<test>
-            <testName>MinMemHonored</testName>
+			<testName>SaveRestore</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
-					<param>TC_COVERED=DM-01</param>
-					<param>vmName=VMName</param>
-					<param>enableDM=yes</param>
-					<param>minMem=50%</param>
-					<param>maxMem=80%</param>
-					<param>startupMem=80%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=1024MB</param>
-					<param>vmName=VM2Name</param>
-					<param>enableDM=yes</param>
-					<param>minMem=512MB</param>
-					<param>maxMem=50%</param>
-					<param>startupMem=50%</param>
-					<param>memWeight=0</param>
-					<param>staticMem=1024MB</param>
+				<param>TC_COVERED=DM-11</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=80%</param>
+				<param>startupMem=80%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=512MB</param>
+				<param>vmName=VM2Name</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=20%</param>
+				<param>startupMem=20%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=512MB</param>
 			</testParams>
-
-			<testScript>setupScripts\DM_MinMemHonor.ps1</testScript>
+			<testScript>setupScripts\DM_SaveRestore.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>3000</timeout>
-        </test>
+			<timeout>800</timeout>
+		</test>
 
+		<test>
+			<testName>CleanShutdown</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-12</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=20%</param>
+				<param>startupMem=20%</param>
+				<param>memWeight=0</param>
+				<param>staticMem=512MB</param>
+				<param>vmName=VM2Name</param>
+				<param>enableDM=yes</param>
+				<param>minMem=512MB</param>
+				<param>maxMem=75%</param>
+				<param>startupMem=75%</param>
+				<param>memWeight=100</param>
+				<param>staticMem=512MB</param>
+			</testParams>
+			<testScript>setupScripts\DM_CleanShutdown.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>1800</timeout>
+		</test>
 	</testCases>
 
 	<VMs>
@@ -337,10 +329,6 @@
 			<ipv4></ipv4>
 			<sshKey>sshKey.ppk</sshKey>
 			<suite>DM</suite>
-			<testParams>
-				<param>RootDir=D:\Automation</param>
-				<param>sshKey=sshKey.ppk</param>
-			</testParams>
 		</vm>
 	</VMs>
 </config>

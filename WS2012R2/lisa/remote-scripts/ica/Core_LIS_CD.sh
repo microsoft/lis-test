@@ -4,11 +4,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -24,9 +24,9 @@
 #
 # Description:
 #     This script was created to automate the testing of a Linux
-#     Integration services. This script detects the CDROM    
+#     Integration services. This script detects the CDROM
 #     and performs read operations .
-#     
+#
 ################################################################
 
 LogMsg()
@@ -53,11 +53,11 @@ if [ -e ~/summary.log ]; then
 fi
 
 if [ -e $HOME/constants.sh ]; then
-	. $HOME/constants.sh
+    . $HOME/constants.sh
 else
-	LogMsg "ERROR: Unable to source the constants file."
-	UpdateTestState "TestAborted"
-	exit 1
+    LogMsg "ERROR: Unable to source the constants file."
+    UpdateTestState "TestAborted"
+    exit 1
 fi
 
 #Check for Testcase count
@@ -69,39 +69,40 @@ fi
 echo "Covers: ${TC_COVERED}" >> ~/summary.log
 
 #
-# Check if the CDROM module is loaded 
+# Check if the CDROM module is loaded
 #
-CD=`lsmod | grep ata_piix`
+CD=`lsmod | grep 'ata_piix\|isofs'`
 if [[ $CD != "" ]] ; then
-	LogMsg "ata_piix module is present"
+    module=`echo $CD | cut -d ' ' -f1`
+    LogMsg "${module} module is present."
 else
-	LogMsg "ata_piix module is not present in VM"
-	LogMsg "Loading ata_piix module "
-	insmod /lib/modules/`uname -r`/kernel/drivers/ata/ata_piix.ko
-	sts=$?
+    LogMsg "ata_piix module is not present in VM"
+    LogMsg "Loading ata_piix module "
+    insmod /lib/modules/`uname -r`/kernel/drivers/ata/ata_piix.ko
+    sts=$?
     if [ 0 -ne ${sts} ]; then
         LogMsg "Unable to load ata_piix module"
-	    LogMsg "Aborting test."
-	    UpdateSummary "ata_piix load : Failed"
+        LogMsg "Aborting test."
+        UpdateSummary "ata_piix load : Failed"
         UpdateTestState "TestFailed"
-	    exit 1
+        exit 1
     else
-	    LogMsg "ata_piix module loaded inside the VM"
+        LogMsg "ata_piix module loaded inside the VM"
     fi
 fi
-
+sleep 1
 LogMsg "Mount the CDROM"
 mount /dev/cdrom /mnt/
 sts=$?
 if [ 0 -ne ${sts} ]; then
-	LogMsg "Unable to mount the CDROM"
-	LogMsg "Mount CDROM failed: ${sts}"
-	LogMsg "Aborting test."
-	UpdateTestState "TestFailed"
-	exit 1
+    LogMsg "Unable to mount the CDROM"
+    LogMsg "Mount CDROM failed: ${sts}"
+    LogMsg "Aborting test."
+    UpdateTestState "TestFailed"
+    exit 1
 else
-	LogMsg  "CDROM is mounted successfully inside the VM"
-	LogMsg  "CDROM is detected inside the VM"
+    LogMsg  "CDROM is mounted successfully inside the VM"
+    LogMsg  "CDROM is detected inside the VM"
 fi
 
 LogMsg "Perform read operations on the CDROM"
@@ -110,25 +111,25 @@ cd /mnt/
 ls /mnt
 sts=$?
 if [ 0 -ne ${sts} ]; then
-	LogMsg "Unable to read data from the CDROM"
-	LogMsg "Read data from CDROM failed: ${sts}"
-	UpdateTestState "TestFailed"
-	exit 1
+    LogMsg "Unable to read data from the CDROM"
+    LogMsg "Read data from CDROM failed: ${sts}"
+    UpdateTestState "TestFailed"
+    exit 1
 else
-	LogMsg "Data read successfully from the CDROM"
+    LogMsg "Data read successfully from the CDROM"
 fi
 
 cd ~
 umount /mnt/
-sts=$?      
+sts=$?
 if [ 0 -ne ${sts} ]; then
-	LogMsg "Unable to unmount the CDROM"
-	LogMsg "umount failed: ${sts}"
-	LogMsg "Aborting test."
-	UpdateTestState "TestFailed"
-	exit 1
+    LogMsg "Unable to unmount the CDROM"
+    LogMsg "umount failed: ${sts}"
+    LogMsg "Aborting test."
+    UpdateTestState "TestFailed"
+    exit 1
 else
-	LogMsg  "CDROM unmounted successfully"
+    LogMsg  "CDROM unmounted successfully"
 fi
 
 UpdateSummary "CDROM mount, read and remove operations returned no errors."
