@@ -150,7 +150,7 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     #
     # Delete the VM - make sure it does exist
     #
-    $vm = Get-VM $vmName -ComputerName $hvServer 
+    $vm = Get-VM $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
     if ($vm)
     {
@@ -345,6 +345,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             {
                 $memSizeUnits = $tokens[1].Trim().ToUpper()
                 
+                $mbMemSize = $memSize
                 if ($memSizeUnits -ne "MB" -and $memSizeUnits -ne "GB")
                 {
                     "Error: Invalid unit for memSize: ${memSizeUnits}"
@@ -397,7 +398,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             }
             
             $memInMB = $totalMemory / 1MB
-            if ($memSize -gt $memInMB)
+            if ($mbMemSize -gt $memInMB)
             {
                 Write-Warning "Warn : The memSize for VM ${vmName} is larger than the HyperV servers physical memory. memSize set to the default size of 512 MB"
                 $vm.hardware.memSize = "512"
