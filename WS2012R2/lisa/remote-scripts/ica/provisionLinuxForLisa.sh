@@ -450,9 +450,6 @@ function UbuntuTasks
 			;;
 	esac
 	
-	# Make sure we update before proceeding to install
-	apt-get update
-	
     for p in "${packagesToInstall[@]}"
 	do
 	    LogMsg "Info : Processing package '${p}'"

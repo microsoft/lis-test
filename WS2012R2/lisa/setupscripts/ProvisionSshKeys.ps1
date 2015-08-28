@@ -213,6 +213,15 @@ try
     #
     # Make sure the required arguments were passed
     #
+    if (-not $vmName)
+    {
+        Throw "Error: no VMName was specified"
+    }
+
+    if (-not $hvServer)
+    {
+        Throw "Error: No hvServer was specified"
+    }
 
     if (-not $testParams)
     {
@@ -232,7 +241,6 @@ try
     $privateKey = $null
     $tcCovered  = "undefined"
     $password   = "password"
-    $vmIPv4 = $null
 
     $params = $testParams.Split(";")
     foreach ($p in $params)
@@ -244,19 +252,8 @@ try
         "rootdir"      { $rootDir   = $fields[1].Trim() }
         "TC_COVERED"   { $tcCovered = $fields[1].Trim() }
         "rootpassword" { $password  = $fields[1].Trim() }
-        "ipv4" { $vmIPv4 = $fields[1].Trim() }
         default        {}       
         }
-    }
-
-    if (-not $vmName -and -not $vmIPv4)
-    {
-        Throw "Error: no VMName or machine IP address was specified"
-    }
-
-    if (-not $hvServer -and -not $vmIPv4)
-    {
-        Throw "Error: No hvServer was specified"
     }
 
     if (-not $rootDir)
@@ -284,62 +281,58 @@ try
 
     . .\setupscripts\TCUtils.ps1
 
-    # Make sure VM is started if a VM name has been passed.
-    if ($vmName)
+    #
+    # Verify the VMs exist, and the public SSH key
+    #
+    $vmObj = Get-VM -Name "${vmName}" -ComputerName "${hvServer}" -ErrorAction SilentlyContinue
+    if ($null -eq $vmObj)
     {
-        #
-        # Verify the VMs exist, and the public SSH key
-        #
-        $vmObj = Get-VM -Name "${vmName}" -ComputerName "${hvServer}" -ErrorAction SilentlyContinue
-        if ($null -eq $vmObj)
-        {
-            Throw "Error: The VM '$vmName' on server '$hvServer' does not exist"
-        }
-
-        #
-        # Start the VM.
-        #
-        "Info : Starting the VM '${vmName}'"
-        Start-VM -Name "${vmName}" -ComputerName "${hvServer}" -ErrorAction SilentlyContinue
-        if (-not $?)
-        {
-            Throw "Error: Unable to start VM '${vmName}' on server '${hvServer}'"
-        }
-
-        #
-        # Wait for the VM to start SSH
-        #
-        "Info : Determining VMs IP address"
-        $timeout = 300
-        while ($timeout -gt 0)
-        {
-            $vmIPv4 = GetIPv4 $vmName $hvServer
-            if ($vmIPv4 -ne $null)
-            {
-                break
-            }
-        
-            Start-Sleep -Seconds 10
-            $timeout -= 10
-        }
-
-        if ($timeout -le 0)
-        {
-            Throw "Error: Unable to determine the IPv4 address of VM '${vmName}'"
-        }
-
-        #
-        # Sleep a few seconds to give the OS time to finish initializing
-        #
-        $sleepTime = 10
-        "Info : Sleeping for ${sleepTime} seconds to allow the VMs OS to finish starting up"
-        Start-Sleep $sleepTime
+        Throw "Error: The VM '$vmName' on server '$hvServer' does not exist"
     }
 
     if (-not (Test-Path "ssh\${publicKey}"))
     {
         Throw "Error: The public SSH key 'ssh\${publicKey}' does not exist for VM '$($vm.vmName)'"
     }
+
+    #
+    # Start the VM.
+    #
+    "Info : Starting the VM '${vmName}'"
+    Start-VM -Name "${vmName}" -ComputerName "${hvServer}" -ErrorAction SilentlyContinue
+    if (-not $?)
+    {
+        Throw "Error: Unable to start VM '${vmName}' on server '${hvServer}'"
+    }
+
+    #
+    # Wait for the VM to start SSH
+    #
+    "Info : Determining VMs IP address"
+    $timeout = 300
+    while ($timeout -gt 0)
+    {
+        $vmIPv4 = GetIPv4 $vmName $hvServer
+        if ($vmIPv4 -ne $null)
+        {
+            break
+        }
+        
+        Start-Sleep -Seconds 10
+        $timeout -= 10
+    }
+
+    if ($timeout -le 0)
+    {
+        Throw "Error: Unable to determine the IPv4 address of VM '${vmName}'"
+    }
+
+    #
+    # Sleep a few seconds to give the OS time to finish initializing
+    #
+    $sleepTime = 10
+    "Info : Sleeping for ${sleepTime} seconds to allow the VMs OS to finish starting up"
+    Start-Sleep $sleepTime
 
     #
     # First, send a command to the VM to eat any prompt for the server key
@@ -388,21 +381,18 @@ try
     #
     # Shutdown the VM
     #
-    if ($vmName)
+    "Info : Stopping the VM"
+    Stop-VM -Name "${vmName}" -ComputerName "${hvServer}" -Force -ErrorAction SilentlyContinue
+    if (-not $?)
     {
-        "Info : Stopping the VM"
-        Stop-VM -Name "${vmName}" -ComputerName "${hvServer}" -Force -ErrorAction SilentlyContinue
+        #
+        # The stop failed, try to turnoff the VM
+        #
+        echo "Step 13" >> ~/nick.log
+        Stop-VM -Name "${vmName}" -ComputerName "${hvServer}" -Force -TurnOff -ErrorAction SilentlyContinue
         if (-not $?)
         {
-            #
-            # The stop failed, try to turnoff the VM
-            #
-            echo "Step 13" >> ~/nick.log
-            Stop-VM -Name "${vmName}" -ComputerName "${hvServer}" -Force -TurnOff -ErrorAction SilentlyContinue
-            if (-not $?)
-            {
-                Throw "Error: Unable to turnoff VM '${vmName}' on server ${hvServer}"
-            }
+            Throw "Error: Unable to turnoff VM '${vmName}' on server ${hvServer}"
         }
     }
 }
@@ -411,15 +401,11 @@ catch
     $_.Exception.Message
     "Error: Provisioning failed"
 
-    if ($vmName)
+    $vmObj = Get-VM -Name "${vmName}" -ComputerName "${hvServer}"
+    if ($vmObj.State -ne "Off")
     {
-        $vmObj = Get-VM -Name "${vmName}" -ComputerName "${hvServer}"
-        if ($vmObj.State -ne "Off")
-        {
-            Stop-VM -Name "${vmName}" -ComputerName "${hvServer}" -Force -TurnOff -ErrorAction SilentlyContinue
-        }
+        Stop-VM -Name "${vmName}" -ComputerName "${hvServer}" -Force -TurnOff -ErrorAction SilentlyContinue
     }
-
     return $False
 }
 
