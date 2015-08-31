@@ -31,7 +31,7 @@
                 <suiteTest>VHD_HotADD_Dynamic_SCSI_SMP</suiteTest>
                 <suiteTest>VHD_HotRemove_Dynamic_SCSI_SMP</suiteTest>
                 <suiteTest>VHD_SCSI_0_1_Format_btrfs</suiteTest>
-                <suiteTest>VHD_SCSI_0_1_Dynamic_Big</suiteTest>
+                <suiteTest>VHD_SCSI_0_1_Dynamic_Large_Disk</suiteTest>
                 <suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest>
                 <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest>
                 <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
@@ -104,12 +104,12 @@
                 <param>TC_COVERED=STOR-12</param>
                 <param>fileSystems=(btrfs)</param>
             </testParams>
-            <testScript>STOR_Big_Disk.sh</testScript>
-            <files>remote-scripts/ica/STOR_Big_Disk.sh</files>
+            <testScript>STOR_Large_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
             <timeout>10800</timeout>
         </test>
         <test>
-            <testName>VHD_SCSI_0_1_Dynamic_Big</testName>
+            <testName>VHD_SCSI_0_1_Dynamic_Large_Disk</testName>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <testParams>
@@ -117,8 +117,8 @@
                 <param>TC_COVERED=STOR-13</param>
                 <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
             </testParams>
-            <testScript>STOR_Big_Disk.sh</testScript>
-            <files>remote-scripts/ica/STOR_Big_Disk.sh</files>
+            <testScript>STOR_Large_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
             <timeout>10800</timeout>
         </test>
 

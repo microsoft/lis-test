@@ -28,14 +28,17 @@
                 <suiteTest>VHDx_HotRemove_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>VHDx_HotADD_Dynamic_SCSI_SMP</suiteTest>
                 <suiteTest>VHDx_HotRemove_Dynamic_SCSI_SMP</suiteTest>
-                <suiteTest>VHDx_SCSI_0_1_Dynamic_Big</suiteTest>
                 <suiteTest>VHDx_4k_IDE_0_1_Dynamic</suiteTest>
                 <suiteTest>VHDx_4k_MultiDiskSCSI_Dynamic</suiteTest>
                 <suiteTest>VHDx_4k_IDE_0_1_Fixed</suiteTest>
                 <suiteTest>VHDx_4k_MultiDiskSCSI_Fixed</suiteTest>
                 <suiteTest>VHDx_4k_HotADD_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</suiteTest>
-                <!-- The below test case requires a SSD disk -->
+                <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_3TB</suiteTest>
+                <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
+                <!-- The test case below requires a 64bit virtual machine -->
+                <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
+                <!-- The test case below requires a SSD disk -->
                 <suiteTest>TrimSupport</suiteTest>
             </suiteTests>
         </suite>
@@ -57,7 +60,7 @@
         </test>
 
         <test>
-            <testName>VHDx_SCSI_0_1_Dynamic_Big</testName>
+            <testName>VHDx_SCSI_0_1_Dynamic_Large_3TB</testName>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <testParams>
@@ -67,10 +70,46 @@
                 <!-- <param>Path=G:\VHDs</param> -->
                 <param>fileSystems=(ext4 xfs btrfs)</param>
                 <param>SCSI=0,0,Fixed,512,3TB</param>
-                <param>TC_COVERED=STOR-32</param>
+                <param>TC_COVERED=STOR-32-A</param>
             </testParams>
-            <testScript>STOR_Big_Disk.sh</testScript>
-            <files>remote-scripts/ica/STOR_Big_Disk.sh</files>
+            <testScript>STOR_Large_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
+            <timeout>10800</timeout>
+        </test>
+
+        <test>
+            <testName>VHDx_SCSI_0_1_Dynamic_Large_16TB</testName>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <testParams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=16TB</param>
+                <!-- <param>Path=G:\VHDs</param> -->
+                <param>fileSystems=(ext4 xfs btrfs)</param>
+                <param>SCSI=0,0,Fixed,512,16TB</param>
+                <param>TC_COVERED=STOR-32-B</param>
+            </testParams>
+            <testScript>STOR_Large_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
+            <timeout>10800</timeout>
+        </test>
+
+        <test>
+            <testName>VHDx_SCSI_0_1_Dynamic_Large_64TB</testName>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <testParams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=4096</param>
+                <param>DefaultSize=64TB</param>
+                <!-- <param>Path=G:\VHDs</param> -->
+                <param>fileSystems=(ext4 xfs btrfs)</param>
+                <param>SCSI=0,0,Fixed,4096,64TB</param>
+                <param>TC_COVERED=STOR-32-C</param>
+            </testParams>
+            <testScript>STOR_Large_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
             <timeout>10800</timeout>
         </test>
 
