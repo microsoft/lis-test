@@ -222,9 +222,10 @@ if (-not $osInfo)
     return $False
 }
 
-switch ($osInfo.BuildNumber)
+[int]$BuildNum = [convert]::ToInt32($osInfo.BuildNumber, 10)
+switch ($BuildNum)
 {
-    {$_ -le 9600} # Server 2012 R2, 20012 and 2008R2
+    {$_ -lt 10000} # Server 2012 R2, 20012 and 2008R2
     {
         $vmConfig = Get-Item "$vmPath\Virtual Machines\*.xml"
     }
