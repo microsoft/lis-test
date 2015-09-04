@@ -131,7 +131,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
 
     $remoteFilename = $filename.Replace("\", "\\")
     
-      
     $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
      
     return $fileInfo
@@ -215,12 +214,8 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
     $vhdName = "${vmName}.vhdx"
     $vhdFilename = Join-Path $vhdDir $vhdName
 
-      
-
     DeleteVmAndVhd $vmName $hvServer $vhdFilename 
  
-      
-
     #
     # Make sure the future boot disk .vhd file does not already exist
     #
@@ -231,8 +226,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         "       VHD = ${vhdFilename}"
         return $False
     }
-   
- 
+
     #
     # Make sure the parent .vhd file exists
     #
@@ -279,7 +273,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         }
     }
 
-   
     #
     # Now check the optional parameters
     #
@@ -319,7 +312,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             }
         }
     }
-
 
     #
     # If memSize is present, make sure it is within a valid range, then convert
@@ -434,7 +426,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 Continue
             }
 
-        
             #
             # Does the specified network name exist on the HyperV server
             #
@@ -446,8 +437,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 {
                     $validNetworks += $network.Name
                 }
-
-           
             }
             else
             {
@@ -455,7 +444,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 "       The NIC will not be added (${nic})"
                 Continue
             }
-
 
             #
             # Is the network name known on the HyperV server
@@ -466,8 +454,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 "       The NIC will not be added to the VM"
                 Continue
             }
-
-        
 
             $macAddress  = $null
             if ($tokens.Length -eq 3)
@@ -493,9 +479,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
     #
     # If we got here, our final status depends on whether a valid NIC was found
     #
-
     return $validNicFound
-    
 }
 
 
@@ -548,7 +532,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # Modify VMs CPU count if user specified a new value
         #
-        
         if ($vm.hardware.numCPUs -and $vm.hardware.numCPUs -ne "1")
         {
             Set-VMProcessor -VMName $vmName -Count $($vm.hardware.numCPUs) -ComputerName $hvServer
@@ -571,7 +554,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
             $parentVhd = Join-Path $vhdDir $parentVhd
         }
-        
 
         # If parent Vhd is remote, copy it to local VHD directory
         $uriPath = New-Object -TypeName System.Uri -ArgumentList $parentVhd
@@ -584,7 +566,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $parentVhd = $dstPath
         }
         $vhdFilename = $parentVhd
-        
 
         $disableDiff = $vm.hardware.disableDiff -eq "true"
         if (-not $disableDiff)
@@ -625,7 +606,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $Error.Clear() 
         Add-VMHardDiskDrive $vmName -Path $vhdFilename -ControllerNumber 0 -ControllerLocation 0 -ComputerName $hvServer 
         #$newDrive = Add-VMDrive $vmName -path $vhdFilename -ControllerID 0  -LUN 0 -server $hvServer 
-         
 
         if ($Error.Count -gt 0)
         {
@@ -663,7 +643,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
         }
 
-       
         #
         # Clear all NICs and then add the specified NICs
         #
@@ -741,7 +720,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     #
     # If we made it here, enough things went correctly and the VM was created
-
+    #
     return $retVal
 }
 
