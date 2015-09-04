@@ -230,30 +230,51 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
     #
     # Make sure the parent .vhd file exists
     #
-    $parentVhd = $vm.hardware.parentVhd
-    if (-not ([System.IO.Path]::IsPathRooted($parentVhd)) )
+    if ($vm.hardware.parentVhd)
     {
-        $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
-        $parentVhd = Join-Path $vhdDir $parentVhd
-    }
-
-    $uriPath = New-Object -TypeName System.Uri -ArgumentList $parentVhd
-    if ($uriPath.IsUnc)
-    {
-        if (-not $(Test-Path $parentVhd))
+        $parentVhd = $vm.hardware.parentVhd
+        if (-not ([System.IO.Path]::IsPathRooted($parentVhd)) )
         {
-            Write-Error "Remote parent vhd file ${parentVhd} does not exist."
-            return $False
+            $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            $parentVhd = Join-Path $vhdDir $parentVhd
         }
-    } 
-    else
+
+        $uriPath = New-Object -TypeName System.Uri -ArgumentList $parentVhd
+        if ($uriPath.IsUnc)
+        {
+            if (-not $(Test-Path $parentVhd))
+            {
+                Write-Error "Remote parent vhd file ${parentVhd} does not exist."
+                return $False
+            }
+        } 
+        else
+        {
+            $fileInfo = GetRemoteFileInfo $parentVhd $hvServer
+            if (-not $fileInfo)
+            {
+                Write-Error "Error: The parent .vhd file ${parentVhd} does not exist for ${vmName}"
+                return $False
+            }
+        }
+    }
+    elseif ($vm.hardware.importVM)
     {
-        $fileInfo = GetRemoteFileInfo $parentVhd $hvServer
+        #
+        # Verify the .xml file for the import VM exists
+        #
+        $importVmInfo = GetRemoteFileInfo $vm.hardware.importVM
         if (-not $fileInfo)
         {
-            Write-Error "Error: The parent .vhd file ${parentVhd} does not exist for ${vmName}"
+            Write-Error "Error: The importVM xml file does not exist, or cannot be accessed"
             return $False
         }
+    }
+    else
+    {
+        Write-Error "Error: The hardware section does not contain a <parentVhd> or a <importVM> attribute"
+        Write-Error "       You must provide one or the either, but not both"
+        return $False
     }
      
     $dataVhd = $vm.hardware.DataVhd
