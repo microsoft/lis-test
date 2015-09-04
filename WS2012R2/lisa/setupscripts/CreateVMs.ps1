@@ -131,7 +131,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
 
     $remoteFilename = $filename.Replace("\", "\\")
     
-      
     $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
      
     return $fileInfo
@@ -215,12 +214,8 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
     $vhdName = "${vmName}.vhdx"
     $vhdFilename = Join-Path $vhdDir $vhdName
 
-      
-
     DeleteVmAndVhd $vmName $hvServer $vhdFilename 
  
-      
-
     #
     # Make sure the future boot disk .vhd file does not already exist
     #
@@ -231,35 +226,55 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         "       VHD = ${vhdFilename}"
         return $False
     }
-   
- 
+
     #
     # Make sure the parent .vhd file exists
     #
-    $parentVhd = $vm.hardware.parentVhd
-    if (-not ([System.IO.Path]::IsPathRooted($parentVhd)) )
+    if ($vm.hardware.parentVhd)
     {
-        $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
-        $parentVhd = Join-Path $vhdDir $parentVhd
-    }
-
-    $uriPath = New-Object -TypeName System.Uri -ArgumentList $parentVhd
-    if ($uriPath.IsUnc)
-    {
-        if (-not $(Test-Path $parentVhd))
+        $parentVhd = $vm.hardware.parentVhd
+        if (-not ([System.IO.Path]::IsPathRooted($parentVhd)) )
         {
-            Write-Error "Remote parent vhd file ${parentVhd} does not exist."
-            return $False
+            $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            $parentVhd = Join-Path $vhdDir $parentVhd
         }
-    } 
-    else
+
+        $uriPath = New-Object -TypeName System.Uri -ArgumentList $parentVhd
+        if ($uriPath.IsUnc)
+        {
+            if (-not $(Test-Path $parentVhd))
+            {
+                Write-Error "Remote parent vhd file ${parentVhd} does not exist."
+                return $False
+            }
+        } 
+        else
+        {
+            $fileInfo = GetRemoteFileInfo $parentVhd $hvServer
+            if (-not $fileInfo)
+            {
+                Write-Error "Error: The parent .vhd file ${parentVhd} does not exist for ${vmName}"
+                return $False
+            }
+        }
+    }
+    elseif ($vm.hardware.importVM)
     {
-        $fileInfo = GetRemoteFileInfo $parentVhd $hvServer
+        #
+        # Verify the .xml file for the import VM exists
+        #
+        $importVmInfo = GetRemoteFileInfo $vm.hardware.importVM
         if (-not $fileInfo)
         {
-            Write-Error "Error: The parent .vhd file ${parentVhd} does not exist for ${vmName}"
+            Write-Error "Error: The importVM xml file does not exist, or cannot be accessed"
             return $False
         }
+    }
+    else
+    {
+        Write-Error "Error: The hardware section does not contain a <parentVhd> or a <importVM> attribute"
+        Write-Error "       You must provide one or the either, but not both"
+        return $False
     }
      
     $dataVhd = $vm.hardware.DataVhd
@@ -279,7 +294,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         }
     }
 
-   
     #
     # Now check the optional parameters
     #
@@ -320,68 +334,55 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         }
     }
 
-
     #
-    # If memSize is present, make sure its value is within a valid range.
+    # If memSize is present, make sure it is within a valid range, then convert
+    # it to MB.  If a unit specifier is not present, assume MB. Only MB and GB
+    # are supported.  Strings can be in any of the following formats:
+    #        "2048"
+    #        "2048MB"       "2048GB"
+    #        "2040 MB"      "2048 GB"
     #
     if ($vm.hardware.memSize)
     {
         #
-        # Check the syntax, and convert to MB
+        #    Use regular expressions to parse the memory size string
+        #    and convert the value to MB.  Whitespace is parsed out.
         #
-        $tokens = ($vm.hardware.memSize).Trim().Split(" ")
-        if ($tokens.Length -lt 1 -or $tokens.Length -gt 2)
+        $regex = [regex] '^(\d+)\s*([MG]B)?$'
+
+        $memStr = $vm.hardware.memSize.Trim().ToUpper()
+        $mbMemSize = "1024"
+
+        if ( "$memStr" -match "$regex" )
         {
-            Write-Warning "Warn : Invalid <memSize> for VM. Defaulting to memSize of 512 MB"
-            $xmlMemSize = "512"
+            switch ($matches.Count)
+            {
+            2   {   $mbMemSize = $matches[1] }
+            3   {   $mbMemSize = $matches[1]
+                    if ($matches[2] -eq "GB" ) {
+                        $mbMemSize = ([int] $matches[1]) * 1KB
+                    }
+                }
+            default {
+                    Write-Warning "Invalid memSize. MemSize defaulting to 1024MB"
+                } 
+            }
         }
         else
         {
-            $mbMemSize = [UInt64] 0
-            $memSize = $tokens[0].Trim()
-            $memSizeUnits = "MB"
-
-            if ($tokens.Length -eq 2)
-            {
-                $memSizeUnits = $tokens[1].Trim().ToUpper()
-                
-                $mbMemSize = $memSize
-                if ($memSizeUnits -ne "MB" -and $memSizeUnits -ne "GB")
-                {
-                    "Error: Invalid unit for memSize: ${memSizeUnits}"
-                    "       Defaulting to MB"
-                    $mbMemSize = $memSize
-                }
-                else
-                {
-                    #
-                    # Convert memSize from GB to MB
-                    #
-                    if ($memSizeUnits -eq "GB")
-                    {
-                        $mbMemSize = [String] (([Uint64] $memSize) * 1024)
-                    }
-                }
-            }
-            else
-            {
-                #
-                # Input is a single number (we hope) so assume it's MB
-                #
-                $mbMemSize = $memSize
-            }
-
-            $vm.hardware.memSize = $mbMemSize
+            Write-Warning "Warn: Invalid memSize. MemSize defaulting to 1024 MB"
         }
 
+        $vm.hardware.memSize = $mbMemSize
+
         #
-        # Now make sure the memSize value is reasonable
-        # We picked 128 MB as the lowest amount of memory we will allow
+        # Make sure the memSize value is reasonable for the host.
+        # We picked 512 MB as the lowest amount of memory we will allow.
         #
         $memSize = [Uint64] $vm.hardware.memSize
-        if ($memSize -lt 128)
+        if ($memSize -lt 512)
         {
-            Write-Warning "The memSize for VM ${vmName} is below the minimum of 128 MB. memSize set to the default value of 512 MB"
+            Write-Warning "The memSize for VM ${vmName} is below the minimum of 512 MB. memSize set to the default value of 512 MB"
             $vm.hardware.memSize = "512"
         }
 
@@ -446,7 +447,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 Continue
             }
 
-        
             #
             # Does the specified network name exist on the HyperV server
             #
@@ -458,8 +458,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 {
                     $validNetworks += $network.Name
                 }
-
-           
             }
             else
             {
@@ -467,7 +465,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 "       The NIC will not be added (${nic})"
                 Continue
             }
-
 
             #
             # Is the network name known on the HyperV server
@@ -478,8 +475,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 "       The NIC will not be added to the VM"
                 Continue
             }
-
-        
 
             $macAddress  = $null
             if ($tokens.Length -eq 3)
@@ -505,9 +500,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
     #
     # If we got here, our final status depends on whether a valid NIC was found
     #
-
     return $validNicFound
-    
 }
 
 
@@ -560,7 +553,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # Modify VMs CPU count if user specified a new value
         #
-        
         if ($vm.hardware.numCPUs -and $vm.hardware.numCPUs -ne "1")
         {
             Set-VMProcessor -VMName $vmName -Count $($vm.hardware.numCPUs) -ComputerName $hvServer
@@ -583,7 +575,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
             $parentVhd = Join-Path $vhdDir $parentVhd
         }
-        
 
         # If parent Vhd is remote, copy it to local VHD directory
         $uriPath = New-Object -TypeName System.Uri -ArgumentList $parentVhd
@@ -596,7 +587,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $parentVhd = $dstPath
         }
         $vhdFilename = $parentVhd
-        
 
         $disableDiff = $vm.hardware.disableDiff -eq "true"
         if (-not $disableDiff)
@@ -637,7 +627,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $Error.Clear() 
         Add-VMHardDiskDrive $vmName -Path $vhdFilename -ControllerNumber 0 -ControllerLocation 0 -ComputerName $hvServer 
         #$newDrive = Add-VMDrive $vmName -path $vhdFilename -ControllerID 0  -LUN 0 -server $hvServer 
-         
 
         if ($Error.Count -gt 0)
         {
@@ -675,7 +664,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
         }
 
-       
         #
         # Clear all NICs and then add the specified NICs
         #
@@ -753,7 +741,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     #
     # If we made it here, enough things went correctly and the VM was created
-
+    #
     return $retVal
 }
 
