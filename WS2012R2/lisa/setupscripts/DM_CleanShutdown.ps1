@@ -337,17 +337,17 @@ if ($vm1AssignedDelta -le 0)
 
 $timeout = 120 #seconds
 
-Stop-VM -vmName $vm1Name -force
+Stop-VM -vmName $vm1Name -ComputerName $hvServer -force
 
 if (-not $?)
 {
   "Error: $vm1Name did not shutdown via Hyper-V"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
-# vm1 shut down gracefully via ssh, so shutdown vm2
-Stop-VM -vmName $vm2Name -force
+# vm1 shut down gracefully via Hyper-V, so shutdown vm2
+Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
 
 write-output $true
 return $true
