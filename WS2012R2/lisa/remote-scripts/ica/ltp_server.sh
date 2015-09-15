@@ -155,7 +155,7 @@ function is_ubuntu {
 }
 
 
-function verify_install (){
+function verify_install(){
     if [ $1 -eq 0 ]; then
         echo "$2 was successfully installed." >> summary.log
     else
@@ -177,7 +177,7 @@ function install_packages(){
     echo "Done installing packets"
 }
 
-function configure_ltp_server(){
+function configure_ltp_server() {
     echo "Configuring LTP NET Server"
 
     ip_addr=$(ip addr show dev eth0 | grep "inet " | awk {'print $2'} | rev | cut -c 4- | rev)
@@ -192,6 +192,7 @@ function configure_ltp_server(){
     password=$2
     echo "$1" >> /root/.rhosts
     echo "rsh" >> /etc/securetty
+    echo "rexec" >> /etc/securetty
     echo "rlogin" >> /etc/securetty
     echo "telnet" >> /etc/securetty
     echo "ftp" >> /etc/securetty
@@ -202,14 +203,12 @@ function configure_ltp_server(){
     echo "ALL: $ip_addr" >> /etc/hosts.allow
     sed -i -e 's|= yes|= no|g' /etc/xinetd.d/echo
     sed -i -e "s/.*pam_securetty.so/#auth [success=ok new_authtok_reqd=ok ignore=ignore user_unknown=bad default=die] pam_securetty.so/g" /etc/pam.d/login
-    service xinetd restart
-    rpc.rstatd start
-    exportfs -ra
-    service nfs-kernel-server restart
-    service rpcbind restart
-    service rwhod restart
+    sed -i -e 's|= yes|= no|g' /etc/xinetd.d/echo-dgram
+    sed -i -e 's|= yes|= no|g' /etc/xinetd.d/echo-stream
+    sed -i -e "s|.*pam_securetty.so|#auth       required     pam_securetty.so|g" /etc/pam.d/remote
     echo "Done configuring the server"
 }
+
 function install_ltp(){
     
     TOP_BUILDDIR="/opt/ltp"
@@ -232,19 +231,87 @@ function install_ltp(){
     make all
     if [ $? -gt 0 ]; then
         echo "Failed to compile LTP"
-        UpdateSummary "Compiling LTP failed"
-        UpdateTestState $ICA_TESTFAILED
         exit 10
     fi
     echo "Installing LTP"
     make install
     if [ $? -gt 0 ]; then
             echo "Failed to install LTP"
-            UpdateSummary "Installing LTP failed"
-            UpdateTestState $ICA_TESTFAILED
             exit 10
     fi
     echo "LTP successfully installed."
+}
+
+function services_start_ubuntu {
+    service xinetd restart
+    rpc.rstatd start
+    exportfs -ra
+    service nfs-kernel-server restart
+    service rpcbind restart
+}
+
+function services_start_fedora {
+    chkconfig finger on
+    chkconfig rsh on
+    chkconfig rlogin on
+    chkconfig rexec on
+    chkconfig rstatd on
+    chkconfig rusersd on
+    chkconfig nfs-server on
+
+    service xinetd restart
+    service rstatd restart
+    service nfs restart
+    exportfs -ra
+    service rpcbind restart
+    service rusersd restart
+    service rwhod restart
+    service virt-who start
+
+    systemctl restart rsh.socket
+    systemctl restart rlogin.socket
+    systemctl restart rexec.socket
+}
+
+function config_rsh_fedora {
+    echo "Setting up rsh"
+    echo "service shell
+{
+        disable = no
+        socket_type = stream
+        wait = no
+        user = root
+        log_on_success += USERID
+        log_on_failure += USERID
+        server = /usr/sbin/in.rshd
+}" >> /etc/xinetd.d/rsh
+
+    iptables -F
+    setenforce 0
+}
+
+function config_telnet_fedora {
+    echo "service telnet
+{
+        flags           = REUSE
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = /usr/sbin/in.telnetd
+        log_on_failure  += USERID
+        disable         = no
+}" >> /etc/xinetd.d/telnet
+}
+
+function config_finger_fedora {
+    echo "service finger
+{
+        socket_type = stream
+        wait  = no
+        user  = nobody
+        server  = /usr/sbin/in.fingerd
+        disable  = no
+}" >> /etc/xinetd.d/finger
 }
 #######################################################################
 #
@@ -256,8 +323,22 @@ HOST_IP=$1
 HOST_PASSWORD=$2
 
 if is_fedora ; then
-    # not supported
     echo "FEDORA"
+    echo "Starting the configuration..."
+    PACK_LIST=(autoconf automake m4 libaio-devel libattr1 libcap-devel bison flex make gcc git xinetd tcpdump rsh finger-server rusers rusers-server rsh-server gd telnet-server rdist rsync telnet nfs-utils nfs-utils-lib rwho expect dnsmasq traceroute dhcp httpd vsftpd exportfs nfs-utils nfs4-acl-tools portmap virt-who ftp)
+    for item in ${PACK_LIST[*]}
+    do
+        echo "Starting to install $item... "
+        yum install $item -y 
+        verify_install $? $item   
+    done
+
+    configure_ltp_server $HOST_IP $HOST_PASSWORD
+    config_rsh_fedora
+    config_finger_fedora
+    config_telnet_fedora
+    install_ltp
+    services_start_fedora
    
 elif is_ubuntu ; then
     install_packages
