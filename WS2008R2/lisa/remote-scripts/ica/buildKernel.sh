@@ -6,11 +6,11 @@
 #     This script was created to automate the testing of a Linux
 #     kernel source tree.  It does this by performing the following
 #     steps:
-#   1. Make sure we were given a kernel source tarball
-#   2. Configure and build the new kernel
-#   3. Update the grub boot options
-#   4. Validate the ICs are in the new initrd image
-#   5. Reboot into the new kernel
+#	1. Make sure we were given a kernel source tarball
+#	2. Configure and build the new kernel
+#	3. Update the grub boot options
+#	4. Validate the ICs are in the new initrd image
+#	5. Reboot into the new kernel
 #
 #     To identify which files to operation on, we source a file
 #     named constants.sh.  This file was given to us by the
@@ -218,7 +218,7 @@ if [ ! ${ROOTDIR} ]; then
     ROOTDIR=`tar -tvjf ${TARBALL} | head -n 1 | awk -F " " '{print $6}' | awk -F "/" '{print $1}'`
     if [ ! -n $ROOTDIR ]; then
         dbgprint 0 "Unable to determine value for ROOTDIR."
-    UpdateTestState "TestAborted"
+	UpdateTestState "TestAborted"
         exit 10
     fi
 fi
@@ -252,27 +252,22 @@ dos2unix ica/*
 dos2unix bin/*
 
 #
-#Install some packages
 if is_fedora ; then
     yum install openssl-devel -y
     if [ $? -ne 0 ]; then
-        echo "Error: Unable to install openssl."
-        UpdateTestState $TestAborted
+        LogMsg "Error: Unable to install openssl."
+         UpdateTestState $TestAborted
     fi
 elif is_ubuntu ; then
     apt-get -y install nfs-common libssl-dev
     if [ $? -ne 0 ]; then
-             LogMsg "ERROR: Unable to install libssl-devel. Aborting..."
-             UpdateTestState $TestAborted
-    fi
-elif is_suse ; then
-    zypper source-install openssl
-    if [ $? -ne 0 ]; then
-        echo :"ERROR:Unable to install openssl."
+        LogMsg "ERROR: Unable to install libssl-devel. Aborting..."
         UpdateTestState $TestAborted
     fi
+elif is_suse ; then
+    #If distro is SLES we need to install soime packages first
+    echo "Nothing to do."
 fi
-
 # set the execute bit on any downloade files we may run
 #
 dbgprint 1 "Setting execute bit on files in the ica and bin directories"
@@ -330,69 +325,78 @@ cd ${ROOTDIR}
 #
 dbgprint 1 "Creating the .config file."
 if [ -f ~/ica/kernel.config.base ]; then
-    # Basing a new kernel config on a previous kernel config file will
-    # provide flexibility in providing know good config files with certain
-    # options enabled/disabled.  Functionality could also potentially be
-    # added here for choosing between multiple old config files depending
-    # on the distro that the kernel is being compiled on (i.g. if Fedora
-    # is detected copy ~/ica/kernel.config.base-fedora to .config before
-    # running 'make oldconfig')
+	# Basing a new kernel config on a previous kernel config file will
+	# provide flexibility in providing know good config files with certain
+	# options enabled/disabled.  Functionality could also potentially be
+	# added here for choosing between multiple old config files depending
+	# on the distro that the kernel is being compiled on (i.g. if Fedora
+	# is detected copy ~/ica/kernel.config.base-fedora to .config before
+	# running 'make oldconfig')
 
-    dbgprint 3 "Creating new config based on a previous .config file"
-    cp ~/ica/kernel.config.base .config
+	dbgprint 3 "Creating new config based on a previous .config file"
+	cp ~/ica/kernel.config.base .config
 
-    # Base the new config on the old one and select the default config
-    # option for any new options in the newer kernel version
-    yes "" | make oldconfig
+	# Base the new config on the old one and select the default config
+	# option for any new options in the newer kernel version
+	yes "" | make oldconfig
 else
-    dbgprint 3 "Create a default .config file"
-    yes "" | make oldconfig
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        dbgprint 0 "make defconfig failed."
-        dbgprint 0 "Aborting the test."
-        UpdateTestState "TestAborted"
-        exit 60
-    fi
+	dbgprint 3 "Create a default .config file"
+	yes "" | make oldconfig
+	sts=$?
+	if [ 0 -ne ${sts} ]; then
+	    dbgprint 0 "make defconfig failed."
+	    dbgprint 0 "Aborting the test."
+	    UpdateTestState "TestAborted"
+	    exit 60
+	fi
 
-    if [ ! -e ${CONFIG_FILE} ]; then
-        dbgprint 0 "make defconfig did not create the '${CONFIG_FILE}'"
-        dbgprint 0 "Aborting the test."
-        UpdateTestState "TestAborted"
-        exit 70
-    fi
+	if [ ! -e ${CONFIG_FILE} ]; then
+	    dbgprint 0 "make defconfig did not create the '${CONFIG_FILE}'"
+	    dbgprint 0 "Aborting the test."
+	    UpdateTestState "TestAborted"
+	    exit 70
+	fi
 
-    #
-    # Enable HyperV support
-    #
-    dbgprint 3 "Enabling HyperV support in the ${CONFIG_FILE}"
-    # On this first 'sed' command use --in-place=.orig to make a backup
-    # of the original .config file created with 'defconfig'
-    sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=m\nCONFIG_HYPERV_UTILS=m\nCONFIG_HYPERV_BALLOON=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=m\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
+	#
+	# Enable HyperV support
+	#
+	dbgprint 3 "Enabling HyperV support in the ${CONFIG_FILE}"
+	# On this first 'sed' command use --in-place=.orig to make a backup
+	# of the original .config file created with 'defconfig'
+	sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=m\nCONFIG_HYPERV_UTILS=m\nCONFIG_HYPERV_BALLOON=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=m\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
 
-    # Disable kernel preempt support , because of this lot of stack trace is coming and some time kernel does not boot at all.
-    dbgprint 3 "Disabling KERNEL_PREEMPT_VOLUNTARY in ${CONFIG_FILE}"
-    # On this first this is a workaround for known bug that makes kernel lockup once the bug is fixed we can remove this in PS bug ID is 124 and 125
-    sed --in-place -e s:"CONFIG_PREEMPT_VOLUNTARY=y":"# CONFIG_PREEMPT_VOLUNTARY is not set": ${CONFIG_FILE}
+	# Disable kernel preempt support , because of this lot of stack trace is coming and some time kernel does not boot at all.
+	dbgprint 3 "Disabling KERNEL_PREEMPT_VOLUNTARY in ${CONFIG_FILE}"
+	# On this first this is a workaround for known bug that makes kernel lockup once the bug is fixed we can remove this in PS bug ID is 124 and 125
+	sed --in-place -e s:"CONFIG_PREEMPT_VOLUNTARY=y":"# CONFIG_PREEMPT_VOLUNTARY is not set": ${CONFIG_FILE}
 
-    #dgbprint 3 "Disabling signature driver"
-    sed --in-place -e s:"CONFIG_MODULE_SIG=y":"CONFIG_MODULE_SIG=n": ${CONFIG_FILE}
 
-    #
-    # Enable Ext4, Reiser support (ext3 is enabled by default)
-    #
-    sed --in-place -e s:"# CONFIG_EXT4_FS is not set":"CONFIG_EXT4_FS=y\nCONFIG_EXT4_FS_XATTR=y\nCONFIG_EXT4_FS_POSIX_ACL=y\nCONFIG_EXT4_FS_SECURITY=y": ${CONFIG_FILE}
-    sed --in-place -e s:"# CONFIG_REISERFS_FS is not set":"CONFIG_REISERFS_FS=y\nCONFIG_REISERFS_PROC_INFO=y\nCONFIG_REISERFS_FS_XATTR=y\nCONFIG_REISERFS_FS_POSIX_ACL=y\nCONFIG_REISERFS_FS_SECURITY=y": ${CONFIG_FILE}
 
-    #
-    # Enable Tulip network driver support.  This is needed for the "legacy"
-    # network adapter provided by Hyper-V
-    #
-    sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=m\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
+	#
+	# Enable Ext4, Reiser support (ext3 is enabled by default)
+	#
+	sed --in-place -e s:"# CONFIG_EXT4_FS is not set":"CONFIG_EXT4_FS=y\nCONFIG_EXT4_FS_XATTR=y\nCONFIG_EXT4_FS_POSIX_ACL=y\nCONFIG_EXT4_FS_SECURITY=y": ${CONFIG_FILE}
+	sed --in-place -e s:"# CONFIG_REISERFS_FS is not set":"CONFIG_REISERFS_FS=y\nCONFIG_REISERFS_PROC_INFO=y\nCONFIG_REISERFS_FS_XATTR=y\nCONFIG_REISERFS_FS_POSIX_ACL=y\nCONFIG_REISERFS_FS_SECURITY=y": ${CONFIG_FILE}
 
-    # After manually adding lines to .config, run make oldconfig to make sure config file is setup
-    # properly and all appropriate config options are added. THIS STEP IS NECESSARY!!
-    yes "" | make oldconfig
+	#
+	# Enable Tulip network driver support.  This is needed for the "legacy"
+	# network adapter provided by Hyper-V
+	#
+	sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=m\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
+
+	# After manually adding lines to .config, run make oldconfig to make sure config file is setup
+	# properly and all appropriate config options are added. THIS STEP IS NECESSARY!!
+    # Disable module signing verification. This requires libSSL support if enabled.
+    sed --in-place -e s:"CONFIG_MODULE_SIG=y":"# CONFIG_MODULE_SIG is not set": ${CONFIG_FILE}
+    sed --in-place -e s:"CONFIG_MODULE_SIG_SHA256=y":"# CONFIG_MODULE_SIG_SHA256 is not set": ${CONFIG_FILE}
+    sed --in-place -e s:"CONFIG_MODULE_SIG_HASH=.*":"": ${CONFIG_FILE}
+    sed --in-place -e s:"CONFIG_MODULE_SIG_KEY=.*":"": ${CONFIG_FILE}
+    sed --in-place -e s:"CONFIG_SYSTEM_TRUSTED_KEYRING=y":"# CONFIG_SYSTEM_TRUSTED_KEYRING is not set": ${CONFIG_FILE}
+    sed --in-place -e s:"CONFIG_SYSTEM_TRUSTED_KEYS=.*":"": ${CONFIG_FILE}
+    sed --in-place -e s:"CONFIG_BTRFS_FS=y":"# CONFIG_BTRFS_FS is not set": ${CONFIG_FILE}
+    sed --in-place -e s:"CONFIG_XFS_FS=y":"# CONFIG_XFS_FS is not set": ${CONFIG_FILE}
+
+	yes "" | make oldconfig
 
 fi
 
@@ -402,21 +406,21 @@ fi
 dbgprint 1 "Building the kernel."
 proc_count=$(cat /proc/cpuinfo | grep --count processor)
 if [ $proc_count -eq 1 ]; then
-    make
+	make
 else
-    make -j $((proc_count+1))
+	make -j $((proc_count+1))
 
 fi
 
 sts=$?
 if [ 0 -ne ${sts} ]; then
-        dbgprint 1 "Kernel make failed: ${sts}"
-        dbgprint 1 "Aborting test."
-        UpdateTestState "TestAborted"
-        UpdateSummary "Make: Failed"
-        exit 110
+	    dbgprint 1 "Kernel make failed: ${sts}"
+	    dbgprint 1 "Aborting test."
+	    UpdateTestState "TestAborted"
+	    UpdateSummary "Make: Failed"
+	    exit 110
 else
-        UpdateSummary "make: Success"
+		UpdateSummary "make: Success"
 fi
 
 #
@@ -424,21 +428,21 @@ fi
 #
 dbgprint 1 "Building the kernel modules."
 if [ $proc_count -eq 1 ]; then
-    make modules_install
+	make modules_install
 
 else
-    make modules_install -j $((proc_count+1))
+	make modules_install -j $((proc_count+1))
 fi
 
 sts=$?
 if [ 0 -ne ${sts} ]; then
-        dbgprint 1 "Kernel make failed: ${sts}"
-        dbgprint 1 "Aborting test."
-        UpdateTestState "TestAborted"
-        UpdateSummary "make modules_install: Failed"
-        exit 110
+	    dbgprint 1 "Kernel make failed: ${sts}"
+	    dbgprint 1 "Aborting test."
+	    UpdateTestState "TestAborted"
+	    UpdateSummary "make modules_install: Failed"
+	    exit 110
 else
-        UpdateSummary "make modules_install: Success"
+		UpdateSummary "make modules_install: Success"
 fi
 
 #
@@ -448,19 +452,19 @@ dbgprint 1 "Installing the kernel..."
 
 # Adding support for parallel compilation on SMP systems.
 if [ $proc_count -eq 1 ]; then
-    make install
+	make install
 else
-    make -j $((proc_count+1)) install
+	make -j $((proc_count+1)) install
 fi
 
 sts=$?
 if [ 0 -ne ${sts} ]; then
     echo "kernel build failed: ${sts}"
     UpdateTestState "TestAborted"
-    UpdateSummary "make install: Failed"
+	UpdateSummary "make install: Failed"
     exit 130
 else
-        UpdateSummary "make install: Success"
+		UpdateSummary "make install: Success"
 fi
 
 cd ~
