@@ -242,6 +242,14 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 85
     fi
+    apt-get install build-essential -y
+    if [ $? -ne 0 ]; then
+        msg="Error: Build essential failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 85
+    fi
     service ufw status
     if [ $? -ne 3 ]; then
         LogMsg "Disabling firewall on Ubuntu"
