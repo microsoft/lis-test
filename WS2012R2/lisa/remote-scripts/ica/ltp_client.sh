@@ -199,7 +199,10 @@ function setup_variables {
     sed -i -e 's|${RHOST_IPV4_HOST:-"1"}|${RHOST_IPV4_HOST:-"'${IP_ARR[3]}'"}|g' /opt/ltp/testscripts/network.sh
     sed -i -e 's|${IPV4_NET_REV:-"0.0.10"}|${IPV4_NET_REV:-"'${IP_ARR[2]}'.'${IP_ARR[1]}'.'${IP_ARR[0]}'"}|g' /opt/ltp/testscripts/network.sh
     sed -i -e 's|= yes|= no|g' /etc/xinetd.d/echo
+    sed -i -e 's|= yes|= no|g' /etc/xinetd.d/echo-dgram
+    sed -i -e 's|= yes|= no|g' /etc/xinetd.d/echo-stream
     sed -i -e 's|if \[ "\$(rsh -n -l root \$RHOST pgrep -x rwhod)" == "" \]; then|rsh -n -l root \$RHOST pgrep -x rwhod \n if \[ \$\? -ne 0 \]; then|g' /opt/ltp/testcases/bin/rwho01
+
 }
 
 function setup_scripts {
@@ -212,7 +215,14 @@ function setup_scripts {
     echo "ALL: 127.0.1.1" >> /etc/hosts.allow
     echo "ALL: $HOST_IP" >> /etc/hosts.allow
     echo "/ $SERVER_IP(rw,no_subtree_check,no_root_squash)" >> /etc/exports
+    echo "rsh" >> /etc/securetty
+    echo "rexec" >> /etc/securetty
+    echo "rlogin" >> /etc/securetty
+    echo "telnet" >> /etc/securetty
+    echo "ftp" >> /etc/securetty
+}
 
+function services_start_ubuntu {
     service xinetd restart
     rpc.rstatd start
     exportfs -ra
@@ -220,13 +230,82 @@ function setup_scripts {
     service rpcbind restart
 }
 
-function verify_install (){
+function services_start_fedora {
+    chkconfig finger on
+    chkconfig rsh on
+    chkconfig rlogin on
+    chkconfig rexec on
+    chkconfig rstatd on
+    chkconfig rusersd on
+    chkconfig nfs-server on
+
+    service xinetd restart
+    service rstatd restart
+    service nfs restart
+    exportfs -ra
+    service rpcbind restart
+    service rusersd restart
+    service rwhod restart
+    service virt-who start
+
+    systemctl restart rsh.socket
+    systemctl restart rlogin.socket
+    systemctl restart rexec.socket
+
+}
+
+function verify_install(){
     if [ $1 -eq 0 ]; then
         echo "$2 was successfully installed." >> packets.log
     else
         echo "Error: failed to install $2" >> packets.log
     fi
 }
+
+function config_rsh_fedora {
+    echo "Setting up rsh" >> steps.log
+    cp ~/.ssh/$SSH_PRIVATE_KEY ~/.ssh/id_rsa
+    SSH_PRIVATE_KEY=$SSH_PRIVATE_KEY.pub
+    cp ~/.ssh/$SSH_PRIVATE_KEY ~/.ssh/id_rsa.pub
+    echo "service shell
+{
+        disable = no
+        socket_type = stream
+        wait = no
+        user = root
+        log_on_success += USERID
+        log_on_failure += USERID
+        server = /usr/sbin/in.rshd
+}" >> /etc/xinetd.d/rsh
+
+    iptables -F
+    setenforce 0
+}
+
+function config_telnet_fedora {
+    echo "service telnet
+{
+        flags           = REUSE
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = /usr/sbin/in.telnetd
+        log_on_failure  += USERID
+        disable         = no
+}" >> /etc/xinetd.d/telnet
+}
+
+function config_finger_fedora {
+    echo "service finger
+{
+        socket_type = stream
+        wait  = no
+        user  = nobody
+        server  = /usr/sbin/in.fingerd
+        disable  = no
+}" >> /etc/xinetd.d/finger
+}
+
 
 #######################################################################
 #
@@ -274,9 +353,46 @@ fi
 
 
 if is_fedora ; then
-    # not supported
-    echo "FEDORA"
-    
+    echo "Starting the configuration..."
+    PACK_LIST=(autoconf automake m4 libaio-devel libattr1 libcap-devel gd bison flex make gcc git xinetd tcpdump rsh finger-server rsh-server rusers rusers-server telnet-server rdist rsync telnet nfs-utils nfs-utils-lib rwho expect dnsmasq traceroute dhcp httpd vsftpd exportfs nfs-utils nfs4-acl-tools portmap virt-who ftp)
+    for item in ${PACK_LIST[*]}
+    do
+        echo "Starting to install $item... "
+        yum install $item -y 
+        verify_install $? $item   
+    done
+
+    # waiting for server to finish the setup
+    sleep 120
+
+    echo "Installing LTP on client" >> steps.log
+    install_ltp
+
+    echo "Creating .rhosts file" >> steps.log
+    echo $SERVER_IP >> /root/.rhosts
+
+    echo "Set PATH for testcases" >> steps.log
+    PATH=$PATH:/opt/ltp/testcases/bin
+
+    echo "Setting up variables" >> steps.log
+    setup_variables
+
+    echo "Settup scrips and daemons" >> steps.log
+    setup_scripts
+ 
+    echo "Setting up rsh"
+    config_rsh_fedora
+
+    echo "Setting up telnet"
+    config_telnet_fedora
+
+    echo "Setting up finger"
+    config_finger_fedora
+
+    echo "Starting required services"
+    services_start_fedora
+
+
 elif is_ubuntu ; then
     echo "Starting the configuration..." >> steps.log
     
@@ -306,6 +422,7 @@ elif is_ubuntu ; then
 
     echo "Settup scrips and daemons" >> steps.log
     setup_scripts
+    services_start_ubuntu
     
     echo "Setting up rsh" >> steps.log
     cp ~/.ssh/$SSH_PRIVATE_KEY ~/.ssh/id_rsa
