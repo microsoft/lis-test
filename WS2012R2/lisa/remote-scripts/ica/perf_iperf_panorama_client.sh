@@ -242,6 +242,26 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 85
     fi
+    apt-get install build-essential -y
+    if [ $? -ne 0 ]; then
+        msg="Error: Build essential failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 85
+    fi
+    service ufw status
+    if [ $? -ne 3 ]; then
+        LogMsg "Disabling firewall on Ubuntu"
+        service ufw stop
+        if [ $? -ne 0 ]; then
+                msg="Error: Failed to stop ufw"
+                LogMsg "${msg}"
+                echo "${msg}" >> ~/summary.log
+                UpdateTestState $ICA_TESTFAILED
+                exit 85
+        fi
+    fi
     ;;
 redhat_5|redhat_6)
     LogMsg "Check iptables status on RHEL"
@@ -486,4 +506,3 @@ scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVE
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
-
