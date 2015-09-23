@@ -31,6 +31,9 @@
 #                   - multicast test will fail on mc_commo testcase
 #                   - tcp test will fail on sendfile01 testcase
 # because of automation and xinetd01 testcase because of ipv6 address.
+# On SLES - rusers, rup and rwho testcases will fail because necessary
+# packets are not available.
+#         - dhcp, dnsmasq and ftp testcases may fail
 # If any other test fails, run it manually, it might work.
 ################################################################
 

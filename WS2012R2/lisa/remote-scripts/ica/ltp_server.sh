@@ -346,6 +346,45 @@ elif is_ubuntu ; then
     install_ltp
 
 elif is_suse ; then
-    # not supported
-    echo "SUSE"
+    echo "Starting the configuration..."
+    PACK_LIST=(autoconf automake m4 libattr1 bison flex make gcc xinetd nfs-kernel-server rdist telnet apache2 expect finger rsync rsyslog traceroute rsh-server tcpdump git-core finger-server dhcp dnsmasq telnet-server rpcbind lftp)
+    for item in ${PACK_LIST[*]}
+    do
+        echo "Starting to install $item... "
+        zypper --non-interactive install $item
+        verify_install $? $item
+    done
+    
+    echo "Configure LTP server" >> steps.log
+    configure_ltp_server $1 $2
+
+    echo "Installing LTP on client" >> steps.log
+    install_ltp
+
+    sed -i -e 's|(login)*|.*login|g' /opt/ltp/testcases/bin/telnet01
+    sed -i -e 's|$RUSER@|ltp-server:~|g' /opt/ltp/testcases/bin/telnet01
+    sed -i -e 's|(login)*|.*login|g' /opt/ltp/testcases/bin/rlogin01
+    sed -i -e 's|$RUSER@|ltp-server:~|g' /opt/ltp/testcases/bin/rlogin01
+    sed -i -e 's|}|\t\tdisable = no\n}|g' /etc/xinetd.d/rsh
+    sed -i -e 's|}|\t\tdisable = no\n}|g' /etc/xinetd.d/rlogin
+    sed -i -e 's|= yes|= no|g' /etc/xinetd.d/telnet
+    sed -i -e 's|restart xinetd|service xinetd restart|g' /opt/ltp/testcases/bin/rlogin01
+
+    echo "pts/0">> /etc/securetty
+    echo "pts/1">> /etc/securetty
+    echo "pts/2">> /etc/securetty
+    echo "pts/3">> /etc/securetty
+
+    netmask=$(ifconfig eth0 | grep "Mask" | awk '{print $4}' | cut -c 6-)
+    ip_addr=$(ip addr show dev eth0 | grep "inet " | awk {'print $2'} | rev | cut -c 4- | rev)
+    echo "/ ${ip_addr}/$netmask(rw,no_root_squash,sync)" >> /etc/exports
+    echo "$ip_addr root" >> /root/.rhosts
+
+    chkconfig rsh on
+    chkconfig rlogin on
+    chkconfig finger on
+
+    service xinetd restart
+    service nfs restart
+    /sbin/SuSEfirewall2 off
 fi

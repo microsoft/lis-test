@@ -430,6 +430,62 @@ elif is_ubuntu ; then
     cp ~/.ssh/$SSH_PRIVATE_KEY ~/.ssh/id_rsa.pub
 
 elif is_suse ; then
-    # not supported
-    echo "SUSE"
+    echo "Starting the configuration..." >> steps.log
+    
+    PACK_LIST=(autoconf automake m4 libattr1 flex make gcc xinetd tcpdump rsh-server finger rdist rsync apache2 nfs-kernel-server expect dnsmasq traceroute git-core finger-server dhcp lftp dnsmasq telnet-server rpcbind)
+    
+    for item in ${PACK_LIST[*]}
+    do
+        echo "Starting to install $item... "
+        zypper --non-interactive install $item
+        verify_install $? $item   
+
+    done
+
+    # waiting for server to finish the setup
+    sleep 120
+    
+    echo "Installing LTP on client" >> steps.log
+    install_ltp
+
+    echo "Creating .rhosts file" >> steps.log
+    echo "$SERVER_IP root" >> /root/.rhosts
+
+    netmask=$(ifconfig eth0 | grep "Mask" | awk '{print $4}' | cut -c 6-)
+    echo "/ ${HOST_IP}/$netmask(rw,no_root_squash,sync)" >> /etc/exports
+
+    echo "Set PATH for testcases" >> steps.log
+    PATH=$PATH:/opt/ltp/testcases/bin
+
+    echo "Setting up variables" >> steps.log
+    setup_variables
+
+    echo "Settup scrips and daemons" >> steps.log
+    setup_scripts
+
+    sed -i -e 's|login|.*login|g' /opt/ltp/testcases/bin/telnet01
+    sed -i -e 's|$RUSER@|ltp-server:~|g' /opt/ltp/testcases/bin/telnet01
+    sed -i -e 's|$RUSER@|ltp-server:~ |g' /opt/ltp/testcases/bin/rlogin01
+    sed -i -e 's|}|\t\tdisable = no\n}|g' /etc/xinetd.d/rsh
+    sed -i -e 's|}|\t\tdisable = no\n}|g' /etc/xinetd.d/rlogin
+    sed -i -e 's|= yes|= no|g' /etc/xinetd.d/telnet
+
+    echo "pts/0">> /etc/securetty
+    echo "pts/1">> /etc/securetty
+    echo "pts/2">> /etc/securetty
+    echo "pts/3">> /etc/securetty
+    
+    echo "Setting up rsh" >> steps.log
+    cp ~/.ssh/$SSH_PRIVATE_KEY ~/.ssh/id_rsa
+    SSH_PRIVATE_KEY=$SSH_PRIVATE_KEY.pub
+    cp ~/.ssh/$SSH_PRIVATE_KEY ~/.ssh/id_rsa.pub
+
+    chkconfig rsh on
+    chkconfig rlogin on
+    chkconfig rexec on
+    chkconfig finger on
+
+    service xinetd restart
+    service nfs restart
+    /sbin/SuSEfirewall2 off
 fi
