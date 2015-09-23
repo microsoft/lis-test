@@ -71,7 +71,7 @@
         <testName>TimeSync_NTP</testName>
         <testScript>CORE_TimeSync_NTP.sh</testScript>
         <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
-        <timeout>600</timeout>
+        <timeout>2000</timeout>
         <onError>Continue</onError>
         <testParams>
             <param>TC_COVERED=CORE-04</param>
