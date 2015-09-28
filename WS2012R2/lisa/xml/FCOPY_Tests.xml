@@ -85,7 +85,7 @@
 			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
 			<testScript>setupscripts\FCOPY_large_file.ps1</testScript>
 			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-			<timeout>900</timeout>
+			<timeout>1200</timeout>
 			<testParams>
 				<param>TC_COVERED=FCopy-04</param>
                 		<param>Type=Fixed</param>
