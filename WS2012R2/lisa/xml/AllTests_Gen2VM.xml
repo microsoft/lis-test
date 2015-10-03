@@ -22,7 +22,6 @@
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>Multi_Cpu_Test</suiteTest>
             <suiteTest>StressReloadModules</suiteTest>
-            <suiteTest>FloppyDisk</suiteTest>
             <suiteTest>CDmount</suiteTest>
 
             <suiteTest>KVP_Basic</suiteTest>
@@ -97,7 +96,6 @@
             <suiteTest>VlanTrunking</suiteTest>
             <suiteTest>JumboFrame</suiteTest>
             <suiteTest>NetworkMode</suiteTest>
-            <suiteTest>LegacySyntheticNetwork</suiteTest>
 
             <suiteTest>SecureBootBasic</suiteTest>
             <suiteTest>SecureBootMigrateVM</suiteTest>
@@ -280,20 +278,6 @@
         </testParams>
         <onError>Continue</onError>
         <noReboot>False</noReboot>
-    </test>
-
-    <test>
-        <testName>FloppyDisk</testName>
-        <testScript>Core_Floppy_Disk.sh</testScript>
-        <files>remote-scripts\ica\Core_Floppy_Disk.sh</files>
-        <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>
-        <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
-        <noReboot>False</noReboot>
-        <testParams>
-            <param>TC_COVERED=CORE-19</param>
-        </testParams>
-        <onError>Continue</onError>
-        <timeout>600</timeout>
     </test>
 
     <test>
@@ -549,26 +533,6 @@
         </testParams>
         <testScript>NET_TEST_NETWORK.sh</testScript>
         <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
-        <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-        <timeout>800</timeout>
-    </test>
-
-    <test>
-        <testName>LegacySyntheticNetwork</testName>
-        <setupScript>
-            <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
-            <file>setupscripts\ChangeCPU.ps1</file>
-        </setupScript>
-        <testParams>
-            <param>NIC=NetworkAdapter,External,External,001600112200</param>
-            <param>NIC=LegacyNetworkAdapter,External,External,001600112201</param>
-            <param>TC_COVERED=NET-08</param>
-            <param>REMOTE_SERVER=8.8.8.8</param>
-            <param>LO_IGNORE=yes</param>
-            <param>VCPU=1</param>
-        </testParams>
-        <testScript>NET_LEGACY.sh</testScript>
-        <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/utils.sh</files>
         <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
         <timeout>800</timeout>
     </test>
