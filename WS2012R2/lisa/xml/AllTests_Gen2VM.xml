@@ -405,7 +405,7 @@
         <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
         <timeout>3500</timeout>
         <testParams>
-            <param>SCSI=0,0,Fixed,512,40GB</param>
+            <param>SCSI=0,1,Fixed,512,40GB</param>
             <param>Type=Fixed</param>
             <param>SectorSize=512</param>
             <param>DefaultSize=15GB</param>
@@ -1104,9 +1104,9 @@
         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
         <testparams>
-           <param>SCSI=0,0,Fixed,4096</param>
-            <param>SCSI=0,1,Fixed,4096</param>
+           <param>SCSI=0,1,Fixed,4096</param>
             <param>SCSI=0,2,Fixed,4096</param>
+            <param>SCSI=0,3,Fixed,4096</param>
             <param>TC_COVERED=STOR-51</param>
         </testparams>
         <onError>Continue</onError>
