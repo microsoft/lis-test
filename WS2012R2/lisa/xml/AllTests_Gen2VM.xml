@@ -1068,20 +1068,6 @@
     </test>
 
     <test>
-        <testName>VHDx_4k_IDE_0_1_Dynamic</testName>
-        <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
-        <testParams>
-            <param>IDE=0,1,Dynamic,4096</param>
-            <param>IDE=1,1,Dynamic,4096</param>
-            <param>TC_COVERED=STOR-47,STOR-48,STOR-52,STOR-53</param>
-        </testParams>
-        <testScript>STOR_Lis_Disk.sh</testScript>
-        <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
-        <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-        <timeout>10800</timeout>
-    </test>
-
-    <test>
         <testName>VHDx_4k_MultiDiskSCSI_Dynamic</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
