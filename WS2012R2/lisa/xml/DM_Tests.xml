@@ -24,6 +24,7 @@
 
 				<!-- Dynamic Memory – Hot Add -->
 				<suiteTest>HotAdd</suiteTest>
+				<suiteTest>HotAddStressNg</suiteTest>
 				<suiteTest>HotRemove</suiteTest>
 				<suiteTest>StartupHighCompete</suiteTest>
 				<suiteTest>DemandPressure</suiteTest>
@@ -93,6 +94,24 @@
 			<testScript>setupScripts\DM_HotAdd.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>3000</timeout>
+		</test>
+
+		<test>
+			<testName>HotAddStressNg</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-03</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=4GB</param>
+				<param>startupMem=1024MB</param>
+				<param>memWeight=100</param>
+				<param>staticMem=512MB</param>
+			</testParams>
+			<testScript>setupScripts\DM_HotAdd_Stress_ng.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>900</timeout>
 		</test>
 
 		<test>
