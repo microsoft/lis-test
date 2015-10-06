@@ -67,11 +67,11 @@ function IntegrityCheck()
     if [ "$targetSize" -gt "$_gb" ] ; then
       targetSize=$_gb
       let "blocks=$targetSize / $blockSize"
-     fi
+    fi
 
     blocks=$((blocks-1))
-     mount $targetDevice /mnt/
-     targetDevice="/mnt/1"
+    mount $targetDevice /mnt/
+    targetDevice="/mnt/1"
     LogMsg "Creating test data file $testfile with size $blockSize"
     echo "We will fill the device $targetDevice (of size $targetSize) with this gata (in $blocks) and then will check if the data is not corrupted."
     echo "This will erase all data in $targetDevice"
@@ -172,7 +172,7 @@ else
     exit 10
 fi
 
-echo "Covers : ${TC_COVERED}" >> ~/summary.log
+echo "Covers: ${TC_COVERED}" >> ~/summary.log
 
 # Create the state.txt file so ICA knows we are running
 UpdateTestState $ICA_TESTRUNNING
@@ -199,7 +199,7 @@ if [ ! ${TC_COVERED} ]; then
     exit 1
 fi
 
-echo "Covers : ${TC_COVERED}" >> ~/summary.log
+echo "Covers: ${TC_COVERED}" >> ~/summary.log
 
 # Count the number of SCSI= and IDE= entries in constants
 diskCount=0
@@ -220,7 +220,7 @@ do
     fi
 done
 
-echo "constants disk count = $diskCount"
+echo "constants disk count= $diskCount"
 
 # Compute the number of sd* drives on the system.
 sdCount=0
@@ -248,16 +248,14 @@ do
     if [ ${driveName} = "/dev/sda" ]; then
         continue
     fi
-
-      
-   
+    
     for fs in "${fileSystems[@]}"; do
         LogMsg "Start testing filesystem: $fs"
         StartTst=$(date +%s.%N)
         command -v mkfs.$fs
         if [ $? -ne 0 ]; then
-            echo "mkfs.$fs command doesn't exist. Skipping testing filesystem $fs.">> ~/summary.log
-            LogMsg "mkfs.$fs command doesn't exist. Skipping testing filesystem $fs."
+            echo "File-system tools for $fs not present. Skipping filesystem $fs.">> ~/summary.log
+            LogMsg "File-system tools for $fs not present. Skipping filesystem $fs."
 
         else
             TestFileSystem $driveName $fs
