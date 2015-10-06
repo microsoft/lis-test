@@ -249,13 +249,22 @@ do
         continue
     fi
 
+      
+   
     for fs in "${fileSystems[@]}"; do
         LogMsg "Start testing filesystem: $fs"
         StartTst=$(date +%s.%N)
-        TestFileSystem $driveName $fs
-        EndTst=$(date +%s.%N)
-        DiffTst=$(echo "$EndTst - $StartTst" | bc)
-        LogMsg "End testing filesystem: $fs; Test duration: $DiffTst seconds."
+        command -v mkfs.$fs
+        if [ $? -ne 0 ]; then
+            echo "mkfs.$fs command doesn't exist. Skipping testing filesystem $fs.">> ~/summary.log
+            LogMsg "mkfs.$fs command doesn't exist. Skipping testing filesystem $fs."
+
+        else
+            TestFileSystem $driveName $fs
+            EndTst=$(date +%s.%N)
+            DiffTst=$(echo "$EndTst - $StartTst" | bc)
+            LogMsg "End testing filesystem: $fs; Test duration: $DiffTst seconds."
+        fi
     done
 done
 
