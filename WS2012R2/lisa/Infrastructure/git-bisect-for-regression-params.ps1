@@ -19,24 +19,21 @@
 #
 ########################################################################
 
-$server_VM_ip = "192.168.1.100"
-$client_VM_ip = "192.168.1.10"
-$sshKey = "id_rsa.ppk"
+$server_VM_Name = "sixiao-Ubuntu1410-Server"
+$client_VM_Name = "sixiao-Ubuntu1410-Client"
 
 $server_Host_ip = "LIS-TEST01"
 $client_Host_ip = "LIS-TEST02"
 
+$server_VM_ip = "192.168.1.100"
+$client_VM_ip = "192.168.1.10"
+$sshKey = "id_rsa.ppk"
+
 $distro_build_script = "build-ubuntu.sh"
-$server_VM_Name = "Ubuntu1410-Server"
-$client_VM_Name = "Ubuntu1410-Client"
-$linux_next_base_checkpoint = "linux-next-base"
 $icabase_checkpoint = "Lisabase"
+$linux_next_base_checkpoint = "linux-next-base"
 
-
-$portable_git_location = "\\Server\tools\PortableGit"
-$local_git_location = "D:\PortableGit"
 $test_folder = "D:\Test"
-$test_folder_bash = "D:Test/"
 
 $linuxnext="git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git"
 $linuxnextfolder="linux-next"
