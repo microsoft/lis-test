@@ -40,5 +40,5 @@ $linuxnextfolder="linux-next"
 $lastKnownGoodcommit = "5ec1d441a4227b2dfdc47fdc13aa7c6c50496194"
 $lastKnownBadcommit  = ""
 $topCommitQuality = "BAD"
-$badResult = 15
-$goodResult = 25
+
+$benchmark_script = "git-bisect-for-regression-netvsc-ntttcp.ps1"

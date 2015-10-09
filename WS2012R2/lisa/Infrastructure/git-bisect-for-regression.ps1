@@ -65,10 +65,10 @@ function WaitVMState([String] $ipv4, [String] $sshKey, [string] $state )
     $success = $false
     switch ($state){
         SHUT_DOWN {
-            $continueLoop = 10
+            $continueLoop = 60
             While( $success -eq $false -and $continueLoop -gt 0) {
                 $continueLoop --
-                if ($continueLoop % 40 -eq 0)
+                if ($continueLoop % 60 -eq 0)
                 {
                     Write-Host " "
                 }
@@ -81,10 +81,10 @@ function WaitVMState([String] $ipv4, [String] $sshKey, [string] $state )
         }
         BOOT_UP {
             #sleep for sshd to start
-            $continueLoop = 10
+            $continueLoop = 60
             While( $success -eq $false -and $continueLoop -gt 0) {
                 $continueLoop --
-                if ($continueLoop % 40 -eq 0)
+                if ($continueLoop % 60 -eq 0)
                 {
                     Write-Host " "
                 }
@@ -99,7 +99,7 @@ function WaitVMState([String] $ipv4, [String] $sshKey, [string] $state )
             $continueLoop = 1000
             while ($true){
                 $continueLoop --
-                if ($continueLoop % 40 -eq 0)
+                if ($continueLoop % 60 -eq 0)
                 {
                     Write-Host " "
                 }
@@ -225,7 +225,19 @@ function CheckVmKernelVersion([String] $ipv4, [String] $sshKey)
     return (Get-Content "teststate.sig")
 }
 
+############################################
+############################################
+#
+# THIS IS THE BEGIN OF THIS SCRIPT
+#
+############################################
+############################################
 # source the test parameter file
+if((test-path ".\git-bisect-for-regression-params.ps1 ") -eq $false )
+{
+    write-host "git-bisect-for-regression-params.ps1 not found"
+    exit -1
+}
 . .\git-bisect-for-regression-params.ps1
 
 if((test-path ".\TCUtils.ps1 ") -eq $false )
@@ -233,15 +245,12 @@ if((test-path ".\TCUtils.ps1 ") -eq $false )
     write-host "TCUtils.ps1 not found"
     exit -1
 }
-
 . .\TCUtils.ps1
  
-
 ############################################
 # Init VM with linux-next clone.
 # Make a base linux-next snapshot
 ############################################
-# ***** preapre VM for test
 InitVmUp $server_VM_Name $server_Host_ip $icabase_checkpoint
 InitVmUp $client_VM_Name $client_Host_ip $icabase_checkpoint
 
@@ -271,11 +280,11 @@ echo "else"                                              >> .\drive-bisect.sh
 echo "    cd $linuxnextfolder "                          >> .\drive-bisect.sh  
 echo "    pwd "                                          >> .\drive-bisect.sh  
 echo "    if [ `"`$topCommitQuality`" == `"BAD`" ] ; then "     >>  .\drive-bisect.sh
-echo "        git bisect bad  >> ../git-bisect.log "             >> .\drive-bisect.sh
+echo "        git bisect bad  > ../git-bisect.log "             >> .\drive-bisect.sh
 echo "    elif [ `"`$topCommitQuality`" == `"GOOD`" ] ; then "  >>  .\drive-bisect.sh 
-echo "        git bisect good  >> ../git-bisect.log "           >> .\drive-bisect.sh
+echo "        git bisect good  > ../git-bisect.log "            >> .\drive-bisect.sh
 echo "    else "                                                >> .\drive-bisect.sh
-echo "        git bisect skip >> ../git-bisect.log "            >> .\drive-bisect.sh
+echo "        git bisect skip > ../git-bisect.log "             >> .\drive-bisect.sh
 echo "    fi "                                                  >> .\drive-bisect.sh
 echo "    git log | head -1 > ../git-bisect-commit.log"  >> .\drive-bisect.sh
 echo "    cd .. "                                        >> .\drive-bisect.sh
@@ -299,14 +308,19 @@ Checkpoint-VM -Name $client_VM_Name -ComputerName $client_Host_ip -SnapshotName 
 $runid = 1
 while ($true)
 {
-    Write-Host "------------------------------------------------------------"
-
     $logid = ("{0:00}" -f $runid ) 
+	Write-Host "------------------------------[STEP $logid]------------------------------"
+	
+	############################################
     # cleanup the vm /boot directory: remove previous initrd and vmlinuz to save disk space on /boot
+	############################################
     SendCommandToVM $server_VM_ip $sshKey "rm -rf /boot/initrd.img* /boot/vmlinuz* /root/linux-image-*.deb"
     SendCommandToVM $client_VM_ip $sshKey "rm -rf /boot/initrd.img* /boot/vmlinuz* /root/linux-image-*.deb"    
-        
-    # git bisect and build linux-next on server VM, then copy the kernel to client vm to install
+    
+	############################################
+    # git bisect and build linux-next on server VM, 
+	# then copy the kernel to client vm to install
+	############################################
     $log = "bisect-and-build-" + $logid + ".log"
     echo "rm -rf ./teststate.sig "                         >  .\bisect-and-build.sh
     echo "echo BUILDTAG=$logid > build.tag"              >> .\bisect-and-build.sh
@@ -317,28 +331,30 @@ while ($true)
     echo "echo BUILD_FINISHED > ../teststate.sig"          >> .\bisect-and-build.sh
     echo "scp ../linux-image*.deb root@$client_VM_ip`: " >> .\bisect-and-build.sh
         
-    SendFileToVM $server_VM_ip $sshKey ./const.sh              "const.sh" $true
-    SendFileToVM $server_VM_ip $sshKey $distro_build_script  $distro_build_script $true
-    SendFileToVM $server_VM_ip $sshKey ./bisect-and-build.sh  "bisect-and-build.sh" $true
+    SendFileToVM 	$server_VM_ip $sshKey ./const.sh              "const.sh" $true
+    SendFileToVM 	$server_VM_ip $sshKey $distro_build_script  $distro_build_script $true
+    SendFileToVM 	$server_VM_ip $sshKey ./bisect-and-build.sh  "bisect-and-build.sh" $true
     SendCommandToVM $server_VM_ip $sshKey "chmod 755 *.sh && ./bisect-and-build.sh"
-    WaitVMState $server_VM_ip $sshKey "BUILD_FINISHED" 
+    WaitVMState 	$server_VM_ip $sshKey "BUILD_FINISHED" 
     
-    GetFileFromVM $server_VM_ip $sshKey $log                         $($logid + "-SERVER-" + $log)
-    GetFileFromVM $server_VM_ip $sshKey "git-bisect.log"             $($logid + "-SERVER-git-bisect.log")
-    GetFileFromVM $server_VM_ip $sshKey "git-bisect-commit.log"     $($logid + "-SERVER-git-bisect-commit.log")
+    GetFileFromVM 	$server_VM_ip $sshKey $log                         $($logid + "-SERVER-" + $log)
+    GetFileFromVM 	$server_VM_ip $sshKey "git-bisect.log"             $($logid + "-SERVER-git-bisect.log")
+    GetFileFromVM 	$server_VM_ip $sshKey "git-bisect-commit.log"     $($logid + "-SERVER-git-bisect-commit.log")
 
     $commitfile = (Get-Content $($logid+"-SERVER-git-bisect-commit.log") )
     $bisect_commit_id = $commitfile.Split(" ")[1];
-    Write-Host "Commit id parsed: $bisect_commit_id" -ForegroundColor Yellow
+    Write-Host "Commit id parsed by git bisect has been applied: $bisect_commit_id"
     type $($logid + "-SERVER-git-bisect.log" )
     if ( (Get-Content $($logid+"-SERVER-git-bisect.log")).Contains("is the first bad commit"))
     {
         Write-Host "************************************************************"
-        Write-Host "FINISHED" -ForegroundColor Red
+        Write-Host "FINISHED"
         break
     }
-    
+	
+    ############################################
     # install the kernel on client VM
+	############################################
     $log = "install-kernel" + $logid + ".log"
     echo "rm -rf ./teststate.sig "                         >  .\install-kernel.sh
     echo "mkdir linux-next "                              >> .\install-kernel.sh
@@ -347,22 +363,28 @@ while ($true)
     echo "./$distro_build_script > ../$log"              >> .\install-kernel.sh
     echo "echo BUILD_FINISHED > ../teststate.sig"          >> .\install-kernel.sh
     
-    SendFileToVM $client_VM_ip $sshKey $distro_build_script  $distro_build_script $true
-    SendFileToVM $client_VM_ip $sshKey ./install-kernel.sh   "install-kernel.sh" $true
+    SendFileToVM 	$client_VM_ip $sshKey $distro_build_script  $distro_build_script $true
+    SendFileToVM 	$client_VM_ip $sshKey ./install-kernel.sh   "install-kernel.sh" $true
     SendCommandToVM $client_VM_ip $sshKey "chmod 755 *.sh && ./install-kernel.sh"    
-    WaitVMState $client_VM_ip $sshKey "BUILD_FINISHED" 
+    WaitVMState 	$client_VM_ip $sshKey "BUILD_FINISHED" 
     
-    GetFileFromVM $client_VM_ip $sshKey $log  $($logid + "-CLIENT-" + $log)
+    GetFileFromVM 	$client_VM_ip $sshKey $log  $($logid + "-CLIENT-" + $log)
     
+	############################################
     # kernel ready, make a checkpoint for debug purpose
+	############################################
     Checkpoint-VM -Name $server_VM_Name -ComputerName $server_Host_ip -SnapshotName $($linux_next_base_checkpoint+$logid) -Confirm:$False
     Checkpoint-VM -Name $client_VM_Name -ComputerName $client_Host_ip -SnapshotName $($linux_next_base_checkpoint+$logid) -Confirm:$False
     
+	############################################
     # restart the server and client VMs to boot from new kernel
+	############################################
     SendCommandToVM $server_VM_ip $sshKey "init 6"
     SendCommandToVM $client_VM_ip $sshKey "init 6"
 
+	############################################
     # is this kernel good to bootup?
+	############################################
     $newKernelUp = $false
     $newKernelUp = WaitVMState $server_VM_ip $sshKey "BOOT_UP" 
     if ($newKernelUp -eq $true)
@@ -374,7 +396,7 @@ while ($true)
         }
     }
     
-    if ($newKernelUp -eq $true) # check client, it should be good if server vm bootup, but just check in case
+    if ($newKernelUp -eq $true)
     {
         $newKernelUp = WaitVMState $client_VM_ip $sshKey "BOOT_UP" 
         if ($newKernelUp -eq $true)
@@ -387,7 +409,9 @@ while ($true)
         }
     }
     
+	############################################
     # revert to previous checkpoint if current build cannot bootup
+	############################################
     if ($newKernelUp -eq $false)
     {
         Write-Host "Commit id: $bisect_commit_id cannot be tested because the kernel cannot bootup" -ForegroundColor Red
@@ -395,45 +419,39 @@ while ($true)
 
         InitVmUp $server_VM_Name $server_Host_ip $($linux_next_base_checkpoint+$logid)
         InitVmUp $client_VM_Name $client_Host_ip $($linux_next_base_checkpoint+$logid)
+		$runid ++
         continue
     }
-            
-    # Test this commit
-    echo "ntttcp -r -D" >  .\run-ntttcp.sh
-    SendFileToVM $server_VM_ip $sshKey ./run-ntttcp.sh "run-ntttcp.sh" $true
-    SendCommandToVM $server_VM_ip $sshKey "chmod 755 *.sh && ./run-ntttcp.sh"
-    
-    $log = ("{0:00}" -f $runid ) + "-CLIENT-run-ntttcp-" + $bisect_commit_id + ".log"
-    echo "rm -rf ./teststate.sig "                  >  .\run-ntttcp.sh
-    echo "ntttcp -s$server_VM_ip > $log"             >> .\run-ntttcp.sh
-    echo "echo TEST_FINISHED > ./teststate.sig"     >> .\run-ntttcp.sh
-    SendFileToVM $client_VM_ip    $sshKey ./run-ntttcp.sh "run-ntttcp.sh" $true
-    SendCommandToVM $client_VM_ip $sshKey "chmod 755 *.sh && ./run-ntttcp.sh"
-    
-    WaitVMState $client_VM_ip $sshKey "TEST_FINISHED" 
-    GetFileFromVM $client_VM_ip $sshKey $log $log
-    
-    #Try to figure out the result is good or bad
-    $thisResult = (Get-Content $log | Select-String "throughput" | Select-String "bps").ToString().Split(":")[-1].Replace("Gbps","")
-    Write-Host "Test Result: $thisResult "
-    $result_is_good = $false
-    if ([math]::abs($goodResult - $thisResult) -lt  [math]::abs($badResult - $thisResult) )
-    {
-        $result_is_good = $true
-    }
 
+	############################################
+    # Test this commit
+	############################################
+	# source the benchmark specific script
+	# this script should have defined the function: RunBenchmarking()
+	# and return a bool value to indicate the result is good ($true) or bad ($false)
+	. .\$benchmark_script
+	
+	$returnObjs = RunBenchmarking $logid $bisect_commit_id
+	$totalReturns = $returnObjs.Count
+	Write-Host "The return values from benchmarking :"
+	Write-Host $returnObjs
+	$result_is_good = $returnObjs[$totalReturns-1]
+
+	############################################
+	# is this commit tested good?
+	############################################
     if ($result_is_good -eq $true) 
     {
         $lastKnownGoodcommit = $bisect_commit_id
-        Write-Host "Commit id: $bisect_commit_id is good" -ForegroundColor Green
-        echo "topCommitQuality=GOOD"              >  .\const.sh
+        Write-Host "Commit id: $bisect_commit_id is GOOD" -ForegroundColor Green
+        echo "topCommitQuality=GOOD"	>  .\const.sh
     }
     else 
     {
         $lastKnownBadcommit = $bisect_commit_id
-        Write-Host "Commit id: $bisect_commit_id is bad" -ForegroundColor Yellow
-        echo "topCommitQuality=BAD"               >  .\const.sh
+        Write-Host "Commit id: $bisect_commit_id is BAD" -ForegroundColor Yellow
+        echo "topCommitQuality=BAD"		>  .\const.sh
     }
-    
-    $runid ++
+	
+	$runid ++
 }
