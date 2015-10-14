@@ -24,6 +24,7 @@
 
 				<!-- Dynamic Memory – Hot Add -->
 				<suiteTest>HotAdd</suiteTest>
+				<suiteTest>HotAddStressNg</suiteTest>
 				<suiteTest>HotRemove</suiteTest>
 				<suiteTest>StartupHighCompete</suiteTest>
 				<suiteTest>DemandPressure</suiteTest>
@@ -74,7 +75,7 @@
 			<testScript>DM_HotAdd_Verify_udev.sh</testScript>
 			<files>remote-scripts/ica/DM_HotAdd_Verify_udev.sh</files>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>3000</timeout>
+			<timeout>1200</timeout>
 		</test>
 
 		<test>
@@ -92,7 +93,25 @@
 			</testParams>
 			<testScript>setupScripts\DM_HotAdd.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>3000</timeout>
+			<timeout>1200</timeout>
+		</test>
+
+		<test>
+			<testName>HotAddStressNg</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-03</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=4GB</param>
+				<param>startupMem=1024MB</param>
+				<param>memWeight=100</param>
+				<param>staticMem=512MB</param>
+			</testParams>
+			<testScript>setupScripts\DM_HotAdd_Stress_ng.ps1</testScript>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>1200</timeout>
 		</test>
 
 		<test>
@@ -117,7 +136,7 @@
 			</testParams>
 			<testScript>setupScripts\DM_HotAddRemove.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>3000</timeout>
+			<timeout>1200</timeout>
 		</test>
 
 		<test>
@@ -142,7 +161,7 @@
 			</testParams>
 			<testScript>setupScripts\DM_StartupLowCompete.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>8000</timeout>
+			<timeout>1200</timeout>
 		</test>
 
 		<test>
@@ -217,11 +236,11 @@
 			</testParams>
 			<testScript>setupScripts\DM_HighPriority.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>3000</timeout>
+			<timeout>2600</timeout>
 		</test>
 
 		<test>
-            	<testName>MinMemHonored</testName>
+            <testName>MinMemHonored</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
 				<param>TC_COVERED=DM-09</param>
@@ -242,7 +261,7 @@
 			</testParams>
 			<testScript>setupScripts\DM_MinMemHonor.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>3000</timeout>
+			<timeout>1200</timeout>
         	</test>
 
 		<test>
@@ -267,7 +286,7 @@
 			</testParams>
 			<testScript>setupScripts\DM_MaxMemHonor.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>3000</timeout>
+			<timeout>2600</timeout>
 		</test>
 
 		<test>
@@ -317,7 +336,7 @@
 			</testParams>
 			<testScript>setupScripts\DM_CleanShutdown.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>1800</timeout>
+			<timeout>1200</timeout>
 		</test>
 	</testCases>
 

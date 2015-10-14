@@ -73,7 +73,7 @@ function IntegrityCheck()
     mount $targetDevice /mnt/
     targetDevice="/mnt/1"
     LogMsg "Creating test data file $testfile with size $blockSize"
-    echo "We will fill the device $targetDevice (of size $targetSize) with this gata (in $blocks) and then will check if the data is not corrupted."
+    echo "We will fill the device $targetDevice (of size $targetSize) with this data (in $blocks) and then will check if the data is not corrupted."
     echo "This will erase all data in $targetDevice"
 
     LogMsg "Creating test source file... ($BLOCKSIZE)"
