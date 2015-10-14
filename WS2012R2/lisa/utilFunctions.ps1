@@ -1249,6 +1249,13 @@ function UpdateCurrentTest([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $vm.iteration = "-1"
         }
     }
+
+    # Reset test results if we've moved on to the next test case
+    if ($vm.currentTest -ne "done")
+    {
+        $vm.testCaseResults = "none"
+        $vm.individualResults += "0"
+    }
 }
 
 
