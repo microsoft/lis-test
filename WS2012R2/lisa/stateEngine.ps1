@@ -325,6 +325,10 @@ function RunICTests([XML] $xmlConfig)
             }
         }
 
+        $newElement = $xmlConfig.CreateElement("individualResults")
+        $newElement.set_InnerText("");
+        $vm.AppendChild($newElement);
+
         #
         # Correct the default iteration value
         #
@@ -386,7 +390,7 @@ function RunICTests([XML] $xmlConfig)
             LogMsg 0 "Error: RunICTests - $($vm.vmName) is not in a shutdown state"
             LogMsg 0 "Error:   The VM cannot be put into a stopped state"
             LogMsg 0 "Error:   Tests will not be run on $($vm.vmName)"
-            $vm.emailSummay += "    The VM could not be stopped.  It has been disabled.<br />"
+            $vm.emailSummary += "    The VM could not be stopped.  It has been disabled.<br />"
             $vm.emailSummary += "   No tests were run on this VM`<br />"
             UpdateState $vm $Disabled
         }
@@ -2203,6 +2207,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     if ( ($($vm.testCaseResults) -eq "Success") )
     {
         $completionCode = "Success"
+        $vm.individualResults = $vm.individualResults -replace ".$","1"
     }
     elseif ( ($($vm.testCaseResults) -eq "Failed") )
     {
@@ -2269,6 +2274,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     SendCommandToVM $vm "rm -f state.txt"
 
     LogMsg 0 "Info : $($vm.vmName) Status for test $currentTest $iterationMsg = $completionCode"
+        
 
     if ( $($testData.postTest) )
     {
@@ -3149,6 +3155,7 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
             if ($jobResults[-1] -eq $True)
             {
                 $completionCode = "Success"
+                $vm.individualResults = $vm.individualResults -replace ".$","1"
             }
         }
 
