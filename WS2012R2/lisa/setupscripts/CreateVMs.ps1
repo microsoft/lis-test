@@ -79,9 +79,13 @@
                                       MAC address will be assigned to the
                                       new NIC. Otherwise a dynamic MAC is used.
 
+       <imageStoreDir> A directory to locate the parentVhd, can be either a UNC or local path
+
 
 .Example
    Example VM definition with a hardware section:
+   <global>
+       <imageStoreDir>\\uncpath\imageStore</imageStoreDir>
    <vm>
        <hvServer>nmeier2</hvServer>
        <vmName>Nick1</vmName>
@@ -197,12 +201,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         "Error: VM $($vm.vmName) is missing a hvServer tag"
         return $False
     }
-
-    if (-not $vm.hardware.parentVhd)
-    {
-        "Error: VM $($vm.vmName) is missing a parentVhd tag"
-        return $False
-    }
     
     $vmName = $vm.vmName
     $hvServer = $vm.hvServer
@@ -269,12 +267,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             Write-Error "Error: The importVM xml file does not exist, or cannot be accessed"
             return $False
         }
-    }
-    else
-    {
-        Write-Error "Error: The hardware section does not contain a <parentVhd> or a <importVM> attribute"
-        Write-Error "       You must provide one or the either, but not both"
-        return $False
     }
      
     $dataVhd = $vm.hardware.DataVhd
@@ -360,7 +352,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             2   {   $mbMemSize = $matches[1] }
             3   {   $mbMemSize = $matches[1]
                     if ($matches[2] -eq "GB" ) {
-                        $mbMemSize = ([int] $matches[1]) * 1KB
+                        $mbMemSize = ([uint64] $matches[1]) * 1KB
                     }
                 }
             default {
@@ -399,6 +391,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             }
             
             $memInMB = $totalMemory / 1MB
+            $mbMemSize = [uint64]$mbMemSize
             if ($mbMemSize -gt $memInMB)
             {
                 Write-Warning "Warn : The memSize for VM ${vmName} is larger than the HyperV servers physical memory. memSize set to the default size of 512 MB"
@@ -573,6 +566,26 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if (-not ([System.IO.Path]::IsPathRooted($parentVhd)))
         {
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            if ($xmlData.Config.global.imageStoreDir)
+            {
+                $vhdDir = $xmlData.Config.global.imageStoreDir
+            }
+
+            # If no specific VHD file is specified, then we either find the latest image as described by a metadata file
+            # Or we find the last written file
+            if (!$parentVhd)
+            {
+                $latestFile = Join-Path $vhdDir "latest"
+                if (Test-Path $latestFile)
+                {
+                    $parentVhd = Get-Content $latestFile
+                }
+                else
+                {
+                    $parentVhd = $(Get-ChildItem $vhdDir | Where-Object { $_.Extension -eq ".vhd" -or $_.Extension -eq ".vhdx"} | Sort LastWriteTime | Select -Last 1).Name
+                }
+            }
+
             $parentVhd = Join-Path $vhdDir $parentVhd
         }
 
@@ -581,7 +594,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if ($uriPath.IsUnc)
         {
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
-            $dstPath = Join-Path $vhdDir (Get-Item $parentVhd).Name 
+            $dstPath = Join-Path $vhdDir "$vmName.vhdx"
             Write-Host "Copying parent vhd from $parentVhd to $dstPath"
             Copy-Item -Path $parentVhd -Destination $dstPath -Force
             $parentVhd = $dstPath
@@ -801,6 +814,11 @@ foreach ($vm in $xmlData.Config.VMs.VM)
     {
         write-host "Creating VM"
         $vmCreateStatus = CreateVM $vm $xmlData
+
+        if (-not $vmCreateStatus)
+        {
+            exit $exitStatus
+        }
     }
     else
     {
