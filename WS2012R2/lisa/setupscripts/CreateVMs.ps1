@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -22,7 +22,7 @@
 
 <#
 .Synopsis
-    
+
 
 .Description
     For a VM to be created, the VM definition in the .xml file must
@@ -101,7 +101,7 @@
            <nic>VMBus,ExternalNet</nic>
        </hardware>
    </vm>
-    
+
 #>
 
 param([String] $xmlFile)
@@ -134,9 +134,9 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     }
 
     $remoteFilename = $filename.Replace("\", "\\")
-    
+
     $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-     
+
     return $fileInfo
 }
 
@@ -169,7 +169,7 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
         $fileInfo = GetRemoteFileInfo $vhdFilename -server $hvServer
         if ($fileInfo)
         {
-            $fileInfo.Delete()  
+            $fileInfo.Delete()
         }
     }
 }
@@ -201,7 +201,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         "Error: VM $($vm.vmName) is missing a hvServer tag"
         return $False
     }
-    
+
     $vmName = $vm.vmName
     $hvServer = $vm.hvServer
 
@@ -212,8 +212,8 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
     $vhdName = "${vmName}.vhdx"
     $vhdFilename = Join-Path $vhdDir $vhdName
 
-    DeleteVmAndVhd $vmName $hvServer $vhdFilename 
- 
+    DeleteVmAndVhd $vmName $hvServer $vhdFilename
+
     #
     # Make sure the future boot disk .vhd file does not already exist
     #
@@ -245,7 +245,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 Write-Error "Remote parent vhd file ${parentVhd} does not exist."
                 return $False
             }
-        } 
+        }
         else
         {
             $fileInfo = GetRemoteFileInfo $parentVhd $hvServer
@@ -268,7 +268,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             return $False
         }
     }
-     
+
     $dataVhd = $vm.hardware.DataVhd
     if ($dataVhd)
     {
@@ -309,15 +309,15 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         {
             Write-Warning "Warn : Unable to determine the number of processors on HyperV server ${hvServer}. numCPUs has been set to 1"
             $vm.hardware.numCPUs = "1"
-            
+
         }
         else
         {
             $CPUs = $processors.NumberOfLogicalProcessors
-            
+
             $maxCPUs = 0
             foreach ($result in $CPUs) {$maxCPUs += $result}
-            
+
             if ($maxCPUs -and [int]$($vm.hardware.numCPUs) -gt $maxCPUs)
             {
                 Write-Warning "Warn : The numCPUs for VM ${vmName} is larger than the HyperV server supports (${maxCPUs}). numCPUs has been set to max"
@@ -357,7 +357,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
                 }
             default {
                     Write-Warning "Invalid memSize. MemSize defaulting to 1024MB"
-                } 
+                }
             }
         }
         else
@@ -389,7 +389,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             {
                 $totalMemory += $slot.Capacity
             }
-            
+
             $memInMB = $totalMemory / 1MB
             $mbMemSize = [uint64]$mbMemSize
             if ($mbMemSize -gt $memInMB)
@@ -535,14 +535,14 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         # Create the VM
         #
         Write-host "Required Parameters check done creating VM"
-        
+
         $newVm = New-VM -Name $vmName -ComputerName $hvServer
         if ($null -eq $newVm)
         {
             Write-Error "Error: Unable to create the VM named $($vm.vmName)."
             return $false
         }
-          
+
         #
         # Modify VMs CPU count if user specified a new value
         #
@@ -550,7 +550,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         {
             Set-VMProcessor -VMName $vmName -Count $($vm.hardware.numCPUs) -ComputerName $hvServer
         }
-      
+
         #
         # Modify the VMs memory size of the user specified a new size
         # but only if a new size is present, and it is not equal to
@@ -595,8 +595,11 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         {
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
             $dstPath = Join-Path $vhdDir "$vmName.vhdx"
-            Write-Host "Copying parent vhd from $parentVhd to $dstPath"
-            Copy-Item -Path $parentVhd -Destination $dstPath -Force
+            $dstDrive = $dstPath.Substring(0,1)
+            $dstlocalPath = $dstPath.Substring(3)
+            $dstPathNetwork = "\\${hvServer}\${dstDrive}$\${dstlocalPath}"
+            Write-Host "Copying parent vhd from $parentVhd to $dstPathNetwork"
+            Copy-Item -Path $parentVhd -Destination $dstPathNetwork -Force
             $parentVhd = $dstPath
         }
         $vhdFilename = $parentVhd
@@ -628,18 +631,18 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 {
                     "Error: The file already exists"
                 }
-    
+
                 DeleteVmAndVhd $vmName $hvServer $null
                 return $false
             }
         }
-       
+
         #
         # Add a drive to IDE 0, port 0
         #
-        $Error.Clear() 
-        Add-VMHardDiskDrive $vmName -Path $vhdFilename -ControllerNumber 0 -ControllerLocation 0 -ComputerName $hvServer 
-        #$newDrive = Add-VMDrive $vmName -path $vhdFilename -ControllerID 0  -LUN 0 -server $hvServer 
+        $Error.Clear()
+        Add-VMHardDiskDrive $vmName -Path $vhdFilename -ControllerNumber 0 -ControllerLocation 0 -ComputerName $hvServer
+        #$newDrive = Add-VMDrive $vmName -path $vhdFilename -ControllerID 0  -LUN 0 -server $hvServer
 
         if ($Error.Count -gt 0)
         {
@@ -655,16 +658,16 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # Attach the .vhd file to the drive
         #
-        $Error.Clear() 
+        $Error.Clear()
 
         $dataVhd = $vm.hardware.DataVhd
         if ($dataVhd)
         {
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
             $dataVhdFile = Join-Path $vhdDir $dataVhd
-       
+
             Add-VMHardDiskDrive $vmName -Path $dataVhdFile -ControllerNumber 0 -ControllerLocation 1 -ComputerName $hvServer
-       
+
             if ($Error.Count -gt 0)
             {
                 "Error: Failed to attach .vhd file '$vhdFilename' to VM ${vmName}"
@@ -721,7 +724,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
                         if ($macAddress.Length -eq 12)
                         {
-                            Set-VMNetworkAdapter -VMNetworkAdapter $newNic -MAC $macAddress -ComputerName $hvServer
+                            Set-VMNetworkAdapter -VMNetworkAdapter $newNic -StaticMacAddress $macAddress
                         }
                         else
                         {
@@ -745,11 +748,11 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 Write-Error "Error: no NICs were added to VM ${vmName}. The VM was not created"
                 DeleteVmAndVhd $vmName $hvServer $vhdFilename
                 return $False
-            } 
+            }
         }
-        
+
         Write-Host "Vm Created successfully"
-        $retVal = $True       
+        $retVal = $True
     }
 
     #

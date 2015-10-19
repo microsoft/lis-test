@@ -139,8 +139,31 @@ if [ "${IPERF_PACKAGE:="UNDEFINED"}" = "UNDEFINED" ]; then
     exit 20
 fi
 
+if [ "${STATIC_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Error: the STATIC_IP test parameter is missing"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 20
+fi
+
+if [ "${NETMASK:="UNDEFINED"}" = "UNDEFINED" ]; then
+    NETMASK="255.255.255.2"
+    msg="Error: the NETMASK test parameter is missing, default value will be used: 255.255.255.0"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
+
 if [ "${IPERF3_SERVER_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the IPERF3_SERVER_IP test parameter is missing"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 20
+fi
+
+if [ "${STATIC_IP2:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Error: the STATIC_IP2 test parameter is missing"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -189,14 +212,16 @@ if [ "${IPERF3_TEST_CONNECTION_POOL:="UNDEFINED"}" = "UNDEFINED" ]; then
     echo "${msg}" >> ~/summary.log
 fi
 
-echo "iPerf package name		= ${IPERF_PACKAGE}"
-echo "iPerf server ip			= ${IPERF3_SERVER_IP}"
-echo "individual test duration (sec)	= ${INDIVIDUAL_TEST_DURATION}"
-echo "connections per iperf3		= ${CONNECTIONS_PER_IPERF3}"
-echo "user name on server		= ${SERVER_OS_USERNAME}"
-echo "test signal file		= ${TEST_SIGNAL_FILE}"
-echo "test run log folder		= ${TEST_RUN_LOG_FOLDER}"
-echo "iperf3 test connection pool	= ${IPERF3_TEST_CONNECTION_POOL}"
+echo "iPerf package name        = ${IPERF_PACKAGE}"
+echo "iPerf client test interface ip           = ${STATIC_IP}"
+echo "iPerf server ip           = ${STATIC_IP2}"
+echo "iPerf server test interface ip        = ${IPERF3_SERVER_IP}"
+echo "individual test duration (sec)    = ${INDIVIDUAL_TEST_DURATION}"
+echo "connections per iperf3        = ${CONNECTIONS_PER_IPERF3}"
+echo "user name on server       = ${SERVER_OS_USERNAME}"
+echo "test signal file      = ${TEST_SIGNAL_FILE}"
+echo "test run log folder       = ${TEST_RUN_LOG_FOLDER}"
+echo "iperf3 test connection pool   = ${IPERF3_TEST_CONNECTION_POOL}"
 
 #
 # Extract the files from the IPerf tar package
@@ -380,21 +405,45 @@ cd ~
 dos2unix ~/*.sh
 chmod 755 ~/*.sh
 
+LogMsg "Trying to set an IP Address via static on interface eth1"
+
+    CreateIfupConfigFile "eth1" "static" $STATIC_IP $NETMASK
+
+    if [ 0 -ne $? ]; then
+        msg="Unable to set address for eth1 through static"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 10
+    fi
+
 #
 # Copy server side scripts and trigger server side scripts
 #
-LogMsg "Copy files to server: ${IPERF3_SERVER_IP}"
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
+
+LogMsg "Setting test interface IP on ${STATIC_IP2}"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'ip addr add ${IPERF3_SERVER_IP}/24 dev eth1' | at now"
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to copy test scripts to target server machine: ${IPERF3_SERVER_IP}. scp command failed."
+    msg="Error: Unable to set ${IPERF3_SERVER_IP}/24 on target server machine: ${STATIC_IP2}"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 120
 fi
+
+LogMsg "Copy files to server: ${IPERF3_SERVER_IP}"
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+if [ $? -ne 0 ]; then
+    msg="Error: Unable to copy test scripts to target server machine: ${IPERF3_SERVER_IP}. scp command failed."
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 130
+fi
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
+
 
 #
 # Start iPerf in server mode on the Target server side

@@ -23,6 +23,9 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
         <email>
             <recipients>
                 <to>myself@mycompany.com</to>
@@ -31,11 +34,8 @@
             <subject>LIS Performance Test Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
+        <imageStoreDir>\\redmond\wsscfs\OSTC\LIS\VHDStore\test</imageStoreDir>
        <!-- Optional testParams go here -->
-        <testParams>
-            <param>vmCpuNumber=12</param>
-            <param>vmMemory=8GB</param>
-        </testParams>
     </global>
 
     <testSuites>
@@ -50,27 +50,34 @@
     <testCases>
          <test>
             <testName>iPerf3_Panorama</testName>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_iperf_panorama_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
             <files>Tools/iperf-3.0.5.tar.gz</files>
+            <postTest>infra\Analyze-IperfResultsThroughputFromLinuxSar.ps1</postTest>
             <testParams>
                 <param>IPERF_PACKAGE=iperf-3.0.5.tar.gz</param>
+                <param>STATIC_IP=10.10.10.20</param>
+                <param>NETMASK=255.255.255.0</param>
                 <param>SERVER_OS_USERNAME=root</param>
-                <param>IPERF3_SERVER_IP=192.168.1.100</param>
+                <param>MAC=001600112233</param>
+                <param>VM2NAME=IPERF-Server</param>
+                <param>VM2SERVER=LIS-PERF05</param>
+                <param>IPERF3_SERVER_IP=10.10.10.10</param>
                 <param>INDIVIDUAL_TEST_DURATION=60</param>
                 <param>CONNECTIONS_PER_IPERF3=4</param>
                 <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
                 <param>TEST_RUN_LOG_FOLDER=iperf3-test-logs</param>
-                <param>SSH_PRIVATE_KEY=sshKey</param>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
                 <param>IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024 2000 3000 6000)</param>
             </testParams>
             <uploadFiles>
                 <file>iPerf3_Client_Logs.zip</file>
                 <file>iPerf3_Server_Logs.zip</file>
                 <file>iPerf3_Panorama_ServerSideScript.log</file>
-		<file>iPerf3_Panorama.log</file>
+                <file>iPerf3_Panorama.log</file>
             </uploadFiles>
-            <timeout>1200</timeout>
+            <timeout>7200</timeout>
             <OnError>Continue</OnError>
          </test>
     </testCases>
@@ -78,22 +85,36 @@
     <VMs>
         <vm>
             <role>SUT1</role>
-            <hvServer>LIS-PERF02</hvServer>
-            <vmName>LIS-SLES12-Client</vmName>
+            <hvServer>LIS-PERF06</hvServer>
+            <vmName>IPERF-Client</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>id_rsa.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>iPerf3</suite>
-            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+            <hardware>
+               <create>true</create>
+               <numCPUs>12</numCPUs>
+               <memSize>8192</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,Vm.Enterprise#1</nic>
+               <nic>VMBus,Vm.Private40G#1,001600112200</nic>
+            </hardware>
         </vm>
         <vm>
             <role>NonSUT1</role>
-            <hvServer>LIS-PERF01</hvServer>
-            <vmName>LIS-SLES12-Server</vmName>
+            <hvServer>LIS-PERF05</hvServer>
+            <vmName>IPERF-Server</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>id_rsa.ppk</sshKey>
-            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <hardware>
+               <create>true</create>
+               <numCPUs>12</numCPUs>
+               <memSize>8192</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,Vm.Enterprise#1,001600112233</nic>
+               <nic>VMBus,Vm.Private40G#1,001600112201</nic>
+            </hardware>
         </vm>
     </VMs>
 </config>
