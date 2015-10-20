@@ -134,7 +134,11 @@ If (Test-Path $avgFile)
 
 write-host "Parse logs from $logPath ..."
 
-foreach ($conn in $testConnections)
+$connections = $testConnections.Substring(1,$testConnections.Length-2)
+
+$connections = $connections.Split(" ")
+
+foreach ($conn in $connections)
 {
 	#$gtotal is used to calculate average throughput
 	$gtotal=0
@@ -195,10 +199,10 @@ foreach ($conn in $testConnections)
 	$conn + " "+ $gAvg | out-file $avgFile -append
 }
 
-Copy-Item "${logPath}\${avgFile}" $testDirectory
+Copy-Item "${avgFile}" "C:\jenkins\workspace\LIS-Perf-Test-Iperf-Panorama\WS2012R2\lisa\TestResults\"
 
 if ($?) {
-	write-host "Average bandwith speeds were parsed succesfully and can be found in $testDirectory"
+	write-host "Average bandwith speeds were parsed succesfully and can be found in TestResults"
 }
 
 return $true
