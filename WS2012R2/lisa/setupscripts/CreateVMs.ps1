@@ -185,7 +185,7 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
 #    they are valid values.
 #
 #######################################################################
-function CheckRequiredParameters([System.Xml.XmlElement] $vm)
+function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
 {
     #
     # Make sure the required tags are present
@@ -234,6 +234,11 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         if (-not ([System.IO.Path]::IsPathRooted($parentVhd)) )
         {
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            if ($xmlData.Config.global.imageStoreDir)
+            {
+                $vhdDir = $xmlData.Config.global.imageStoreDir
+            }
+
             $parentVhd = Join-Path $vhdDir $parentVhd
         }
 
@@ -528,7 +533,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
     # present and valid
     #
     # Use the @() operator to force the return value to be an array
-    $dataValid = @(CheckRequiredParameters $vm)
+    $dataValid = @(CheckRequiredParameters $vm $xmlData)
     if ($dataValid[ $dataValid.Length - 1] -eq "True")
     {
         #
