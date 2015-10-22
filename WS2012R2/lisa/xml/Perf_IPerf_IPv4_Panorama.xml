@@ -21,7 +21,7 @@
 
 <config>
     <global>
-        <logfileRootDir>TestResults</logfileRootDir>
+        <logfileRootDir>\\redmond\wsscfs\OSTC\LIS\TestLog\Linux-Next_iPerf</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <LisaInitScript>
             <file>.\setupScripts\CreateVMs.ps1</file>

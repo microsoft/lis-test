@@ -1,4 +1,4 @@
-﻿param([string] $vmName, [string] $hvServer, [string] $testParams, [string] $logPath)
+﻿param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 #
 # Check input arguments
@@ -71,6 +71,8 @@ foreach ($p in $params)
     "INDIVIDUAL_TEST_DURATION"    { $testDuration  = $fields[1].Trim() }
     "TEST_RUN_LOG_FOLDER"         { $logFolder    = $fields[1].Trim() }
     "VM2NAME"         			  { $vm2Name    = $fields[1].Trim() }
+    "VM2SERVER"                   { $vm2Server    = $fields[1].Trim() }
+    "TestLogDir"                  { $testDirectory = $fields[1].Trim() }
     default   {}  # unknown param - just ignore it
     }
 }
@@ -93,17 +95,25 @@ if (-not $logFolder)
     return $False
 }
 
-$testDirectory =  Get-ChildItem "C:\jenkins\workspace\LIS-Perf-Test-Iperf-Panorama\WS2012R2\lisa\TestResults" | where {$_.Attributes -eq 'Directory'} | % {$_.Name }| Sort-Object LastWriteTime
-
 if (-not $testDirectory)
 {
     "Error: Could not find Test Results folder"
     return $False
 }
 
-$archive = "C:\jenkins\workspace\LIS-Perf-Test-Iperf-Panorama\WS2012R2\lisa\TestResults\${testDirectory}\${vmName}_iPerf3_Panorama_iPerf3_Server_Logs.zip"
+if (-not $vm2Name)
+{
+    "Warning: vm2Name is missing!"
+}
 
-$destination = "C:\jenkins\workspace\LIS-Perf-Test-Iperf-Panorama\WS2012R2\lisa\TestResults\${testDirectory}\"
+if (-not $vm2Server)
+{
+    "Warning: The second VMs server is not specified!"
+}
+
+$archive = "${testDirectory}\${vmName}_iPerf3_Panorama_iPerf3_Server_Logs.zip"
+
+$destination = "${testDirectory}\"
 
 
 Add-Type -assembly "system.io.compression.filesystem"
@@ -111,9 +121,10 @@ Add-Type -assembly "system.io.compression.filesystem"
 
 if (-not $?) {
 	write-host "Error: Could not extract the archive, try to extract it manually. If it doesn't exist, check on $vm2Name VM."
+    return $False
 }
 
-$logPath = "C:\jenkins\workspace\LIS-Perf-Test-Iperf-Panorama\WS2012R2\lisa\TestResults\${testDirectory}\root\${logFolder}"
+$logPath = "${testDirectory}\root\${logFolder}"
 $resultFile = Join-Path $logPath "sar.log"
 $avgFile = Join-Path $logPath "sar-avg.log"
 $ethName = "eth1"
@@ -138,6 +149,11 @@ $connections = $testConnections.Substring(1,$testConnections.Length-2)
 
 $connections = $connections.Split(" ")
 
+write-host " "
+write-host "------------------------------------"
+write-host "| Connections     Bandwidth (Gb/s) |"
+write-host "------------------------------------"
+
 foreach ($conn in $connections)
 {
 	#$gtotal is used to calculate average throughput
@@ -146,7 +162,6 @@ foreach ($conn in $connections)
 
 	$sarfile =  $logPath + "\" + $conn + "\" + "sar.log"
 	#$sarfile =  $logPath + "\" + $conn + "-" + "sar.log"
-	write-host $sarfile
 	$lines = (Get-Content $sarfile)
 
 	$count = $testDuration
@@ -186,7 +201,10 @@ foreach ($conn in $connections)
 			}
         }
 	}
-	$gAvg = $gtotal * 8 / 1000 / 1000 / ($testDuration - $count)
+
+    if ($testDuration-$count -gt 0) {
+	   $gAvg = $gtotal * 8 / 1000 / 1000 / ($testDuration - $count)
+    }
 
 	if ($count -gt 0)
 	{
@@ -197,12 +215,18 @@ foreach ($conn in $connections)
 	}
 	#echo $conn + "	"+ $gAvg >> $avgFile
 	$conn + " "+ $gAvg | out-file $avgFile -append
+    write-host " $conn           $gAvg"
 }
 
-Copy-Item "${avgFile}" "C:\jenkins\workspace\LIS-Perf-Test-Iperf-Panorama\WS2012R2\lisa\TestResults\"
 
-if ($?) {
-	write-host "Average bandwith speeds were parsed succesfully and can be found in TestResults"
+write-host "Average bandwith speeds were parsed succesfully and can be found in $testDirectory"
+
+"Stopping $vm2Name"
+Stop-VM -Name $vm2Name -ComputerName $vm2Server -force
+
+if (-not $?)
+{
+    "Warning: Unable to shut down $vm2Name"
 }
 
 return $true
