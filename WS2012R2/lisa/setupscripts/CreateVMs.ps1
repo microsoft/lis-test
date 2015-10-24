@@ -621,7 +621,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             # directory.
             #
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
-            $vhdName = "${vmName}.vhdx"
+            $vhdName = "${vmName}_diff.vhdx"
             $vhdFilename = Join-Path $vhdDir $vhdName
 
             #
