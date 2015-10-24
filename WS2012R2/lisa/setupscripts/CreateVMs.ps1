@@ -600,8 +600,12 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         {
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
             $dstPath = Join-Path $vhdDir "$vmName.vhdx"
-            Write-Host "Copying parent vhd from $parentVhd to $dstPath"
+            $dstDrive = $dstPath.Substring(0,1)
             Copy-Item -Path $parentVhd -Destination $dstPath -Force
+            $dstlocalPath = $dstPath.Substring(3)
+            $dstPathNetwork = "\\${hvServer}\${dstDrive}$\${dstlocalPath}"
+            Write-Host "Copying parent vhd from $parentVhd to $dstPathNetwork"
+            Copy-Item -Path $parentVhd -Destination $dstPathNetwork -Force
             $parentVhd = $dstPath
         }
         $vhdFilename = $parentVhd
@@ -617,7 +621,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             # directory.
             #
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
-            $vhdName = "${vmName}.vhdx"
+            $vhdName = "${vmName}_diff.vhdx"
             $vhdFilename = Join-Path $vhdDir $vhdName
 
             #
@@ -726,7 +730,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
                         if ($macAddress.Length -eq 12)
                         {
-                            Set-VMNetworkAdapter -VMNetworkAdapter $newNic -MAC $macAddress -ComputerName $hvServer
+                            Set-VMNetworkAdapter -VMNetworkAdapter $newNic -StaticMAC $macAddress
                         }
                         else
                         {
