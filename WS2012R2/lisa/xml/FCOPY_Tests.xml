@@ -40,11 +40,12 @@
         <suite>
 		<suiteName>File_Copy</suiteName>
 		<suiteTests>
-			<suiteTest>FCOPY_basic</suiteTest>
+			<!--<suiteTest>FCOPY_basic</suiteTest>
 			<suiteTest>FCOPY_file_exists</suiteTest> 
 			<suiteTest>FCOPY_overwrite</suiteTest>
 			<suiteTest>FCOPY_large_file</suiteTest>
-			<suiteTest>FCOPY_non_ascii</suiteTest>
+			<suiteTest>FCOPY_non_ascii</suiteTest>-->
+			<suiteTest>FCOPY_repeat</suiteTest>
 		</suiteTests>
         </suite>
     </testSuites>
@@ -105,15 +106,31 @@
 			</testParams>
 			<noReboot>True</noReboot>
 		</test>
+
+		<test>
+			<testName>FCOPY_repeat</testName>
+			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
+			<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
+			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+			<timeout>1200</timeout>
+			<testParams>
+				<param>TC_COVERED=FCopy-06</param>
+                		<param>Type=Fixed</param>
+                		<param>SectorSize=512</param>
+                		<param>DefaultSize=3GB</param>
+				
+			</testParams>
+			<noReboot>False</noReboot>
+		</test>
 	</testCases>
 
 	<VMs>
 		<vm>
 			<hvServer>localhost</hvServer>
-			<vmName>VM_NAME</vmName>
+			<vmName>vmname</vmName>
 			<os>Linux</os>
 			<ipv4></ipv4>
-			<sshKey>PKI.ppk</sshKey>
+			<sshKey>key.ppk</sshKey>
 			<suite>File_Copy</suite>
 		</vm>
 	</VMs>
