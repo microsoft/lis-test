@@ -45,10 +45,10 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>paula-rhel7.2</vmName>
+            <vmName>yourVMname</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <sshKey>yourKey_id_rsa.ppk</sshKey>
             <suite>unplug</suite>
         </vm>
     </VMs>

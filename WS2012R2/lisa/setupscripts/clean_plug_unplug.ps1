@@ -20,7 +20,7 @@
 ########################################################################
 <#
 .Synopsis
-    This setup script, that will run before the VM is booted, will Add VHDx Hard Driver to VM.
+    This clean up script, that will run after the VM is turned off.
 
 
 .Description
