@@ -132,14 +132,12 @@ $ethName = "eth1"
 If (Test-Path $resultFile)
 {
     write-host "Result File Exists! It will be overwritten after 1 second." -foregroundcolor red
-    sleep 1
     Remove-Item $resultFile
 }
 
 If (Test-Path $avgFile)
 {
     write-host "AVERAGE Result File Exists! It will be overwritten after 1 second." -foregroundcolor red
-    sleep 1
     Remove-Item $avgFile
 }
 
@@ -164,7 +162,7 @@ foreach ($conn in $connections)
     #$sarfile =  $logPath + "\" + $conn + "-" + "sar.log"
     $lines = (Get-Content $sarfile)
 
-    $count = $testDuration
+    $count = [int] $testDuration
     $lastGoodOne = 0
     for ($i = 0; $i -lt $lines.Length - 1; $i++)
     {
@@ -174,12 +172,7 @@ foreach ($conn in $connections)
         }
         $line = $lines[$i]
 
-        if ($line -eq $null)
-        {
-            continue
-        }
-        if ($line.trim() -eq "")
-        {
+        IF([string]::IsNullOrWhiteSpace($line)) {
             continue
         }
 
