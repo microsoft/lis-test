@@ -601,7 +601,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
             $dstPath = Join-Path $vhdDir "$vmName.vhdx"
             $dstDrive = $dstPath.Substring(0,1)
-            Copy-Item -Path $parentVhd -Destination $dstPath -Force
             $dstlocalPath = $dstPath.Substring(3)
             $dstPathNetwork = "\\${hvServer}\${dstDrive}$\${dstlocalPath}"
             Write-Host "Copying parent vhd from $parentVhd to $dstPathNetwork"
