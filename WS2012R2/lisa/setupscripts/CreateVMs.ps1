@@ -598,8 +598,10 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $uriPath = New-Object -TypeName System.Uri -ArgumentList $parentVhd
         if ($uriPath.IsUnc)
         {
+            $extension = (Get-Item "${parentVhd}").Extension
+
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
-            $dstPath = Join-Path $vhdDir "$vmName.vhdx"
+            $dstPath = Join-Path $vhdDir "${vmName}${extension}"
             $dstDrive = $dstPath.Substring(0,1)
             $dstlocalPath = $dstPath.Substring(3)
             $dstPathNetwork = "\\${hvServer}\${dstDrive}$\${dstlocalPath}"
@@ -661,7 +663,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
 
         #
-        # Attach the .vhd file to the drive
+        # If a data disk was specified...
         #
         $Error.Clear() 
 
