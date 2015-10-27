@@ -21,12 +21,10 @@
 
 <#
 .Synopsis
-    This script tests the functionality of copying a 2GB large file.
-
+    This script tests the functionality of copying a 2GB (default file size) large file.
 .Description
-    The script will copy a random generated 2GB file from a Windows host to 
+    The script will copy a random generated 2GB (default file size) file from a Windows host to 
     the Linux VM, and then checks if the size is matching.
-
     A typical XML definition for this test case would look similar
     to the following:
         <test>
@@ -36,20 +34,20 @@
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>900</timeout>
             <testParams>
-                <param>TC_COVERED=FCopy-04</param>
-                <param>SCSI=0,0,Dynamic</param>
+                <param>TC_COVERED=FCopy-06</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=2GB</param>
+                <param>FileSize=2GB</param>
             </testParams>
         </test>
-
+    NOTE: Make sure DefaultSize is equal or bigger than FileSize.
 .Parameter vmName
     Name of the VM to test.
-
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
-
 .Parameter testParams
     Test data for this test case.
-
 .Example
     setupScripts\FCOPY_large_file.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
 #>
@@ -58,8 +56,8 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $testfile = $null
 $gsi = $null
-# 2GB file size
-$filesize = 2147483648
+# 2GB default file size
+$fileSize = "2GB"
 
 #######################################################################
 #
@@ -188,43 +186,14 @@ function check_file_vm(){
         Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
         return $False
     }
-    elseif ($sts[0] -ne $filesize) {
-        Write-Output "ERROR: The file copied doesn't match the 2GB size!" | Tee-Object -Append -file $summaryLog
+    elseif ($sts[0] -ne $fileSize) {
+        Write-Output "ERROR: The file copied doesn't match the '${originalFileSize}' size!" | Tee-Object -Append -file $summaryLog
         return $False
     }
     return $True
 }
 
-###################################################
-#
-#   Run test function so we can run in multiple times; 
-#   The test includes: copy the file on VM, check if it's fully copied, remove 
-#   file from VM.
-#
-##########################################################################
-function run_test(){
-    $sts = copy_file_vm
-    if(-not $sts){
-        Write-Output "ERROR: File could not be copied!" | Tee-Object -Append -file $summaryLog
-        return $False
-    }
-    Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" | Tee-Object -Append -file $summaryLog
 
-    $sts = check_file_vm
-    if(-not $sts){
-        Write-Output "ERROR: File check error on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
-        return $False
-    }
-     Write-Output "Info: The file copied matches the 2GB size." | Tee-Object -Append -file $summaryLog
-
-    $sts = remove_file_vm
-    if(-not $sts){
-        Write-Output "ERROR: Failed to remove file from VM $vmName." 
-        return $False
-    }
-    Write-Output "Info: File has been successfully removed from guest VM '${vmName}'" 
-    return $True
-}
 #######################################################################
 #
 #   Main body script
@@ -269,6 +238,9 @@ foreach ($p in $params) {
     if ($fields[0].Trim() -eq "sshkey") {
         $sshkey = $fields[1].Trim()
     }
+    if ($fields[0].Trim() -eq "FileSize") {
+        $fileSize = $fields[1].Trim()
+    }
 }
 
 #
@@ -291,6 +263,9 @@ $retVal = $True
 #
 # Verify if the Guest services are enabled for this VM
 #
+$originalFileSize = $fileSize
+$fileSize = $fileSize/1
+
 $gsi = Get-VMIntegrationService -vmName $vmName -ComputerName $hvServer -Name "Guest Service Interface"
 if (-not $gsi) {
     "Error: Unable to retrieve Integration Service status from VM '${vmName}'" | Tee-Object -Append -file $summaryLog
@@ -324,9 +299,8 @@ if ($gsi.OperationalStatus -ne "OK") {
 else {
     # Define the file-name to use with the current time-stamp
     $testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file" 
-
-    # Create a 2GB sample file
-    $createfile = fsutil file createnew $testfile $filesize
+    # Create a sample file
+    $createfile = fsutil file createnew $testfile $fileSize
 
     if ($createfile -notlike "File *testfile-*.file is created") {
         "Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
@@ -359,18 +333,31 @@ if (-not $sts[-1]) {
 ###################################################
 # run the test
 ##########################################################################
-$retVal = run_test
-if(-not $retVal){
-    return $retVal
+
+for($i=0; $i -ne 4; $i++){
+    $sts = copy_file_vm
+    if(-not $sts){
+        Write-Output "ERROR: File could not be copied!" | Tee-Object -Append -file $summaryLog
+        return $False
+    }
+    Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" 
+
+    $sts = check_file_vm
+    if(-not $sts){
+        Write-Output "ERROR: File check error on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
+        return $False
+    }
+    Write-Output "Info: The file copied matches the ${originalFileSize} size." 
+
+    $sts = remove_file_vm
+    if(-not $sts){
+        Write-Output "ERROR: Failed to remove file from VM $vmName." | Tee-Object -Append -file $summaryLog
+        return $False
+    }
+    Write-Output "Info: File has been successfully removed from guest VM '${vmName}'" 
 }
-$retVal = run_test
-if(-not $retVal){
-    return $retVal
-}
-$retVal = run_test
-if(-not $retVal){
-    return $retVal
-}
+
+
 #
 # Removing the temporary test file
 #

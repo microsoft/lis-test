@@ -115,10 +115,11 @@
 			<timeout>1200</timeout>
 			<testParams>
 				<param>TC_COVERED=FCopy-06</param>
-                		<param>Type=Fixed</param>
-                		<param>SectorSize=512</param>
-                		<param>DefaultSize=3GB</param>
-				
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=4GB</param>
+                <!--Make sure DefaultSize is equal or bigger than FileSize-->
+				<param>FileSize=3GB</param>
 			</testParams>
 			<noReboot>False</noReboot>
 		</test>
@@ -127,10 +128,10 @@
 	<VMs>
 		<vm>
 			<hvServer>localhost</hvServer>
-			<vmName>vmname</vmName>
+			<vmName>paula-sles12sp1rc1</vmName>
 			<os>Linux</os>
 			<ipv4></ipv4>
-			<sshKey>key.ppk</sshKey>
+			<sshKey>rhel5_id_rsa.ppk</sshKey>
 			<suite>File_Copy</suite>
 		</vm>
 	</VMs>
