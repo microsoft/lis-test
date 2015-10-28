@@ -187,7 +187,7 @@ function check_file_vm(){
         return $False
     }
     elseif ($sts[0] -ne $fileSize) {
-        Write-Output "ERROR: The file copied doesn't match the '${originalFileSize}' size!" | Tee-Object -Append -file $summaryLog
+        Write-Output "ERROR: The file copied doesn't match the ${originalFileSize} size!" | Tee-Object -Append -file $summaryLog
         return $False
     }
     return $True
@@ -335,26 +335,33 @@ if (-not $sts[-1]) {
 ##########################################################################
 
 for($i=0; $i -ne 4; $i++){
-    $sts = copy_file_vm
-    if(-not $sts){
-        Write-Output "ERROR: File could not be copied!" | Tee-Object -Append -file $summaryLog
-        return $False
-    }
-    Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" 
+    if($retval){
+        $sts = copy_file_vm
+        if(-not $sts){
+            Write-Output "ERROR: File could not be copied!" | Tee-Object -Append -file $summaryLog
+            $retVal = $False
+            break
+        }
+        Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" 
 
-    $sts = check_file_vm
-    if(-not $sts){
-        Write-Output "ERROR: File check error on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
-        return $False
-    }
-    Write-Output "Info: The file copied matches the ${originalFileSize} size." 
+        $sts = check_file_vm
+        if(-not $sts){
+            Write-Output "ERROR: File check error on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
+            $retVal = $False
+            break
+        }
+        Write-Output "Info: The file copied matches the ${originalFileSize} size." 
 
-    $sts = remove_file_vm
-    if(-not $sts){
-        Write-Output "ERROR: Failed to remove file from VM $vmName." | Tee-Object -Append -file $summaryLog
-        return $False
+        $sts = remove_file_vm
+        if(-not $sts){
+            Write-Output "ERROR: Failed to remove file from VM $vmName." | Tee-Object -Append -file $summaryLog
+            $retVal = $False
+            break
+        }
+        Write-Output "Info: File has been successfully removed from guest VM '${vmName}'" 
+    }else{
+        break
     }
-    Write-Output "Info: File has been successfully removed from guest VM '${vmName}'" 
 }
 
 

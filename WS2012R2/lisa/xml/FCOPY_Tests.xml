@@ -32,19 +32,17 @@
             <subject>File Copy test run on WS2012R2</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
-
-        <!-- Optional testParams go here -->
     </global>
 
     <testSuites>
         <suite>
 		<suiteName>File_Copy</suiteName>
 		<suiteTests>
-			<!--<suiteTest>FCOPY_basic</suiteTest>
+			<suiteTest>FCOPY_basic</suiteTest>
 			<suiteTest>FCOPY_file_exists</suiteTest> 
 			<suiteTest>FCOPY_overwrite</suiteTest>
 			<suiteTest>FCOPY_large_file</suiteTest>
-			<suiteTest>FCOPY_non_ascii</suiteTest>-->
+			<suiteTest>FCOPY_non_ascii</suiteTest>
 			<suiteTest>FCOPY_repeat</suiteTest>
 		</suiteTests>
         </suite>
@@ -128,10 +126,10 @@
 	<VMs>
 		<vm>
 			<hvServer>localhost</hvServer>
-			<vmName>paula-sles12sp1rc1</vmName>
+			<vmName>vmName</vmName>
 			<os>Linux</os>
 			<ipv4></ipv4>
-			<sshKey>rhel5_id_rsa.ppk</sshKey>
+			<sshKey>key.ppk</sshKey>
 			<suite>File_Copy</suite>
 		</vm>
 	</VMs>
