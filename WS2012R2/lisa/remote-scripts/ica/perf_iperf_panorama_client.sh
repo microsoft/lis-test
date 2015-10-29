@@ -59,13 +59,11 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 cd ~
 UpdateTestState $ICA_TESTRUNNING
 LogMsg "Starting test"
@@ -278,7 +276,6 @@ for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
     fi
 done
 
-
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
 echo "iPerf package name        = ${IPERF_PACKAGE}"
@@ -322,7 +319,6 @@ cd ${rootDir}
 #
 # Distro specific setup
 #
-
 GetDistro
 
 case "$DISTRO" in
@@ -504,22 +500,17 @@ if [ $DISTRO -eq "suse_12"]; then
     fi
 fi
 
-
-# go back to test root folder
+# Make all bash scripts executable
 cd ~
-
-# Make all bash scripts run-able
 dos2unix ~/*.sh
 chmod 755 ~/*.sh
 
-# set static ips for test interfaces
-
+# set static IPs for test interfaces
 declare -i __iterator=0
 
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
     LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-
     CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $STATIC_IP $NETMASK
 
     if [ 0 -ne $? ]; then
@@ -562,7 +553,7 @@ if [ $? -ne 0 ]; then
 fi
 
 #
-# Wait for server ready
+# Wait for server to be ready
 #
 wait_for_server=600
 server_state_file=serverstate.txt
@@ -642,21 +633,19 @@ do
     sleep 10
 done
 
-# Test Finished. Collect logs
-# zip client side logs
+# Test Finished. Collect logs, zip client side logs
 zip -r iPerf3_Client_Logs.zip ~/${TEST_RUN_LOG_FOLDER}
-#Get logs from server side
+# Get logs from server side
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}' | at now"
 sleep 20
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
 
+UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"
-UpdateSummary "Distibution: $DISTRO"
 
 #
-# If we made it here, everything worked.
-# Indicate success
+# If we made it here, everything worked
 #
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
