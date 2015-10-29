@@ -534,33 +534,6 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
 done
 
-
-# LogMsg "Trying to set an IP Address via static on interface eth1"
-
-#     CreateIfupConfigFile "eth1" "static" $STATIC_IP $NETMASK
-
-#     if [ 0 -ne $? ]; then
-#         msg="Unable to set address for eth1 through static"
-#         LogMsg "$msg"
-#         UpdateSummary "$msg"
-#         SetTestStateFailed
-#         exit 10
-#     fi
-
-#
-# Copy server side scripts and trigger server side scripts
-#
-
-# LogMsg "Setting test interface IP on ${STATIC_IP2}"
-# ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'ip addr add ${IPERF3_SERVER_IP}/24 dev eth1' | at now"
-# if [ $? -ne 0 ]; then
-#     msg="Error: Unable to set ${IPERF3_SERVER_IP}/24 on target server machine: ${STATIC_IP2}"
-#     LogMsg "${msg}"
-#     echo "${msg}" >> ~/summary.log
-#     UpdateTestState $ICA_TESTFAILED
-#     exit 120
-# fi
-
 LogMsg "Copy files to server: ${STATIC_IP2}"
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
