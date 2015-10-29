@@ -212,6 +212,75 @@ if [ "${IPERF3_TEST_CONNECTION_POOL:="UNDEFINED"}" = "UNDEFINED" ]; then
     echo "${msg}" >> ~/summary.log
 fi
 
+#Get test synthetic interface
+declare __iface_ignore
+
+# Parameter provided in constants file
+#   ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
+#   it is not touched during this test (no dhcp or static ip assigned to it)
+
+if [ "${ipv4:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter ipv4 is not defined in constants file! Make sure you are using the latest LIS code."
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateAborted
+    exit 30
+else
+
+    CheckIP "$ipv4"
+
+    if [ 0 -ne $? ]; then
+        msg="Test parameter ipv4 = $ipv4 is not a valid IP Address"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateAborted
+        exit 10
+    fi
+
+    # Get the interface associated with the given ipv4
+    __iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
+fi
+
+# Retrieve synthetic network interfaces
+GetSynthNetInterfaces
+
+if [ 0 -ne $? ]; then
+    msg="No synthetic network interfaces found"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+    exit 10
+fi
+
+# Remove interface if present
+SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
+
+if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
+    msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateAborted
+    exit 10
+fi
+
+LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+
+# Test interfaces
+declare -i __iterator
+for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
+    ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+    if [ 0 -ne $? ]; then
+        msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 20
+    fi
+done
+
+
+LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+
 echo "iPerf package name        = ${IPERF_PACKAGE}"
 echo "iPerf client test interface ip           = ${STATIC_IP}"
 echo "iPerf server ip           = ${STATIC_IP2}"
@@ -361,6 +430,34 @@ redhat_7)
         fi
     fi
     ;;
+
+    suse_12)
+        LogMsg "Check iptables status on RHEL7"
+        service SuSEfirewall2 status
+        if [ $? -ne 3 ]; then
+            iptables -F;
+            if [ $? -ne 0 ]; then
+                msg="Error: Failed to flush iptables rules. Continuing"
+                LogMsg "${msg}"
+                echo "${msg}" >> ~/summary.log
+            fi
+            service SuSEfirewall2 stop
+            if [ $? -ne 0 ]; then
+                msg="Error: Failed to stop iptables"
+                LogMsg "${msg}"
+                echo "${msg}" >> ~/summary.log
+                UpdateTestState $ICA_TESTFAILED
+                exit 85
+            fi
+            chkconfig SuSEfirewall2 off
+            if [ $? -ne 0 ]; then
+                msg="Error: Failed to turn off iptables. Continuing"
+                LogMsg "${msg}"
+                echo "${msg}" >> ~/summary.log
+            fi
+        fi
+    ;;
+
 esac
 
 #
@@ -398,6 +495,16 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
+if [ $DISTRO -eq "suse_12"]; then
+    ldconfig
+    if [ $? -ne 0 ]; then
+        msg="Warning: Couldn't run ldconfig, there might be shared library errors"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
+fi
+
+
 # go back to test root folder
 cd ~
 
@@ -405,51 +512,47 @@ cd ~
 dos2unix ~/*.sh
 chmod 755 ~/*.sh
 
-LogMsg "Trying to set an IP Address via static on interface eth1"
+# set static ips for test interfaces
 
-    CreateIfupConfigFile "eth1" "static" $STATIC_IP $NETMASK
+declare -i __iterator=0
+
+while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
+
+    LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+
+    CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $STATIC_IP $NETMASK
 
     if [ 0 -ne $? ]; then
-        msg="Unable to set address for eth1 through static"
+        msg="Unable to set address for ${SYNTH_NET_INTERFACES[$__iterator]} through static"
         LogMsg "$msg"
         UpdateSummary "$msg"
         SetTestStateFailed
         exit 10
     fi
 
-#
-# Copy server side scripts and trigger server side scripts
-#
+    : $((__iterator++))
 
-LogMsg "Setting test interface IP on ${STATIC_IP2}"
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'ip addr add ${IPERF3_SERVER_IP}/24 dev eth1' | at now"
-if [ $? -ne 0 ]; then
-    msg="Error: Unable to set ${IPERF3_SERVER_IP}/24 on target server machine: ${STATIC_IP2}"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 120
-fi
+done
 
-LogMsg "Copy files to server: ${IPERF3_SERVER_IP}"
+LogMsg "Copy files to server: ${STATIC_IP2}"
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to copy test scripts to target server machine: ${IPERF3_SERVER_IP}. scp command failed."
+    msg="Error: Unable to copy test scripts to target server machine: ${STATIC_IP2}. scp command failed."
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 130
 fi
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 
 
 #
 # Start iPerf in server mode on the Target server side
 #
-LogMsg "Starting iPerf in server mode on ${IPERF3_SERVER_IP}"
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo '~/perf_iperf_panorama_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
+LogMsg "Starting iPerf in server mode on ${STATIC_IP2}"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo '~/perf_iperf_panorama_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf3 server scripts on the target server machine"
     LogMsg "${msg}"
@@ -465,7 +568,7 @@ wait_for_server=600
 server_state_file=serverstate.txt
 while [ $wait_for_server -gt 0 ]; do
     # Try to copy and understand server state
-    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/state.txt ~/${server_state_file}
+    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
 
     if [ -f ~/${server_state_file} ];
     then
@@ -547,6 +650,9 @@ ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_O
 sleep 20
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
+
+UpdateSummary "Kernel: $(uname -r)"
+UpdateSummary "Distibution: $DISTRO"
 
 #
 # If we made it here, everything worked.

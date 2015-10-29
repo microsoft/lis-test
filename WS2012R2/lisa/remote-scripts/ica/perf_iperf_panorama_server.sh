@@ -165,6 +165,74 @@ if [ "${TEST_RUN_LOG_FOLDER:="UNDEFINED"}" = "UNDEFINED" ]; then
     echo "${msg}" >> ~/summary.log
 fi
 
+#Get test synthetic interface
+declare __iface_ignore
+
+# Parameter provided in constants file
+#   ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
+#   it is not touched during this test (no dhcp or static ip assigned to it)
+
+if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter STATIC_IP2 is not defined in constants file! Make sure you are using the latest LIS code."
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateAborted
+    exit 30
+else
+
+    CheckIP "$STATIC_IP2"
+
+    if [ 0 -ne $? ]; then
+        msg="Test parameter STATIC_IP2 = $STATIC_IP2 is not a valid IP Address"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateAborted
+        exit 10
+    fi
+
+    # Get the interface associated with the given ipv4
+    __iface_ignore=$(ip -o addr show | grep "$STATIC_IP2" | cut -d ' ' -f2)
+fi
+
+# Retrieve synthetic network interfaces
+GetSynthNetInterfaces
+
+if [ 0 -ne $? ]; then
+    msg="No synthetic network interfaces found"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+    exit 10
+fi
+
+# Remove interface if present
+SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
+
+if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
+    msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateAborted
+    exit 10
+fi
+
+LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+
+# Test interfaces
+declare -i __iterator
+for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
+    ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
+    if [ 0 -ne $? ]; then
+        msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 20
+    fi
+done
+
+LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+
 echo "iPerf package name		= ${IPERF_PACKAGE}"
 echo "individual test duration (sec)	= ${INDIVIDUAL_TEST_DURATION}"
 echo "connections per iperf3		= ${CONNECTIONS_PER_IPERF3}"
@@ -308,6 +376,32 @@ redhat_7)
         fi
     fi
     ;;
+suse_12)
+    LogMsg "Check iptables status on RHEL7"
+    service SuSEfirewall2 status
+    if [ $? -ne 3 ]; then
+        iptables -F;
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to flush iptables rules. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+        service SuSEfirewall2 stop
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop iptables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
+        chkconfig SuSEfirewall2 off
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off iptables. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+    fi
+    ;;
 esac
 
 #
@@ -345,8 +439,39 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
+if [ $DISTRO -eq "suse_12"]; then
+    ldconfig
+    if [ $? -ne 0 ]; then
+        msg="Warning: Couldn't run ldconfig, there might be shared library errors"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
+fi
+
 # go back to test root folder
 cd ~
+
+# set static ips for test interfaces
+
+declare -i __iterator=0
+
+while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
+
+    LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+
+    CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $IPERF3_SERVER_IP $NETMASK
+
+    if [ 0 -ne $? ]; then
+        msg="Unable to set address for ${SYNTH_NET_INTERFACES[$__iterator]} through static"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 10
+    fi
+
+    : $((__iterator++))
+
+done
 
 #
 # Start iPerf3 server instances
