@@ -428,7 +428,10 @@ redhat_7)
     ;;
 
     suse_12)
-        LogMsg "Check iptables status on RHEL7"
+        # Install gcc which is required to build iperf3
+        zypper --non-interactive install gcc
+    
+        LogMsg "Check iptables status on SLES"
         service SuSEfirewall2 status
         if [ $? -ne 3 ]; then
             iptables -F;
@@ -455,11 +458,6 @@ redhat_7)
     ;;
 
 esac
-
-#
-# Install gcc which is required to build iperf3
-#
-zypper --non-interactive install gcc
 
 #
 # Build iperf
