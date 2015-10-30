@@ -35,9 +35,9 @@
 			<timeout>1200</timeout>
 			<testParams>
 				<param>TC_COVERED=FCopy-06</param>
-                <param>Type=Fixed</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=4GB</param>
+                		<param>Type=Fixed</param>
+        			<param>SectorSize=512</param>
+                		<param>DefaultSize=4GB</param>
 				<param>FileSize=3GB</param>
 			</testParams>
 			<noReboot>False</noReboot>
