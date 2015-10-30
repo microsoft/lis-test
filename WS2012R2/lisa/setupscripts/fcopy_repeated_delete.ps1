@@ -27,20 +27,21 @@
     the Linux VM, and then checks if the size is matching.
     A typical XML definition for this test case would look similar
     to the following:
-        <test>
-            <testName>FCOPY_large_file</testName>
-            <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript> 
-            <testScript>setupscripts\FCOPY_large_file.ps1</testScript>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-            <timeout>900</timeout>
-            <testParams>
-                <param>TC_COVERED=FCopy-06</param>
+       <test>
+			<testName>FCOPY_repeat</testName>
+			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
+			<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
+			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+			<timeout>1200</timeout>
+			<testParams>
+				<param>TC_COVERED=FCopy-06</param>
                 <param>Type=Fixed</param>
                 <param>SectorSize=512</param>
-                <param>DefaultSize=2GB</param>
-                <param>FileSize=2GB</param>
-            </testParams>
-        </test>
+                <param>DefaultSize=4GB</param>
+				<param>FileSize=3GB</param>
+			</testParams>
+			<noReboot>False</noReboot>
+		</test>
     NOTE: Make sure DefaultSize is equal or bigger than FileSize.
 .Parameter vmName
     Name of the VM to test.
