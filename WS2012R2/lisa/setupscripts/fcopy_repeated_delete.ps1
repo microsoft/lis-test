@@ -21,9 +21,9 @@
 
 <#
 .Synopsis
-    This script tests the functionality of copying a 2GB (default file size) large file.
+    This script tests the functionality of copying a 2GB (default file size) large file multiple times.
 .Description
-    The script will copy a random generated 2GB (default file size) file from a Windows host to 
+    The script will copy a random generated 2GB (default file size) file multiple times from a Windows host to 
     the Linux VM, and then checks if the size is matching.
     A typical XML definition for this test case would look similar
     to the following:
@@ -49,7 +49,7 @@
 .Parameter testParams
     Test data for this test case.
 .Example
-    setupScripts\FCOPY_large_file.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
+    setupScripts\FCOPY_large_file.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress;FileSize=2GB'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -330,9 +330,9 @@ if (-not $sts[-1]) {
     $retVal = $False
 }
 
-###################################################
-# run the test
-##########################################################################
+#
+# Run the test
+#
 
 for($i=0; $i -ne 4; $i++){
     if($retval){
