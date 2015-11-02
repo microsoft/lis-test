@@ -16,7 +16,7 @@
     <testParams>
       <param>vmCpuNumber=4</param>
       <param>vmMemory=18GB</param>
-      <param>ISO_OPTIONS=.\TestData\DistroISO\SLEs-12-Server-DVD-x86_64-GM-DVD1.iso,BOOT_IDE_FIRST</param>
+      <!-- <param>ISO_OPTIONS=.\TestData\DistroISO\SLEs-12-Server-DVD-x86_64-GM-DVD1.iso,BOOT_IDE_FIRST</param> -->
     </testParams>
   </global>
   <testSuites>
@@ -31,7 +31,7 @@
     <test>
       <testName>Perf_TeraSort</testName>
       <testScript>perf_hadoopterasort.sh</testScript>
-      <files>remote-scripts/ica/perf_hadoopterasort.sh,testdata/perf_hadoopterasort.xml/hadoop-2.4.0.tar.gz</files>
+      <files>remote-scripts/ica/perf_hadoopterasort.sh,testdata/perf_hadoopterasort.xml/hadoop-2.7.1.tar.gz</files>
       <timeout>18000</timeout>
       <onError>Continue</onError>
       <noReboot>False</noReboot>
@@ -41,6 +41,12 @@
         <param>RESOURCE_MANAGER_HOSTNAME=SLES12-ClientVM</param>
         <param>SLAVE_HOSTNAMES=SLES12-ServerVM</param>
         <param>TERAGEN_RECORDS=50000000</param>
+        <param>sshKey=/root/.ssh/id_rsa</param>
+        <!-- Modify HADOOP_VERSION accordingly to file uploaded -->
+        <!-- Supports multiple versions; e.g. 2.4.0, 2.7.1.  -->
+        <param>HADOOP_VERSION=2.7.1</param>
+        <!-- Optional parameter -->
+        <!-- <param>IsoFilename=.\wily-server-amd64.iso</param> -->
       </testparams>
       <uploadFiles>
         <file>hadoop.log</file>
@@ -59,7 +65,8 @@
       <suite>PerfTeraSort</suite>
       <preStartConfig>
          <file>.\setupscripts\Config-VM.ps1</file>
-         <file>.\setupscripts\Insert-ISO.ps1</file>
+         <!-- Optional parameter -->
+         <!-- <file>.\setupscripts\InsertIsoInDvd.ps1</file> -->
       </preStartConfig>
     </vm>
     <vm>
@@ -72,7 +79,8 @@
       <sshKey>id_rsa.ppk</sshKey>
       <preStartConfig>
          <file>.\setupscripts\Config-VM.ps1</file>
-         <file>.\setupscripts\Insert-ISO.ps1</file>
+         <!-- Optional parameter -->
+         <!-- <file>.\setupscripts\InsertIsoInDvd.ps1</file> -->
       </preStartConfig>
     </vm>
   </VMs>
