@@ -863,7 +863,7 @@ function RunTests ([String] $xmlFilename )
     $lisaTestResult = $true
     foreach($vm in $xmlConfig.config.VMs.vm)
     {
-        if ($vm.individualResults -contains "0")
+        if ($vm.individualResults.Contains("0"))
         {
             $lisaTestResult = $false
             break
