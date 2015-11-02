@@ -69,14 +69,14 @@ function check_fcopy_daemon()
 {
 	$filename = ".\fcopy_present"
     
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /root/fcopy_present"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /tmp/fcopy_present"
     if (-not $?) {
         Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
         Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
         return $False
     }
 
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/fcopy_present .
+    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/tmp/fcopy_present .
     if (-not $?) {
 		Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
 		Write-Output "ERROR: Unable to copy the confirmation file from the VM"
@@ -100,21 +100,21 @@ function check_fcopy_daemon()
 #######################################################################
 function check_file([String] $testfile)
 {
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /root/$testfile"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /tmp/$testfile"
     if (-not $?) {
-        Write-Output "ERROR: Unable to read file /root/$testfile." -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Unable to read file /tmp/$testfile." -ErrorAction SilentlyContinue
         return $False
     }
 
-    $sts = SendCommandToVM $ipv4 $sshKey "dos2unix /root/$testfile"
+    $sts = SendCommandToVM $ipv4 $sshKey "dos2unix /tmp/$testfile"
     if (-not $sts) {
-        Write-Output "ERROR: Failed to convert file /root/$testfile to unix format." -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Failed to convert file /tmp/$testfile to unix format." -ErrorAction SilentlyContinue
         return $False
     }
 
-	.\bin\plink -i ssh\${sshKey} root@${ipv4} "cat /root/$testfile"
+	.\bin\plink -i ssh\${sshKey} root@${ipv4} "cat /tmp/$testfile"
     if (-not $?) {
-        Write-Output "ERROR: Unable to read file /root/$testfile." -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Unable to read file /tmp/$testfile." -ErrorAction SilentlyContinue
         return $False
     }
     return $True
@@ -161,10 +161,10 @@ function copy_and_check_file([String] $testfile, [Boolean] $overwrite, [Int] $co
     # Copy the file and check copied file
     $Error.Clear()
     if ($overwrite) {
-        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/root/" -FileSource host -ErrorAction SilentlyContinue -Force       
+        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue -Force       
     }
     else {
-        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/root/" -FileSource host -ErrorAction SilentlyContinue
+        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
     }
     if ($Error.Count -eq 0) {
         $sts = check_file $testfile
@@ -290,6 +290,13 @@ if ($gsi.OperationalStatus -ne "OK") {
 	$retVal = $False
 }
 
+# Verifying if /tmp folder on guest exists; if not, it will be created
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /tmp ]"
+if (-not $?){
+    Write-Output "Folder /tmp not present on guest. It will be created"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir /tmp"
+}
+
 #
 # The fcopy daemon must be running on the Linux guest VM
 #
@@ -301,6 +308,9 @@ if (-not $sts[-1]) {
 
 # Define the file-name to use with the current time-stamp
 $testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file" 
+
+# Removing previous test files on the VM
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f /tmp/testfile-*"
 
 #
 # Initial file copy, which must be successful. Create a text file with 20 characters, and then copy it.

@@ -30,7 +30,7 @@ If HammerDb is not present, the automation code will try to download it from the
 
 <config>
     <global>
-        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>

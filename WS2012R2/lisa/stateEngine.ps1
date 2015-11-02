@@ -325,6 +325,10 @@ function RunICTests([XML] $xmlConfig)
             }
         }
 
+        $newElement = $xmlConfig.CreateElement("individualResults")
+        $newElement.set_InnerText("");
+        $vm.AppendChild($newElement);
+
         #
         # Correct the default iteration value
         #
@@ -386,7 +390,7 @@ function RunICTests([XML] $xmlConfig)
             LogMsg 0 "Error: RunICTests - $($vm.vmName) is not in a shutdown state"
             LogMsg 0 "Error:   The VM cannot be put into a stopped state"
             LogMsg 0 "Error:   Tests will not be run on $($vm.vmName)"
-            $vm.emailSummay += "    The VM could not be stopped.  It has been disabled.<br />"
+            $vm.emailSummary += "    The VM could not be stopped.  It has been disabled.<br />"
             $vm.emailSummary += "   No tests were run on this VM`<br />"
             UpdateState $vm $Disabled
         }
@@ -1637,9 +1641,7 @@ function DoPushTestFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
     }
 
-    #
-    # If the test script is a powershell script, transition to the appropriate state
-    #
+
     $testScript = $($testData.testScript).Trim()
     if ($testScript -eq $null)
     {
@@ -1649,52 +1651,51 @@ function DoPushTestFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
         UpdateState $vm $DetermineReboot
         return
     }
-    else
-    {
-        if ($testScript.EndsWith(".ps1"))
-        {
-            UpdateState $vm $StartPS1Test
-            return
-        }
-    }
 
     #
-    # Make sure the test script has Unix EOL
+    # If the test script is not a PowerShell script, do some additional 
+    # work - e.g. dos2unix, set x bit
     #
-    LogMsg 3 "Info : $($vm.vmname) converting EOL for file $testScript"
-    $dos2unixCmd = GetOSDos2UnixCmd $vm $testScript
-    #$dos2unixCmd = "dos2unix -q $testScript"
-    if ($dos2unixCmd)
+    if (-not ($testScript.EndsWith(".ps1")))
     {
-        if (-not (SendCommandToVM $vm "${dos2unixCmd}") )
+        #
+        # Make sure the test script has Unix EOL
+        #
+        LogMsg 3 "Info : $($vm.vmname) converting EOL for file $testScript"
+        $dos2unixCmd = GetOSDos2UnixCmd $vm $testScript
+        #$dos2unixCmd = "dos2unix -q $testScript"
+        if ($dos2unixCmd)
         {
-            LogMsg 0 "Error: $($vm.vmName) unable to set EOL on test script file $testScript"
-            $vm.emailSummary += "    Unable to set EOL on file $testScript<br />"
+            if (-not (SendCommandToVM $vm "${dos2unixCmd}") )
+            {
+                LogMsg 0 "Error: $($vm.vmName) unable to set EOL on test script file $testScript"
+                $vm.emailSummary += "    Unable to set EOL on file $testScript<br />"
+                $vm.testCaseResults = "False"
+                UpdateState $vm $DetermineReboot
+                return
+            }
+        }
+        else
+        {
+            LogMsg 0 "Error: $($vm.vmName) cannot create dos2unix command for ${testScript}"
+            $vm.emailSummary += "    Unable to create dos2unix command for $testScript<br />"
             $vm.testCaseResults = "False"
             UpdateState $vm $DetermineReboot
             return
         }
-    }
-    else
-    {
-        LogMsg 0 "Error: $($vm.vmName) cannot create dos2unix command for ${testScript}"
-        $vm.emailSummary += "    Unable to create dos2unix command for $testScript<br />"
-        $vm.testCaseResults = "False"
-        UpdateState $vm $DetermineReboot
-        return
-    }
 
-    #
-    # Set the X bit to allow the script to run
-    #
-    LogMsg 3 "Info : $($vm.vmName) setting x bit on $testScript"
-    if (-not (SendCommandToVM $vm "chmod 755 $testScript") )
-    {
-        LogMsg 0 "$($vm.vmName) unable to set x bit on test script $testScript"
-        $vm.emailSummary += "    Unable to set x bit on test script $testScript<br />"
-        $vm.testCaseResults = "False"
-        UpdateState $vm $DetermineReboot
-        return
+        #
+        # Set the X bit to allow the script to run
+        #
+        LogMsg 3 "Info : $($vm.vmName) setting x bit on $testScript"
+        if (-not (SendCommandToVM $vm "chmod 755 $testScript") )
+        {
+            LogMsg 0 "$($vm.vmName) unable to set x bit on test script $testScript"
+            $vm.emailSummary += "    Unable to set x bit on test script $testScript<br />"
+            $vm.testCaseResults = "False"
+            UpdateState $vm $DetermineReboot
+            return
+        }
     }
 
     if ($($testData.preTest) )
@@ -1866,6 +1867,25 @@ function DoStartTest([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $vm.emailSummary += "    Cannot fine test data for test '$($vm.currentTest)<br />"
         $vm.testCaseResults = "False"
         UpdateState $vm $DetermineReboot
+        return
+    }
+
+    #
+    # If the test script is a powershell script, transition to the appropriate state
+    #
+    $testScript = $($testData.testScript).Trim()
+    if ($testScript -eq $null)
+    {
+        LogMsg 0 "Error: $($vm.vmName) test case $($vm.currentTest) does not have a testScript"
+        $vm.emailSummary += "    Test case $($vm.currentTest) does not have a testScript.<br />"
+        $vm.testCaseResults = "False"
+        UpdateState $vm $DetermineReboot
+        return
+    }
+
+    if ($testScript.EndsWith(".ps1"))
+    {
+        UpdateState $vm $StartPS1Test
         return
     }
 
@@ -2187,6 +2207,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     if ( ($($vm.testCaseResults) -eq "Success") )
     {
         $completionCode = "Success"
+        $vm.individualResults = $vm.individualResults -replace ".$","1"
     }
     elseif ( ($($vm.testCaseResults) -eq "Failed") )
     {
@@ -2253,6 +2274,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     SendCommandToVM $vm "rm -f state.txt"
 
     LogMsg 0 "Info : $($vm.vmName) Status for test $currentTest $iterationMsg = $completionCode"
+        
 
     if ( $($testData.postTest) )
     {
@@ -3133,6 +3155,7 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
             if ($jobResults[-1] -eq $True)
             {
                 $completionCode = "Success"
+                $vm.individualResults = $vm.individualResults -replace ".$","1"
             }
         }
 

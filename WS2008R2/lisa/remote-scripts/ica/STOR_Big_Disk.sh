@@ -21,7 +21,6 @@
 #
 ########################################################################
 
-
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
@@ -32,8 +31,6 @@ LogMsg()
 {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
 }
-
-
 
 UpdateSummary()
 {
@@ -58,7 +55,6 @@ UpdateTestState()
     done
  }
 
-
 IntegrityCheck(){
 targetDevice=$1
 testFile="/dev/shm/testsource"
@@ -76,7 +72,7 @@ blocks=$((blocks-1))
  mount $targetDevice /mnt/
  targetDevice="/mnt/1"
 LogMsg "Creating test data file $testfile with size $blockSize"
-echo "We will fill the device $targetDevice (of size $targetSize) with this gata (in $blocks) and then will check if the data is not corrupted."
+echo "We will fill the device $targetDevice (of size $targetSize) with this data (in $blocks) and then will check if the data is not corrupted."
 echo "This will erase all data in $targetDevice"
 
 LogMsg "Creating test source file... ($BLOCKSIZE)"
@@ -108,8 +104,6 @@ echo "Data integrity test on ${blocks} blocks on drive $1 : success " >> ~/summa
 umount /mnt/
 rm -f $testFile
 }
-
-
 
 TestFileSystem()
 {

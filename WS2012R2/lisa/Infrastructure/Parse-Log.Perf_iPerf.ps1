@@ -42,189 +42,119 @@
 
 #>
 
-param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
-
-#----------------------------------------------------------------------------
-# Print running information
-#----------------------------------------------------------------------------
-Write-Host "Running [Parse-Log.Perf_iPerf.ps1]..." -foregroundcolor cyan
-Write-Host "`$LogFolder        = $LogFolder" 
-Write-Host "`$XMLFileName      = $XMLFileName" 
-Write-Host "`$LisaInfraFolder  = $LisaInfraFolder" 
-
-#----------------------------------------------------------------------------
-# Verify required parameters
-#----------------------------------------------------------------------------
-if ($LogFolder -eq $null -or $LogFolder -eq "")
+function ParseBenchmarkLogFile( [string]$LogFolder, [string]$XMLFileName )
 {
-    Throw "Parameter LogFolder is required."
-}
+    #----------------------------------------------------------------------------
+    # The log file pattern. The log is produced by the iPerf tool
+    #----------------------------------------------------------------------------
+    $iPerfLofFile = "*_iperfdata.log"
 
-# check the XML file provided
-if ($XMLFileName -eq $null -or $XMLFileName -eq "")
-{
-    Throw "Parameter XMLFileName is required."
-}
-else
-{
-    if (! (test-path $XMLFileName))
+    #----------------------------------------------------------------------------
+    # Read the iPerf log file
+    #----------------------------------------------------------------------------
+    $icaLogs = Get-ChildItem "$LogFolder\$iPerfLofFile" -Recurse
+    Write-Host "Number of Log files found: "
+    Write-Host $icaLogs.Count
+
+    if($icaLogs.Count -eq 0)
     {
-        write-host -f Red "Error: XML config file '$XMLFileName' does not exist."
-        Throw "Parameter XmlFilename is required."
+        return $false
     }
-}
 
-$xmlConfig = [xml] (Get-Content -Path $xmlFilename)
-if ($null -eq $xmlConfig)
-{
-    write-host -f Red "Error: Unable to parse the .xml file"
-    return $false
-}
-
-if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
-{
-    Throw "Parameter LisaInfraFolder is required."
-}
-
-#----------------------------------------------------------------------------
-# The log file pattern. The log is produced by the iPerf tool
-#----------------------------------------------------------------------------
-$iPerfLofFile = "*_iperfdata.log"
-
-#----------------------------------------------------------------------------
-# Read the iPerf log file
-#----------------------------------------------------------------------------
-$icaLogs = Get-ChildItem "$LogFolder\$iPerfLofFile" -Recurse
-Write-Host "Number of Log files found: "
-Write-Host $icaLogs.Count
-
-if($icaLogs.Count -eq 0)
-{
-    return -1
-}
-
-$bandwidth = "0"
-# should only have one file. but in case there are more than one files, just use the last one simply
-foreach ($logFile  in $icaLogs)
-{
-    Write-Host "One log file has been found: $logFile" 
-    
-    #we should find the result in the last 2 lines
-    #result example: [  3]  0.0-60.0 sec  11.9 GBytes  1.70 Gbits/sec
-    #result example: [SUM]  0.0-60.0 sec  11.5 GBytes  1.65 Gbits/sec
-    $resultFound = $false
-    $iTry=1
-    while (($resultFound -eq $false) -and ($iTry -lt 3))
+    $bandwidth = $null
+    # should only have one file. but in case there are more than one files, just use the last one simply
+    foreach ($logFile  in $icaLogs)
     {
-        $line = (Get-Content $logFile)[-1* $iTry]
-        Write-Host $line
+        Write-Host "One log file has been found: $logFile" 
+        
+        #we should find the result in the last 2 lines
+        #result example: [  3]  0.0-60.0 sec  11.9 GBytes  1.70 Gbits/sec
+        #result example: [SUM]  0.0-60.0 sec  11.5 GBytes  1.65 Gbits/sec
+        $resultFound = $false
+        $iTry=1
+        while (($resultFound -eq $false) -and ($iTry -lt 3))
+        {
+            $line = (Get-Content $logFile)[-1* $iTry]
+            Write-Host $line
 
-        if ($line.Trim() -eq "")
-        {
-            $iTry++
-            continue
-        }
-        elseif ( ($line.Contains("sec") -eq $false) -or  ($line.Contains("bits/sec") -eq $false))
-        {
-            $iTry++
-            continue
-        }
-        else
-        {
-            $element = $line.Split(' ')
-            $bandwidth = $element[$element.Length-2]
-            Write-Host "The bandwidth is: " $bandwidth  $element[$element.Length-1]
-            break
-        }
-	}
-}
-
-#----------------------------------------------------------------------------
-# Read iPerf configuration from XML file
-#----------------------------------------------------------------------------
-$VMName = [string]::Empty
-$IPERF_THREADS = 0
-$IPERF_BUFFER = 0.0
-$IPERF_TCPWINDOW = 0.0
-
-$numberOfVMs = $xmlConfig.config.VMs.ChildNodes.Count
-Write-Host "Number of VMs defined in the XML file: $numberOfVMs"
-if ($numberOfVMs -eq 0)
-{
-    Throw "No VM is defined in the LISA XML file."
-}
-elseif ($numberOfVMs -gt 1)
-{
-    foreach($node in $xmlConfig.config.VMs.ChildNodes)
-    {
-        if (($node.role -eq $null) -or ($node.role.ToLower() -ne "nonsut"))
-        {
-            #just use the 1st SUT VM name
-            $VMName = $node.vmName
-            break
+            if ($line.Trim() -eq "")
+            {
+                $iTry++
+                continue
+            }
+            elseif ( ($line.Contains("sec") -eq $false) -or  ($line.Contains("bits/sec") -eq $false))
+            {
+                $iTry++
+                continue
+            }
+            else
+            {
+                $element = $line.Split(' ')
+                $bandwidth = $element[$element.Length-2]
+                Write-Host "The bandwidth is: " $bandwidth  $element[$element.Length-1]
+                break
+            }
         }
     }
-}
-else
-{
-    $VMName = $xmlConfig.config.VMs.VM.VMName
-}
-if ($VMName -eq [string]::Empty)
-{
-    Write-Host "!!! No VM is found from the LISA XML file."
-}
-
-foreach($param in $xmlConfig.config.testCases.test.testParams.ChildNodes)
-{
-    $paramText = $param.InnerText
-    if ($paramText.ToUpper().StartsWith("IPERF_THREADS="))
+    Write-Host "bandwidth = $bandwidth"
+    if ($bandwidth -eq $null)
     {
-        $IPERF_THREADS = $paramText.Split('=')[1]
+        Write-Host "ERROR: Cannot find performance result from the log file"
+        return $false
     }
-    if ($paramText.ToUpper().StartsWith("IPERF_BUFFER="))
+
+    #----------------------------------------------------------------------------
+    # Read iPerf configuration from XML file
+    #----------------------------------------------------------------------------
+    $IPERF_THREADS = $null
+    $IPERF_BUFFER = $null
+    $IPERF_TCPWINDOW = $null
+    $xmlConfig = [xml] (Get-Content -Path $xmlFilename)
+    foreach($param in $xmlConfig.config.testCases.test.testParams.ChildNodes)
     {
-        $IPERF_BUFFER = $paramText.Split('=')[1]
+        $paramText = $param.InnerText
+        if ($paramText.ToUpper().StartsWith("IPERF_THREADS="))
+        {
+            $IPERF_THREADS = $paramText.Split('=')[1]
+        }
+        if ($paramText.ToUpper().StartsWith("IPERF_BUFFER="))
+        {
+            $IPERF_BUFFER = $paramText.Split('=')[1]
+        }
+        if ($paramText.ToUpper().StartsWith("IPERF_TCPWINDOW="))
+        {
+            $IPERF_TCPWINDOW = $paramText.Split('=')[1]
+        }
     }
-    if ($paramText.ToUpper().StartsWith("IPERF_TCPWINDOW="))
-    {
-        $IPERF_TCPWINDOW = $paramText.Split('=')[1]
-    }
+
+    Write-Host "IPERF_THREADS:   $IPERF_THREADS"
+    Write-Host "IPERF_BUFFER:    $IPERF_BUFFER"
+    Write-Host "IPERF_TCPWINDOW: $IPERF_TCPWINDOW"
+
+    #----------------------------------------------------------------------------
+    # Return to caller script
+    #----------------------------------------------------------------------------
+    #1st element: the DataTable Name
+    $dataTableName = "LisPerfTest_iPerf"
+    #2nd element: an array of datatable field names for String columns
+    $stringFieldNames = New-Object System.Collections.Specialized.StringCollection 
+    $stringFieldNames.Add("TCPWindowInKB")
+    $stringFieldNames.Add("BufferLenInKB")
+    #3rdd element: an array of datatable values for String columns
+    $stringFieldValues = New-Object System.Collections.Specialized.StringCollection
+    $stringFieldValues.Add($IPERF_TCPWINDOW)
+    $stringFieldValues.Add($IPERF_BUFFER)
+    #4th element: an array of datatable field names for Non-String columns
+    $nonStringFieldNames = New-Object System.Collections.Specialized.StringCollection
+    $nonStringFieldNames.Add("BandwidthInGbits")
+    $nonStringFieldNames.Add("ParallelThreads")
+    #5th element: an array of datatable values for Non-String columns
+    $nonStringFieldValues = New-Object System.Collections.Specialized.StringCollection
+    $nonStringFieldValues.Add($bandwidth)
+    $nonStringFieldValues.Add($IPERF_THREADS)
+
+    $array = $dataTableName, $stringFieldNames, $stringFieldValues, $nonStringFieldNames, $nonStringFieldValues
+    #return the results:
+    $array
+    return $true
 }
-
-Write-Host "VMName: " $VMName
-Write-Host "IPERF_THREADS" $IPERF_THREADS
-Write-Host "IPERF_BUFFER " $IPERF_BUFFER 
-Write-Host "IPERF_TCPWINDOW " $IPERF_TCPWINDOW 
-$XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
-
-#----------------------------------------------------------------------------
-# Call LisaRecorder to log data into database
-#----------------------------------------------------------------------------
-$LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
-$params = "LisPerfTest_iPerf"
-$params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
-$params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
-$params = $params+" "+"guestos:`"" + "Linux" + "`""
-$params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + $XMLFileNameWithoutExt + "`""
-
-$params = $params+" "+"bandwidthingbits:`"" + $bandwidth + "`""
-$params = $params+" "+"parallelthreads:`"" + "$IPERF_THREADS" + "`""
-$params = $params+" "+"tcpwindowinkb:`"" + "$IPERF_TCPWINDOW" + "`""
-$params = $params+" "+"bufferleninkb:`"" + "$IPERF_BUFFER" + "`""
-
-Write-Host "Executing LisaRecorder to record test result into database"
-Write-Host $params
-
-$result = Start-Process -FilePath $LisaRecorder -Wait -ArgumentList $params -PassThru -RedirectStandardOutput "$LogFolder\LisaRecorderOutput.log" -RedirectStandardError "$LogFolder\LisaRecorderError.log"
-if ($result.ExitCode -eq 0)
-{
-    Write-Host "Executing LisaRecorder finished with Success."
-}
-else
-{
-    Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
-}
-
-return $result.ExitCode
-

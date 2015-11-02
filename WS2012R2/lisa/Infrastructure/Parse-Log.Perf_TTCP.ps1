@@ -19,8 +19,6 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
     Parse the network bandwidth data from the TTCP test log.
@@ -42,154 +40,79 @@
 
 #>
 
-param( [string]$LogFolder, [string]$XMLFileName, [string]$LisaInfraFolder )
-
-#----------------------------------------------------------------------------
-# Print running information
-#----------------------------------------------------------------------------
-Write-Host "Running [Parse-Log.Perf_TTCP.ps1]..." -foregroundcolor cyan
-Write-Host "`$LogFolder        = $LogFolder" 
-Write-Host "`$XMLFileName      = $XMLFileName" 
-Write-Host "`$LisaInfraFolder  = $LisaInfraFolder" 
-
-#----------------------------------------------------------------------------
-# Verify required parameters
-#----------------------------------------------------------------------------
-if ($LogFolder -eq $null -or $LogFolder -eq "")
+function ParseBenchmarkLogFile( [string]$LogFolder, [string]$XMLFileName )
 {
-    Throw "Parameter LogFolder is required."
-}
+    #----------------------------------------------------------------------------
+    # The log file pattern. The log is produced by the TTCP tool
+    #----------------------------------------------------------------------------
+    $TTCPLofFile = "*_ttcp.log"
 
-# check the XML file provided
-if ($XMLFileName -eq $null -or $XMLFileName -eq "")
-{
-    Throw "Parameter XMLFileName is required."
-}
-else
-{
-    if (! (test-path $XMLFileName))
+    #----------------------------------------------------------------------------
+    # Read the TTCP log file
+    #----------------------------------------------------------------------------
+    $icaLogs = Get-ChildItem "$LogFolder\$TTCPLofFile" -Recurse
+    Write-Host "Number of Log files found: "
+    Write-Host $icaLogs.Count
+
+    if($icaLogs.Count -eq 0)
     {
-        write-host -f Red "Error: XML config file '$XMLFileName' does not exist."
-        Throw "Parameter XmlFilename is required."
+        return $false
     }
-}
 
-$xmlConfig = [xml] (Get-Content -Path $xmlFilename)
-if ($null -eq $xmlConfig)
-{
-    write-host -f Red "Error: Unable to parse the .xml file"
-    return $false
-}
-
-if ($LisaInfraFolder -eq $null -or $LisaInfraFolder -eq "")
-{
-    Throw "Parameter LisaInfraFolder is required."
-}
-
-#----------------------------------------------------------------------------
-# The log file pattern. The log is produced by the TTCP tool
-#----------------------------------------------------------------------------
-$TTCPLofFile = "*_ttcp.log"
-
-#----------------------------------------------------------------------------
-# Read the TTCP log file
-#----------------------------------------------------------------------------
-$icaLogs = Get-ChildItem "$LogFolder\$TTCPLofFile" -Recurse
-Write-Host "Number of Log files found: "
-Write-Host $icaLogs.Count
-
-if($icaLogs.Count -eq 0)
-{
-    return -1
-}
-
-$throughputinkbsec = "0"
-# should only have one file. but in case there are more than one files, just use the last one simply
-foreach ($logFile  in $icaLogs)
-{
-    Write-Host "One log file has been found: $logFile" 
-    
-    #we should find the result in the second line
-    #result example: ttcp-t: 536870912 bytes in 2.61 real seconds = 200675.18 KB/sec +++
-    $line = (Get-Content $logFile)[1]
-    Write-Host $line
-
-    $line = $line.Trim()
-    if ($line.Trim() -eq "")
+    $throughputinkbsec = $null
+    # should only have one file. but in case there are more than one files, just use the last one simply
+    foreach ($logFile  in $icaLogs)
     {
-        continue
-    }
-    elseif ( ($line.StartsWith("ttcp-t:") -eq $false) -or ($line.Contains("bytes in") -eq $false) -or ($line.Contains("real seconds") -eq $false))
-    {
-        continue
-    }
-    else
-    {
-        $element = $line.Split(' ')
-        $throughputinkbsec = $element[$element.Length-3]
-        Write-Host "The networking throughput is: " $throughputinkbsec  "(KB/sec)"
-        break
-    }
-}
+        Write-Host "One log file has been found: $logFile" 
+        
+        #we should find the result in the second line
+        #result example: ttcp-t: 536870912 bytes in 2.61 real seconds = 200675.18 KB/sec +++
+        $line = (Get-Content $logFile)[1]
+        Write-Host $line
 
-#----------------------------------------------------------------------------
-# Read TTCP configuration from XML file
-#----------------------------------------------------------------------------
-$VMName = [string]::Empty
-$numberOfVMs = $xmlConfig.config.VMs.ChildNodes.Count
-Write-Host "Number of VMs defined in the XML file: $numberOfVMs"
-if ($numberOfVMs -eq 0)
-{
-    Throw "No VM is defined in the LISA XML file."
-}
-elseif ($numberOfVMs -gt 1)
-{
-    foreach($node in $xmlConfig.config.VMs.ChildNodes)
-    {
-        if (($node.role -eq $null) -or ($node.role.ToLower() -ne "nonsut"))
+        $line = $line.Trim()
+        if ($line.Trim() -eq "")
         {
-            #just use the 1st SUT VM name
-            $VMName = $node.vmName
+            continue
+        }
+        elseif ( ($line.StartsWith("ttcp-t:") -eq $false) -or ($line.Contains("bytes in") -eq $false) -or ($line.Contains("real seconds") -eq $false))
+        {
+            continue
+        }
+        else
+        {
+            $element = $line.Split(' ')
+            $throughputinkbsec = $element[$element.Length-3]
+            Write-Host "The networking throughput is: " $throughputinkbsec  "(KB/sec)"
             break
         }
     }
-}
-else
-{
-    $VMName = $xmlConfig.config.VMs.VM.VMName
-}
-if ($VMName -eq [string]::Empty)
-{
-    Write-Host "!!! No VM is found from the LISA XML file."
-}
-Write-Host "VMName: " $VMName
-$XMLFileNameWithoutExt = [io.path]::GetFileNameWithoutExtension($XMLFileName)
+    Write-Host "ThroughputInKBSec = $throughputinkbsec"
+    if ($throughputinkbsec -eq $null)
+    {
+        Write-Host "ERROR: Cannot find performance result from the log file"
+        return $false
+    }
 
-#----------------------------------------------------------------------------
-# Call LisaRecorder to log data into database
-#----------------------------------------------------------------------------
-$LisaRecorder = "$LisaInfraFolder\LisaLogger\LisaRecorder.exe"
-$params = "LisPerfTest_TTCP"
-$params = $params+" "+"hostos:`"" + (Get-WmiObject -class Win32_OperatingSystem).Caption + "`""
-$params = $params+" "+"hostname:`"" + "$env:computername.$env:userdnsdomain" + "`""
-$params = $params+" "+"guestos:`"" + "Linux" + "`""
-$params = $params+" "+"linuxdistro:`"" + "$VMName" + "`""
-$params = $params+" "+"testcasename:`"" + $XMLFileNameWithoutExt + "`""
+    #----------------------------------------------------------------------------
+    # Return to caller script
+    #----------------------------------------------------------------------------
+    #1st element: the DataTable Name
+    $dataTableName = "LisPerfTest_TTCP"
+    #2nd element: an array of datatable field names for String columns
+    $stringFieldNames = $null 
+    #3rdd element: an array of datatable values for String columns
+    $stringFieldValues = $null
+    #4th element: an array of datatable field names for Non-String columns
+    $nonStringFieldNames = New-Object System.Collections.Specialized.StringCollection
+    $nonStringFieldNames.Add("throughputinkbsec")
+    #5th element: an array of datatable values for Non-String columns
+    $nonStringFieldValues = New-Object System.Collections.Specialized.StringCollection
+    $nonStringFieldValues.Add($throughputinkbsec)
 
-$params = $params+" "+"throughputinkbsec:`"" + $throughputinkbsec + "`""
-
-Write-Host "Executing LisaRecorder to record test result into database"
-Write-Host $params
-
-$result = Start-Process -FilePath $LisaRecorder -Wait -ArgumentList $params -PassThru -RedirectStandardOutput "$LogFolder\LisaRecorderOutput.log" -RedirectStandardError "$LogFolder\LisaRecorderError.log"
-if ($result.ExitCode -eq 0)
-{
-    Write-Host "Executing LisaRecorder finished with Success."
+    $array = $dataTableName, $stringFieldNames, $stringFieldValues, $nonStringFieldNames, $nonStringFieldValues
+    #return the results:
+    $array
+    return $true
 }
-else
-{
-    Write-Host "Executing LisaRecorder failed with exit code: " $result.ExitCode
-}
-
-return $result.ExitCode
 

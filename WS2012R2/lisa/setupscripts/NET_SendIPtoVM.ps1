@@ -165,6 +165,7 @@ foreach ($p in $params)
     "sshKey"  { $sshKey  = $fields[1].Trim() }
     "ipv4"    { $ipv4    = $fields[1].Trim() }
     "MAC"     { $vm2MacAddress = $fields[1].Trim() }
+    "VM2SERVER"    { $vm2Server    = $fields[1].Trim() }
     default   {}  # unknown param - just ignore it
     }
 }
@@ -194,6 +195,14 @@ if (-not $vm2MacAddress)
     return $False
 }
 
+Write-Host "$vm2Server is the iPerf server's host"
+
+if (-not $vm2Server)
+{
+    $vm2Server = "localhost"
+    "vm2Server was set as localhost"
+}
+
 $ipv4 = GetIPv4 $vmName $hvServer
 
 if (-not $ipv4) {
@@ -201,7 +210,7 @@ if (-not $ipv4) {
     return $False
 }
 
-$tempipv4VM2 = Get-VMNetworkAdapter -VMName $vm2Name | Where-object {$_.MacAddress -like "$vm2MacAddress"} | Select -Expand IPAddresses
+$tempipv4VM2 = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $vm2Server | Where-object {$_.MacAddress -like "$vm2MacAddress"} | Select -Expand IPAddresses
 $testipv4VM2 = $tempipv4VM2[0]
 
 if (-not $testipv4VM2) {

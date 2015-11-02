@@ -54,6 +54,9 @@
                 <suiteTest>NetworkMode</suiteTest>
                 <suiteTest>IPInjection</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
+        	<!-- The following tests require a Generation 2 VM -->
+		<suiteTest>HotAddMultiNIC</suiteTest>
+		<suiteTest>BootNoNicHotAddNic</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -271,8 +274,11 @@
             </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testparams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-14</param>
+                <param>STATIC_IP=10.10.10.10</param>
+                <param>STATIC_IP2=10.10.10.20</param>
+                <param>NETMASK=255.255.255.0</param>
                 <param>MAC=001600112233</param>
                 <param>REMOTE_USER=root</param>
             </testparams>
@@ -334,12 +340,12 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-				<param>NIC=NetworkAdapter,External,External,001600112200</param>
-				<param>TC_COVERED=NET-01</param>
-				<!-- <param>STATIC_IP=10.10.10.1</param> -->
-				<!-- <param>STATIC_IP2=10.10.10.2</param> -->
-				<!-- <param>NETMASK=255.255.254.0</param> -->
-				<param>VLAN_ID=2</param>
+			<param>NIC=NetworkAdapter,External,External,001600112200</param>
+			<param>TC_COVERED=NET-01</param>
+			<!-- <param>STATIC_IP=10.10.10.1</param> -->
+			<!-- <param>STATIC_IP2=10.10.10.2</param> -->
+			<!-- <param>NETMASK=255.255.254.0</param> -->
+			<param>VLAN_ID=2</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
