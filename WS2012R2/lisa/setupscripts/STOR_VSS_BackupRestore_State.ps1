@@ -72,42 +72,6 @@
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 #######################################################################
-#Checks if the VSS Backup daemon is running on the Linux guest  
-#######################################################################
-function CheckVSSDaemon()
-{
-     $retValue = $False
-    
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_vss_daemon' > /root/vss"
-    if (-not $?)
-    {
-        Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_vs_daemon" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to run ps -ef | grep hv_vs_daemon"
-        return $False
-    }
-
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/vss .
-    if (-not $?)
-    {
-       
-       Write-Error -Message "ERROR: Unable to copy vss from the VM" -ErrorAction SilentlyContinue
-       Write-Output "ERROR: Unable to copy vss from the VM"
-       return $False
-    }
-
-    $filename = ".\vss"
-  
-    # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
-    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) 
-    {
-        Write-Output "VSS Daemon is running"  
-        $retValue =  $True
-    }    
-    del $filename   
-    return  $retValue 
-}
-
-#######################################################################
 # Check boot.msg in Linux VM for Recovering journal. 
 #######################################################################
 function CheckRecoveringJ()
@@ -341,16 +305,17 @@ Write-Output "Backup duration: $BackupTime minutes"
 "Backup duration: $BackupTime minutes" >> $summaryLog
 
 $sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 {
-    Write-Output "ERROR: VSS WBBackup failed"
+    Write-Output "ERROR: VSS Backup failed"
+    Write-Output $sts.ErrorDescription
     $retVal = $false
     return $retVal
 }
 
 Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 30
 
 # Start the Restore
 Write-Output "`nNow let's do restore ...`n"
@@ -361,9 +326,10 @@ $BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
 # Start Restore
 Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force -WarningAction SilentlyContinue
 $sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 {
     Write-Output "ERROR: VSS Restore failed"
+    Write-Output $sts.ErrorDescription
     $retVal = $false
     return $retVal
 }
@@ -383,7 +349,7 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
 Write-Output "Restore success!"
 
 # Now Start the VM 
-$timeout = 500
+$timeout = 300
 $sts = Start-VM -Name $vmName -ComputerName $hvServer 
 if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
 {

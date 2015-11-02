@@ -92,7 +92,7 @@
             <defaultSnapshot>ICABase</defaultSnapshot>
             <email>
                 <recipients>
-                    <to>myemail@mycompany.com,youremail@mycompany.com</to>		
+                    <to>myemail@mycompany.com,youremail@mycompany.com</to>        
                 </recipients>
                 <sender>myemail@mycompany.com</sender>
                 <subject>LISA FTM Test Run on WS2012</subject>
@@ -212,6 +212,8 @@ param([string] $cmdVerb,
       [string] $testParams,
       [switch] $email,
       [switch] $examples,
+      [string] $CLIlogDir,
+      [string] $os,
       [int]    $dbgLevel=0
      )
 
@@ -330,6 +332,28 @@ function Usage()
     }
 }
 
+#####################################################################
+#
+# DumpParams
+#
+#####################################################################
+function    DumpParams()
+{
+    LogMsg 0 "Info : cmdVerb:    $cmdVerb"
+    LogMsg 0 "Info : cmdNoun:    $cmdNoun"
+    LogMsg 0 "Info : VMs:        $VMs"
+    LogMsg 0 "Info : vmName:     $vmName"
+    LogMsg 0 "Info : hvServer:   $hvServer"
+    LogMsg 0 "Info : ipv4:       $ipv4"
+    LogMsg 0 "Info : sshKey:     $sshKey"
+    LogMsg 0 "Info : suite:      $suite"
+    LogMsg 0 "Info : testParams: $testParams"
+    LogMsg 0 "Info : email:      $email"
+    LogMsg 0 "Info : examples:   $examples"
+    LogMsg 0 "Info : CLIlogDir:  $CLIlogDir"
+    LogMsg 0 "Info : os:         $os"
+    LogMsg 0 "Info : dbgLevel:   $dbgLevel"
+}
 
 
 #####################################################################
@@ -339,15 +363,15 @@ function Usage()
 #####################################################################
 function Test-Admin()
 {
-	<#
-	.Synopsis
-    	Check if process is running as an Administrator
+    <#
+    .Synopsis
+        Check if process is running as an Administrator
     .Description
         Test if the user context this process is running as
         has Administrator privileges
     .Example
         Test-Admin
-	#> 
+    #> 
     $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
     $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
@@ -358,7 +382,7 @@ function Test-Admin()
 # AddUserToXmlTree
 #
 #####################################################################
-function AddUserVmToXmlTree ([string] $vmName, [string] $hvServer, [string] $ipv4, [string] $sshKey, [string] $testSuite, [XML] $xml)
+function AddUserVmToXmlTree ([string] $vmName, [string] $hvServer, [string] $ipv4, [string] $sshKey, [string] $testSuite, [XML] $xml, [string] $OS )
 {
     <#
     .Synopsis
@@ -378,8 +402,11 @@ function AddUserVmToXmlTree ([string] $vmName, [string] $hvServer, [string] $ipv
         Name of the test suite to run on the user supplied VM.
     .Parameter xml
         The XML document object created when the .xml file was loaded with Get-Content
+    .Parameter OS
+        Name of the OS used when running the user supplied VM
     .Example
-        AddUserVmToXmlTree "myVM" "myServer" "192.168.1.2" "openssh_id_rsa.ppk" "kvp-tests" $xmlData
+        AddUserVmToXmlTree "myVM" "myServer" "192.168.1.2" "openssh_id_rsa.ppk" "kvp-tests" $xmlData "Linux"
+        
     #>
     
     #
@@ -408,15 +435,19 @@ function AddUserVmToXmlTree ([string] $vmName, [string] $hvServer, [string] $ipv
     $newSshKey.set_InnerText($sshKey)
     $newVM.AppendChild($newSshKey)
     
-    $newTestSuite = $xml.CreateElement("testSuite")
+    $newTestSuite = $xml.CreateElement("suite")
     $newTestSuite.set_InnerText($testSuite)
     $newVM.AppendChild($newTestSuite)
+    
+    $newOS = $xml.CreateElement("os")
+    $newOS.set_InnerText($OS)
+    $newVM.AppendChild($newOS)
     
     #
     # Add the vm XML element to the XML data
     #
     $xml.config.VMs.AppendChild($newVM)
-    
+   
     #
     # Now remove all the other VMs we don't care about
     #
@@ -674,12 +705,19 @@ function RunTests ([String] $xmlFilename )
         return $false
     }
 
-    $rootDir = $logfileRootDir
-    if ($xmlConfig.config.global.logfileRootDir)
+    if ( $CLIlogDir)
     {
-        $rootDir = $xmlConfig.config.global.logfileRootDir
+        #   logfile dir is specified on the command line
+        $rootDir = $CLIlogDir
     }
-    
+    else
+    {
+        $rootDir = $logfileRootDir
+        if ($xmlConfig.config.global.logfileRootDir)
+        {
+            $rootDir = $xmlConfig.config.global.logfileRootDir
+        }
+    }
     #
     # Create the directory for the log files if it does not exist
     #
@@ -721,17 +759,20 @@ function RunTests ([String] $xmlFilename )
         #
         # Run tests on a user supplied VM
         #
-        if ($hvServer -and $ipv4 -and $password -and $testSuite)
+        if ($hvServer -and $ipv4 -and $sshKey -and $suite)
         {   
             #
             # Add the user provided VM to the in memory copy of the xml
             # file, then remove all the other VMs from the in memory copy
             #
-            AddUserVmToXmlTree $vmName $hvServer $ipv4 $sshKey $testSuite $xmlConfig
+            LogMsg 0 "Info : Add user supplied VM $vmName from command line"
+            if ($dbgLevel -gt 3)    { DumpParams }
+            AddUserVmToXmlTree $vmName $hvServer $ipv4 $sshKey $suite $xmlConfig $os
         }
         else
         {
-            LogMsg 0 "Error: For user supplied VM, you must specify all of the following options:`n         -vmName -hvServer -ipv4 -password -testSuite"
+            LogMsg 0 "Error: For user supplied VM, you must specify all of the following options:`n         -vmName -hvServer -ipv4 -sshKey -testSuite"
+            DumpParams
         }
     }
     elseif ($VMs)
@@ -818,8 +859,18 @@ function RunTests ([String] $xmlFilename )
     $summary = $summary.Replace("</pre>", "")
 
     LogMsg 0 "$summary"
+    
+    $lisaTestResult = $true
+    foreach($vm in $xmlConfig.config.VMs.vm)
+    {
+        if ($vm.testCaseResults -ne "Success")
+        {
+            $lisaTestResult = $false
+            break
+        }
+    }
 
-    return $true
+    return $lisaTestResult
 }
 
 
@@ -869,7 +920,18 @@ switch ($cmdVerb)
 {
 "run" {
         $sts = RunTests $cmdNoun
-        if (! $sts)
+        
+        # RunTests() (which calls RunICTests() in stateEngine.ps1) may return an array of results. 
+        # we need to check the last one which is the final
+        if($sts.Count -gt 1)
+        {
+            $returnCode = $sts[$sts.Count -1]
+        }
+        else
+        {
+            $returnCode = $sts
+        }
+        if (! $returnCode)
         {
             $retVal = 2
         }
@@ -899,4 +961,5 @@ default    {
     }
 }
 
+LogMsg 0 "Test will exit with error code $retVal"
 exit $retVal

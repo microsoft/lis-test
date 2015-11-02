@@ -187,146 +187,6 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
     return $True
 }
 
-############################################################################
-#
-# GetPhysicalDiskForPassThru
-#
-# Description
-#
-#
-############################################################################
-function GetPhysicalDiskForPassThru([string] $server)
-{
-    #
-    # Find all the Physical drives that are in use
-    #
-    $PhysDisksInUse = @()
-
-    $VMs = Get-VM -ComputerName $server
-    foreach ($vm in $VMs)
-    {
-        $drives = Get-VMHardDiskDrive -VMName $($vm.name) -ComputerName $server
-        if ($drives)
-        {
-            foreach ($drive in $drives)
-            {
-                if ($drive.Path.StartsWith("Disk "))
-                {
-                    $PhysDisksInUse += $drive.DiskNumber
-                }
-            }
-        }
-    }
-
-    # in case of disk is being used by cluster we need to add those disk as well as PhysDisksInUse , as an workaround i will add all the disk which are online to used disk array.
-
-    $disks = Get-Disk
-    foreach ($disk in $disks)
-    {
-        if ($disk.OperationalStatus -eq "online" )
-            {
-                $PhysDisksInUse += $disk.Number
-            }
-    }
-
-
-    $physDrive = $null
-
-    $drives = GWMI Msvm_DiskDrive -namespace root\virtualization\v2 -computerName $server
-    foreach ($drive in $drives)
-    {
-        if ($($drive.DriveNumber))
-        {
-            if ($PhysDisksInUse -notcontains $($drive.DriveNumber))
-            {
-                $physDrive = $drive
-                break
-            }
-        }
-    }
-
-    return $physDrive
-}
-
-
-############################################################################
-#
-# CreatePassThruDrive
-#
-# Description
-#     If the -SCSI options is false, an IDE drive is created
-#
-############################################################################
-function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
-                             [string] $controllerID, [string] $Lun)
-{
-    $retVal = $false
-
-    $ide = $true
-    $controllerType = "IDE"
-    if ($scsi)
-    {
-        $ide = $false
-        $controllerType = "SCSI"
-    }
-
-    if ($ControllerID -lt 0 -or $ControllerID -gt 3)
-    {
-        "Error: CreateHardDrive was passed an bad SCSI Controller ID: $ControllerID"
-        return $false
-    }
-
-    #
-    # Create the SCSI controller if needed
-    #
-    if ($scsi)
-    {
-        $sts = CreateController $vmName $server $controllerID
-        if (-not $sts[$sts.Length-1])
-        {
-            "Error: Unable to create SCSI controller $controllerID"
-            return $false
-        }
-    }
-
-    #
-    # See if the drive already exists
-    #
-    $drive = Get-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
-    if ($drive)
-    {
-        "Error: drive $controllerType $controllerID $Lun already exists"
-        return $false
-    }
-
-    #
-    # Make sure the drive number exists
-    #
-    $physDisk = GetPhysicalDiskForPassThru $server
-    if ($physDisk -ne $null)
-    {
-        $pt = Add-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -Passthru -DiskNumber $physDisk.DriveNumber -ComputerName $server
-        if ($pt)
-        {
-            $retVal = $true
-        }
-    }
-    else
-    {
-        "Error: no free physical drives found"
-    }
-
-    return $retVal
-}
-
-############################################################################
-#
-# CreateHardDrive
-#
-# Description
-#     If the -SCSI options is false, an IDE drive is created
-#
-############################################################################
 function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $SCSI, [int] $ControllerID,
                           [int] $Lun, [string] $vhdType, [string] $sectorSizes, [string] $diskType)
 {
@@ -371,60 +231,72 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     #
     # If the hard drive exists, complain...
     #
+
     $drive = Get-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
     if ($drive)
     {
-        "Error: drive $controllerType $controllerID $Lun already exists"
+        if ( $controllerID -eq 0 -and $Lun -eq 0 )
+        {
+            write-output "Error: drive $controllerType $controllerID $Lun already exists"
+            return $false
+        }
+        else
+        {
+            Remove-VMHardDiskDrive $drive
+        }
+    }
+
+    $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer
+    if ($dvd)
+    {
+        Remove-VMDvdDrive $dvd
+    }
+
+    #
+    # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
+    #
+    $hostInfo = Get-VMHost -ComputerName $server
+    if (-not $hostInfo)
+    {
+        "Error: Unable to collect Hyper-V settings for ${server}"
         return $False
     }
-    else
+
+    $defaultVhdPath = $hostInfo.VirtualHardDiskPath
+    if (-not $defaultVhdPath.EndsWith("\"))
     {
-        #
-        # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
-        #
-        $hostInfo = Get-VMHost -ComputerName $server
-        if (-not $hostInfo)
+        $defaultVhdPath += "\"
+    }
+
+   $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $lun + "-" + $vhdType + "." + $diskType.ToLower()
+
+    if(Test-Path $vhdName)
+    {
+        Remove-Item $vhdName
+    }
+
+    $fileInfo = GetRemoteFileInfo -filename $vhdName -server $server
+    if (-not $fileInfo)
+    {
+        $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Dynamic:($vhdType -eq "Dynamic") -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
+        if ($nv -eq $null)
         {
-            "Error: Unable to collect Hyper-V settings for ${server}"
+            "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
             return $False
         }
-
-        $defaultVhdPath = $hostInfo.VirtualHardDiskPath
-        if (-not $defaultVhdPath.EndsWith("\"))
-        {
-            $defaultVhdPath += "\"
-        }
-
-	   $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $lun + "-" + $vhdType + "." + $diskType.ToLower()
-
-        if(Test-Path $vhdName)
-        {
-            Remove-Item $vhdName
-        }
-
-        $fileInfo = GetRemoteFileInfo -filename $vhdName -server $server
-        if (-not $fileInfo)
-        {
-            $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Dynamic:($vhdType -eq "Dynamic") -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
-            if ($nv -eq $null)
-            {
-                "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
-                return $False
-            }
-        }
-
-        $error.Clear()
-        Add-VMHardDiskDrive -VMName $vmName -Path $vhdName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
-        if ($error.Count -gt 0)
-        {
-            "Error: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
-            $error[0].Exception
-            return $retVal
-        }
-
-        "Success"
-        $retVal = $True
     }
+
+    $error.Clear()
+    Add-VMHardDiskDrive -VMName $vmName -Path $vhdName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
+    if ($error.Count -gt 0)
+    {
+        "Error: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
+        $error[0].Exception
+        return $retVal
+    }
+
+    "Success"
+    $retVal = $True
 
     return $retVal
 }
@@ -477,8 +349,8 @@ foreach ($p in $params)
 
     if ($temp.Length -ne 2)
     {
-	"Warn : test parameter '$p' is being ignored because it appears to be malformed"
-	continue
+    "Warn : test parameter '$p' is being ignored because it appears to be malformed"
+    continue
     }
 
     $controllerType = $temp[0].Trim()
@@ -526,39 +398,25 @@ foreach ($p in $params)
         }
     }
 
-    if (@("Fixed", "Dynamic", "PassThrough") -notcontains $vhdType)
+    if (@("Fixed", "Dynamic") -notcontains $vhdType)
     {
         "Error: Unknown disk type: $p"
         $retVal = $false
         continue
     }
 
-    if ($vhdType -eq "PassThrough")
-    {
-        "CreatePassThruDrive $vmName $hvServer $scsi $controllerID $Lun"
-        $sts = CreatePassThruDrive $vmName $hvServer -SCSI:$scsi $controllerID $Lun
-        $results = [array]$sts
-        if (-not $results[$results.Length-1])
-        {
-            "Failed to create PassThrough drive"
-            $sts
-            $retVal = $false
-            continue
-        }
-    }
-    else # Must be Fixed or Dynamic
-    {
-        "CreateHardDrive $vmName $hvServer $scsi $controllerID $Lun $vhdType $sectorSize"
-        $sts = CreateHardDrive -vmName $vmName -server $hvServer -SCSI:$SCSI -ControllerID $controllerID -Lun $Lun -vhdType $vhdType -sectorSize $sectorSize -diskType $diskType
 
-        if (-not $sts[$sts.Length-1])
-        {
-            write-output "Failed to create hard drive"
-            $sts
-            $retVal = $false
-            continue
-        }
+    "CreateHardDrive $vmName $hvServer $scsi $controllerID $Lun $vhdType $sectorSize"
+    $sts = CreateHardDrive -vmName $vmName -server $hvServer -SCSI:$SCSI -ControllerID $controllerID -Lun $Lun -vhdType $vhdType -sectorSize $sectorSize -diskType $diskType
+
+    if (-not $sts[$sts.Length-1])
+    {
+        write-output "Failed to create hard drive"
+        $sts
+        $retVal = $false
+        continue
     }
+
 }
 
 return $retVal

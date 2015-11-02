@@ -88,17 +88,17 @@
     A typical XML definition for this test case would look similar
     to the following:
        <test>
-      	 	<testName>VHD_SCSI_Fixed</testName>
-      		<testScript>STOR_Lis_Disk.sh</testScript>
-       		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
-       		<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
-       		<cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-       		<timeout>18000</timeout>
-       		<testparams>
-           		    <param>SCSI=0,0,Fixed</param>
-       		</testparams>
-       		<onError>Abort</onError>
-    	</test>
+            <testName>VHD_SCSI_Fixed</testName>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>18000</timeout>
+            <testparams>
+                    <param>SCSI=0,0,Fixed</param>
+            </testparams>
+            <onError>Abort</onError>
+        </test>
 
 .Parameter vmName
     Name of the VM to remove disk from .
@@ -224,63 +224,13 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
 }
 
 
-############################################################################
-#
-# GetPhysicalDiskForPassThru
-#
-# Description
-#
-#
-############################################################################
-function GetPhysicalDiskForPassThru([string] $server)
-{
-    #
-    # Find all the Physical drives that are in use
-    #
-    $PhysicalDiskResource = Get-WmiObject Msvm_ResourceAllocationSettingData -namespace "root\virtualization\v2" | Where-Object { $_.ElementName -match "Hard Drive" -and $_.ResourceSubType -match "Physical Disk Drive"}
-
-    #
-    # Add the drive number for the in-use drive to the PhyDisksInUse array
-    #
-    foreach ($a in $PhysicalDiskResource)
-    {
-
-        $PhysDisksInUse += $a.HostResource
-
-    }
-
-    #
-    # Now that we know which physical drives are in use, enumerate all the physical
-    # drives to see if we can find one that is not in the PhysDrivesInUse array
-
-    $physDrive = $null
-
-    $drives = Get-WmiObject Msvm_DiskDrive -namespace root\virtualization\v2 -computerName $server
-
-    foreach ($drive in $drives)
-    {
-        if ($($drive.DriveNumber))
-        {
-            if ($PhysDisksInUse -notcontains "$($drive.__PATH)")
-            {
-                $physDrive = $drive.DriveNumber
-                break
-            }
-        }
-    }
-
-    return $physDrive
-}
-
-function ConvertStringToUInt64([string] $str)
+function ConvertStringToUInt64([string] $newSize)
 {
     $uint64Size = $null
-
-
     #
     # Make sure we received a string to convert
     #
-    if (-not $str)
+    if (-not $newSize)
     {
         Write-Error -Message "ConvertStringToUInt64() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
         return $null
@@ -304,14 +254,13 @@ function ConvertStringToUInt64([string] $str)
     }
     else
     {
-        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
+        Write-Error -Message "Invalid newSize parameter: ${newSize}" -Category InvalidArgument -ErrorAction SilentlyContinue
         return $null
     }
 
 
     return $uint64Size
 }
-
 
 
 ############################################################################
@@ -349,41 +298,82 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
             return $false
         }
 
-        $drives = Get-VMScsiController -VMName $vmName -ControllerNumber $ControllerID -ComputerName $server | Get-VMHardDiskDrive -ControllerLocation $lun
+        $drive = Get-VMScsiController -VMName $vmName -ControllerNumber $ControllerID -ComputerName $server | Get-VMHardDiskDrive -ControllerLocation $Lun
 
     }
     else
     {
-        $drives = Get-VMIdeController -VMName $vmName -ComputerName $server -ControllerNumber $ControllerID | Get-VMHardDiskDrive -ControllerLocation $lun
+        $drive = Get-VMIdeController -VMName $vmName -ComputerName $server -ControllerNumber $ControllerID | Get-VMHardDiskDrive -ControllerLocation $Lun
     }
 
-    if ($drives)
+    if ($drive)
     {
-        "Error: drive $controllerType $controllerID $Lun already exists"
+
+       if ( $controllerID -eq 0 -and $Lun -eq 0 )
+        {
+            write-output "Error: drive $controllerType $controllerID $Lun already exists"
+            return $retVal
+        }
+        else
+        {
+            Remove-VMHardDiskDrive $drive
+        }
+    }
+
+    $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $server
+    if ($dvd)
+    {
+        Remove-VMDvdDrive $dvd
+    }
+
+    # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
+    $hostInfo = Get-VMHost -ComputerName $server
+    if (-not $hostInfo)
+    {
+        "ERROR: Unable to collect Hyper-V settings for ${server}"
         return $false
     }
 
-    #
-    # Make sure the drive number exists
-    #
-    $drivenumber = GetPhysicalDiskForPassThru $server
-
-    Write-Output "drive number available - $drivenumber"
-
-    if ($drivenumber -ne $null)
+    $defaultVhdPath = $hostInfo.VirtualHardDiskPath
+    if (-not $defaultVhdPath.EndsWith("\"))
     {
-        $pt = Add-VMHardDiskDrive -VMName $vmName -ComputerName $server -ControllerType $controllertype -ControllerNumber $ControllerID -ControllerLocation $lun -DiskNumber $drivenumber -Passthru
+        $defaultVhdPath += "\"
+    }
 
-        if ($pt)
-        {
-            $retVal = $true
-        }
+    $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-pass"  + ".vhd"
+
+    if(Test-Path $vhdName)
+    {
+        Dismount-VHD -Path $vhdName -ErrorAction Ignore
+        Remove-Item $vhdName
+    }
+    $newVhd = $null
+
+    $newVhd = New-VHD -Path $vhdName -size 1GB -ComputerName $server -Fixed
+    if ($newVhd -eq $null)
+    {
+        "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
+        return $false
+    }
+
+    $newVhd = $newVhd | Mount-VHD -Passthru
+    $phys_disk = $newVhd | Initialize-Disk -PartitionStyle MBR -PassThru
+    $phys_disk | Set-Disk -IsOffline $true
+
+    $ERROR.Clear()
+    $phys_disk | Add-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
+    if ($ERROR.Count -gt 0)
+    {
+        "ERROR: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
+        $ERROR[0].Exception
+        return $false
     }
     else
     {
-        "Error: no free physical drives found"
+        $retVal=$true
     }
 
+     "INFO: Successfully attached passthrough drive"
     return $retVal
 }
 
@@ -442,65 +432,82 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     # If the hard drive exists, complain. Otherwise, add it
     #
 
-    $drives = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun
-    if ($drives)
+    $drive = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $Lun
+    if ($drive)
     {
-        write-output "Error: drive $controllerType $controllerID $Lun already exists"
-        return $retVal
+
+        if ( $controllerID -eq 0 -and $Lun -eq 0 )
+        {
+            write-output "Error: drive $controllerType $controllerID $Lun already exists"
+            return $retVal
+        }
+        else
+        {
+             Remove-VMHardDiskDrive $drive
+        }
     }
-    else
+
+    $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer
+    if ($dvd)
     {
-        #
-        # Create the .vhd file if it does not already exist
-        #
-        $obj = Get-WmiObject -ComputerName $hvServer -Namespace "root\virtualization\v2" -Class "MsVM_VirtualSystemManagementServiceSettingData"
+        Remove-VMDvdDrive $dvd
+    }
+    #
+    # Create the .vhd file if it does not already exist
+    #
+    $obj = Get-WmiObject -ComputerName $hvServer -Namespace "root\virtualization\v2" -Class "MsVM_VirtualSystemManagementServiceSettingData"
 
-        $defaultVhdPath = $obj.DefaultVirtualHardDiskPath
+    $defaultVhdPath = $obj.DefaultVirtualHardDiskPath
 
-        if (-not $defaultVhdPath.EndsWith("\"))
+    if (-not $defaultVhdPath.EndsWith("\"))
+    {
+        $defaultVhdPath += "\"
+    }
+
+    $newVHDSize = ConvertStringToUInt64 $newSize
+    $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-" + $vhdType + ".vhd"
+    if(Test-Path $vhdName)
+    {
+        Dismount-VHD -Path $vhdName -ErrorAction Ignore
+        Remove-Item $vhdName
+    }
+    $fileInfo = GetRemoteFileInfo -filename $vhdName -server $hvServer
+
+    if (-not $fileInfo)
+    {
+        $newVhd = $null
+        switch ($vhdType)
         {
-            $defaultVhdPath += "\"
-        }
-
-        $newVHDSize = ConvertStringToUInt64 $newSize
-        $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-" + $vhdType + ".vhd"
-        if(Test-Path $vhdName)
-        {
-            Remove-Item $vhdName
-        }
-        $fileInfo = GetRemoteFileInfo -filename $vhdName -server $hvServer
-
-        if (-not $fileInfo)
-        {
-            $newVhd = $null
-            switch ($vhdType)
-            {
-                "Dynamic"
+            "Dynamic"
+                {
+                    $newvhd = New-VHD -Path $vhdName  -size $newVHDSize -ComputerName $server -Dynamic -ErrorAction SilentlyContinue
+                }
+            "Fixed"
+                {
+                    $newVhd = New-VHD -Path $vhdName -size $newVHDSize -ComputerName $server -Fixed -ErrorAction SilentlyContinue
+                }
+            "Diff"
+                {
+                    $parentVhdName = $defaultVhdPath + "icaDiffParent.vhd"
+                    $parentInfo = GetRemoteFileInfo -filename $parentVhdName -server $hvServer
+                    if (-not $parentInfo)
                     {
-                        $newvhd = New-VHD -Path $vhdName  -size $newVHDSize -ComputerName $server -Dynamic
-                    }
-                "Fixed"
-                    {
-                        $newVhd = New-VHD -Path $vhdName -size $newVHDSize -ComputerName $server -Fixed
-                    }
-                "Diff"
-                    {
-                        $parentVhdName = $defaultVhdPath + "icaDiffParent.vhd"
-                        $parentInfo = GetRemoteFileInfo -filename $parentVhdName -server $hvServer
-                        if (-not $parentInfo)
-                        {
-                            Write-Output "Error: parent VHD does not exist: ${parentVhdName}"
-                            return $retVal
-                        }
-                        $newVhd = New-VHD -Path $vhdName -ParentPath $parentVhdName -ComputerName $server -Differencing
-                    }
-                default
-                    {
-                        Write-Output "Error: unknow vhd type of ${vhdType}"
+                        Write-Output "Error: parent VHD does not exist: ${parentVhdName}"
                         return $retVal
                     }
-            }
-            if ($newVhd -eq $null)
+                    $newVhd = New-VHD -Path $vhdName -ParentPath $parentVhdName -ComputerName $server -Differencing
+                }
+            default
+                {
+                    Write-Output "Error: unknow vhd type of ${vhdType}"
+                    return $retVal
+                }
+        }
+        if ($newVhd -eq $null)
+        {
+            #On WS2012R2, New-VHD cmdlet throws error even after successfully creation of VHD so re-checking if the VHD available on the server or not
+            $newVhdInfo = GetRemoteFileInfo -filename $vhdName -server $hvServer
+            if ($newVhdInfo -eq $null)
             {
                 write-output "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
                 return $retVal
@@ -510,7 +517,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     #
     # Attach the .vhd file to the new drive
     #
-    $disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $server -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun -Path $vhdName
+    $disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $server -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $Lun -Path $vhdName
 
     if ($disk -contains "Exception")
     {

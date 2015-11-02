@@ -26,12 +26,12 @@
 # FC_disks.sh
 # Description:
 #	This script was created to automate the testing of a Linux
-#	Integration services. This script will identify the number of 
+#	Integration services. This script will identify the number of
 #	total disks detected inside the guest VM.
 #	It will then format one FC disk and perform read/write checks on it.
 #   This test verifies the first FC disk, if you want to check every disk
 #   move the exit statement from line 215 to line 217.
-#     
+#
 #	 To pass test parameters into test cases, the host will create
 #    a file named constants.sh. This file contains one or more
 #    variable definition.
@@ -44,9 +44,7 @@ ICA_TESTABORTED="TestAborted"      # Error during setup of test
 ICA_TESTFAILED="TestFailed"        # Error during execution of test
 
 CONSTANTS_FILE="constants.sh"
-diskCount=0
 sdCount=0
-firstDrive=1
 
 LogMsg()
 {
@@ -99,31 +97,9 @@ fi
 echo "Covers ${TC_COVERED}" > ~/summary.log
 
 #
-# Count the number of SCSI= and IDE= entries in constants
-#
-for entry in $(cat ./constants.sh)
-do
-    # Convert to lower case
-    lowStr="$(tr '[A-Z]' '[a-z' <<<"$entry")"
-
-    # does it start wtih ide or scsi
-    if [[ $lowStr == ide* ]];
-    then
-        diskCount=$((diskCount+1))
-    fi
-
-    if [[ $lowStr == scsi* ]];
-    then
-        diskCount=$((diskCount+1))
-    fi
-done
-
-echo "Constants variable file disk count: $diskCount"
-
-#
 # Compute the number of sd* drives on the system.
 #
-for drive in $(find /sys/devices/ -name 'sd*' | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for drive in /dev/sd*[^0-9]
 do
     sdCount=$((sdCount+1))
 done
@@ -132,31 +108,29 @@ done
 # Subtract the boot disk from the sdCount, then make sure the two disk counts match
 #
 sdCount=$((sdCount-1))
-echo "/sys/devices disk count = $sdCount"
+echo "/dev/sd* disk count = $sdCount"
 
-if [ $sdCount -lt 1 ];
-then
-    echo " disk count ($diskCount) from /sys/devices ($sdCount) returns only the boot disk"
+if [ $sdCount -lt 1 ]; then
+    echo " disk count from /dev/sd* ($sdCount) returns only the boot disk"
     UpdateTestState $ICA_TESTABORTED
     exit 1
 fi
 
 #
-# For each drive, run fdisk -l and extract the drive size in bytes 
+# For each drive, run fdisk -l and extract the drive size in bytes
 #
-for drive in $(find /sys/devices/ -name 'sd*' | grep 'sd.$' | sed 's/.*\(...\)$/\1/')
+for driveName in /dev/sd*[^0-9];
 do
     #
     # Skip /dev/sda
     #
-	if [ ${drive} = "sda" ]; then
+	if [ ${driveName} = "/dev/sda" ]; then
         continue
     fi
-    driveName="/dev/${drive}"
     fdisk -l $driveName > fdisk.dat 2> /dev/null
     # Format the Disk and Create a file system , Mount and create file on it .
-    
-    (echo d;echo;echo w)|fdisk  $driveName
+
+    (echo d;echo;echo w) | fdisk  $driveName
     if [ "$?" != "0" ]; then
         LogMsg "Error in executing fdisk on ${driveName} !"
         echo "Error in executing fdisk on ${driveName} !" >> ~/summary.log
@@ -169,7 +143,7 @@ do
         sleep 5
         mkfs.ext3  ${driveName}1
         if [ "$?" = "0" ]; then
-            LogMsg "mkfs.ext3   ${driveName}1 successful..."
+            LogMsg "mkfs.ext3 ${driveName}1 successful..."
             mount   ${driveName}1 /mnt
                     if [ "$?" = "0" ]; then
                     LogMsg "Drive mounted successfully..."

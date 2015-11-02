@@ -108,6 +108,7 @@ else
         LogMsg  "Floppy disk module loaded inside the VM"
         UpdateSummary "Floppy disk module loaded : Success"
     fi
+    sleep 6
 fi
 
 #

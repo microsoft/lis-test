@@ -592,14 +592,79 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $testData = GetTestData $vm.currentTest $xmlData
         if ($testData -is [System.Xml.XmlElement])
         {
+            $testName = $testData.testName
+            $abortOnError = $True
+            if ($testData.onError -eq "Continue")
+            {
+                $abortOnError = $False
+            }
+
             if ($testData.setupScript)
             {
-                UpdateState $vm $RunSetupScript
+                if ($testData.setupScript.File)
+                {
+                    foreach ($script in $testData.setupScript.File)
+                    {
+                        LogMsg 3 "Info : $($vm.vmName) - running setup script '${script}'"
+ 
+                        if (-not (RunPSScript $vm $script $xmlData "Setup" $logfile))
+                        {
+                            #
+                            # If the setup script fails, fail the test. If <OnError>
+                            # is continue, continue on to the next test in the suite.
+                            # Otherwise, terminate testing.
+                            #
+                            LogMsg 0 "Error: VM $($vm.vmName) setup script ${script} for test ${testName} failed"
+                            $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - setup script failed")
+                            #$vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
+                            if ($abortOnError)
+                            {
+                                $vm.currentTest = "done"
+                                UpdateState $vm $finished
+                                return
+                            }
+                            else
+                            {
+                                UpdateState $vm $SystemDown
+                                return
+                            }
+                        }
+                    }
+                }
+                else  # the older, single setup script syntax
+                {
+                    LogMsg 3 "Info : $($vm.vmName) - running single setup script '$($testData.setupScript)'"
+            
+                    if (-not (RunPSScript $vm $($testData.setupScript) $xmlData "Setup" $logfile))
+                    {
+                        #
+                        # If the setup script fails, fail the test. If <OnError>
+                        # is continue, continue on to the next test in the suite.
+                        # Otherwise, terminate testing.
+                        #
+                        LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test ${testName} failed"
+                        #$vm.emailSummary += "    Test $($vm.currentTest) : Failed - setup script failed<br />"
+                        $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - setup script failed")
+                    
+                        if ($abortOnError)
+                        {
+                            $vm.currentTest = "done"
+                            UpdateState $vm $finished
+                            return
+                        }
+                        else
+                        {
+                            UpdateState $vm $SystemDown
+                            return
+                        }
+                    }
+                }
             }
             else
             {
-                UpdateState $vm $StartSystem
+                LogMsg 9 "INFO : $($vm.vmName) does not have setup script defined for test $($vm.currentTest)"
             }
+            UpdateState $vm $StartSystem
         }
         else
         {

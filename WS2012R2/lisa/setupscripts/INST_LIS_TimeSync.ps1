@@ -163,7 +163,7 @@ function GetUnixVMTime([String] $sshKey, [String] $ipv4)
     # returns 04/27/2012 16:10:30PM
     #
     $unixTimeStr = $null
-    $command =  'date "+%m/%d/%Y%t%T%p "'
+    $command =  'date "+%m/%d/%Y%t%T%p " -u'
 
     $unixTimeStr = AskVMForTime ${sshKey} $ipv4 $command
     if (-not $unixTimeStr -and $unixTimeStr.Length -lt 20)
@@ -322,7 +322,7 @@ if (-not $unixTimeStr)
 #
 # Get our time
 #
-$windowsTime = [DateTime]::Now
+$windowsTime = [DateTime]::Now.ToUniversalTime()
 
 #
 # Convert the Unix tiime string into a DateTime object

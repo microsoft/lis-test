@@ -126,6 +126,11 @@ chmod 755 ica/*
 chmod 755 bin/*
 
 #
+# If distro is Ubuntu we need to install some packages first
+#
+apt-get -y install nfs-common
+
+#
 # Copy the tarball from the repository server
 #
 dbgprint 1 "Mounting Repository NFS share and copying tarball"

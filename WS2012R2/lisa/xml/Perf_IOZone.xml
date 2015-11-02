@@ -53,7 +53,7 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>RHEL6.4x64</vmName>
+            <vmName>VM-Under-Test</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>

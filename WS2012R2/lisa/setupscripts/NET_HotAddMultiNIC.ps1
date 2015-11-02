@@ -19,7 +19,6 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Run the Hot Add NIC test case.
@@ -47,7 +46,7 @@
     A sample LISA test case definition would look similar to the following:
 
     <test>
-        <testName>HotAddSyntheticNIC</name>
+        <testName>HotAddMultiNIC</name>
         <testScript>setupscripts\NET_HotAddSyntheticNIC.ps1</testScript>
         <files>remote-scripts\ica\NET_VerifyHotAddSyntheticNIC.sh</files>
         <onError>Continue</onError>
@@ -56,24 +55,20 @@
             <param>sshkey=id_rsa.ppk</param>
             <param>TC_Covered=NET-99</param>
             <param>NIC_Name=HOT_ADD_NIC</param>
-            <param>Switch_Name=ExternalNet</param>
+            <param>Switch_Name=External</param>
         </testParams>
     </test>
 #>
 
 param( [String] $vmName, [String] $hvServer, [String] $testParams )
 
-
 $HOT_ADD_NAME = "Hot Add NIC"
-
-
 
 ########################################################################
 #
 # Main script body
 #
 ########################################################################
-
 try
 {
     #
@@ -206,7 +201,7 @@ try
 
     if ($vm.Generation -ne 2)
     {
-        Throw "Error: This test requires a Gen 2 VM.  VM '${vmName}' is not a Gen2 VM"
+        Throw "Error: This test requires a Gen 2 VM. VM '${vmName}' is not a Gen2 VM"
     }
 
     #
@@ -247,7 +242,6 @@ try
     $sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./NET_VerifyHotAddMultiNIC.sh added 2>&1"
     if (-not $?)
     {
-        LogMsg "${sts}"
         Throw "Error: Unable to verify NIC was detected within the SUT VM '${vmName}'"
     }
 

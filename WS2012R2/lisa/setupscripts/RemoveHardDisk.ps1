@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    This setup script, that will run after the VM shuts down, will delete VHD Hard Driver to VM.
+    This setup script will run after the VM shuts down, then delete the VHD.
 
 .Description
    This is a cleanup script that will run after the VM shuts down.
@@ -65,21 +65,21 @@
 
    SCSI=0,0,Dynamic : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic disk
    IDE=1,1,Fixed  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Fixed disk
-   
+
     A typical XML definition for this test case would look similar
     to the following:
        <test>
-      	 	<testName>VHD_SCSI_Fixed</testName>
-      		<testScript>STOR_Lis_Disk.sh</testScript>
-       		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
-       		<setupScript>setupscripts\AddHardDisk.ps1</setupScript>
-       		<cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-       		<timeout>18000</timeout>
-       		<testparams>
-           		    <param>SCSI=0,0,Fixed</param>			      
-       		</testparams>
-       		<onError>Abort</onError>
-    	</test>
+            <testName>VHD_SCSI_Fixed</testName>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>18000</timeout>
+            <testparams>
+                    <param>SCSI=0,0,Fixed</param>
+            </testparams>
+            <onError>Abort</onError>
+        </test>
 
 .Parameter vmName
     Name of the VM to remove disk from .
@@ -91,174 +91,13 @@
     Test data for this test case
 
 .Example
-    setupScripts\RemoveHardDisk.ps1 -vmName sles11sp3x64 -hvServer localhost -testParams "SCSI=0,0,Dynamic;sshkey=rhel5_id_rsa.ppk;ipv4=IPaddr;RootDir=" 
+    setupScripts\RemoveHardDisk.ps1 -vmName VM -hvServer localhost -testParams "SCSI=0,0,Dynamic;sshkey=pki.ppk;ipv4=IPaddr;RootDir="
 
 .Link
     None.
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
-############################################################################
-#
-# DeleteHardDrive
-#
-# Description
-#   Delete the specified hard drive.  If there are no other hard drives
-#   attached to the controller, remove the controller if it is a SCSI.
-#
-#   Never remove the IDE controllers, or the IDE port 0 devices.
-#   By default IDE 0, port 0 is the system drive
-#              IDE 1, port 0 is the DVD
-#
-############################################################################
-function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controllerType, [string] $arguments)
-{
-    $retVal = $false
-    
-    write-output "DeleteHardDrive( $vmName, $hvServer, $controllertype, $arguments)"
-    
-    $scsi = $false
-    $ide = $true
-
-    if ($controllerType -eq "scsi")
-    {
-        $scsi = $true
-        $ide = $false
-    }
-    
-    #
-    # Extract the parameters in the arguments variable
-    #
-    $controllerID = -1
-    $lun = -1
-    
-    $fields = $arguments.Trim().Split(',')
-    if ($fields.Length -ne 3 -and $fields.Length -ne 4)
-    {
-        write-output "Error - Incorrect number of arguments: $arguments"
-        write-output "        args = ControllerID,Lun,vhdtype"
-        return $false
-    }
-
-    #
-    # Set and validate the controller ID and disk LUN
-    #
-    $controllerID = $fields[0].Trim()
-    $lun = $fields[1].Trim()
-
-    if ($scsi)
-    {
-        # Hyper-V only allows 64 SCSI controllers
-        if ($controllerID -lt 0 -or $controllerID -gt 3)
-        {
-            write-output "Error - Bad SCSI controllerID: $controllerID"
-            return $false
-        }
-        
-        # We will limit SCSI LUNs to 64 (0-63)
-        if ($lun -lt 0 -or $lun -gt 63)
-        {
-            write-output "Error - Bad SCSI Lun: $Lun"
-            return $false
-        }
-    }
-    elseif ($ide)
-    {
-        # Hyper-V creates 2 IDE controllers and we cannot add any more
-        if ($controllerID -lt 0 -or $controllerID -gt 1)
-        {
-            write-output "Error - Invalid IDE controller ID: $controllerID"
-            return $false
-        }
-        
-        if ($lun -lt 0 -or $lun -gt 1)
-        {
-            write-output "Error - Invalid IDE Lun: $Lun"
-            return $false
-        }
-        
-        # Make sure we are not deleting IDE 0 0
-        if ($controllerID -eq 0 -and $Lun -eq 0)
-        {
-            write-output "Error - Cannot delete IDE 0,0 or IDE 1,0"
-            return $false
-        }
-    }
-    else
-    {
-        write-output "Error - undefined controller type"
-        return $retVal
-    }
-    
-    #
-    # Delete the drive if it exists
-    #
-
-    $controller = $null
-    $drive = $null
-
-    if($ide)
-    {
-        $controller = Get-VMIdeController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID
-    }
-    if($scsi)
-    {
-        write-host "INFO : Get-VMScsiController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID"
-        $controller = Get-VMScsiController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID
-    }
-
-    
-    if ($controller)
-    {
-        $drive = Get-VMHardDiskDrive $controller -ControllerLocation $lun
-        if ($drive)
-        {
-            write-output "Info : Removing $controllerType $controllerID $lun"
-            
-            $sts = Remove-VMHardDiskDrive $drive
-        }
-        else
-        {
-            write-output "Warn : Drive $controllerType $controllerID,$Lun does not exist"
-        }
-    }
-    else
-    {
-        write-output "Warn : the controller $controllerType $controllerID does not exist"
-    }
-    #
-    # Delete the controller if it is SCSI if no other drives are attached
-    #
-    if ($scsi -and $controller)
-    {
-        
-   
-    if($ide)
-    {
-        $controller = Get-VMIdeController $vmName -ComputerName $hvServer -ControllerNumber $controllerID
-    }
-    if($scsi)
-    {
-        $controller = Get-VMScsiController $vmName -ComputerName $hvServer -ControllerNumber $controllerID
-    }
-
-        $drives = Get-VMHardDiskDrive $controller
-        if ($drives)
-        {
-            write-output "Info : Controller $controllertype $controllerID was not removed."
-            write-output "       Additional drives are still attached"
-        }
-        else
-        {
-            write-output "Info : Removing $controllerType $controllerID"
-            $sts = Remove-VMSCSIController $vmName -ComputerName $hvServer -ControllerNumber $controllerID -Confirm:$false
-        }
-    }
-
-    $retVal = $True
-    return $retVal
-}
 
 ############################################################################
 #
@@ -289,23 +128,8 @@ if ($testParams -eq $null -or $testParams.Length -lt 13)
     # The minimum length testParams string is "IDE=1,1,Fixed"
     #
     "Error: No testParams provided"
-    "       The script $MyInvocation.InvocationName requires test parameters"
+    "The script $MyInvocation.InvocationName requires test parameters"
     return $retVal
-}
-
-# Make sure we have access to the Microsoft Hyper-V snapin
-#
-$hvModule = Get-Module Hyper-V
-if ($hvModule -eq $NULL)
-{
-    import-module Hyper-V
-    $hvModule = Get-Module Hyper-V
-}
-
-if ($hvModule.companyName -ne "Microsoft Corporation")
-{
-    "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $Falses
 }
 
 #
@@ -321,37 +145,74 @@ foreach ($p in $params)
     { continue }
 
     $fields = $p.Split('=')
-    
+
     if ($fields.Length -ne 2)
     {
         "Error: Invalid test parameter: $p"
         $retVal = $false
         continue
     }
-    
-    $controllerType = $fields[0].Trim().ToLower()
-    if ($controllertype -ne "scsi" -and $controllerType -ne "ide")
+
+    $field_value = $fields[0].Trim().ToLower()
+    if ($field_value -ne "scsi" -and $field_value -ne "ide")
     {
         # Just ignore the parameter
         continue
     }
-    
-    "DeleteHardDrive $vmName $hvServer $controllerType $($fields[1])"
-    $sts = DeleteHardDrive -vmName $vmName -hvServer $hvServer -controllerType $controllertype -arguments $fields[1]
-    if ($sts[$sts.Length-1] -eq $false)
-    {
-        $retVal = $false
-        # displayed captured output from function
-        for ($i=0; $i -lt $sts.Length -1; $i++)
-        {
-            write-output "    " $sts[$i]
-        }
-    }
     else
     {
-        $retVal = $true
+        $controllerType = $fields[0].Trim().ToUpper()
     }
 }
+$vhdName = $vmName + "-" + $controllerType
+$vhdDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
+foreach ($vhd in $vhdDisks)
+{
+    $vhdPath = $vhd.Path
+    if ($vhdPath.Contains($vhdName) -or $vhdPath.Contains('Target')){
+        $error.Clear()
+        "Info : Removing drive $vhdName"
+
+        Remove-VMHardDiskDrive -vmName $vmName -ControllerType $vhd.controllerType -ControllerNumber $vhd.controllerNumber -ControllerLocation $vhd.ControllerLocation -ComputerName $hvServer
+        if ($error.Count -gt 0)
+        {
+            "Error: Remove-VMHardDiskDrive failed to delete drive on SCSI controller "
+            $error[0].Exception
+            return $retVal
+        }
+    }
+}
+
+$hostInfo = Get-VMHost -ComputerName $hvServer
+if (-not $hostInfo)
+{
+    "Error: Unable to collect Hyper-V settings for ${hvServer}"
+    return $retVal
+}
+
+$defaultVhdPath = $hostInfo.VirtualHardDiskPath
+$defaultVhdPath = $defaultVhdPath.Replace(':','$')
+if (-not $defaultVhdPath.EndsWith("\"))
+{
+    $defaultVhdPath += "\"
+}
+
+Get-ChildItem \\$hvServer\$defaultVhdPath -Filter $vhdName* | `
+Foreach-Object  {
+    $remotePath = $_.FullName
+    $localPath = $remotePath.Substring($hvServer.Length+3).Replace('$',':')
+    Invoke-Command $hvServer -ScriptBlock  {Dismount-VHD -Path $args[0] -ErrorAction SilentlyContinue} -ArgumentList $localPath
+    $error.Clear()
+    Remove-Item -Path $_.FullName
+    if ($error.Count -gt 0)
+    {
+        "Error: Failed to delete VHDx File "
+        $error[0].Exception
+        return $retVal
+    }
+}
+
+$retVal = $true
 
 "RemoveHardDisk returning $retVal"
 

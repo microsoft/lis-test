@@ -19,11 +19,9 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
-    Test LIS and shutdown with mulitiple CPUs
+    Test LIS and shutdown with multiple CPUs
 
 .Description
     Test LIS and shutdown with multiple CPUs
@@ -36,7 +34,6 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>TC_COVERED=CORE-11</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
             </testParams>
         </test>
 
@@ -53,9 +50,7 @@
 
 #>
 
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
 
 #######################################################################
 #
@@ -64,6 +59,12 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 #######################################################################
 
 $retVal = $false
+$timeout = 300
+$maxCPUs = 2
+$Vcpu = 0
+$sshKey = $null
+$ipv4 = $null
+$rootDir = $null
 
 #
 # Check input arguments
@@ -79,11 +80,6 @@ if ($hvServer -eq $null)
     "Error: hvServer is null"
     return $retVal
 }
-
-$sshKey = $null
-$ipv4 = $null
-$rootDir = $null
-$tcCovered = "Undefined"
 
 $params = $testParams.Split(";")
 
@@ -101,7 +97,7 @@ foreach ($p in $params)
     "sshKey"     { $sshKey    = $fields[1].Trim() }
     "ipv4"       { $ipv4      = $fields[1].Trim() }
     "rootdir"    { $rootDir   = $fields[1].Trim() }
-    "tc_covered" { $tcCovered = $fields[1].Trim() }
+    "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     default   {}          
     }
 }
@@ -128,38 +124,31 @@ if (-not $rootDir)
 }
 
 #
-# Change the working directory to where we need to be
+# Change the working directory for the log files
+# Delete any previous summary.log file, then create a new one
 #
-if (-not (Test-Path $rootDir))
-{
+if (-not (Test-Path $rootDir)) {
     "Error: The directory `"${rootDir}`" does not exist"
-    return $False
+    return $retVal
 }
-
 cd $rootDir
 
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-del $summaryLog -ErrorAction SilentlyContinue
+# Delete any previous summary.log file, then create a new one
 $summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
 
-"Covers ${tcCovered}" >> $summaryLog
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
 # Source the TCUtils.ps1 file
 #
 . .\setupscripts\TCUtils.ps1
 
-$timeout=300
-$maxCPUs = 2
-$Vcpu=0
-
 $procs = get-wmiobject -computername $hvServer win32_processor
 if ($procs)
 {
     #
-    # Get the total no. of Logical processor 
+    # Get the total number of Logical processor 
     #
     $maxCPUs =  ( $procs.NumberOfLogicalProcessors | Measure-Object -sum ).sum
 }
@@ -167,7 +156,7 @@ if ($procs)
 #
 # Shutdown VM.
 #
-Stop-VM –Name $vmName -ComputerName $hvServer
+Stop-VM -Name $vmName -ComputerName $hvServer
 if (-not $?)
 {
     "Error: Unable to Shut Down VM" 
@@ -182,14 +171,18 @@ if (-not $sts)
 }
 
 #
-# Now iterate thougvmNamedifferent CPU counts and assign it to VM. 
+# Now iterate through different CPU counts and assign to VM
 #
 for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 ) 
 {
+    if ($numCPUs -gt 1 -and $numCPUs -lt 2) {
+        $numCPUs = 1;
+    }
+    
     $cpu = Set-VM -Name $vmName -ComputerName $hvServer -ProcessorCount $numCPUs
     if ($? -eq "True")
     {
-        "CPU count updated to $numCPUs"     
+       Write-output "CPU count updated to $numCPUs" | Tee-Object -Append -file $summaryLog
     }
     else
     {
@@ -197,25 +190,25 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
         return $False
     }   
   
-    $sts = Start-VM -Name $vmName -ComputerName $hvServer 
-    $timeout = 180
-    while ($timeout -gt 0)
-    {
-        #
-        # Check if the VM is in the Hyper-v Running state
-        #
-        $ipv4 = GetIPv4 $vmName $hvServer
-        if ( $ipv4)
-        {
-            break
-        }        
+    Start-VM -Name $vmName -ComputerName $hvServer 
+	while ($timeout -gt 0)
+	{
+		if ( (TestPort $ipv4) )
+		{
+			break
+		}
 
-        start-sleep -seconds 1
-        $timeout -= 1
-    }   
+		Start-Sleep -seconds 2
+		$timeout -= 2
+	}
 
-    "Info : VM $vmName Started with CPU count $numCPUs"
+	if ($timeout -eq 0)
+	{
+		"Error: Test case timed out for VM returned to Running"
+		return $False
+	}
 
+    "Info: VM $vmName started with $numCPUs cores"
     $Vcpu = .\bin\plink -i ssh\${sshKey} root@${ipv4} "cat /proc/cpuinfo | grep processor | wc -l"
     if($Vcpu -eq $numCPUs)
     {
@@ -223,10 +216,7 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
         echo "CPU count inside VM is : $numCPUs" >> $summaryLog
         $retVal=$true
 
-        #
-        # Shutdown gracefully so we dont corrupt VHD
-        #
-        Stop-VM –Name $vmName -ComputerName $hvServer
+        Stop-VM -Name $vmName -ComputerName $hvServer
         if (-not $?)
         {
             "Error: Unable to Shut Down VM" 
@@ -234,7 +224,7 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
         }
 
         #
-        # Add Check to make sure if the VM is shutdown then Proceed
+        # Making sure the VM is stopped
         #
         $sts = WaitForVMToStop $vmName $hvServer $timeout
         if (-not $sts)
@@ -245,7 +235,7 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
     }
     else
     {
-        "Error: Wrong VCPU count inside VM"
+        "Error: Wrong vCPU count detected on the VM!"
         return $False
     }
 }

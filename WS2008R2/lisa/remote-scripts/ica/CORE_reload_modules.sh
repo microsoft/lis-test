@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -23,13 +23,13 @@
 
 ########################################################################
 #
-# CORE_StressReloadModules.sh
+# CORE_reload_modules.sh
 # Description:
 #    This script will first check the existence of Hyper-V kernel modules.
-#    Then it will reload the modules 500 times to stress the system.
+#    Then it will reload the LIS modules in a loop to stress the system.
 #    It also checks that hyperv_fb cannot be unloaded.
 #    When done it will bring up the eth0 interface and check again for 
-#    the presence of Hyper-V modules.
+#    the presence of the LIS modules.
 #     
 #    To pass test parameters into test cases, the host will create
 #    a file named constants.sh. This file contains one or more
@@ -102,9 +102,6 @@ VerifyModules()
     fi
     LogMsg "hv_netvsc loaded OK"
 
-    #
-    # Did utils load
-    #
     LogMsg "Checking if hv_utils loaded..."
 
     grep -q "utils" $MODULES
@@ -161,11 +158,14 @@ if [ $? -eq 0 ]; then
 fi
 pass=0
 START=$(date +%s)
-while [ $pass -lt 500 ]
+while [ $pass -lt 100 ]
 do
     modprobe -r hv_netvsc
+    sleep 1
     modprobe hv_netvsc
+    sleep 1
     modprobe -r hv_utils
+    sleep 1
     modprobe hv_utils
     sleep 1
     modprobe -r hid_hyperv
@@ -183,7 +183,6 @@ VerifyModules
  
 echo "Test ran for ${DIFF} seconds" >> ~/summary.log
 
-LogMsg "#########################################################"
 LogMsg "Result : Test Completed Successfully"
 LogMsg "Exiting with state: TestCompleted."
 UpdateTestState "TestCompleted"

@@ -38,81 +38,162 @@
 #             <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
 #             <timeout>600</timeout>
 #             <onError>Continue</onError>
-#             <testParams>
-#                 <param>TZONE=Europe/Berlin</param>
-#             </testParams>
 #         </test>
-#    
-#
-# Parameter TZONE
-#       The TZONE param is using the IANA Timezone definition.
-#       http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-#
-#       Example:
-#       TZONE=Europe/Berlin
-#
-#       Important:
-#       The TZONE param has to be the same timzone as the host, in any
-#       other situation the test will fail.   
 #
 ########################################################################
 
-ICA_TESTRUNNING="TestRunning"      # The test is running
-ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
-ICA_TESTABORTED="TestAborted"      # Error during setup of test
-ICA_TESTFAILED="TestFailed"        # Error while performing the test
+ICA_TESTRUNNING="TestRunning"       # The test is running
+ICA_TESTCOMPLETED="TestCompleted"   # The test completed successfully
+ICA_TESTABORTED="TestAborted"       # Error during setup of test
+ICA_TESTFAILED="TestFailed"         # Error while performing the test
+maxdelay=5.0                        # max offset in seconds.
+zerodelay=0.0                       # zero
+declare os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
 
 ########################################################################
-# Adds a timestamp to the log file
+# Determine what OS is running
 ########################################################################
-LinuxRelease()
-{
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
+# GetOSVersion
+function GetOSVersion {
 
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-    esac
+    # Figure out which vendor we are
+    if [[ -x "`which sw_vers 2>/dev/null`" ]]; then
+        # OS/X
+        os_VENDOR=`sw_vers -productName`
+        os_RELEASE=`sw_vers -productVersion`
+        os_UPDATE=${os_RELEASE##*.}
+        os_RELEASE=${os_RELEASE%.*}
+        os_PACKAGE=""
+        if [[ "$os_RELEASE" =~ "10.7" ]]; then
+            os_CODENAME="lion"
+        elif [[ "$os_RELEASE" =~ "10.6" ]]; then
+            os_CODENAME="snow leopard"
+        elif [[ "$os_RELEASE" =~ "10.5" ]]; then
+            os_CODENAME="leopard"
+        elif [[ "$os_RELEASE" =~ "10.4" ]]; then
+            os_CODENAME="tiger"
+        elif [[ "$os_RELEASE" =~ "10.3" ]]; then
+            os_CODENAME="panther"
+        else
+            os_CODENAME=""
+        fi
+    elif [[ -x $(which lsb_release 2>/dev/null) ]]; then
+        os_VENDOR=$(lsb_release -i -s)
+        os_RELEASE=$(lsb_release -r -s)
+        os_UPDATE=""
+        os_PACKAGE="rpm"
+        if [[ "Debian,Ubuntu,LinuxMint" =~ $os_VENDOR ]]; then
+            os_PACKAGE="deb"
+        elif [[ "SUSE LINUX" =~ $os_VENDOR ]]; then
+            lsb_release -d -s | grep -q openSUSE
+            if [[ $? -eq 0 ]]; then
+                os_VENDOR="openSUSE"
+            fi
+        elif [[ $os_VENDOR == "openSUSE project" ]]; then
+            os_VENDOR="openSUSE"
+        elif [[ $os_VENDOR =~ Red.*Hat ]]; then
+            os_VENDOR="Red Hat"
+        fi
+        os_CODENAME=$(lsb_release -c -s)
+    elif [[ -r /etc/redhat-release ]]; then
+        # Red Hat Enterprise Linux Server release 5.5 (Tikanga)
+        # Red Hat Enterprise Linux Server release 7.0 Beta (Maipo)
+        # CentOS release 5.5 (Final)
+        # CentOS Linux release 6.0 (Final)
+        # Fedora release 16 (Verne)
+        # XenServer release 6.2.0-70446c (xenenterprise)
+        os_CODENAME=""
+        for r in "Red Hat" CentOS Fedora XenServer; do
+            os_VENDOR=$r
+            if [[ -n "`grep \"$r\" /etc/redhat-release`" ]]; then
+                ver=`sed -e 's/^.* \([0-9].*\) (\(.*\)).*$/\1\|\2/' /etc/redhat-release`
+                os_CODENAME=${ver#*|}
+                os_RELEASE=${ver%|*}
+                os_UPDATE=${os_RELEASE##*.}
+                os_RELEASE=${os_RELEASE%.*}
+                break
+            fi
+            os_VENDOR=""
+        done
+        os_PACKAGE="rpm"
+    elif [[ -r /etc/SuSE-release ]]; then
+        for r in openSUSE "SUSE Linux"; do
+            if [[ "$r" = "SUSE Linux" ]]; then
+                os_VENDOR="SUSE LINUX"
+            else
+                os_VENDOR=$r
+            fi
+
+            if [[ -n "`grep \"$r\" /etc/SuSE-release`" ]]; then
+                os_CODENAME=`grep "CODENAME = " /etc/SuSE-release | sed 's:.* = ::g'`
+                os_RELEASE=`grep "VERSION = " /etc/SuSE-release | sed 's:.* = ::g'`
+                os_UPDATE=`grep "PATCHLEVEL = " /etc/SuSE-release | sed 's:.* = ::g'`
+                break
+            fi
+            os_VENDOR=""
+        done
+        os_PACKAGE="rpm"
+    # If lsb_release is not installed, we should be able to detect Debian OS
+    elif [[ -f /etc/debian_version ]] && [[ $(cat /proc/version) =~ "Debian" ]]; then
+        os_VENDOR="Debian"
+        os_PACKAGE="deb"
+        os_CODENAME=$(awk '/VERSION=/' /etc/os-release | sed 's/VERSION=//' | sed -r 's/\"|\(|\)//g' | awk '{print $2}')
+        os_RELEASE=$(awk '/VERSION_ID=/' /etc/os-release | sed 's/VERSION_ID=//' | sed 's/\"//g')
+    fi
+    export os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
+}
+
+########################################################################
+# Determine if current distribution is a Fedora-based distribution
+########################################################################
+function is_fedora {
+    if [[ -z "$os_VENDOR" ]]; then
+        GetOSVersion
+    fi
+
+    [ "$os_VENDOR" = "Fedora" ] || [ "$os_VENDOR" = "Red Hat" ] || \
+        [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ]
+}
+
+########################################################################
+# Determine if current distribution is a SUSE-based distribution
+########################################################################
+function is_suse {
+    if [[ -z "$os_VENDOR" ]]; then
+        GetOSVersion
+    fi
+
+    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ]
+}
+
+########################################################################
+# Determine if current distribution is an Ubuntu-based distribution
+########################################################################
+function is_ubuntu {
+    if [[ -z "$os_PACKAGE" ]]; then
+        GetOSVersion
+    fi
+    [ "$os_PACKAGE" = "deb" ]
 }
 
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
-LogMsg()
-{
-    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
+function LogMsg() {
+    echo $(date "+%a %b %d %T %Y") : ${1}
 }
 
 #######################################################################
 # Keeps track of the state of the test
 #######################################################################
-UpdateTestState()
-{
+function UpdateTestState() {
     echo $1 > $HOME/state.txt
 }
-
-cd ~
-
-if [ -e ~/summary.log ]; then
-    LogMsg "Cleaning up previous copies of summary.log"
-    rm -rf ~/summary.log
-fi
 
 #######################################################################
 # Updates the summary log file
 #######################################################################
-UpdateSummary()
-{
+function UpdateSummary() {
     echo $1 >> ~/summary.log
 }
 
@@ -122,6 +203,8 @@ UpdateSummary()
 # 
 #######################################################################
 
+cd ~
+
 # Create the state.txt file so LISA knows we are running
 UpdateTestState $ICA_TESTRUNNING
 
@@ -130,173 +213,172 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
-# Make sure the constants.sh file exists
-if [ ! -e ./constants.sh ];
-then
-    echo "Cannot find constants.sh file."
-    UpdateTestState $ICA_TESTABORTED
-    exit 1
-fi
-
-# Source the constants file
-if [ -e $HOME/constants.sh ]; then
- . $HOME/constants.sh
-else
- echo "ERROR: Unable to source the constants file."
- exit 1
-fi
-
-# Convert any .sh files to Unix format 
-dos2unix ~/* > /dev/null  2>&1
-
 LogMsg "This script tests NTP time syncronization"
-LogMsg "VM is $(LinuxRelease) `uname`"
 
-# Check if the timezone variable is in constants
-if [ ! ${TZONE} ]; then
-    echo "No TZONE variable in constants.sh"
+# Try to restart NTP. If it fails we try to install it.
+# We check this distro specific.
+if is_fedora ; then
+    # Check if ntpd is running.
+    service ntpd restart
+    if [[ $? -ne 0 ]]; then
+        echo "NTPD not installed. Trying to install ..."
+        yum install -y ntp ntpdate ntp-doc
+        if [[ $? -ne 0 ]] ; then
+            LogMsg "ERROR: Unable to install ntpd. Aborting"
+            UpdateTestState $ICA_TESTABORTED
+            exit 10
+        fi
+        chkconfig ntpd on
+        if [[ $? -ne 0 ]] ; then
+            LogMsg "ERROR: Unable to chkconfig ntpd on. Aborting"
+            UpdateTestState $ICA_TESTABORTED
+            exit 10
+        fi
+        ntpdate pool.ntp.org
+        if [[ $? -ne 0 ]] ; then
+            LogMsg "ERROR: Unable to set ntpdate. Aborting"
+            UpdateTestState $ICA_TESTABORTED
+            exit 10
+        fi
+        service ntpd start
+        if [[ $? -ne 0 ]] ; then
+            LogMsg "ERROR: Unable to start ntpd. Aborting"
+            UpdateTestState $ICA_TESTABORTED
+            exit 10
+        fi
+        echo "NTPD installed succesfully!"
+    fi
+
+    # set rtc clock to system time & restart NTPD
+    hwclock --systohc 
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+    service ntpd restart
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to start ntpd. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+elif is_ubuntu ; then
+    # Check if ntp is running
+    service ntp restart
+    if [[ $? -ne 0 ]]; then
+        LogMsg "NTP is not installed. Trying to install ..."
+        apt-get install ntp -y
+        if [[ $? -ne 0 ]] ; then
+            LogMsg "ERROR: Unable to install ntp. Aborting"
+            UpdateTestState $ICA_TESTABORTED
+            exit 10
+        fi
+        LogMsg "NTP installed succesfully!"
+    fi
+
+    # set rtc clock to system time & restart NTPD
+    hwclock --systohc 
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+    service ntp restart
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to restart ntpd. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+elif is_suse ; then
+    service ntpd restart
+    if [[ $? -ne 0 ]]; then
+        LogMsg "NTP is not installed. Trying to install ..."
+        zypper install ntp -y
+        if [[ $? -ne 0 ]] ; then
+            LogMsg "ERROR: Unable to install ntp. Aborting"
+            UpdateTestState $ICA_TESTABORTED
+            exit 10
+        fi
+        LogMsg "NTP installed succesfully!"
+    fi
+
+    service ntpd stop
+
+    # Edit NTP Server config and set the timeservers
+    sed -i 's/^server.*/ /g' /etc/ntp.conf
+    echo "
+    server 0.pool.ntp.org
+    server 1.pool.ntp.org
+    server 2.pool.ntp.org
+    server 3.pool.ntp.org
+    " >> /etc/ntp.conf
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+    # set rtc clock to system time
+    hwclock --systohc 
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+    # Restart NTP service
+    service ntpd restart
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to restart ntpd. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+else # other distro
+    LogMsg "Distro not suported. Aborting"
     UpdateTestState $ICA_TESTABORTED
-    exit 1
+    exit 10
 fi
 
-# Let's check if the NTP service is installed 
-service ntp restart 1> /dev/null 2> /dev/null
-sts=$?      
-    if [ 0 -ne ${sts} ]; then
-    service ntpd restart 1> /dev/null 2> /dev/null
-    sts=$?      
-        if [ 0 -ne ${sts} ]; then
-        LogMsg "No NTP service detected. Please install NTP before running this test"
-        LogMsg "Aborting test."
-        UpdateTestState $ICA_TESTABORTED
-        
-        exit 1
-        fi
-    fi
- 
-# Now we set the corect timezone for the test. This is distro-specific
-case $(LinuxRelease) in
-    "DEBIAN" | "UBUNTU")
-    sed -i 's#^Zone.*# Zone="$TZONE" #g' /etc/timezone
-    sts=$?      
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "Unable to sed Zone: ${sts}"
-            LogMsg "Aborting test."
-            UpdateTestState $ICA_TESTABORTED
-            exit 1
-        fi
-    sed -i 's/^UTC.*/ UTC=False /g' /etc/timezone
-    sts=$?      
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "Unable to sed UTC: ${sts}"
-            LogMsg "Aborting test."
-            UpdateTestState $ICA_TESTABORTED
-            exit 1
-        fi
-    # delete old localtime 
-    rm -f /etc/localtime
-    #Create soft link.
-    ln -s /usr/share/zoneinfo/"$TZONE" /etc/localtime
-    sts=$?      
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "Unable to softlink: ${sts}"
-            LogMsg "Aborting test."
-            UpdateTestState $ICA_TESTABORTED
-            exit 1
-        fi
+# We wait 10 seconds for the ntp server to sync
+sleep 10
 
-        ;;
-    "CENTOS" | "SLES" | "RHEL")
-    sed -i 's#^Zone.*# Zone="$TZONE" #g' /etc/sysconfig/clock
-    sts=$?      
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "Unable to sed Zone: ${sts}"
-            LogMsg "Aborting test."
-            UpdateTestState "TestAborted"
-            exit 1
-        fi
-    sed -i 's/^UTC.*/ UTC=False /g' /etc/sysconfig/clock
-    sts=$?      
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "Unable to sed UTC: ${sts}"
-            LogMsg "Aborting test."
-            UpdateTestState $ICA_TESTABORTED
-            exit 1
-        fi
-
-    
-    rm -f /etc/localtime # delete old localtime 
-    
-    ln -s /usr/share/zoneinfo/"$TZONE" /etc/localtime # Create soft link.
-    sts=$?      
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "Unable to softlink: ${sts}"
-            LogMsg "Aborting test."
-            UpdateTestState $ICA_TESTABORTED
-            exit 1
-        fi
-    ;;
-    *)
-    LogMsg "Distro not supported"
+# Now let's see if the VM is in sync with ntp server
+ntpq -p
+if [[ $? -ne 0 ]]; then
+    LogMsg "Unable to query NTP deamon!"
     UpdateTestState $ICA_TESTABORTED
-    UpdateSummary " Distro not supported, test aborted"
-    exit 1
-    ;; 
-esac
+    exit 10
+fi
 
-# Edit NTP Server config and set the timeservers
-sed -i 's/^server.*/ /g' /etc/ntp.conf
-echo "
-server 0.us.pool.ntp.org
-server 1.us.pool.ntp.org
-server 2.us.pool.ntp.org
-server 3.us.pool.ntp.org
-" >> /etc/ntp.conf
- 
-sts=$?      
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Unable to sed Server: ${sts}"
-        LogMsg "Aborting test."
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
-    fi
+# loopinfo returns the offset between the ntp server and internal clock
+delay=$(ntpdc -c loopinfo | awk 'NR==1 {print $2}')
 
-# Restart ntp service.
-service ntp restart 2> /dev/null
-service ntpd restart 2> /dev/null 
+# Using awk for float comparison
+check=$(echo "$delay $maxdelay" | awk '{if ($1 < $2) print 0; else print 1}')
 
-# Check if the timezone
-tz=`date +%Z`
-LogMsg "Timezone is $tz"
+# Also check if delay is 0.0
+checkzero=$(echo "$delay $zerodelay" | awk '{if ($1 == $2) print 0; else print 1}')
 
-# We wait 5 seconds for the ntp server to sync
-sleep 5
+if [[ $checkzero -eq 0 ]]; then
+    # If delay is 0, something is wrong, so we abort.
+    LogMsg "ERROR: Delay cannot be 0.000; Please check NTP sync manually."
+    UpdateTestState $ICA_TESTABORTED
+    exit 10
+elif [[ 0 -ne $check ]] ; then    
+    LogMsg "ERROR: NTP Time out of sync. Test Failed"
+    LogMsg "NTP offset is $delay seconds."
+    UpdateTestState $ICA_TESTFAILED
+    exit 10
+fi
 
-# Now let's test if the VM is in sync with ntp server
-ntpdc -p
-sts=$?      
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Unable to query NTP deamon: ${sts}"
-        LogMsg "Aborting test."
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
-    fi
+# If we reached this point, time is synced.
+LogMsg "NTP offset is $delay seconds."
+LogMsg "SUCCESS: NTP time synced!"
 
-delay=`ntpdc -p | awk 'NR==3 {print $6}'`
-LogMsg "NTP delay: $delay"
-
-    if [[ $a < 5.00000 ]]; then
-
-        LogMsg  "NTP Time: synced"
-        UpdateSummary "Timesync NTP: Success"
-    else
-        LogMsg  "NTP Time out of sync"
-        UpdateSummary "Timesync NTP: Failed"
-        UpdateTestState $ICA_TESTFAILED
-        exit 1
-    fi
-
-LogMsg "Result: Test Completed Succesfully"
-LogMsg "Exiting with state: TestCompleted."
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0

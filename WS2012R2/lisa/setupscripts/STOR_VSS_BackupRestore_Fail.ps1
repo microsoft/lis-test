@@ -66,41 +66,6 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-#Checks if the VSS Backup daemon is running on the Linux guest  
-#######################################################################
-function CheckVSSDaemon()
-{
-     $retValue = $False
-    
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_vss_daemon' > /root/vss"
-    if (-not $?)
-    {
-        Write-Error -Message  "ERROR: Unable to run ps -ef | grep hv_vs_daemon" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to run ps -ef | grep hv_vs_daemon"
-        return $False
-    }
-
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/vss .
-    if (-not $?)
-    {
-       
-       Write-Error -Message "ERROR: Unable to copy vss from the VM" -ErrorAction SilentlyContinue
-       Write-Output "ERROR: Unable to copy vss from the VM"
-       return $False
-    }
-
-    $filename = ".\vss"
-  
-    # This is assumption that when you grep vss backup process in file, it will return 1 lines in case of success. 
-    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) 
-    {
-        Write-Output "VSS Daemon is running"  
-        $retValue =  $True
-    }    
-    del $filename   
-    return  $retValue 
-}
 
 #######################################################################
 # Check boot.msg in Linux VM for Recovering journal. 
@@ -140,7 +105,7 @@ function CheckRecoveringJ()
     return $retValue    
 }
 
-######################################################################
+#######################################################################
 # Runs a remote script on the VM an returns the log.
 #######################################################################
 function RunRemoteScript($remoteScript)
@@ -159,7 +124,7 @@ function RunRemoteScript($remoteScript)
     {
        Write-Output "ERROR: Unable to copy runtest.sh to the VM"
        return $False
-    }      
+    }
 
      .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
     if (-not $?)
@@ -181,7 +146,7 @@ function RunRemoteScript($remoteScript)
         Write-Output "ERROR: Unable to run dos2unix on runtest.sh" 
         return $False
     }
-    
+
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
     if (-not $?)
     {
@@ -201,63 +166,64 @@ function RunRemoteScript($remoteScript)
     # Return the state file
     while ($timeout -ne 0 )
     {
-    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $stateFile)
+        .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
+        $sts = $?
+        if ($sts)
         {
-            $contents = Get-Content -Path $stateFile
-            if ($null -ne $contents)
+            if (test-path $stateFile)
             {
-                    if ($contents -eq $TestCompleted)
-                    {                    
-                        Write-Output "Info : state file contains Testcompleted"              
-                        $retValue = $True
-                        break                                             
-                                     
-                    }
+                $contents = Get-Content -Path $stateFile
+                if ($null -ne $contents)
+                {
+                        if ($contents -eq $TestCompleted)
+                        {                    
+                            Write-Output "Info : state file contains Testcompleted"
+                            $retValue = $True
+                            break
+                        }
 
-                    if ($contents -eq $TestAborted)
-                    {
-                         Write-Output "Info : State file contains TestAborted failed. "                                  
-                         break
-                          
-                    }
-                    #Start-Sleep -s 1
-                    $timeout-- 
+                        if ($contents -eq $TestAborted)
+                        {
+                             Write-Output "Info : State file contains TestAborted failed. "
+                             break
+                        }
+                        #Start-Sleep -s 1
+                        $timeout-- 
 
-                    if ($timeout -eq 0)
-                    {                        
-                        Write-Output "Error : Timed out on Test Running , Exiting test execution."                    
-                        break                                               
-                    }                                
-                  
-            }    
+                        if ($timeout -eq 0)
+                        {                        
+                            Write-Output "Error : Timed out on Test Running , Exiting test execution."
+                            break
+                        }
+
+                }
+
+                else
+                {
+                    Write-Output "Warn : state file is empty"
+                    break
+                }
+
+            }
+
             else
             {
-                Write-Output "Warn : state file is empty"
-                break
+                 Write-Host "Warn : ssh reported success, but state file was not copied"
+                 break
             }
-           
         }
-        else
+
+        else #
         {
-             Write-Host "Warn : ssh reported success, but state file was not copied"
+             Write-Output "Error : pscp exit status = $sts"
+             Write-Output "Error : unable to pull state.txt from VM." 
              break
         }
-    }
-    else #
-    {
-         Write-Output "Error : pscp exit status = $sts"
-         Write-Output "Error : unable to pull state.txt from VM." 
-         break
-    }     
     }
 
     # Get the logs
     $remoteScriptLog = $remoteScript+".log"
-    
+
     bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} . 
     $sts = $?
     if ($sts)
@@ -270,26 +236,25 @@ function RunRemoteScript($remoteScript)
                     if ($null -ne ${TestLogDir})
                     {
                         move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
-                
                     }
 
                     else 
                     {
-                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"                                
-                    }                              
-                  
-            }    
+                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
+                    }
+            }
             else
             {
-                Write-Output "Warn: $remoteScriptLog is empty"                
-            }           
+                Write-Output "Warn: $remoteScriptLog is empty"
+            }
         }
+
         else
         {
-             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"             
+             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"
         }
     }
-    
+
     # Cleanup 
     del state.txt -ErrorAction "SilentlyContinue"
     del runtest.sh -ErrorAction "SilentlyContinue"
@@ -335,7 +300,7 @@ foreach ($p in $params)
         "driveletter" { $driveletter = $fields[1].Trim() }
         "TestLogDir" { $TestLogDir = $fields[1].Trim() }
         "FILESYS" { $FILESYS = $fields[1].Trim() }
-        default  {}          
+        default  {}
         }
 }
 
@@ -401,12 +366,14 @@ foreach ($drive in $vm.HardDrives)
 }
 
 # Check to see Linux VM is running VSS backup daemon 
-$sts = CheckVSSDaemon
+$sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
 if (-not $sts[-1])
 {
-    Write-Output "ERROR: VSS backup daemon is not running inside Linux VM"
+    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
+    Write-Output "ERROR: Running $remoteScript script failed on VM!"
     return $False
 }
+
 Write-Output "VSS Daemon is running " >> $summaryLog
 
 # Run the remote script
@@ -452,7 +419,8 @@ Add-WBBackupTarget -Policy $policy -Target $backupLocation
 Write-Output "Backup policy is: `n$policy"
 
 # Start the backup
-Write-Output "Backing to $driveletter"
+Write-Output "Backing up to $driveletter"
+$Date = Get-Date
 Start-WBBackup -Policy $policy
 
 # Review the results            
@@ -461,23 +429,24 @@ Write-Output "Backup duration: $BackupTime minutes"
 "Backup duration: $BackupTime minutes" >> $summaryLog
 
 $sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed")
+if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 {
-    Write-Output "ERROR: VSS WBBackup failed"
+    Write-Output "ERROR: VSS Backup failed"
+    Write-Output $sts.ErrorDescription
     $retVal = $false
     return $retVal
 }
 
 Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 30
 
-Write-Output "INFO: Going through Event Logs for Warninig ID 10107"
+Write-Output "INFO: Going through event logs for Warninig ID 10107"
 # Now Check if Warning related Error is present in Event Log ? Backup should fail .
 $EventLog = Get-WinEvent -ProviderName Microsoft-Windows-Hyper-V-VMMS | where-object {  $_.TimeCreated -gt $Date}
 if(-not $EventLog)
 {
-    "Error : Error Getting event logs"
+    "ERROR: Connot get Event log."
     return $False
 } 
 
@@ -485,20 +454,19 @@ if(-not $EventLog)
 foreach ($event in $EventLog)
    {
        if ($event.Id -eq 10150)
-       {           
+       {
            $results = "Passed"
            $retVal = $True
-           Write-Output "INFO : " + $event.Message
-           Write-Output "INFO :VSS Backup Error in Event Log : Success"   
-           Write-Output  "VSS Backup Error in Event Log : Success" >> $summaryLog
-                      
-       }              
+           Write-Output "INFO: " + $event.Message
+           Write-Output "INFO: VSS Backup Error in Event Log : Success"
+           Write-Output "VSS Backup Error in Event Log : Success" >> $summaryLog
+       }
    }
 
 if ($retVal -eq $false)
 {
-     Write-Output "INFO :VSS Backup Error not in Event Log"   
-     Write-Output "VSS Backup Error not in Event Log" >> $summaryLog
+     Write-Output "ERROR: VSS Backup Error not in Event Log"
+     Write-Output "ERROR: VSS Backup Error not in Event Log" >> $summaryLog
 }
 
 # Remove Existing Backups

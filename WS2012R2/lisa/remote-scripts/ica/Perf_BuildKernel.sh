@@ -192,8 +192,14 @@ else
     zypper --non-interactive install git-core
     git clone ${LINUX_KERNEL_LOCATION}
 fi
-   
+
+#
+# Try apply patches under /root/
+#
 cd ${KERNEL_VERSION}
+dbgprint 1 "*************************"
+for patchfile in `ls ../*.patch`; do patch -f -p1 < $patchfile; done
+dbgprint 1 "*************************"
 
 #
 # Start the testing
@@ -249,7 +255,7 @@ else
     dbgprint 3 "Enabling HyperV support in the ${CONFIG_FILE}"
     # On this first 'sed' command use --in-place=.orig to make a backup
     # of the original .config file created with 'defconfig'
-    sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=y\nCONFIG_HYPERV_UTILS=y\nCONFIG_HYPERV_BALLOON=y\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=y\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=y\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
+    sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=y\nCONFIG_HYPERV_UTILS=y\nCONFIG_HYPERV_BALLOON=y\nCONFIG_HYPERV_STORAGE=y\nCONFIG_HYPERV_NET=y\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=y\nCONFIG_HID_HYPERV_MOUSE=y": ${CONFIG_FILE}
 
     # Disable kernel preempt support , because of this lot of stack trace is coming and some time kernel does not boot at all.
     #
@@ -267,7 +273,7 @@ else
     # Enable Tulip network driver support.  This is needed for the "legacy"
     # network adapter provided by Hyper-V
     #
-    sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=m\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
+    sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=y\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
 
     yes "" | make oldconfig
 fi

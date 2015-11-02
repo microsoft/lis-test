@@ -19,14 +19,12 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
-    Reset a VMs CPU count to 1.
+    Reset a VMs CPU count to 3.
 
 .Description
-    Reset a VMs CPU count to 1.
+    Reset a VMs CPU count to 3.
 
 .Parameter vmName
     Name of the VM to modify.
@@ -39,7 +37,7 @@
     This cleanup script does not require any testParams.
 
 .Example
-    .\ResetCPU.ps1 "testVM" "localhost" "rootDir=D:\lisa"
+    .\ResetCPU.ps1 "testVM" "localhost" -testparams ""
 #>
 
 
@@ -64,47 +62,28 @@ if ($hvServer -eq $null)
 
 if ($testParams -eq $null -or $testParams.Length -lt 3)
 {
-    "Error: No testParams provided"
-    "       The script $MyInvocation.InvocationName requires the VCPU test parameter"
+    "The script $MyInvocation.InvocationName requires the VCPU test parameter"
     return $retVal
 }
 
 #
-# for debugging - to be removed
-#
-"ChangeCPU.ps1 -vmName $vmName -hvServer $hvServer -testParams $testParams"
-
-#
 # Find the testParams we require.  Complain if not found
 #
-$numCPUs = 1
-
-#
-# HyperVLib version 2
-# Note: For V2, the module can only be imported once into powershell.
-#       If you import it a second time, the Hyper-V library function
-#       calls fail.
-#
-<#$sts = get-module | select-string -pattern HyperV -quiet
-if (! $sts)
-{
-    Import-module .\HyperVLibV2Sp1\Hyperv.psd1
-}#>
+$numCPUs = 4
 
 #
 # Update the CPU count on the VM
 #
-#$cpu = Set-VMCPUCount $vmName -CPUCount $numCPUs -server $hvServer
 $cpu = Set-VM -Name $vmName -ComputerName $hvServer -ProcessorCount $numCPUs
 
 if ($? -eq "True")
 {
-    write-host "CPU count updated to $numCPUs"
+    Write-output "CPU count updated to $numCPUs"
     $retVal = $true
 }
 else
 {
-    write-host "Error: Unable to update CPU count"
+    Write-host "Error: Unable to update CPU count"
 }
 
 return $retVal

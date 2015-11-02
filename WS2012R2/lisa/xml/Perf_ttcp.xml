@@ -69,8 +69,8 @@
 
     <VMs>        
         <vm>
-            <hvServer>localhost</hvServer>
-            <vmName>Sles11Sp3x64</vmName>
+            <hvServer>LIS-HOST01</hvServer>
+            <vmName>VM-TTCP-Client</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -78,8 +78,8 @@
         </vm>
         <vm>
             <role>NonSUT1</role>
-            <hvServer>localhost</hvServer>
-            <vmName>SLES11SP3X64-NonSUT</vmName>
+            <hvServer>LIS-HOST02</hvServer>
+            <vmName>VM-TTCP-Server</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>

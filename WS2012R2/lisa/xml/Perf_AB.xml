@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+ Copyright (c) Microsoft Corporation
+
+ All rights reserved. 
+ Licensed under the Apache License, Version 2.0 (the ""License"");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+     http://www.apache.org/licenses/LICENSE-2.0  
+
+ THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+ ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+ PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+ See the Apache Version 2.0 License for specific language governing
+ permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS Performance Test Results</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+
+        <!-- Optional testParams go here -->
+        <testParams>
+            <param>vmCpuNumber=4</param>
+            <param>vmMemory=8GB</param>
+            <param>ISO_OPTIONS=.\TestData\DistroISO\SLEs-12-Server-DVD-x86_64-GM-DVD1.iso,BOOT_IDE_FIRST</param>
+        </testParams>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>ApacheBenchmark</suiteName>
+            <suiteTests>
+                <suiteTest>Perf_ab_1Mil-100C</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+         <test>
+            <testName>Perf_ab_1Mil-100C</testName>          
+            <testScript>performance_ab.sh</testScript>
+            <files>remote-scripts/ica/performance_ab.sh</files>
+            <testParams>
+                <param>APACHE_SERVER=192.168.1.100</param>
+                <param>APACHE_TEST_NUM_REQUESTS=1000000</param>
+                <param>APACHE_TEST_NUM_CONCURRENCY=100</param>
+                <param>TEST_FILE_SIZE_IN_KB=200</param>
+            </testParams>
+            <uploadFiles>
+                <file>abtest.log</file>
+            </uploadFiles>
+            <timeout>1200</timeout>
+            <OnError>Continue</OnError>
+         </test>
+    </testCases>
+    
+    <VMs>
+        <vm>
+            <role>SUT1</role>
+            <hvServer>LIS-HOST01</hvServer>
+            <vmName>VM-AB-Client</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <suite>ApacheBenchmark</suite>
+            <preStartConfig>
+                <file>.\setupscripts\Config-VM.ps1</file>
+                <file>.\setupscripts\Insert-ISO.ps1</file>
+            </preStartConfig>
+        </vm>
+        <vm>
+            <role>NonSUT1</role>
+            <hvServer>LIS-HOST02</hvServer>
+            <vmName>VM-Apache-Server</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <preStartConfig>
+                <file>.\setupscripts\Config-VM.ps1</file>
+                <file>.\setupscripts\Insert-ISO.ps1</file>
+            </preStartConfig>
+        </vm>
+    </VMs>
+</config>

@@ -75,8 +75,8 @@
     <VMs>
         <vm>
             <role>SUT1</role>
-            <hvServer>localhost</hvServer>
-            <vmName>SLES12Beta9X64</vmName>
+            <hvServer>LIS-HOST01</hvServer>
+            <vmName>VM-Redis-Client</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
@@ -85,8 +85,8 @@
         </vm>
         <vm>
             <role>NonSUT1</role>
-            <hvServer>localhost</hvServer>
-            <vmName>SLES12Beta9X64-NonSUT</vmName>
+            <hvServer>LIS-HOST02</hvServer>
+            <vmName>VM-Redis-Server</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>

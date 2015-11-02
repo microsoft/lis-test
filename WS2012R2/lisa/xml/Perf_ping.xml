@@ -40,14 +40,15 @@
         <suite>
             <suiteName>Ping</suiteName>
             <suiteTests>
-                <suiteTest>Ping</suiteTest>
+                <suiteTest>Ping_IPv4</suiteTest>
+                <suiteTest>Ping_IPv6</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
         <test>
-            <testName>Ping</testName>
+            <testName>Ping_IPv4</testName>
             <testScript>perf_ping.sh</testScript>
             <files>remote-scripts\ica\perf_ping.sh</files>
             <timeout>1200</timeout>
@@ -62,13 +63,30 @@
                 <file>ping.log</file>
             </uploadFiles>
         </test>
+        <test>
+            <testName>Ping_IPv6</testName>
+            <testScript>perf_ping.sh</testScript>
+            <files>remote-scripts\ica\perf_ping.sh</files>
+            <timeout>1200</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=PERF-Ping-02</param>
+                <param>PING_TOOL=ping6</param>
+                <param>TARGET_IP=fd00::1:100</param>
+                <param>PING_COUNT=1000</param>
+            </testparams>
+            <uploadFiles>
+                <file>ping.log</file>
+            </uploadFiles>
+        </test>
     </testCases>
 
     <VMs>        
         <vm>
             <role>SUT1</role>
-            <hvServer>localhost</hvServer>
-            <vmName>SLES11SP3X64</vmName>
+            <hvServer>LIS-HOST01</hvServer>
+            <vmName>VM-Ping-Client</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -76,8 +94,8 @@
         </vm>
         <vm>
             <role>NonSUT1</role>
-            <hvServer>localhost</hvServer>
-            <vmName>SLES11SP3X64-NonSUT</vmName>
+            <hvServer>LIS-HOST02</hvServer>
+            <vmName>VM-Ping-Server</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
