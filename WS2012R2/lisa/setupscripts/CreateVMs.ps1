@@ -84,7 +84,7 @@
        <generation>  Set to 1 to create a gen 1 VM, set to 2 to create a gen 2 VM. If nothing
                      is specified, it will use gen 1.
 
-       <secureBoot>  Define whether to enable secure boot on gen 2 VMs. Set to "on" or "off".
+       <secureBoot>  Define whether to enable secure boot on gen 2 VMs. Set to "true" or "false".
                      If VM is gen 1 or if not specified, this will be false.
 
 .Example
@@ -105,7 +105,7 @@
            <nic>Legacy,InternalNet</nic>
            <nic>VMBus,ExternalNet</nic>
            <generation>1</generation>
-           <secureBoot>off</secureBoot>
+           <secureBoot>false</secureBoot>
        </hardware>
    </vm>
     
