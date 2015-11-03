@@ -81,6 +81,11 @@
 
        <imageStoreDir> A directory to locate the parentVhd, can be either a UNC or local path
 
+       <generation>  Set to 1 to create a gen 1 VM, set to 2 to create a gen 2 VM. If nothing
+                     is specified, it will use gen 1.
+
+       <secureBoot>  Define whether to enable secure boot on gen 2 VMs. Set to "on" or "off".
+                     If VM is gen 1 or if not specified, this will be false.
 
 .Example
    Example VM definition with a hardware section:
@@ -99,6 +104,8 @@
            <parentVhd>D:\HyperV\ParentVHDs\Fedora13.vhd</parentVhd>
            <nic>Legacy,InternalNet</nic>
            <nic>VMBus,ExternalNet</nic>
+           <generation>1</generation>
+           <secureBoot>off</secureBoot>
        </hardware>
    </vm>
     
@@ -541,11 +548,29 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         Write-host "Required Parameters check done creating VM"
         
-        $newVm = New-VM -Name $vmName -ComputerName $hvServer
+        $vmGeneration = 1
+        if ($vm.hardware.generation) { $vmGeneration = [int16]$vm.hardware.generation }
+
+        $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
         if ($null -eq $newVm)
         {
             Write-Error "Error: Unable to create the VM named $($vm.vmName)."
             return $false
+        }
+
+        #
+        # Disable secure boot on VM unless explicitly told to enable it on gen 2 VMs
+        #
+        if (($newVM.Generation -eq 2))
+        {
+            if ($vm.hardware.secureBoot -eq "true")
+            {
+                Set-VMFirmware -VM $newVm -EnableSecureBoot On
+            }
+            else
+            {
+                Set-VMFirmware -VM $newVm -EnableSecureBoot Off
+            }
         }
           
         #
@@ -714,7 +739,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 $networkName = $tokens[1].Trim()
 
                 $legacyNIC = $False
-                if ($nicType -eq "Legacy")
+                if ($newVm.Generation -eq 1 -and $nicType -eq "Legacy")
                 {
                     $legacyNIC = $True
                 }
