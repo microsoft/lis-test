@@ -90,10 +90,6 @@ ICA_TESTFAILED="TestFailed"        # Error occurred during the test
 CONSTANTS_FILE="/root/constants.sh"
 SUMMARY_LOG=~/summary.log
 
-HADOOP_VERSION="2.4.0"
-HADOOP_ARCHIVE="hadoop-${HADOOP_VERSION}.tar.gz"
-HADOOP_URL="http://apache.cs.utah.edu/hadoop/common/hadoop-${HADOOP_VERSION}/${HADOOP_ARCHIVE}"
-
 CONFIG_SCRIPT="/root/perf_hadoopterasort.sh"
 
 
@@ -162,7 +158,7 @@ LinuxRelease()
             echo "CENTOS";;
         *SUSE*)
             echo "SLES";;
-        Red*Hat*)
+        *Red*Hat*)
             echo "RHEL";;
         Debian*)
             echo "DEBIAN";;
@@ -353,7 +349,7 @@ RunConfigOnSlaves()
     do
         LogMsg "Info : Running config on slave '${slave}'"
 
-        scp /root/${HADOOP_ARCHIVE} root@${slave}:
+        scp -i ${sshKey} /root/${HADOOP_ARCHIVE} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy file ${HADOOP_ARCHIVE} to slave ${slave}"
             LogMsg "${msg}"
@@ -362,7 +358,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        scp ${CONFIG_SCRIPT} root@${slave}:
+        scp -i ${sshKey} ${CONFIG_SCRIPT} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy file ${CONFIG_SCRIPT} to slave ${slave}"
             LogMsg "${msg}"
@@ -371,7 +367,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        ssh root@${slave} chmod 755 ${CONFIG_SCRIPT}
+        ssh -i ${sshKey} root@${slave} chmod 755 ${CONFIG_SCRIPT}
         if [ $? -ne 0 ]; then
             msg="Error: Unable to chmod 755 script file ${CONFIG_SCRIPT} on slave ${slave}"
             LogMsg "${msg}"
@@ -380,16 +376,16 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        scp ${CONSTANTS_FILE} root@${slave}:
+        scp -i ${sshKey} ${CONSTANTS_FILE} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy constants.sh to slave ${slave}"
-            LogMsg "${msg}"
+            LogMsg "${msg}" 
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
             exit 1
         fi
 
-        ssh root@${slave} ${CONFIG_SCRIPT}
+        ssh -i ${sshKey} root@${slave} ${CONFIG_SCRIPT}
         if [ $? -ne 0 ]; then
             msg="Error: ${CONFIG_SCRIPT} did not run successfully on slave ${slave}"
             LogMsg "${msg}"
@@ -496,10 +492,32 @@ if [ ! ${RESOURCE_MANAGER_HOSTNAME} ]; then
     exit 10
 fi
 
+if [ ! ${HADOOP_VERSION} ]; then
+    errMsg="The HADOOP_VERSION test parameter is not defined"
+    LogMsg "${errMsg}"
+    echo "${errMsg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTABORTED
+    exit 10
+fi
+
+if [ ! ${sshKey} ]; then
+    errMsg="The sshKey test parameter is not defined"
+    LogMsg "${errMsg}"
+    echo "${errMsg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTABORTED
+    exit 10
+fi
+
 if [ ! ${TERAGEN_RECORDS} ]; then
     LogMsg "Info : TERAGEN_RECORDS not defined in constants.sh"
     TERAGEN_RECORDS=1000000
 fi
+
+
+
+LogMsg "Info : HADOOP_VERSION = ${HADOOP_VERSION}"
+HADOOP_ARCHIVE="hadoop-${HADOOP_VERSION}.tar.gz"
+HADOOP_URL="http://apache.cs.utah.edu/hadoop/common/hadoop-${HADOOP_VERSION}/${HADOOP_ARCHIVE}"
 
 LogMsg "Info : TERAGEN_RECORDS = ${TERAGEN_RECORDS}"
 
@@ -815,17 +833,23 @@ fi
 # generate the test data, sort the test data, and finally,
 # compute the sort time.
 #
+
 if [ "${hname}" = "${HADOOP_MASTER_HOSTNAME}" ]; then
     #
     # Make sure we have the changes added to .bashrc
     #
     source ~/.bashrc
 
+    # Perform SSH without entering password for this session
+    eval `ssh-agent -s`
+    ssh-add ${sshKey}
+
     #
     # Start the Hadoop components
     #
+
     LogMsg "Info : Starting DFS"
-    start-dfs.sh
+    /usr/local/hadoop/sbin/start-dfs.sh
     if [ $? -ne 0 ]; then
         msg="Error: Unable to start DFS"
         LogMsg "${msg}"
@@ -835,7 +859,7 @@ if [ "${hname}" = "${HADOOP_MASTER_HOSTNAME}" ]; then
     fi
 
     LogMsg "Info : Starting Yarn"
-    start-yarn.sh
+    /usr/local/hadoop/sbin/start-yarn.sh
     if [ $? -ne 0 ]; then
         msg="Error: Unable to start Yarn"
         LogMsg "${msg}"
@@ -850,7 +874,7 @@ if [ "${hname}" = "${HADOOP_MASTER_HOSTNAME}" ]; then
     LogMsg "Info : Run TeraGen to create test data"
     LogMsg "Info : TeraGen to create ${TERAGEN_RECORDS} records"
 
-    hadoop jar /usr/local/hadoop/share/hadoop/mapreduce/hadoop-*examples*.jar teragen $TERAGEN_RECORDS /data/genout
+    /usr/local/hadoop/bin/hadoop jar /usr/local/hadoop/share/hadoop/mapreduce/hadoop-*examples*.jar teragen $TERAGEN_RECORDS /data/genout
     if [ $? -ne 0 ]; then
         msg="Error: Unable to generate test data"
         LogMsg "${msg}"
@@ -861,7 +885,7 @@ if [ "${hname}" = "${HADOOP_MASTER_HOSTNAME}" ]; then
 
     LogMsg "Info : Running terasort to sort test data"
 	#Number of Reduce tasks = 7 ( 1.75 * num-of-worker-nodes * num-of-cores-per-node )
-    hadoop jar /usr/local/hadoop/share/hadoop/mapreduce/hadoop-*examples*.jar terasort -Dmapred.reduce.tasks=7 /data/genout /data/sortout 2&> ~/terasort.log
+    /usr/local/hadoop/bin/hadoop jar /usr/local/hadoop/share/hadoop/mapreduce/hadoop-*examples*.jar terasort -Dmapred.reduce.tasks=7 /data/genout /data/sortout 2&> ~/terasort.log
     if [ $? -ne 0 ]; then
         msg="Error: Unable to sort the test data"
         LogMsg "${msg}"
