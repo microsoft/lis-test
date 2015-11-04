@@ -21,9 +21,9 @@
 
 <#
 .Synopsis
-    This script tests the functionality of copying a 3GB file multiple times.
+    This script tests the functionality of copying a 2GB file multiple times.
 .Description
-    The script will copy a random generated 3GB file multiple times from a Windows host to 
+    The script will copy a random generated 2GB file multiple times from a Windows host to 
     the Linux VM, and then checks if the size is matching.
     A typical XML definition for this test case would look similar
     to the following:
@@ -37,8 +37,8 @@
 				<param>TC_COVERED=FCopy-06</param>
                 		<param>Type=Fixed</param>
         			<param>SectorSize=512</param>
-                		<param>DefaultSize=4GB</param>
-				<param>FileSize=3GB</param>
+                		<param>DefaultSize=3GB</param>
+				<param>FileSize=2GB</param>
 			</testParams>
 			<noReboot>False</noReboot>
 		</test>
@@ -50,7 +50,7 @@
 .Parameter testParams
     Test data for this test case.
 .Example
-    setupScripts\FCOPY_repeated_delete.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress;FileSize=3GB'
+    setupScripts\FCOPY_repeated_delete.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress;FileSize=2GB'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
