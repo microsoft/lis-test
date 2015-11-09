@@ -214,12 +214,4 @@ foreach ($conn in $connections)
 
 write-host "Average bandwith speeds were parsed succesfully and can be found in $testDirectory"
 
-"Stopping $vm2Name"
-Stop-VM -Name $vm2Name -ComputerName $vm2Server -force
-
-if (-not $?)
-{
-    "Warning: Unable to shut down $vm2Name"
-}
-
 return $true

@@ -430,7 +430,7 @@ redhat_7)
     suse_12)
         # Install gcc which is required to build iperf3
         zypper --non-interactive install gcc
-    
+
         LogMsg "Check iptables status on SLES"
         service SuSEfirewall2 status
         if [ $? -ne 3 ]; then
@@ -645,6 +645,15 @@ UpdateSummary "Kernel: $(uname -r)"
 #
 # If we made it here, everything worked
 #
+
+#Shut down dependency VM
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'init 0' | at now"
+if [ $? -ne 0 ]; then
+    msg="Warning: Unable to shut down target server machine"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
+
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
