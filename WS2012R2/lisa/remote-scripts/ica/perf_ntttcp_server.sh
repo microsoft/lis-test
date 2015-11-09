@@ -43,23 +43,19 @@ ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
-LogMsg()
-{
+LogMsg() {
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
 
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
-
 
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 cd ~
 UpdateTestState $ICA_TESTRUNNING
 LogMsg "Starting running the script"
@@ -90,7 +86,7 @@ UtilsInit
 # In case of error
 case $? in
     0)
-        #do nothing, init succeeded
+        # do nothing, init succeeded
         ;;
     1)
         LogMsg "Unable to cd to $LIS_HOME. Aborting..."
@@ -289,7 +285,7 @@ redhat_7)
         fi
     fi
 
-    LogMsg "Check iptables status on RHEL7"
+    LogMsg "Check iptables status on RHEL 7"
     service iptables status
     if [ $? -ne 3 ]; then
         iptables -F;
@@ -315,7 +311,7 @@ redhat_7)
     fi
     ;;
 suse_12)
-    LogMsg "Check iptables status on RHEL7"
+    LogMsg "Check iptables status on SLES 12"
     service SuSEfirewall2 status
     if [ $? -ne 3 ]; then
         iptables -F;
@@ -381,13 +377,10 @@ fi
 cd ~
 
 # set static ips for test interfaces
-
 declare -i __iterator=0
 
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
-
     LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-
     CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $IPERF3_SERVER_IP $NETMASK
 
     if [ 0 -ne $? ]; then
