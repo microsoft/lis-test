@@ -81,6 +81,29 @@
             <timeout>7200</timeout>
             <OnError>Continue</OnError>
          </test>
+
+         <test>
+            <testName>ntttcp</testName>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+            <testScript>perf_ntttcp_client.sh</testScript>
+            <files>remote-scripts/ica/perf_ntttcp_client.sh,remote-scripts/ica/perf_ntttcp_server.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=ntttcp_upstream</param>
+                <param>STATIC_IP=10.10.10.20</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>SERVER_OS_USERNAME=root</param>
+                <param>MAC=001600112233</param>
+                <param>VM2NAME=IPERF-Server</param>
+                <param>VM2SERVER=LIS-PERF05</param>
+                <param>IPERF3_SERVER_IP=10.10.10.10</param>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+            </testParams>
+            <uploadFiles>
+                <file>ntttcp-for-linux.log</file>
+            </uploadFiles>
+            <timeout>7200</timeout>
+            <OnError>Continue</OnError>
+         </test>
     </testCases>
 
     <VMs>
