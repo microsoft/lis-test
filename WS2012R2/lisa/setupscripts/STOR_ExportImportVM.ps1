@@ -23,7 +23,7 @@
     Verify that the VM export and import operations are working.
 
 .Description
-    This script exports the VM, imports it back, verifies that the imported 
+    This script exports the VM, imports it back, verifies that the imported
     VM has the snapshots also. Finally it deletes the imported VM.
 
     A typical test case definition for this test script would look
@@ -42,13 +42,13 @@
 
 .Parameter vmName
     Name of the VM to perform the test with.
-    
+
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
-    
+
 .Parameter testParams
     Test data for this test case
-    
+
 .Example
     setupScripts\STOR_ExportImportVM.ps1 -vmName "myVm" -hvServer "localhost" -TestParams "TC_COVERED=STOR-58"
 #>
@@ -180,7 +180,7 @@ if ($? -ne "True") {
 Write-Output "Successfully created a new snapshot before exporting the VM"
 
 
-$exportPath = (Get-VMHost).VirtualMachinePath + "\ExportTest\" 
+$exportPath = (Get-VMHost).VirtualMachinePath + "\ExportTest\"
 
 $vmPath = $exportPath + $vmName +"\"
 
@@ -214,7 +214,31 @@ $ExportedVMID = $ExportedVM.VMId
 #
 # Import back the above exported VM.
 #
-$vmConfig = Get-Item "$vmPath\Virtual Machines\*.xml"
+"Info : Detecting Host version of Windows Server"
+$osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
+if (-not $osInfo)
+{
+    "Error: Unable to collect Operating System informatioin"
+    return $False
+}
+
+[int]$BuildNum = [convert]::ToInt32($osInfo.BuildNumber, 10)
+switch ($BuildNum)
+{
+    {$_ -lt 10000} # Server 2012 R2, 20012 and 2008R2
+    {
+        $vmConfig = Get-Item "$vmPath\Virtual Machines\*.xml"
+    }
+    {$_ -ge 10000} # TH
+    {
+        $vmConfig = Get-Item "$vmPath\Virtual Machines\*.VMCX"
+    }
+    Default # An unsupported version of Windows Server
+    {
+        "Error: Unsupported build of Windows Server"
+        return $False
+    }
+}
 
 Write-Output $vmConfig.fullname
 
@@ -261,8 +285,8 @@ While ((Get-VM -ComputerName $hvServer -Name $newName).State -eq "On") {
     Start-Sleep -Seconds 5
 }
 
-do { 
-    Start-Sleep -Seconds 5 
+do {
+    Start-Sleep -Seconds 5
 } until ((Get-VMIntegrationService $newName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK")
 
 Write-Output "Imported VM ${newName} has a snapshot TestExport, applied the snapshot and VM started successfully"

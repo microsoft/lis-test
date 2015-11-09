@@ -21,7 +21,7 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\Lisa\TestResults</logfileRootDir>
+        <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -51,13 +51,13 @@
          <test>
             <testName>iPerf3_Panorama</testName>
             <testScript>perf_iperf_panorama_client.sh</testScript>
-            <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh</files>
+            <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
             <files>Tools/iperf-3.0.5.tar.gz</files>
             <testParams>
                 <param>IPERF_PACKAGE=iperf-3.0.5.tar.gz</param>
                 <param>SERVER_OS_USERNAME=root</param>
                 <param>IPERF3_SERVER_IP=192.168.1.100</param>
-                <param>INDIVIDUAL_TEST_DURATION=5</param>
+                <param>INDIVIDUAL_TEST_DURATION=60</param>
                 <param>CONNECTIONS_PER_IPERF3=4</param>
                 <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
                 <param>TEST_RUN_LOG_FOLDER=iperf3-test-logs</param>
@@ -66,9 +66,9 @@
             </testParams>
             <uploadFiles>
                 <file>iPerf3_Client_Logs.zip</file>
-				<file>iPerf3_Server_Logs.zip</file>
-				<file>iPerf3_Panorama_ServerSideScript.log</file>
-				<file>iPerf3_Panorama.log</file>
+                <file>iPerf3_Server_Logs.zip</file>
+                <file>iPerf3_Panorama_ServerSideScript.log</file>
+		<file>iPerf3_Panorama.log</file>
             </uploadFiles>
             <timeout>1200</timeout>
             <OnError>Continue</OnError>

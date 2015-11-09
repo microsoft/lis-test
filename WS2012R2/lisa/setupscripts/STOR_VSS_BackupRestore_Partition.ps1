@@ -276,7 +276,7 @@ Catch { Write-Output "No existing backup's to remove"}
 $summaryLog  = "${vmName}_summary.log"
 echo "Covers VSS Backup" > $summaryLog
 
-$remoteScript = "STOR_VSS_PartitionDisks.sh"
+$remoteScript = "PartitionDisks.sh"
 
 # Check input arguments
 if ($vmName -eq $null)
@@ -440,7 +440,7 @@ if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 
 Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 30
 
 # Start the Restore
 Write-Output "`nNow let's do restore ...`n"
@@ -481,7 +481,7 @@ if ( $vm.state -ne "Off" )
 }
 
 # Now Start the VM
-$timeout = 500
+$timeout = 300
 $sts = Start-VM -Name $vmName -ComputerName $hvServer 
 if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
 {

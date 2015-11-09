@@ -29,6 +29,9 @@
 #     For the test to run you have to place the iperf tool package in the
 #     Tools folder under lisa.
 #
+# Requirements:
+#   The sar utility must be installed, package named sysstat
+#
 # Parameters:
 #     IPERF_PACKAGE: the iperf3 tool package
 #     IPERF3_SERVER_IP: the ipv4 address of the server
@@ -77,19 +80,53 @@ fi
 
 touch ~/summary.log
 
-#
-# Source the constants.sh file
-#
-LogMsg "Sourcing constants.sh"
-if [ -e ~/constants.sh ]; then
-    . ~/constants.sh
-else
-    msg="Error: ~/constants.sh does not exist"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
-fi
+# Convert eol
+dos2unix utils.sh
+
+# Source utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
+# Source constants file and initialize most common variables
+UtilsInit
+
+# In case of error
+case $? in
+    0)
+        #do nothing, init succeeded
+        ;;
+    1)
+        LogMsg "Unable to cd to $LIS_HOME. Aborting..."
+        UpdateSummary "Unable to cd to $LIS_HOME. Aborting..."
+        SetTestStateAborted
+        exit 3
+        ;;
+    2)
+        LogMsg "Unable to use test state file. Aborting..."
+        UpdateSummary "Unable to use test state file. Aborting..."
+        # need to wait for test timeout to kick in
+        # hailmary try to update teststate
+        sleep 60
+        echo "TestAborted" > state.txt
+        exit 4
+        ;;
+    3)
+        LogMsg "Error: unable to source constants file. Aborting..."
+        UpdateSummary "Error: unable to source constants file"
+        SetTestStateAborted
+        exit 5
+        ;;
+    *)
+        # should not happen
+        LogMsg "UtilsInit returned an unknown error. Aborting..."
+        UpdateSummary "UtilsInit returned an unknown error. Aborting..."
+        SetTestStateAborted
+        exit 6
+        ;;
+esac
 
 #
 # Make sure the required test parameters are defined
@@ -189,6 +226,119 @@ LogMsg "rootDir = ${rootDir}"
 cd ${rootDir}
 
 #
+# Distro specific setup
+#
+
+GetDistro
+
+case "$DISTRO" in
+debian*|ubuntu*)
+    LogMsg "Installing sar on Ubuntu"
+    apt-get install sysstat -y
+    if [ $? -ne 0 ]; then
+        msg="Error: sysstat failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 85
+    fi
+    apt-get install build-essential -y
+    if [ $? -ne 0 ]; then
+        msg="Error: Build essential failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 85
+    fi
+    service ufw status
+    if [ $? -ne 3 ]; then
+        LogMsg "Disabling firewall on Ubuntu"
+        service ufw stop
+        if [ $? -ne 0 ]; then
+                msg="Error: Failed to stop ufw"
+                LogMsg "${msg}"
+                echo "${msg}" >> ~/summary.log
+                UpdateTestState $ICA_TESTFAILED
+                exit 85
+        fi
+    fi
+    ;;
+redhat_5|redhat_6)
+    LogMsg "Check iptables status on RHEL"
+    service iptables status
+    if [ $? -ne 3 ]; then
+        LogMsg "Disabling firewall on Redhat"
+        iptables -F
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to flush iptables rules. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+        service iptables stop
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop iptables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
+        chkconfig iptables off
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off iptables. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+    fi
+    ;;
+redhat_7)
+    LogMsg "Check iptables status on RHEL"
+    systemctl status firewalld
+    if [ $? -ne 3 ]; then
+        LogMsg "Disabling firewall on Redhat 7"
+        systemctl disable firewalld
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop firewalld"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
+        systemctl stop firewalld
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off firewalld. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+    fi
+
+    LogMsg "Check iptables status on RHEL7"
+    service iptables status
+    if [ $? -ne 3 ]; then
+        iptables -F;
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to flush iptables rules. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+        service iptables stop
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop iptables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
+        chkconfig iptables off
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off iptables. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+    fi
+    ;;
+esac
+
+#
 # Install gcc which is required to build iperf3
 #
 zypper --non-interactive install gcc
@@ -244,6 +394,7 @@ if [ $? -ne 0 ]; then
 fi
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:
 
 #
 # Start iPerf in server mode on the Target server side
@@ -318,13 +469,13 @@ do
 
     while [ $number_of_connections -gt $CONNECTIONS_PER_IPERF3 ]; do
         number_of_connections=$(($number_of_connections-$CONNECTIONS_PER_IPERF3))
-        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port -4 -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
         port=$(($port + 1))
     done
 
     if [ $number_of_connections -gt 0 ]
     then
-        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port -4 -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
     fi
 
     sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
@@ -355,4 +506,3 @@ scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVE
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
-

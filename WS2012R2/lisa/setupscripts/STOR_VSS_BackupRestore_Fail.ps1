@@ -439,7 +439,7 @@ if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 
 Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 30
 
 Write-Output "INFO: Going through event logs for Warninig ID 10107"
 # Now Check if Warning related Error is present in Event Log ? Backup should fail .

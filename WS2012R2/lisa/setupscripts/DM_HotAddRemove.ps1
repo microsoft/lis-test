@@ -62,8 +62,7 @@
     Test data for this test case
 
     .Example
-    setupScripts\DM_CONFIGURE_MEMORY -vmName sles11sp3x64 -hvServer localhost -testParams "vmName=sles11x64sp3;enable=yes;minMem=512MB;maxMem=80%;startupMem=80%;memWeight=0;`
-       vmName=sles11x64sp3_2;enable=yes;minMem=512MB;maxMem=25%;startupMem=25%;memWeight=0"
+    setupscripts\DM_HotAddRemove.ps1 -vmName nameOfVM -hvServer localhost -testParams 'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir;vmName=NameOfVM1;vmName=NameOfVM2'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -162,13 +161,13 @@ $scriptBlock = {
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
         echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAddRemove.log 2>&1
-        __iterations=10
+        __iterations=100
         __chunks=128
         echo "Going to start `$__iterations instance(s) of stresstestapp each consuming 256MB memory" >> /root/HotAddRemove.log 2>&1
         for ((i=0; i < `$__iterations; i++)); do
-          stressapptest -M `$__chunks -s 10 &
-          sleep 10
-          __chunks=`$((__chunks+128))
+          stressapptest -M `$__chunks -s 20 &
+          sleep 1
+          #__chunks=`$((__chunks+128))
           echo "Memory chunks: `$__chunks" >> /root/HotAddRemove.log 2>&1
         done
         echo "Waiting for jobs to finish" >> /root/HotAddRemove.log 2>&1
@@ -479,7 +478,7 @@ if (-not $?)
 }
 
 # sleep a few seconds so all stresstestapp processes start and the memory assigned/demand gets updated
-start-sleep -s 50
+start-sleep -s 90
 # get memory stats for vm1 after stresstestapp starts
 [int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
 [int64]$vm1Demand = ($vm1.MemoryDemand/1MB)

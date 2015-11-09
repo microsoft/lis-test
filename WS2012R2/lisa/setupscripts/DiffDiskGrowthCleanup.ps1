@@ -169,6 +169,16 @@ foreach ($p in $params)
         $parentVhd = $rValue
         continue
     }
+
+    #
+    # vhdFormat test param?
+    #
+    if ($lValue -eq "vhdFormat")
+    {
+        $vhdFormat = $rValue
+        continue
+    }
+
     #
     # Controller type testParam?
     #
@@ -227,6 +237,12 @@ if (-not $lun)
     return $False
 }
 
+if (-not $vhdFormat)
+{
+    "Error: No vhdFormat specified in the test parameters"
+    return $False
+}
+
 #
 # Delete the drive if it exists
 #
@@ -275,9 +291,9 @@ if (-not $defaultVhdPath.EndsWith("\"))
 }
 
 
-if ($parentVhd.EndsWith(".vhd"))
+if ($vhdFormat -eq "vhd")
 {
-    # To Make sure we do not use exisiting  Diff disk , del if exisit 
+    # To Make sure we do not use exisiting Diff disk, del if exisit 
     $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"  
 }
 else
@@ -291,11 +307,26 @@ if ($vhdFileInfo)
     $delSts = $vhdFileInfo.Delete()
     if (-not $delSts -or $delSts.ReturnValue -ne 0)
     {
-        "Error: unable to delete the existing .vhd file: ${vhdFilename}"
-        rturn $False
+        "Error: unable to delete the existing $vhdFormat file: ${vhdFilename}"
+        return $False
     }
 }
 
+# Delete ParentVHD if it was created by us
+if (-not $parentVhd)
+{
+    $parentVhdName = $defaultVhdPath + $vmName + "_Parent." + $vhdFormat
+    $parentVhdFileInfo = GetRemoteFileInfo $parentVhdName  $hvServer
+    if ($parentVhdFileInfo)
+    {
+        $delSts = $parentVhdFileInfo.Delete()
+        if (-not $delSts -or $delSts.ReturnValue -ne 0)
+        {
+            "Error: unable to delete the existing $vhdFormat file: ${parentVhdFilename}"
+            return $False
+        }
+    }
+}
 #
 # Put a true string at the end of the script output
 # and exit with a status of zero.
