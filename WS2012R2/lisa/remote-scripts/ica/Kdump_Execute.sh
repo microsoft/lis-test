@@ -78,14 +78,20 @@ Rhel()
     sleep 50
 
     systemctl status kdump.service | grep -q "active"
-    if  [ $? -eq 0 ]; then
-        LogMsg "Kdump is active after reboot"
-        echo "Success: kdump service is active after reboot." >> ~/summary.log
+    if  [ $? -ne 0 ]; then
+        service kdump status | grep "operational"
+        if  [ $? -eq 0 ]; then
+            LogMsg "Kdump is active after reboot"
+            echo "Success: kdump service is active after reboot." >> ~/summary.log
+        else
+            LogMsg "ERROR: kdump service is not active after reboot!"
+            echo "ERROR: kdump service is not active after reboot!" >> ~/summary.log
+            UpdateTestState "TestAborted"
+            exit 2   
+        fi
     else
-        LogMsg "ERROR: kdump service is not active after reboot!"
-        echo "ERROR: kdump service is not active after reboot!" >> ~/summary.log
-        UpdateTestState "TestAborted"
-        exit 2   
+        LogMsg "Kdump is active after reboot"
+        echo "Success: kdump service is active after reboot." >> ~/summary.log 
     fi     
 }
 
@@ -104,7 +110,7 @@ Sles()
         LogMsg "Kdump is active after reboot"
         echo "Success: kdump service is active after reboot." >> ~/summary.log
     else
-        rckkdump status | grep "running"
+        rckdump status | grep "running"
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: kdump service is not active after reboot!"
             echo "ERROR: kdump service is not active after reboot!" >> ~/summary.log
@@ -116,6 +122,7 @@ Sles()
         fi
     fi
 }
+
 
 #######################################################################
 #

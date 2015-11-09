@@ -101,7 +101,16 @@ ConfigRhel()
     fi 
     
     if [ -x "/sbin/grubby" ]; then
-        /sbin/grubby --default-kernel | xargs /sbin/grubby --args="crashkernel=$crashkernel" --update-kernel
+        sed -i "s/crashkernel=auto/crashkernel=$crashkernel/g" /boot/grub/grub.conf
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Could not set the new crashkernel value."
+            echo "ERROR: Could not set the new crashkernel value." >> ~/summary.log
+            UpdateTestState "TestAborted"
+            exit 2
+        else
+            LogMsg "Success: updated the crashkernel value to: $crashkernel."
+            echo "Success: updated the crashkernel value to: $crashkernel." >> ~/summary.log   
+        fi
     fi
     
     if [[ -d /boot/grub2 ]]; then
@@ -128,6 +137,9 @@ ConfigRhel()
         echo "ERROR: Failed to enable kdump." >> ~/summary.log
         UpdateTestState "TestAborted"
         exit 1
+    else
+        LogMsg "Success: kdump enabled."
+        echo "Success: kdump enabled." >> ~/summary.log     
     fi
 }
 
