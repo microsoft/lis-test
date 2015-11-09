@@ -43,13 +43,11 @@ ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
-LogMsg()
-{
+LogMsg() {
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
 
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
 
@@ -242,7 +240,6 @@ git clone https://github.com/Microsoft/ntttcp-for-linux.git
 #
 rootDir="ntttcp-for-linux"
 
-
 LogMsg "rootDir = ${rootDir}"
 cd ${rootDir}/src
 
@@ -331,7 +328,7 @@ redhat_7)
         fi
     fi
 
-    LogMsg "Check iptables status on RHEL7"
+    LogMsg "Check iptables status on RHEL 7"
     service iptables status
     if [ $? -ne 3 ]; then
         iptables -F;
@@ -453,7 +450,6 @@ fi
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 
-
 #
 # Start ntttcp in server mode on the Target server side
 #
@@ -526,11 +522,8 @@ fi
 
 UpdateSummary "$throughput"
 
-
 # Test Finished. Collect logs, zip client side logs
-
 # Get logs from server side
-
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/ntttcp_ServerSideScript.log ~/ntttcp_ServerSideScript.log
 
 UpdateSummary "Distribution: $DISTRO"
@@ -539,7 +532,6 @@ UpdateSummary "Kernel: $(uname -r)"
 #
 # If we made it here, everything worked
 #
-
 #Shut down dependency VM
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'init 0' | at now"
 if [ $? -ne 0 ]; then
