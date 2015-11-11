@@ -29,6 +29,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $retVal = $false
 $sshKey = $null
 $ipv4 = $null
+$nmi = $null
 
 #
 # Check input arguments
@@ -54,6 +55,7 @@ foreach ($p in $params) {
         "ipv4"   { $ipv4    = $fields[1].Trim() }
         "crashkernel"   { $crashkernel    = $fields[1].Trim() }
         "TestLogDir" {$logdir = $fields[1].Trim()}
+        "NMI" {$nmi = $fields[1].Trim()}
         default  {}
     }
 }
@@ -138,7 +140,14 @@ bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
 
 # Trigger the kernel panic
 Write-Output "Trigger the kernel panic..."
-$retVal = SendCommandToVM $ipv4 $sshKey "echo 'echo c > /proc/sysrq-trigger' | at now + 1 minutes"
+if ($nmi -eq 1){
+    # Waiting to kdump_execute.sh to finish his activity.
+    Start-Sleep -S 70
+    Debug-VM -Name $vmName -InjectNonMaskableInterrupt -ComputerName $hvServer -Force
+}
+else {
+    $retVal = SendCommandToVM $ipv4 $sshKey "echo 'echo c > /proc/sysrq-trigger' | at now + 1 minutes"
+}
 
 #
 # Give the host a few seconds to record the event

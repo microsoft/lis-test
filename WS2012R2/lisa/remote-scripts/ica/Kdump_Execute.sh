@@ -188,6 +188,7 @@ case $distro in
         Ubuntu
     ;;
     "SLES")
+        systemctl start atd
         kdump_loaded
         Sles
     ;;
