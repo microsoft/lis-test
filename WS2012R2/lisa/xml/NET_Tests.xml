@@ -48,6 +48,7 @@
                 <suiteTest>ChangeNetTypeInternal</suiteTest>
                 <suiteTest>ChangeNetTypeGuest</suiteTest>
                 <suiteTest>CopyLargeFile</suiteTest>
+                <suiteTest>CopyFileDifferentMTU</suiteTest>
                 <suiteTest>VlanTagging</suiteTest>
                 <suiteTest>VlanTrunking</suiteTest>
                 <suiteTest>JumboFrame</suiteTest>
@@ -310,6 +311,28 @@
             <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>8000</timeout>
+        </test>
+
+        <test>
+            <testName>CopyFileDifferentMTU</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>TC_COVERED=NET-01</param>
+                <param>MAC=001600112233</param>
+                <param>ZERO_FILE=yes</param>
+                <param>FILE_SIZE_GB=1</param>
+                <param>REMOTE_USER=root</param>
+            </testParams>
+            <testScript>NET_Copy_Different_MTU.sh</testScript>
+            <files>remote-scripts/ica/NET_Copy_Different_MTU.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>1800</timeout>
         </test>
 
         <test>
