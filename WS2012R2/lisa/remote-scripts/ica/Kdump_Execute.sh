@@ -167,6 +167,20 @@ kdump_loaded()
     fi    
 }
 
+ConfigureNMI()
+{
+    sysctl -w kernel.unknown_nmi_panic=1
+    if [ $? -ne 0]; then
+        LogMsg "Failed to enable kernel to call panic when it receives a NMI."
+        echo "Failed to enable kernel to call panic when it receives a NMI." >> summary.log
+        UpdateTestState "TestAborted"
+        exit 3
+    else
+        LogMsg "Success: enabling kernel to call panic when it receives a NMI."
+        echo "Success: enabling kernel to call panic when it receives a NMI." >> summary.log
+    fi        
+}
+
 #######################################################################
 #
 # Main script body
@@ -177,6 +191,7 @@ kdump_loaded()
 # Configure kdump - this has distro specific behaviour
 #
 # Must allow some time for the kdump service to become active
+ConfigureNMI
 distro=`LinuxRelease`
 case $distro in
     "CENTOS" | "RHEL")

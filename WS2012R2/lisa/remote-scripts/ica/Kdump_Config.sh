@@ -154,8 +154,6 @@ ConfigSles()
     echo "Configuring kdump (Sles)..." >> summary.log
 
     if [[ -d /boot/grub2 ]]; then
-        #newsize='crashkernel='$crashkernel
-        #sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$newsize /" /etc/default/grub
         sed -i "s/crashkernel=218M-:109M/crashkernel=$crashkernel/g" /etc/default/grub
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Could not set the new crashkernel value in /etc/default/grub."
@@ -244,22 +242,6 @@ ConfigUbuntu()
 
 }
 
-ConfigureNMI()
-{
-    echo "kernel.unknown_nmi_panic = 1" >> /etc/sysctl.conf
-    sysctl -p
-    if [ $? -ne 0]; then
-        LogMsg "Failed to enable kernel to call panic when it receives a NMI."
-        echo "Failed to enable kernel to call panic when it receives a NMI." >> summary.log
-        UpdateTestState "TestAborted"
-        exit 3
-    else
-        LogMsg "Success: enabling kernel to call panic when it receives a NMI."
-        echo "Success: enabling kernel to call panic when it receives a NMI." >> summary.log
-    fi        
-}
-
-
 #######################################################################
 #
 # Main script body
@@ -295,22 +277,18 @@ distro=`LinuxRelease`
 case $distro in
     "CENTOS" | "RHEL")
         ConfigRhel
-        ConfigureNMI
     ;;
     "UBUNTU")
         ConfigUbuntu
-        ConfigureNMI
     ;;
     "SLES")
         ConfigSles
-        ConfigureNMI
     ;;
      *)
         msg="WARNING: Distro '${distro}' not supported, defaulting to RedHat"
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
         ConfigRhel
-        ConfigureNMI
     ;; 
 esac
 
