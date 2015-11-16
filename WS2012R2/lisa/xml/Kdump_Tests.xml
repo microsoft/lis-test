@@ -18,7 +18,7 @@
 
 <config>
     <global>
-        <logfileRootDir>C:\lisa\TestResults</logfileRootDir>
+        <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <email>
             <recipients>
@@ -34,8 +34,8 @@
         <suite>
             <suiteName>KDUMP</suiteName>
             <suiteTests>
-                <!-- <suiteTest>Crash_single_core</suiteTest> -->
-                <!-- <suiteTest>Crash_SMP</suiteTest> -->
+                <suiteTest>Crash_single_core</suiteTest>
+                <suiteTest>Crash_SMP</suiteTest>
                 <suiteTest>Crash_NMI</suiteTest>
             </suiteTests>
         </suite>
@@ -87,8 +87,8 @@
                 <!-- for Ubuntu use min 384M -->
                 <param>crashkernel=384M</param>
                 <param>TC_COVERED=KDUMP-03</param>
-                <param>VCPU=2</param>
-                <param>VMMemory=2GB</param>
+                <param>VCPU=3</param>
+                <param>VMMemory=3GB</param>
                 <param>NMI=1</param>
             </testParams>
             <timeout>600</timeout>
@@ -97,11 +97,11 @@
 
     <VMs>
         <vm>
-            <hvServer>localhost</hvServer>
-            <vmName>asuhov-sles12</vmName>
+            <hvServer>HyperVhost</hvServer>
+            <vmName>vmName</vmName>
             <os>Linux</os>
-            <ipv4>10.8.0.12</ipv4>
-            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <ipv4></ipv4>
+            <sshKey>pki_id_rsa.ppk</sshKey>
             <suite>KDUMP</suite>
         </vm>
     </VMs>
