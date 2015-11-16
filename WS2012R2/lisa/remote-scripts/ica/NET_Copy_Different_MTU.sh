@@ -27,16 +27,6 @@
 #   between two VM's when MTU is set to 9000 on the network 
 #   adapters.
 #
-#   Steps:
-#   1. Verify configuration file constants.sh
-#   2. Verify ssh private key file for remote VM was given
-#   3. Ping the remote server through the Synthetic Adapter card
-#   4. Verify there is enough local disk space for the file (1GB default)
-#   5. Verify there is enough remote disk space for the file (1GB default)
-#   6. Change MTU to 9000 on both VMs
-#   7. Create file from /dev/urandom. Save md5sum of it and copy it from local VM to remote VM using scp
-#   8. Get md5sum of remote file and compare to the one calculated earlier
-#
 #   Parameters required:
 #       STATIC_IP2
 #       SSH_PRIVATE_KEY
@@ -52,17 +42,16 @@
 #       GATEWAY
 #
 #   Parameter explanation:
-#   STATIC_IP2 is the address of the second vm.
+#   STATIC_IP2 is the address of the second VM.
 #   The script assumes that the SSH_PRIVATE_KEY is located in $HOME/.ssh/$SSH_PRIVATE_KEY
 #   TC_COVERED is the test id from LIS testing
-#   NO_DELETE stops the script from deleting the 10GB files locally and remotely
+#   NO_DELETE stops the script from deleting the test files locally and remotely
 #   REMOTE_USER is the user used to ssh into the remote VM. Default is root
 #   ZERO_FILE creates a file filled with 0. Is created much faster than the one from /dev/urandom
-#   FILE_SIZE_GB override the 10GB size. File size specified in GB
+#   FILE_SIZE_GB test file size. File size is specified in GB.
 #   STATIC_IP is the address that will be assigned to the VM's synthetic network adapter
 #   NETMASK of this VM's subnet. Defaults to /24 if not set.
 #   GATEWAY is the IP Address of the default gateway
-#
 #
 #############################################################################################################
 
@@ -712,7 +701,3 @@ UpdateSummary "Checksums of file match. Test successful"
 LogMsg "Updating test case state to completed"
 SetTestStateCompleted
 exit 0
-
-
-
-
