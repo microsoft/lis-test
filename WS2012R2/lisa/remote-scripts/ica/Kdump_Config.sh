@@ -100,19 +100,6 @@ ConfigRhel()
         echo "Success: Updated the default behaviour to reboot." >> summary.log
     fi 
     
-    if [ -x "/sbin/grubby" ]; then
-        sed -i "s/crashkernel=auto/crashkernel=$crashkernel/g" /boot/grub/grub.conf
-        if [ $? -ne 0 ]; then
-            LogMsg "ERROR: Could not set the new crashkernel value."
-            echo "ERROR: Could not set the new crashkernel value." >> ~/summary.log
-            UpdateTestState "TestAborted"
-            exit 2
-        else
-            LogMsg "Success: updated the crashkernel value to: $crashkernel."
-            echo "Success: updated the crashkernel value to: $crashkernel." >> ~/summary.log   
-        fi
-    fi
-    
     if [[ -d /boot/grub2 ]]; then
         LogMsg "Update grub"
         sed -i "s/crashkernel=auto/crashkernel=$crashkernel/g" /etc/default/grub
@@ -126,6 +113,19 @@ ConfigRhel()
             echo "Success: updated the crashkernel value to: $crashkernel." >> ~/summary.log    
         fi
         grub2-mkconfig -o /boot/grub2/grub.cfg
+    else
+        if [ -x "/sbin/grubby" ]; then
+            sed -i "s/crashkernel=auto/crashkernel=$crashkernel/g" /boot/grub/grub.conf
+            if [ $? -ne 0 ]; then
+                LogMsg "ERROR: Could not set the new crashkernel value."
+                echo "ERROR: Could not set the new crashkernel value." >> ~/summary.log
+                UpdateTestState "TestAborted"
+                exit 2
+            else
+                LogMsg "Success: updated the crashkernel value to: $crashkernel."
+                echo "Success: updated the crashkernel value to: $crashkernel." >> ~/summary.log   
+            fi
+        fi
     fi
 
     # Enable kdump service
@@ -154,8 +154,7 @@ ConfigSles()
     echo "Configuring kdump (Sles)..." >> summary.log
 
     if [[ -d /boot/grub2 ]]; then
-        newsize='crashkernel='$crashkernel
-        sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$newsize /" /etc/default/grub
+        sed -i "s/crashkernel=218M-:109M/crashkernel=$crashkernel/g" /etc/default/grub
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Could not set the new crashkernel value in /etc/default/grub."
             echo "ERROR: Could not set the new crashkernel value in /etc/default/grub." >> ~/summary.log
@@ -242,7 +241,6 @@ ConfigUbuntu()
     sed -i 's/LOAD_KEXEC=true/LOAD_KEXEC=false/g' /etc/default/kexec
 
 }
-
 
 #######################################################################
 #

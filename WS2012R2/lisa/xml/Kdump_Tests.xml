@@ -34,32 +34,33 @@
         <suite>
             <suiteName>KDUMP</suiteName>
             <suiteTests>
-            <suiteTest>Crash_single_core</suiteTest>
-            <suiteTest>Crash_SMP</suiteTest>
-			</suiteTests>
+                <!-- <suiteTest>Crash_single_core</suiteTest> -->
+                <!-- <suiteTest>Crash_SMP</suiteTest> -->
+                <suiteTest>Crash_NMI</suiteTest>
+            </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
         <test>
-        	<testName>Crash_single_core</testName>
-        	<setupScript>
-        		<file>setupscripts\ChangeCPU.ps1</file>
-        		<file>setupScripts\SetVMMemory.ps1</file>
-        	</setupScript>
-        	<testScript>setupScripts\kdump.ps1</testScript>
-        	<testParams>
+            <testName>Crash_single_core</testName>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\kdump.ps1</testScript>
+            <testParams>
                 <!-- for Ubuntu use min 384M -->
                 <param>crashkernel=256M@128M</param>
                 <param>TC_COVERED=KDUMP-01</param>
                 <param>VCPU=1</param>
                 <param>VMMemory=4GB</param>
-        	</testParams>
-        	<timeout>600</timeout>
+            </testParams>
+            <timeout>600</timeout>
         </test>
         
         <test>
-        	<testName>Crash_SMP</testName>
+            <testName>Crash_SMP</testName>
             <setupScript>
                 <file>setupscripts\ChangeCPU.ps1</file>
                 <file>setupScripts\SetVMMemory.ps1</file>
@@ -72,17 +73,35 @@
                 <param>VCPU=2</param>
                 <param>VMMemory=2GB</param>
             </testParams>
-        	<timeout>600</timeout>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>Crash_NMI</testName>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <testScript>setupscripts\kdump.ps1</testScript>
+            <testParams>
+                <!-- for Ubuntu use min 384M -->
+                <param>crashkernel=384M</param>
+                <param>TC_COVERED=KDUMP-03</param>
+                <param>VCPU=2</param>
+                <param>VMMemory=2GB</param>
+                <param>NMI=1</param>
+            </testParams>
+            <timeout>600</timeout>
         </test>
     </testCases>
 
     <VMs>
-    	<vm>
+        <vm>
             <hvServer>localhost</hvServer>
-            <vmName>VMNAME</vmName>
+            <vmName>asuhov-sles12</vmName>
             <os>Linux</os>
-            <ipv4></ipv4>
-            <sshKey>key_id_rsa.ppk</sshKey>
+            <ipv4>10.8.0.12</ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>KDUMP</suite>
         </vm>
     </VMs>
