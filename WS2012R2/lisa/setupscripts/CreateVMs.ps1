@@ -19,11 +19,9 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     
-
 .Description
     For a VM to be created, the VM definition in the .xml file must
    include a hardware section.  The <parentVhd> and at least one
@@ -39,7 +37,6 @@
 
    If a VM with the same name already exists on the HyperV
    server, the VM will be deleted.
-
 
 .Parameter testParams
     Tag definitions:
@@ -92,10 +89,10 @@
    <global>
        <imageStoreDir>\\uncpath\imageStore</imageStoreDir>
    <vm>
-       <hvServer>nmeier2</hvServer>
-       <vmName>Nick1</vmName>
+       <hvServer>hvServer</hvServer>
+       <vmName>VMname</vmName>
        <ipv4>1.2.3.4</ipv4>
-       <sshKey>rhel5_id_rsa.ppk</sshKey>
+       <sshKey>pki_id_rsa.ppk</sshKey>
        <tests>CheckLisInstall, Hearbeat</tests>
        <hardware>
            <create>true</create>
@@ -112,7 +109,6 @@
 #>
 
 param([String] $xmlFile)
-
 
 #######################################################################
 #
@@ -147,7 +143,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     return $fileInfo
 }
 
-
 #######################################################################
 #
 # DeleteVmAndVhd()
@@ -164,7 +159,7 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
 
     if ($vm)
     {
-        write-host  "deleting the VM"
+        write-host  "Cleanup: Deleting existing VM"
         Remove-VM $vmName -ComputerName $hvServer -Force
     }
 
@@ -180,7 +175,6 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
         }
     }
 }
-
 
 #######################################################################
 #
@@ -508,7 +502,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
     return $validNicFound
 }
 
-
 #######################################################################
 #
 # CreateVM()
@@ -546,7 +539,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # Create the VM
         #
-        Write-host "Required Parameters check done creating VM"
+        Write-host "Required parameters check done, creating VM..."
         
         $vmGeneration = 1
         if ($vm.hardware.generation) { $vmGeneration = [int16]$vm.hardware.generation }
@@ -559,7 +552,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
 
         #
-        # Disable secure boot on VM unless explicitly told to enable it on gen 2 VMs
+        # Disable secure boot on VM unless explicitly told to enable it on Gen2 VMs
         #
         if (($newVM.Generation -eq 2))
         {
@@ -619,7 +612,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $parentVhd = Join-Path $vhdDir $parentVhd
         }
 
-        # If parent Vhd is remote, copy it to local VHD directory
+            # If parent VHD is remote, copy it to local VHD directory
         $uriPath = New-Object -TypeName System.Uri -ArgumentList $parentVhd
         if ($uriPath.IsUnc)
         {
@@ -641,10 +634,8 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         {
             #
             # Create differencing boot disk.
-            # If the parentVhd is an Absolute path, it will
-            # be use as is. If parentVhd is a relative path,
-            # then prepent the HyperV servers default VHD
-            # directory.
+            # If the parentVhd is an Absolute path, it will be use as is. 
+            # If parentVhd is a relative path, then prepent the HyperV servers default VHD directory.
             #
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
             $vhdName = "${vmName}_diff.vhdx"
@@ -783,7 +774,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             } 
         }
         
-        Write-Host "Vm Created successfully"
+        Write-Host "Info: VM created successfully"
         $retVal = $True       
     }
 
@@ -793,13 +784,11 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
     return $retVal
 }
 
-
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 $exitStatus = 1
 
 if (! $xmlFile)
