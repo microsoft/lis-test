@@ -125,10 +125,10 @@ if (-not $?) {
 }
 
 #Get Test Interface and Distribution
-$testInterface = Get-Content *ServerSideScript.log | where { $_ -match "TestInterface" }
+$testInterface = Get-Content ${testDirectory}\*ServerSideScript.log | where { $_ -match "TestInterface" }
 $testInterface = $testInterface.Substring(15)
 
-$distro = Get-Content *_summary.log | where { $_ -match "Distribution" }
+$distro = Get-Content ${testDirectory}\*_summary.log | where { $_ -match "Distribution" }
 $distro = $testInterface.Substring(14)
 
 #set number of columns in sar log file according to distribution
