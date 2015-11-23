@@ -473,6 +473,8 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
 done
 
+
+echo "TestInterface: ${SYNTH_NET_INTERFACES[$__iterator]}"
 #
 # Start iPerf3 server instances
 #
