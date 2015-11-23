@@ -431,6 +431,16 @@ redhat_7)
         # Install gcc which is required to build iperf3
         zypper --non-interactive install gcc
 
+        #Check if sysstat package is installed
+        command -v sar
+        if [ $? -ne 0 ]; then
+            msg="Error: Sysstat (sar) is not installed. Please install it before running the performance tests!"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 82
+        fi
+
         LogMsg "Check iptables status on SLES"
         service SuSEfirewall2 status
         if [ $? -ne 3 ]; then

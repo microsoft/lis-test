@@ -124,10 +124,25 @@ if (-not $?) {
     return $False
 }
 
+#Get Test Interface and Distribution
+$testInterface = Get-Content ${testDirectory}\*ServerSideScript.log | where { $_ -match "TestInterface" }
+$testInterface = $testInterface.Substring(15)
+
+$distro = Get-Content ${testDirectory}\*_summary.log | where { $_ -match "Distribution" }
+$distro = $testInterface.Substring(14)
+
+#set number of columns in sar log file according to distribution
+if ($distro -like "suse_12") {
+    [int] $columns = 4
+}
+else {
+    [int] $columns = 5
+}
+
 $logPath = "${testDirectory}\root\${logFolder}"
 $resultFile = Join-Path $logPath "sar.log"
 $avgFile = Join-Path $logPath "sar-avg.log"
-$ethName = "eth1"
+$ethName = "$testInterface"
 
 If (Test-Path $resultFile)
 {
@@ -184,7 +199,7 @@ foreach ($conn in $connections)
         {
             $line = $line -Replace '\s+', ' '
             #write-host $line.Split(" ")
-            $netThrEth0 = $line.Split(" ")[4]
+            $netThrEth0 = $line.Split(" ")[$columns]
             if (($netThrEth0 -as [double]) -gt 100000)
             {
                 echo $netThrEth0 >> $resultFile
