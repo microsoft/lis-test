@@ -129,7 +129,7 @@ $testInterface = Get-Content ${testDirectory}\*ServerSideScript.log | where { $_
 $testInterface = $testInterface.Substring(15)
 
 $distro = Get-Content ${testDirectory}\*_summary.log | where { $_ -match "Distribution" }
-$distro = $testInterface.Substring(14)
+$distro = $distro.Substring(14)
 
 #set number of columns in sar log file according to distribution
 if ($distro -like "suse_12") {
@@ -226,7 +226,5 @@ foreach ($conn in $connections)
     write-host " $conn           $gAvg"
 }
 
-
 write-host "Average bandwith speeds were parsed succesfully and can be found in $testDirectory"
-
 return $true
