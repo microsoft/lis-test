@@ -468,13 +468,13 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
         SetTestStateFailed
         exit 10
     fi
-
+    echo "TestInterface: ${SYNTH_NET_INTERFACES[$__iterator]}"
     : $((__iterator++))
 
 done
 
 
-echo "TestInterface: ${SYNTH_NET_INTERFACES[$__iterator]}"
+
 #
 # Start iPerf3 server instances
 #
