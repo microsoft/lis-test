@@ -121,7 +121,6 @@ function CreateAttachVHDxDiskDrive( [string] $vmName, [string] $hvServer,
 {
     $vmDrive = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
     $lastSlash = $vmDrive[0].Path.LastIndexOf("\")
-
     if (-not $vhdPath)
     {
         $defaultVhdPath = $vmDrive[0].Path.Substring(0,$lastSlash)
@@ -136,7 +135,7 @@ function CreateAttachVHDxDiskDrive( [string] $vmName, [string] $hvServer,
     }
 
     $newVHDxSize = ConvertStringToUInt64 $defaultSize
-    $vhdxName = $defaultVhdPath + $vmName + "-" + $sectorSize + "-test.vhdx"
+    $vhdxName = $defaultVhdPath + $vmName + "-" + $defaultSize + "-" + $sectorSize + "-test.vhdx"
     if(Test-Path $vhdxName)
         {
             Remove-Item $vhdxName
@@ -211,48 +210,75 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 }
 
 $params = $testParams.TrimEnd(";").Split(";")
-foreach ($p in $params)
-{
+[int]$max = 0
+$v = $null
+foreach($p in $params){
     $fields = $p.Split("=")
-    $value = $fields[1].Trim()
-
-    switch ($fields[0].Trim())
-{
-    "Type"          { $type    = $fields[1].Trim() }
-    "SectorSize"    { $sectorSize    = $fields[1].Trim() }
-    "DefaultSize"   { $defaultSize  = $fields[1].Trim() }
-    "Path"      { $vhdPath = $fields[1].Trim() }
+    $value = $fields[0].Trim()
+    switch -wildcard ($value)
+    {
+    "Type?"          { $v = $value.substring(4) }
+    "SectorSize?"    { $v = $value.substring(10) }
+    "DefaultSize?"   { $v = $value.substring(11) }
     default     {}  # unknown param - just ignore it
     }
+    
+    if ([int]$v -gt $max -and $v -ne $null){
+        $max = [int]$v
+    }
 }
+$type = $null
+$sectorSize = $null
+$defaultSize = $null
+for($pair=0; $pair -le $max; $pair++){
+    $pair
+    foreach ($p in $params)
+    {
+        $fields = $p.Split("=")
+        $value = $fields[1].Trim()
+        switch  ($fields[0].Trim())
+        {
+          "Type$pair"         { $type    = $value }
+          "SectorSize$pair"    { $sectorSize   = $value }
+          "DefaultSize$pair"   { $defaultSize = $value }
+          "Type"         { $type    = $value }
+          "SectorSize"    { $sectorSize   = $value }
+          "DefaultSize"   { $defaultSize = $value }
+          default     {}  # unknown param - just ignore it
+        }
+    }
 
-# Source STOR_VHDXResize_Utils.ps1
-if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
-{
-    . .\setupScripts\STOR_VHDXResize_Utils.ps1
-}
-else
-{
-    "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
-    return $false
-}
+    # Source STOR_VHDXResize_Utils.ps1
+    if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
+    {
+        . .\setupScripts\STOR_VHDXResize_Utils.ps1
+    }
+    else
+    {
+        "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
+        return $false
+    }
 
-# Check and create SCSI controller
-$sts = CheckCreateSCSIController $vmName $hvServer
-if (-not $sts[$sts.Length-1])
-{
-    "Error: Unable to create the SCSI controller"
-    return $retVal
-}
+    # Check and create SCSI controller
+    $sts = CheckCreateSCSIController $vmName $hvServer
+    if (-not $sts[$sts.Length-1])
+    {
+            "Error: Unable to create the SCSI controller"
+            return $retVal
+    }
 
-# Create and attach a new VHDx hard-disk
-$sts = CreateAttachVHDxDiskDrive $vmName $hvServer $type $sectorSize `
-                                 $defaultSize $vhdPath
+    if($type -and $sectorSize -and $defaultSize){
+        # Create and attach a new VHDx hard-disk
+        "Creating new vhd: $type $sectorSize $defaultSize"
+        $sts = CreateAttachVHDxDiskDrive $vmName $hvServer $type $sectorSize `
+                                         $defaultSize $vhdPath
 
-if (-not $sts[$sts.Length-1])
-{
-    Write-Output "Error: Failed to create the VHDx file or attach it"
-    return $retVal
+        if (-not $sts[$sts.Length-1])
+        {
+            Write-Output "Error: Failed to create the VHDx file or attach it"
+            return $retVal
+        }
+    } 
 }
 
 $retVal = $True
