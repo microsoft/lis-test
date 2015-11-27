@@ -159,7 +159,15 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
 
     if ($vm)
     {
-        write-host  "Cleanup: Deleting existing VM"
+        if (Get-VM -Name $vmName |  Where { $_.State -like "Running" })
+            {
+                Stop-VM $vmName -Force
+                if (-not $?) {
+                    Write-Host "Error: Unable to shut $vmName down in order to remove it!"
+                    return $False
+                }
+            
+        Write-Host "Cleanup: Deleting existing VM"
         Remove-VM $vmName -ComputerName $hvServer -Force
     }
 
