@@ -25,10 +25,6 @@
 # SCRIPT DESCRIPTION: 
 ################################################################
 
-ICA_TESTRUNNING="TestRunning"
-ICA_TESTCOMPLETED="TestCompleted"
-ICA_TESTABORTED="TestAborted"
-ICA_TESTFAILED="TestFailed"
 
 LogMsg()
 {
@@ -46,9 +42,8 @@ UpdateTestState()
 # Main script body
 #
 #######################################################################
+UpdateTestState "TestRunning"
 cd ~
-
-touch ~/steps.log
 
 dos2unix utils.sh
 
@@ -56,8 +51,8 @@ chmod +x utils.sh
 
 # Source utils.sh
 . utils.sh || {
-    echo "Error: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
+    LogMsg "Error: unable to source utils.sh!"
+    UpdateTestState "TestAborted" 
     exit 2
 }
 
@@ -71,3 +66,4 @@ chmod +x constants.sh
 
 msg=$(blockdev --getsize64 /dev/sdb)
 echo "$msg" > unPlug_summary.log
+UpdateTestState "TestCompleted" 

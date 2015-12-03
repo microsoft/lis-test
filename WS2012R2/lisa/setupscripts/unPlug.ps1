@@ -193,11 +193,6 @@ if (-not (Test-Path $rootDir)) {
 }
 cd $rootDir
 
-#
-# Remove second scsi controller from the vm 
-# .\setupScripts\Add-VHDXForResize.ps1 attaches the vhdx created to the vm
-#
-
 $numb = (Get-VMScsiController -VMName $vmName -ComputerName $hvServer).ControllerNumber.Count - 1
 $p = "scsi=" + $numb + ",1," + $type2 + "," + $sectorSize2
 $sts = setupScripts\RemoveVhdxHardDisk.ps1 -vmname $vmName -hvServer $hvServer -testParams $p

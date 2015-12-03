@@ -211,20 +211,20 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 
 $params = $testParams.TrimEnd(";").Split(";")
 [int]$max = 0
-$v = $null
+$setIndex = $null
 foreach($p in $params){
     $fields = $p.Split("=")
     $value = $fields[0].Trim()
     switch -wildcard ($value)
     {
-    "Type?"          { $v = $value.substring(4) }
-    "SectorSize?"    { $v = $value.substring(10) }
-    "DefaultSize?"   { $v = $value.substring(11) }
+    "Type?"          { $setIndex = $value.substring(4) }
+    "SectorSize?"    { $setIndex = $value.substring(10) }
+    "DefaultSize?"   { $setIndex = $value.substring(11) }
     default     {}  # unknown param - just ignore it
     }
     
-    if ([int]$v -gt $max -and $v -ne $null){
-        $max = [int]$v
+    if ([int]$setIndex -gt $max -and $setIndex -ne $null){
+        $max = [int]$setIndex
     }
 }
 $type = $null
