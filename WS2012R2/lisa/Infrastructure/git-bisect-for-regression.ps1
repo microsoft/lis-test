@@ -56,6 +56,19 @@
 #        /git-bisect-for-regression-params.ps1
 #        /TCUtils.ps1  #this can be found from https://github.com/LIS/lis-test/tree/master/WS2012R2/lisa/setupscripts/TCUtils.ps1
 ########################################################################
+function TestPort([String] $ipv4, [int] $port)
+{
+    $test = New-Object Net.Sockets.TcpClient
+    $test.Connect($ipv4,$port)
+    if($test.Connected)
+    {
+        return $true
+    }
+    else
+    {
+        return $false
+    }
+}
 
 function WaitVMState([String] $ipv4, [String] $sshKey, [string] $state )
 {
@@ -75,7 +88,7 @@ function WaitVMState([String] $ipv4, [String] $sshKey, [string] $state )
                 Write-Host "." -NoNewLine
                 
                 Start-Sleep -Seconds 5
-                $success = (Test-NetConnection -port 22 -ComputerName $ipv4 -InformationLevel Quiet)
+                $success = -not (TestPort $ipv4 22)
             }
             Write-Host "OK"
         }
@@ -91,7 +104,7 @@ function WaitVMState([String] $ipv4, [String] $sshKey, [string] $state )
                 Write-Host "." -NoNewLine
                 
                 Start-Sleep -Seconds 5
-                $success = (Test-NetConnection -port 22 -ComputerName $ipv4 -InformationLevel Quiet )     
+                $success = (TestPort $ipv4 22)
             }
             Write-Host "OK"
         }
@@ -201,9 +214,10 @@ function InitVmUp([String] $vmName, [String] $hvServer, [string] $checkpointName
         $continueLoop -= 2
     }
 
+    Write-Host "INFO : get ip for VM $vmName : $ipv4"
     #sleep for sshd to start
     $continueLoop = 300
-    While( (Test-NetConnection -port 22 -ComputerName $ipv4  -InformationLevel Quiet) -ne $true ) {      
+    While( ($continueLoop -gt 0) -and ( (TestPort $ipv4 22) -ne $true )) {      
         Write-Host "." -NoNewLine
         Start-Sleep -Seconds 2
         $continueLoop -= 2
@@ -329,7 +343,8 @@ while ($true)
     echo "mv ../$distro_build_script ."                  >> .\bisect-and-build.sh
     echo "./$distro_build_script > ../$log"              >> .\bisect-and-build.sh
     echo "echo BUILD_FINISHED > ../teststate.sig"          >> .\bisect-and-build.sh
-    echo "scp ../linux-image*.deb root@$client_VM_ip`: " >> .\bisect-and-build.sh
+    echo "scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ../linux-image*.deb root@$client_VM_ip`: " >> .\bisect-and-build.sh
+
         
     SendFileToVM     $server_VM_ip $sshKey ./const.sh              "const.sh" $true
     SendFileToVM     $server_VM_ip $sshKey $distro_build_script  $distro_build_script $true
