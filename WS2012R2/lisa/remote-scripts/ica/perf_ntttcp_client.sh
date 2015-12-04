@@ -23,7 +23,7 @@
 
 #######################################################################
 #
-# perf_iperf_panorama_client.sh
+# perf_ntttcp_client.sh
 #
 # Description:
 #     For the test to run you have to place the iperf tool package in the
@@ -33,14 +33,8 @@
 #   The sar utility must be installed, package named sysstat
 #
 # Parameters:
-#     IPERF_PACKAGE: the iperf3 tool package
 #     IPERF3_SERVER_IP: the ipv4 address of the server
-#     INDIVIDUAL_TEST_DURATION: the test duration of each iperf3 test
-#     CONNECTIONS_PER_IPERF3: how many iPerf connections will be created by iPerf3 client to a single iperf3 server
 #     SERVER_OS_USERNAME: the user name used to copy test signal file to server side
-#     TEST_SIGNAL_FILE: the signal file send by client side to sync up the number of test connections
-#     TEST_RUN_LOG_FOLDER: the log folder name. sar log and top log will be saved in this folder for further analysis
-#     IPERF3_TEST_CONNECTION_POOL: the list of iperf3 connections need to be tested
 #
 #######################################################################
 
@@ -49,13 +43,11 @@ ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
-LogMsg()
-{
+LogMsg() {
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
 
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
 
@@ -129,13 +121,6 @@ esac
 #
 # Make sure the required test parameters are defined
 #
-if [ "${IPERF_PACKAGE:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the IPERF_PACKAGE test parameter is missing"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 20
-fi
 
 if [ "${STATIC_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the STATIC_IP test parameter is missing"
@@ -168,44 +153,9 @@ if [ "${STATIC_IP2:="UNDEFINED"}" = "UNDEFINED" ]; then
     exit 20
 fi
 
-if [ "${INDIVIDUAL_TEST_DURATION:="UNDEFINED"}" = "UNDEFINED" ]; then
-    INDIVIDUAL_TEST_DURATION=600
-    msg="Error: the INDIVIDUAL_TEST_DURATION test parameter is missing and the default value will be used: ${INDIVIDUAL_TEST_DURATION}."
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
-if [ "${CONNECTIONS_PER_IPERF3:="UNDEFINED"}" = "UNDEFINED" ]; then
-    CONNECTIONS_PER_IPERF3=4
-    msg="Error: the CONNECTIONS_PER_IPERF3 test parameter is missing and the default value will be used: ${CONNECTIONS_PER_IPERF3}."
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
 if [ "${SERVER_OS_USERNAME:="UNDEFINED"}" = "UNDEFINED" ]; then
     SERVER_OS_USERNAME="root"
     msg="Warning: the SERVER_OS_USERNAME test parameter is missing and the default value will be used: ${SERVER_OS_USERNAME}."
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
-if [ "${TEST_SIGNAL_FILE:="UNDEFINED"}" = "UNDEFINED" ]; then
-    TEST_SIGNAL_FILE="~/iperf3.test.sig"
-    msg="Warning: the TEST_SIGNAL_FILE test parameter is missing and the default value will be used: ${TEST_SIGNAL_FILE}."
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
-if [ "${TEST_RUN_LOG_FOLDER:="UNDEFINED"}" = "UNDEFINED" ]; then
-    TEST_RUN_LOG_FOLDER="iperf3-client-logs"
-    msg="Warning: the TEST_RUN_LOG_FOLDER test parameter is is missing and the default value will be used:${TEST_RUN_LOG_FOLDER}"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
-if [ "${IPERF3_TEST_CONNECTION_POOL:="UNDEFINED"}" = "UNDEFINED" ]; then
-    IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024 2000 3000 6000)
-    msg="Warning: the IPERF3_TEST_CONNECTION_POOL test parameter is is missing and the default value will be used:(1 2 4 8 16 32 64 128 256 512 1024 2000 3000 6000)"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
 fi
@@ -278,43 +228,20 @@ done
 
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
-echo "iPerf package name        = ${IPERF_PACKAGE}"
 echo "iPerf client test interface ip           = ${STATIC_IP}"
 echo "iPerf server ip           = ${STATIC_IP2}"
 echo "iPerf server test interface ip        = ${IPERF3_SERVER_IP}"
-echo "individual test duration (sec)    = ${INDIVIDUAL_TEST_DURATION}"
-echo "connections per iperf3        = ${CONNECTIONS_PER_IPERF3}"
 echo "user name on server       = ${SERVER_OS_USERNAME}"
-echo "test signal file      = ${TEST_SIGNAL_FILE}"
-echo "test run log folder       = ${TEST_RUN_LOG_FOLDER}"
-echo "iperf3 test connection pool   = ${IPERF3_TEST_CONNECTION_POOL}"
 
-#
-# Extract the files from the IPerf tar package
-#
-tar -xzf ./${IPERF_PACKAGE}
-if [ $? -ne 0 ]; then
-    msg="Error: Unable extract ${IPERF_PACKAGE}"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 70
-fi
+git clone https://github.com/Microsoft/ntttcp-for-linux.git
 
 #
 # Get the root directory of the tarball
 #
-rootDir=`tar -tzf ${IPERF_PACKAGE} | sed -e 's@/.*@@' | uniq`
-if [ -z ${rootDir} ]; then
-    msg="Error: Unable to determine root directory if ${IPERF_PACKAGE} tarball"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 80
-fi
+rootDir="ntttcp-for-linux"
 
 LogMsg "rootDir = ${rootDir}"
-cd ${rootDir}
+cd ${rootDir}/src
 
 #
 # Distro specific setup
@@ -401,7 +328,7 @@ redhat_7)
         fi
     fi
 
-    LogMsg "Check iptables status on RHEL7"
+    LogMsg "Check iptables status on RHEL 7"
     service iptables status
     if [ $? -ne 3 ]; then
         iptables -F;
@@ -431,16 +358,6 @@ redhat_7)
         # Install gcc which is required to build iperf3
         zypper --non-interactive install gcc
 
-        #Check if sysstat package is installed
-        command -v sar
-        if [ $? -ne 0 ]; then
-            msg="Error: Sysstat (sar) is not installed. Please install it before running the performance tests!"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 82
-        fi
-
         LogMsg "Check iptables status on SLES"
         service SuSEfirewall2 status
         if [ $? -ne 3 ]; then
@@ -469,21 +386,9 @@ redhat_7)
 
 esac
 
-#
-# Build iperf
-#
-./configure
-if [ $? -ne 0 ]; then
-    msg="Error: ./configure failed"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 90
-fi
-
 make
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to build iperf"
+    msg="Error: Unable to build ntttcp"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -492,7 +397,7 @@ fi
 
 make install
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to install iperf"
+    msg="Error: Unable to install ntttcp"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -534,7 +439,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 done
 
 LogMsg "Copy files to server: ${STATIC_IP2}"
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_ntttcp_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
     msg="Error: Unable to copy test scripts to target server machine: ${STATIC_IP2}. scp command failed."
     LogMsg "${msg}"
@@ -542,18 +447,16 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 130
 fi
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 
-
 #
-# Start iPerf in server mode on the Target server side
+# Start ntttcp in server mode on the Target server side
 #
-LogMsg "Starting iPerf in server mode on ${STATIC_IP2}"
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo '~/perf_iperf_panorama_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
+LogMsg "Starting ntttcp in server mode on ${STATIC_IP2}"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo '~/perf_ntttcp_server.sh > ntttcp_ServerSideScript.log' | at now"
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to start iPerf3 server scripts on the target server machine"
+    msg="Error: Unable to start ntttcp server scripts on the target server machine"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -585,69 +488,43 @@ done
 
 if [ $wait_for_server -eq 0 ] ;
 then
-    msg="Error: iperf3 server script has been triggered but not iperf3 are not in running state within ${wait_for_server} seconds."
+    msg="Error: ntttcp server script has been triggered but are not in running state within ${wait_for_server} seconds."
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 135
 else
-    LogMsg "iPerf3 servers are ready."
+    LogMsg "ntttcp servers are ready."
 fi
 #
-# Start iPerf3 client instances
+# Start ntttcp client instances
 #
-LogMsg "Starting iPerf3 in client mode"
+LogMsg "Starting ntttcp in client mode"
 
-i=0
-mkdir ./${TEST_RUN_LOG_FOLDER}
-while [ "x${IPERF3_TEST_CONNECTION_POOL[$i]}" != "x" ]
-do
-    port=8001
-    echo "================================================="
-    echo "Running Test: ${IPERF3_TEST_CONNECTION_POOL[$i]}"
-    echo "================================================="
+ntttcp -s${IPERF3_SERVER_IP} > ntttcp-for-linux.log 2>&1
+if [ $? -ne 0 ]; then
+    msg="Error: Unable to start ntttcp client scripts on the client machine"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 140
+fi
 
-    touch ${TEST_SIGNAL_FILE}
-    echo ${IPERF3_TEST_CONNECTION_POOL[$i]} > ${TEST_SIGNAL_FILE}
-    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${TEST_SIGNAL_FILE} $server_username@${IPERF3_SERVER_IP}:
-    sleep 7
+throughput=$(cat ntttcp-for-linux.log |grep throughput)
 
-    number_of_connections=${IPERF3_TEST_CONNECTION_POOL[$i]}
-    bash ./perf_capturer.sh $INDIVIDUAL_TEST_DURATION ${TEST_RUN_LOG_FOLDER}/$number_of_connections &
+if [ $? -ne 0 ]; then
+    msg="Error: Unable to find or create ntttcp log file"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 150
+fi
 
-    rm -rf the_generated_client.sh
-    echo "./perf_run_parallelcommands.sh " > the_generated_client.sh
-
-    while [ $number_of_connections -gt $CONNECTIONS_PER_IPERF3 ]; do
-        number_of_connections=$(($number_of_connections-$CONNECTIONS_PER_IPERF3))
-        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port -4 -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
-        port=$(($port + 1))
-    done
-
-    if [ $number_of_connections -gt 0 ]
-    then
-        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port -4 -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
-    fi
-
-    sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
-    chmod 755 the_generated_client.sh
-
-    cat ./the_generated_client.sh
-    ./the_generated_client.sh > /dev/null
-
-    i=$(($i + 1))
-
-    echo "Clients test just finished. Sleep 10 sec for next test..."
-    sleep 10
-done
+UpdateSummary "$throughput"
 
 # Test Finished. Collect logs, zip client side logs
-zip -r iPerf3_Client_Logs.zip ~/${TEST_RUN_LOG_FOLDER}
 # Get logs from server side
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}' | at now"
-sleep 20
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/ntttcp_ServerSideScript.log ~/ntttcp_ServerSideScript.log
 
 UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"
@@ -655,7 +532,6 @@ UpdateSummary "Kernel: $(uname -r)"
 #
 # If we made it here, everything worked
 #
-
 #Shut down dependency VM
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'init 0' | at now"
 if [ $? -ne 0 ]; then

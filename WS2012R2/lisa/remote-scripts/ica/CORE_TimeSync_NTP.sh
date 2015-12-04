@@ -294,10 +294,18 @@ elif is_ubuntu ; then
     fi
 
 elif is_suse ; then
-    service ntpd restart
+    #In SLES 12 service name is ntpd, in SLES 11 is ntp
+    os_RELEASE=$(echo $os_RELEASE | sed -e 's/^\(.\{2\}\).*/\1/')
+    if  [ $os_RELEASE -eq 11 ]; then
+        srv="ntp"
+    else
+        srv="ntpd"
+    fi
+
+    service $srv restart
     if [[ $? -ne 0 ]]; then
         LogMsg "NTP is not installed. Trying to install ..."
-        zypper install ntp -y
+        zypper --non-interactive install ntp
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to install ntp. Aborting"
             UpdateTestState $ICA_TESTABORTED
@@ -306,7 +314,7 @@ elif is_suse ; then
         LogMsg "NTP installed succesfully!"
     fi
 
-    service ntpd stop
+    service $srv stop
 
     # Edit NTP Server config and set the timeservers
     sed -i 's/^server.*/ /g' /etc/ntp.conf
@@ -331,7 +339,7 @@ elif is_suse ; then
     fi
 
     # Restart NTP service
-    service ntpd restart
+    service $srv restart
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to restart ntpd. Aborting"
         UpdateTestState $ICA_TESTABORTED
@@ -358,8 +366,12 @@ secondsToRun=1800
 stopTest=$(( $(date +%s) + secondsToRun )) 
 
 while [ $isOver == false ]; do
-    # loopinfo returns the offset between the ntp server and internal clock
-    delay=$(ntpdc -c loopinfo | awk 'NR==1 {print $2}')
+    # 'ntpq -c rl' returns the offset between the ntp server and internal clock
+    delay=$(ntpq -c rl | grep offset= | awk -F "=" '{print $3}' | awk '{print $1}')
+    delay=$(echo $delay | sed s'/.$//')
+
+    # Transform from milliseconds to seconds
+    delay=$(echo $delay 1000 | awk '{ print $1/$2 }')
 
     # Using awk for float comparison
     check=$(echo "$delay $maxdelay" | awk '{if ($1 < $2) print 0; else print 1}')

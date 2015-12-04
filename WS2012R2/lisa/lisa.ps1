@@ -863,7 +863,7 @@ function RunTests ([String] $xmlFilename )
     $lisaTestResult = $true
     foreach($vm in $xmlConfig.config.VMs.vm)
     {
-        if ($vm.testCaseResults -ne "Success")
+        if ($vm.individualResults.Contains("0"))
         {
             $lisaTestResult = $false
             break
@@ -914,7 +914,7 @@ if ( $help)
     exit 0
 }
 
-$retVal = 0
+$lisaExitCode = 0
 
 switch ($cmdVerb)
 {
@@ -923,35 +923,27 @@ switch ($cmdVerb)
         
         # RunTests() (which calls RunICTests() in stateEngine.ps1) may return an array of results. 
         # we need to check the last one which is the final
-        if($sts.Count -gt 1)
+        if (!$sts[-1])
         {
-            $returnCode = $sts[$sts.Count -1]
-        }
-        else
-        {
-            $returnCode = $sts
-        }
-        if (! $returnCode)
-        {
-            $retVal = 2
+            $lisaExitCode = 2
         }
     }
 "validate" {
         $sts = ValidateXmlFile $cmdNoun
         if (! $sts)
         {
-            $retVal = 3
+            $lisaExitCode = 3
         }
     }
 "help" {
         Usage
-        $retVal = 0
+        $lisaExitCode = 0
     }
 default    {
         if ($cmdVerb.Length -eq 0)
         {
             Usage
-            $retVal = 0
+            $lisaExitCode = 0
         }
         else
         {
@@ -961,5 +953,5 @@ default    {
     }
 }
 
-LogMsg 0 "Test will exit with error code $retVal"
-exit $retVal
+LogMsg 0 "Test will exit with error code $lisaExitCode"
+exit $lisaExitCode

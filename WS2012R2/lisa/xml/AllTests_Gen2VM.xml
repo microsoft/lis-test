@@ -97,6 +97,8 @@
             <suiteTest>JumboFrame</suiteTest>
             <suiteTest>NetworkMode</suiteTest>
 
+            <suiteTest>IPInjection</suiteTest>
+
             <suiteTest>SecureBootBasic</suiteTest>
             <suiteTest>SecureBootMigrateVM</suiteTest>
             <suiteTest>SecureBootBasicVSSBackup</suiteTest>
@@ -122,11 +124,16 @@
             <suiteTest>FCOPY_overwrite</suiteTest>
             <suiteTest>FCOPY_large_file</suiteTest>
             <suiteTest>FCOPY_non_ascii</suiteTest>
+            <suiteTest>FCOPY_repeat</suiteTest>
 
             <suiteTest>Stress_IOzone</suiteTest>
             <suiteTest>Test50TimesReboot</suiteTest>
             <suiteTest>Sysbench</suiteTest>
             <suiteTest>LTPBasic</suiteTest>
+
+            <suiteTest>Crash_single_core</suiteTest>
+            <suiteTest>Crash_SMP</suiteTest>
+            <suiteTest>Crash_NMI</suiteTest>
 
             <suiteTest>FC_disks_detection</suiteTest>
             <suiteTest>FC_stressTest</suiteTest>
@@ -444,6 +451,59 @@
         </testparams>
         </test>
 
+     <!-- kdump tests -->
+    <test>
+        <testName>Crash_single_core</testName>
+        <setupScript>
+            <file>setupscripts\ChangeCPU.ps1</file>
+            <file>setupScripts\SetVMMemory.ps1</file>
+        </setupScript>
+        <testScript>setupScripts\kdump.ps1</testScript>
+        <testParams>
+            <!-- for Ubuntu use min 384M -->
+            <param>crashkernel=256M@128M</param>
+            <param>TC_COVERED=KDUMP-01</param>
+            <param>VCPU=1</param>
+            <param>VMMemory=4GB</param>
+        </testParams>
+        <timeout>600</timeout>
+    </test>
+    
+    <test>
+        <testName>Crash_SMP</testName>
+        <setupScript>
+            <file>setupscripts\ChangeCPU.ps1</file>
+            <file>setupScripts\SetVMMemory.ps1</file>
+        </setupScript>
+        <testScript>setupscripts\kdump.ps1</testScript>
+        <testParams>
+            <!-- for Ubuntu use min 384M -->
+            <param>crashkernel=256M@128M</param>
+            <param>TC_COVERED=KDUMP-02</param>
+            <param>VCPU=2</param>
+            <param>VMMemory=2GB</param>
+        </testParams>
+        <timeout>600</timeout>
+    </test>
+
+    <test>
+        <testName>Crash_NMI</testName>
+        <setupScript>
+            <file>setupscripts\ChangeCPU.ps1</file>
+            <file>setupScripts\SetVMMemory.ps1</file>
+        </setupScript>
+        <testScript>setupscripts\kdump.ps1</testScript>
+        <testParams>
+            <!-- for Ubuntu use min 384M -->
+            <param>crashkernel=384M</param>
+            <param>TC_COVERED=KDUMP-03</param>
+            <param>VCPU=3</param>
+            <param>VMMemory=3GB</param>
+            <param>NMI=1</param>
+        </testParams>
+        <timeout>600</timeout>
+    </test>
+        
      <!-- NET_Tests -->
 
     <test>
@@ -716,6 +776,19 @@
         <files>remote-scripts/ica/NET_OPERSTATE.sh,remote-scripts/ica/utils.sh</files>
         <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
         <timeout>800</timeout>
+    </test>
+
+	<test>
+        <testName>IPInjection</testName>
+        <setupScript>
+            <file>setupscripts\RevertSnapshot.ps1</file>
+        </setupScript>
+        <testParams>
+            <param>TC_COVERED=NET_LIVEMIG-09</param>
+        </testParams>
+        <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh</files>
+        <timeout>600</timeout>
     </test>
 
     <!-- The following test requires a Gen 2 VM -->
@@ -1762,6 +1835,23 @@
         </testParams>
         <noReboot>True</noReboot>
     </test>
+
+	<test>
+		<testName>FCOPY_repeat</testName>
+		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
+		<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
+		<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+		<timeout>1200</timeout>
+		<testParams>
+			<param>TC_COVERED=FCopy-06</param>
+            <param>Type=Fixed</param>
+            <param>SectorSize=512</param>
+            <param>DefaultSize=3GB</param>
+            <!--Make sure DefaultSize is equal or bigger than FileSize-->
+			<param>FileSize=2GB</param>
+		</testParams>
+		<noReboot>False</noReboot>
+	</test>
 
 <!-- FC Testing -->
 

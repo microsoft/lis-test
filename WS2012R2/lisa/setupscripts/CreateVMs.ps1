@@ -19,11 +19,9 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     
-
 .Description
     For a VM to be created, the VM definition in the .xml file must
    include a hardware section.  The <parentVhd> and at least one
@@ -39,7 +37,6 @@
 
    If a VM with the same name already exists on the HyperV
    server, the VM will be deleted.
-
 
 .Parameter testParams
     Tag definitions:
@@ -79,14 +76,23 @@
                                       MAC address will be assigned to the
                                       new NIC. Otherwise a dynamic MAC is used.
 
+       <imageStoreDir> A directory to locate the parentVhd, can be either a UNC or local path
+
+       <generation>  Set to 1 to create a gen 1 VM, set to 2 to create a gen 2 VM. If nothing
+                     is specified, it will use gen 1.
+
+       <secureBoot>  Define whether to enable secure boot on gen 2 VMs. Set to "true" or "false".
+                     If VM is gen 1 or if not specified, this will be false.
 
 .Example
    Example VM definition with a hardware section:
+   <global>
+       <imageStoreDir>\\uncpath\imageStore</imageStoreDir>
    <vm>
-       <hvServer>nmeier2</hvServer>
-       <vmName>Nick1</vmName>
+       <hvServer>hvServer</hvServer>
+       <vmName>VMname</vmName>
        <ipv4>1.2.3.4</ipv4>
-       <sshKey>rhel5_id_rsa.ppk</sshKey>
+       <sshKey>pki_id_rsa.ppk</sshKey>
        <tests>CheckLisInstall, Hearbeat</tests>
        <hardware>
            <create>true</create>
@@ -95,13 +101,14 @@
            <parentVhd>D:\HyperV\ParentVHDs\Fedora13.vhd</parentVhd>
            <nic>Legacy,InternalNet</nic>
            <nic>VMBus,ExternalNet</nic>
+           <generation>1</generation>
+           <secureBoot>false</secureBoot>
        </hardware>
    </vm>
     
 #>
 
 param([String] $xmlFile)
-
 
 #######################################################################
 #
@@ -136,7 +143,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     return $fileInfo
 }
 
-
 #######################################################################
 #
 # DeleteVmAndVhd()
@@ -153,7 +159,16 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
 
     if ($vm)
     {
-        write-host  "deleting the VM"
+        if (Get-VM -Name $vmName -ComputerName $hvServer |  Where { $_.State -like "Running" })
+            {
+                Stop-VM $vmName -ComputerName $hvServer -Force
+                if (-not $?) {
+                    Write-Host "Error: Unable to shut $vmName down in order to remove it!"
+                    return $False
+                }
+            }
+            
+        Write-Host "Cleanup: Deleting existing VM"
         Remove-VM $vmName -ComputerName $hvServer -Force
     }
 
@@ -170,7 +185,6 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     }
 }
 
-
 #######################################################################
 #
 # CheckRequiredParameters()
@@ -181,7 +195,7 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
 #    they are valid values.
 #
 #######################################################################
-function CheckRequiredParameters([System.Xml.XmlElement] $vm)
+function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
 {
     #
     # Make sure the required tags are present
@@ -195,12 +209,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
     if (-not $vm.hvServer)
     {
         "Error: VM $($vm.vmName) is missing a hvServer tag"
-        return $False
-    }
-
-    if (-not $vm.hardware.parentVhd)
-    {
-        "Error: VM $($vm.vmName) is missing a parentVhd tag"
         return $False
     }
     
@@ -236,6 +244,11 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
         if (-not ([System.IO.Path]::IsPathRooted($parentVhd)) )
         {
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            if ($xmlData.Config.global.imageStoreDir)
+            {
+                $vhdDir = $xmlData.Config.global.imageStoreDir
+            }
+
             $parentVhd = Join-Path $vhdDir $parentVhd
         }
 
@@ -269,12 +282,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             Write-Error "Error: The importVM xml file does not exist, or cannot be accessed"
             return $False
         }
-    }
-    else
-    {
-        Write-Error "Error: The hardware section does not contain a <parentVhd> or a <importVM> attribute"
-        Write-Error "       You must provide one or the either, but not both"
-        return $False
     }
      
     $dataVhd = $vm.hardware.DataVhd
@@ -360,7 +367,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             2   {   $mbMemSize = $matches[1] }
             3   {   $mbMemSize = $matches[1]
                     if ($matches[2] -eq "GB" ) {
-                        $mbMemSize = ([int] $matches[1]) * 1KB
+                        $mbMemSize = ([uint64] $matches[1]) * 1KB
                     }
                 }
             default {
@@ -399,6 +406,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
             }
             
             $memInMB = $totalMemory / 1MB
+            $mbMemSize = [uint64]$mbMemSize
             if ($mbMemSize -gt $memInMB)
             {
                 Write-Warning "Warn : The memSize for VM ${vmName} is larger than the HyperV servers physical memory. memSize set to the default size of 512 MB"
@@ -503,7 +511,6 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm)
     return $validNicFound
 }
 
-
 #######################################################################
 #
 # CreateVM()
@@ -535,19 +542,37 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
     # present and valid
     #
     # Use the @() operator to force the return value to be an array
-    $dataValid = @(CheckRequiredParameters $vm)
+    $dataValid = @(CheckRequiredParameters $vm $xmlData)
     if ($dataValid[ $dataValid.Length - 1] -eq "True")
     {
         #
         # Create the VM
         #
-        Write-host "Required Parameters check done creating VM"
+        Write-host "Required parameters check done, creating VM..."
         
-        $newVm = New-VM -Name $vmName -ComputerName $hvServer
+        $vmGeneration = 1
+        if ($vm.hardware.generation) { $vmGeneration = [int16]$vm.hardware.generation }
+
+        $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
         if ($null -eq $newVm)
         {
             Write-Error "Error: Unable to create the VM named $($vm.vmName)."
             return $false
+        }
+
+        #
+        # Disable secure boot on VM unless explicitly told to enable it on Gen2 VMs
+        #
+        if (($newVM.Generation -eq 2))
+        {
+            if ($vm.hardware.secureBoot -eq "true")
+            {
+                Set-VMFirmware -VM $newVm -EnableSecureBoot On
+            }
+            else
+            {
+                Set-VMFirmware -VM $newVm -EnableSecureBoot Off
+            }
         }
           
         #
@@ -573,17 +598,42 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if (-not ([System.IO.Path]::IsPathRooted($parentVhd)))
         {
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            if ($xmlData.Config.global.imageStoreDir)
+            {
+                $vhdDir = $xmlData.Config.global.imageStoreDir
+            }
+
+            # If no specific VHD file is specified, then we either find the latest image as described by a metadata file
+            # Or we find the last written file
+            if (!$parentVhd)
+            {
+                $latestFile = Join-Path $vhdDir "latest"
+                if (Test-Path $latestFile)
+                {
+                    $parentVhd = Get-Content $latestFile
+                }
+                else
+                {
+                    $parentVhd = $(Get-ChildItem $vhdDir | Where-Object { $_.Extension -eq ".vhd" -or $_.Extension -eq ".vhdx"} | Sort LastWriteTime | Select -Last 1).Name
+                }
+            }
+
             $parentVhd = Join-Path $vhdDir $parentVhd
         }
 
-        # If parent Vhd is remote, copy it to local VHD directory
+            # If parent VHD is remote, copy it to local VHD directory
         $uriPath = New-Object -TypeName System.Uri -ArgumentList $parentVhd
         if ($uriPath.IsUnc)
         {
+            $extension = (Get-Item "${parentVhd}").Extension
+
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
-            $dstPath = Join-Path $vhdDir (Get-Item $parentVhd).Name 
-            Write-Host "Copying parent vhd from $parentVhd to $dstPath"
-            Copy-Item -Path $parentVhd -Destination $dstPath -Force
+            $dstPath = Join-Path $vhdDir "${vmName}${extension}"
+            $dstDrive = $dstPath.Substring(0,1)
+            $dstlocalPath = $dstPath.Substring(3)
+            $dstPathNetwork = "\\${hvServer}\${dstDrive}$\${dstlocalPath}"
+            Write-Host "Copying parent vhd from $parentVhd to $dstPathNetwork"
+            Copy-Item -Path $parentVhd -Destination $dstPathNetwork -Force
             $parentVhd = $dstPath
         }
         $vhdFilename = $parentVhd
@@ -593,13 +643,11 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         {
             #
             # Create differencing boot disk.
-            # If the parentVhd is an Absolute path, it will
-            # be use as is. If parentVhd is a relative path,
-            # then prepent the HyperV servers default VHD
-            # directory.
+            # If the parentVhd is an Absolute path, it will be use as is. 
+            # If parentVhd is a relative path, then prepent the HyperV servers default VHD directory.
             #
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
-            $vhdName = "${vmName}.vhdx"
+            $vhdName = "${vmName}_diff.vhdx"
             $vhdFilename = Join-Path $vhdDir $vhdName
 
             #
@@ -640,7 +688,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
 
         #
-        # Attach the .vhd file to the drive
+        # If a data disk was specified...
         #
         $Error.Clear() 
 
@@ -691,7 +739,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 $networkName = $tokens[1].Trim()
 
                 $legacyNIC = $False
-                if ($nicType -eq "Legacy")
+                if ($newVm.Generation -eq 1 -and $nicType -eq "Legacy")
                 {
                     $legacyNIC = $True
                 }
@@ -708,7 +756,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
                         if ($macAddress.Length -eq 12)
                         {
-                            Set-VMNetworkAdapter -VMNetworkAdapter $newNic -MAC $macAddress -ComputerName $hvServer
+                            Set-VMNetworkAdapter -VMNetworkAdapter $newNic -StaticMAC $macAddress
                         }
                         else
                         {
@@ -735,7 +783,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             } 
         }
         
-        Write-Host "Vm Created successfully"
+        Write-Host "Info: VM created successfully"
         $retVal = $True       
     }
 
@@ -745,13 +793,11 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
     return $retVal
 }
 
-
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 $exitStatus = 1
 
 if (! $xmlFile)
@@ -801,6 +847,11 @@ foreach ($vm in $xmlData.Config.VMs.VM)
     {
         write-host "Creating VM"
         $vmCreateStatus = CreateVM $vm $xmlData
+
+        if (-not $vmCreateStatus)
+        {
+            exit $exitStatus
+        }
     }
     else
     {

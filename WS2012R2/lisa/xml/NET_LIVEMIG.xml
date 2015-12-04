@@ -54,6 +54,7 @@
                 <suiteTest>MultiCPU2_QuickMig</suiteTest>
                 <suiteTest>MultiCPU3_QuickMig</suiteTest>
                 <suiteTest>MultiCPU4_QuickMig</suiteTest>
+                <suiteTest>IPInjection</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -186,18 +187,6 @@
             </testparams>
         </test>
         <test>
-            <testName>MultiCPU3_LiveMig</testName>
-            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
-            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <testparams>
-                <param>VCPU=3</param>
-                <param>MigrationType=Live</param>
-                <param>TC_COVERED=NET_LIVEMIG-08a</param>
-            </testparams>
-        </test>
-        <test>
             <testName>MultiCPU4_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
@@ -205,6 +194,18 @@
             <onError>Continue</onError>
             <testparams>
                 <param>VCPU=4</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-08a</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU6_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VCPU=6</param>
                 <param>MigrationType=Live</param>
                 <param>TC_COVERED=NET_LIVEMIG-07b</param>
             </testparams>
@@ -245,13 +246,25 @@
                 <param>TC_COVERED=NET_LIVEMIG-08c</param>
             </testparams>
         </test>
+	<test>
+            <testName>IPInjection</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>TC_COVERED=NET_LIVEMIG-09</param>
+            </testParams>
+            <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <timeout>600</timeout>
+        </test>
     </testCases>
     <VMs>
         <vm>
             <hvServer>HYPERV_SERVER</hvServer>
             <vmName>VM_NAME</vmName>
             <os>Linux</os>
-            <ipv4>255.255.255.255</ipv4>
+            <ipv4></ipv4>
             <sshKey>YOUR_KEY.ppk</sshKey>
             <suite>LiveMigration</suite>
         </vm>

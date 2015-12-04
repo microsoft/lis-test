@@ -205,15 +205,7 @@ dbgprint 3 "  REPOSITORY_SERVER = ${REPOSITORY_SERVER}"
 dbgprint 3 "  REPOSITORY_PATH   = ${REPOSITORY_PATH}"
 dbgprint 3 ""
 
-#
-# Delete old kernel source tree if it exists.
-# This should not be needed, but check to make sure
-#
 if [ ! ${ROOTDIR} ]; then
-    #dbgprint 1 "The ROOTDIR variable is not defined."
-    #dbgprint 1 "aborting the test."
-    #UpdateTestState "TestAborted"
-
     # Try to extract the root directory from the tarball
     ROOTDIR=`tar -tvjf ${TARBALL} | head -n 1 | awk -F " " '{print $6}' | awk -F "/" '{print $1}'`
     if [ ! -n $ROOTDIR ]; then
@@ -222,6 +214,7 @@ if [ ! ${ROOTDIR} ]; then
         exit 10
     fi
 fi
+
 # adding check for summary.log
 if [ -e ~/summary.log ]; then
     dbgprint 1 "Cleaning up previous copies of summary.log"
@@ -251,6 +244,11 @@ dbgprint 1 "Converting the files in the ica director to unix EOL"
 dos2unix ica/*
 dos2unix bin/*
 
+# set the execute bit on any downloade files we may run
+dbgprint 1 "Setting execute bit on files in the ica and bin directories"
+chmod 755 ica/*
+chmod 755 bin/*
+
 #
 if is_fedora ; then
     yum install openssl-devel -y
@@ -268,11 +266,6 @@ elif is_suse ; then
     #If distro is SLES we need to install soime packages first
     echo "Nothing to do."
 fi
-# set the execute bit on any downloade files we may run
-#
-dbgprint 1 "Setting execute bit on files in the ica and bin directories"
-chmod 755 ica/*
-chmod 755 bin/*
 
 #
 # Copy the tarball from the repository server
@@ -369,8 +362,10 @@ else
 	dbgprint 3 "Disabling KERNEL_PREEMPT_VOLUNTARY in ${CONFIG_FILE}"
 	# On this first this is a workaround for known bug that makes kernel lockup once the bug is fixed we can remove this in PS bug ID is 124 and 125
 	sed --in-place -e s:"CONFIG_PREEMPT_VOLUNTARY=y":"# CONFIG_PREEMPT_VOLUNTARY is not set": ${CONFIG_FILE}
-
-
+    	
+    	# Disabling staging drivers, can cause the linux-next tree to fail to compile due to the new features added
+	# Staging drivers are not required for LIS testing in this case.
+    	sed --in-place -e s:"CONFIG_STAGING=y":"# CONFIG_STAGING is not set": ${CONFIG_FILE}
 
 	#
 	# Enable Ext4, Reiser support (ext3 is enabled by default)
@@ -397,13 +392,12 @@ else
     sed --in-place -e s:"CONFIG_XFS_FS=y":"# CONFIG_XFS_FS is not set": ${CONFIG_FILE}
 
 	yes "" | make oldconfig
-
 fi
 
 #
 # Build the kernel
 #
-dbgprint 1 "Building the kernel."
+dbgprint 1 "Building the kernel..."
 proc_count=$(cat /proc/cpuinfo | grep --count processor)
 if [ $proc_count -eq 1 ]; then
 	make
@@ -414,13 +408,13 @@ fi
 
 sts=$?
 if [ 0 -ne ${sts} ]; then
-	    dbgprint 1 "Kernel make failed: ${sts}"
-	    dbgprint 1 "Aborting test."
-	    UpdateTestState "TestAborted"
-	    UpdateSummary "Make: Failed"
-	    exit 110
+	dbgprint 1 "Kernel make failed: ${sts}"
+	dbgprint 1 "Aborting test."
+	UpdateTestState "TestAborted"
+	UpdateSummary "Make: Failed"
+	exit 110
 else
-		UpdateSummary "make: Success"
+	UpdateSummary "make: Success"
 fi
 
 #
@@ -429,26 +423,25 @@ fi
 dbgprint 1 "Building the kernel modules."
 if [ $proc_count -eq 1 ]; then
 	make modules_install
-
 else
 	make modules_install -j $((proc_count+1))
 fi
 
 sts=$?
 if [ 0 -ne ${sts} ]; then
-	    dbgprint 1 "Kernel make failed: ${sts}"
-	    dbgprint 1 "Aborting test."
-	    UpdateTestState "TestAborted"
-	    UpdateSummary "make modules_install: Failed"
-	    exit 110
+	dbgprint 1 "Kernel make failed: ${sts}"
+	dbgprint 1 "Aborting test."
+	UpdateTestState "TestAborted"
+	UpdateSummary "make modules_install: Failed"
+	exit 110
 else
-		UpdateSummary "make modules_install: Success"
+	UpdateSummary "make modules_install: Success"
 fi
 
 #
 # Install the kernel
 #
-dbgprint 1 "Installing the kernel..."
+dbgprint 1 "Installing the new kernel..."
 
 # Adding support for parallel compilation on SMP systems.
 if [ $proc_count -eq 1 ]; then
@@ -459,20 +452,19 @@ fi
 
 sts=$?
 if [ 0 -ne ${sts} ]; then
-    echo "kernel build failed: ${sts}"
-    UpdateTestState "TestAborted"
+	echo "kernel build failed: ${sts}"
+	UpdateTestState "TestAborted"
 	UpdateSummary "make install: Failed"
-    exit 130
+	exit 130
 else
-		UpdateSummary "make install: Success"
+	UpdateSummary "make install: Success"
 fi
 
 cd ~
 dbgprint 3 "Saving version number of current kernel in oldKernelVersion.txt"
 uname -r > ~/oldKernelVersion.txt
 
-
-# Grub Modification
+# Grub changes for the new kernel
 grubversion=1
 if [ -e /boot/grub/grub.conf ]; then
         grubfile="/boot/grub/grub.conf"
@@ -481,11 +473,11 @@ elif [ -e /boot/grub/menu.lst ]; then
 elif [ -e /boot/grub2/grub.cfg ]; then
         grubversion=2
         grub2-mkconfig -o /boot/grub2/grub.cfg
-        grub2-set-default 0
+	grub2-set-default 0
 else
-        echo "grub v1 files does not appear to be installed on this system. it should use grub v2."
-        # the new kernel is the default one to boot next time
-        grubversion=2
+	echo "grub v1 files does not appear to be installed on this system. it should use grub v2."
+	# the new kernel is the default one to boot next time
+	grubversion=2
 fi
 
 if [ 1 -eq ${grubversion} ]; then
@@ -493,13 +485,10 @@ if [ 1 -eq ${grubversion} ]; then
     new_default_entry_num="0"
     # added
     sed --in-place=.bak -e "s/^default\([[:space:]]\+\|=\)[[:digit:]]\+/default\1$new_default_entry_num/" $grubfile
-    # Display grub configuration after our change
-    echo "Here are the new contents of the grub configuration file:"
-    cat $grubfile
 fi
 
 # Display grub configuration after our change
-echo "Here are the new contents of the grub configuration file:"
+echo "This is the new grub configuration file:"
 cat $grubfile
 
 #

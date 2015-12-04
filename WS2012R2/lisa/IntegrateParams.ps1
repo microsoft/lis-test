@@ -238,6 +238,11 @@ function ReplaceParameterizedTestParams([String] $paramXmlFile, [System.Xml.XmlD
             $label = $vm.role
         }
         UpdateParams $vm.childNodes $label
+
+        if ($vm.hardware)
+        {
+            UpdateParams $vm.hardware.childNodes "$label.hardware"
+        }
     }
 }
 

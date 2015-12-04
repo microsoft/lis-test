@@ -23,7 +23,7 @@
 
 #######################################################################
 #
-# perf_iperf_panorama_server.sh
+# perf_ntttcp_server.sh
 #
 # Description:
 #     For the test to run you have to place the iperf3 tool package in the
@@ -33,11 +33,7 @@
 #   The sar utility must be installed, package named sysstat
 #
 # Parameters:
-#     IPERF_PACKAGE: the iperf3 tool package
-#     INDIVIDUAL_TEST_DURATION: the test duration of each iperf3 test
-#     CONNECTIONS_PER_IPERF3: how many iPerf connections will be created by iPerf3 client to a single iperf3 server
 #     TEST_SIGNAL_FILE: the signal file send by client side to sync up the number of test connections
-#     TEST_RUN_LOG_FOLDER: the log folder name. sar log and top log will be saved in this folder for further analysis
 #
 #######################################################################
 
@@ -47,23 +43,19 @@ ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
-LogMsg()
-{
+LogMsg() {
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
 
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
-
 
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 cd ~
 UpdateTestState $ICA_TESTRUNNING
 LogMsg "Starting running the script"
@@ -94,7 +86,7 @@ UtilsInit
 # In case of error
 case $? in
     0)
-        #do nothing, init succeeded
+        # do nothing, init succeeded
         ;;
     1)
         LogMsg "Unable to cd to $LIS_HOME. Aborting..."
@@ -129,41 +121,6 @@ esac
 #
 # Make sure the required test parameters are defined
 #
-if [ "${IPERF_PACKAGE:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the IPERF_PACKAGE test parameter is missing"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 20
-fi
-
-if [ "${INDIVIDUAL_TEST_DURATION:="UNDEFINED"}" = "UNDEFINED" ]; then
-    INDIVIDUAL_TEST_DURATION=600
-    msg="Error: the INDIVIDUAL_TEST_DURATION test parameter is missing and the default value will be used: ${INDIVIDUAL_TEST_DURATION}."
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
-if [ "${CONNECTIONS_PER_IPERF3:="UNDEFINED"}" = "UNDEFINED" ]; then
-    CONNECTIONS_PER_IPERF3=4
-    msg="Error: the CONNECTIONS_PER_IPERF3 test parameter is missing and the default value will be used: ${CONNECTIONS_PER_IPERF3}."
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
-if [ "${TEST_SIGNAL_FILE:="UNDEFINED"}" = "UNDEFINED" ]; then
-    TEST_SIGNAL_FILE="~/iperf3.test.sig"
-    msg="Warning: the TEST_SIGNAL_FILE test parameter is missing and the default value will be used: ${TEST_SIGNAL_FILE}."
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
-if [ "${TEST_RUN_LOG_FOLDER:="UNDEFINED"}" = "UNDEFINED" ]; then
-    TEST_RUN_LOG_FOLDER="iperf3-server-logs"
-    msg="Warning: the TEST_RUN_LOG_FOLDER test parameter is is missing and the default value will be used:${TEST_RUN_LOG_FOLDER}"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
 
 #Get test synthetic interface
 declare __iface_ignore
@@ -233,38 +190,15 @@ done
 
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
-echo "iPerf package name		= ${IPERF_PACKAGE}"
-echo "individual test duration (sec)	= ${INDIVIDUAL_TEST_DURATION}"
-echo "connections per iperf3		= ${CONNECTIONS_PER_IPERF3}"
-echo "test signal file			= ${TEST_SIGNAL_FILE}"
-echo "test run log folder		= ${TEST_RUN_LOG_FOLDER}"
-
-#
-# Extract the files from the IPerf tar package
-#
-tar -xzf ./${IPERF_PACKAGE}
-if [ $? -ne 0 ]; then
-    msg="Error: Unable extract ${IPERF_PACKAGE}"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 70
-fi
+git clone https://github.com/Microsoft/ntttcp-for-linux.git
 
 #
 # Get the root directory of the tarball
 #
-rootDir=`tar -tzf ${IPERF_PACKAGE} | sed -e 's@/.*@@' | uniq`
-if [ -z ${rootDir} ]; then
-    msg="Error: Unable to determine iperf3's root directory"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 80
-fi
+rootDir="ntttcp-for-linux"
 
 LogMsg "rootDir = ${rootDir}"
-cd ${rootDir}
+cd ${rootDir}/src
 
 #
 # Distro specific setup
@@ -351,7 +285,7 @@ redhat_7)
         fi
     fi
 
-    LogMsg "Check iptables status on RHEL7"
+    LogMsg "Check iptables status on RHEL 7"
     service iptables status
     if [ $? -ne 3 ]; then
         iptables -F;
@@ -377,7 +311,7 @@ redhat_7)
     fi
     ;;
 suse_12)
-    LogMsg "Check iptables status on RHEL7"
+    LogMsg "Check iptables status on SLES 12"
     service SuSEfirewall2 status
     if [ $? -ne 3 ]; then
         iptables -F;
@@ -405,25 +339,16 @@ suse_12)
 esac
 
 #
-# Install gcc which is required to build iperf3
+# Install gcc which is required to build ntttcp
 #
 zypper --non-interactive install gcc
 
 #
-# Build iperf
+# Build ntttcp
 #
-./configure
-if [ $? -ne 0 ]; then
-    msg="Error: ./configure failed"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 90
-fi
-
 make
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to build iperf"
+    msg="Error: Unable to build ntttcp"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -432,7 +357,7 @@ fi
 
 make install
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to install iperf"
+    msg="Error: Unable to install ntttcp"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -452,13 +377,10 @@ fi
 cd ~
 
 # set static ips for test interfaces
-
 declare -i __iterator=0
 
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
-
     LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-
     CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $IPERF3_SERVER_IP $NETMASK
 
     if [ 0 -ne $? ]; then
@@ -466,64 +388,26 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
         LogMsg "$msg"
         UpdateSummary "$msg"
         SetTestStateFailed
-        exit 10
+        exit 120
     fi
 
-    echo "TestInterface: ${SYNTH_NET_INTERFACES[$__iterator]}"
     : $((__iterator++))
 
 done
 
-
-
 #
-# Start iPerf3 server instances
+# Start ntttcp server instances
 #
-LogMsg "Starting iPerf3 in server mode"
+LogMsg "Starting ntttcp in server mode"
 
 UpdateTestState $ICA_IPERF3RUNNING
-LogMsg "iperf3 server instances now are ready to run"
+LogMsg "ntttcp server instances are now ready to run"
 
-mkdir ${TEST_RUN_LOG_FOLDER}
-#default the parameter
-number_of_connections=0
-touch ${TEST_SIGNAL_FILE}
-echo 0 > ${TEST_SIGNAL_FILE}
-
-time=0
-while true; do
-    #once received a reset/start signal from client side, do the test
-    if [ -f ${TEST_SIGNAL_FILE} ];
-    then
-        number_of_connections=$(head -n 1 ${TEST_SIGNAL_FILE})
-        rm -rf ${TEST_SIGNAL_FILE}
-        echo "Reset iperf3 server for test. Connections: ${number_of_connections} ..."
-        pkill -f iperf3
-        sleep 1
-
-        echo "Start new iperf3 instances..."
-        number_of_iperf_instances=$((number_of_connections/CONNECTIONS_PER_IPERF3+8001))
-
-        for ((i=8001; i<=$number_of_iperf_instances; i++))
-        do
-            /root/${rootDir}/src/iperf3 -s -D -4 -p $i
-        done
-        x=$(ps -aux | grep iperf | wc -l)
-        echo "ps -aux | grep iperf | wc -l: $x"
-
-        mkdir ./${TEST_RUN_LOG_FOLDER}/$number_of_connections
-
-        sar -n DEV 1 ${INDIVIDUAL_TEST_DURATION} 2>&1 > ./${TEST_RUN_LOG_FOLDER}/$number_of_connections/sar.log &
-    fi
-
-    top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}' >> ./${TEST_RUN_LOG_FOLDER}/$number_of_connections/top.log
-    #ifstat eth0 | grep eth0 | awk '{print $6}' >> ifstatlog.log
-    if [ $(($time % 10)) -eq 0 ];
-    then
-        echo $(netstat -nat | grep ESTABLISHED | wc -l) >> ./${TEST_RUN_LOG_FOLDER}/$number_of_connections/connections.log
-    fi
-
-    sleep 1
-    time=$(($time + 1))
-    echo "$time"
-done
+ntttcp –r
+if [ $? -ne 0 ]; then
+    msg="Error: Unable to start ntttcp server scripts on the target server machine"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 130
+fi
