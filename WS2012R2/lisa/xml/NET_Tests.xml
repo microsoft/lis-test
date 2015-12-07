@@ -54,6 +54,7 @@
                 <suiteTest>NetworkMode</suiteTest>
                 <suiteTest>IPInjection</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
+                <suiteTest>Vxlan</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -351,6 +352,20 @@
         </test>
 
         <test>
+            <testName>Vxlan</testName>
+            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>STATIC_IP1=10.10.10.10</param>
+                <param>STATIC_IP2=10.10.10.20</param>
+                <param>NETMASK=255.255.255.0</param>
+            </testParams>
+            <testScript>setupscripts\Vxlan_Test.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
             <testName>OperState</testName>
              <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
@@ -418,6 +433,7 @@
             <sshKey>sshKey.ppk</sshKey>
             <testParams>
                 <param>VM2NAME=vm2Name</param>
+                <param>vm2ipv4=vm2ipv4</param>
                 <param>SSH_PRIVATE_KEY=identity_file</param>
                 <param>SnapshotName=ICABase</param>
             </testParams>
