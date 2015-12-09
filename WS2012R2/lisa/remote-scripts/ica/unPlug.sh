@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 ########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
@@ -35,7 +35,10 @@ UpdateTestState()
 {
     echo $1 > ~/state.txt
 }
-
+if [ -e ~/summary.log ]; then
+    LogMsg "Cleaning up previous copies of summary.log"
+    rm -rf ~/summary.log
+fi
 
 #######################################################################
 #
@@ -53,7 +56,7 @@ chmod +x utils.sh
 . utils.sh || {
     LogMsg "Error: unable to source utils.sh!"
     UpdateTestState "TestAborted" 
-    exit 2
+    exit 1
 }
 
 
@@ -67,3 +70,4 @@ chmod +x constants.sh
 msg=$(blockdev --getsize64 /dev/sdb)
 echo "$msg" > unPlug_summary.log
 UpdateTestState "TestCompleted" 
+exit 0

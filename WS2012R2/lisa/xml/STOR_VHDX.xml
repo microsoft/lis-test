@@ -18,7 +18,8 @@
         <suite>
             <suiteName>VHDx</suiteName>
             <suiteTests>
-                <suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>
+                <suiteTest>DiskHotPlugUnplug</suiteTest>
+                <!--<suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>
                 <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
                 <suiteTest>VHDx_IDE_0_1_Fixed</suiteTest>
                 <suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest>
@@ -35,16 +36,33 @@
                 <suiteTest>VHDx_4k_HotADD_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_3TB</suiteTest>
-                <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
+                <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>-->
                 <!-- The test case below requires a 64bit virtual machine -->
-                <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
+                <!--<suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>-->
                 <!-- The test case below requires a SSD disk -->
-                <suiteTest>TrimSupport</suiteTest>
+                <!--<suiteTest>TrimSupport</suiteTest>-->
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
+         <test>
+            <testName>DiskHotPlugUnplug</testName>
+            <testScript>setupscripts\unPlug.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/unPlug.sh</files>
+            <cleanupScript>setupscripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <setupScript>setupscripts\Add-VHDXForResize.ps1</setupScript>
+            <testparams>
+                <param>TC_COVERED=Something-01</param>
+                <param>Type1=Dynamic</param>
+                <param>SectorSize1=512</param>
+                <param>DefaultSize1=1GB</param>
+                <param>Type2=Dynamic</param>
+                <param>SectorSize2=512</param>
+                <param>DefaultSize2=2GB</param>
+            </testparams>  
+            <timeout>800</timeout>  
+        </test>
          <test>
             <testName>TrimSupport</testName>
             <testScript>SetupScripts\STOR_Trim_Check.ps1</testScript>
@@ -356,7 +374,7 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>VMname</vmName>
+            <vmName>vmName</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>key_id_rsa.ppk</sshKey>
