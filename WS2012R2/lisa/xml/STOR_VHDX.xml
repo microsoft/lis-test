@@ -19,7 +19,7 @@
             <suiteName>VHDx</suiteName>
             <suiteTests>
                 <suiteTest>DiskHotPlugUnplug</suiteTest>
-                <!--<suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>
+                <suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>
                 <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
                 <suiteTest>VHDx_IDE_0_1_Fixed</suiteTest>
                 <suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest>
@@ -38,9 +38,9 @@
                 <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_3TB</suiteTest>
                 <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>-->
                 <!-- The test case below requires a 64bit virtual machine -->
-                <!--<suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>-->
+                <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
                 <!-- The test case below requires a SSD disk -->
-                <!--<suiteTest>TrimSupport</suiteTest>-->
+                <suiteTest>TrimSupport</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -53,7 +53,7 @@
             <cleanupScript>setupscripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <setupScript>setupscripts\Add-VHDXForResize.ps1</setupScript>
             <testparams>
-                <param>TC_COVERED=Something-01</param>
+                <param>TC_COVERED=STOR-44</param>
                 <param>Type1=Dynamic</param>
                 <param>SectorSize1=512</param>
                 <param>DefaultSize1=1GB</param>
