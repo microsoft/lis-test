@@ -42,6 +42,7 @@
         <suite>
             <suiteName>iPerf3</suiteName>
             <suiteTests>
+                <suiteTest>ntttcp</suiteTest>
                 <suiteTest>iPerf3_Panorama</suiteTest>
             </suiteTests>
         </suite>
@@ -53,11 +54,11 @@
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_iperf_panorama_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
-            <files>Tools/iperf-3.0.5.tar.gz</files>
+            <files>Tools/iperf-3.1.1.tar.gz</files>
             <postTest>Infrastructure\Analyze-IperfResultsThroughputFromLinuxSar.ps1</postTest>
             <testParams>
                 <param>TC_COVERED=iperf_upstream</param>
-                <param>IPERF_PACKAGE=iperf-3.0.5.tar.gz</param>
+                <param>IPERF_PACKAGE=iperf-3.1.1.tar.gz</param>
                 <param>STATIC_IP=10.10.10.20</param>
                 <param>NETMASK=255.255.255.0</param>
                 <param>SERVER_OS_USERNAME=root</param>
