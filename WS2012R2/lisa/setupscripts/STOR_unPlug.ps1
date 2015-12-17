@@ -66,7 +66,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\unPlug.ps1 `
+    setupScripts\STOR_unPlug.ps1 `
     -vmName VM_NAME `
     -hvServer HYPERV_SERVER `
     -testParams "Type1=Dynamic;SectorSize1=512;DefaultSize1=5GB;Type2=Dynamic;SectorSize2=512;DefaultSize2=2GB"
@@ -271,13 +271,13 @@ if (-not $retVal)
 
     return $False
 }
-$retVal = SendCommandToVM $ipv4 $sshKey "chmod 755 ~/unPlug.sh"
+$retVal = SendCommandToVM $ipv4 $sshKey "chmod 755 ~/STOR_unPlug.sh"
 if (-not $retVal)
 {
     Write-Output "Error: Could not run command on VM"| Tee-Object -Append -file $summaryLog
     return $False
 }
-$retVal = SendCommandToVM $ipv4 $sshKey ". ~/unPlug.sh"
+$retVal = SendCommandToVM $ipv4 $sshKey ". ~/STOR_unPlug.sh"
 if (-not $retVal)
 {
     Write-Output "Error: Could not run command on VM" | Tee-Object -Append -file $summaryLog
