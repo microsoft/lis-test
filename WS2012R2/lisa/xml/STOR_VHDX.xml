@@ -154,8 +154,8 @@
 
          <test>
             <testName>VHDx_DiskHotPlugUnplug</testName>
-            <testScript>setupscripts\unPlug.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/unPlug.sh</files>
+            <testScript>setupscripts\STOR_unPlug.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/STOR_unPlug.sh</files>
             <cleanupScript>setupscripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <setupScript>setupscripts\Add-VHDXForResize.ps1</setupScript>
             <testparams>
