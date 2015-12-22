@@ -102,6 +102,9 @@ $ipv4 = $null
 # Name of second VM
 $vm2Name = $null
 
+# In case the dependency VM is on another server than the test VM
+$vm2Server = $null
+
 #IP assigned to test interfaces
 
 $tempipv4VM2 = $null
@@ -199,8 +202,8 @@ Write-Host "$vm2Server is the iPerf server's host"
 
 if (-not $vm2Server)
 {
-    $vm2Server = "localhost"
-    "vm2Server was set as localhost"
+    $vm2Server = $hvServer
+    "vm2Server was set as $hvServer"
 }
 
 $ipv4 = GetIPv4 $vmName $hvServer
