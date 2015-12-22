@@ -685,7 +685,7 @@ else
 	if ( Test-Path ".\setupScripts\NET_ADD_NIC_MAC.ps1")
 	{
 		# Make sure VM2 is shutdown
-		if (Get-VM -Name $vm2Name |  Where { $_.State -like "Running" })
+		if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -like "Running" })
 		{
 			Stop-VM $vm2Name -force
 
@@ -697,7 +697,7 @@ else
 
 			# wait for VM to finish shutting down
 			$timeout = 60
-			while (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Off" })
+			while (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Off" })
 			{
 				if ($timeout -le 0)
 				{
@@ -836,7 +836,7 @@ else
 # LIS Started VM1, so start VM2
 #
 
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
 	Start-VM -Name $vm2Name -ComputerName $hvServer
 	if (-not $?)
@@ -889,7 +889,7 @@ if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "Error: VM ${vm2Name} never started"
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -915,7 +915,7 @@ if (-not (Test-Path ".\remote-scripts\ica\utils.sh"))
 {
 	"Error: Unable to find remote-scripts\ica\utils.sh "
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -943,7 +943,7 @@ if (-not $retVal)
 {
 	"Failed sending file to VM!"
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -969,7 +969,7 @@ if (-not $retVal)
 {
 	"Failed to create Vlan Interface on vm $ipv4 for interface with mac $vm1MacAddress , by setting a static IP of $vm1StaticIP netmask $netmask and vlan ID $vlanID"
 
-Stop-VM -VMName $vm2name -force
+Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -997,7 +997,7 @@ if (-not $retVal)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1024,7 +1024,7 @@ if (-not $?)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1054,7 +1054,7 @@ if (-not $?)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1089,7 +1089,7 @@ if (-not $retVal)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1122,7 +1122,7 @@ if (-not $retVal)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1166,7 +1166,7 @@ if (-not $retVal)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1198,7 +1198,7 @@ if (-not $?)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1232,7 +1232,7 @@ if ($retVal)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1264,7 +1264,7 @@ if (-not $?)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1295,7 +1295,7 @@ if ($retVal)
 
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
 
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
     # if this script added the second NIC, then remove it unless the Leave_trail param was set.
     if ($scriptAddedNIC)
@@ -1322,7 +1322,7 @@ Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
 
 RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $badVlanId
 
-Stop-VM -VMName $vm2name -force
+Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
 # if this script added the second NIC, then remove it unless the Leave_trail param was set.
 if ($scriptAddedNIC)
