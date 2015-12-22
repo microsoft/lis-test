@@ -65,6 +65,7 @@ $ipv4       = $null
 $newGrowSize    = $null
 $newShrinkSize    = $null
 $sectorSize	= $null
+$DefaultSize = $null
 $rootDir    = $null
 $TC_COVERED = $null
 $TestLogDir = $null
@@ -122,6 +123,7 @@ foreach ($p in $params)
     "growSize"  { $newGrowSize = $fields[1].Trim() }
     "shrinkSize"       { $newShrinkSize = $fields[1].Trim() }
     "sectorSize"       { $sectorSize = $fields[1].Trim() }
+    "DefaultSize"   { $DefaultSize = $fields[1].Trim() }
     "rootDIR"   { $rootDir = $fields[1].Trim() }
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
@@ -163,8 +165,8 @@ $newVhdxShrinkSize = ConvertStringToUInt64 $newShrinkSize
 # Lun 0 on the controller has a .vhdx file attached.
 #
 "Info : Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
-$vhdxName = $vmName + "-" + $sectorSize + "-test"
-$vhdxDisks = Get-VMHardDiskDrive -VMName $vmName
+$vhdxName = $vmName + "-" + $DefaultSize + "-" + $sectorSize + "-test"
+$vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
 foreach ($vhdx in $vhdxDisks)
 {
@@ -202,7 +204,7 @@ if (-not $vhdPath.EndsWith(".vhdx") -and -not $vhdPath.EndsWith(".avhdx"))
 # Make sure there is sufficient disk space to grow the VHDX to the specified size
 #
 $deviceID = $vhdxInfo.Drive
-$diskInfo = Get-WmiObject -Query "SELECT * FROM Win32_LogicalDisk Where DeviceID = '${deviceID}'"
+$diskInfo = Get-WmiObject -Query "SELECT * FROM Win32_LogicalDisk Where DeviceID = '${deviceID}'" -ComputerName $hvServer
 if (-not $diskInfo)
 {
     "Error: Unable to collect information on drive ${deviceID}"

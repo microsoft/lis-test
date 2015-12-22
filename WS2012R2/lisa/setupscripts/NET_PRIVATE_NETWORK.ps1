@@ -565,7 +565,7 @@ $vm2testParam = "NIC=NetworkAdapter,$networkType,$networkName,$vm2MacAddress"
 if ( Test-Path ".\setupscripts\NET_ADD_NIC_MAC.ps1")
 {
     # Make sure VM2 is shutdown
-    if (Get-VM -Name $vm2Name |  Where { $_.State -like "Running" })
+    if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -like "Running" })
     {
         Stop-VM $vm2Name -force
 
@@ -577,7 +577,7 @@ if ( Test-Path ".\setupscripts\NET_ADD_NIC_MAC.ps1")
 
         # wait for VM to finish shutting down
         $timeout = 60
-        while (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Off" })
+        while (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Off" })
         {
             if ($timeout -le 0)
             {
@@ -658,7 +658,7 @@ else
 # LIS Started VM1, so start VM2
 #
 
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
     Start-VM -Name $vm2Name -ComputerName $hvServer
     if (-not $?)
@@ -814,7 +814,7 @@ if ($retVal)
 "Failed to ping (as expected)"
 
 "Stopping $vm2Name"
-Stop-VM -Name $vm2Name -force
+Stop-VM -Name $vm2Name -ComputerName $hvServer -force
 
 if (-not $?)
 {

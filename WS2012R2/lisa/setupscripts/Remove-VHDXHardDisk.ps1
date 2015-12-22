@@ -45,21 +45,21 @@
    <cleanupScript>SetupScripts\Remove-VhdxHardDisk.ps1</cleanupScript>
 
 
-  The  scripts will always pass the vmName, hvServer, and a string of testParams from the 
+  The  scripts will always pass the vmName, hvServer, and a string of testParams from the
 	test definition separated by semicolons.
 
 	Test params xml entry:
     <testParams>
 		<param>dynamic=True</param>
     <testParams>
-   
+
    Cleanup scripts need to parse the testParam string to find any
    parameters it needs.
 
 
    All setup and cleanup scripts must return a boolean ($true or $false)
   to indicate if the script completed successfully or not.
-  
+
 	.Parameter vmName
 		Name of the VM to remove disk from .
 
@@ -156,7 +156,7 @@ for($pair=0; $pair -le $max; $pair++){
   }
 
   $vhdxName = $vmName + "-" + $defaultSize + "-" + $sectorSize + "-test"
-  $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName
+  $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
   foreach ($vhdx in $vhdxDisks)
   {
@@ -172,10 +172,12 @@ for($pair=0; $pair -le $max; $pair++){
   			$error[0].Exception
   			return $retVal
   		}
-  		
+
   		$error.Clear()
   		"Info: Deleting vhdx file $vhdxPath"
-  		Remove-Item -Path $vhdxPath
+      $remoteDrive = $vhdxPath.Substring(0,1)
+      $remotePath = $vhdxPath.Substring(3)
+  		Remove-Item -Path "\\${hvServer}\${remoteDrive}$\${remotePath}"
   		if ($error.Count -gt 0)
   		{
   			"Error: Failed to delete VHDx File "

@@ -569,7 +569,7 @@ $vm2testParam = "NIC=NetworkAdapter,$networkType,$networkName,$vm2MacAddress"
 if ( Test-Path ".\setupscripts\NET_ADD_NIC_MAC.ps1")
 {
     # Make sure VM2 is shutdown
-    if (Get-VM -Name $vm2Name |  Where { $_.State -like "Running" })
+    if (Get-VM -Name $vm2Name -ComputerName $hvServer|  Where { $_.State -like "Running" })
     {
         Stop-VM $vm2Name -force
 
@@ -581,7 +581,7 @@ if ( Test-Path ".\setupscripts\NET_ADD_NIC_MAC.ps1")
 
         # wait for VM to finish shutting down
         $timeout = 60
-        while (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Off" })
+        while (Get-VM -Name $vm2Name -ComputerName $hvServer|  Where { $_.State -notlike "Off" })
         {
             if ($timeout -le 0)
             {
@@ -666,7 +666,7 @@ else
 # LIS Started VM1, so start VM2
 #
 
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer|  Where { $_.State -notlike "Running" })
 {
     Start-VM -Name $vm2Name -ComputerName $hvServer
     if (-not $?)
@@ -741,7 +741,7 @@ if (-not $retVal)
 
 start-sleep 20
 
-$tempipv4VM1 = Get-VMNetworkAdapter  -VMName $vmName | Where-object {$_.MacAddress -like "$vm1MacAddress"} | Select -Expand IPAddresses
+$tempipv4VM1 = Get-VMNetworkAdapter  -VMName $vmName -ComputerName $hvServer | Where-object {$_.MacAddress -like "$vm1MacAddress"} | Select -Expand IPAddresses
 $testipv4VM1 = $tempipv4VM1[0]
 
 "sshKey   = ${sshKey}"
@@ -750,7 +750,7 @@ $testipv4VM1 = $tempipv4VM1[0]
 "vm1 MAC = ${vm1MacAddress}"
 "vm1 test IP = ${testipv4VM1}"
 
-$tempipv4VM2 = Get-VMNetworkAdapter  -VMName $vm2Name | Where-object {$_.MacAddress -like "$vm2MacAddress"} | Select -Expand IPAddresses
+$tempipv4VM2 = Get-VMNetworkAdapter  -VMName $vm2Name -ComputerName $hvServer | Where-object {$_.MacAddress -like "$vm2MacAddress"} | Select -Expand IPAddresses
 $testipv4VM2 = $tempipv4VM2[0]
 
 "vm2 Name = ${vm2Name}"
@@ -861,7 +861,7 @@ if ($retVal)
 "Failed to ping (as expected)"
 
 "Stopping $vm2Name"
-Stop-VM -Name $vm2Name -force
+Stop-VM -Name $vm2Name -ComputerName $hvServer -force
 
 if (-not $?)
 {
