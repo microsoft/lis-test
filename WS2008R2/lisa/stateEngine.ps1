@@ -1626,6 +1626,9 @@ function DoStartTest([System.Xml.XmlElement] $vm, [XML] $xmlData)
         UpdateState $vm $DetermineReboot
         return
     }
+    else{
+        LogMsg 0 "Info : $($vm.vmName) Started atd daemon on VM"
+    }
 
     #
     # Submit the runtest.sh script to the at queue

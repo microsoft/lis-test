@@ -777,7 +777,7 @@
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testparams>
-                <param>IDE=1,0,Fixed</param>
+                <param>IDE=0,1,Fixed</param>
                 <param>IDE=1,1,Fixed</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TEST_DEVICE2=/dev/sdc</param>
