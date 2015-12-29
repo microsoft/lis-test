@@ -293,8 +293,49 @@ elif is_ubuntu ; then
     fi
 
 elif is_suse ; then
-    # TODO
-    LogMsg "SUSE: TODO" 
+    service ntpd restart
+    if [[ $? -ne 0 ]]; then
+        LogMsg "NTP is not installed. Trying to install ..."
+        zypper install ntp -y
+        if [[ $? -ne 0 ]] ; then
+            LogMsg "ERROR: Unable to install ntp. Aborting"
+            UpdateTestState $ICA_TESTABORTED
+            exit 10
+        fi
+        LogMsg "NTP installed succesfully!"
+    fi
+
+    service ntpd stop
+
+    # Edit NTP Server config and set the timeservers
+    sed -i 's/^server.*/ /g' /etc/ntp.conf
+    echo "
+    server 0.pool.ntp.org
+    server 1.pool.ntp.org
+    server 2.pool.ntp.org
+    server 3.pool.ntp.org
+    " >> /etc/ntp.conf
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+    # set rtc clock to system time
+    hwclock --systohc 
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+
+    # Restart NTP service
+    service ntpd restart
+    if [[ $? -ne 0 ]]; then
+        LogMsg "ERROR: Unable to restart ntpd. Aborting"
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
 
 else # other distro's
     LogMsg "Distro not suported. Aborting"
