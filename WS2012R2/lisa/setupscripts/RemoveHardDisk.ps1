@@ -197,6 +197,13 @@ if (-not $defaultVhdPath.EndsWith("\"))
     $defaultVhdPath += "\"
 }
 
+Set-Item WSMan:\localhost\Client\TrustedHosts $hvServer -force
+if (-not $?)
+{
+    "Failed to add $hvServer to the trusted hosts list"
+    return $false
+}
+
 Get-ChildItem \\$hvServer\$defaultVhdPath -Filter $vhdName* | `
 Foreach-Object  {
     $remotePath = $_.FullName
