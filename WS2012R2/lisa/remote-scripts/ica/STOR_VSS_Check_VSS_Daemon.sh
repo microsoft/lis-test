@@ -50,45 +50,6 @@ UpdateTestState()
 }
 
 #######################################################################
-# Determine if current distribution is a Fedora-based distribution
-# (Fedora, RHEL, CentOS, etc).
-#######################################################################
-function is_fedora {
-    if [[ -z "$os_VENDOR" ]]; then
-        GetOSVersion
-    fi
-
-    [ "$os_VENDOR" = "Fedora" ] || [ "$os_VENDOR" = "Red Hat" ] || \
-        [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ]
-}
-
-#######################################################################
-# Determine if current distribution is a Rhel/CentOS 7 distribution
-#######################################################################
-
-function is_rhel7 {
-    if [[ -z "$os_RELEASE" ]]; then
-        GetOSVersion
-    fi
-
-    [ "$os_VENDOR" = "Red Hat" ] || \
-        [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ] && \
-        [ "$os_RELEASE" = "7" ]
-}
-
-#######################################################################
-# Determine if current distribution is a SUSE-based distribution
-# (openSUSE, SLE).
-#######################################################################
-function is_suse {
-    if [[ -z "$os_VENDOR" ]]; then
-        GetOSVersion
-    fi
-
-    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ]
-}
-
-#######################################################################
 # Determine if current distribution is an Ubuntu-based distribution
 # It will also detect non-Ubuntu but Debian-based distros
 #######################################################################

@@ -49,39 +49,6 @@ ICA_TESTFAILED="TestFailed"         # Error while performing the test
 maxdelay=5.0                        # max offset in seconds.
 zerodelay=0.0                       # zero
 
-########################################################################
-# Determine if current distribution is a Fedora-based distribution
-########################################################################
-function is_fedora {
-    if [[ -z "$os_VENDOR" ]]; then
-        GetOSVersion
-    fi
-
-    [ "$os_VENDOR" = "Fedora" ] || [ "$os_VENDOR" = "Red Hat" ] || \
-        [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ]
-}
-
-########################################################################
-# Determine if current distribution is a SUSE-based distribution
-########################################################################
-function is_suse {
-    if [[ -z "$os_VENDOR" ]]; then
-        GetOSVersion
-    fi
-
-    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ]
-}
-
-########################################################################
-# Determine if current distribution is an Ubuntu-based distribution
-########################################################################
-function is_ubuntu {
-    if [[ -z "$os_PACKAGE" ]]; then
-        GetOSVersion
-    fi
-    [ "$os_PACKAGE" = "deb" ]
-}
-
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
