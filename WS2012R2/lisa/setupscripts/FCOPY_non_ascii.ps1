@@ -316,6 +316,13 @@ else {
     Write-Output "Guest services are enabled on VM"       
 }
 
+# Send utils.sh to VM
+echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\utils.sh root@${ipv4}:
+if (-not $?)
+{
+    Write-Output "ERROR: Unable to copy utils.sh to the VM"
+    return $False
+}
 
 # Check to see Linux VM is running FCOPY daemon 
 $sts = RunRemoteScript "FCOPY_Check_Daemon.sh"

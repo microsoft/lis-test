@@ -70,7 +70,7 @@
         <test>
             <testName>Sysbench</testName>
             <testScript>Sysbench.sh</testScript>
-            <files>remote-scripts/ica/Sysbench.sh</files>
+            <files>remote-scripts/ica/Sysbench.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
                     <param>TEST_FILE=(seqwr seqrewr seqrd rndrd rndwr rndrw)</param>
             </testParams>
