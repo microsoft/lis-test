@@ -222,6 +222,7 @@ ConfigUbuntu()
         LogMsg "WARNING: Could not configure set the new crashkernel value in /etc/default/grub. Maybe the default value is wrong. We try other configure."
         echo "WARNING: Could not configure set the new crashkernel value in /etc/default/grub. Maybe the default value is wrong. We try other configure." >> summary.log
 
+        newsize='crashkernel='$crashkernel
         sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$newsize/" /etc/default/grub
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Failed to configure the new crashkernel."
