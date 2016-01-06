@@ -1,4 +1,3 @@
-
 #####################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
@@ -22,13 +21,10 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-
 function CheckResults(){
-
     #
     # Checking test results
     #
-
     $stateFile = "state.txt"
 
     bin\pscp -q -i ssh\${1} root@${2}:${stateFile} .
@@ -138,7 +134,6 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr
 
     return $retVal
 }
-
 
 #
 # Check input arguments
@@ -262,7 +257,6 @@ foreach ($p in $params)
             return $false
 
         }
-
 
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
@@ -493,7 +487,7 @@ $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix configure_vxlan.sh
 $first_result = CheckResults $sshKey $ipv4
 if (-not $first_result)
 {
-    "Configuration problems has occured. Test failed."
+    "Error: Configuration problems have occured. Test failed."
     bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
     return $false
 }
