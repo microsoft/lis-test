@@ -348,8 +348,6 @@ debian*|ubuntu*)
                 msg="Error: Failed to stop ufw"
                 LogMsg "${msg}"
                 echo "${msg}" >> ~/summary.log
-                UpdateTestState $ICA_TESTFAILED
-                exit 85
         fi
     fi
     ;;
