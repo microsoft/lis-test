@@ -273,6 +273,9 @@ GetDistro
 
 case "$DISTRO" in
 debian*|ubuntu*)
+    LogMsg "Updating apt repositories"
+    apt-get update
+    
     LogMsg "Installing sar on Ubuntu"
     apt-get install sysstat -y
     if [ $? -ne 0 ]; then
