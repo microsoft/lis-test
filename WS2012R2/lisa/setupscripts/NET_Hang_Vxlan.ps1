@@ -473,7 +473,7 @@ if (-not $retVal)
 # Wait for second VM to set up the test interface
 #
 Start-Sleep -S 10
-$retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\configure_vxlan.sh" "/root/configure_vxlan.sh"
+$retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\NET_Configure_Vxlan.sh" "/root/NET_Configure_Vxlan.sh"
 
 # check the return Value of SendFileToVM
 if (-not $retVal)
@@ -482,7 +482,7 @@ if (-not $retVal)
 }
 
 $vm="local"
-$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix configure_vxlan.sh && chmod u+x configure_vxlan.sh && ./configure_vxlan.sh $vm1StaticIP $vm2StaticIP $vm"
+$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix NET_Configure_Vxlan.sh && chmod u+x NET_Configure_Vxlan.sh && ./NET_Configure_Vxlan.sh $vm1StaticIP $vm2StaticIP $vm"
 
 $first_result = CheckResults $sshKey $ipv4
 if (-not $first_result)
@@ -493,7 +493,7 @@ if (-not $first_result)
 }
 
 Start-Sleep -S 10
-$retVal = SendFileToVM $vm2ipv4 $sshKey ".\remote-scripts\ica\configure_vxlan.sh" "/root/configure_vxlan.sh"
+$retVal = SendFileToVM $vm2ipv4 $sshKey ".\remote-scripts\ica\NET_Configure_Vxlan.sh" "/root/NET_Configure_Vxlan.sh"
 
 # check the return Value of SendFileToVM
 if (-not $retVal)
@@ -502,7 +502,7 @@ if (-not $retVal)
 }
 
 $vm="remote"
-$retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix configure_vxlan.sh && chmod u+x configure_vxlan.sh && ./configure_vxlan.sh $vm2StaticIP $vm1StaticIP $vm"
+$retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix NET_Configure_Vxlan.sh && chmod u+x NET_Configure_Vxlan.sh && ./NET_Configure_Vxlan.sh $vm2StaticIP $vm1StaticIP $vm"
 
 #
 # Wait to second vm to configure the vxlan interface
