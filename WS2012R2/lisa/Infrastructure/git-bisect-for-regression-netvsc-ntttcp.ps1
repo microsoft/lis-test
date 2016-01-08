@@ -30,8 +30,8 @@ function RunBenchmarking( [string]$logid, [string]$bisect_commit_id )
     # source the function library
     . .\TCUtils.ps1    
 
-    $badResult = 10
-    $goodResult = 16
+    $badResult = 15
+    $goodResult = 20
 
     $logFile = $logid + "-CLIENT-run-ntttcp-" + $bisect_commit_id + ".log"
 
@@ -57,5 +57,7 @@ function RunBenchmarking( [string]$logid, [string]$bisect_commit_id )
     {
         $result_is_good = $true
     }
+
+    echo $logid"    "$bisect_commit_id"    "$thisResult >> D:\Test\00-ntttcp-all-tests.log
     return $result_is_good
 }

@@ -111,13 +111,19 @@ function WaitVMState([String] $ipv4, [String] $sshKey, [string] $state )
         default {
             $continueLoop = 1000
             while ($true){
+                Start-Sleep -Seconds 5
                 $continueLoop --
+
                 if ($continueLoop % 60 -eq 0)
                 {
                     Write-Host " "
                 }
-                Write-Host "." -NoNewLine
-                
+                if (-not (TestPort $ipv4 22))
+                {
+                    Write-Host "!" -NoNewLine    # cannot connect to the VM's IP address, need to re-enable host side vNIC?
+                    continue
+                }
+               
                 $fileCopied = GetFileFromVM $ipv4 $sshKey $file $file
                 if ($fileCopied -eq $true)
                 {
@@ -127,8 +133,12 @@ function WaitVMState([String] $ipv4, [String] $sshKey, [string] $state )
                         $success = $true
                         break
                     }
+                    Write-Host "X" -NoNewLine   # file copied but the content is unexpected!
                 }
-                Start-Sleep -Seconds 5
+                else
+                {
+                    Write-Host "." -NoNewLine   # just wait for the file created on the VM 
+                }
             }
             Write-Host "OK"
         }
@@ -146,7 +156,7 @@ function InitVmUp([String] $vmName, [String] $hvServer, [string] $checkpointName
     }
     if ($v.State -ne "Off")
     {
-        Stop-VM $vmName -ComputerName $hvServer -force | out-null
+        Stop-VM $vmName -ComputerName $hvServer -force –TurnOff | out-null
     }
     $v = Get-VM $vmName -ComputerName $hvServer
     if ($v.State -ne "Off")
@@ -205,24 +215,27 @@ function InitVmUp([String] $vmName, [String] $hvServer, [string] $checkpointName
     # Source the TCUtils.ps1 file
     . .\TCUtils.ps1
 
-    $continueLoop = 300
+    $continueLoop = 60
     $ipv4 = $null
     While( ($continueLoop -gt 0) -and ($ipv4 -eq $null)) {
         $ipv4 = GetIPv4 $vmName $hvServer
         Write-Host "." -NoNewLine
-        Start-Sleep -Seconds 2
-        $continueLoop -= 2
+        Start-Sleep -Seconds 5
+        $continueLoop -= 5
     }
 
     Write-Host "INFO : get ip for VM $vmName : $ipv4"
-    #sleep for sshd to start
-    $continueLoop = 300
-    While( ($continueLoop -gt 0) -and ( (TestPort $ipv4 22) -ne $true )) {      
-        Write-Host "." -NoNewLine
-        Start-Sleep -Seconds 2
-        $continueLoop -= 2
-    }
-    Write-Host "OK"
+	if ($ipv4 -ne $null)
+	{
+        #sleep for sshd to start
+		$continueLoop = 60
+		While( ($continueLoop -gt 0) -and ( (TestPort $ipv4 22) -ne $true )) {      
+			Write-Host "." -NoNewLine
+			Start-Sleep -Seconds 5
+			$continueLoop -= 5
+		}
+        Write-Host "OK"   
+	}
 }
 
 function CheckVmKernelVersion([String] $ipv4, [String] $sshKey)
@@ -394,8 +407,11 @@ while ($true)
     ############################################
     # restart the server and client VMs to boot from new kernel
     ############################################
-    SendCommandToVM $server_VM_ip $sshKey "init 6"
-    SendCommandToVM $client_VM_ip $sshKey "init 6"
+    #SendCommandToVM $server_VM_ip $sshKey "init 6"
+    #SendCommandToVM $client_VM_ip $sshKey "init 6"
+
+    Restart-VM -ComputerName $server_Host_ip -VMName $server_VM_Name -Force
+    Restart-VM -ComputerName $client_Host_ip -VMName $client_VM_Name -Force
 
     ############################################
     # is this kernel good to bootup?
@@ -404,8 +420,11 @@ while ($true)
     $newKernelUp = WaitVMState $server_VM_ip $sshKey "BOOT_UP" 
     if ($newKernelUp -eq $true)
     {
-        $currentKernelVersion = CheckVmKernelVersion $server_VM_ip $sshKey
-        if ( -not $currentKernelVersion[-2].Contains( $("lisperfregression" + $logid)) )
+        $returnObjs = CheckVmKernelVersion $server_VM_ip $sshKey
+        $currentKernelVersion = $returnObjs[-2]
+        Write-Host "INFO :Expect kernel: lisperfregression$logid"
+        Write-Host "INFO :Actual boot kernel: $currentKernelVersion"
+        if ( -not $currentKernelVersion.Contains( $("lisperfregression" + $logid)) )
         {
             $newKernelUp = $false
         }
@@ -416,8 +435,11 @@ while ($true)
         $newKernelUp = WaitVMState $client_VM_ip $sshKey "BOOT_UP" 
         if ($newKernelUp -eq $true)
         {
-            $currentKernelVersion = CheckVmKernelVersion $client_VM_ip $sshKey
-            if ( -not $currentKernelVersion[-2].Contains( $("lisperfregression" + $logid)) )
+            $returnObjs = CheckVmKernelVersion $client_VM_ip $sshKey
+            $currentKernelVersion = $returnObjs[-2]
+            Write-Host "INFO :Expect kernel: lisperfregression$logid"
+            Write-Host "INFO :Actual boot kernel: $currentKernelVersion"
+            if ( -not $currentKernelVersion.Contains( $("lisperfregression" + $logid)) )
             {
                 $newKernelUp = $false
             }
