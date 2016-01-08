@@ -259,7 +259,7 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 85
     fi
-    apt-get install build-essential -y
+    apt-get install build-essential git -y
     if [ $? -ne 0 ]; then
         msg="Error: Build essential failed to install"
         LogMsg "${msg}"

@@ -45,21 +45,21 @@
    <cleanupScript>SetupScripts\Remove-VhdxHardDisk.ps1</cleanupScript>
 
 
-  The  scripts will always pass the vmName, hvServer, and a string of testParams from the 
+  The  scripts will always pass the vmName, hvServer, and a string of testParams from the
 	test definition separated by semicolons.
 
 	Test params xml entry:
     <testParams>
 		<param>dynamic=True</param>
     <testParams>
-   
+
    Cleanup scripts need to parse the testParam string to find any
    parameters it needs.
 
 
    All setup and cleanup scripts must return a boolean ($true or $false)
   to indicate if the script completed successfully or not.
-  
+
 	.Parameter vmName
 		Name of the VM to remove disk from .
 
@@ -85,7 +85,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $retVal 	= $False
 
 $sectorSize = $null
-
+$defaultSize = 3GB
 #
 # Check input arguments
 #
@@ -110,57 +110,82 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 }
 
 $params = $testParams.TrimEnd(";").Split(";")
-foreach ($p in $params)
-{
+[int]$max = 0
+$v = $null
+foreach($p in $params){
     $fields = $p.Split("=")
-    $value = $fields[1].Trim()
-
-    switch ($fields[0].Trim())
+    $value = $fields[0].Trim()
+    switch -wildcard ($value)
     {
-    "SectorSize"	{ $sectorSize    = $fields[1].Trim() }
+    "Type?"          { $v = $value.substring(4) }
+    "SectorSize?"    { $v = $value.substring(10) }
+    "DefaultSize?"   { $v = $value.substring(11) }
     default     {}  # unknown param - just ignore it
     }
+    if ([int]$v -gt $max -and $v -ne $null){
+        $max = [int]$v
+    }
 }
+for($pair=0; $pair -le $max; $pair++){
 
-# Source STOR_VHDXResize_Utils.ps1
-if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
-{
-    . .\setupScripts\STOR_VHDXResize_Utils.ps1
-}
-else
-{
-    "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
-    return $false
-}
+  foreach ($p in $params)
+  {
+    $fields = $p.Split("=")
+    $value = $fields[1].Trim()
+    switch  ($fields[0].Trim())
+    {
+      "Type$pair"         { $type    = $fields[1].Trim() }
+      "SectorSize$pair"    { $sectorSize   = $fields[1].Trim() }
+      "DefaultSize$pair"   { $defaultSize = $fields[1].Trim() }
+      "Type"         { $type    = $fields[1].Trim() }
+      "SectorSize"    { $sectorSize   = $fields[1].Trim() }
+      "DefaultSize"   { $defaultSize = $fields[1].Trim() }
+      default     {}  # unknown param - just ignore it
+    }
+  }
 
-$vhdxName = $vmName + "-" + $sectorSize + "-test"
-$vhdxDisks = Get-VMHardDiskDrive -VMName $vmName
+  # Source STOR_VHDXResize_Utils.ps1
+  if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
+  {
+      . .\setupScripts\STOR_VHDXResize_Utils.ps1
+  }
+  else
+  {
+      "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
+      return $false
+  }
 
-foreach ($vhdx in $vhdxDisks)
-{
-	$vhdxPath = $vhdx.Path
-	if ($vhdxPath.Contains($vhdxName))
-	{
-		$error.Clear()
-		"Info : Removing drive $vhdxName"
-		Remove-VMHardDiskDrive -vmName $vmName -ControllerType $vhdx.controllerType -ControllerNumber $vhdx.controllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer
-		if ($error.Count -gt 0)
-		{
-			"Error: Remove-VMHardDiskDrive failed to delete drive on SCSI controller "
-			$error[0].Exception
-			return $retVal
-		}
-		
-		$error.Clear()
-		"Info: Deleting vhdx file"
-		Remove-Item -Path $vhdxPath
-		if ($error.Count -gt 0)
-		{
-			"Error: Failed to delete VHDx File "
-			$error[0].Exception
-			return $retVal
-		}
-	}
+  $vhdxName = $vmName + "-" + $defaultSize + "-" + $sectorSize + "-test"
+  $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
+
+  foreach ($vhdx in $vhdxDisks)
+  {
+  	$vhdxPath = $vhdx.Path
+  	if ($vhdxPath.Contains($vhdxName))
+  	{
+  		$error.Clear()
+  		"Info : Removing drive $vhdxName"
+  		Remove-VMHardDiskDrive -vmName $vmName -ControllerType $vhdx.controllerType -ControllerNumber $vhdx.controllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer
+  		if ($error.Count -gt 0)
+  		{
+  			"Error: Remove-VMHardDiskDrive failed to delete drive on SCSI controller "
+  			$error[0].Exception
+  			return $retVal
+  		}
+
+  		$error.Clear()
+  		"Info: Deleting vhdx file $vhdxPath"
+      $remoteDrive = $vhdxPath.Substring(0,1)
+      $remotePath = $vhdxPath.Substring(3)
+  		Remove-Item -Path "\\${hvServer}\${remoteDrive}$\${remotePath}"
+  		if ($error.Count -gt 0)
+  		{
+  			"Error: Failed to delete VHDx File "
+  			$error[0].Exception
+  			return $retVal
+  		}
+  	}
+  }
 }
 
 $retVal = $True

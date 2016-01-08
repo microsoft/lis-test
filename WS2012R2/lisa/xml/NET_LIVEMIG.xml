@@ -187,7 +187,7 @@
             </testparams>
         </test>
         <test>
-            <testName>MultiCPU4_LiveMig</testName>
+            <testName>MultiCPU3_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
@@ -199,7 +199,7 @@
             </testparams>
         </test>
         <test>
-            <testName>MultiCPU6_LiveMig</testName>
+            <testName>MultiCPU4_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>

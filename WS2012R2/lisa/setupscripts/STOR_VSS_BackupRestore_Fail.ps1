@@ -126,7 +126,7 @@ function RunRemoteScript($remoteScript)
        return $False
     }
 
-     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
+    .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
@@ -363,6 +363,14 @@ foreach ($drive in $vm.HardDrives)
         "       $($drive.Path)"
         return $False
     }
+}
+
+# Send utils.sh to VM
+echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\utils.sh root@${ipv4}:
+if (-not $?)
+{
+    Write-Output "ERROR: Unable to copy utils.sh to the VM"
+    return $False
 }
 
 # Check to see Linux VM is running VSS backup daemon 

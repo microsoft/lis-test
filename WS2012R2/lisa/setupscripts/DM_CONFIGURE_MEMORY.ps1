@@ -28,8 +28,8 @@
    Configure Dynamic Memory parameters for a set of Virtual Machines.
    The testParams have the format of:
 
-      vmName=Name of a VM, enableDM=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%], 
-      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100) 
+      vmName=Name of a VM, enableDM=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%],
+      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100)
 
    vmName is the name of a existing Virtual Machines.
 
@@ -43,7 +43,7 @@
    maxMem is the maximum memory amount assigned to the virtual machine(s)
     the amount of memory can be specified as a decimal followed by a qualifier
     valid qualifiers are: MB, GB and % . %(percent) means percentage of free Memory on the host
-      
+
    startupMem is the amount of memory assigned at startup for the given VM
     the amount of memory can be specified as a decimal followed by a qualifier
     valid qualifiers are: MB, GB and % . %(percent) means percentage of free Memory on the host
@@ -57,7 +57,7 @@
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
     Name of the VM to remove NIC from .
 
@@ -152,13 +152,13 @@ $params = $testParams.Split(';')
 foreach ($p in $params)
 {
     $temp = $p.Trim().Split('=')
-    
+
     if ($temp.Length -ne 2)
     {
         # Ignore and move on to the next parameter
         continue
     }
-    
+
     $vm = $null
 
     if ($temp[0].Trim() -eq "vmName")
@@ -174,7 +174,7 @@ foreach ($p in $params)
         }
 
         "vmName: $tPvmName"
-        
+
     }
     elseif($temp[0].Trim() -eq "enableDM")
     {
@@ -183,7 +183,7 @@ foreach ($p in $params)
       {
         $tpEnabled = $true
       }
-      else 
+      else
       {
         $tpEnabled = $false
       }
@@ -255,32 +255,32 @@ foreach ($p in $params)
     {
 
       # make sure VM is off
-      if (Get-VM -Name $tPvmName |  Where { $_.State -like "Running" })
+      if (Get-VM -Name $tPvmName -ComputerName $hvServer |  Where { $_.State -like "Running" })
       {
 
         "Stopping VM $tPvmName"
         Stop-VM $tPvmName -force
-        
+
         if (-not $?)
         {
           "Error: Unable to shut $tPvmName down (in order to set Memory parameters)"
           return $false
         }
-        
+
         # wait for VM to finish shutting down
         $timeout = 60
-        while (Get-VM -Name $tPvmName |  Where { $_.State -notlike "Off" })
+        while (Get-VM -Name $tPvmName -ComputerName $hvServer |  Where { $_.State -notlike "Off" })
         {
           if ($timeout -le 0)
           {
             "Error: Unable to shutdown $tPvmName"
             return $false
           }
-          
+
           start-sleep -s 5
           $timeout = $timeout - 5
         }
-        
+
       }
 
       if ($tpEnabled)
@@ -290,7 +290,7 @@ foreach ($p in $params)
                       -MinimumBytes $tPminMem -MaximumBytes $tPmaxMem -StartupBytes $tPstartupMem `
                       -Priority $tPmemWeight
       }
-      else 
+      else
       {
           Set-VMMemory -vmName $tPvmName -ComputerName $hvServer -DynamicMemoryEnabled $tpEnabled `
                     -StartupBytes $tPstartupMem

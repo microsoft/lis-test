@@ -53,9 +53,10 @@
                 <suiteTest>CopyFileDifferentMTU</suiteTest>
                 <suiteTest>VlanTagging</suiteTest>
                 <suiteTest>VlanTrunking</suiteTest>
-        	    <!-- The following tests require a Generation 2 VM -->
-        		<suiteTest>HotAddMultiNIC</suiteTest>
-        		<suiteTest>BootNoNicHotAddNic</suiteTest>
+                <suiteTest>Network_Hang_Vxlan</suiteTest>
+                <!-- The following tests require a Generation 2 VM -->
+                <suiteTest>HotAddMultiNIC</suiteTest>
+                <suiteTest>BootNoNicHotAddNic</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -366,6 +367,20 @@
             <testScript>SetupScripts\NET_VLAN_TRUNKING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>Network_Hang_Vxlan</testName>
+            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>STATIC_IP1=10.10.10.10</param>
+                <param>STATIC_IP2=10.10.10.20</param>
+                <param>NETMASK=255.255.255.0</param>
+            </testParams>
+            <testScript>setupscripts\NET_Hang_Vxlan.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
         </test>
 

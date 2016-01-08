@@ -28,6 +28,7 @@
                 <suiteTest>VHDx_HotRemove_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>VHDx_HotADD_Dynamic_SCSI_SMP</suiteTest>
                 <suiteTest>VHDx_HotRemove_Dynamic_SCSI_SMP</suiteTest>
+                <suiteTest>VHDx_DiskHotPlugUnplug</suiteTest>
                 <suiteTest>VHDx_4k_IDE_0_1_Dynamic</suiteTest>
                 <suiteTest>VHDx_4k_MultiDiskSCSI_Dynamic</suiteTest>
                 <suiteTest>VHDx_4k_IDE_0_1_Fixed</suiteTest>
@@ -150,6 +151,24 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
        </test>
+
+         <test>
+            <testName>VHDx_DiskHotPlugUnplug</testName>
+            <testScript>setupscripts\STOR_unPlug.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/STOR_unPlug.sh</files>
+            <cleanupScript>setupscripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <setupScript>setupscripts\Add-VHDXForResize.ps1</setupScript>
+            <testparams>
+                <param>TC_COVERED=STOR-31b,STOR-42b</param>
+                <param>Type1=Dynamic</param>
+                <param>SectorSize1=512</param>
+                <param>DefaultSize1=1GB</param>
+                <param>Type2=Dynamic</param>
+                <param>SectorSize2=512</param>
+                <param>DefaultSize2=2GB</param>
+            </testparams>  
+            <timeout>800</timeout>  
+        </test>
 
         <test>
             <testName>VHDx_IDE_0_1_Dynamic</testName>
@@ -356,7 +375,7 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>VMname</vmName>
+            <vmName>vmName</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>key_id_rsa.ppk</sshKey>

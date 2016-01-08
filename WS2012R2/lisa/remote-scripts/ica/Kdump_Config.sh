@@ -102,7 +102,7 @@ ConfigRhel()
     
     if [[ -d /boot/grub2 ]]; then
         LogMsg "Update grub"
-        sed -i "s/crashkernel=auto/crashkernel=$crashkernel/g" /etc/default/grub
+        sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /etc/default/grub
         if [ $? -ne 0 ]; then
             LogMsg "FAILED: Could not set the new crashkernel value in /etc/default/grub."
             echo "FAILED: Could not set the new crashkernel value in /etc/default/grub." >> ~/summary.log
@@ -115,7 +115,7 @@ ConfigRhel()
         grub2-mkconfig -o /boot/grub2/grub.cfg
     else
         if [ -x "/sbin/grubby" ]; then
-            sed -i "s/crashkernel=auto/crashkernel=$crashkernel/g" /boot/grub/grub.conf
+            sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/grub/grub.conf
             if [ $? -ne 0 ]; then
                 LogMsg "ERROR: Could not set the new crashkernel value."
                 echo "ERROR: Could not set the new crashkernel value." >> ~/summary.log
@@ -216,7 +216,7 @@ ConfigUbuntu()
         UpdateTestState "TestAborted"
         exit 1    
     fi
-    sed -i "s/crashkernel=384M-:128M/crashkernel=$crashkernel/g" /boot/grub/grub.cfg
+    sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/grub/grub.cfg
     cat /boot/grub/grub.cfg | grep $crashkernel
     if [ $? -ne 0 ]; then
         LogMsg "WARNING: Could not configure set the new crashkernel value in /etc/default/grub. Maybe the default value is wrong. We try other configure."
@@ -295,4 +295,3 @@ esac
 # Cleaning up any previous crash dump files
 mkdir -p /var/crash
 rm -rf /var/crash/*
-

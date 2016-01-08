@@ -323,6 +323,9 @@ GetDistro
 
 case "$DISTRO" in
 debian*|ubuntu*)
+    LogMsg "Updating apt repositories"
+    apt-get update
+    
     LogMsg "Installing sar on Ubuntu"
     apt-get install sysstat -y
     if [ $? -ne 0 ]; then
@@ -348,8 +351,6 @@ debian*|ubuntu*)
                 msg="Error: Failed to stop ufw"
                 LogMsg "${msg}"
                 echo "${msg}" >> ~/summary.log
-                UpdateTestState $ICA_TESTFAILED
-                exit 85
         fi
     fi
     ;;

@@ -70,7 +70,7 @@
     <test>
         <testName>TimeSync_NTP</testName>
         <testScript>CORE_TimeSync_NTP.sh</testScript>
-        <files>remote-scripts/ica/CORE_TimeSync_NTP.sh</files>
+        <files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
         <timeout>2000</timeout>
         <onError>Continue</onError>
         <testParams>
