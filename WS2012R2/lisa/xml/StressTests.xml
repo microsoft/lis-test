@@ -20,9 +20,9 @@
             <suiteTests>
                 <suiteTest>Test50TimesReboot</suiteTest>
                 <suiteTest>Stress_IOzone</suiteTest>
-                <suiteTest>Stress_Kernbench</suiteTest>
                 <suiteTest>Sysbench</suiteTest>
-                <!-- Obsolete test case
+                <!-- Obsolete test cases
+                <suiteTest>Stress_Kernbench</suiteTest>
                 <suiteTest>Stress_Dynamo</suiteTest>
                 -->
             </suiteTests>
@@ -55,6 +55,18 @@
          </test>
 
         <test>
+            <testName>Sysbench</testName>
+            <testScript>Sysbench.sh</testScript>
+            <files>remote-scripts/ica/Sysbench.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                    <param>TEST_FILE=(seqwr seqrewr seqrd rndrd rndwr rndrw)</param>
+            </testParams>
+            <timeout>800</timeout>
+            <OnError>Abort</OnError>
+        </test>
+
+<!-- Obsolete test case
+        <test>
             <testName>Stress_Kernbench</testName>
             <testScript>Stress_Kernbench.sh</testScript>
             <files>remote-scripts/ica/Stress_Kernbench.sh</files>
@@ -67,33 +79,21 @@
             <OnError>Abort</OnError>
          </test>
 
-        <test>
-            <testName>Sysbench</testName>
-            <testScript>Sysbench.sh</testScript>
-            <files>remote-scripts/ica/Sysbench.sh,remote-scripts/ica/utils.sh</files>
-            <testParams>
-                    <param>TEST_FILE=(seqwr seqrewr seqrd rndrd rndwr rndrw)</param>
-            </testParams>
-            <timeout>800</timeout>
-            <OnError>Abort</OnError>
-        </test>
-
-<!-- Obsolete test case
-		 <test>
-		    <testName>Stress_Dynamo</testName>
-		    <testScript>Stress_Dynamo.sh</testScript>
-		    <files>remote-scripts/ica/Stress_Dynamo.sh</files>
-		    <files>Tools/iometer-1.1.0-rc1-src.tar.bz2</files>
-		    <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-		    <testParams>
-		        <param>IOMETER_IP=0.0.0.0</param>
-		        <param>IDE=0,1,Fixed,2GB</param>
-		        <param>SCSI=0,0,Fixed,2GB</param>
-		        <param>FILE_NAME=iometer-1.1.0-rc1-src.tar.bz2</param>
-		    </testParams>
-		    <timeout>7200</timeout>
-		    <OnError>Abort</OnError>
-		 </test>
+	 <test>
+	    <testName>Stress_Dynamo</testName>
+	    <testScript>Stress_Dynamo.sh</testScript>
+	    <files>remote-scripts/ica/Stress_Dynamo.sh</files>
+	    <files>Tools/iometer-1.1.0-rc1-src.tar.bz2</files>
+	    <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
+	    <testParams>
+	        <param>IOMETER_IP=0.0.0.0</param>
+	        <param>IDE=0,1,Fixed,2GB</param>
+	        <param>SCSI=0,0,Fixed,2GB</param>
+	        <param>FILE_NAME=iometer-1.1.0-rc1-src.tar.bz2</param>
+	    </testParams>
+	    <timeout>7200</timeout>
+	    <OnError>Abort</OnError>
+	 </test>
 -->
     </testCases>
 
@@ -106,6 +106,5 @@
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>Stress</suite>
         </vm>
-
     </VMs>
 </config>
