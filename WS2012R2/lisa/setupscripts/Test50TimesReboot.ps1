@@ -192,7 +192,7 @@ While ( -not (TestPort $vmIPAddr) )
 {
    Start-Sleep 5
 }
-Restart-VM -VMName $vmName -Force
+Restart-VM -VMName $vmName -ComputerName $hvServer -Force
 if($? -eq "True")
 {
    Write-Output "VM goes in to text mode"
