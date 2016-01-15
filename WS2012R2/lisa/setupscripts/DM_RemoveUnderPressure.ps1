@@ -276,7 +276,7 @@ $vm2Name = $null
 [int]$tries = 0
 
 # default number of tries
-Set-Variable defaultTries -option Constant -value 3
+Set-Variable defaultTries -option Constant -value 10
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
