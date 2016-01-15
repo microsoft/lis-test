@@ -311,7 +311,7 @@
 			</testParams>
 			<testScript>setupScripts\DM_SaveRestore.ps1</testScript>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
-			<timeout>800</timeout>
+			<timeout>1800</timeout>
 		</test>
 
 		<test>
@@ -329,8 +329,8 @@
 				<param>vmName=VM2Name</param>
 				<param>enableDM=yes</param>
 				<param>minMem=512MB</param>
-				<param>maxMem=75%</param>
-				<param>startupMem=75%</param>
+				<param>maxMem=80%</param>
+				<param>startupMem=80%</param>
 				<param>memWeight=100</param>
 				<param>staticMem=512MB</param>
 			</testParams>
