@@ -117,8 +117,6 @@
             <suiteTests>
                 <suiteTest>Test50TimesReboot</suiteTest>
                 <suiteTest>Stress_IOzone</suiteTest>
-                <suiteTest>Stress_Dynamo</suiteTest>
-                <suiteTest>Stress_Kernbench</suiteTest>
             </suiteTests>
         </suite>
 
@@ -142,16 +140,6 @@
                 <suiteTest>MultiCPU2_QuickMig</suiteTest>
                 <suiteTest>MultiCPU3_QuickMig</suiteTest>
                 <suiteTest>MultiCPU4_QuickMig</suiteTest>
-            </suiteTests>
-        </suite>
-
-        <!-- Performance -->
-        <suite>
-            <suiteName>Performance</suiteName>
-            <suiteTests>
-                <suiteTest>Performance_IOzone</suiteTest>
-                <suiteTest>Performance_Dynamo</suiteTest>
-                <suiteTest>Performance_Kernbench</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -444,6 +432,7 @@
         <noReboot>False</noReboot>
     </test>
 
+    <!--
     <test>
         <testName>Stress_Dynamo</testName>
         <testScript>Stress_Dynamo.sh</testScript>
@@ -475,6 +464,7 @@
         <timeout>3200</timeout>
         <OnError>Abort</OnError>
     </test>
+    -->
 
         <!-- Live migration -->
        <test>
@@ -1249,58 +1239,5 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-
-    <!-- Stress Tests -->
-    <test>
-            <testName>Performance_IOzone</testName>
-            <testScript>Performance_IOzone.sh</testScript>
-            <files>remote-scripts/ica/Performance_IOzone.sh</files>
-            <files>Tools/iozone3_420.tar</files>
-            <setupScript>setupScripts\Performance_IOzone_AddVhd.ps1</setupScript>
-            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
-            <timeout>18000</timeout>
-            <testParams>
-                <param>SCSI=0,0,Fixed</param>
-                <param>TOTAL_DISKS=1</param>
-                <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>FILE_NAME=iozone3_420.tar</param>
-                <param>SnapshotName=ICABase</param>
-            </testParams>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test>
-
-         <test>
-            <testName>Performance_Dynamo</testName>
-            <testScript>Performance_Dynamo.sh</testScript>
-            <files>remote-scripts/ica/Performance_Dynamo.sh</files>
-            <files>Tools/iometer-1.1.0-rc1-src.tar.bz2</files>
-            <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
-            <testParams>
-                <param>IOMETER_IP=0.0.0.0</param>
-                <param>IDE=0,1,Fixed</param>
-                <param>SCSI=0,0,Fixed</param>
-                <param>TOTAL_DISKS=2</param>
-                <param>TEST_DEVICE1=/dev/sdb</param>
-                <param>TEST_DEVICE2=/dev/sdc</param>
-                <param>FILE_NAME=iometer-1.1.0-rc1-src.tar.bz2</param>
-                <param>SnapshotName=ICABase</param>
-            </testParams>
-            <timeout>1200</timeout>
-            <OnError>Abort</OnError>
-         </test>
-
-         <test>
-            <testName>Performance_Kernbench</testName>
-            <testScript>Performance_Kernbench.sh</testScript>
-            <files>remote-scripts/ica/Performance_Kernbench.sh</files>
-            <files>Tools/kernbench-0.50.tar.bz2</files>
-            <testParams>
-                <param>FILE_NAME=kernbench-0.50.tar.bz2</param>
-            </testParams>
-            <timeout>3200</timeout>
-            <OnError>Abort</OnError>
-         </test>
     </testCases>
 </config>
