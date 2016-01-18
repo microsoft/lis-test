@@ -57,6 +57,7 @@ UpdateTestState()
 #######################################################################
 
 # Create the state.txt file so ICA knows we are running
+items=(SUBSYSTEM==\"memory\", ACTION==\"add\", ATTR{state}=\"online\")
 UpdateTestState $ICA_TESTRUNNING
 
 # Cleanup any old summary.log files
@@ -64,38 +65,21 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
-# Search in /etc/udev
-ORIGIFS=${IFS} # save the default internal field separator (IFS)
-NL='
-'
-IFS=${NL}  # set the "internal field separator" (IFS) to something else than space for the loop argument splitting
-
-for udevfile in $(find /etc/udev -name "*.rules*"); do # search for all the .rules files
-    IFS=${ORIGIFS}
-    grep "SUBSYSTEM==\"memory\"" $udevfile | grep "ACTION==\"add\"" | grep "ATTR{state}=\"online\"" > /dev/null 2>&1 # grep for the udev rule
-    sts=$?
-    if [ 0 -eq ${sts} ]; then
+# Search in /etc/udev and /lib.udev
+for udevfile in $(find /etc/udev/ /lib/udev/ -name "*.rules*"); do # search for all the .rules files
+    match_count=0
+    for i in "${items[@]}"
+    do
+        grep $i $udevfile > /dev/null # grep for the udev rule
+        sts=$?
+        if [ 0 -eq ${sts} ]; then
+             match_count=`expr $match_count + 1`
+        fi
+    done
+    if [ ${#items[@]} -eq $match_count ]; then
         filelist=("${filelist[@]}" $udevfile) # populate a array with the results
     fi
 done
-
-# Search in /lib/udev
-ORIGIFS=${IFS} # save the default internal field separator (IFS)
-NL='
-'
-IFS=${NL}  # set the "internal field separator" (IFS) to something else than space for the loop argument splitting
-
-for udevfile in $(find /lib/udev -name "*.rules*"); do # search for all the .rules files
-    IFS=${ORIGIFS}
-    grep "SUBSYSTEM==\"memory\"" $udevfile | grep "ACTION==\"add\"" | grep "ATTR{state}=\"online\"" > /dev/null 2>&1 # grep for the udev rule
-    sts=$?
-    if [ 0 -eq ${sts} ]; then
-        filelist=("${filelist[@]}" $udevfile) # populate a array with the results
-    fi
-done
-
-# restore the default internal field separator (IFS)
-IFS=${ORIGIFS}
 
 # Now let's check the results
 if [ ${#filelist[@]} -gt 0 ]; then # check if we found anything
