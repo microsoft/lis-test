@@ -20,33 +20,31 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
 ICA_TESTFAILED="TestFailed"        # Error while performing the test
 
+items=(SUBSYSTEM==\"memory\", ACTION==\"add\", ATTR{state}=\"online\")
+
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
-LogMsg()
-{
+LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1}
 }
 
 #######################################################################
 # Updates the summary.log file
 #######################################################################
-UpdateSummary()
-{
+UpdateSummary() {
     echo $1 >> ~/summary.log
 }
 
 #######################################################################
 # Keeps track of the state of the test
 #######################################################################
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
 
@@ -55,9 +53,7 @@ UpdateTestState()
 # Main script body 
 # 
 #######################################################################
-
 # Create the state.txt file so ICA knows we are running
-items=(SUBSYSTEM==\"memory\", ACTION==\"add\", ATTR{state}=\"online\")
 UpdateTestState $ICA_TESTRUNNING
 
 # Cleanup any old summary.log files
@@ -65,7 +61,7 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
-# Search in /etc/udev and /lib.udev
+# Search in /etc/udev and /lib/udev folders
 for udevfile in $(find /etc/udev/ /lib/udev/ -name "*.rules*"); do # search for all the .rules files
     match_count=0
     for i in "${items[@]}"
@@ -77,15 +73,15 @@ for udevfile in $(find /etc/udev/ /lib/udev/ -name "*.rules*"); do # search for 
         fi
     done
     if [ ${#items[@]} -eq $match_count ]; then
-        filelist=("${filelist[@]}" $udevfile) # populate a array with the results
+        filelist=("${filelist[@]}" $udevfile) # populate an array with the results
     fi
 done
 
 # Now let's check the results
 if [ ${#filelist[@]} -gt 0 ]; then # check if we found anything
-    if [ ${#filelist[@]} -gt 1 ]; then # check if we found multiple file
-        LogMsg "Error: More than one udev rules found. Aborting test"
-        LogMsg "Following files were found:"
+    if [ ${#filelist[@]} -gt 1 ]; then # check if we found multiple files
+        LogMsg "Error: More than one udev rules found. Aborting test!"
+        LogMsg "Following DM udev files were found:"
         # list the files 
         for rulefile in "${filelist[@]}"; do
             LogMsg $rulefile
@@ -95,13 +91,12 @@ if [ ${#filelist[@]} -gt 0 ]; then # check if we found anything
         exit 1
     else
         LogMsg "Hot-Add udev rule present: Success"
-        LogMsg "File is:"
-        LogMsg "${filelist[@]}"
+        LogMsg "File is: ${filelist[@]}"
     fi
 else
-    LogMsg "Error: No Hot-Add udev rules found on the System!"
+    LogMsg "Error: No Hot-Add udev rules found on the system!"
     UpdateTestState $ICA_TESTFAILED
-    UpdateSummary "Hot-Add udev rules: Failed"
+    UpdateSummary "Hot-Add udev rules: Failed!"
     exit 1
 fi
 
