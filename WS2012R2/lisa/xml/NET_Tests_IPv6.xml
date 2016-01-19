@@ -38,7 +38,6 @@
         <suite>
             <suiteName>Network</suiteName>
             <suiteTests>
-                <suiteTest>ConfigureNetwork</suiteTest>
                 <suiteTest>External</suiteTest>
                 <suiteTest>InternalNetwork</suiteTest>
                 <suiteTest>GuestOnlyNetwork</suiteTest>
@@ -57,25 +56,23 @@
 
     <testCases>
         <test>
-            <testName>ConfigureNetwork</testName>
+            <testName>External</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>TC_COVERED=NET-01</param>
+                <param>TC_COVERED=NET-05</param>
                 <param>Test_IPv6=external</param>
-                <!-- As possible, please try to set a static IP not used by the DHCP Server -->
-                <!-- Alternatively, find out which IP is leased by the dhcp server to us and set it to the IP -->
-                <!-- <param>STATIC_IP=192.168.0.2</param> -->
-                <!-- <param>NETMASK=255.255.255.0</param> -->
-                <param>REMOTE_SERVER=8.8.8.8</param>
+                <param>PING_SUCC=8.8.8.8</param>
+                <param>PING_FAIL=192.168.2.1</param>
+                <param>PING_FAIL2=10.10.10.5</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
-            <testScript>NET_CONFIGURE_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_CONFIGURE_NETWORK.sh,remote-scripts/ica/utils.sh</files>
+            <testScript>NET_TEST_NETWORK.sh</testScript>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
-
+        
         <test>
             <testName>InternalNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -88,24 +85,6 @@
                 <param>PING_SUCC=192.168.0.1</param>
                 <param>PING_FAIL=8.8.8.8</param>
                 <param>PING_FAIL2=192.168.2.2</param>
-            </testParams>
-            <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>800</timeout>
-        </test>
-
-        <test>
-            <testName>External</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>TC_COVERED=NET-05</param>
-                <param>Test_IPv6=external</param>
-                <param>PING_SUCC=8.8.8.8</param>
-                <param>PING_FAIL=192.168.2.1</param>
-                <param>PING_FAIL2=10.10.10.5</param>
-                <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
@@ -354,7 +333,7 @@
             <timeout>1000</timeout>
         </test>
 
-        <!-- The following test requires a Gen 2 VM -->
+        <!-- The following 2 tests require a Gen 2 VM -->
         <test>
             <testName>HotAddMultiNIC</testName>
             <testScript>SetupScripts\NET_HotAddMultiNIC.ps1</testScript>
@@ -363,12 +342,11 @@
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testparams>
-                <param>TC_COVERED=NET-??</param>
+                <param>TC_COVERED=NET-16</param>
                 <param>Switch_Name=External</param>
             </testparams>
         </test>
 
-        <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>BootNoNicHotAddNic</testName>
             <testScript>SetupScripts\NET_BootNoNICHotAddNIC.ps1</testScript>
@@ -377,12 +355,11 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
-                <param>TC_COVERED=NET-??</param>
+                <param>TC_COVERED=NET-17</param>
                 <param>Switch_Name=External</param>
             </testparams>
         </test>
     </testCases>
-
 
     <VMs>
         <vm>
