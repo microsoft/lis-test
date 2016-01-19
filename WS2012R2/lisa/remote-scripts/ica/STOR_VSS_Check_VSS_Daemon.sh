@@ -49,17 +49,6 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-#######################################################################
-# Determine if current distribution is an Ubuntu-based distribution
-# It will also detect non-Ubuntu but Debian-based distros
-#######################################################################
-function is_ubuntu {
-    if [[ -z "$os_PACKAGE" ]]; then
-        GetOSVersion
-    fi
-    [ "$os_PACKAGE" = "deb" ]
-}
-
 ####################################################################### 
 # Main script body 
 #######################################################################

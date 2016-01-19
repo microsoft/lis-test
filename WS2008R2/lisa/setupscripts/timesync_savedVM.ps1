@@ -109,7 +109,7 @@ function GetUnixVMTime([String] $sshKey, [String] $ipv4)
     }
 
     $unixTimeStr = $null
-    $command =  'date "+%m/%d/%Y%t%T%p "'
+    $command =  'date "+%m/%d/%Y%t%T%p " -u'
 
     $unixTimeStr = SendCommandToVM ${sshKey} $ipv4 $command
     if (-not $unixTimeStr -and $unixTimeStr.Length -lt 20)
@@ -151,7 +151,7 @@ function GetTimeSync([String] $sshKey, [String] $ipv4)
     #
     # Get our time
     #
-    $windowsTime = [DateTime]::Now
+    $windowsTime = [DateTime]::Now.ToUniversalTime()
 
     #
     # Compute the timespan, then convert it to the absolute value of the total difference in seconds
