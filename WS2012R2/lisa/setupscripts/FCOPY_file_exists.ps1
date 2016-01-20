@@ -198,16 +198,24 @@ if (-not $gsi.Enabled) {
 	} until (Test-NetConnection $IPv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 }
 
+# Get VHD path of tested server; file will be copied there
+$vhd_path = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
+$vhd_path_formatted = $vhd_path.Replace(':','$')
+
+# Define the file-name to use with the current time-stamp
+$testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
+
+$filePath = $vhd_path + $testfile
+$file_path_formatted = $vhd_path_formatted + $testfile
+
+
 if ($gsi.OperationalStatus -ne "OK") {
     "Error: The Guest services are not working properly for VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
 	$retVal = $False
 }
 else {
-	# Define the file-name to use with the current time-stamp
-	$testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file" 
-
 	# Create a 10MB sample file
-	$createfile = fsutil file createnew $testfile 10485760
+	$createfile = fsutil file createnew \\$hvServer\$file_path_formatted 10485760
 
 	if ($createfile -notlike "File *testfile-*.file is created") {
 		"Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
@@ -235,7 +243,7 @@ if (-not $sts[-1]) {
 # If we got here then all checks have passed and we can copy the file to the Linux guest VM
 # Initial file copy, which must be successful
 $Error.Clear()
-Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
+Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
 if ($error.Count -eq 0) {
 	# Checking if the file size is matching
 	$sts = check_file $testfile
@@ -259,7 +267,7 @@ elseif ($Error.Count -gt 0) {
 
 $Error.Clear()
 # Second copy file attempt must fail with the below error code pattern
-Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
+Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
 
 if ($Error[0].Exception.Message -like "*failed to initiate copying files to the guest: The file exists. (0x80070050)*") {
 	Write-Output "Test passed! File could not be copied as it already exists on guest VM '${vmName}'" | Tee-Object -Append -file $summaryLog
@@ -270,7 +278,7 @@ elseif ($error.Count -eq 0) {
 }
 
 # Removing the temporary test file
-Remove-Item -Path $testfile -Force
+Remove-Item -Path \\$hvServer\$file_path_formatted -Force
 if ($? -ne "True") {
     Write-Output "ERROR: cannot remove the test file '${testfile}'!" | Tee-Object -Append -file $summaryLog
 }

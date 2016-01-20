@@ -196,16 +196,24 @@ if (-not $gsi.Enabled) {
 	} until (Test-NetConnection $IPv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 }
 
+# Get VHD path of tested server; file will be copied there
+$vhd_path = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
+$vhd_path_formatted = $vhd_path.Replace(':','$')
+
+# Define the file-name to use with the current time-stamp
+$testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
+
+$filePath = $vhd_path + $testfile
+$file_path_formatted = $vhd_path_formatted + $testfile
+
+
 if ($gsi.OperationalStatus -ne "OK") {
     "Error: The Guest services are not working properly for VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
 	$retVal = $False
 }
 else {
-	# Define the file-name to use with the current time-stamp
-	$testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file" 
-
 	# Create a 10MB sample file
-	$createfile = fsutil file createnew $testfile 10485760
+	$createfile = fsutil file createnew \\$hvServer\$file_path_formatted 10485760
 
 	if ($createfile -notlike "File *testfile-*.file is created") {
 		"Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
@@ -232,7 +240,7 @@ if (-not $sts[-1]) {
 
 # If we got here then all checks have passed and we can copy the file to the Linux guest VM
 $Error.Clear()
-Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
+Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
 if ($Error.Count -eq 0) {
 	Write-Output "File has been successfully copied to guest VM '${vmName}'" | Tee-Object -Append -file $summaryLog
 }
@@ -256,7 +264,7 @@ else {
 }
 
 # Removing the temporary test file
-Remove-Item -Path $testfile -Force
+Remove-Item -Path \\$hvServer\$file_path_formatted -Force
 if ($? -ne "True") {
     Write-Output "ERROR: cannot remove the test file '${testfile}'!" | Tee-Object -Append -file $summaryLog
 }

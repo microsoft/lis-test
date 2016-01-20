@@ -99,7 +99,7 @@
 			<testParams>
 				<param>TC_COVERED=FCopy-05</param>
 			</testParams>
-			<noReboot>True</noReboot>
+			<noReboot>False</noReboot>
 		</test>
 
 		<test>
