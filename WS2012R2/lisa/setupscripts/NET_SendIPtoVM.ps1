@@ -57,7 +57,6 @@
     .Example
     StartVM -vmName myVM -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM2NAME=vm2Name"
 #>
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 #
@@ -198,8 +197,6 @@ if (-not $vm2MacAddress)
     return $False
 }
 
-Write-Host "$vm2Server is the iPerf server's host"
-
 if (-not $vm2Server)
 {
     $vm2Server = $hvServer
@@ -229,7 +226,6 @@ if (-not $result) {
     Write-Error -Message "Error: Unable to submit ${cmd} to vm" -ErrorAction SilentlyContinue
     return $False
 }
-
 
 "Dependency VM's test IP submitted successfully!"
 
