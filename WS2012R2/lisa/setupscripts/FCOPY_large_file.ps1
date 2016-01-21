@@ -241,16 +241,23 @@ if (-not $gsi.Enabled) {
 	} until (Test-NetConnection $IPv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 }
 
+# Get VHD path of tested server; file will be copied there
+$vhd_path = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
+$vhd_path_formatted = $vhd_path.Replace(':','$')
+
+# Define the file-name to use with the current time-stamp
+$testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
+
+$filePath = $vhd_path + $testfile
+$file_path_formatted = $vhd_path_formatted + $testfile
+
 if ($gsi.OperationalStatus -ne "OK") {
     "Error: The Guest services are not working properly for VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
 	$retVal = $False
 }
 else {
-	# Define the file-name to use with the current time-stamp
-	$testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
-
 	# Create a 10GB sample file
-	$createfile = fsutil file createnew $testfile $filesize
+	$createfile = fsutil file createnew \\$hvServer\$file_path_formatted $filesize
 
 	if ($createfile -notlike "File *testfile-*.file is created") {
 		"Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
@@ -284,7 +291,7 @@ if (-not $sts[-1]) {
 # Copy the file to the Linux guest VM
 #
 $Error.Clear()
-$copyDuration = (Measure-Command { Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath `
+$copyDuration = (Measure-Command { Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath `
     "/mnt/" -FileSource host -ErrorAction SilentlyContinue }).totalseconds
 
 if ($Error.Count -eq 0) {
@@ -318,7 +325,7 @@ else {
 #
 # Removing the temporary test file
 #
-Remove-Item -Path $testfile -Force
+Remove-Item -Path \\$hvServer\$file_path_formatted -Force
 if (-not $?) {
     Write-Output "ERROR: Cannot remove the test file '${testfile}'!" | Tee-Object -Append -file $summaryLog
 }

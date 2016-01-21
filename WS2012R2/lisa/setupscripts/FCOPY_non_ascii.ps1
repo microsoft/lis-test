@@ -417,6 +417,15 @@ else {
     else {
         Write-Output "MD5 checksum on Hyper-V: $localChksum"
     }
+
+    # Copy file to vhd folder
+    $vhd_path = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
+    $vhd_path_formatted = $vhd_path.Replace(':','$')
+    
+    $filePath = $vhd_path + $testfile
+    $file_path_formatted = $vhd_path_formatted + $testfile
+
+    Copy-Item -Path .\$testfile -Destination \\$hvServer\$vhd_path_formatted
 }
 
 # Removing previous test files on the VM
@@ -435,7 +444,7 @@ if (-not $?){
 #
 
 $Error.Clear()
-Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
+Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
 if ($Error.Count -eq 0) {
     Write-Output "File has been successfully copied to guest VM '${vmName}'" >> $summaryLog
 }
@@ -482,6 +491,12 @@ else
     Remove-Item -Path "FCOPY_non_ascii.sh.log" -Force
     $results = "Passed"
     $retVal = $True
+}
+
+# Removing the temporary test file
+Remove-Item -Path \\$hvServer\$file_path_formatted -Force
+if ($? -ne "True") {
+    Write-Output "ERROR: cannot remove the test file '${testfile}'!" | Tee-Object -Append -file $summaryLog
 }
 
 Write-Output "INFO: Test ${results}"

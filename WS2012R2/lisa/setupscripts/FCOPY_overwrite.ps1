@@ -141,7 +141,7 @@ function generate_random_string([Int] $length)
 #	Write, copy and check file
 #
 #######################################################################
-function copy_and_check_file([String] $testfile, [Boolean] $overwrite, [Int] $contentlength)
+function copy_and_check_file([String] $testfile, [Boolean] $overwrite, [Int] $contentlength, [String]$filePath, [String]$vhd_path_formatted)
 {
     # Write the file
     $filecontent = generate_random_string $contentlength
@@ -158,13 +158,16 @@ function copy_and_check_file([String] $testfile, [Boolean] $overwrite, [Int] $co
         return $False
     }
 
+    # Copy file to vhd folder
+    Copy-Item -Path .\$testfile -Destination \\$hvServer\$vhd_path_formatted
+
     # Copy the file and check copied file
     $Error.Clear()
     if ($overwrite) {
-        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue -Force       
+        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue -Force       
     }
     else {
-        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $testfile -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
+        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
     }
     if ($Error.Count -eq 0) {
         $sts = check_file $testfile
@@ -315,7 +318,13 @@ $testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
 #
 # Initial file copy, which must be successful. Create a text file with 20 characters, and then copy it.
 #
-$sts = copy_and_check_file $testfile $False 20
+$vhd_path = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
+$vhd_path_formatted = $vhd_path.Replace(':','$')
+
+$filePath = $vhd_path + $testfile
+$file_path_formatted = $vhd_path_formatted + $testfile
+
+$sts = copy_and_check_file $testfile $False 20 $filePath $vhd_path_formatted
 if (-not $sts[-1]) {
     Write-Output "ERROR: Failed to initially copy the file '${testfile}' to the VM." | Tee-Object -Append -file $summaryLog
     $retVal = $False
@@ -327,7 +336,7 @@ else {
 #
 # Second copy file overwrites the initial file. Re-write the text file with 15 characters, and then copy it with -Force parameter.
 #
-$sts = copy_and_check_file $testfile $True 15
+$sts = copy_and_check_file $testfile $True 15 $filePath $vhd_path_formatted
 if (-not $sts[-1]) {
     Write-Output "ERROR: Failed to overwrite the file '${testfile}' to the VM." | Tee-Object -Append -file $summaryLog
     $retVal = $False
@@ -337,7 +346,7 @@ else {
 }
 
 # Removing the temporary test file
-Remove-Item -Path $testfile -Force
+Remove-Item -Path \\$hvServer\$file_path_formatted -Force
 if ($? -ne "True") {
     Write-Output "ERROR: cannot remove the test file '${testfile}'!" | Tee-Object -Append -file $summaryLog
 }
