@@ -38,7 +38,7 @@
                 <suiteTest>Crash_SMP</suiteTest>
                 <suiteTest>Crash_NMI</suiteTest>
                 <!-- Only for REDHAT. Test with crashkernel=auto -->
-                <suiteTest>Crash_Auto</suiteTest>
+                <suiteTest>Crash_Auto_size</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -97,7 +97,7 @@
         </test>
 
         <test>
-            <testName>Crash_Auto</testName>
+            <testName>Crash_Auto_size</testName>
             <setupScript>
                 <file>setupscripts\ChangeCPU.ps1</file>
                 <file>setupScripts\SetVMMemory.ps1</file>
