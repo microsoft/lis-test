@@ -22,6 +22,7 @@
 ########################################################################
 
 ICA_TESTRUNNING="TestRunning"
+ICA_TESTABORTED="TestAborted"
 
 kdump_conf=/etc/kdump.conf
 dump_path=/var/crash
@@ -247,9 +248,8 @@ ConfigUbuntu()
 # Main script body
 #
 #######################################################################
-crashkernel=$1
-
 UpdateTestState $ICA_TESTRUNNING
+crashkernel=$1
 
 cd ~
 # Delete any old summary.log file
@@ -279,10 +279,24 @@ case $distro in
         ConfigRhel
     ;;
     "UBUNTU")
-        ConfigUbuntu
+        if [ "$crashkernel" == "auto" ]; then
+            LogMsg "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y."
+            echo "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y." >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+            exit 2
+        else
+            ConfigUbuntu
+        fi    
     ;;
     "SLES")
-        ConfigSles
+        if [ "$crashkernel" == "auto" ]; then
+            LogMsg "WARNING: crashkernel=auto doesn't work for SLES. Please use this pattern: crashkernel=X@Y."
+            echo "WARNING: crashkernel=auto doesn't work for SLES. Please use this pattern: crashkernel=X@Y." >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+            exit 2
+        else    
+            ConfigSles
+        fi
     ;;
      *)
         msg="WARNING: Distro '${distro}' not supported, defaulting to RedHat"

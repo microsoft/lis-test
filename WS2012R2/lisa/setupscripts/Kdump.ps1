@@ -23,6 +23,41 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+function CheckResults(){
+    #
+    # Checking test results
+    #
+    $stateFile = "state.txt"
+
+    bin\pscp -q -i ssh\${1} root@${2}:${stateFile} .
+    $sts = $?
+
+    if ($sts) {
+        if (test-path $stateFile){
+            $contents = Get-Content $stateFile
+            if ($null -ne $contents){
+                if ($contents.Contains('TestCompleted') -eq $True) {                    
+                    Write-Output "Info: Test ended successfully"
+                    $retVal = $True
+                }
+                if ($contents.Contains('TestAborted') -eq $True) {
+                    Write-Output "Info: State file contains TestAborted failed"
+                    $retVal = $False                           
+                }
+                if ($contents.Contains('TestFailed') -eq $True) {
+                    Write-Output "Info: State file contains TestFailed failed"
+                    $retVal = $False                           
+                }
+            }    
+            else {
+                Write-Output "ERROR: state file is empty!"
+                $retVal = $False    
+            }
+        }
+    }
+    return $retval
+}
+
 #
 # MAIN SCRIPT
 #
@@ -137,6 +172,12 @@ Write-Output "Success: send kdump_execute.sh to VM."
 $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_execute.sh && chmod u+x kdump_execute.sh && ./kdump_execute.sh"
 
 bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
+$retVal = CheckResults $sshKey $ipv4
+if (-not $retVal)
+{
+    "ERROR: Results are not as expected(configuration problems). Test Aborted."
+    return $false
+}
 
 # Trigger the kernel panic
 Write-Output "Trigger the kernel panic..."
@@ -157,7 +198,7 @@ Start-Sleep -S 200
 if ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {                     
     Write-Output "Error : Lost Communication to VM"
     Stop-VM -Name $vmName -ComputerName $hvServer -Force
-    return $False                  
+    return $False
 }
 
 Write-Output "VM Heartbeat is OK."
@@ -194,42 +235,5 @@ if ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "Running") {
     $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh"
 }
 
-#
-# Checking test results
-#
-
-$stateFile = "state.txt"
-
-bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} .
-$sts = $?
-
-if ($sts) {
-    if (test-path $stateFile){
-        $contents = Get-Content $stateFile
-        if ($null -ne $contents){
-            if ($contents.Contains('TestCompleted') -eq $True) {                    
-                Write-Output "Info: Test ended successfully"
-                $retVal = $True
-            }
-            if ($contents.Contains('TestAborted') -eq $True) {
-                Write-Output "Info: State file contains TestAborted failed"
-                $retVal = $False                           
-            }
-            if ($contents.Contains('TestFailed') -eq $True) {
-                Write-Output "Info: State file contains TestFailed failed"
-                $retVal = $False                           
-            }
-        }    
-        else {
-            Write-Output "ERROR: state file is empty!"
-            $retVal = $False    
-        }
-    }
-}
-
-
-if (test-path $stateFile){
-    del $stateFile 
-}
-
+$retVal = CheckResults $sshKey $ipv4
 return $retVal
