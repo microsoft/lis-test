@@ -119,7 +119,7 @@ function GetLinuxDistro([String] $ipv4, [String] $password)
         return $null
     }
 
-    $distro = bin\plink -pw "${password}" root@${ipv4} "grep -ihs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux\|Oracle' /etc/{issue,*release,*version}"
+    $distro = bin\plink -pw "${password}" root@${ipv4} "grep -hs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux\|Oracle' /etc/{issue,*release,*version}"
     if (-not $distro)
     {
         return $null
