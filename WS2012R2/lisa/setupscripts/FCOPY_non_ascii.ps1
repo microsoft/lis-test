@@ -418,13 +418,20 @@ else {
         Write-Output "MD5 checksum on Hyper-V: $localChksum"
     }
 
-    # Copy file to vhd folder
+    # Get vhd folder
     $vhd_path = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
+
+    # Fix path format if it's broken
+    if ($vhd_path.Substring($vhd_path.Length - 1, 1) -ne "\"){
+        $vhd_path = $vhd_path + "\"
+    }
+
     $vhd_path_formatted = $vhd_path.Replace(':','$')
     
     $filePath = $vhd_path + $testfile
     $file_path_formatted = $vhd_path_formatted + $testfile
 
+    # Copy file to vhd folder
     Copy-Item -Path .\$testfile -Destination \\$hvServer\$vhd_path_formatted
 }
 
