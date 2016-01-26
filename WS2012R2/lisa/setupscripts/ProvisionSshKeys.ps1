@@ -144,7 +144,10 @@ function GetLinuxDistro([String] $ipv4, [String] $password)
         "*Debian*"  {  $LinuxDistro = "Debian"
                        break
                     }
-        "*Red Hat*" {  $linuxDistro = "RedHat"
+        "*Red Hat Enterprise Linux Server 7.*" {  $linuxDistro = "RedHat7"
+                       break
+                    }
+        "*Red Hat Enterprise Linux Server 6.*" {  $linuxDistro = "RedHat6"
                        break
                     }
         "*Oracle*" {  $linuxDistro = "Oracle"
@@ -170,7 +173,8 @@ function InstallPackagesRequiredByLisa([String] $ipv4, [String] $password)
     switch -regex ($distro)
     {
         CentOS   { $cmd = "yum -y install dos2unix at"                        }
-        RedHat   { $cmd = "yum -y install dos2unix at"                        }
+        RedHat6   { $cmd = "yum -y install dos2unix at"                        }
+        RedHat7   { $cmd = "yum -y install dos2unix at"                        }
         Oracle   { $cmd = "yum -y install dos2unix at"                        }
         SUSE     { $cmd = "zypper --non-interactive install dos2unix at"      }
         Ubuntu   { $cmd = "apt-get -y install dos2unix at"                    }
@@ -187,6 +191,7 @@ function InstallPackagesRequiredByLisa([String] $ipv4, [String] $password)
     {
         Ubuntu { $cmd = "update-rc.d atd enable && update-rc.d atd enable" }
         Oracle { $cmd = "chkconfig atd on" }
+        RedHat6 { $cmd = "chkconfig atd on" }
         default { $cmd = "systemctl enable atd.service" }
     }
 
