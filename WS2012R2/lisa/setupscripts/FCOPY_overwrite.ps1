@@ -319,6 +319,12 @@ $testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
 # Initial file copy, which must be successful. Create a text file with 20 characters, and then copy it.
 #
 $vhd_path = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
+
+# Fix path format if it's broken
+if ($vhd_path.Substring($vhd_path.Length - 1, 1) -ne "\"){
+    $vhd_path = $vhd_path + "\"
+}
+
 $vhd_path_formatted = $vhd_path.Replace(':','$')
 
 $filePath = $vhd_path + $testfile

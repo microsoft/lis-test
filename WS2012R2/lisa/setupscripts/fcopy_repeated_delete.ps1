@@ -293,6 +293,12 @@ if (-not $gsi.Enabled) {
 
 # Get VHD path of tested server; file will be copied there
 $vhd_path = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
+
+# Fix path format if it's broken
+if ($vhd_path.Substring($vhd_path.Length - 1, 1) -ne "\"){
+    $vhd_path = $vhd_path + "\"
+}
+
 $vhd_path_formatted = $vhd_path.Replace(':','$')
 
 # Define the file-name to use with the current time-stamp
