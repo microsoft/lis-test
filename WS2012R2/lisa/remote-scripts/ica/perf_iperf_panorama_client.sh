@@ -290,6 +290,23 @@ echo "test run log folder       = ${TEST_RUN_LOG_FOLDER}"
 echo "iperf3 test connection pool   = ${IPERF3_TEST_CONNECTION_POOL}"
 
 #
+# Check for internet protocol version
+#
+if [[ $STATIC_IP == *"::"* ]]; then
+    if [[ $IPERF3_SERVER_IP == *"::"* ]]; then
+        ipVersion="-6"
+    else
+        msg="Error: Not both test IPs are IPV6"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 60
+    fi
+else
+    ipVersion="-4"
+fi
+
+#
 # Extract the files from the IPerf tar package
 #
 tar -xzf ./${IPERF_PACKAGE}
@@ -325,7 +342,7 @@ case "$DISTRO" in
 debian*|ubuntu*)
     LogMsg "Updating apt repositories"
     apt-get update
-    
+
     LogMsg "Installing sar on Ubuntu"
     apt-get install sysstat -y
     if [ $? -ne 0 ]; then
@@ -621,13 +638,13 @@ do
 
     while [ $number_of_connections -gt $CONNECTIONS_PER_IPERF3 ]; do
         number_of_connections=$(($number_of_connections-$CONNECTIONS_PER_IPERF3))
-        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port -4 -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port $ipVersion -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
         port=$(($port + 1))
     done
 
     if [ $number_of_connections -gt 0 ]
     then
-        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port -4 -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port $ipVersion -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
     fi
 
     sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
