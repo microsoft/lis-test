@@ -1188,6 +1188,7 @@ CreateIfupConfigFile()
 	declare __ip
 	declare __netmask
 	declare __file_path
+	ipv6=false
 
 	case "$2" in
 		static)
@@ -1299,11 +1300,14 @@ CreateIfupConfigFile()
 			return 100
 		fi
 
-		CheckIP "$3"
-
-		if [ 0 -ne $? ]; then
-			LogMsg "CreateIfupConfigFile: $3 is not a valid IP Address"
-			return 2
+		if [[ $3 == *"::"* ]]; then
+			ipv6=true
+		else
+			CheckIP "$3"
+			if [ 0 -ne $? ]; then
+				LogMsg "CreateIfupConfigFile: $3 is not a valid IP Address"
+				return 2
+			fi
 		fi
 
 		__ip="$3"
@@ -1365,13 +1369,24 @@ CreateIfupConfigFile()
 					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
 				fi
 
-				cat <<-EOF > "$__file_path"
-					DEVICE="$__interface_name"
-					BOOTPROTO=none
-					IPADDR="$__ip"
-					NETMASK="$__netmask"
-					NM_CONTROLLED=no
-				EOF
+				if [[ $ipv6 == false ]]; then
+					cat <<-EOF > "$__file_path"
+						DEVICE="$__interface_name"
+						BOOTPROTO=none
+						IPADDR="$__ip"
+						NETMASK="$__netmask"
+						NM_CONTROLLED=no
+					EOF
+				else
+					cat <<-EOF > "$__file_path"
+						DEVICE="$__interface_name"
+						BOOTPROTO=none
+						IPV6ADDR="$__ip"
+						IPV6INIT=yes
+						PREFIX="$__netmask"
+						NM_CONTROLLED=no
+					EOF
+				fi
 
 				ifdown "$__interface_name"
 				ifup "$__interface_name"
@@ -1388,12 +1403,21 @@ CreateIfupConfigFile()
 					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
 				fi
 
-				cat <<-EOF >> "$__file_path"
-					auto $__interface_name
-					iface $__interface_name inet static
-					address $__ip
-					netmask $__netmask
-				EOF
+				if [[ $ipv6 == false ]]; then
+					cat <<-EOF >> "$__file_path"
+						auto $__interface_name
+						iface $__interface_name inet static
+						address $__ip
+						netmask $__netmask
+					EOF
+				else
+					cat <<-EOF >> "$__file_path"
+						auto $__interface_name
+						iface $__interface_name inet6 static
+						address $__ip
+						netmask $__netmask
+					EOF
+				fi
 
 				service network-manager restart
 				ifdown "$__interface_name"
