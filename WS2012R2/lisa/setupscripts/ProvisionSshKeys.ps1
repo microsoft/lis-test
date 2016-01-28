@@ -119,7 +119,7 @@ function GetLinuxDistro([String] $ipv4, [String] $password)
         return $null
     }
 
-    $distro = bin\plink -pw "${password}" root@${ipv4} "grep -hs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux\|Oracle' /etc/{issue,*release,*version}"
+    $distro = bin\plink -pw "${password}" root@${ipv4} "grep -hs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux Server [0-9]\.[0-9]\|Oracle' /etc/{issue,*release,*version}"
     if (-not $distro)
     {
         return $null
@@ -173,8 +173,7 @@ function InstallPackagesRequiredByLisa([String] $ipv4, [String] $password)
     switch -regex ($distro)
     {
         CentOS   { $cmd = "yum -y install dos2unix at"                        }
-        RedHat6   { $cmd = "yum -y install dos2unix at"                        }
-        RedHat7   { $cmd = "yum -y install dos2unix at"                        }
+        RedHat   { $cmd = "yum -y install dos2unix at"                        }
         Oracle   { $cmd = "yum -y install dos2unix at"                        }
         SUSE     { $cmd = "zypper --non-interactive install dos2unix at"      }
         Ubuntu   { $cmd = "apt-get -y install dos2unix at"                    }
