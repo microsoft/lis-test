@@ -433,6 +433,28 @@ CheckIP()
 
 }
 
+
+# Validate that $1 is an IPv6 address
+CheckIPV6()
+{
+	if [ 1 -ne $# ]; then
+		LogMsg "CheckIPV6 accepts 1 arguments: IPV6 address"
+		return 100
+	fi
+
+	declare ip
+	declare stat
+	ip=$1
+	stat=1
+
+	if [[ $ip =~ ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$ ]]; then
+        stat=$?
+    fi
+
+	return $stat
+
+}
+
 # Check that $1 is a MAC address
 
 CheckMAC()
@@ -1300,7 +1322,12 @@ CreateIfupConfigFile()
 			return 100
 		fi
 
-		if [[ $3 == *"::"* ]]; then
+		if [[ $3 == *":"* ]]; then
+			CheckIPV6 "$3"
+			if [ 0 -ne $? ]; then
+				LogMsg "CreateIfupConfigFile: $3 is not a valid IPV6 Address"
+				return 2
+			fi
 			ipv6=true
 		else
 			CheckIP "$3"
@@ -1326,13 +1353,20 @@ CreateIfupConfigFile()
 				if [ -e "$__file_path" ]; then
 					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
 				fi
-
-				cat <<-EOF > "$__file_path"
-					STARTMODE=manual
-					BOOTPROTO=static
-					IPADDR="$__ip"
-					NETMASK="$__netmask"
-				EOF
+				if [[ $ipv6 == false ]]; then
+					cat <<-EOF > "$__file_path"
+						STARTMODE=manual
+						BOOTPROTO=static
+						IPADDR="$__ip"
+						NETMASK="$__netmask"
+					EOF
+				else
+					cat <<-EOF > "$__file_path"
+						STARTMODE=manual
+						BOOTPROTO=static
+						IPADDR="$__ip/$__netmask"
+					EOF
+				fi
 
 				wicked ifdown "$__interface_name"
 				wicked ifup "$__interface_name"
