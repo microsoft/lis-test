@@ -233,6 +233,23 @@ echo "iPerf server ip           = ${STATIC_IP2}"
 echo "iPerf server test interface ip        = ${IPERF3_SERVER_IP}"
 echo "user name on server       = ${SERVER_OS_USERNAME}"
 
+#
+# Check for internet protocol version
+#
+if [[ $STATIC_IP == *":"* ]]; then
+    if [[ $IPERF3_SERVER_IP == *":"* ]]; then
+        ipVersion="-6"
+    else
+        msg="Error: Not both test IPs are IPV6"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 60
+    fi
+else
+    ipVersion=$null
+fi
+
 git clone https://github.com/Microsoft/ntttcp-for-linux.git
 
 #
@@ -501,7 +518,7 @@ fi
 #
 LogMsg "Starting ntttcp in client mode"
 
-ntttcp -s${IPERF3_SERVER_IP} > ntttcp-for-linux.log 2>&1
+ntttcp -s${IPERF3_SERVER_IP} ${ipVersion} > ntttcp-for-linux.log 2>&1
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start ntttcp client scripts on the client machine"
     LogMsg "${msg}"
