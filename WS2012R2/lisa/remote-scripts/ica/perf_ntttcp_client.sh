@@ -533,7 +533,7 @@ UpdateSummary "Kernel: $(uname -r)"
 # If we made it here, everything worked
 #
 #Shut down dependency VM
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'init 0' | at now"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "reboot | at now"
 if [ $? -ne 0 ]; then
     msg="Warning: Unable to shut down target server machine"
     LogMsg "${msg}"
