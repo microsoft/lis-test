@@ -119,7 +119,7 @@ function GetLinuxDistro([String] $ipv4, [String] $password)
         return $null
     }
 
-    $distro = bin\plink -pw "${password}" root@${ipv4} "grep -ihs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux\|Oracle' /etc/{issue,*release,*version}"
+    $distro = bin\plink -pw "${password}" root@${ipv4} "grep -hs 'Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux Server [0-9]\.[0-9]\|Oracle' /etc/{issue,*release,*version}"
     if (-not $distro)
     {
         return $null
@@ -144,7 +144,10 @@ function GetLinuxDistro([String] $ipv4, [String] $password)
         "*Debian*"  {  $LinuxDistro = "Debian"
                        break
                     }
-        "*Red Hat*" {  $linuxDistro = "RedHat"
+        "*Red Hat Enterprise Linux Server 7.*" {  $linuxDistro = "RedHat7"
+                       break
+                    }
+        "*Red Hat Enterprise Linux Server 6.*" {  $linuxDistro = "RedHat6"
                        break
                     }
         "*Oracle*" {  $linuxDistro = "Oracle"
@@ -187,6 +190,7 @@ function InstallPackagesRequiredByLisa([String] $ipv4, [String] $password)
     {
         Ubuntu { $cmd = "update-rc.d atd enable && update-rc.d atd enable" }
         Oracle { $cmd = "chkconfig atd on" }
+        RedHat6 { $cmd = "chkconfig atd on" }
         default { $cmd = "systemctl enable atd.service" }
     }
 
