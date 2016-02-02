@@ -240,6 +240,16 @@ echo "test signal file			= ${TEST_SIGNAL_FILE}"
 echo "test run log folder		= ${TEST_RUN_LOG_FOLDER}"
 
 #
+# Check for internet protocol version
+#
+CheckIPV6 "$IPERF3_SERVER_IP"
+if [[ $? -eq 0 ]]; then
+    ipVersion="-6"
+else
+    ipVersion="-4"
+fi
+
+#
 # Extract the files from the IPerf tar package
 #
 tar -xzf ./${IPERF_PACKAGE}
@@ -275,7 +285,7 @@ case "$DISTRO" in
 debian*|ubuntu*)
     LogMsg "Updating apt repositories"
     apt-get update
-    
+
     LogMsg "Installing sar on Ubuntu"
     apt-get install sysstat -y
     if [ $? -ne 0 ]; then
@@ -507,7 +517,7 @@ while true; do
 
         for ((i=8001; i<=$number_of_iperf_instances; i++))
         do
-            /root/${rootDir}/src/iperf3 -s -D -4 -p $i
+            /root/${rootDir}/src/iperf3 -s -D $ipVersion -p $i
         done
         x=$(ps -aux | grep iperf | wc -l)
         echo "ps -aux | grep iperf | wc -l: $x"

@@ -190,6 +190,16 @@ done
 
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
+#
+# Check for internet protocol version
+#
+CheckIPV6 "$IPERF3_SERVER_IP"
+if [[ $? -eq 0 ]]; then
+    ipVersion="-6"
+else
+    ipVersion=$null
+fi
+
 git clone https://github.com/Microsoft/ntttcp-for-linux.git
 
 #
@@ -403,7 +413,7 @@ LogMsg "Starting ntttcp in server mode"
 UpdateTestState $ICA_IPERF3RUNNING
 LogMsg "ntttcp server instances are now ready to run"
 
-ntttcp –r
+ntttcp –r${IPERF3_SERVER_IP} ${ipVersion}
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start ntttcp server scripts on the target server machine"
     LogMsg "${msg}"
