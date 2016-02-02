@@ -193,7 +193,8 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 #
 # Check for internet protocol version
 #
-if [[ $IPERF3_SERVER_IP == *":"* ]]; then
+CheckIPV6 "$IPERF3_SERVER_IP"
+if [[ $? -eq 0 ]]; then
     ipVersion="-6"
 else
     ipVersion=$null

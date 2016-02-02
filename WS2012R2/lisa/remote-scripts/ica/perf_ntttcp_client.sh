@@ -236,8 +236,10 @@ echo "user name on server       = ${SERVER_OS_USERNAME}"
 #
 # Check for internet protocol version
 #
-if [[ $STATIC_IP == *":"* ]]; then
-    if [[ $IPERF3_SERVER_IP == *":"* ]]; then
+CheckIPV6 "$STATIC_IP"
+if [[ $? -eq 0 ]]; then
+    CheckIPV6 "$IPERF3_SERVER_IP"
+    if [[ $? -eq 0 ]]; then
         ipVersion="-6"
     else
         msg="Error: Not both test IPs are IPV6"

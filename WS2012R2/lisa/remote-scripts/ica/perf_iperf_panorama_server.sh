@@ -242,7 +242,8 @@ echo "test run log folder		= ${TEST_RUN_LOG_FOLDER}"
 #
 # Check for internet protocol version
 #
-if [[ $IPERF3_SERVER_IP == *"::"* ]]; then
+CheckIPV6 "$IPERF3_SERVER_IP"
+if [[ $? -eq 0 ]]; then
     ipVersion="-6"
 else
     ipVersion="-4"

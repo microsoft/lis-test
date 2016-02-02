@@ -203,6 +203,39 @@ if (-not $vm2Server)
     "vm2Server was set as $hvServer"
 }
 
+$checkState = Get-VM -Name $vm2Name -ComputerName $vm2Server
+
+if ($checkState.State -notlike "Running")
+{
+    "Warning: ${vm2Name} is not running, we'll try to start it"
+    Start-VM -Name $vm2Name -ComputerName $vm2Server
+    if (-not $?)
+    {
+        "Error: Unable to start VM ${vm2Name}"
+        $error[0].Exception
+        return $False
+    }
+
+    $timeout = 240 # seconds
+    if (-not (WaitForVMToStartKVP $vm2Name $vm2Server $timeout))
+    {
+        "Warning: $vm2Name never started KVP"
+    }
+
+    $vm2ipv4 = GetIPv4 $vm2Name $vm2Server
+
+    $timeout = 200 #seconds
+    if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
+    {
+        "Error: VM ${vm2Name} never started"
+        Stop-VM $vm2Name -ComputerName $vm2Server -force | out-null
+        return $False
+    }
+
+    "Succesfully started VM ${vm2Name}"
+}
+
+
 $ipv4 = GetIPv4 $vmName $hvServer
 
 if (-not $ipv4) {
