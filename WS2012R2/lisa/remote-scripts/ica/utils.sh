@@ -433,6 +433,28 @@ CheckIP()
 
 }
 
+
+# Validate that $1 is an IPv6 address
+CheckIPV6()
+{
+	if [ 1 -ne $# ]; then
+		LogMsg "CheckIPV6 accepts 1 arguments: IPV6 address"
+		return 100
+	fi
+
+	declare ip
+	declare stat
+	ip=$1
+	stat=1
+
+	if [[ $ip =~ ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$ ]]; then
+        stat=$?
+    fi
+
+	return $stat
+
+}
+
 # Check that $1 is a MAC address
 
 CheckMAC()
@@ -1188,6 +1210,7 @@ CreateIfupConfigFile()
 	declare __ip
 	declare __netmask
 	declare __file_path
+	ipv6=false
 
 	case "$2" in
 		static)
@@ -1299,11 +1322,19 @@ CreateIfupConfigFile()
 			return 100
 		fi
 
-		CheckIP "$3"
-
-		if [ 0 -ne $? ]; then
-			LogMsg "CreateIfupConfigFile: $3 is not a valid IP Address"
-			return 2
+		if [[ $3 == *":"* ]]; then
+			CheckIPV6 "$3"
+			if [ 0 -ne $? ]; then
+				LogMsg "CreateIfupConfigFile: $3 is not a valid IPV6 Address"
+				return 2
+			fi
+			ipv6=true
+		else
+			CheckIP "$3"
+			if [ 0 -ne $? ]; then
+				LogMsg "CreateIfupConfigFile: $3 is not a valid IP Address"
+				return 2
+			fi
 		fi
 
 		__ip="$3"
@@ -1322,13 +1353,20 @@ CreateIfupConfigFile()
 				if [ -e "$__file_path" ]; then
 					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
 				fi
-
-				cat <<-EOF > "$__file_path"
-					STARTMODE=manual
-					BOOTPROTO=static
-					IPADDR="$__ip"
-					NETMASK="$__netmask"
-				EOF
+				if [[ $ipv6 == false ]]; then
+					cat <<-EOF > "$__file_path"
+						STARTMODE=manual
+						BOOTPROTO=static
+						IPADDR="$__ip"
+						NETMASK="$__netmask"
+					EOF
+				else
+					cat <<-EOF > "$__file_path"
+						STARTMODE=manual
+						BOOTPROTO=static
+						IPADDR="$__ip/$__netmask"
+					EOF
+				fi
 
 				wicked ifdown "$__interface_name"
 				wicked ifup "$__interface_name"
@@ -1365,13 +1403,24 @@ CreateIfupConfigFile()
 					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
 				fi
 
-				cat <<-EOF > "$__file_path"
-					DEVICE="$__interface_name"
-					BOOTPROTO=none
-					IPADDR="$__ip"
-					NETMASK="$__netmask"
-					NM_CONTROLLED=no
-				EOF
+				if [[ $ipv6 == false ]]; then
+					cat <<-EOF > "$__file_path"
+						DEVICE="$__interface_name"
+						BOOTPROTO=none
+						IPADDR="$__ip"
+						NETMASK="$__netmask"
+						NM_CONTROLLED=no
+					EOF
+				else
+					cat <<-EOF > "$__file_path"
+						DEVICE="$__interface_name"
+						BOOTPROTO=none
+						IPV6ADDR="$__ip"
+						IPV6INIT=yes
+						PREFIX="$__netmask"
+						NM_CONTROLLED=no
+					EOF
+				fi
 
 				ifdown "$__interface_name"
 				ifup "$__interface_name"
@@ -1388,12 +1437,21 @@ CreateIfupConfigFile()
 					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
 				fi
 
-				cat <<-EOF >> "$__file_path"
-					auto $__interface_name
-					iface $__interface_name inet static
-					address $__ip
-					netmask $__netmask
-				EOF
+				if [[ $ipv6 == false ]]; then
+					cat <<-EOF >> "$__file_path"
+						auto $__interface_name
+						iface $__interface_name inet static
+						address $__ip
+						netmask $__netmask
+					EOF
+				else
+					cat <<-EOF >> "$__file_path"
+						auto $__interface_name
+						iface $__interface_name inet6 static
+						address $__ip
+						netmask $__netmask
+					EOF
+				fi
 
 				service network-manager restart
 				ifdown "$__interface_name"
