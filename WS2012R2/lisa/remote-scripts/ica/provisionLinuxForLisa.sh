@@ -121,7 +121,7 @@ LinuxRelease()
             echo "CENTOS";; 
         *SUSE*) 
             echo "SLES";; 
-        Red*Hat*) 
+        *Red*Hat*) 
             echo "RHEL";; 
         Debian*) 
             echo "DEBIAN";; 
