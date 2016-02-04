@@ -64,33 +64,10 @@
 
 param([string] $computerName, [string] $computerNameNew, [string] $adminPassword, [string] $domainName, [string] $isoFolder, [string] $users, [string] $workspacePath)
 
-###############################################################################
-##This function gets the ISO with the latest build if no path is selected
-###############################################################################
-
-function GetIsoLocation
-{
-    $buildFolder = $(Get-ChildItem \\winbuilds\release\TH2_Release\ | Where-Object {  $_.mode -like 'd*' } | Sort LastWriteTime | Select -Last 1).Name
-    if (-not $buildFolder)
-    {
-        Write-Host "Could not determine the latest Windows Server's build folder"
-    }
-
-    $buildInfo = $buildFolder.Substring(0,$buildFolder.IndexOf("."))
-
-    $isoFolder = "\\winbuilds\release\TH2_Release\$buildFolder\amd64fre\iso\iso_server_en-us_vl\"
-
-    return $isoFolder
-}
-
 if (-not $isoFolder)
 {
-    $isoFolder = GetIsoLocation
-    if (-not $isoFolder)
-    {
-        Write-Host "Could not set the ISO's location"
-        return $false
-    }
+    Write-Host "No folder specified."
+    return $false
 }
 
 $isoFile = $(Get-ChildItem $isoFolder | Where-Object {  $_.extension -eq '.ISO' } | Sort LastWriteTime | Select -Last 1).Name
