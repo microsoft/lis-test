@@ -111,12 +111,14 @@ do
     for (( c=1 ; c<=count; count--))
         do
             (echo d; echo $c ; echo ; echo w) |  fdisk $driveName
+            sleep 5
         done
-
 
 # Partition Drive
     (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) | fdisk $driveName
+    sleep 5
     (echo n; echo p; echo 2; echo ; echo; echo ; echo w) | fdisk $driveName
+    sleep 5
     sts=$?
   if [ 0 -ne ${sts} ]; then
       echo "Error:  Partitioning disk Failed ${sts}"
@@ -145,7 +147,7 @@ do
 
    sleep 1
 
-# mount the disk .
+# mount the disk
    MountName="/mnt/1"
    if [ ! -e ${MountName} ]; then
      mkdir $MountName
@@ -171,6 +173,4 @@ fi
 done
 
 UpdateTestState $ICA_TESTCOMPLETED
-
 exit 0
-
