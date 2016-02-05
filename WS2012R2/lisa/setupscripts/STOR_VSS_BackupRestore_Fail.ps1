@@ -454,7 +454,7 @@ Write-Output "INFO: Going through event logs for Warninig ID 10107"
 $EventLog = Get-WinEvent -ProviderName Microsoft-Windows-Hyper-V-VMMS | where-object {  $_.TimeCreated -gt $Date}
 if(-not $EventLog)
 {
-    "ERROR: Connot get Event log."
+    "ERROR: Cannot get Event log."
     return $False
 } 
 
