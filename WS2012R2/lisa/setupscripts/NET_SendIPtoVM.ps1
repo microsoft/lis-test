@@ -235,13 +235,14 @@ if ($checkState.State -notlike "Running")
     "Succesfully started VM ${vm2Name}"
 }
 
-
 $ipv4 = GetIPv4 $vmName $hvServer
 
 if (-not $ipv4) {
     "Error: could not retrieve test VM's test IP address"
     return $False
 }
+
+sleep 20
 
 $tempipv4VM2 = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $vm2Server | Where-object {$_.MacAddress -like "$vm2MacAddress"} | Select -Expand IPAddresses
 $testipv4VM2 = $tempipv4VM2[0]
@@ -250,7 +251,6 @@ if (-not $testipv4VM2) {
     "Error: could not retrieve dependency VM's test IP address"
     return $False
 }
-
 
 $cmd="echo `"STATIC_IP2=$($testipv4VM2)`" >> ~/constants.sh";
 $result = Execute($cmd);
@@ -261,5 +261,4 @@ if (-not $result) {
 }
 
 "Dependency VM's test IP submitted successfully!"
-
 return $true
