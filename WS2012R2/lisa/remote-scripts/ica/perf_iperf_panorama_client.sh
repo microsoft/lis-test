@@ -554,6 +554,9 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 
 done
 
+# Waiting for VM2 to boot
+sleep 20
+
 LogMsg "Copy files to server: ${STATIC_IP2}"
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
