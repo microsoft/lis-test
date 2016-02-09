@@ -57,7 +57,6 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-
 #######################################################################
 #
 # Main script body
@@ -450,7 +449,7 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
-if [ $DISTRO -eq "suse_12"]; then
+if [ $DISTRO -eq "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
         msg="Warning: Couldn't run ldconfig, there might be shared library errors"
@@ -463,7 +462,6 @@ fi
 cd ~
 
 # set static ips for test interfaces
-
 declare -i __iterator=0
 
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
@@ -484,8 +482,6 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
     : $((__iterator++))
 
 done
-
-
 
 #
 # Start iPerf3 server instances
