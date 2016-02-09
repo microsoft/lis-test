@@ -1269,7 +1269,7 @@ CreateIfupConfigFile()
 				ifup "$__interface_name"
 
 				;;
-			redhat*|centos*)
+			redhat_7)
 				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
@@ -1283,6 +1283,52 @@ CreateIfupConfigFile()
 				cat <<-EOF > "$__file_path"
 					DEVICE="$__interface_name"
 					BOOTPROTO=dhcp
+				EOF
+
+				ifdown "$__interface_name"
+				ifup "$__interface_name"
+
+				;;
+			redhat_6)
+				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+
+				cat <<-EOF > "$__file_path"
+					DEVICE="$__interface_name"
+					BOOTPROTO=dhcp
+					IPV6INIT=yes
+				EOF
+
+				ifdown "$__interface_name"
+				ifup "$__interface_name"
+
+				;;
+			redhat_5)
+				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
+				if [ ! -d "$(dirname $__file_path)" ]; then
+					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
+					return 3
+				fi
+
+				if [ -e "$__file_path" ]; then
+					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+
+				cat <<-EOF > "$__file_path"
+					DEVICE="$__interface_name"
+					BOOTPROTO=dhcp
+					IPV6INIT=yes
+				EOF
+
+				cat <<-EOF >> "/etc/sysconfig/network"
+					NETWORKING_IPV6=yes
 				EOF
 
 				ifdown "$__interface_name"
@@ -1392,7 +1438,7 @@ CreateIfupConfigFile()
 				ifdown "$__interface_name"
 				ifup "$__interface_name"
 				;;
-			redhat*|centos*)
+			redhat*)
 				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
