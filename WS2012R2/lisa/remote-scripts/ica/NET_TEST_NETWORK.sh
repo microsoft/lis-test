@@ -161,13 +161,32 @@ if [ "${PING_SUCC:-UNDEFINED}" = "UNDEFINED" ]; then
 	exit 30
 fi
 
-
 if [ "${PING_FAIL:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter PING_FAIL is not defined in constants file"
     LogMsg "$msg"
 	UpdateSummary "$msg"
 	SetTestStateAborted
 	exit 30
+fi
+
+#
+# Check for internet protocol version
+#
+
+CheckIPV6 "$PING_SUCC"
+if [[ $? -eq 0 ]]; then
+    CheckIPV6 "$PING_FAIL"
+    if [[ $? -eq 0 ]]; then
+        pingVersion="ping6"
+    else
+        msg="Error: Not both test IPs are IPV6"
+        LogMsg "${msg}"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 40
+    fi
+else
+    pingVersion="ping"
 fi
 
 if [ "${PING_FAIL2:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -350,6 +369,8 @@ done
 __iterator=0
 declare __hex_interface_name
 
+sleep 5
+
 for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 	if [ -n "$GATEWAY" ]; then
@@ -364,7 +385,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 	LogMsg "Trying to ping $PING_SUCC on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
-	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$PING_SUCC"
+	"$pingVersion" -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$PING_SUCC"
 
 	if [ 0 -ne $? ]; then
 		msg="Failed to ping $PING_SUCC on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -376,78 +397,9 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 	UpdateSummary "Successfully pinged $PING_SUCC on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 
-	if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "guest" ]  ; then
-
-		LogMsg "Trying to get IPv6 associated with $PING_SUCC"
-		full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$PING_SUCC" "ip addr show | grep -A 2 "$PING_SUCC" | grep "link"" | awk '{print $2}'`
-		IPv6=${full_ipv6:0:${#full_ipv6}-3}
-
-		LogMsg "Trying to ping $IPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-		# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
-		ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$IPv6"
-
-		if [ 0 -ne $? ]; then
-			msg="Failed to ping $IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 10
-		fi
-
-		UpdateSummary "Successfully pinged $IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-
-	elif [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "internal" ] ; then
-
-		if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
-		    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
-		    LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateAborted
-			exit 30
-		fi
-
-		LogMsg "Trying to ping $PING_SUCCIPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-		# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
-		ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d007465737400${__hex_interface_name}00" "$PING_SUCC_IPv6"
-
-		if [ 0 -ne $? ]; then
-			msg="Failed to ping $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 10
-		fi
-
-		UpdateSummary "Successfully pinged $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-
-	elif [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
-
-		if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
-		    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
-		    LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateAborted
-			exit 30
-		fi
-
-		LogMsg "Trying to ping $PING_SUCC_IPv6 on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-		# ping the right address with pattern 0xcafed00d`null`test`null`dhcp`null`
-
-		ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10  "$PING_SUCC_IPv6"
-		if [ 0 -ne $? ]; then
-			msg="Failed to ping $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 10
-		fi
-
-		UpdateSummary "Successfully pinged $PING_SUCC_IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	fi
-
 	# ping the wrong address. should not succeed
 	LogMsg "Trying to ping $PING_FAIL on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-	ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$PING_FAIL"
+	"$pingVersion" -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$PING_FAIL"
 	if [ 0 -eq $? ]; then
 		msg="Succeeded to ping $PING_FAIL on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} . Make sure you have the right PING_FAIL constant set"
 		LogMsg "$msg"
@@ -461,7 +413,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 	# ping the second wrong address, fi specified. should also not succeed
 	if [ "${PING_FAIL2:-UNDEFINED}" != "UNDEFINED" ]; then
 		LogMsg "Trying to ping $PING_FAIL on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-		ping -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$PING_FAIL2"
+		"$pingVersion" -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10 "$PING_FAIL2"
 		if [ 0 -eq $? ]; then
 			msg="Succeeded to ping $PING_FAIL2 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} . Make sure you have the right PING_FAIL2 constant set"
 			LogMsg "$msg"

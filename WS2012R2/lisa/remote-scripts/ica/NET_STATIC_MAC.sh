@@ -192,6 +192,17 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" = "UNDEFINED" ]; then
     LogMsg "$msg"
 fi
 
+#
+# Check for internet protocol version
+#
+
+CheckIPV6 "$REMOTE_SERVER"
+if [[ $? -eq 0 ]]; then
+    pingVersion="ping6"
+else
+    pingVersion="ping"
+fi
+
 # set gateway parameter
 if [ "${GATEWAY:-UNDEFINED}" = "UNDEFINED" ]; then
     if [ "${networkType[2]}" = "External" ]; then
@@ -445,7 +456,7 @@ while [ $__iterator -lt ${#__MAC_NET_INTERFACES[@]} ]; do
 
 done
 
-
+sleep 5
 
 declare -i __iterator
 # ping REMOTE_SERVER if set
@@ -464,7 +475,7 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" != "UNDEFINED" ]; then
 		LogMsg "Trying to ping $REMOTE_SERVER"
 		UpdateSummary "Trying to ping $REMOTE_SERVER"
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`static`null`mac`null`
-		ping -I ${__MAC_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d00737461746963006d616300" "$REMOTE_SERVER"
+		"$pingVersion" -I ${__MAC_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d00737461746963006d616300" "$REMOTE_SERVER"
 		if [ 0 -ne $? ]; then
 			msg="Unable to ping $REMOTE_SERVER through interface ${__MAC_NET_INTERFACES[$__iterator]}"
 			LogMsg "$msg"
