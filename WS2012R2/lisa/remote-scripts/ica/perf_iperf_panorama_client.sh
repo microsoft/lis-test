@@ -633,7 +633,7 @@ do
 
     touch ${TEST_SIGNAL_FILE}
     echo ${IPERF3_TEST_CONNECTION_POOL[$i]} > ${TEST_SIGNAL_FILE}
-    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${TEST_SIGNAL_FILE} $server_username@${IPERF3_SERVER_IP}:
+    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${TEST_SIGNAL_FILE} $server_username@${STATIC_IP2}:
     sleep 7
 
     number_of_connections=${IPERF3_TEST_CONNECTION_POOL[$i]}
