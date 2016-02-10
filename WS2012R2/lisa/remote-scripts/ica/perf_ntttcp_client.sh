@@ -543,7 +543,7 @@ UpdateSummary "$throughput"
 
 # Test Finished. Collect logs, zip client side logs
 # Get logs from server side
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/ntttcp_ServerSideScript.log ~/ntttcp_ServerSideScript.log
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/ntttcp_ServerSideScript.log ~/ntttcp_ServerSideScript.log
 
 UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"
