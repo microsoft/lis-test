@@ -105,7 +105,7 @@
                 <param>INDIVIDUAL_TEST_DURATION=60</param>
                 <param>CONNECTIONS_PER_IPERF3=4</param>
                 <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
-                <param>TEST_RUN_LOG_FOLDER=iperf3-test-logs</param>
+                <param>TEST_RUN_LOG_FOLDER=iperf3-ipv6-test-logs</param>
                 <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
                 <param>IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024 2000 3000 6000)</param>
             </testParams>
