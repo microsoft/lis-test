@@ -1,3 +1,24 @@
+########################################################################
+#
+# Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+# Copyright (c) Microsoft Corporation
+#
+# All rights reserved.
+# Licensed under the Apache License, Version 2.0 (the ""License"");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+# OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+# ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+# PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+#
+# See the Apache Version 2.0 License for specific language governing
+# permissions and limitations under the License.
+#
+########################################################################
+
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 #
@@ -73,6 +94,7 @@ foreach ($p in $params)
     "VM2NAME"                     { $vm2Name    = $fields[1].Trim() }
     "VM2SERVER"                   { $vm2Server    = $fields[1].Trim() }
     "TestLogDir"                  { $testDirectory = $fields[1].Trim() }
+    "testName"                    { $TestName = $fields[1].Trim() }
     default   {}  # unknown param - just ignore it
     }
 }
@@ -111,10 +133,8 @@ if (-not $vm2Server)
     "Warning: The second VMs server is not specified!"
 }
 
-$archive = "${testDirectory}\${vmName}_iPerf3_Panorama_iPerf3_Server_Logs.zip"
-
+$archive = "${testDirectory}\${vmName}_${TestName}_iPerf3_Server_Logs.zip"
 $destination = "${testDirectory}\"
-
 
 Add-Type -assembly "system.io.compression.filesystem"
 [io.compression.zipfile]::ExtractToDirectory($archive, $destination)
@@ -225,6 +245,11 @@ foreach ($conn in $connections)
     $conn + " "+ $gAvg | out-file $avgFile -append
     write-host " $conn           $gAvg"
 }
+
+# Perform clean-up for future parsing of new logs
+New-Item $testdirectory\parsed\ -ItemType Directory -Force | Out-Null
+Get-ChildItem -Path $testdirectory\iperf-client*iperf3* | Move-Item -Destination $testdirectory\parsed\
+Remove-Item -Recurse -Force $testdirectory\root\
 
 write-host "Average bandwith speeds were parsed succesfully and can be found in $testDirectory"
 return $true
