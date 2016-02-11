@@ -420,26 +420,10 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 done
 
-# Hyper-V does not support multiple MTUs per endpoint, so we need to set the max MTU on all interfaces,
-# including the interface ignored because it's used by the LIS framework.
-# This can fail (e.g. the LIS connection uses a legacy adapter), but the test will continue
-# and only issue a warning
-if [ -n "$__iface_ignore" ]; then
-	ip link set dev "$__iface_ignore" mtu "$__max_mtu"
-	# make sure mtu was set. otherwise, issue a warning
-	__actual_mtu=$(ip -o link show "$__iface_ignore" | cut -d ' ' -f5)
-
-	if [ x"$__actual_mtu" != x"$__max_mtu" ]; then
-		msg="Set mtu on interface $__iface_ignore (which is used by the LIS Framework) to $__max_mtu but ip reports mtu to be $__actual_mtu"
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-	fi
-fi
-
 # reset iterator
 __iterator=0
 
-# if SSH_PRIVATE_KEY was specified, ssh into the STATIC_IP2 and set the MTU of all interfaces to $__max_mtu
+# if SSH_PRIVATE_KEY was specified, ssh into the STATIC_IP2 and set the MTU of test interface to $__max_mtu
 # if not, assume that it was already set.
 
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
@@ -457,23 +441,16 @@ if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
 			exit 2
 		fi
 
-		# set mtu to max_mtu for all interfaces
-		__all_interfaces=\$(ip -o link show | grep -vi 'link/loopback' | cut -d':' -f2 | sed -e 's/^ *//g' -e 's/ *$//g')
-
-		for __interface in \$__all_interfaces; do
-			ip link set dev \$__interface mtu \"$__max_mtu\"
-
-			if [ 0 -ne \$? ]; then
-				exit 2
-			fi
-
-		done
+		ip link set dev \$__remote_interface mtu \"$__max_mtu\"
+		if [ 0 -ne \$? ]; then
+			exit 2
+		fi
 
 		__remote_actual_mtu=\$(ip -o link show \"\$__remote_interface\" | cut -d ' ' -f5)
 
-			if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
-				exit 3
-			fi
+		if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
+			exit 3
+		fi
 
 		exit 0
 		"
