@@ -137,7 +137,7 @@ case $(LinuxRelease) in
         fi
         FS="ext4"
     ;;
-    redhat*|centos*)
+    "RHEL"|"CENTOS")
         LogMsg "Run test on RHEL. Install libaio-devel..."
         yum -y install libaio-devel
         sts=$?
