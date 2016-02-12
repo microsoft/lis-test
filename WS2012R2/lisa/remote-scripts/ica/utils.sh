@@ -1346,6 +1346,13 @@ CreateIfupConfigFile()
 					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
 				fi
 
+				#Check if interface is already configured. If so, delete old config
+				if grep -q "$__interface_name" $__file_path
+				then
+					LogMsg "CreateIfupConfigFile: Warning will delete older configuration of interface $__interface_name"
+				    sed -i "/$__interface_name/d" $__file_path
+				fi
+
 				cat <<-EOF >> "$__file_path"
 					auto $__interface_name
 					iface $__interface_name inet dhcp
@@ -1385,6 +1392,7 @@ CreateIfupConfigFile()
 
 		__ip="$3"
 		__netmask="$4"
+		declare -i lineNumber
 
 		GetDistro
 
@@ -1481,6 +1489,18 @@ CreateIfupConfigFile()
 
 				if [ -e "$__file_path" ]; then
 					LogMsg "CreateIfupConfigFile: Warning will overwrite $__file_path ."
+				fi
+
+				#Check if interface is already configured. If so, delete old config
+				if grep -q "$__interface_name" $__file_path
+				then
+					LogMsg "CreateIfupConfigFile: Warning will delete older configuration of interface $__interface_name"
+				    lineNumber=$(cat -n $__file_path |grep "iface $__interface_name"| awk '{print $1;}')
+				    if [ $lineNumber ]; then
+				        lineNumber=$lineNumber+1
+				        sed -i "${lineNumber},+1 d" $__file_path
+				    fi
+				    sed -i "/$__interface_name/d" $__file_path
 				fi
 
 				if [[ $ipv6 == false ]]; then
