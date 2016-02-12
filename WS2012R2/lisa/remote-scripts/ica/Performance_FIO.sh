@@ -137,6 +137,17 @@ case $(LinuxRelease) in
         fi
         FS="ext4"
     ;;
+    redhat*|centos*)
+        LogMsg "Run test on RHEL. Install libaio-devel..."
+        yum -y install libaio-devel
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            echo "Failed to install the libaio-dev library!" >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+            exit 41
+        fi
+        FS="ext4"
+    ;;
     "SLES")
         LogMsg "Run test on SLES. Install libaio-devel..."
         zypper --non-interactive install libaio-devel
