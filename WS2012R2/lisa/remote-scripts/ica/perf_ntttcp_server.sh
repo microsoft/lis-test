@@ -374,7 +374,7 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
-if [ $DISTRO -eq "suse_12"]; then
+if [ $DISTRO -eq "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
         msg="Warning: Couldn't run ldconfig, there might be shared library errors"
@@ -413,7 +413,7 @@ LogMsg "Starting ntttcp in server mode"
 UpdateTestState $ICA_IPERF3RUNNING
 LogMsg "ntttcp server instances are now ready to run"
 
-ntttcp –r${IPERF3_SERVER_IP} ${ipVersion}
+ntttcp -r${IPERF3_SERVER_IP} ${ipVersion}
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start ntttcp server scripts on the target server machine"
     LogMsg "${msg}"

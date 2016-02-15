@@ -423,7 +423,7 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
-if [ $DISTRO -eq "suse_12"]; then
+if [ $DISTRO -eq "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
         msg="Warning: Couldn't run ldconfig, there might be shared library errors"
@@ -543,7 +543,7 @@ UpdateSummary "$throughput"
 
 # Test Finished. Collect logs, zip client side logs
 # Get logs from server side
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/ntttcp_ServerSideScript.log ~/ntttcp_ServerSideScript.log
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/ntttcp_ServerSideScript.log ~/ntttcp_ServerSideScript.log
 
 UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"

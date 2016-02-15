@@ -520,7 +520,7 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
-if [ $DISTRO -eq "suse_12"]; then
+if [ $DISTRO -eq "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
         msg="Warning: Couldn't run ldconfig, there might be shared library errors"
@@ -553,6 +553,9 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
     : $((__iterator++))
 
 done
+
+# Waiting for VM2 to boot
+sleep 20
 
 LogMsg "Copy files to server: ${STATIC_IP2}"
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
@@ -620,7 +623,7 @@ fi
 LogMsg "Starting iPerf3 in client mode"
 
 i=0
-mkdir ./${TEST_RUN_LOG_FOLDER}
+mkdir -p ./${TEST_RUN_LOG_FOLDER}
 while [ "x${IPERF3_TEST_CONNECTION_POOL[$i]}" != "x" ]
 do
     port=8001
@@ -630,7 +633,7 @@ do
 
     touch ${TEST_SIGNAL_FILE}
     echo ${IPERF3_TEST_CONNECTION_POOL[$i]} > ${TEST_SIGNAL_FILE}
-    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${TEST_SIGNAL_FILE} $server_username@${IPERF3_SERVER_IP}:
+    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${TEST_SIGNAL_FILE} $server_username@${STATIC_IP2}:
     sleep 7
 
     number_of_connections=${IPERF3_TEST_CONNECTION_POOL[$i]}
@@ -662,13 +665,18 @@ do
     sleep 10
 done
 
+if [ -f iPerf3_Client_Logs.zip ]
+then
+    rm -f iPerf3_Client_Logs.zip
+fi
 # Test Finished. Collect logs, zip client side logs
 zip -r iPerf3_Client_Logs.zip ~/${TEST_RUN_LOG_FOLDER}
 # Get logs from server side
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${IPERF3_SERVER_IP} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}' | at now"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'if [ -f iPerf3_Server_Logs.zip  ]; then rm -f iPerf3_Server_Logs.zip; fi' | at now"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}' | at now"
 sleep 20
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${IPERF3_SERVER_IP}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
 
 UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"

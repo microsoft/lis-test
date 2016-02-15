@@ -1,13 +1,31 @@
-# Network convenience functions
+################################################################################
+#
+# Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+# Copyright (c) Microsoft Corporation
+#
+# All rights reserved.
+# Licensed under the Apache License, Version 2.0 (the ""License"");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+# OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+# ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+# PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+#
+# See the Apache Version 2.0 License for specific language governing
+# permissions and limitations under the License.
+#
+################################################################################
 
+# Network convenience functions
 
 # checks if MAC is valid. Delimiter can be : - or nothing
 function isValidMAC([String]$macAddr)
 {
 	$retVal = $macAddr -match '^([0-9a-fA-F]{2}[:-]{0,1}){5}[0-9a-fA-F]{2}$'
-	
 	return $retVal
-	
 }
 
 # returns an unused random MAC capable of being assigned to a VM running on $hvServer
@@ -97,12 +115,10 @@ function getRandUnusedMAC([String]$hvServer,[Char]$delim)
 	return $randAddr
 }
 
-
 # checks if IPv4 is in dotted format
 function isValidIPv4([String]$ipv4)
 {
 	$retVal = ($ipv4 -As [IPAddress]) -As [Bool]
-	
 	return $retVal
 }
 
@@ -324,12 +340,9 @@ function containsAddress([String]$netIP,[String]$netmask,[String]$IPv4ToCheck,[S
         {
             return $false
         }
-
         return $true
     }
-
     return $false
-
 }
 
 # transforms a quad netmask (e.g. 255.255.255.0) to cidr format (24)
@@ -365,7 +378,6 @@ function netmaskToCIDR([String]$netmask)
 
 function getNetworkID([String]$IP, [String]$netmask)
 {
-
 	[IpAddress]$host = $IP
 	[IpAddress]$ipnetmask = $netmask
 	
@@ -380,7 +392,6 @@ function getNetworkID([String]$IP, [String]$netmask)
 # returns the network in cidr format
 function NetworkToCIDR([String]$IPv4, [String] $Netmask)
 {
-
 	$valid = isValidIPv4 $IPv4
 	
 	if (-not $valid)
@@ -392,7 +403,4 @@ function NetworkToCIDR([String]$IPv4, [String] $Netmask)
 	$networkID = getNetworkID $IPv4 $Netmask
 	$cidrnetmask = netmaskToCIDR $Netmask
 	return "$networkID"+"/"+"$cidrnetmask"
-	
 }
-
- 
