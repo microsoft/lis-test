@@ -335,8 +335,8 @@ fi
 if is_fedora ; then
     yum install openssl-devel bc nfs-utils -y
     if [ $? -ne 0 ]; then
-        LogMsg "Error: Unable to install openssl."
-         UpdateTestState $TestAborted
+        LogMsg "Error: Unable to install required packages. Kernel compilation might fail."
+        #UpdateTestState $TestAborted
     fi
 elif is_ubuntu ; then
     apt-get -y install nfs-common libssl-dev
@@ -345,7 +345,7 @@ elif is_ubuntu ; then
         UpdateTestState $TestAborted
     fi
 elif is_suse ; then
-    #If distro is SLES we need to install soime packages first
+    #If distro is SLES we need to install some packages first
     echo "Nothing to do."
 fi
 
