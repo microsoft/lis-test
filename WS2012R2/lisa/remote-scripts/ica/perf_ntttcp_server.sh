@@ -356,6 +356,8 @@ zypper --non-interactive install gcc
 #
 # Build ntttcp
 #
+rm -f /usr/bin/ntttcp
+
 make
 if [ $? -ne 0 ]; then
     msg="Error: Unable to build ntttcp"
