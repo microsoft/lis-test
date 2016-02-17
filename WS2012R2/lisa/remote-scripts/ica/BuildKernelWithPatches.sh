@@ -226,15 +226,7 @@ if [ -e ~/state.txt ]; then
     dbgprint 0 "State.txt file is created "
     dbgprint 0 "Content of state is : " ; echo `cat state.txt`
 fi
-# Convert eol
-dos2unix utils.sh
 
-# Source utils.sh
-. utils.sh || {
-    echo "Error: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
-    exit 2
-}
 #
 # Write some useful info to the log file
 #
@@ -253,7 +245,6 @@ dbgprint 3 ""
 # Delete old kernel source tree if it exists.
 # This should not be needed, but check to make sure
 # 
-# adding check for summary.log
 if [ -e ~/summary.log ]; then
     dbgprint 1 "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
@@ -304,20 +295,6 @@ else
         exit 20
     fi
     
-    # for SUSE, config the /etc/sysconfig/network/ifcfg-eth1 file to enable DHCP
-    # dhclient eth1 does not work?
-    #SUSE_ETH0_CONFIG=/etc/sysconfig/network/ifcfg-eth0
-    #SUSE_ETH1_CONFIG=/etc/sysconfig/network/ifcfg-eth1
-    #cp ${SUSE_ETH0_CONFIG} ${SUSE_ETH1_CONFIG}
-    #sed --in-place -e s:"^BOOTPROTO='static'":"BOOTPROTO='dhcp'": ${SUSE_ETH1_CONFIG}
-    #sed --in-place -e s:"^IPADDR='.*'":"IPADDR=''": ${SUSE_ETH1_CONFIG}
-    #sed --in-place -e s:"^IPADDR_0='.*'":"IPADDR_0=''": ${SUSE_ETH1_CONFIG}
-    # start network of eth1 for internet access
-    #ifdown eth1
-    #ifup eth1
-    
-    
-	
 	if [ -e ${KERNEL_VERSION} ]; then
 		cd ${KERNEL_VERSION}
 		if [ "false" != "${FETCH_LATEST}" ]; then
@@ -335,8 +312,8 @@ fi
 if is_fedora ; then
     yum install openssl-devel bc nfs-utils -y
     if [ $? -ne 0 ]; then
-        LogMsg "Error: Unable to install openssl."
-         UpdateTestState $TestAborted
+        LogMsg "Error: Unable to install required packages. Kernel compilation might fail."
+        #UpdateTestState $TestAborted
     fi
 elif is_ubuntu ; then
     apt-get -y install nfs-common libssl-dev
@@ -345,7 +322,7 @@ elif is_ubuntu ; then
         UpdateTestState $TestAborted
     fi
 elif is_suse ; then
-    #If distro is SLES we need to install soime packages first
+    #If distro is SLES we need to install some packages first
     echo "Nothing to do."
 fi
 
