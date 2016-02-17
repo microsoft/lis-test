@@ -266,6 +266,14 @@ redhat_5|redhat_6)
             UpdateTestState $ICA_TESTFAILED
             exit 85
         fi
+		service ip6tables stop
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop ip6tables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
         chkconfig iptables off
         if [ $? -ne 0 ]; then
             msg="Error: Failed to turn off iptables. Continuing"
