@@ -418,6 +418,7 @@ done
 #
 # Start ntttcp server instances
 #
+sleep 3
 LogMsg "Starting ntttcp in server mode"
 
 UpdateTestState $ICA_IPERF3RUNNING
