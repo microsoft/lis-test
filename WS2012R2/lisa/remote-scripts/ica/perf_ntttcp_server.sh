@@ -266,6 +266,14 @@ redhat_5|redhat_6)
             UpdateTestState $ICA_TESTFAILED
             exit 85
         fi
+		service ip6tables stop
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop ip6tables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
         chkconfig iptables off
         if [ $? -ne 0 ]; then
             msg="Error: Failed to turn off iptables. Continuing"
@@ -356,6 +364,8 @@ zypper --non-interactive install gcc
 #
 # Build ntttcp
 #
+rm -f /usr/bin/ntttcp
+
 make
 if [ $? -ne 0 ]; then
     msg="Error: Unable to build ntttcp"
@@ -408,6 +418,7 @@ done
 #
 # Start ntttcp server instances
 #
+sleep 3
 LogMsg "Starting ntttcp in server mode"
 
 UpdateTestState $ICA_IPERF3RUNNING

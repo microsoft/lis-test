@@ -318,6 +318,14 @@ redhat_5|redhat_6)
             UpdateTestState $ICA_TESTFAILED
             exit 85
         fi
+		service ip6tables stop
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop ip6tables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
         chkconfig iptables off
         if [ $? -ne 0 ]; then
             msg="Error: Failed to turn off iptables. Continuing"
@@ -518,8 +526,9 @@ fi
 #
 # Start ntttcp client instances
 #
-LogMsg "Starting ntttcp in client mode"
+sleep 3
 
+LogMsg "Starting ntttcp in client mode"
 ntttcp -s${IPERF3_SERVER_IP} ${ipVersion} > ntttcp-for-linux.log 2>&1
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start ntttcp client scripts on the client machine"
