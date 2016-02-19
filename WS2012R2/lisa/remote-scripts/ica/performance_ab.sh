@@ -99,22 +99,82 @@ DoSlesAB()
     #       in advanced, and strict mode be disabled for both the SSH
     #       server and client.
     #
-	LogMsg "Info: -----------------------------------------"
+
+    LogMsg "Info: Running SLES"
+
+    LogMsg "Info: -----------------------------------------"
     LogMsg "Info: Apache server installation on server side"
     ssh root@${APACHE_SERVER} "zypper --non-interactive install apache2"
-	LogMsg "Info: Generate test data file to Apache server www htdocs folder"
-	ssh root@${APACHE_SERVER} "dd if=/dev/urandom of=./test.dat bs=1K count=${TEST_FILE_SIZE_IN_KB}"
-	LogMsg "Info: Restart APache server"
-	ssh root@${APACHE_SERVER} "service apache2 stop"
-	ssh root@${APACHE_SERVER} "service apache2 start"
-	
-	LogMsg "Info: -----------------------------------------"
+    LogMsg "Info: Generate test data file to Apache server www htdocs folder"
+    ssh root@${APACHE_SERVER} "dd if=/dev/urandom of=./test.dat bs=1K count=${TEST_FILE_SIZE_IN_KB}"
+    LogMsg "Info: Restart APache server"
+    ssh root@${APACHE_SERVER} "service apache2 stop"
+    ssh root@${APACHE_SERVER} "service apache2 start"
+    
+    LogMsg "Info: -----------------------------------------"
     LogMsg "Info: Apache utility tool installation on client side"
-	zypper --non-interactive install apache2-utils
-	
-	LogMsg "Info: -----------------------------------------"
+    zypper --non-interactive install apache2-utils
+    
+    LogMsg "Info: -----------------------------------------"
     LogMsg "Info: Run the benchmark "
-	ab2 -n ${APACHE_TEST_NUM_REQUESTS} -c ${APACHE_TEST_NUM_CONCURRENCY} http://${APACHE_SERVER}/test.dat > abtest.log
+    ab2 -n ${APACHE_TEST_NUM_REQUESTS} -c ${APACHE_TEST_NUM_CONCURRENCY} http://${APACHE_SERVER}/test.dat > abtest.log
+}
+
+DoUbuntuAB()
+{
+    #
+    # Note: A number of steps will use SSH to issue commands to the
+    #       APACHE_SERVER.  This requires that the SSH keys be provisioned
+    #       in advanced, and strict mode be disabled for both the SSH
+    #       server and client.
+    #
+
+    LogMsg "Info: Running Ubuntu"
+
+    LogMsg "Info: -----------------------------------------"
+    LogMsg "Info: Apache server installation on server side"
+    ssh root@${APACHE_SERVER} "apt-get install -y apache2"
+    LogMsg "Info: Generate test data file to Apache server www htdocs folder"
+    ssh root@${APACHE_SERVER} "dd if=/dev/urandom of=./test.dat bs=1K count=${TEST_FILE_SIZE_IN_KB}"
+    LogMsg "Info: Restart APache server"
+    ssh root@${APACHE_SERVER} "service apache2 stop"
+    ssh root@${APACHE_SERVER} "service apache2 start"
+
+    LogMsg "Info: -----------------------------------------"
+    LogMsg "Info: Apache utility tool installation on client side"
+    apt-get install -y apache2-utils
+
+    LogMsg "Info: -----------------------------------------"
+    LogMsg "Info: Run the benchmark "
+    ab -n ${APACHE_TEST_NUM_REQUESTS} -c ${APACHE_TEST_NUM_CONCURRENCY} http://${APACHE_SERVER}/test.dat > abtest.log
+}
+
+DoRhelAB()
+{
+    #
+        # Note: A number of steps will use SSH to issue commands to the
+        #       APACHE_SERVER.  This requires that the SSH keys be provisioned
+        #       in advanced, and strict mode be disabled for both the SSH
+        #       server and client.
+        #
+
+    LogMsg "Info: Running RHEL"
+
+    LogMsg "Info: -----------------------------------------"
+    LogMsg "Info: Apache server installation on server side"
+    ssh root@${APACHE_SERVER} "yum install -y httpd"
+    LogMsg "Info: Generate test data file to Apache server www htdocs folder"
+    ssh root@${APACHE_SERVER} "dd if=/dev/urandom of=./test.dat bs=1K count=${TEST_FILE_SIZE_IN_KB}"
+    LogMsg "Info: Restart APache server"        
+    ssh root@${APACHE_SERVER} "systemctl restart httpd.service"
+
+    LogMsg "Info: -----------------------------------------"
+    LogMsg "Info: Apache utility tool installation on client side"
+    yum install -y httpd-tools
+
+    LogMsg "Info: -----------------------------------------"
+    LogMsg "Info: Run the benchmark "
+    ab -n ${APACHE_TEST_NUM_REQUESTS} -c ${APACHE_TEST_NUM_CONCURRENCY} http://${APACHE_SERVER}/test.dat > abtest.log
 }
 
 #######################################################################
@@ -216,4 +276,3 @@ LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
 
 exit 0
-
