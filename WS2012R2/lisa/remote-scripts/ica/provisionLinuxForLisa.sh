@@ -453,7 +453,7 @@ function UbuntuTasks
     for p in "${packagesToInstall[@]}"
 	do
 	    LogMsg "Info : Processing package '${p}'"
-		dpkg -s ${p}
+		dpkg -s ${p} &> /dev/null
 		if [ $? -ne 0 ]; then
 		    LogMsg "Info : Installing package '${p}'"
 			apt-get -y install "${p}"
