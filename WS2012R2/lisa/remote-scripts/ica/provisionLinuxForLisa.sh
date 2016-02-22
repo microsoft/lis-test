@@ -228,7 +228,7 @@ function OracleTasks
 	# Create a list of packages to install, then ensure they are all installed
 	#
 	installError=0
-	packagesToInstall=(at bridge-utils btrfsprogs crash dos2unix dosfstools e2fsprogs e2progs-libs util-linux gpm kdump libaio-devel ntp parted wget xfsprogs kernel-devel kernel-headers net-tools bc)
+	packagesToInstall=(at bridge-utils btrfsprogs crash dos2unix dosfstools e2fsprogs e2progs-libs util-linux gpm kdump libaio-devel ntp parted wget xfsprogs kernel-devel kernel-headers net-tools bc make)
     for p in "${packagesToInstall[@]}"
 	do
 	    LogMsg "Info : Processing package '${p}'"
@@ -293,7 +293,7 @@ function RhelTasks
 	# Create a list of packages to install, then ensure they are installed
 	#
 	installError=0
-    packagesToInstall=(at bridge-utils btrfs-progs crash dos2unix dosfstools e2fsprogs e2fsprogs-libs util-linux gpm dump system-config-kdump libaio-devel nano ntp ntpdate parted wget xfsprogs iscsi-initiator-utils bc)
+    packagesToInstall=(at bridge-utils btrfs-progs crash dos2unix dosfstools e2fsprogs e2fsprogs-libs util-linux gpm dump system-config-kdump libaio-devel nano ntp ntpdate parted wget xfsprogs iscsi-initiator-utils bc make)
 	for p in "${packagesToInstall[@]}"
 	do
 	    LogMsg "Info : Processing package '${p}'"
@@ -380,7 +380,7 @@ function SlesTasks
 	# Create a list of packages to install, then ensure they are installed
     #
 	installError=0
-	packagesToInstall=(at bridge-utils btrfsprogs crash dos2unix dosfstools e2fsprogs util-linux gpm kdump libaio-devel ntp parted reiserfs wget xfsprogs kernel-devel linux-glibc-devel bc)
+	packagesToInstall=(at bridge-utils btrfsprogs crash dos2unix dosfstools e2fsprogs util-linux gpm kdump libaio-devel ntp parted reiserfs wget xfsprogs kernel-devel linux-glibc-devel bc make)
     for p in "${packagesToInstall[@]}"
 	do
 	    LogMsg "Info : Processing package '${p}'"
@@ -434,7 +434,7 @@ function UbuntuTasks
 	#
 	KernelRelease=$(uname -r | sed 's/-generic//g')
 	installError=0
-	packagesToInstall=(dos2unix dosfstools util-linux parted linux-headers-$KernelRelease build-essential ntp ntpdate e2fsprogs e2fslibs reiserfsprogs at bridge-utils btrfs-tools libgpm2 libaio-dev nano wget xfsprogs bc)
+	packagesToInstall=(dos2unix dosfstools util-linux parted linux-headers-$KernelRelease build-essential ntp ntpdate e2fsprogs e2fslibs reiserfsprogs at bridge-utils btrfs-tools libgpm2 libaio-dev nano wget xfsprogs bc make)
 	
 	# Add packages for Linux Integration Services depending on Ubuntu version
 	UbuntuVersion=$(lsb_release -r -s)
