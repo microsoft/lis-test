@@ -63,7 +63,7 @@ apply_proposed_kernel() {
 
 	apt-get install -y -qq linux-image-generic/$release-proposed
 	if [[ $? -ne 0 ]]; then
-		UpdateSummary "Error: Unable to install the proposed LIS daemons packages!"
+		UpdateSummary "Error: Unable to install the proposed kernel!"
 		UpdateTestState $ICA_TESTABORTED
 		exit 1
 	fi
