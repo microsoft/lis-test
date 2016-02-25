@@ -28,7 +28,6 @@
     Ensures that the VM sees the newly attached VHDx Hard Disk
     Creates partitions, filesytem, mounts partitions, sees if it can perform
     Read/Write operations on the newly created partitions and deletes partitions
-
     A typical test case definition for this test script would look
     similar to the following:
         <test>
@@ -62,13 +61,13 @@ param( [String] $vmName,
 $sshKey     = $null
 $ipv4       = $null
 $newSize    = $null
-$sectorSize	= $null
+$sectorSize = $null
 $DefaultSize = $null
 $rootDir    = $null
 $TC_COVERED = $null
 $TestLogDir = $null
 $TestName   = $null
-$vhdxDrive	= $null
+$vhdxDrive  = $null
 
 #######################################################################
 #
@@ -166,11 +165,11 @@ $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
 foreach ($vhdx in $vhdxDisks)
 {
-	$vhdxPath = $vhdx.Path
-	if ($vhdxPath.Contains($vhdxName))
-	{
-		$vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber $vhdx.ControllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
-	}
+    $vhdxPath = $vhdx.Path
+    if ($vhdxPath.Contains($vhdxName))
+    {
+        $vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber $vhdx.ControllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
+    }
 }
 if (-not $vhdxDrive)
 {
@@ -224,10 +223,10 @@ $sts = RunTest $guest_script
 if (-not $($sts[-1]))
 {
     $sts = SummaryLog
-	if (-not $($sts[-1]))
-	{
-		"Warning : Failed getting summary.log from VM"
-	}
+    if (-not $($sts[-1]))
+    {
+        "Warning : Failed getting summary.log from VM"
+    }
     "Error: Running '${guest_script}' script failed on VM "
     return $False
 }
@@ -293,10 +292,10 @@ $sts = RunTest $guest_script
 if (-not $($sts[-1]))
 {
     $sts = SummaryLog
-	if (-not $($sts[-1]))
-	{
-		"Warning : Failed getting summary.log from VM"
-	}
+    if (-not $($sts[-1]))
+    {
+        "Warning : Failed getting summary.log from VM"
+    }
     "Error: Running '${guest_script}' script failed on VM "
     return $False
 }

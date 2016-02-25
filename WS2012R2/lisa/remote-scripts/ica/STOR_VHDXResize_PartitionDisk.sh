@@ -55,35 +55,6 @@ UpdateTestState()
     echo $1 > $HOME/state.txt
 }
 
-#######################################################################
-# Checks what Linux distro we are running
-#######################################################################
-LinuxRelease()
-{
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
-
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-        *)
-            LogMsg "Unknown Distro"
-            UpdateTestState "TestAborted"
-            UpdateSummary "Unknown Distro, test aborted"
-            exit 1
-            ;; 
-    esac
-}
-
 if [ -e ~/summary.log ]; then
     LogMsg "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
@@ -119,11 +90,20 @@ fi
 #
 echo "Covers ${TC_COVERED}" > ~/summary.log
 
+
+if [ "${fileSystems:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter fileSystems is not defined in constants file."
+    LogMsg "$msg"
+    echo $msg >> ~/summary.log
+    UpdateTestState $ICA_TESTABORTED
+    exit 30
+fi
+
 #
 # Verify if guest sees the new drive
 #
 if [ ! -e "/dev/sdb" ]; then
-    msg = "The Linux guest cannot detect the drive"
+    msg="The Linux guest cannot detect the drive"
     LogMsg $msg
     echo $msg >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
@@ -147,35 +127,35 @@ sleep 5
 #
 # Format the partition
 #
+count=0
+for fs in "${fileSystems[@]}"; do
+    LogMsg "Start testing filesystem: $fs"
+    command -v mkfs.$fs
+    if [ $? -ne 0 ]; then
+        echo "File-system tools for $fs not present. Skipping filesystem $fs.">> ~/summary.log
+        LogMsg "File-system tools for $fs not present. Skipping filesystem $fs."
+        count=`expr $count + 1`
+    else
+        mkfs -t $fs /dev/sdb1 2> ~/summary.log
+        if [ $? -gt 0 ]; then
+            LogMsg "Failed to format partition with $fs"
+            echo "Formating partition: Failed with $fs" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 10
+        fi
+        LogMsg "Successfully formated partition with $fs"
+        break
+    fi
+done
 
-case $(LinuxRelease) in
-    "SLES")
-		#
-		# Format the partition with ext4
-		#
-		mkfs -t ext3 /dev/sdb1 2> ~/summary.log
-		if [ $? -gt 0 ]; then
-			LogMsg "Failed to format partition"
-			echo "Formating partition: Failed" >> ~/summary.log
-			UpdateTestState $ICA_TESTFAILED
-			exit 10
-		fi
-		LogMsg "Successfully formated partition"
-		;;
-	*)
-		#
-		# Format the partition with ext4
-		#
-		mkfs -t ext4 /dev/sdb1 2> ~/summary.log
-		if [ $? -gt 0 ]; then
-			LogMsg "Failed to format partition"
-			echo "Formating partition: Failed" >> ~/summary.log
-			UpdateTestState $ICA_TESTFAILED
-			exit 10
-		fi
-		LogMsg "Successfully formated partition"
-		;;
-esac
+if [ $count -eq ${#fileSystems[@]} ]; then
+    LogMsg "Failed to format partition with ext4 and ext3"
+    echo "Formating partition: Failed with all filesystems proposed." >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 10
+fi  
+    
+    
 #
 # Mount partition
 #
@@ -202,54 +182,10 @@ LogMsg "Partition mount successful"
 #
 # Read/Write mount point
 #
-mkdir /mnt/ICA/ 2> ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to create directory /mnt/ICA/"
-    echo "Creating /mnt/ICA/ directory: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
+dos2unix STOR_VHDXResize_ReadWrite.sh
+chmod +x STOR_VHDXResize_ReadWrite.sh
+./STOR_VHDXResize_ReadWrite.sh
 
-echo 'testing' > /mnt/ICA/ICA_Test.txt 2> ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to create file /mnt/ICA/ICA_Test.txt"
-    echo "Creating file /mnt/ICA/ICA_Test.txt: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
-
-ls /mnt/ICA/ICA_Test.txt > ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to list file /mnt/ICA/ICA_Test.txt"
-    echo "Listing file /mnt/ICA/ICA_Test.txt: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
-
-cat /mnt/ICA/ICA_Test.txt > ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to read file /mnt/ICA/ICA_Test.txt"
-    echo "Listing read /mnt/ICA/ICA_Test.txt: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
-
-# unalias rm 2> /dev/null
-rm /mnt/ICA/ICA_Test.txt > ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to delete file /mnt/ICA/ICA_Test.txt"
-    echo "Deleting /mnt/ICA/ICA_Test.txt file: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
-
-rmdir /mnt/ICA/ 2> ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to delete directory /mnt/ICA/"
-    echo "Deleting /mnt/ICA/ directory: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
 
 umount /mnt
 if [ $? -gt 0 ]; then
@@ -260,7 +196,7 @@ if [ $? -gt 0 ]; then
 fi
 LogMsg "Unmount partition successful"
 
-(echo d; echo 1; echo w) | fdisk /dev/sdb 2> /dev/null
+(echo d; echo w) | fdisk /dev/sdb 2> /dev/null
 if [ $? -gt 0 ]; then
     LogMsg "Failed to delete partition"
     echo "Deleting partition: Failed" >> ~/summary.log
