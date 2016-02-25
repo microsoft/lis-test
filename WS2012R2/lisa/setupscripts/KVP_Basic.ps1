@@ -60,7 +60,38 @@ param( [String] $vmName,
 )
 
 
+#######################################################################
+#
+#	Checks if the kvp daemon is running on the Linux guest
+#
+#######################################################################
+function check_kvp_daemon()
+{
+    $filename = ".\kvp_present"
+    
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_kvp_daemon\|[h]ypervkvpd' > /tmp/kvp_present"
+    if (-not $?) {
+        Write-Error -Message  "ERROR: Unable to verify if the kvp daemon is running" -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Unable to verify if the kvp daemon is running"
+        return $False
+    }
+    
+    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/tmp/kvp_present .
+    if (-not $?) {
+		Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
+		Write-Output "ERROR: Unable to copy the confirmation file from the VM"
+		return $False
+    }
 
+    # When using grep on the process in file, it will return 1 line if the daemon is running
+    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) {
+		Write-Output "Info: hv_kvp_daemon process is running."  
+		$retValue = $True
+    }
+	
+    del $filename   
+    return $True 
+}
 #######################################################################
 #
 # KvpToDict
@@ -158,6 +189,8 @@ foreach ($p in $params)
     "nonintrinsic" { $intrinsic = $False }
     "rootdir"      { $rootDir   = $fields[1].Trim() }
     "TC_COVERED"   { $tcCovered = $fields[1].Trim() }
+    "ipv4"         { $ipv4 = $fields[1].Trim() }
+    "sshkey"       { $sshKey = $fields[1].Trim() }
     default  {}       
     }
 }
@@ -199,6 +232,21 @@ if (-not $serviceEnabled)
     return $False
 }
 
+# Verifying if /tmp folder on guest exists; if not, it will be created
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /tmp ]"
+if (-not $?){
+    Write-Output "Folder /tmp not present on guest. It will be created"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir /tmp"
+}
+
+#
+# Verify if the hypervkvpd daemon is running on VM
+#
+$sts = check_kvp_daemon
+if (-not $sts[-1]) {
+    Write-Output "ERROR: hypervkvp daemon is not running inside the Linux guest VM!" | Tee-Object -Append -file $summaryLog
+    return $False
+}
 #
 # Create a data exchange object and collect KVP data from the VM
 #
@@ -255,7 +303,7 @@ if ($Intrinsic)
 	switch ($osInfo.BuildNumber)
 	{
 		"9200" { $osSpecificKeyNames = @("OSBuildNumber", "OSVendor", "OSSignature") }
-		"9600" { $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId") }
+		"9600" { $osSpecificKeyNames = @("OSName", "ProcessorArchitecture", "OSMajorVersion", "IntegrationServicesVersion", "OSBuildNumber", "NetworkAddressIPv4", "NetworkAddressIPv6", "OSDistributionName", "OSDistributionData", "OSPlatformId") }
 		default { $osSpecificKeyNames = $null }
 	}
 	$testPassed = $True
