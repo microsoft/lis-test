@@ -1,4 +1,4 @@
-﻿########################################################################
+########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
@@ -1013,7 +1013,9 @@ function  WaitForVMToStop ([string] $vmName ,[string]  $hvServer, [int] $timeout
 }
 
 #######################################################################
+#
 # Runs a remote script on the VM and returns the log.
+#
 #######################################################################
 function RunRemoteScript($remoteScript)
 {
@@ -1021,6 +1023,7 @@ function RunRemoteScript($remoteScript)
     $stateFile     = "state.txt"
     $TestCompleted = "TestCompleted"
     $TestAborted   = "TestAborted"
+    $TestFailed   = "TestFailed"
     $TestRunning   = "TestRunning"
     $timeout       = 6000
 
@@ -1121,7 +1124,7 @@ function RunRemoteScript($remoteScript)
              break
         }
     }
-    else #
+    else
     {
          Write-Output "Error : pscp exit status = $sts"
          Write-Output "Error : unable to pull state.txt from VM."
