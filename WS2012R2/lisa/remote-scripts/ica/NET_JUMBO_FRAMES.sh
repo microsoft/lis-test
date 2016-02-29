@@ -112,6 +112,7 @@ case $? in
 		;;
 esac
 
+pingVersion="ping"
 # Parameter provided in constants file
 declare -a STATIC_IPS=()
 
@@ -130,11 +131,16 @@ else
 		CheckIP "${STATIC_IPS[$__iterator]}"
 
 		if [ 0 -ne $? ]; then
-			msg="Variable STATIC_IP: ${STATIC_IPS[$__iterator]} does not contain a valid IPv4 address "
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateAborted
-			exit 30
+
+			CheckIPV6 "${STATIC_IPS[$__iterator]}"
+			if [ 0 -ne $? ]; then
+				msg="Variable STATIC_IP: ${STATIC_IPS[$__iterator]} does not contain a valid IPv4 nor IPV6 address "
+				LogMsg "$msg"
+				UpdateSummary "$msg"
+				SetTestStateAborted
+				exit 30
+			fi
+			pingVersion="ping6"
 		fi
 
 	done
@@ -321,7 +327,7 @@ for __iterator in ${!STATIC_IPS[@]} ; do
 		LogMsg "Number of static IP addresses in constants.sh is greater than number of concerned interfaces. All extra IP addresses are ignored."
 		break
 	fi
-	SetIPstatic "${STATIC_IPS[$__iterator]}" "${SYNTH_NET_INTERFACES[$__iterator]}" "$NETMASK"
+	CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" "${STATIC_IPS[$__iterator]}" "$NETMASK"
 	# if failed to assigned address
 	if [ 0 -ne $? ]; then
 		msg="Failed to assign static ip ${STATIC_IPS[$__iterator]} netmask $NETMASK on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -496,7 +502,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		UpdateSummary "Trying to ping $STATIC_IP2 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
 
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`jumb`null`packet_size`null`
-		ping -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 20 -p "cafed00d006a756d6200${__hex_ping_value}00" -s "${__packet_size[$__packet_iterator]}" "$STATIC_IP2"
+		"$pingVersion" -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 20 -p "cafed00d006a756d6200${__hex_ping_value}00" -s "${__packet_size[$__packet_iterator]}" "$STATIC_IP2"
 
 		if [ 0 -ne $? ]; then
 			msg="Failed to ping $STATIC_IP2 through interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
@@ -504,35 +510,6 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			UpdateSummary "$msg"
 			SetTestStateFailed
 			exit 10
-		fi
-
-		if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
-
-			if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
-			    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
-			    LogMsg "$msg"
-				UpdateSummary "$msg"
-				SetTestStateAborted
-				exit 30
-			fi
-
-			if [ "$PING_SUCC_IPv6" != false ] && [ "$PING_SUCC_IPv6" = "detect" ] ; then
-
-			full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$STATIC_IP2" "ip addr show | grep -A 2 "$STATIC_IP2" | grep "inet6"|grep "global"" | awk '{print $2}'`
-			IPv6=${full_ipv6:0:${#full_ipv6}-3}
-			fi
-
-			LogMsg "Trying to ping $IPv6 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
-			UpdateSummary "Trying to ping $IPv6 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
-
-			ping6 -I ${SYNTH_NET_INTERFACES[$__iterator]} -c 10  "$IPv6" -s "${__packet_size[$__packet_iterator]}"
-			if [ 0 -ne $? ]; then
-				msg="Failed to ping $IPv6 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-				LogMsg "$msg"
-				UpdateSummary "$msg"
-				SetTestStateFailed
-				exit 10
-			fi
 		fi
 
 		LogMsg "Successfully pinged!"

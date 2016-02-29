@@ -126,6 +126,16 @@ if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
     exit 30
 fi
 
+if [ "${STATIC_IP2_V6:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter STATIC_IP2_V6 is not defined in ${LIS_CONSTANTS_FILE}. No IPV6 related tests will be run."
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    if [ "${TestIPV6}" = "yes" ]; then
+	    SetTestStateFailed
+	    exit 30
+	fi
+fi
+
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter SSH_PRIVATE_KEY is not defined in ${LIS_CONSTANTS_FILE}"
     LogMsg "$msg"
@@ -524,6 +534,21 @@ fi
 LogMsg "Successfully sent $output_file to $STATIC_IP2:$remote_home/$output_file"
 UpdateSummary "Successfully sent $output_file to $STATIC_IP2:$remote_home/$output_file"
 
+if [ "${TestIPV6}" = "yes" ]; then
+	scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@\["$STATIC_IP2_V6"\]:"$remote_home"/"$output_file"
+
+	if [ 0 -ne $? ]; then
+		msg="File copy over ipv6 FAILED. Unable to copy file $output_file to $STATIC_IP2_V6:$remote_home/$output_file."
+		LogMsg "$msg"
+	    UpdateSummary "$msg"
+	    SetTestStateFailed
+	    exit 10
+	else
+		LogMsg "Successfully sent $output_file to $STATIC_IP2_V6:$remote_home/$output_file"
+		UpdateSummary "Successfully sent $output_file to $STATIC_IP2_V6:$remote_home/$output_file"
+	fi
+fi
+
 # erase file locally, if set
 [ $NO_DELETE -eq 0 ] && rm -f $output_file
 
@@ -540,8 +565,24 @@ if [ 0 -ne $? ]; then
     exit 10
 fi
 
-LogMsg "Received $outputfile from $STATIC_IP2"
-UpdateSummary "Received $outputfile from $STATIC_IP2"
+LogMsg "Received $output_file from $STATIC_IP2"
+UpdateSummary "Received $output_file from $STATIC_IP2"
+
+if [ "${TestIPV6}" = "yes" ]; then
+	scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@\["$STATIC_IP2_V6"\]:"$remote_home"/"$output_file" "$HOME"/"$output_file"
+
+	if [ 0 -ne $? ]; then
+		#try to erase file from remote vm
+		msg="Unable to copy from $STATIC_IP2_V6:$remote_home/$output_file"
+		LogMsg "$msg"
+	    UpdateSummary "$msg"
+	    SetTestStateFailed
+	    exit 10
+	else
+		LogMsg "Received $output_file from $STATIC_IP2_V6"
+		UpdateSummary "Received $output_file from $STATIC_IP2_V6"
+	fi
+fi
 
 # delete remote file
 [ $NO_DELETE -eq 0 ] && ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "rm -f $remote_home/$output_file"
@@ -560,50 +601,6 @@ fi
 
 # delete local file again
 [ $NO_DELETE -eq 0 ] && rm -f "$HOME"/$output_file
-
-if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
-
-	if [ "${PING_SUCC_IPv6:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="The test parameter PING_SUCC_IPv6 is not defined in constants file"
-	    LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateAborted
-		exit 30
-	fi
-
-	if [ "$PING_SUCC_IPv6" != false ] && [ "$PING_SUCC_IPv6" = "detect" ] ; then
-
-	full_ipv6=`ssh -i .ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no root@"$STATIC_IP2" "ip addr show | grep -A 2 "$STATIC_IP2" | grep "inet6"|grep "global"" | awk '{print $2}'`
-	IPv6=${full_ipv6:0:${#full_ipv6}-3}
-	fi
-
-
-	dd if=$file_source of="$HOME"/"$output_file" bs=1M count=$((__file_size/1024/1024))
-
-	if [ 0 -ne $? ]; then
-		msg="Unable to create file $output_file in $HOME"
-		LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    SetTestStateFailed
-	    exit 10
-	fi
-
-	LogMsg "Successfully created $output_file"
-
-	#send file to remote_vm
-	scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -6 -v -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@["$IPv6"]:"$remote_home"/"$output_file"
-	if [ 0 -ne $? ]; then
-		[ $NO_DELETE -eq 0 ] && rm -f "$HOME"/$output_file
-		msg="Unable to copy file $output_file to $IPv6:$remote_home/$output_file"
-		LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    SetTestStateFailed
-	    exit 10
-	fi
-
-	LogMsg "Successfully sent $output_file to $IPv6:$remote_home/$output_file"
-	UpdateSummary "Successfully sent $output_file to $IPv6:$remote_home/$output_file"
-fi
 
 UpdateSummary "Checksums of file match. Test successful"
 LogMsg "Updating test case state to completed"

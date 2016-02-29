@@ -108,6 +108,7 @@ $vm2Server = $null
 
 $tempipv4VM2 = $null
 $testipv4VM2 = $null
+$testipv6VM2 = $null
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
@@ -246,6 +247,7 @@ sleep 20
 
 $tempipv4VM2 = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $vm2Server | Where-object {$_.MacAddress -like "$vm2MacAddress"} | Select -Expand IPAddresses
 $testipv4VM2 = $tempipv4VM2[0]
+$testipv6VM2 = $tempipv4VM2[1]
 
 if (-not $testipv4VM2) {
     "Error: could not retrieve dependency VM's test IP address"
@@ -258,6 +260,20 @@ $result = Execute($cmd);
 if (-not $result) {
     Write-Error -Message "Error: Unable to submit ${cmd} to vm" -ErrorAction SilentlyContinue
     return $False
+}
+
+if ($testipv6VM2)
+{
+    $cmd="echo `"STATIC_IP2_V6=$($testipv6VM2)`" >> ~/constants.sh";
+    $result = Execute($cmd);
+
+    if (-not $result) {
+        Write-Error -Message "Error: Unable to submit ${cmd} to vm" -ErrorAction SilentlyContinue
+    }
+}
+else
+{
+    "Warning: could not retrieve dependency VM's test IPv6 address"
 }
 
 "Dependency VM's test IP submitted successfully!"

@@ -290,6 +290,14 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 	$cmdToVM = @"
 #!/bin/bash
 
+                cd /root
+                if [ -f utils.sh ]; then
+                    sed -i 's/\r//' utils.sh
+                    . utils.sh
+                else
+                    exit 1
+                fi
+
 				# get interface(s) with $vlanID from /proc
 				__vlan_interface=`$(cat /proc/net/vlan/config | grep " $vlanID " | cut -d "|" -f 1 | sed 's/ *$//')
 				if [ -z "`$__vlan_interface" ]; then
@@ -307,22 +315,17 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 					exit 3
 				fi
 
+                CheckIPV6 $pingTargetIpv4
+                if [[ `$? -eq 0 ]]; then
+                    pingVersion="ping6"
+                else
+                    pingVersion="ping"
+                fi
+
 				LogMsg "PingVMs: pinging $pingTargetIpv4 using interface `$__sys_interface" >> /root/NET_VLAN_TRUNKING.log 2>&1
 				# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`vlan`null`trunk`null`
-				ping -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e007472756e6b00" $pingTargetIpv4 >> /root/NET_VLAN_TRUNKING.log 2>&1
+				`$pingVersion -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e007472756e6b00" $pingTargetIpv4 >> /root/NET_VLAN_TRUNKING.log 2>&1
 				__retVal=`$?
-
-                if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "guest" ]  ; then
-
-                    echo "Trying to get IPv6 associated with $pingTargetIpv4" >> /root/NET_VLAN_TAGGING.log 2>&1
-                    full_ipv6=``ssh -i .ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no root@$pingTargetIpv4 "ip addr show | grep -A 2 $pingTargetIpv4 | grep "link"" | awk '{print `$2}'``
-                    IPv6=`${full_ipv6:0:`${#full_ipv6}-3}
-
-                    "Trying to ping `$IPv6 on interface `$__sys_interface" >> /root/NET_VLAN_TAGGING.log 2>&1
-                    # ping the right address
-                    ping6 -I `$__sys_interface -c $noPackets  "`$IPv6" >> /root/NET_VLAN_TAGGING.log 2>&1
-                    __retVal=`$(( __retVal && _rVal ))
-                fi
 
 				LogMsg "PingVMs: ping returned `$__retVal" >> /root/NET_VLAN_TRUNKING.log 2>&1
 				exit `$__retVal
@@ -434,9 +437,6 @@ $networkName = $null
 #Snapshot name
 $snapshotParam = $null
 
-#Test IPv6
-$Test_IPv6 = $null
-
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
@@ -501,7 +501,6 @@ foreach ($p in $params)
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
-    "Test_IPv6" { $Test_IPv6 = $fields[1].Trim() }
     "NIC"
     {
         $nicArgs = $fields[1].Split(',')
@@ -798,30 +797,60 @@ if (-not $vm2StaticIP)
 }
 else
 {
-    # make sure $vm2StaticIP is in the same subnet as $vm1StaticIP
-    $retVal = containsAddress $vm1StaticIP $netmask $vm2StaticIP
+    $ipVersion = isValidIP $vm2StaticIP
 
-    if (-not $retVal)
+    switch ($ipVersion)
     {
-        "$vm2StaticIP is not in the same subnet as $vm1StaticIP / $netmask"
+        InterNetwork {
+            # make sure $vm2StaticIP is in the same subnet as $vm1StaticIP
+            $retVal = containsAddress $vm1StaticIP $netmask $vm2StaticIP
 
-        # if this script added the second NIC, then remove it unless the Leave_trail param was set.
-        if ($scriptAddedNIC)
-        {
-            if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+            if (-not $retVal)
             {
-                if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+                "$vm2StaticIP is not in the same subnet as $vm1StaticIP / $netmask"
+
+                # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+                if ($scriptAddedNIC)
                 {
-                    .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+                    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+                    {
+                        if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+                        {
+                            .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+                        }
+                        else
+                        {
+                            "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+                        }
+                    }
                 }
-                else
+
+                return $false
+            }
+            break
+        }
+        InterNetworkV6 {
+            break
+        }
+        $false {
+            "$vm2StaticIP is not a valid ip address"
+            # if this script added the second NIC, then remove it unless the Leave_trail param was set.
+            if ($scriptAddedNIC)
+            {
+                if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
                 {
-                    "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+                    if (Test-Path ".\setupScripts\NET_REMOVE_NIC_MAC.ps1")
+                    {
+                        .\setupScripts\NET_REMOVE_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
+                    }
+                    else
+                    {
+                        "Warning: Unable to find setupScripts\NET_REMOVE_NIC_MAC.ps1 in order to remove the added NIC"
+                    }
                 }
             }
+            return $false
         }
-
-        return $false
     }
 }
 
