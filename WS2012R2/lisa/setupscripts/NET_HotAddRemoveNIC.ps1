@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    Run the Hot Add NIC test case.
+    Run the Hot Add Remove NIC test case.
 
 .Description
     This test script will hot add a synthetic NIC to a running Gen 2 VM.
@@ -40,20 +40,22 @@
                 Bring eth1 online and acquire a DHCP address
             if "removed"
                 Verify this is only one eth device.
+        Hot remove the NIC 
+        Check VM log for errors 
 
     A sample LISA test case definition would look similar to the following:
 
     <test>
-        <testName>HotAddMultiNIC</name>
+        <testName>HotAddRemoveNIC</name>
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
         </setupScript>
-        <testScript>setupscripts\NET_HotAddMultiNIC.ps1</testScript>
+        <testScript>setupscripts\NET_HotAddRemoveNIC.ps1</testScript>
         <files>remote-scripts\ica\NET_VerifyHotAddMultiNIC.sh</files>
         <onError>Continue</onError>
         <timeout>1800</timeout>
         <testParams>
-            <param>TC_Covered=NET-16</param>
+            <param>TC_Covered=NET-17</param>
             <param>Switch_Name=External</param>
         </testParams>
     </test>
@@ -209,13 +211,13 @@ try
     $osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
     if (-not $osInfo)
     {
-        "Error: Unable to collect Operating System information"
-        return $False
+        Throw "Error: Unable to collect Operating System information"
     }
     if ($osInfo.BuildNumber -le 10000)
     {
         Throw "Error: This test requires Windows Server 2016 or higher"
     }
+    
     #
     # Verify the target VM does not have a Hot Add NIC.  If it does, then assume
     # there is a test configuration or setup issue, and fail the test.
@@ -262,6 +264,57 @@ try
     #
     "Info : Output from NET_VerifyHotAddMultiNIC.sh"
     $sts
+
+    #
+    # Hot Remove the Hot Add'ed synthetic NIC from the SUT VM
+    #
+    "Info : Hot remove the NIC"
+    $nics = Get-VMNetworkAdapter -vmName "${vmName}" -Name "${nicName}" -ComputerName $hvServer -ErrorAction SilentlyContinue
+    if (-not $?)
+    {
+        #
+        # Sanity check - this error should never occur
+        #
+        Throw "Error: VM '${vmName}' does not have a NIC named '${nicName}'"
+    }
+
+    if ($nics.Length -ne 1)
+    {
+        #
+        # Sanity check - this error should never occur
+        #
+        Throw "Error: VM '${vmName}' has more than one Hot Added NIC"
+    }
+
+    #
+    # Now Hot Remove the NIC
+    #
+    Remove-VMNetworkAdapter -VMName $vmName -Name "${nicName}" -ComputerName $hvServer -ErrorAction SilentlyContinue
+    if (-not $?)
+    {
+        Throw "Error: Unable to remove hot added NIC"
+    }
+
+    #
+    # Run the NET_VerifyHotAddSyntheticNIC.sh on the SUT VM to verify the VM detected the hot remove
+    #
+    "Info : Verify the OS on the SUT detected the NIC was hot removed"
+    $sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./NET_VerifyHotAddMultiNIC.sh removed 2>&1"
+    if (-not $?)
+    {
+        "${sts}"
+        Throw "Error: Unable to verify NIC was removed within the SUT VM '${vmName}'"
+    }
+
+    #
+    # Display the output from NET_VerifyHotAddMultiNIC.sh so it is captured in the log file
+    #
+    "Info : Output from NET_VerifyHotAddMultiNIC.sh"
+    $sts
+
+    if ($sts -match "netvsc throwed errors"){
+        Throw "Error: VM '${vmName}' reported that netvsc throwed errors"
+    }
 }
 catch
 {
