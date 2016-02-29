@@ -54,16 +54,18 @@
     <testCases>
         <test>
             <testName>VHDxResizeToBigger512</testName>
-			<testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
-				<param>SectorSize=512</param>
-				<param>DefaultSize=3GB</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3)</param>
                 <param>TC_COVERED=STOR-VHDx-01a</param>
             </testparams>
         </test>
@@ -72,13 +74,15 @@
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
-				<param>SectorSize=4096</param>
-				<param>DefaultSize=3GB</param>
+                <param>SectorSize=4096</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3)</param>
                 <param>TC_COVERED=STOR-VHDx-01b</param>
             </testparams>
         </test>
@@ -87,13 +91,15 @@
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
-				<param>SectorSize=512</param>
-				<param>DefaultSize=3GB</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
+                <param>fileSystems=(ext4 ext3)</param>
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
@@ -102,13 +108,15 @@
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
-				<param>SectorSize=4096</param>
-				<param>DefaultSize=3GB</param>
+                <param>SectorSize=4096</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
+                <param>fileSystems=(ext4 ext3)</param>
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
@@ -117,14 +125,16 @@
             <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
-				<param>SectorSize=512</param>
-				<param>DefaultSize=3GB</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
                 <param>growSize=4GB</param>
                 <param>shrinkSize=3GB</param>
+                <param>fileSystems=(ext4 ext3)</param>
                 <param>TC_COVERED=STOR-VHDx-03</param>
             </testparams>
         </test>
@@ -133,13 +143,15 @@
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
-				<param>SectorSize=512</param>
-				<param>DefaultSize=3GB</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3)</param>
                 <param>TC_COVERED=STOR-VHDx-04a</param>
             </testparams>
         </test>
@@ -148,13 +160,15 @@
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
-				<param>SectorSize=4096</param>
-				<param>DefaultSize=3GB</param>
+                <param>SectorSize=4096</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3)</param>
                 <param>TC_COVERED=STOR-VHDx-04b</param>
             </testparams>
         </test>
@@ -163,13 +177,15 @@
             <testScript>SetupScripts\STOR_VHDXResize_DiskOver2TB.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>3000</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
-				<param>SectorSize=512</param>
-				<param>DefaultSize=127GB</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=127GB</param>
                 <param>NewSize=2304GB</param>
+                <param>fileSystems=(ext4 ext3)</param>
                 <param>TC_COVERED=STOR-VHDx-05</param>
             </testparams>
         </test>
@@ -178,25 +194,27 @@
             <testScript>SetupScripts\STOR_VHDXResize_BasicLM.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
-				<param>SectorSize=512</param>
-				<param>DefaultSize=3GB</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3)</param>
                 <param>TC_COVERED=STOR-VHDx-06</param>
             </testparams>
         </test>
-	</testCases>
+    </testCases>
 
     <VMs>
-		<vm>
-            <hvServer>localhost</hvServer>
-            <vmName>VM_Name</vmName>
+        <vm>
+            <hvServer>hvServer</hvServer>
+            <vmName>VM</vmName>
             <os>Linux</os>
-            <ipv4>255.255.255.255</ipv4>
-            <sshKey>YOUR_KEY.ppk</sshKey>
+            <ipv4></ipv4>
+            <sshKey>key.ppk</sshKey>
             <suite>VHDxResize</suite>
         </vm>
     </VMs>
