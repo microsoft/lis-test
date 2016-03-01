@@ -40,7 +40,7 @@
             <suiteTests>
                 <suiteTest>External</suiteTest>
                 <!-- <suiteTest>InternalNetwork</suiteTest> -->
-                <!-- <suiteTest>GuestOnlyNetwork</suiteTest> -->
+                <suiteTest>GuestOnlyNetwork</suiteTest>
                 <suiteTest>MultipleNIC</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
                 <suiteTest>StaticMAC</suiteTest>
@@ -50,13 +50,13 @@
                 <suiteTest>JumboFrame</suiteTest>
                 <suiteTest>OperState</suiteTest>
                 <suiteTest>CopyLargeFile</suiteTest>
-                <suiteTest>CopyFileDifferentMTU</suiteTest>
+                <!-- <suiteTest>CopyFileDifferentMTU</suiteTest> -->
                 <suiteTest>VlanTagging</suiteTest>
                 <suiteTest>VlanTrunking</suiteTest>
                 <!-- <suiteTest>Network_Hang_Vxlan</suiteTest> -->
                 <!-- The following tests require a Generation 2 VM -->
-                <suiteTest>HotAddMultiNIC</suiteTest>
-                <suiteTest>BootNoNicHotAddNic</suiteTest>
+                <!-- <suiteTest>HotAddMultiNIC</suiteTest> -->
+                <!-- <suiteTest>BootNoNicHotAddNic</suiteTest> -->
             </suiteTests>
         </suite>
     </testSuites>
@@ -104,9 +104,9 @@
             <testParams>
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-04</param>
-                <param>STATIC_IP=10.10.10.1</param>
-                <param>STATIC_IP2=10.10.10.2</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>STATIC_IP=fd00::4:10</param>
+                <param>STATIC_IP2=fd00::4:100</param>
+                <param>NETMASK=64</param>
             </testParams>
             <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -246,9 +246,9 @@
             <testparams>
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-10</param>
-                <param>STATIC_IP=10.10.10.10</param>
-                <param>STATIC_IP2=10.10.10.20</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>STATIC_IP=fd00::4:10</param>
+                <param>STATIC_IP2=fd00::4:100</param>
+                <param>NETMASK=64</param>
                 <param>MAC=001600112233</param>
                 <param>REMOTE_USER=root</param>
             </testparams>
@@ -291,6 +291,7 @@
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=2</param>
                 <param>REMOTE_USER=root</param>
+                <param>TestIPV6=yes</param>
             </testParams>
             <testScript>NET_COPY_LARGE.sh</testScript>
             <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
@@ -313,6 +314,7 @@
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=1</param>
                 <param>REMOTE_USER=root</param>
+                <param>TestIPV6=yes</param>
             </testParams>
             <testScript>NET_Copy_Different_MTU.sh</testScript>
             <files>remote-scripts/ica/NET_Copy_Different_MTU.sh,remote-scripts/ica/utils.sh</files>
@@ -327,17 +329,18 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-            <param>NIC=NetworkAdapter,External,External,001600112200</param>
-            <param>TC_COVERED=NET-14</param>
-            <!-- <param>STATIC_IP=10.10.10.1</param> -->
-            <!-- <param>STATIC_IP2=10.10.10.2</param> -->
-            <!-- <param>NETMASK=255.255.254.0</param> -->
-            <param>VLAN_ID=2</param>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>TC_COVERED=NET-14</param>
+                <param>STATIC_IP=fd00::4:10</param>
+                <param>STATIC_IP2=fd00::4:100</param>
+                <param>NETMASK=64</param>
+                <param>VLAN_ID=2</param>
+                <param>TestIPV6=yes</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>1000</timeout>
+            <timeout>1800</timeout>
         </test>
 
         <test>
@@ -349,16 +352,16 @@
             <testParams>
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>TC_COVERED=NET-15</param>
-                <!-- <param>STATIC_IP=10.10.10.1</param> -->
-                <!-- <param>STATIC_IP2=10.10.10.2</param> -->
-                <!-- <param>NETMASK=255.255.255.0</param> -->
+                <param>STATIC_IP=fd00::4:10</param>
+                <param>STATIC_IP2=fd00::4:100</param>
+                <param>NETMASK=64</param>
                 <param>VM_VLAN_ID=2</param>
                 <param>NATIVE_VLAN_ID=10</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TRUNKING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>800</timeout>
+            <timeout>1800</timeout>
         </test>
 
         <test>

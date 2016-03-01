@@ -761,11 +761,23 @@ CreateVlanConfig()
 	fi
 
 	# check that $2 is an IP address
-	CheckIP "$2"
 
-	if [ 0 -ne $? ]; then
-		LogMsg "CreateVlanConfig: $2 is not a valid IP Address"
-		return 2
+
+	CheckIP "$2"
+	if [[ $? -eq 0 ]]; then
+	    netmaskConf="NETMASK"
+	    ifaceConf="inet"
+	    ipAddress="IPADDR"
+	else
+		CheckIPV6 "$2"
+		if [[ $? -eq 0 ]]; then
+	    	netmaskConf="PREFIX"
+	    	ifaceConf="inet6"
+	    	ipAddress="IPV6ADDR"
+	    else
+	    	LogMsg "CreateVlanConfig: $2 is not a valid IP Address"
+			return 2
+		fi
 	fi
 
 	declare __noreg='^[0-4096]+'
@@ -828,8 +840,8 @@ CreateVlanConfig()
 			cat <<-EOF > "$__vlan_file_path"
 				DEVICE=$__interface.$__vlanID
 				BOOTPROTO=none
-				IPADDR=$__ip
-				NETMASK=$__netmask
+				$ipAddress=$__ip
+				$netmaskConf=$__netmask
 				ONBOOT=yes
 				VLAN=yes
 			EOF
@@ -866,14 +878,25 @@ CreateVlanConfig()
 				STARTMODE=auto
 			EOF
 
-			cat <<-EOF > "$__vlan_file_path"
-				ETHERDEVICE=$__interface
-				BOOTPROTO=static
-				IPADDR=$__ip
-				NETMASK=$__netmask
-				STARTMODE=auto
-				VLAN=yes
-			EOF
+			if [[ $netmaskConf == "NETMASK" ]]; then
+				cat <<-EOF > "$__vlan_file_path"
+					ETHERDEVICE=$__interface
+					BOOTPROTO=static
+					IPADDR=$__ip
+					$netmaskConf=$__netmask
+					STARTMODE=auto
+					VLAN=yes
+				EOF
+			else
+				cat <<-EOF > "$__vlan_file_path"
+					ETHERDEVICE=$__interface
+					BOOTPROTO=static
+					IPADDR=$__ip/$__netmask
+					STARTMODE=auto
+					VLAN=yes
+				EOF
+			fi
+
 
 			# bring real interface down and up again
 			wicked ifdown "$__interface"
@@ -908,14 +931,24 @@ CreateVlanConfig()
 				STARTMODE=auto
 			EOF
 
-			cat <<-EOF > "$__vlan_file_path"
-				BOOTPROTO=static
-				IPADDR=$__ip
-				NETMASK=$__netmask
-				STARTMODE=auto
-				VLAN=yes
-				ETHERDEVICE=$__interface
-			EOF
+			if [[ $netmaskConf == "NETMASK" ]]; then
+				cat <<-EOF > "$__vlan_file_path"
+					BOOTPROTO=static
+					IPADDR=$__ip
+					$netmaskConf=$__netmask
+					STARTMODE=auto
+					VLAN=yes
+					ETHERDEVICE=$__interface
+				EOF
+			else
+				cat <<-EOF > "$__vlan_file_path"
+					BOOTPROTO=static
+					IPADDR=$__ip/$__netmask
+					STARTMODE=auto
+					VLAN=yes
+					ETHERDEVICE=$__interface
+				EOF
+			fi
 
 			ifdown "$__interface"
 			ifup "$__interface"
@@ -999,7 +1032,7 @@ iface $__interface inet static
 	address 0.0.0.0
 
 auto $__interface.$__vlanID
-iface $__interface.$__vlanID inet static
+iface $__interface.$__vlanID $ifaceConf static
 	address $__ip
 	netmask $__netmask
 EOF
@@ -1013,6 +1046,8 @@ EOF
 			return 4
 			;;
 	esac
+
+	sleep 5
 
 	# verify change took place
 	cat /proc/net/vlan/config | grep " $__vlanID "
@@ -1535,6 +1570,7 @@ CreateIfupConfigFile()
 	sysctl -w net.ipv4.conf.default.rp_filter=0
 	sysctl -w net.ipv4.conf.eth0.rp_filter=0
 	sysctl -w net.ipv4.conf.$__interface_name.rp_filter=0
+	sleep 5
 
 	return 0
 }

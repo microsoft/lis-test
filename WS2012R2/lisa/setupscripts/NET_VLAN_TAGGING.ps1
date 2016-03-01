@@ -205,6 +205,14 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
     $cmdToVM = @"
 #!/bin/bash
 
+                cd /root
+                if [ -f utils.sh ]; then
+                    sed -i 's/\r//' utils.sh
+                    . utils.sh
+                else
+                    exit 1
+                fi
+
                 # get interface with given MAC
                 __sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address)
                 if [ 0 -ne `$? ]; then
@@ -215,20 +223,17 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
                     exit 2
                 fi
 
-                echo PingVMs: pinging $pingTargetIpv4 using interface `$__sys_interface >> /root/NET_VLAN_TAGGING.log 2>&1
-                # ping the remote host using an easily distinguishable pattern 0xcafed00d`null`vlan`null`tag`null`
-                ping -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e0074616700" $pingTargetIpv4 >> /root/NET_VLAN_TAGGING.log 2>&1
-                __retVal=`$?
-
-                 if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
-                    echo "Trying to get IPv6 associated with $pingTargetIpv4" >> /root/NET_VLAN_TAGGING.log 2>&1
-                    full_ipv6=``ssh -i .ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no root@$pingTargetIpv4 "ip addr show | grep -A 2 $pingTargetIpv4 | grep "link"" | awk '{print `$2}'``
-                    IPv6=`${full_ipv6:0:`${#full_ipv6}-3}
-                    "Trying to ping `$IPv6 on interface `$__sys_interface" >> /root/NET_VLAN_TAGGING.log 2>&1
-                    # ping the right address
-                    ping6 -I `$__sys_interface -c $noPackets "`$IPv6" >> /root/NET_VLAN_TAGGING.log 2>&1
-                    __retVal=`$(( __retVal && _rVal ))
+                CheckIPV6 $pingTargetIpv4
+                if [[ `$? -eq 0 ]]; then
+                    pingVersion="ping6"
+                else
+                    pingVersion="ping"
                 fi
+
+                echo PingVMs: `$pingVersion $pingTargetIpv4 using interface `$__sys_interface >> /root/NET_VLAN_TAGGING.log 2>&1
+                # ping the remote host using an easily distinguishable pattern 0xcafed00d`null`vlan`null`tag`null`
+                `$pingVersion -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e0074616700" $pingTargetIpv4 >> /root/NET_VLAN_TAGGING.log 2>&1
+                __retVal=`$?
 
                 echo PingVMs: ping returned `$__retVal >> /root/NET_VLAN_TAGGING.log 2>&1
                 exit `$__retVal
@@ -341,12 +346,14 @@ $snapshotParam = $null
 #IP assigned to test interfaces
 $tempipv4VM1 = $null
 $testipv4VM1 = $null
+$testipv6VM1 = $null
 
 $tempipv4VM2 = $null
 $testipv4VM2 = $null
+$testipv6VM2 = $null
 
 #Test IPv6
-$Test_IPv6 = $null
+$TestIPV6 = $null
 
 #ifcfg bootproto
 $bootproto = $null
@@ -409,9 +416,9 @@ foreach ($p in $params)
     "SshKey"  { $sshKey  = $fields[1].Trim() }
     "ipv4"    { $ipv4    = $fields[1].Trim() }
     "VLAN_ID" { $vlanId = $fields[1].Trim() }
+    "TestIPV6" { $TestIPV6 = $fields[1].Trim() }
     "STATIC_IP" { $vm1StaticIP = $fields[1].Trim() }
     "STATIC_IP2" { $vm2StaticIP = $fields[1].Trim() }
-    "Test_IPv6" { $Test_IPv6 = $fields[1].Trim() }
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
@@ -743,6 +750,7 @@ start-sleep 20
 
 $tempipv4VM1 = Get-VMNetworkAdapter  -VMName $vmName -ComputerName $hvServer | Where-object {$_.MacAddress -like "$vm1MacAddress"} | Select -Expand IPAddresses
 $testipv4VM1 = $tempipv4VM1[0]
+$testipv6VM1 = $tempipv4VM1[1]
 
 "sshKey   = ${sshKey}"
 "vm1 Name = ${vmName}"
@@ -752,6 +760,7 @@ $testipv4VM1 = $tempipv4VM1[0]
 
 $tempipv4VM2 = Get-VMNetworkAdapter  -VMName $vm2Name -ComputerName $hvServer | Where-object {$_.MacAddress -like "$vm2MacAddress"} | Select -Expand IPAddresses
 $testipv4VM2 = $tempipv4VM2[0]
+$testipv6VM2 = $tempipv4VM2[1]
 
 "vm2 Name = ${vm2Name}"
 "vm2 ipv4 = ${vm2ipv4}"
@@ -828,6 +837,31 @@ if (-not $retVal)
 }
 "Successfully pinged"
 
+# try to ping over IPV6
+if ( $TestIPV6 -eq "yes" )
+{
+    "Trying to ping from vm1 with mac $vm1MacAddress to $testipv6VM2 "
+    # try to ping
+    $retVal = pingVMs $ipv4 $testipv6VM2 $sshKey 30 $vm1MacAddress
+
+    if (-not $retVal)
+    {
+        "Unable to ping $testipv6VM2 from $testipv6VM1 with MAC $vm1MacAddress"
+        return $false
+    }
+    "Successfully pinged"
+
+    "Trying to ping from vm2 with mac $vm2MacAddress to $testipv6VM1 "
+    $retVal = pingVMs $vm2ipv4 $testipv6VM1 $sshKey 30 $vm2MacAddress
+
+    if (-not $retVal)
+    {
+        "Unable to ping $testipv6VM1 from $testipv6VM2 with MAC $vm2MacAddress"
+        return $false
+    }
+    "Successfully pinged"
+}
+
 # now set VM2 to a different VLAN ID and try to ping the first VM again
 
 $badVlanId = ([int]$vlanID + [int]1)%4096
@@ -856,6 +890,19 @@ if ($retVal)
 {
     "Ping from vm2: Able to ping $testipv4VM1 from $testipv4VM2 with MAC $vm2MacAddress although it should not have worked!"
     return $false
+}
+
+# try to ping over IPV6
+if ( $TestIPV6 -eq "yes" )
+{
+    "Trying to ping from vm2 with mac $vm2MacAddress to $testipv6VM1 (must NOT work)"
+    $retVal = pingVMs $vm2ipv4 $testipv6VM1 $sshKey 10 $vm2MacAddress
+
+    if ($retVal)
+    {
+        "Ping from vm2: Able to ping $testipv6VM1 from $testipv6VM2 with MAC $vm2MacAddress although it should not have worked!"
+        return $false
+    }
 }
 
 "Failed to ping (as expected)"
