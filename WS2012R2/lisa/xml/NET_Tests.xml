@@ -392,7 +392,7 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
             </setupScript>
             <testScript>SetupScripts\NET_HotAddMultiNIC.ps1</testScript>
-            <files>remote-scripts\ica\NET_VerifyHotAddMultiNIC.sh</files>
+            <files>remote-scripts\ica\NET_VerifyHotAddMultiNIC.sh,remote-scripts\ica\utils.sh</files>
             <timeout>1800</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -408,7 +408,7 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
             </setupScript>
             <testScript>SetupScripts\NET_HotAddRemoveNIC.ps1</testScript>
-            <files>remote-scripts\ica\NET_VerifyHotAddMultiNIC.sh</files>
+            <files>remote-scripts\ica\NET_VerifyHotAddMultiNIC.sh,remote-scripts\ica\utils.sh</files>
             <timeout>1800</timeout>
             <onError>Continue</onError>
             <testparams>
