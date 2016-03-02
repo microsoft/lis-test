@@ -151,10 +151,24 @@
 				<param>Pool=0</param>
 			</testparams>
 		</test>
+
+        <test>
+            <testName>KVP_VerifyHostInjectedItems</testName>
+            <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,tools/KVP/kvp_client</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-10</param>
+                <param>Pool=3</param>
+                <param>Items=8</param>
+            </testparams>
+        </test>
     </testCases>
 
     <VMs>        
-	<vm>
+	    <vm>
             <hvServer>localhost</hvServer>
             <vmName>VM_NAME</vmName>
             <os>Linux</os>
