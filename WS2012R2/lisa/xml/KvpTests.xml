@@ -4,11 +4,11 @@
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
 
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
 
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -29,7 +29,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LISA FTM Test Run on WS2012</subject>
+            <subject>KVP Test Run on WS2012R2</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
 
@@ -45,9 +45,9 @@
                 <suiteTest>KVP_Modify_Key_Values</suiteTest>
                 <suiteTest>KVP_Remove_Key_Values</suiteTest>
                 <suiteTest>KVP_Push_Key_Values</suiteTest>
-				<suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
-				<suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
-				<suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
+		<suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
+		<suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+		<suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -125,33 +125,33 @@
             </testparams>
         </test>
 		
-		<test>
-			<testName>KVP_DeleteNonExistKVPOnGuest</testName>
-			<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
-			<timeout>600</timeout>
-			<onError>Abort</onError>
-			<noReboot>True</noReboot>
-			<testparams>
-				<param>TC_COVERED=KVP-06</param>
-				<param>Key=AAA</param>
-				<param>Value=000</param>
-				<param>Pool=0</param>
-			</testparams>
-		</test>	
+	<test>
+		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
+		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+		<timeout>600</timeout>
+		<onError>Abort</onError>
+		<noReboot>True</noReboot>
+		<testparams>
+			<param>TC_COVERED=KVP-06</param>
+			<param>Key=AAA</param>
+			<param>Value=000</param>
+			<param>Pool=0</param>
+		</testparams>
+	</test>	
 		
-		<test>
-			<testName>KVP_ModifyNonExistKVPOnGuest</testName>
-			<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
-			<timeout>600</timeout>
-			<onError>Abort</onError>
-			<noReboot>True</noReboot>
-			<testparams>
-				<param>TC_COVERED=KVP-07</param>
-				<param>Key=AAA</param>
-				<param>Value=000</param>
-				<param>Pool=0</param>
-			</testparams>
-		</test>
+	<test>
+		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
+		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+		<timeout>600</timeout>
+		<onError>Abort</onError>
+		<noReboot>True</noReboot>
+		<testparams>
+			<param>TC_COVERED=KVP-07</param>
+			<param>Key=AAA</param>
+			<param>Value=000</param>
+			<param>Pool=0</param>
+		</testparams>
+	</test>
 
         <test>
             <testName>KVP_VerifyHostInjectedItems</testName>
