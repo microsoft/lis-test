@@ -70,6 +70,7 @@ apply_proposed_kernel() {
 
 	apt-get install -y -qq linux-tools-generic/$release-proposed
 	apt-get install -y -qq linux-cloud-tools-generic/$release-proposed
+	apt-get install -y -qq linux-cloud-tools-common/$release-proposed
 	if [[ $? -ne 0 ]]; then
 		UpdateSummary "Error: Unable to install the proposed LIS daemons packages!"
 		UpdateTestState $ICA_TESTABORTED
