@@ -45,9 +45,9 @@
                 <suiteTest>KVP_Modify_Key_Values</suiteTest>
                 <suiteTest>KVP_Remove_Key_Values</suiteTest>
                 <suiteTest>KVP_Push_Key_Values</suiteTest>
-		<suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
-		<suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
-		<suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
+                <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
+                <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+                <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -125,33 +125,33 @@
             </testparams>
         </test>
 		
-	<test>
-		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
-		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
-		<timeout>600</timeout>
-		<onError>Abort</onError>
-		<noReboot>True</noReboot>
-		<testparams>
-			<param>TC_COVERED=KVP-06</param>
-			<param>Key=AAA</param>
-			<param>Value=000</param>
-			<param>Pool=0</param>
-		</testparams>
-	</test>	
-		
-	<test>
-		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
-		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
-		<timeout>600</timeout>
-		<onError>Abort</onError>
-		<noReboot>True</noReboot>
-		<testparams>
-			<param>TC_COVERED=KVP-07</param>
-			<param>Key=AAA</param>
-			<param>Value=000</param>
-			<param>Pool=0</param>
-		</testparams>
-	</test>
+    	<test>
+    		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
+    		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+    		<timeout>600</timeout>
+    		<onError>Abort</onError>
+    		<noReboot>True</noReboot>
+    		<testparams>
+    			<param>TC_COVERED=KVP-06</param>
+    			<param>Key=AAA</param>
+    			<param>Value=000</param>
+    			<param>Pool=0</param>
+    		</testparams>
+    	</test>	
+    		
+    	<test>
+    		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
+    		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+    		<timeout>600</timeout>
+    		<onError>Abort</onError>
+    		<noReboot>True</noReboot>
+    		<testparams>
+    			<param>TC_COVERED=KVP-07</param>
+    			<param>Key=AAA</param>
+    			<param>Value=000</param>
+    			<param>Pool=0</param>
+    		</testparams>
+    	</test>
 
         <test>
             <testName>KVP_VerifyHostInjectedItems</testName>
@@ -163,7 +163,7 @@
             <testparams>
                 <param>TC_COVERED=KVP-10</param>
                 <param>Pool=3</param>
-                <param>Items=8</param>
+                <param>Items=11</param>
             </testparams>
         </test>
     </testCases>
