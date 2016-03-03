@@ -42,7 +42,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\VMBus_PanicNotifier.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=VMBUS-03;sshKey=demo.ppk;ipv4=192.168.1.101"
+    setupScripts\VMBus_PanicNotifier_onKdump.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=VMBUS-04;sshKey=demo.ppk;ipv4=192.168.1.101"
 
 .Link
     None.
