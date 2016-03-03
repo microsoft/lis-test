@@ -77,11 +77,13 @@
         <test>
 		<testName>VMBus_PanicNotifier</testName>
 		<testScript>SetupScripts\VMBus_PanicNotifier.ps1</testScript>
+		<setupScript>setupScripts\SetVMMemory.ps1</setupScript>
 		<timeout>800</timeout>
 		<onError>Continue</onError>
 		<noReboot>False</noReboot>
 		<testParams>
 			<param>TC_COVERED=VMBus-03</param>
+            <param>VMMemory=2GB</param>
 		</testParams>
         </test>
     </testCases>
