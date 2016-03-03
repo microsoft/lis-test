@@ -83,7 +83,7 @@
 		<noReboot>False</noReboot>
 		<testParams>
 			<param>TC_COVERED=VMBus-03</param>
-            <param>VMMemory=2GB</param>
+            		<param>VMMemory=2GB</param>
 		</testParams>
         </test>
     </testCases>
