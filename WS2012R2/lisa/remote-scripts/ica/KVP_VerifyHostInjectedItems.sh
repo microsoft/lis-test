@@ -30,7 +30,7 @@
 #       Note: Values will vary
 #   Acceptance criteria
 #       1.  The KVP pool 3 file has a size greater than zero.
-#       2.  At least 8 (default value, can be changed in xml) items are present in pool 3.
+#       2.  At least 11 (default value, can be changed in xml) items are present in pool 3.
 #
 #   Parameters required:
 #       Pool
@@ -38,7 +38,7 @@
 #
 #   Parameter explanation:
 #       Pool - What pool to be checked - default value: 3
-#       Items - Minimum number of Items present in KVP Pool 3 - default value: 8
+#       Items - Minimum number of Items present in KVP Pool 3 - default value: 11
 #               Note: If there are fewer items in Kvp Pool 3 that the amount declared in "Items",
 #                     the test will fail
 #
@@ -159,7 +159,7 @@ if [ $poolFileSize -eq 0 ]; then
 fi
 
 #
-# Check the number of records in Pool 3. Below 8 entries (default value) the test will fail
+# Check the number of records in Pool 3. Below 11 entries (default value) the test will fail
 #
 echo "Items in pool ${Pool}"
 ~/kvp_client $Pool | sed 1,2d
