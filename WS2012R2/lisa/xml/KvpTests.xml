@@ -47,6 +47,7 @@
                 <suiteTest>KVP_Push_Key_Values</suiteTest>
 				<suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
 				<suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+				<suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
