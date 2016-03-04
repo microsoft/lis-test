@@ -210,14 +210,14 @@ $driveLetter = Get-DiskImage -ImagePath $isoPath | Get-Volume
 $driveLetter = $driveLetter.DriveLetter
 $driveLetter = $driveLetter + ":"
 
-Import-Module $driveLetter\NanoServer\NanoServerImageGenerator.psm1
+#Import-Module $driveLetter\NanoServer\NanoServerImageGenerator.psm1
+Import-Module $driveLetter\NanoServer\NanoServerImageGenerator\NanoServerImageGenerator.psm1
 if (-not $?)
 {
     Write-Host  "Could not import the NanoServerImageGenerator module"
     return $false
 }
 Write-Host "Successfully imported NanoServerImageGenerator module"
-
 
 ###############################################################################
 ## If set, try to join the new server to a domain
