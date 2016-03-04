@@ -136,6 +136,9 @@ case $(LinuxRelease) in
             exit 41
         fi
         FS="ext4"
+        
+        # Disable multipath temporarily
+        multipath -F
     ;;
     "RHEL"|"CENTOS")
         LogMsg "Run test on RHEL. Install libaio-devel..."
