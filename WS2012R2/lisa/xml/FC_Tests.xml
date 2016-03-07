@@ -4,7 +4,6 @@
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
 
-
     All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
@@ -29,7 +28,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LIS_FC_tests_WS2012R2</subject>
+            <subject>LIS Fibre Channel test results on WS2012R2</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -42,6 +41,7 @@
 			<suiteTest>FC_stressTest</suiteTest>
 			<suiteTest>FC_SaveRestore_VM</suiteTest>
 			<suiteTest>FC_disks_multipath_detection</suiteTest>
+			<suiteTest>FC_WWN_basic</suiteTest>
 		</suiteTests>
         </suite>
     </testSuites>
@@ -97,6 +97,19 @@
 			<timeout>3600</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-08</param>
+				<param>vSANName=FC_NAME</param>
+			</testParams>
+		</test>
+		
+		<test>
+			<testName>FC_WWN_basic</testName>
+			<testScript>setupScripts\FC_WWN.ps1</testScript>
+			<files>remote-scripts\ica\FC_WWN.sh,remote-scripts/ica/utils.sh</files>
+			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+			<timeout>800</timeout>
+			<testParams>
+				<param>TC_COVERED=FC-09</param>
 				<param>vSANName=FC_NAME</param>
 			</testParams>
 		</test>
