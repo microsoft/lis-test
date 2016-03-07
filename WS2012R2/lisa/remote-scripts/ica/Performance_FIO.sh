@@ -137,8 +137,14 @@ case $(LinuxRelease) in
         fi
         FS="ext4"
         
-        # Disable multipath temporarily
-        multipath -F
+        # Disable multipath so that it doesn't lock the disks
+         if [ -e /etc/multipath.conf ]; then
+            rm /etc/multipath.conf
+        fi
+        echo -e "blacklist {\n\tdevnode \"^sd[a-z]\"\n}" >> /etc/multipath.conf
+        service multipath-tools reload
+        service multipath-tools restart 
+
     ;;
     "RHEL"|"CENTOS")
         LogMsg "Run test on RHEL. Install libaio-devel..."
