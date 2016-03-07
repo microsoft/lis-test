@@ -103,7 +103,7 @@ if [ ! ${TOTAL_DISKS} ]; then
     exit 30
 fi
 
-echo "Number of disk attached : $TOTAL_DISKS" >> ~/summary.log
+echo " Kernel version: $(uname -r)" >> ~/sumamary.log
 
 fdisk -l
 sleep 2
@@ -128,7 +128,7 @@ case $(LinuxRelease) in
         LogMsg "Run test on Ubuntu. Install dependencies..."
         apt-get -y install make
         apt-get -y install gcc
-        apt-get install libaio-dev
+        apt-get -y install libaio-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the libaio-dev library!" >> ~/summary.log
