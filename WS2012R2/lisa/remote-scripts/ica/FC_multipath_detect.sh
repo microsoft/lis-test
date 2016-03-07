@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 ########################################################################
@@ -75,7 +74,15 @@ ConfigDebian()
         echo "Unable to install device-mapper-multipath package."
         UpdateTestState $ICA_TESTABORTED
     fi
-
+    
+    rm /etc/multipath.conf
+    touch /etc/multipath.conf
+    service multipath-tools restart
+    service multipath-tools restart
+    if [[ $? -ne 0 ]]; then
+        echo "Unable to restart multipath-tools"
+        UpdateTestState $ICA_TESTABORTED
+    fi
 }
 
 ConfigSuse()
@@ -104,6 +111,7 @@ ConfigSuse()
 
 ConfigureMultipath()
 {
+        
     GetDistro
     case $DISTRO in
         redhat*|centos*)
@@ -152,10 +160,7 @@ echo "Covers : ${TC_COVERED}"
 dos2unix utils.sh
 . utils.sh
 
-multipath > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-    ConfigureMultipath
-fi
+ConfigureMultipath
 
 fcDiskCount=`multipath -ll | grep "sd" | wc -l`
 if [ $? -ne 0 ]; then
