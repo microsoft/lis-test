@@ -86,6 +86,19 @@
             		<param>VMMemory=2GB</param>
 		</testParams>
         </test>
+
+        <test>
+		<testName>VMBus_PanicNotifier_onKdump</testName>
+		<testScript>SetupScripts\VMBus_PanicNotifier_onKdump.ps1</testScript>
+		<setupScript>setupScripts\SetVMMemory.ps1</setupScript>
+		<timeout>800</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+			<param>TC_COVERED=VMBus-04</param>
+            <param>VMMemory=2GB</param>
+		</testParams>
+        </test>
     </testCases>
 
     <VMs>
