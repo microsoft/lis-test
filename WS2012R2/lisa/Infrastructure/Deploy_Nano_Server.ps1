@@ -225,17 +225,18 @@ Write-Host "Successfully imported NanoServerImageGenerator module"
 
 $domainParam = $null
 
-if (&domainName)
+if ($domainName)
 {
     Write-Host "Provisioning $computerNameNew in the domain"
-    djoin  /provision /domain &domainName /machine $computerNameNew /savefile $workspacePath\odjblob /REUSE
+    djoin  /provision /domain $domainName /machine $computerNameNew /savefile $workspacePath\odjblob /REUSE
     if (-not $?)
     {
         Write-Host  "Could not provision $computerNameNew to the domain"
         return $false
     }
 
-    $domainParam = "-DomainBlobPath $workspacePath\odjblob"
+    $domainFile = "${workspacePath}\odjblob"
+    $domainParam = @{DomainBlobPath=$domainFile}
     Write-Host "Successfully provisioned $computerNameNew in the $domainName domain"
 }
 
@@ -247,7 +248,7 @@ $vhdName = "nanoVHD" + $buildInfo +".vhdx"
 ###############################################################################
 
 Write-Host "Creating the Nano Server VHD"
-New-NanoServerImage -MediaPath $driveLetter -BasePath $workspacePath\Base -TargetPath $workspacePath\NanoServer\$vhdName -AdministratorPassword $securePassword $domainParam -OEMDrivers -Compute -Clustering -EnableRemoteManagementPort
+New-NanoServerImage -DeploymentType host -Edition Datacenter -MediaPath $driveLetter -BasePath $workspacePath\Base -TargetPath $workspacePath\NanoServer\$vhdName -AdministratorPassword $securePassword @domainParam -OEMDrivers -Compute -Clustering -EnableRemoteManagementPort
 if (-not $?)
 {
     Write-Host  "Could not create the new VHD with the Nano server"
@@ -340,7 +341,7 @@ if (-not $?)
     return $false
 }
 
-Write-Host "Successfully added $computerName to the TrustedHosts"
+Write-Host "Successfully added $computerNameNew to the TrustedHosts"
 
 $session = New-PSSession -credential $credentials -ComputerName $computerNameNew
 if (-not $session)
