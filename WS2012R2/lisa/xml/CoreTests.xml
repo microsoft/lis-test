@@ -155,7 +155,7 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=CORE-15</param>
-        <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
+        	<param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
             </testparams>
         </test>
 
@@ -191,7 +191,7 @@
             <noReboot>False</noReboot>
         </test>
 
-		<test>
+	<test>
             <testName>FloppyDisk</testName>
             <testScript>Core_Floppy_Disk.sh</testScript>
             <files>remote-scripts\ica\Core_Floppy_Disk.sh</files>
@@ -201,7 +201,7 @@
             <testParams>
                 <param>TC_COVERED=CORE-19</param>
             </testParams>
-			<onError>Continue</onError>
+		<onError>Continue</onError>
             <timeout>600</timeout>
         </test>
 		
@@ -223,7 +223,7 @@
     </testCases>
 
     <VMs>
-		<vm>
+	<vm>
             <hvServer>localhost</hvServer>
             <vmName>LinuxVM</vmName>
             <os>Linux</os>
