@@ -96,7 +96,7 @@ if [ $? -ne 0 ]; then
 	echo "Warning: scsi_transport_fc module is not loaded, trying to load it now..."
 
 	modprobe scsi_transport_fc
-	if [ $? -eq 0 ]; then
+	if [ $? -ne 0 ]; then
 		echo "Error: Cannot load the scsi_transport_fc module!"
 		UpdateTestState $ICA_TESTFAILED
 		exit 30
@@ -120,7 +120,7 @@ if test -n "$(find /sys/class/fc_host/host1/ /sys/class/fc_host/host2/ -maxdepth
 else
 	echo "Error: The WWN node name file or port name file have not been found!"
 	UpdateTestState $ICA_TESTFAILED
-	exit 30	
+	exit 30
 fi
 
 #
