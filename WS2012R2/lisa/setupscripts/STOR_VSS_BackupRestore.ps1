@@ -490,7 +490,7 @@ Write-Output "`nNow let's do restore ...`n"
 # Get BackupSet
 $BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
 
-# Start Restore
+# Start restore
 Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force -WarningAction SilentlyContinue
 $sts=Get-WBJob -Previous 1
 if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
@@ -506,7 +506,7 @@ $RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-
 Write-Output "Restore duration: $RestoreTime minutes"
 "Restore duration: $RestoreTime minutes" >> $summaryLog
 
-# Make sure VM exsist after VSS backup/restore Operation 
+# Make sure VM exists after VSS backup/restore operation 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
     if (-not $vm)
     {
