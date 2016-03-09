@@ -57,7 +57,7 @@
     </testSuites>
 
     <testCases>
-    <test>
+    	<test>
             <testName>VMHeartBeat</testName>
             <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
             <timeout>600</timeout>
@@ -67,18 +67,7 @@
             </testParams>
         </test>
 
-    <test>
-        <testName>TimeSync_NTP</testName>
-        <testScript>CORE_TimeSync_NTP.sh</testScript>
-        <files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
-        <timeout>2000</timeout>
-        <onError>Continue</onError>
-        <testParams>
-            <param>TC_COVERED=CORE-04</param>
-        </testParams>
-    </test>
-
-    <test>
+	<test>
             <testName>TimeSync</testName>
             <testScript>SetupScripts\INST_LIS_TimeSync.ps1</testScript>
             <timeout>600</timeout>
@@ -91,7 +80,18 @@
             </testParams>
         </test>
 
-    <test>
+	<test>
+	        <testName>TimeSync_NTP</testName>
+	        <testScript>CORE_TimeSync_NTP.sh</testScript>
+	        <files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
+	        <timeout>2000</timeout>
+	        <onError>Continue</onError>
+	        <testParams>
+	            <param>TC_COVERED=CORE-04</param>
+	        </testParams>
+	</test>
+
+	<test>
             <testName>TimeSync_SavedVM</testName>
             <testScript>SetupScripts\INST_timesync_savedVM.ps1</testScript>
             <timeout>800</timeout>
@@ -102,7 +102,7 @@
             </testparams>
         </test>
 
-    <test>
+	<test>
             <testName>LISShutdownVM</testName>
             <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
             <timeout>600</timeout>
@@ -112,7 +112,7 @@
             </testParams>
         </test>
 
-    <test>
+	<test>
             <testName>LISShutDownVMAndResetCpuCount</testName>
             <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
             <cleanupScript>setupScripts\ResetCPU.ps1</cleanupScript>
@@ -136,7 +136,7 @@
             </testParams>
         </test>
 
-    <test>
+	<test>
             <testName>Multi_Cpu_Test</testName>
             <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
             <timeout>1600</timeout>
@@ -146,7 +146,7 @@
             </testParams>
         </test>
 
-    <test>
+	<test>
             <testName>Verify_LISModules_Version</testName>
             <testScript>CORE_LISmodules_version.sh</testScript>
             <files>remote-scripts/ica/CORE_LISmodules_version.sh</files>
@@ -159,7 +159,7 @@
             </testparams>
         </test>
 
-    <test>
+	<test>
             <testName>VerifyItegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <timeout>600</timeout>
