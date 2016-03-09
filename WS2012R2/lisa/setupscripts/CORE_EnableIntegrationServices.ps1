@@ -56,7 +56,6 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $retVal = $False
 $testCaseTimeout = 600
 
-
 #####################################################################
 #
 # Check VM current state
@@ -73,7 +72,6 @@ function CheckCurrentStateFor([String] $vmName, $newState)
 
     return $stateChanged
 }
-
 
 #####################################################################
 #
@@ -148,7 +146,7 @@ if (-not $vm) {
 # Stop the VM.
 #
 while ($testCaseTimeout -gt 0) {
-    Stop-VM -Name $vmName -ComputerName $hvServer -Force -ErrorAction SilentlyContinue
+    Stop-VM -Name $vmName -ComputerName $hvServer -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
 
     if ( (CheckCurrentStateFor $vmName ("Off"))) {
         break
