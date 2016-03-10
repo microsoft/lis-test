@@ -115,7 +115,7 @@
             <testParams>
                 <param>SCSI=0,1,Dynamic,2039GB</param>
                 <param>TC_COVERED=STOR-13</param>
-                <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
+                <param>fileSystems=(ext3 ext4 xfs btrfs)</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
