@@ -67,7 +67,7 @@
         </test>
 
         <test>
-            <testName>test_test_kernel</testName>
+            <testName>ubuntu_test_kernel</testName>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>ubuntu_test_kernel.sh</testScript>
             <files>remote-scripts\ica\ubuntu_test_kernel.sh,remote-scripts\ica\utils.sh</files>
