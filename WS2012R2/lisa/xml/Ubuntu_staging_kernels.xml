@@ -22,7 +22,7 @@
 <config>
     <global>
         <logfileRootDir>ubuntu-proposed-kernel-logs</logfileRootDir>
-        <defaultSnapshot>ICABase</defaultSnapshot>
+        <defaultSnapshot></defaultSnapshot>
         <LisaInitScript>
             <file>.\setupScripts\CreateVMs.ps1</file>
         </LisaInitScript>
@@ -31,7 +31,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>Ubuntu proposed kernel install Test Results</subject>
+            <subject>Ubuntu proposed/test kernel install Test Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
         <imageStoreDir>\\UNCpath\test</imageStoreDir>
@@ -42,25 +42,52 @@
         <suite>
             <suiteName>ubuntu</suiteName>
             <suiteTests>
+                <!-- RUN ONLY ONE OF THE FOLLOWING TESTS -->
                 <suiteTest>ubuntu_proposed_kernel</suiteTest>
+                <!-- <suiteTest>ubuntu_test_kernel</suiteTest> -->
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
-         <test>
+        <test>
             <testName>ubuntu_proposed_kernel</testName>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>ubuntu_proposed_kernel.sh</testScript>
-            <files>remote-scripts\ica\ubuntu_test_kernel.sh</files>
+            <files>remote-scripts\ica\ubuntu_proposed_kernel.sh</files>
+            <testParams>
+                <param>SERVER_OS_USERNAME=username</param>
+                <param>MAC=001600112233</param>
+                <param>SSH_PRIVATE_KEY=pki_id_rsa</param>
+                <param>VM2NAME=VM_2</param>
+                <param>VM2SERVER=SERVER_2</param>
+            </testParams>
             <timeout>900</timeout>
             <OnError>Continue</OnError>
-         </test>
+        </test>
+
+        <test>
+            <testName>test_test_kernel</testName>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+            <testScript>ubuntu_test_kernel.sh</testScript>
+            <files>remote-scripts\ica\ubuntu_test_kernel.sh,remote-scripts\ica\utils.sh</files>
+            <testParams>
+                <param>URL=http://PATH/TO/TEST/KERNEL</param>
+                <param>SERVER_OS_USERNAME=username</param>
+                <param>MAC=001600112233</param>
+                <param>SSH_PRIVATE_KEY=pki_id_rsa</param>
+                <param>VM2NAME=VM_2</param>
+                <param>VM2SERVER=SERVER_2</param>
+            </testParams>
+            <timeout>900</timeout>
+            <OnError>Continue</OnError>
+        </test>
     </testCases>
 
     <VMs>
         <vm>
-            <hvServer>hostname</hvServer>
-            <vmName>Ubuntu_proposed_kernel</vmName>
+            <hvServer>SERVER_NAME</hvServer>
+            <vmName>VM1NAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>pki_id_rsa.ppk</sshKey>
@@ -70,7 +97,22 @@
                <numCPUs>2</numCPUs>
                <memSize>2048</memSize>
                <disableDiff>True</disableDiff>
-               <nic>VMBus,Vm.Enterprise#1</nic>
+               <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+
+        <vm>
+            <hvServer>SERVER_NAME</hvServer>
+            <vmName>VM2NAME</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>pki_id_rsa.ppk</sshKey>
+            <hardware>
+               <create>true</create>
+               <numCPUs>2</numCPUs>
+               <memSize>2048</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,External,001600112233</nic>
             </hardware>
         </vm>
     </VMs>

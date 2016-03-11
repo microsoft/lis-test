@@ -101,6 +101,12 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
+# Check if script is running on primary vm or secondary vm
+# If constants.sh is present, means that script is running on 1st vm
+# Otherwise it's running on secondary vm
+ls ~/constants.sh
+willInstall=$?
+
 #
 # Start the setup
 #
@@ -141,6 +147,36 @@ if [ 0 -ne ${sts} ]; then
 fi
 
 echo "Grub configuration has been successfully modified."
+
+
+# Send the script on the secondary vm if it's the case
+if [ $willInstall -ne 2 ]; then
+	. ~/constants.sh || {
+    echo "ERROR: unable to source constants.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+	}
+
+	scp -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ~/ubuntu_proposed_kernel.sh "$SERVER_OS_USERNAME"@"$STATIC_IP2":/tmp/ubuntu_proposed_kernel.sh
+    if [ 0 -ne $? ]; then
+        msg="ERROR: Unable to send the file from VM1 to VM2"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        UpdateTestState $ICA_TESTFAILED
+        exit 10
+    fi
+
+    ssh -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$SERVER_OS_USERNAME"@"$STATIC_IP2" bash /tmp/ubuntu_proposed_kernel.sh
+    if [ $? -ne 0 ]; then
+        msg="ERROR: Script failed on secondary vm"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        UpdateTestState $ICA_TESTFAILED
+        exit 10
+    fi
+
+    LogMsg "Kernel install completed successfully on VM2"
+fi
 
 #
 # Let the caller know everything worked
