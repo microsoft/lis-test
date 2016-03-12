@@ -563,7 +563,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 done
 
 # Waiting for VM2 to boot
-sleep 20
+sleep 30
 
 LogMsg "Copy files to server: ${STATIC_IP2}"
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
@@ -669,7 +669,7 @@ do
 
     i=$(($i + 1))
 
-    echo "Clients test just finished. Sleep 10 sec for next test..."
+    echo "Clients test just finished. Sleep 10 seconds for next test..."
     sleep 10
 done
 
@@ -678,11 +678,13 @@ then
     rm -f iPerf3_Client_Logs.zip
 fi
 # Test Finished. Collect logs, zip client side logs
+sleep 60
 zip -r iPerf3_Client_Logs.zip ~/${TEST_RUN_LOG_FOLDER}
+
 # Get logs from server side
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'if [ -f iPerf3_Server_Logs.zip  ]; then rm -f iPerf3_Server_Logs.zip; fi' | at now"
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}' | at now"
-sleep 20
+sleep 60
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
 
