@@ -53,6 +53,7 @@
     <testCases>
          <test>
             <testName>iPerf3_Panorama</testName>
+            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_iperf_panorama_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
@@ -87,6 +88,7 @@
 
          <test>
             <testName>iPerf3_Panorama_ipv6</testName>
+            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_iperf_panorama_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
@@ -121,6 +123,7 @@
 
          <test>
             <testName>ntttcp</testName>
+            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_ntttcp_client.sh</testScript>
             <files>remote-scripts/ica/perf_ntttcp_client.sh,remote-scripts/ica/perf_ntttcp_server.sh,remote-scripts/ica/utils.sh</files>
@@ -144,6 +147,7 @@
 
          <test>
             <testName>ntttcp_ipv6</testName>
+            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_ntttcp_client.sh</testScript>
             <files>remote-scripts/ica/perf_ntttcp_client.sh,remote-scripts/ica/perf_ntttcp_server.sh,remote-scripts/ica/utils.sh</files>
