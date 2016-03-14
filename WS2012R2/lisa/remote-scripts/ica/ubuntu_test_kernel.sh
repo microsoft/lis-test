@@ -56,17 +56,18 @@ UpdateTestState $ICA_TESTRUNNING
 echo "Updating test case state to running"
 
 # Check if script is running on primary vm or secondary vm
-# If constants.sh is present means we're on VM1 -> willInstall variable will be set to 1 -> script will be sent & will run on VM2 
+# If constants.sh is present means we're on VM1 
+# We'll check for VM2Name param; if it exists, script will be sent & will run on VM2 
 # link.sh will be sent by VM1 to VM2 and will contain the test kernel URL 
-willInstall=0
 if [ -e ./${CONSTANTS_FILE} ]; then
     source ${CONSTANTS_FILE}
-    willInstall=1
+    cat constants.sh | grep VM2NAME
+    willInstall=$?
 elif [ -e ~/link.sh ]; then
 	source ~/link.sh
 else
-    msg="Error: no ${CONSTANTS_FILE} file"
-    echo $msg >> ~/summary.log
+    msg="Error: no ${CONSTANTS_FILE} or link.sh file"
+    UpdateSummary $msg
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
@@ -89,21 +90,20 @@ dos2unix utils.sh
 touch ~/summary.log
 mkdir -p /tmp/test_kernel/
 if [ $? -ne 0 ]; then
-	echo "Error: Unable to create the test directory." >> ~/summary.log
+	UpdateSummary "Error: Unable to create the test directory."
 	UpdateTestState $ICA_TESTABORTED
 fi
 
 if [ "${URL:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the test kernel URL parameter is missing!"
     LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
+    UpdateSummary "${msg}"
     UpdateTestState $ICA_TESTFAILED
     exit 20
 fi
 
 if is_ubuntu ; then
 	LogMsg "Downloading files (silent mode)..."
-	echo "Downloading files (silent mode)..." >> ~/summary.log
 	cd /tmp/test_kernel/
 	for file in $(curl -s $URL/ |
 				grep href |
@@ -114,14 +114,13 @@ if is_ubuntu ; then
 	done
 
 	LogMsg "Installing packages..."
-	echo "Installing packages..." >> ~/summary.log
 	dpkg -i linux-image*
 	if [[ $? -ne 0 ]]; then
 		UpdateSummary "Error: Unable to install the test kernel!"
 		UpdateTestState $ICA_TESTABORTED
 		exit 1
 	fi
-	echo "Info: Kernel package has been successfully installed!" >> ~/summary.log
+	UpdateSummary "Info: Kernel package has been successfully installed!"
 	
 	dpkg -i linux-tools*
 	dpkg -i linux-cloud-tools*
@@ -130,10 +129,16 @@ if is_ubuntu ; then
 		UpdateTestState $ICA_TESTABORTED
 		exit 1
 	fi
-	echo "Info: linux-tools and linux-cloud-tools have been successfully installed!" >> ~/summary.log
+	UpdateSummary "Info: linux-tools and linux-cloud-tools have been successfully installed!"
+
+	# Modify grub so it will boot with the test kernel
+	version=$(ls -1 linux-image-extra* | sed -r 's/^.{18}//' | cut -f1 -d"_")
+	LogMsg "New kernel version: $version"
+	sed -i.bak 's/GRUB_DEFAULT=.*/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux '$version'"/g' /etc/default/grub
+	update-grub
 	
 	# Send the script on the secondary vm if it's the case
-	if [ $willInstall -eq 1 ]; then
+	if [ $willInstall -eq 0 ]; then
 		scp -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ~/ubuntu_test_kernel.sh "$SERVER_OS_USERNAME"@"$STATIC_IP2":~/ubuntu_test_kernel.sh
 	    if [ 0 -ne $? ]; then
 	        msg="ERROR: Unable to send the file from VM1 to VM2"
@@ -170,6 +175,7 @@ if is_ubuntu ; then
 	        exit 10
 	    fi
 
+        ssh -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$SERVER_OS_USERNAME"@"$STATIC_IP2" init 0
 	    LogMsg "Kernel install completed successfully on VM2"
 	fi
 
