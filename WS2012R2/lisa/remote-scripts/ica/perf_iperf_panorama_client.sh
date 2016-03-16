@@ -88,6 +88,9 @@ dos2unix utils.sh
     exit 2
 }
 
+# Allowing more time for the 2nd VM to start
+sleep 60
+
 # Source constants file and initialize most common variables
 UtilsInit
 
