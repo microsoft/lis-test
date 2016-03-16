@@ -223,6 +223,8 @@ if ($checkState.State -notlike "Running")
         "Warning: $vm2Name never started KVP"
     }
 
+   sleep 30
+
     $vm2ipv4 = GetIPv4 $vm2Name $vm2Server
 
     $timeout = 200 #seconds
@@ -243,7 +245,7 @@ if (-not $ipv4) {
     return $False
 }
 
-sleep 20
+sleep 60
 
 $tempipv4VM2 = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $vm2Server | Where-object {$_.MacAddress -like "$vm2MacAddress"} | Select -Expand IPAddresses
 $testipv4VM2 = $tempipv4VM2[0]
