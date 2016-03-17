@@ -74,6 +74,7 @@ if [ -e ~/summary.log ]; then
     LogMsg "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
 fi
+touch ~/summary.log
 
 #
 # Source the constants file
