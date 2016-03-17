@@ -21,33 +21,17 @@
 
 <#
 .Synopsis
-    Verify that VM sees the WWN node and port values for a HBA.
+    Verify that VM sees the correct number of Numa Nodes compared to the number of CPUs.
 .Description
     This script compares the host provided information with the ones
     detected on a Linux guest VM.
     Pushes a script to identify the information inside the VM
     and compares the results.
-    A typical test case definition for this test script would look
-    similar to the following:
-        <test>
-            <testName>FC_WWN_basic</testName>
-            <testScript>setupScripts\FC_WWN.ps1</testScript>
-            <files>remote-scripts\ica\FC_WWN.sh,remote-scripts/ica/utils.sh</files>
-            <setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-            <timeout>800</timeout>
-            <testParams>
-                <param>TC_COVERED=FC-09</param>
-                <param>vSANName=FC_NAME</param>
-            </testParams>
-        </test>
+    To work accordingly we have to disable dynamic memory first.
 .Parameter vmName
     Name of the VM to perform the test on.
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
-.Parameter testParams
-.Example
-    setupScripts\FC_WWN.ps1 -vmName "myVm" -hvServer "localhost" -TestParams "TC_COVERED=FC-09;TestLogDir=log_folder;ipv4=VM_IP;sshkey=pki_id_rsa.ppk"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -95,6 +79,10 @@ if (-not $testParams) {
 $params = $testParams.Split(";")
 foreach ($p in $params) {
     $fields = $p.Split("=")
+
+    if ($fields[0].Trim() -eq "TC_COVERED") {
+        $TC_COVERED = $fields[1].Trim()
+    }
     
     if ($fields[0].Trim() -eq "ipv4") {
         $IPv4 = $fields[1].Trim()
@@ -124,6 +112,7 @@ cd $rootDir
 # Delete any previous summary.log file
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 $retVal = $True
 

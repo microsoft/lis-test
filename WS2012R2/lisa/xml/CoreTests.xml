@@ -53,6 +53,7 @@
             <suiteTest>FloppyDisk</suiteTest>
             <suiteTest>CDmount</suiteTest>
             <suiteTest>VCPU_verify_online</suiteTest>
+            <suiteTest>CheckNuma</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -233,6 +234,19 @@
             		<param>TC_COVERED=CORE-21</param>
 			<param>vCPU=4</param>
             	</testParams>
+        </test>
+            <testName>CheckNuma</testName>
+            <setupScript>setupScripts\DM_DISABLE.ps1</setupScript> 
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript> 
+            <testScript>setupScripts\NUMA.ps1</testScript>
+            <files>remote-scripts\ica\utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=CORE-22</param>
+                <param>VCPU=4</param>
+                <param>NumaNodes=1</param>
+                <param>Sockets=1</param>
+            </testParams>
+            <timeout>300</timeout>
         </test>
     </testCases>
 
