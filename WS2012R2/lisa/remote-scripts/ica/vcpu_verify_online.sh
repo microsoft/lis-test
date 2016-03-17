@@ -105,7 +105,7 @@ cpu_count=$(grep -i processor -o /proc/cpuinfo | wc -l)
 echo "${cpu_count} CPU cores detected" >> ~/summary.log
 
 #
-# Verifying all CPUs can't be online except CPU0 
+# Verifying all CPUs can't be offline except CPU0 
 #
 for ((cpu=1 ; cpu<=$cpu_count ; cpu++)) ;do
     LogMsg "Checking the $cpu on /sys/device/...."
