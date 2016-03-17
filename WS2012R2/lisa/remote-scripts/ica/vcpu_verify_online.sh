@@ -70,6 +70,11 @@ cd ~
 UpdateTestState $ICA_TESTRUNNING
 LogMsg "Updating test case state to running"
 
+if [ -e ~/summary.log ]; then
+    LogMsg "Cleaning up previous copies of summary.log"
+    rm -rf ~/summary.log
+fi
+
 #
 # Source the constants file
 #
@@ -81,11 +86,6 @@ else
     echo $msg >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 10
-fi
-
-if [ -e ~/summary.log ]; then
-    LogMsg "Cleaning up previous copies of summary.log"
-    rm -rf ~/summary.log
 fi
 
 #
