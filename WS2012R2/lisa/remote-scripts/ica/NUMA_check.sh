@@ -92,8 +92,8 @@ fi
 #
 
 NumaNodes=`numactl -H | grep cpu | wc -l`
-echo $NumaNodes
-echo $expected_number
+echo "Info : Detected NUMA nodes = ${NumaNodes}"
+echo "Info : Expected NUMA nodes = ${expected_number}"
 
 #
 # We do a matching on the values from host and guest
