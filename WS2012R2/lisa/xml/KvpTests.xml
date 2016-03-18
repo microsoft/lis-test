@@ -40,6 +40,7 @@
         <suite>
             <suiteName>KVP</suiteName>
             <suiteTests>
+                <suiteTest>SQM_Basic</suiteTest>
                 <suiteTest>KVP_Basic</suiteTest>
                 <suiteTest>KVP_Add_Key_Values</suiteTest>
                 <suiteTest>KVP_Modify_Key_Values</suiteTest>
@@ -53,6 +54,17 @@
     </testSuites>
 
     <testCases>
+        <test>
+            <testName>SQM_Basic</testName>
+            <testScript>SetupScripts\SQM_Basic.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=SQM-01</param>
+            </testparams>
+        </test>
+        
         <test>
             <testName>KVP_Basic</testName>
             <testScript>SetupScripts\KVP_Basic.ps1</testScript>
