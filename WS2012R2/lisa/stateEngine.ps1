@@ -237,7 +237,6 @@ New-Variable TestFailed          -value "TestFailed"          -option ReadOnly
 New-Variable LinuxOS             -value "Linux"               -option ReadOnly
 New-Variable FreeBSDOS           -value "FreeBSD"             -option ReadOnly
 
-
 ########################################################################
 #
 # RunICTests()
@@ -1582,7 +1581,7 @@ function DoPushTestFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if (-not (SendFileToVM $vm $constFile $constFile) )
         {
             LogMsg 0 "Error: $($vm.vmName) cannot push $constFile to $($vm.vmName)"
-            $vm.emailSummary += "    Cannot pushe $constFile to VM<br />"
+            $vm.emailSummary += "    Cannot push $constFile to VM<br />"
             $vm.testCaseResults = "False"
             UpdateState $vm $DetermineReboot
             return
@@ -2041,7 +2040,6 @@ function DoTestStarting([System.Xml.XmlElement] $vm, [XML] $xmlData)
     del $stateFile -ErrorAction "SilentlyContinue"
 }
 
-
 ########################################################################
 #
 # DoTestRunning()
@@ -2153,7 +2151,6 @@ function DoTestRunning([System.Xml.XmlElement] $vm, [XML] $xmlData)
         LogMsg 0 "Warn : $($vm.vmName) unable to pull state.txt from VM."
     }
 }
-
 
 ########################################################################
 #
@@ -2286,7 +2283,6 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 ########################################################################
 #
 # DoRunPostTestScript()
@@ -2368,7 +2364,6 @@ function DoRunPostTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     UpdateState $vm $DetermineReboot
 }
-
 
 ########################################################################
 #
@@ -2643,7 +2638,6 @@ function DoShuttingDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 ########################################################################
 #
 # DoRunCleanUpScript()
@@ -2738,7 +2732,6 @@ function DoRunCleanUpScript($vm, $xmlData)
     UpdateState $vm $SystemDown
 }
 
-
 ########################################################################
 #
 # DoForceShutDown()
@@ -2830,7 +2823,6 @@ function DoForceShutDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 ########################################################################
 #
 # DoFinished()
@@ -2858,8 +2850,6 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     # Currently, nothing to do...
 }
-
-
 
 ########################################################################
 #
@@ -2950,7 +2940,6 @@ function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
     }
 }
-
 
 ########################################################################
 #
@@ -3082,7 +3071,6 @@ function DoPS1TestRunning ([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 ########################################################################
 #
 # DoPS1TestCompleted()
@@ -3181,4 +3169,3 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     UpdateState $vm $DetermineReboot
 }
-
