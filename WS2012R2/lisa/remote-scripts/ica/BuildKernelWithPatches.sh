@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -80,7 +80,6 @@ cd ~
 #
 # Source the constants.sh file so we know what files to operate on.
 #
-
 source ./constants.sh
 
 dbgprint()
@@ -316,7 +315,7 @@ if is_fedora ; then
         #UpdateTestState $TestAborted
     fi
 elif is_ubuntu ; then
-    apt-get -y install nfs-common libssl-dev
+    apt-get -y install nfs-common libssl-dev bc
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Unable to install libssl-devel. Aborting..."
         UpdateTestState $TestAborted
