@@ -52,6 +52,7 @@
             <suiteTest>StressReloadModules</suiteTest>
             <suiteTest>FloppyDisk</suiteTest>
             <suiteTest>CDmount</suiteTest>
+            <suiteTest>VCPU_verify_online</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -220,6 +221,19 @@
             <noReboot>False</noReboot>
         </test>
 
+        <test>
+		<testName>VCPU_verify_online</testName>
+		<testScript>vcpu_verify_online.sh</testScript>
+		<setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+		<files>remote-scripts/ica/vcpu_verify_online.sh</files>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+            		<param>TC_COVERED=CORE-21</param>
+			<param>vCPU=4</param>
+            	</testParams>
+        </test>
     </testCases>
 
     <VMs>
