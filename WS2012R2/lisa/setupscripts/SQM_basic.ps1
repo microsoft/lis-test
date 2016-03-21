@@ -309,12 +309,21 @@ if ($Intrinsic)
     {
         "Error: Unable to collect Operating System information"
         return $False
-    } 
+    }
     #
-    # Create an array of key names 
+    # Create an array of key names specific to a build of Windows.
     #
-    $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId","OSKernelVersion")
+    $osSpecificKeyNames = $null
+    [System.Int32]$buildNR = $osInfo.BuildNumber
 
+    if ($buildNR -ge 9600)
+    {
+        $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId","OSKernelVersion")
+    }
+    else {
+        $osSpecificKeyNames = @("OSBuildNumber", "ServicePackMajor", "OSVendor", "OSMajorVersion",
+                                "OSMinorVersion", "OSSignature")
+    }
     $testPassed = $True
     foreach ($key in $osSpecificKeyNames)
     {

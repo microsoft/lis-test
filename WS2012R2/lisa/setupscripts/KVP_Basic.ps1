@@ -229,26 +229,22 @@ foreach ($key in $dict.Keys)
 
 if ($Intrinsic)
 {
-	$osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
-	if (-not $osInfo)
-	{
-		"Error: Unable to collect Operating System information"
-		return $False
-	}
-	#
-	#Create an array of key names
-	#
-	$osSpecificKeyNames = @("OSVersion", "OSBuildNumber", "OSName", "OSMajorVersion")
-	$testPassed = $True
-	foreach ($key in $osSpecificKeyNames)
-	{
-		if (-not $dict.ContainsKey($key))
-		{
-			"Error: The key '${key}' does not exist"
-			$testPassed = $False
-			break
-		}
-	}
+    #
+    #Create an array of key names
+    #
+    $keyName = @("OSVersion", "OSName", "ProcessorArchitecture",
+     "IntegrationServicesVersion", "FullyQualifiedDomainName", "NetworkAddressIPv4",
+      "NetworkAddressIPv6")
+    $testPassed = $True
+    foreach ($key in $keyName)
+    {
+        if (-not $dict.ContainsKey($key))
+        {
+            "Error: The key '${key}' does not exist"
+            $testPassed = $False
+            break
+        }
+    }
 }
 else #Non-Intrinsic
 {
