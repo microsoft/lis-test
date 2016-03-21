@@ -105,6 +105,7 @@ fi
 # If constants.sh is present, means that script is running on 1st vm
 # Otherwise it's running on secondary vm
 ls ~/constants.sh
+cat constants.sh | grep VM2NAME
 willInstall=$?
 
 #
@@ -150,7 +151,7 @@ echo "Grub configuration has been successfully modified."
 
 
 # Send the script on the secondary vm if it's the case
-if [ $willInstall -ne 2 ]; then
+if [ $willInstall -eq 0 ]; then
 	. ~/constants.sh || {
     echo "ERROR: unable to source constants.sh!"
     echo "TestAborted" > state.txt
@@ -175,6 +176,7 @@ if [ $willInstall -ne 2 ]; then
         exit 10
     fi
 
+    ssh -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$SERVER_OS_USERNAME"@"$STATIC_IP2" init 0
     LogMsg "Kernel install completed successfully on VM2"
 fi
 

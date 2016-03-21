@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -92,7 +92,6 @@ LinuxRelease()
 
 ConfigRhel()
 {
-
     cd linux-next/tools/hv/
         if [ $? -ne 0 ]; then
 			echo "Error: Hv folder does not exist."  >> ~/summary.log
@@ -240,7 +239,6 @@ ConfigRhel()
 
 ConfigSles()
 {
-
     cd linux-next/tools/hv/
     mkdir -p /usr/include/uapi/linux/
         if [ $? -ne 0 ]; then
@@ -365,16 +363,14 @@ ConfigSles()
                                         echo "Folder doesn't exist."
     fi
 
-
-
-    echo "Daemons started." >> ~/summary.log
+    echo "Info: Daemons started." >> ~/summary.log
     echo "Result : Test Completed Successfully" >> ~/summary.log
     echo "Exiting with state: TestCompleted."
     UpdateTestState $ICA_TESTCOMPLETED
 }
+
 ConfigCentos()
 {
-
     cd linux-next/tools/hv/
         if [ $? -ne 0 ]; then
             echo "Error: Hv folder is not present."  >> ~/summary.log
@@ -425,10 +421,10 @@ ConfigCentos()
         fi
     if [[ $(service --status -all | grep _daemon) ]]; then
         echo "Running daemons are being stopped." >> ~/summary.log
-            service hypervkvpd stop 
+            service hypervkvpd stop
             if [ $? -ne 0 ]; then
                     echo "Error: Unabele to stop hypervkvpd." >> ~/summary.log
-                    UpdateTestState $ICA_TESTFAILED                    
+                    UpdateTestState $ICA_TESTFAILED
             fi
             service hypervvssd stop
             if [ $? -ne 0 ]; then
@@ -477,21 +473,6 @@ ConfigCentos()
             UpdateTestState $ICA_TESTFAILED
         fi
     echo "Compiled daemons copied." >> ~/summary.log
-    # sed -i 's,HV_KVP_BIN="/usr/sbin/hv_kvp_daemon",HV_KVP_BIN="/usr/sbin/hv_kvp_daemon -n",' /etc/init.d/hypervkvpd
-    #     if [ $? -ne 0 ]; then
-    #         echo "Error: Unable to modify hv-kvp-daemon." >> ~/summary.log
-    #         UpdateTestState $ICA_TESTFAILED
-    #     fi
-    # sed -i 's,HV_VSS_BIN="/usr/sbin/hv_vss_daemon",HV_VSS_BIN="/usr/sbin/hv_vss_daemon -n",' /etc/init.d/hypervvssd
-    #     if [ $? -ne 0 ]; then
-    #         echo "Error: Unable to modify hv-vss-daemon." >> ~/summary.log
-    #         UpdateTestState $ICA_TESTFAILED
-    #     fi
-    # sed -i 's,HV_FCOPY_BIN="/usr/sbin/hv_fcopy_daemon",HV_FCOPY_BIN="/usr/sbin/hv_fcopy_daemon -n",' /etc/init.d/hypervfcopyd
-    #     if [ $? -ne 0 ]; then
-    #         echo "Error: Unable to modify hv-fcopy-daemon." >> ~/summary.log
-    #         UpdateTestState $ICA_TESTFAILED
-    #     fi
 
     service hypervkvpd start 
         if [ $? -ne 0 ]; then
@@ -517,7 +498,6 @@ ConfigCentos()
 
 ConfigUbuntu()
 {
-
     cd linux-next/tools/hv/
         if [ $? -ne 0 ]; then
             echo "Error: Hv folder is not created." >> ~/summary.log
@@ -559,12 +539,7 @@ ConfigUbuntu()
             UpdateTestState $ICA_TESTFAILED
         fi
     sleep 5
-    echo "Daemons compiled." >> ~/summary.log
-
-    #kill `ps -ef | grep hv | grep daemon | awk '{print $2}'`
-        # if [ $? -ne 0 ]; then
-        #     echo "Error: Unabele to kill daemons." >> ~/summary.log
-        # fi
+    echo "Info: Daemons compiled." >> ~/summary.log
 
     echo "Backing up default daemons." >> ~/summary.log
     yes | cp /usr/sbin/hv_kvp_daemon /usr/sbin/hv_kvp_daemon.old
@@ -630,13 +605,16 @@ ConfigUbuntu()
     UpdateTestState $ICA_TESTCOMPLETED
 }
 
+if [ -d "/root/net-next" ]; then
+	ln -s /root/net-next/ /root/linux-next
+fi
+
 case $(LinuxRelease) in
     "DEBIAN" | "UBUNTU")
         ConfigUbuntu
     ;;
 
-    "CENTOS6") 
-
+    "CENTOS6")
         ConfigCentos
     ;;
 

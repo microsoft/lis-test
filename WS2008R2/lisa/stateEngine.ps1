@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -1382,7 +1382,7 @@ function DoPushTestFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if (-not (SendFileToVM $vm $constFile $constFile) )
         {
             LogMsg 0 "Error: $($vm.vmName) cannot push $constFile to $($vm.vmName)"
-            $vm.emailSummary += "    Cannot pushe $constFile to VM<br />"
+            $vm.emailSummary += "    Cannot push $constFile to VM<br />"
             $vm.testCaseResults = "False"
             UpdateState $vm $DetermineReboot
             return
@@ -1839,7 +1839,6 @@ function DoTestRunning([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 ########################################################################
 #
 # DoCollectLogFiles()
@@ -1896,7 +1895,6 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     {
         $completionCode = "Failed"
     }
-    
 
     $iterationMsg = $null
     if ($vm.iteration -ne "-1")
@@ -1965,7 +1963,6 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 ########################################################################
 #
 # DoRunPostTestScript()
@@ -2017,7 +2014,6 @@ function DoRunPostTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
     
     UpdateState $vm $DetermineReboot
 }
-
 
 ########################################################################
 #
@@ -2180,11 +2176,9 @@ function DoDetermineReboot([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 ########################################################################
 #
 # DoShutdownSystem
-#
 #
 ########################################################################
 function DoShutdownSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
@@ -2209,7 +2203,6 @@ function DoShutdownSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
     UpdateState $vm $ShuttingDown
             
 }
-
 
 ########################################################################
 #
@@ -2275,7 +2268,6 @@ function DoShuttingDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
     
 }
-
 
 ########################################################################
 #
@@ -2351,7 +2343,6 @@ function DoRunCleanUpScript($vm, $xmlData)
 
     UpdateState $vm $SystemDown
 }
-
 
 ########################################################################
 #
@@ -2439,7 +2430,6 @@ function DoForceShutDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 ########################################################################
 #
 # DoFinished()
@@ -2461,8 +2451,6 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
     
     # Currently, nothing to do...
 }
-
-
 
 ########################################################################
 #
@@ -2542,7 +2530,6 @@ function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 ########################################################################
 #
 # DoPS1TestRunning()
@@ -2595,7 +2582,6 @@ function DoPS1TestRunning ([System.Xml.XmlElement] $vm, [XML] $xmlData)
         UpdateState $vm $PS1TestCompleted
     }
 }
-
 
 ########################################################################
 #
