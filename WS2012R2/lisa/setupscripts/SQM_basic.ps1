@@ -21,24 +21,21 @@
 
 <#
 .Synopsis
-    Verify the basic KVP read operations work.
+    Verify the basic SQM read operations work.
 .Description
     Ensure the Data Exchange service is enabled for the VM and then
-    verify basic KVP read operations can be performed by reading
-    intrinsic data from the VM.  Additionally, check that three
-    keys are part of the returned data.
-
+    verify if basic SQM data can be retrieved from vm.
+    For SQM data to be retrieved, kvp process needs to be stopped on vm
     A typical test case definition for this test script would look
     similar to the following:
         <test>
-            <testName>KVP_Basic</testName>
-            <testScript>SetupScripts\Kvp_Basic.ps1</testScript>
+            <testName>SQM_Basic</testName>
+            <testScript>SetupScripts\SQM_Basic.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testparams>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
-                <param>TC_COVERED=KVP-01</param>
+                <param>TC_COVERED=SQM-01</param>
             </testparams>
         </test>
 .Parameter vmName
@@ -48,7 +45,7 @@
 .Parameter testParams
     Test data for this test case
 .Example
-    setupScripts\KvpBasic.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=KVP-01"
+    setupScripts\SQM_Basic.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=SQM-01;sshKey=key;ipv4=ip"
 .Link
     None.
 #>
@@ -57,6 +54,7 @@ param( [String] $vmName,
        [String] $hvServer,
        [String] $testParams
 )
+
 #######################################################################
 #
 # KvpToDict
@@ -105,6 +103,61 @@ function KvpToDict($rawData)
 
 #######################################################################
 #
+# StopKVP
+#
+#######################################################################
+function StopKVP([String]$conIpv4, [String]$sshKey, [String]$rootDir)
+{
+    $cmdToVM = @"
+#!/bin/bash
+    ps aux | grep kvp
+    if [ `$? -ne 0 ]; then
+      echo "KVP is already disabled" >> /root/StopKVP.log 2>&1
+      exit 0
+    fi
+
+    kvpPID=`$(ps aux | grep kvp | awk 'NR==1{print `$2}')
+    if [ `$? -ne 0 ]; then
+        echo "Could not get PID of KVP" >> /root/StopKVP.log 2>&1
+        exit 100
+    fi
+
+    kill `$kvpPID
+    if [ `$? -ne 0 ]; then
+        echo "Could not stop KVP process" >> /root/StopKVP.log 2>&1
+        exit 100
+    fi
+
+    echo "KVP process stopped successfully"
+    exit 0
+"@
+    $filename = "StopKVP.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+      Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${filename}"
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal[-1])
+    {
+      return $false
+    }
+
+    # execute command as job
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+}
+
+#######################################################################
+#
 # Main script body
 #
 #######################################################################
@@ -149,6 +202,8 @@ foreach ($p in $params)
     {      
     "nonintrinsic" { $intrinsic = $False }
     "rootdir"      { $rootDir   = $fields[1].Trim() }
+    "ipv4"         { $ipv4      = $fields[1].Trim() }
+    "SshKey"       { $sshKey    = $fields[1].Trim() }
     "TC_COVERED"   { $tcCovered = $fields[1].Trim() }
     default  {}       
     }
@@ -161,6 +216,17 @@ if (-not $rootDir)
 else
 {
     cd $rootDir
+}
+
+# Source TCUtils.ps1 for sendCommandToVM function
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+  . .\setupScripts\TCUtils.ps1
+}
+else
+{
+  "Error: Could not find setupScripts\TCUtils.ps1"
+  return $false
 }
 
 echo "Covers : ${tcCovered}" >> $summaryLog
@@ -187,6 +253,15 @@ foreach ($svc in $des)
 if (-not $serviceEnabled)
 {
     "Error: The Data Exchange Service is not enabled for VM '${vmName}'"
+    return $False
+}
+#
+# Disable KVP on vm
+#
+$retVal = StopKVP $ipv4 $sshKey $rootDir
+if (-not $retVal)
+{
+    "Failed to stop KVP process on VM"
     return $False
 }
 #
@@ -229,14 +304,28 @@ foreach ($key in $dict.Keys)
 
 if ($Intrinsic)
 {
+    $osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
+    if (-not $osInfo)
+    {
+        "Error: Unable to collect Operating System information"
+        return $False
+    }
     #
-    #Create an array of key names
+    # Create an array of key names specific to a build of Windows.
     #
-    $keyName = @("OSVersion", "OSName", "ProcessorArchitecture",
-     "IntegrationServicesVersion", "FullyQualifiedDomainName", "NetworkAddressIPv4",
-      "NetworkAddressIPv6")
+    $osSpecificKeyNames = $null
+    [System.Int32]$buildNR = $osInfo.BuildNumber
+
+    if ($buildNR -ge 9600)
+    {
+        $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId","OSKernelVersion")
+    }
+    else {
+        $osSpecificKeyNames = @("OSBuildNumber", "ServicePackMajor", "OSVendor", "OSMajorVersion",
+                                "OSMinorVersion", "OSSignature")
+    }
     $testPassed = $True
-    foreach ($key in $keyName)
+    foreach ($key in $osSpecificKeyNames)
     {
         if (-not $dict.ContainsKey($key))
         {
@@ -248,16 +337,16 @@ if ($Intrinsic)
 }
 else #Non-Intrinsic
 {
-	if ($dict.length -gt 0)
-	{
-		"Info: $($dict.length) non-intrinsic KVP items found"
-		$testPassed = $True
-	}
-	else
-	{
-		"Error: No non-intrinsic KVP items found"
-		$testPassed = $False
-	}
+    if ($dict.length -gt 0)
+    {
+        "Info: $($dict.length) non-intrinsic KVP items found"
+        $testPassed = $True
+    }
+    else
+    {
+        "Error: No non-intrinsic KVP items found"
+        $testPassed = $False
+    }
 }
 
 return $testPassed
