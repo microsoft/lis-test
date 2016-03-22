@@ -553,7 +553,16 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $vmGeneration = 1
         if ($vm.hardware.generation) { $vmGeneration = [int16]$vm.hardware.generation }
 
-        $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
+        # WS 2012, 2008 R2 do not support generation 2 VMs
+        $OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
+        if ( ($OSInfo.Caption -match '.2008 R2.') -or 
+             ($OSInfo.Caption -match '.2012 [^R2].') )
+        {
+            $newVm = New-VM -Name $vmName -ComputerName $hvServer 
+        }else
+        {
+            $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
+        }
         if ($null -eq $newVm)
         {
             Write-Error "Error: Unable to create the VM named $($vm.vmName)."
