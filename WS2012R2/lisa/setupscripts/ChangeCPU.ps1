@@ -68,6 +68,8 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 # Find the testParams we require.  Complain if not found
 #
 $numCPUs = 0
+$numaNodes = 8
+$sockets = 1
 
 $params = $testParams.Split(";")
 foreach ($p in $params)
@@ -77,7 +79,14 @@ foreach ($p in $params)
     if ($fields[0].Trim() -eq "VCPU")
     {
         $numCPUs = $fields[1].Trim()
-        break
+    }
+    if ($fields[0].Trim() -eq "NumaNodes")
+    {
+        $numaNodes = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "Sockets")
+    {
+        $sockets = $fields[1].Trim()
     }
 }
 
@@ -121,7 +130,21 @@ if ($? -eq "True")
 }
 else
 {
+    return $retVal
     write-host "Error: Unable to update CPU count"
 }
+
+Set-VMProcessor $vmName -MaximumCountPerNumaNode $numaNodes -MaximumCountPerNumaSocket $sockets
+if ($? -eq "True")
+{
+    Write-output "Numa Nodes updated"
+    $retVal = $true
+}
+else
+{
+    $retVal = $false
+    write-host "Error: Unable to update Numa Nodes"
+}
+
 
 return $retVal
