@@ -64,6 +64,11 @@
        <disableDiff> When set to true, use parentVhd as the boot disk.
                      Otherwise, a differencing disk is used instead.
 
+       <isCluster>   When set to true, the vm will be created on the cluster
+                     storage. The vhd will also be copied in the cluster
+                     storage. Finally, the vm will be configured for 
+                     high availability
+
        <nic>         Defines a NIC to add to the VM. The VM must have
                      at least one <nic> tag, but multiple <nic> are
                      allowed.  The <nic> defines the NIC to add to the
@@ -158,6 +163,12 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     #
     $vm = Get-VM $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
+    # Delete from cluster if it is already present
+    $group = Get-ClusterGroup
+    if( $group.name -contains $vmName){
+        Remove-ClusterGroup -VMId $vm.VMId -RemoveResources -Force
+    }
+
     if ($vm)
     {
         if (Get-VM -Name $vmName -ComputerName $hvServer |  Where { $_.State -like "Running" })
@@ -218,13 +229,25 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
 
     #
     # If the VM already exists, delete it
+    # If isCluster tag is set to true, make sure that a cluster is available on the server
     #
-    $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+    if( $vm.hardware.isCluster -eq "True"){
+        Get-Cluster 
+        if ($? -eq $False){
+            "Error: Server $hvServer doesn't have a cluster set up"
+            return $False  
+        }
+        $clusterDir = Get-ClusterSharedVolume
+        $vhdDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
+    } 
+    else {
+        $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+    }
+
     $vhdName = "${vmName}.vhdx"
     $vhdFilename = Join-Path $vhdDir $vhdName
-
     DeleteVmAndVhd $vmName $hvServer $vhdFilename 
- 
+
     #
     # Make sure the future boot disk .vhd file does not already exist
     #
@@ -559,11 +582,25 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if ( ($OSInfo.Caption -match '.2008 R2.') -or 
              ($OSInfo.Caption -match '.2012 [^R2].') )
             {
-                $newVm = New-VM -Name $vmName -ComputerName $hvServer 
+                if( $vm.hardware.isCluster -eq "True"){
+                    $clusterDir = Get-ClusterSharedVolume
+                    $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
+                    $newVm = New-VM -Name $vmName -ComputerName $hvServer -Path $vmDir
+                }   
+                else {          
+                    $newVm = New-VM -Name $vmName -ComputerName $hvServer
+                } 
             }
         else
             {
-                $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
+                if( $vm.hardware.isCluster -eq "True"){
+                    $clusterDir = Get-ClusterSharedVolume
+                    $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
+                    $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration -Path $vmDir
+                }   
+                else {          
+                    $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
+                } 
             }
             
         if ($null -eq $newVm)
@@ -638,8 +675,12 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if ($uriPath.IsUnc)
         {
             $extension = (Get-Item "${parentVhd}").Extension
-
-            $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            if( $vm.hardware.isCluster -eq "True"){
+                $clusterDir = Get-ClusterSharedVolume
+                $vhdDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
+            }else {          
+                $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            }
             $dstPath = Join-Path $vhdDir "${vmName}${extension}"
             $dstDrive = $dstPath.Substring(0,1)
             $dstlocalPath = $dstPath.Substring(3)
@@ -795,6 +836,18 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             } 
         }
         
+        #
+        # Configure VM for High Availability
+        #
+        if( $vm.hardware.isCluster -eq "True"){
+            Add-ClusterVirtualMachineRole -VirtualMachine $vmName
+            if ($? -eq $False)
+            {
+                Write-Error "Error: High Availability configure for ${vmName} failed. The VM was not created"
+                DeleteVmAndVhd $vmName $hvServer $vhdFilename
+                return $False
+            }
+        }
         Write-Host "Info: VM created successfully"
         $retVal = $True       
     }
