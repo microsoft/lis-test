@@ -164,9 +164,11 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     $vm = Get-VM $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
     # Delete from cluster if it is already present
-    $group = Get-ClusterGroup
-    if( $group.name -contains $vmName){
-        Remove-ClusterGroup -VMId $vm.VMId -RemoveResources -Force
+    if ( $vm.hardware.isCluster -eq "True") {
+        $group = Get-ClusterGroup
+        if ( $group.name -contains $vmName) {
+            Remove-ClusterGroup -VMId $vm.VMId -RemoveResources -Force
+        }
     }
 
     if ($vm)
@@ -231,7 +233,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
     # If the VM already exists, delete it
     # If isCluster tag is set to true, make sure that a cluster is available on the server
     #
-    if( $vm.hardware.isCluster -eq "True"){
+    if ( $vm.hardware.isCluster -eq "True") {
         Get-Cluster 
         if ($? -eq $False){
             "Error: Server $hvServer doesn't have a cluster set up"
@@ -582,7 +584,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if ( ($OSInfo.Caption -match '.2008 R2.') -or 
              ($OSInfo.Caption -match '.2012 [^R2].') )
             {
-                if( $vm.hardware.isCluster -eq "True"){
+                if ( $vm.hardware.isCluster -eq "True") {
                     $clusterDir = Get-ClusterSharedVolume
                     $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Path $vmDir
@@ -593,7 +595,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
         else
             {
-                if( $vm.hardware.isCluster -eq "True"){
+                if ( $vm.hardware.isCluster -eq "True") {
                     $clusterDir = Get-ClusterSharedVolume
                     $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration -Path $vmDir
@@ -675,7 +677,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if ($uriPath.IsUnc)
         {
             $extension = (Get-Item "${parentVhd}").Extension
-            if( $vm.hardware.isCluster -eq "True"){
+            if ( $vm.hardware.isCluster -eq "True") {
                 $clusterDir = Get-ClusterSharedVolume
                 $vhdDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
             }else {          
