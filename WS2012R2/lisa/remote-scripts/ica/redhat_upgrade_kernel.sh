@@ -89,7 +89,6 @@ if [ "${TC_COVERED:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter TC_COVERED is not defined in ${CONSTANTS_FILE}"
     LogMsg $msg
     echo $msg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
     exit 30
 fi
 if [ "${URL:="UNDEFINED"}" = "UNDEFINED" ]; then

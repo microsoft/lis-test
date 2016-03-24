@@ -49,10 +49,9 @@
             <testScript>setupscripts\kernel.ps1</testScript>
             <files>remote-scripts\ica\redhat_upgrade_kernel.sh,remote-scripts\ica\redhat_downgrade_kernel.sh,remote-scripts\ica\utils.sh</files>
             <testParams>
-                <!--<param>URL=http://PATH/TO/TEST/KERNEL</param>-->
-                <param>URL=http://10.66.10.35/pub/kernel/</param>
-                <param>DOWNKERNEL=kernel-3.10.0-305.el7.x86_64.rpm</param>
-                <param>UPKERNEL=kernel-abi-whitelists-3.10.0-364.el7.noarch.rpm,kernel-3.10.0-364.el7.x86_64.rpm</param>
+                <param>URL=http://PATH/TO/TEST/KERNEL</param>
+                <param>DOWNKERNEL=kernel-3.10.0-*.el7.x86_64.rpm</param>
+                <param>UPKERNEL=kernel-abi-whitelists-3.10.0-*.el7.noarch.rpm,kernel-3.10.0-*.el7.x86_64.rpm</param>
                 <param>TC_COVERED=KERNEL-01</param>
             </testParams>
             <timeout>900</timeout>
@@ -63,7 +62,7 @@
     <VMs>        
 	    <vm>
             <hvServer>localhost</hvServer>
-            <vmName>RHEL-7.2-20151030.0</vmName>
+            <vmName>VM_NAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>id_rsa.ppk</sshKey>
