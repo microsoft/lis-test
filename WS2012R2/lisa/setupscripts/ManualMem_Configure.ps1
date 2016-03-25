@@ -168,7 +168,7 @@ foreach ($p in $params)
 
       # Verify VM Version is 7
       $version = Get-VM -Name $vmName -ComputerName $hvServer | select -ExpandProperty Version
-      if ( $version -ne "7.0" )
+      if ( $version[0] -ne "7" )
       {
         "Error: $vmName is version $version. It needs to be 7.0"
         return $false

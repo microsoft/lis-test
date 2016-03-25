@@ -461,7 +461,7 @@ while ($sleepPeriod -gt 0)
 if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm2BeforeAssigned -le 0 -or $vm2BeforeDemand -le 0)
 {
   "Error: vm1 or vm2 reported 0 memory (assigned or demand)."
-  Stop-VM -VMName -ComputerName $hvServer $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer $vm2name -force
   return $False
 }
 
@@ -488,7 +488,7 @@ $timeout = 30 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "Error: VM ${vm2Name} never started ssh"
-    Stop-VM -VMName -ComputerName $hvServer $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer $vm2name -force
     return $False
 }
 
