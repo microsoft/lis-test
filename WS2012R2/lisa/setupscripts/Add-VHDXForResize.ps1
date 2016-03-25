@@ -188,6 +188,7 @@ function CreateAttachVHDxDiskDrive( [string] $vmName, [string] $hvServer,
 # Main entry point for script
 $retVal = $False
 $sectorSize = $null
+$vhdPath = $null
 $defaultSize = 3GB
 
 # Check input arguments
@@ -230,7 +231,7 @@ foreach($p in $params){
 $type = $null
 $sectorSize = $null
 $defaultSize = $null
-for($pair=0; $pair -le $max; $pair++){
+for ($pair=0; $pair -le $max; $pair++) {
     $pair
     foreach ($p in $params)
     {
@@ -267,7 +268,7 @@ for($pair=0; $pair -le $max; $pair++){
             return $retVal
     }
 
-    if($type -and $sectorSize -and $defaultSize){
+    if ($type -and $sectorSize -and $defaultSize) {
         # Create and attach a new VHDx hard-disk
         "Creating new vhd: $type $sectorSize $defaultSize"
         $sts = CreateAttachVHDxDiskDrive $vmName $hvServer $type $sectorSize `
