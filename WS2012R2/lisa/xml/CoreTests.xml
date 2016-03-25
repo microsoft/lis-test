@@ -235,6 +235,7 @@
 			<param>vCPU=4</param>
             	</testParams>
         </test>
+        <test>
             <testName>CheckNuma</testName>
             <setupScript>setupScripts\DM_DISABLE.ps1</setupScript> 
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript> 
