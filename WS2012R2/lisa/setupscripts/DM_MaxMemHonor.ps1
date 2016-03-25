@@ -334,7 +334,7 @@ if (-not $vm2)
 # LIS Started VM1, so start VM2
 #
 
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
 
   [int]$i = 0
@@ -365,7 +365,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 }
 
 # just to make sure vm2 started
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
   "Error: $vm2Names never started."
   return $false
@@ -397,7 +397,7 @@ while ($sleepPeriod -gt 0)
 if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm2BeforeAssigned -le 0 -or $vm2BeforeDemand -le 0)
 {
   "Error: vm1 or vm2 reported 0 memory (assigned or demand)."
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $False
 }
 
@@ -413,7 +413,7 @@ $timeout = 30 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "Error: VM ${vm2Name} never started ssh"
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
     return $False
 }
 
@@ -435,7 +435,7 @@ $job = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $memMB, $memChunks
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $false
 }
 
@@ -462,7 +462,7 @@ while ($timeout -gt 0)
     if (-not $retVal[-1])
     {
       "Error: Consume Memory script returned false on VM2 $vm2Name"
-      Stop-VM -VMName $vm2name -force
+      Stop-VM -VMName $vm2name -ComputerName $hvServer -force
       return $false
     }
     $diff = $totalTimeout - $timeout
@@ -490,14 +490,14 @@ while ($timeout -gt 0)
 if (-not $jobState)
 {
   "Error: consume memory script did not finish in $totalTimeout seconds"
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $false
 }
 
 if ($samples -le 0)
 {
   "Error: No data has been sampled."
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $false
 }
 
@@ -514,13 +514,13 @@ for ($i = 0; $i -lt $samples; $i++)
   if ($vm2Assigned[$i] -gt $vm2MaxMem)
   {
     "Error: $vm2Name assigned memory exceeded the maximum memory set"
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
     return $false 
   }
 }
 
 # stop vm2
-Stop-VM -VMName $vm2name -force
+Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
 # Everything ok
 "Success!"

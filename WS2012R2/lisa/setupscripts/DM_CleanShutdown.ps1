@@ -259,7 +259,7 @@ if ($vm1BeforeDemand -le 0)
 # LIS Started VM1, so start VM2
 #
 Start-sleep -s 20
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
 
   [int]$i = 0
@@ -290,7 +290,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 }
 
 # just to make sure vm2 started
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
   "Error: $vm2Names never started."
   return $false
@@ -305,14 +305,14 @@ WaitForVMToReportDemand $vm1Name $hvServer $timeout
 if ($vm1AfterAssigned -le 0)
 {
   "Error: $vm1Name Assigned memory is 0 after $vm2Name started"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
 if ($vm1AfterDemand -le 0)
 {
   "Error: $vm1Name Memory demand is 0 after $vm2Name started"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -331,7 +331,7 @@ if ($vm1AfterDemand -le 0)
 if ($vm1AssignedDelta -le 0)
 {
   "Error: $vm1Name did not lower its assigned Memory after vm2 started."
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 

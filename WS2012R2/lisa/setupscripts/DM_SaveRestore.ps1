@@ -260,7 +260,7 @@ if ($vm1BeforeDemand -le 0)
 # LIS Started VM1, so start VM2
 #
 
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
 
   [int]$i = 0
@@ -291,7 +291,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 }
 
 # just to make sure vm2 started
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
   "Error: $vm2Names never started."
   return $false
@@ -318,14 +318,14 @@ while ($sleepPeriod -gt 0)
 if ($vm2BeforeAssigned -le 0)
 {
   "Error: $vm2Name Assigned memory is 0"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
 if ($vm2BeforeDemand -le 0)
 {
   "Error: $vm2Name Memory demand is 0"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -338,7 +338,7 @@ Save-VM $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
   "Error: Unable to save vm2 $vm2Name on $hvServer"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -357,14 +357,14 @@ start-sleep -s 60
 if ($vm2AfterAssigned -le 0)
 {
   "Error: $vm2Name Assigned memory is 0 after it started from save"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
 if ($vm2AfterDemand -le 0)
 {
   "Error: $vm2Name Memory demand is $vm2AfterDemand after it started from save."
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -377,7 +377,7 @@ Save-VM $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
   "Error: Unable to save VM1 $vm1Name"
-  Stop-VM -force $vm2Name
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -386,7 +386,7 @@ Start-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
   "Error: Unable to start VM1 $vm1Name after saving it"
-  Stop-VM -force $vm2Name
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 start-sleep -s 60
@@ -397,14 +397,14 @@ start-sleep -s 60
 if ($vm1AfterAssigned -le 0)
 {
   "Error: $vm1Name Assigned memory is 0 after it started from save"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
 if ($vm1AfterDemand -le 0)
 {
   "Error: $vm1Name Memory demand is 0 after it started from save"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -416,7 +416,7 @@ Save-VM $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
   "Error: Unable to save VM1 $vm1Name the second time"
-  Stop-VM -force $vm2Name
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -429,7 +429,7 @@ if (-not $?)
   {
     "Warning: Unable to start VM1 $vm1Name before exiting script."
   }
-  Stop-VM -force $vm2Name
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -450,7 +450,7 @@ Start-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
   "Error: Unable to start VM1 $vm1Name after saving it the second time"
-  Stop-VM -force $vm2Name
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -462,14 +462,14 @@ start-sleep -s 60
 if ($vm1EndAssigned -le 0)
 {
   "Error: $vm1Name Assigned memory is 0 after last round of saving"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
 if ($vm1EndDemand -le 0)
 {
   "Error: $vm1Name Memory demand is 0 after last round of saving"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
@@ -484,21 +484,21 @@ if ($vm1EndDemand -le 0)
 if ($vm2EndAssigned -le 0)
 {
   "Error: $vm2Name Assigned memory is 0 after last round of saving"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
 if ($vm2EndDemand -le 0)
 {
   "Error: $vm2Name Memory demand is 0 after last round of saving"
-  Stop-VM -vmName $vm2Name -force
+  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
   return $false
 }
 
 "VM2 $vm2Name end assigned memory : $vm2EndAssigned"
 "VM2 $vm2Name end memory demand: $vm2EndDemand"
 
-Stop-VM -vmName $vm2Name -force
+Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
 
 write-output $true
 return $true

@@ -259,7 +259,7 @@ foreach ($p in $params)
       {
 
         "Stopping VM $tPvmName"
-        Stop-VM $tPvmName -force
+        Stop-VM -Name $tPvmName -ComputerName $hvServer -force
 
         if (-not $?)
         {
