@@ -123,11 +123,10 @@ for ((cpu=1 ; cpu<=$cpu_count ; cpu++)) ;do
             UpdateTestState "TestFailed"
             exit 80
         fi
-        
-	echo "Test pass: no CPU cores could be set to offline mode." >> ~/summary.log
     fi
 done
 
+echo "Test pass: no CPU cores could be set to offline mode." >> ~/summary.log
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
