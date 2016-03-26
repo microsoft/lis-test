@@ -4,11 +4,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -87,9 +87,6 @@ fi
 if [ ! ${TC_COVERED} ]; then
     LogMsg "The TC_COVERED variable is not defined."
 	echo "The TC_COVERED variable is not defined." >> ~/summary.log
-    LogMsg "Terminating the test."
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
 fi
 
 echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
@@ -114,10 +111,9 @@ do
             LogMsg "CPU ${i} interrupt count = ${nmiCount}"
             if [ $nmiCount -ne 0 ]; then
                 LogMsg "NMI received at CPU ${i}"
-				echo "NMI received at CPU ${i}" >> ~/summary.log
             else
                 LogMsg "Error: CPU {$i} did not receive a NMI!"
-				echo "Error: CPU {$i} did not receive a NMI!" >> ~/summary.log
+		echo "Error: CPU {$i} did not receive a NMI!" >> ~/summary.log
                 UpdateTestState $ICA_TESTFAILED
                 exit 10
             fi
@@ -125,6 +121,7 @@ do
     fi
 done < "/proc/interrupts"
 
+echo "Info: NMI calls are received on all CPU cores." >> ~/summary.log
 LogMsg "Test completed successfully"
 UpdateTestState "TestCompleted"
 exit 0
