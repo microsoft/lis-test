@@ -4,11 +4,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -42,7 +42,8 @@
 #	variable definition.
 #
 # Note: The Host of Hyper-V 2012 R2 don't support the CPU online or offline, so
-# To make sure the cpu on guest can't be offline.
+# To make sure the CPU on guest can't be offline.
+#
 ################################################################
 
 ICA_TESTRUNNING="TestRunning"      # The test is running
@@ -115,14 +116,15 @@ for ((cpu=1 ; cpu<=$cpu_count ; cpu++)) ;do
         echo 0 > $__file_path > /dev/null 2>&1
         val=`cat $__file_path`
         if [ $val -ne 0 ]; then
-            LogMsg "The ${cpu} can't be offline!"
-            echo "The ${cpu} can't be offline!" >> ~/summary.log
+            LogMsg "CPU core ${cpu} can't be offline."
         else
-            LogMsg "The ${cpu} can be offline!"
-            echo "The ${cpu} can be offline!" >> ~/summary.log
+            LogMsg "Error: CPU ${cpu} can be offline!"
+            echo "Error: CPU ${cpu} can be offline!" >> ~/summary.log
             UpdateTestState "TestFailed"
             exit 80
         fi
+        
+	echo "Test pass: no CPU cores could be set to offline mode." >> ~/summary.log
     fi
 done
 
