@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -28,20 +28,20 @@
     A typical XML definition for this test case would look similar
     to the following:
        <test>
-			<testName>FCOPY_repeat</testName>
-			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
-			<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
-			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-			<timeout>1200</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-06</param>
-                		<param>Type=Fixed</param>
-        			<param>SectorSize=512</param>
-                		<param>DefaultSize=3GB</param>
-				<param>FileSize=2GB</param>
-			</testParams>
-			<noReboot>False</noReboot>
-		</test>
+		<testName>FCOPY_repeat</testName>
+		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
+		<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
+		<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+		<timeout>1200</timeout>
+		<testParams>
+			<param>TC_COVERED=FCopy-06</param>
+                	<param>Type=Fixed</param>
+        		<param>SectorSize=512</param>
+                	<param>DefaultSize=3GB</param>
+			<param>FileSize=2GB</param>
+		</testParams>
+		<noReboot>False</noReboot>
+	</test>
     NOTE: Make sure DefaultSize is equal or bigger than FileSize.
 .Parameter vmName
     Name of the VM to test.
@@ -98,7 +98,6 @@ function check_fcopy_daemon()
 #######################################################################
 function check_file([String] $testfile)
 {
-
     .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /mnt/$testfile"
     if (-not $?) {
         Write-Output "ERROR: Unable to read file /mnt/$testfile." -ErrorAction SilentlyContinue 
@@ -143,15 +142,14 @@ function mount_disk()
     }
 
     "Info: $driveName has been mounted to /mnt in the VM $vmName."
-
     return $True
 }
+
 #################################################################
 #
 # Remove file from vm
 #
 #################################################################
-
 function remove_file_vm(){
     . .\setupScripts\TCUtils.ps1
     $sts = SendCommandToVM $ipv4 $sshKey "rm -f /mnt/$testfile"
@@ -160,6 +158,7 @@ function remove_file_vm(){
     }
     return $True
 }
+
 ################################################################
 #
 # Copy the file to the Linux guest VM
@@ -192,13 +191,11 @@ function check_file_vm(){
     return $True
 }
 
-
 #######################################################################
 #
 #   Main body script
 #
 #######################################################################
-
 $retVal = $false
 
 # Checking the input arguments
@@ -346,11 +343,10 @@ if (-not $sts[-1]) {
 #
 # Run the test
 #
-
 for($i=0; $i -ne 4; $i++){
-    if($retval){
+    if ($retval) {
         $sts = copy_file_vm
-        if(-not $sts){
+        if (-not $sts) {
             Write-Output "ERROR: File could not be copied!" | Tee-Object -Append -file $summaryLog
             $retVal = $False
             break
@@ -358,7 +354,7 @@ for($i=0; $i -ne 4; $i++){
         Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" 
 
         $sts = check_file_vm
-        if(-not $sts){
+        if (-not $sts) {
             Write-Output "ERROR: File check error on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
             $retVal = $False
             break
@@ -366,17 +362,17 @@ for($i=0; $i -ne 4; $i++){
         Write-Output "Info: The file copied matches the ${originalFileSize} size." 
 
         $sts = remove_file_vm
-        if(-not $sts){
+        if (-not $sts) {
             Write-Output "ERROR: Failed to remove file from VM $vmName." | Tee-Object -Append -file $summaryLog
             $retVal = $False
             break
         }
         Write-Output "Info: File has been successfully removed from guest VM '${vmName}'" 
-    }else{
+    }
+    else {
         break
     }
 }
-
 
 #
 # Removing the temporary test file
