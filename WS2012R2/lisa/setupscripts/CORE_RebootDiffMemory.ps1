@@ -54,7 +54,42 @@
 
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
+######################################################################
+#
+#Get IP from VM
+#
+######################################################################
+function get_vmip()
+{
+    $timeout = 120
+    while ($timeout -gt 0)
+    {
+        #
+        # Check if the VM is in the Hyper-v Running state
+        #
+        $ipv4 = GetIPv4 $vmName $hvServer
+        if ( $ipv4)
+        {
+            break
+        }
+        start-sleep -seconds 1
+        $timeout -= 1
+    }
 
+    if($timeout -le 0)
+    {
+        Write-output "VM timeout at GetIPv4 operation with memory size $memory" | Tee-Object -Append -file $summaryLog
+        #$success = $False
+        return $False
+    }
+    else
+    {
+        Write-output "VM started with $memory" | Tee-Object -Append -file $summaryLog
+        #$retVal = $True
+        return $True
+    }
+    
+}
 
 #######################################################################
 #
@@ -203,30 +238,34 @@ ForEach ($memory in $memArgs)
         continue
     }
     $Error.Clear()
-
-    $timeout = 120
-    while ($timeout -gt 0)
-    {
-        #
-        # Check if the VM is in the Hyper-v Running state
-        #
-        $ipv4 = GetIPv4 $vmName $hvServer
-        if ( $ipv4)
-        {
-            break
-        }
-        start-sleep -seconds 1
-        $timeout -= 1
-    }
-
-    if($timeout -le 0)
-    {
+    $sts = get_vmip
+    if (-not $sts[-1]) {
         Write-output "VM timeout at GetIPv4 operation with memory size $memory" | Tee-Object -Append -file $summaryLog
-        $success = $False
+        $retVal = $False
     }
     else
     {
         Write-output "VM started with $memory" | Tee-Object -Append -file $summaryLog
+        $retVal = $True
+    }
+
+    #
+    #Reboot VM
+    #
+    $sts = SendCommandToVM $ipv4 $sshKey "reboot"
+    if ($sts) {
+		Write-Output "ERROR: Failed to reboot VM" |Tee-Object -Append -file $summaryLog
+		return $False
+    }
+
+    $sts = get_vmip
+    if (-not $sts[-1]) {
+        Write-output "VM timeout at GetIPv4 operation after rebooting" | Tee-Object -Append -file $summaryLog
+        $retVal = $False
+    }
+    else
+    {
+        Write-output "VM started after rebooting" | Tee-Object -Append -file $summaryLog
         $retVal = $True
     }
 }
