@@ -54,11 +54,11 @@
 
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-##
+######################################################################
 #
 #Get IP from VM
 #
-#######
+######################################################################
 function get_vmip()
 {
     $timeout = 120
@@ -249,10 +249,12 @@ ForEach ($memory in $memArgs)
         $retVal = $True
     }
 
-    Start-sleep 10
+    #
+    #Reboot VM
+    #
     $sts = SendCommandToVM $ipv4 $sshKey "reboot"
-    if (-not $sts) {
-		Write-Output "ERROR: Failed to format test" |Tee-Object -Append -file $summaryLog
+    if ($sts) {
+		Write-Output "ERROR: Failed to reboot VM" |Tee-Object -Append -file $summaryLog
 		return $False
     }
 
