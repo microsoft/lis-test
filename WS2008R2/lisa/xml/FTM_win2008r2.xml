@@ -274,8 +274,8 @@
 
     <test>
         <testName>TimeSync</testName>
-        <testScript>setupScripts\timesync.ps1</testScript>
-        <files>setupScripts\timesync.ps1</files>
+        <testScript>setupScripts\INST_LIS_TimeSync.ps1</testScript>
+        <files>setupScripts\INST_LIS_TimeSync.ps1</files>
         <timeout>600</timeout>
         <onError>Continue</onError>
         <noReboot>True</noReboot>
@@ -877,9 +877,10 @@
                 <param>SCSI=0,1,Dynamic,250GB</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>TC_COUNT=STOR-13</param>
+                <param>fileSystems=(ext4)</param>
             </testParams>
-            <testScript>STOR_Lis_Disk.sh</testScript>
-            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <testScript>STOR_Large_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>10800</timeout>
         </test>
