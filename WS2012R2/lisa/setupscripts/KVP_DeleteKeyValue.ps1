@@ -7,7 +7,7 @@
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0 
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -18,8 +18,6 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-
-
 <#
 .Synopsis
     Delete a KVP item from a Linux guest.
@@ -42,11 +40,7 @@
     None.
 #>
 
-
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
-
 #
 # Check input arguments
 #
@@ -118,7 +112,7 @@ else
 }
 
 #
-# creating the summary file
+# Creating the summary file
 #
 $summaryLog  = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
@@ -128,14 +122,14 @@ Write-Output "Covers ${tcCovered}" | Out-File -Append $summaryLog
 # Delete the Key Value pair from the Pool 0 on guest OS. If the Key is already not present, will return proper message.
 #
 "Info : Creating VM Management Service object"
-$VMManagementService = Get-WmiObject -class "Msvm_VirtualSystemManagementService" -namespace "root\virtualization\v2" -ComputerName $hvServer
+$VMManagementService = Get-WmiObject -ComputerName $hvServer -class "Msvm_VirtualSystemManagementService" -namespace "root\virtualization\v2"
 if (-not $VMManagementService)
 {
     "Error: Unable to create a VMManagementService object"
     return $False
 }
 
-$VMGuest = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Select * From Msvm_ComputerSystem Where ElementName='$VmName'"
+$VMGuest = Get-WmiObject -ComputerName $hvServer -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName='$VmName'"
 if (-not $VMGuest)
 {
     "Error: Unable to create VMGuest object"

@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -18,7 +18,6 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-
 <#
 .Synopsis
     Verify the basic KVP read operations work.
@@ -53,10 +52,7 @@
     None.
 #>
 
-param( [String] $vmName,
-       [String] $hvServer,
-       [String] $testParams
-)
+param([String] $vmName, [String] $hvServer, [String] $testParams)
 #######################################################################
 #
 # KvpToDict
@@ -192,14 +188,14 @@ if (-not $serviceEnabled)
 #
 # Create a data exchange object and collect KVP data from the VM
 #
-$Vm = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
+$Vm = Get-WmiObject -ComputerName $hvServer -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
 if (-not $Vm)
 {
     "Error: Unable to the VM '${VMName}' on the local host"
     return $False
 }
 
-$Kvp = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
+$Kvp = Get-WmiObject -ComputerName $hvServer -Namespace root\virtualization\v2 -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
 if (-not $Kvp)
 {
     "Error: Unable to retrieve KVP Exchange object for VM '${vmName}'"
