@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -18,8 +18,6 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-
-
 <#
 .Synopsis
     Modify Non-Existing KVP item.
@@ -60,17 +58,12 @@
     None.
 #>
 
-
-
 ############################################################################
 #
 # Main script body
 #
 ############################################################################
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
-
 #
 # Check input arguments
 #
@@ -146,15 +139,14 @@ Write-Output "Covers ${tcCovered}" | Out-File -Append $summaryLog
 #
 # Modify the Non-Existing Key Value pair from the Pool 0 on guest OS. If the Key is already present, will return proper message.
 #
-
-$VMManagementService = Get-WmiObject -class "Msvm_VirtualSystemManagementService" -namespace "root\virtualization\v2" -ComputerName $hvServer
+$VMManagementService = Get-WmiObject -ComputerName $hvServer -class "Msvm_VirtualSystemManagementService" -namespace "root\virtualization\v2"
 if (-not $VMManagementService)
 {
     "Error: Unable to create a VMManagementService object"
     return $False
 }
 
-$VMGuest = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Select * From Msvm_ComputerSystem Where ElementName='$VmName'"
+$VMGuest = Get-WmiObject -ComputerName $hvServer -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName='$VmName'"
 if (-not $VMGuest)
 {
     "Error: Unable to create VMGuest object"
@@ -168,6 +160,15 @@ if (-not $Msvm_KvpExchangeDataItem)
     "Error: Unable to create Msvm_KvpExchangeDataItem object"
     return $False
 }
+
+"Info : Detecting Host version of Windows Server"
+$osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
+if (-not $osInfo)
+{
+    "Error: Unable to collect Operating System information"
+    return $False
+}
+[System.Int32]$buildNR = $osInfo.BuildNumber
 
 "Info : Modifying Key '${key}'to '${Value}'"
 
@@ -191,6 +192,11 @@ if ($job.ErrorCode -ne 0)
 
     if ($job.ErrorCode -eq 32773)
     {  
+        "Error (as expected): Key = '${key} ,Non-existing key cannot be modified Error Code-' $($Job.ErrorCode) "
+        return $True
+    }
+    elseIf ($job.ErrorCode -eq 32779 -And $buildNR -ge 10000)
+    {
         "Error (as expected): Key = '${key} ,Non-existing key cannot be modified Error Code-' $($Job.ErrorCode) "
         return $True
     }
