@@ -264,14 +264,14 @@ else
     return $False
 }
 $ipv4 = GetIPv4 $vmName $hvServer
-$retVal = SendCommandToVM $ipv4 $sshKey "chmod 755 ~/utils.sh"
+$retVal = SendCommandToVM $ipv4 $sshKey "dos2unix ~/utils.sh; chmod 755 ~/utils.sh"
 if (-not $retVal)
 {
     Write-Output "Error: Could not run command on VM"| Tee-Object -Append -file $summaryLog
 
     return $False
 }
-$retVal = SendCommandToVM $ipv4 $sshKey "chmod 755 ~/STOR_unPlug.sh"
+$retVal = SendCommandToVM $ipv4 $sshKey "dos2unix ~/STOR_unPlug.sh; chmod 755 ~/STOR_unPlug.sh"
 if (-not $retVal)
 {
     Write-Output "Error: Could not run command on VM"| Tee-Object -Append -file $summaryLog
