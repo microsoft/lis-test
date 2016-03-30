@@ -239,13 +239,17 @@
         <test>
             <testName>CheckNuma</testName>
             <setupScript>
-            	<file>setupScripts\DM_DISABLE.ps1</file>
-            	<file>setupScripts\ChangeCPU.ps1</file>
+                <file>SetupScripts\DM_DISABLE.ps1</file>
+                <file>setupScripts\ChangeCPU.ps1</file>
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
             <testParams>
                 <param>TC_COVERED=CORE-22</param>
+                <param>vmName=VMName</param>
+                <param>enableDM=no</param>
+                <param>staticMem=2048MB</param>
+                <param>memWeight=0</param>
                 <param>VCPU=4</param>
                 <param>NumaNodes=1</param>
                 <param>Sockets=1</param>
