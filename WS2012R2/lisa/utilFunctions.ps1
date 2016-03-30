@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -30,8 +30,6 @@
 .Link
     None.
 #>
-
-
 
 #####################################################################
 #
@@ -99,7 +97,6 @@ function HasItBeenTooLong([String] $timestamp, [Int] $timeout)
 
     return $retVal
 }
-
 
 #####################################################################
 #
@@ -242,7 +239,6 @@ function GetNextTest([System.Xml.XmlElement] $vm, [xml] $xmlData)
     return $nextTest
 }
 
-
 #####################################################################
 #
 # GetTestData
@@ -284,8 +280,6 @@ function GetTestData([String] $testName, [xml] $xmlData)
     return $testData
 }
 
-
-
 #####################################################################
 #
 # GetTestTimeout
@@ -323,7 +317,6 @@ function GetTestTimeout([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     return $timeout
 }
-
 
 #####################################################################
 #
@@ -369,7 +362,6 @@ function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
     logMsg 2 "Info : $($vm.vmName) transitioned to state $($vm.state)"
     $vm.stateTimestamp = [DateTime]::Now.ToString()
 }
-
 
 #####################################################################
 #
@@ -431,7 +423,6 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
     return $str
 }
 
-
 #####################################################################
 #
 # SendEmail
@@ -481,7 +472,6 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
     Send-mailMessage -to $to -from $from -subject $subject -body $body -BodyAsHtml -smtpserver $smtpServer
 }
 
-
 #####################################################################
 #
 # ShutDownVM
@@ -519,8 +509,6 @@ function ShutDownVM([System.Xml.XmlElement] $vm)
         }
     }
 }
-
-
 
 #####################################################################
 #
@@ -651,7 +639,6 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     return $retVal
 }
 
-
 #####################################################################
 #
 # TestPort
@@ -720,7 +707,6 @@ function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
     return $retVal
 }
 
-
 #####################################################################
 #
 # UpdateState
@@ -747,7 +733,6 @@ function UpdateState([System.Xml.XmlElement] $vm, [string] $newState)
     LogMsg 2 "Info : $($vm.vmName) transitioned from ${oldState} to $($vm.state)"
     $vm.stateTimestamp = [DateTime]::Now.ToString()
 }
-
 
 #####################################################################
 #
@@ -798,7 +783,6 @@ function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [strin
 
     return $retVal
 }
-
 
 #####################################################################
 #
@@ -855,7 +839,6 @@ function SendFileToVM([System.Xml.XmlElement] $vm, [string] $localFile, [string]
     return $retVal
 }
 
-
 #####################################################################
 #
 # SendCommandToVM()
@@ -908,7 +891,6 @@ function SendCommandToVM([System.Xml.XmlElement] $vm, [string] $command)
 
     return $retVal
 }
- 
 
 #####################################################################
 #
@@ -1031,7 +1013,6 @@ function TestRemotePath ([String] $path, [String] $hvServer)
     return $retVal
 }
 
-
 #####################################################################
 #
 # Test-Admin()
@@ -1051,9 +1032,6 @@ function Test-Admin ()
     $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
     $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
-
-
-
 
 #######################################################################
 #
@@ -1077,7 +1055,6 @@ function CreateTestParamString([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #>
 
     $tp = ""
-
     $testData = GetTestData $($vm.currentTest) $xmlData
 
     if ($xmlData.config.global.testParams -or $testdata.testParams -or $vm.testParams)
@@ -1159,13 +1136,9 @@ function CreateTestParamString([System.Xml.XmlElement] $vm, [XML] $xmlData)
     return $tp
 }
 
-
 #######################################################################
 #
 # UpdateCurrentTest()
-#
-# Description:
-
 #
 #######################################################################
 function UpdateCurrentTest([System.Xml.XmlElement] $vm, [XML] $xmlData)
@@ -1258,7 +1231,6 @@ function UpdateCurrentTest([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 }
 
-
 #######################################################################
 #
 # GetIterationparam()
@@ -1341,10 +1313,6 @@ function GetIterationParam([System.Xml.XmlElement] $vm, [XML] $xmlData)
     return $iterationParam   
 }
 
-
-
-
-
 #######################################################################
 #
 # GetIPv4ViaHyperV()
@@ -1422,7 +1390,6 @@ function GetIPv4ViaHyperV([String] $vmName, [String] $server)
     Write-Error -Message "GetIPv4ViaHyperV: No IPv4 address found on any NICs for VM ${vmName}" -Category ObjectNotFound -ErrorAction SilentlyContinue
     return $null
 }
-
 
 #######################################################################
 #
@@ -1525,7 +1492,6 @@ function GetIPv4ViaICASerial( [String] $vmName, [String] $server)
     return $ipv4
 }
 
-
 #######################################################################
 #
 # GetIPv4ViaKVP()
@@ -1607,7 +1573,6 @@ function GetIPv4ViaKVP( [String] $vmName, [String] $server)
     return $null
 }
 
-
 #######################################################################
 #
 # GetIPv4()
@@ -1643,7 +1608,7 @@ function GetIPv4([String] $vmName, [String] $server)
             if (-not $addr)
             {
                 $errMsg += ("`n" + $error[0].Exception.Message)
-                Write-Error -Message ("GetIPv4: Unable to determine IP address for VM ${vmNAme}`n" + $errmsg) -Category ReadError -ErrorAction SilentlyContinue
+                Write-Error -Message ("GetIPv4: Unable to determine IP address for VM ${vmName}`n" + $errmsg) -Category ReadError -ErrorAction SilentlyContinue
                 return $null
             }
         }
@@ -1651,7 +1616,6 @@ function GetIPv4([String] $vmName, [String] $server)
 
     return $addr
 }
-
 
 #######################################################################
 #
@@ -1840,4 +1804,3 @@ function VerifyTestResourcesExist([System.Xml.XmlElement] $vm, [System.Xml.XmlEl
 
     return $retVal
 }
-
