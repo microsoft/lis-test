@@ -19,8 +19,6 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
     Test LIS and shutdown with different ram settings
@@ -52,7 +50,6 @@
 
 #>
 
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 ######################################################################
 #
@@ -79,16 +76,13 @@ function get_vmip()
     if($timeout -le 0)
     {
         Write-output "VM timeout at GetIPv4 operation with memory size $memory" | Tee-Object -Append -file $summaryLog
-        #$success = $False
         return $False
     }
     else
     {
-        Write-output "VM started with $memory" | Tee-Object -Append -file $summaryLog
-        #$retVal = $True
+        # Write-output "VM started with $memory" | Tee-Object -Append -file $summaryLog
         return $True
     }
-    
 }
 
 #######################################################################
@@ -250,7 +244,7 @@ ForEach ($memory in $memArgs)
     }
 
     #
-    #Reboot VM
+    # Reboot VM
     #
     $sts = SendCommandToVM $ipv4 $sshKey "reboot"
     if ($sts) {
