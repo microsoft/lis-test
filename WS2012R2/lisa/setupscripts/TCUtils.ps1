@@ -396,7 +396,7 @@ function GetIPv4ViaKVP( [String] $vmName, [String] $server)
 # GenerateIpv4()
 #
 #######################################################################
-function GenerateIpv4($tempipv4)
+function GenerateIpv4($tempipv4, $oldipv4)
 {
     <#
     .Synopsis
@@ -406,11 +406,18 @@ function GenerateIpv4($tempipv4)
     .Parameter tempipv4
         The ipv4 address on which the new ipv4 will be based and generated in the same subnet
     .Example
-        GenerateIpv4 $testIPv4Address
+        GenerateIpv4 $testIPv4Address $oldipv4
     #>
     [int]$i= $null
     [int]$check = $null
-    [int]$octet = 102
+    if ($oldipv4 -eq $null){
+        [int]$octet = 102   
+    }
+    else {
+        $oldIpPart = $oldipv4.Split(".")
+        [int]$octet  = $oldIpPart[3]
+    }
+
     $ipPart = $tempipv4.Split(".")
     $newAddress = ($ipPart[0]+"."+$ipPart[1]+"."+$ipPart[2])
 

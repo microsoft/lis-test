@@ -18,12 +18,9 @@
 # permissions and limitations under the License.
 #
 #####################################################################
-
 <#
 .Synopsis
-
-
- Description:
+ Description: This script tests ip injection from host to guest functionality
 
 .Parameter vmName
     Name of the VM to test.
@@ -38,12 +35,9 @@
     .\InjectIP.ps1 "testVM" "localhost" "rootDir=D:\Lisa;IPv4Address=192.168.1.100; IPv4Subnet=255.255.255.0; IPv4Gateway=192.168.1.1; DnsServer=192.168.1.2;DHCPEnabled=False;ProtocolIFType=4096"
 #>
 
-
 param ([String] $vmName, [String] $hvServer, [String] $testParams, [String] $IPv4Address)
 
-
 $NamespaceV2 = "root\virtualization\v2"
-
 
 function ReportError($Message)
 {
@@ -163,7 +157,6 @@ function GetVirtualMachine([string] $vmName)
     return [System.Management.ManagementObject] $objects
 }
 
-
 #
 # Get VM Service object
 #
@@ -185,7 +178,6 @@ function GetGuestNetworkAdapterConfiguration($VMName)
     CheckNullAndExit $VM "Failed to find VM instance"
 
     # Get active settings
-
     $vmSettings = $vm.GetRelated( "Msvm_VirtualSystemSettingData", "Msvm_SettingsDefineState",$null,$null, "SettingData", "ManagedElement", $false, $null)
 
     # Get all network adapters
@@ -221,7 +213,113 @@ function PrintNetworkAdapterSettingData($nasd)
     }
 }
 
+function injectIpOnVm($ipAddr)
+{
+    $colItems = get-wmiobject -class "Win32_NetworkAdapterConfiguration"  -namespace "root\CIMV2" -computername localhost
 
+    foreach ($objItem in $colItems) {
+        if ($objItem.DNSHostName -ne $NULL) {
+            $netAdp = get-wmiobject -class "Win32_NetworkAdapter"  -Filter "GUID=`'$($objItem.SettingID)`'" -namespace "root\CIMV2" -computername localhost
+            if ($netAdp.NetConnectionID -like '*External*'){
+                $IPv4subnet = $objItem.IPSubnet[0]
+                $IPv4Gateway = $objItem.DefaultIPGateway[0]
+                $DnsServer = $objItem.DNSServerSearchOrder[0]
+            }
+        }
+    }
+
+    #
+    # Parse the testParams
+    #
+    $tcCovered = "Unknown"
+    $rootDir = $null
+    $DHCPEnabled = $False
+    $ProtocolIFType = 4096
+
+    "$IPv4Address will be injected in place of $testIPv4Address"
+
+    $params = $testParams.TrimEnd(";").Split(";")
+    foreach ($p in $params)
+    {
+        $fields = $p.Split("=")
+        $value = $fields[1].Trim()
+
+        switch ($fields[0].Trim())
+        {
+        "dhcpenabled"    { $DHCPEnabled    = $fields[1].Trim() }
+        "ipv4address"    { $IPv4Address    = $fields[1].Trim() }
+        "ipv4subnet"     { $IPv4subnet     = $fields[1].Trim() }
+        "dnsserver"      { $DnsServer      = $fields[1].Trim() }
+        "ipv4Gateway"    { $IPv4Gateway    = $fields[1].Trim() }
+        "protocoliftype" { $ProtocolIFType = $fields[1].Trim() }
+        "rootdir"        { $rootDir   = $fields[1].Trim() }
+        "TC_COVERED"     { $tcCovered = $fields[1].Trim() }
+        default          {}  # unknown param - just ignore it
+        }
+    }
+
+    #
+    # Change the working directory to where LISA is located
+    #
+    if (-not $rootDir)
+    {
+        "Warn : no rootDir test parameter was specified"
+    }
+
+    cd $rootDir
+
+    $summaryLog  = "${vmName}_summary.log"
+    del $summaryLog -ErrorAction SilentlyContinue
+    echo "Covers : ${tcCovered}" > $summarylog
+
+    #
+    # Get the VMs IP addresses before injecting, then make sure the
+    # address we are to inject is not already assigned to the VM.
+    #
+    $vmNICs = Get-VMNetworkAdapter -vmName $vmName -ComputerName $hvServer
+    $ipAddrs = @()
+    foreach( $nic in $vmNICS)
+    {
+        foreach ($addr in $nic.IPAddresses)
+        {
+            $ipaddrs += $addr
+        }
+    }
+
+    if ($ipAddrs -contains $IPv4Address) {
+        "Error: The VM is already assigned address '${IPv4Address}'"
+        exit 1
+    }
+
+    #
+    # Collect WMI objects for the virtual machine we are interested in
+    # so we can inject some IP setting into the VM.
+    #
+    [System.Management.ManagementObject] $vm = GetVirtualMachine($VmName)
+    [System.Management.ManagementObject] $vmservice = @(GetVmServiceObject)[0]
+    [System.Management.ManagementObject] $nwconfig = @(GetGuestNetworkAdapterConfiguration($VmName))[0];
+
+    #
+    # Fill in the IP address data we want to inject
+    #
+    $nwconfig.DHCPEnabled = $DHCPEnabled
+    $nwconfig.IPAddresses = @($IPv4Address)
+    $nwconfig.Subnets = @($IPv4Subnet)
+    $nwconfig.DefaultGateways = @($IPv4Gateway)
+    $nwconfig.DNSServers = @($DnsServer)
+
+    # Note: Address family values for settings IPv4 , IPv6 Or Boths
+    #   For IPv4:    ProtocolIFType = 4096;
+    #   For IPv6:    ProtocolIFType = 4097;
+    #   For IPv4/V6: ProtocolIFType = 4098;
+    $nwconfig.ProtocolIFType = $ProtocolIFType
+
+    #
+    # Inject the IP data into the VM
+    #
+    $opresult = $vmservice.SetGuestNetworkAdapterConfiguration($vm.Path, @($nwconfig.GetText(1)))
+    MonitorJob($opresult)
+}
 
 ##############################################################################
 #
@@ -296,137 +394,42 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $retVal
 }
 
+$oldIpAddress = $null
+$isPassed= $false
 $testIPv4Address = GetIPv4 $vmName $hvServer
-$IPv4Address = GenerateIpv4 $testIPv4Address
 
-$colItems = get-wmiobject -class "Win32_NetworkAdapterConfiguration"  -namespace "root\CIMV2" -computername localhost
-
-
-foreach ($objItem in $colItems) {
-    if ($objItem.DNSHostName -ne $NULL) {
-        $netAdp = get-wmiobject -class "Win32_NetworkAdapter"  -Filter "GUID=`'$($objItem.SettingID)`'" -namespace "root\CIMV2" -computername localhost
-        if ($netAdp.NetConnectionID -like '*External*'){
-            $IPv4subnet = $objItem.IPSubnet[0]
-            $IPv4Gateway = $objItem.DefaultIPGateway[0]
-            $DnsServer = $objItem.DNSServerSearchOrder[0]
+for ($i=0; $i -le 2; $i++)
+{
+    $IPv4Address = GenerateIpv4 $testIPv4Address $oldIpAddress
+    injectIpOnVm $IPv4Address
+    #
+    # Now collect the IP addresses assigned to the VM and make
+    # sure the injected address is in the list.
+    #
+    Start-Sleep 20
+    $vmNICs = Get-VMNetworkAdapter -vmName $vmName -ComputerName $hvServer
+    $ipAddrs = @()
+    foreach( $nic in $vmNICS)
+    {
+        foreach ($addr in $nic.IPAddresses)
+        {
+            $ipaddrs += $addr
         }
     }
-}
 
-
-#
-# Parse the testParams
-#
-$tcCovered = "Unknown"
-$rootDir = $null
-$DHCPEnabled = $False
-$ProtocolIFType = 4096
-
-"$IPv4Address will be injected in place of $testIPv4Address"
-
-$params = $testParams.TrimEnd(";").Split(";")
-foreach ($p in $params)
-{
-    $fields = $p.Split("=")
-    $value = $fields[1].Trim()
-
-    switch ($fields[0].Trim())
-    {
-    "dhcpenabled"    { $DHCPEnabled    = $fields[1].Trim() }
-    "ipv4address"    { $IPv4Address    = $fields[1].Trim() }
-    "ipv4subnet"     { $IPv4subnet     = $fields[1].Trim() }
-    "dnsserver"      { $DnsServer      = $fields[1].Trim() }
-    "ipv4Gateway"    { $IPv4Gateway    = $fields[1].Trim() }
-    "protocoliftype" { $ProtocolIFType = $fields[1].Trim() }
-    "rootdir"        { $rootDir   = $fields[1].Trim() }
-    "TC_COVERED"     { $tcCovered = $fields[1].Trim() }
-    default          {}  # unknown param - just ignore it
+    if ($ipAddrs -notcontains $IPv4Address) {
+        "Info: The address '${IPv4Address}' was not injected into the VM. `n"
+        $oldIpAddress = $IPv4Address
+    }  
+    else{
+        "Info: The address '${IPv4Address}' was successfully injected into the VM. `n"
+        $isPassed = $true
+        break
     }
 }
 
-#
-# Change the working directory to where LISA is located
-#
-if (-not $rootDir)
-{
-    "Warn : no rootDir test parameter was specified"
-}
-
-cd $rootDir
-
-$summaryLog  = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-echo "Covers : ${tcCovered}" > $summarylog
-
-#
-# Get the VMs IP addresses before injecting, then make sure the
-# address we are to inject is not already assigned to the VM.
-#
-$vmNICs = Get-VMNetworkAdapter -vmName $vmName -ComputerName $hvServer
-$ipAddrs = @()
-foreach( $nic in $vmNICS)
-{
-    foreach ($addr in $nic.IPAddresses)
-    {
-        $ipaddrs += $addr
-    }
-}
-
-if ($ipAddrs -contains $IPv4Address) {
-    "Error: The VM is already assigned address '${IPv4Address}'"
-    exit 1
-}
-
-#
-# Collect WMI objects for the virtual machine we are interested in
-# so we can inject some IP setting into the VM.
-#
-[System.Management.ManagementObject] $vm = GetVirtualMachine($VmName)
-[System.Management.ManagementObject] $vmservice = @(GetVmServiceObject)[0]
-[System.Management.ManagementObject] $nwconfig = @(GetGuestNetworkAdapterConfiguration($VmName))[0];
-
-#
-# Fill in the IP address data we want to inject
-#
-$nwconfig.DHCPEnabled = $DHCPEnabled
-$nwconfig.IPAddresses = @($IPv4Address)
-$nwconfig.Subnets = @($IPv4Subnet)
-$nwconfig.DefaultGateways = @($IPv4Gateway)
-$nwconfig.DNSServers = @($DnsServer)
-
-# Note: Address family values for settings IPv4 , IPv6 Or Boths
-#   For IPv4:    ProtocolIFType = 4096;
-#   For IPv6:    ProtocolIFType = 4097;
-#   For IPv4/V6: ProtocolIFType = 4098;
-$nwconfig.ProtocolIFType = $ProtocolIFType
-
-#
-# Inject the IP data into the VM
-#
-$opresult = $vmservice.SetGuestNetworkAdapterConfiguration($vm.Path, @($nwconfig.GetText(1)))
-MonitorJob($opresult)
-
-# Write-Host "Msvm_GuestNetworkAdapterConfiguration After update .. please make sure VM is running ..."
-#[System.Management.ManagementObject] $nwconfig = @(GetGuestNetworkAdapterConfiguration($VmName))[0];
-#
-# PrintNetworkAdapterSettingData($nwconfig)
-
-#
-# Now collect the IP addresses assigned to the VM and make
-# sure the injected address is in the list.
-#
-$vmNICs = Get-VMNetworkAdapter -vmName $vmName -ComputerName $hvServer
-$ipAddrs = @()
-foreach( $nic in $vmNICS)
-{
-    foreach ($addr in $nic.IPAddresses)
-    {
-        $ipaddrs += $addr
-    }
-}
-
-if ($ipAddrs -notcontains $IPv4Address) {
-    "Error: The address '${IPv4Address}' was not injected into the VM."
+if ($isPassed -eq $false){
+    "Error: All attempts failed"
     exit 1
 }
 
