@@ -147,6 +147,8 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 #
 $vm = Get-VM $vmName -ComputerName $hvServer 
 $hvState = $vm.State
+$vmHeartbeat = $vm.Heartbeat
+
 if ($hvState -ne "Running")
 {
     "Error: VM $vmName is not in running state. Test failed."
@@ -177,17 +179,47 @@ if ($heartbeatTimeout -eq 0)
 #
 # Check the VMs heartbeat
 #
-$hb = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "HeartBeat"
-if ($($hb.Enabled) -eq "True")
+$hb = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
+if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
 {
     "Heartbeat detected"
+}
+else
+{
+    "Test Failed: VM heartbeat not detected!"
+     Write-Output "Heartbeat not detected to enable the heartbeat" | Out-File -Append $summaryLog
+     return $False
+}
+#
+#Disable the VMs heartbeat
+#
+Disable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Heartbeat"
+$status = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
+if ($status.Enabled -eq $False -And $vm.Heartbeat -eq "Disabled")
+{
+    "Heartbeat diabled succussfully"
+}
+else
+{
+    "VM heartbeat not detected after disable"
+     Write-Output "Heartbeat not detected after disable" | Out-File -Append $summaryLog
+     return $False
+}
+#
+#Check the VMs heartbeat again
+#
+Enable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Heartbeat"
+$hb = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
+if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
+{
+    "Heartbeat detected again"
     $retVal = $True   
 }
 else
 {
-    "Test failed: VM heartbeat not detected!"
-     Write-Output "Heartbeat not detected" | Out-File -Append $summaryLog
-     return $False
+    "Test Failed: VM heartbeat not detected again!"
+     Write-Output "Heartbeat not detected to enable the heartbeat" | Out-File -Append $summaryLog
+     $retVal = $True   
 }
 
 #
