@@ -428,7 +428,11 @@ function AddUserVmToXmlTree ([string] $vmName, [string] $hvServer, [string] $ipv
     $newVM.AppendChild($newHvServer)
     
     $newIpv4 = $xml.CreateElement("ipv4")
-    $newIpv4.set_InnerText($ipv4)
+    if ($ipv4) {
+        $newIpv4.set_InnerText($ipv4)
+    } else {
+        $newIpv4.set_InnerText("")
+    }
     $newVM.AppendChild($newIpv4)
     
     $newSshKey = $xml.CreateElement("sshKey")
@@ -759,7 +763,7 @@ function RunTests ([String] $xmlFilename )
         #
         # Run tests on a user supplied VM
         #
-        if ($hvServer -and $ipv4 -and $sshKey -and $suite)
+        if ($hvServer -and $sshKey -and $suite)
         {   
             #
             # Add the user provided VM to the in memory copy of the xml
@@ -771,7 +775,7 @@ function RunTests ([String] $xmlFilename )
         }
         else
         {
-            LogMsg 0 "Error: For user supplied VM, you must specify all of the following options:`n         -vmName -hvServer -ipv4 -sshKey -testSuite"
+            LogMsg 0 "Error: For user supplied VM, you must specify all of the following options:`n         -vmName -hvServer -sshKey -suite"
             DumpParams
         }
     }
