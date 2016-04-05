@@ -187,7 +187,7 @@ if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
 else
 {
     "Test Failed: VM heartbeat not detected!"
-     Write-Output "Heartbeat not detected to enable the heartbeat" | Out-File -Append $summaryLog
+     Write-Output "Heartbeat not detected while the Heartbeat service is enabled" | Out-File -Append $summaryLog
      return $False
 }
 #
@@ -197,12 +197,12 @@ Disable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Hear
 $status = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
 if ($status.Enabled -eq $False -And $vm.Heartbeat -eq "Disabled")
 {
-    "Heartbeat diabled succussfully"
+    "Heartbeat disabled succussfully"
 }
 else
 {
-    "VM heartbeat not detected after disable"
-     Write-Output "Heartbeat not detected after disable" | Out-File -Append $summaryLog
+    "Unable to disable the Heartbeat service"
+     Write-Output "Unable to disable the Heartbeat service" | Out-File -Append $summaryLog
      return $False
 }
 #
@@ -218,7 +218,7 @@ if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
 else
 {
     "Test Failed: VM heartbeat not detected again!"
-     Write-Output "Heartbeat not detected to enable the heartbeat" | Out-File -Append $summaryLog
+     Write-Output "Heartbeat not detected after re-enabling the Heartbeat service" | Out-File -Append $summaryLog
      $retVal = $True   
 }
 
