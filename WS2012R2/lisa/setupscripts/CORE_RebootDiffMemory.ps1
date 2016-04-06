@@ -21,10 +21,10 @@
 
 <#
 .Synopsis
-    Test LIS and shutdown with different ram settings
+    Test LIS and shutdown with different RAM sizes.
 
 .Description
-    Test LIS and shutdown with different ram settings
+    Test LIS and shutdown with different RAM settings
     The XML test case definition for this test would
     look similar to the following:
         <test>
@@ -259,7 +259,6 @@ ForEach ($memory in $memArgs)
     }
     else
     {
-        Write-output "VM started after rebooting" | Tee-Object -Append -file $summaryLog
         $retVal = $True
     }
 }
