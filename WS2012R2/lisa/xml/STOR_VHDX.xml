@@ -70,7 +70,7 @@
                 <param>DefaultSize=3TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
                 <param>fileSystems=(ext4 xfs btrfs)</param>
-                <param>SCSI=0,0,Fixed,512,3TB</param>
+                <param>SCSI=0,0,Dynamic,512,3TB</param>
                 <param>TC_COVERED=STOR-32-A</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
@@ -88,7 +88,7 @@
                 <param>DefaultSize=16TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
                 <param>fileSystems=(ext4 xfs btrfs)</param>
-                <param>SCSI=0,0,Fixed,512,16TB</param>
+                <param>SCSI=0,0,Dynamic,512,16TB</param>
                 <param>TC_COVERED=STOR-32-B</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
@@ -106,7 +106,7 @@
                 <param>DefaultSize=64TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
                 <param>fileSystems=(ext4 xfs btrfs)</param>
-                <param>SCSI=0,0,Fixed,4096,64TB</param>
+                <param>SCSI=0,0,Dynamic,4096,64TB</param>
                 <param>TC_COVERED=STOR-32-C</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
