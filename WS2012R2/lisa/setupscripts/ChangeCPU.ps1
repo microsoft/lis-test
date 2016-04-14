@@ -40,7 +40,47 @@
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
+########################################################################
+#
+# ConvertStringToDecimal()
+#
+########################################################################
+function ConvertStringToDecimal([string] $str)
+{
+    $uint64Size = $null
 
+    #
+    # Make sure we received a string to convert
+    #
+    if (-not $str)
+    {
+        Write-Error -Message "ConvertStringToDecimal() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    if ($str.EndsWith("MB"))
+    {
+        $num = $str.Replace("MB","")
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1MB
+    }
+    elseif ($str.EndsWith("GB"))
+    {
+        $num = $str.Replace("GB","")
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1GB
+    }
+    elseif ($str.EndsWith("TB"))
+    {
+        $num = $str.Replace("TB","")
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1TB
+    }
+    else
+    {
+        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    return $uint64Size
+}
 $retVal = $false
 
 #
@@ -95,6 +135,7 @@ foreach ($p in $params)
     }
 }
 
+$staticMemory = ConvertStringToDecimal $mem
 if ($numCPUs -eq 0)
 {
     "Error: VCPU test parameter not found in testParams"
@@ -152,7 +193,7 @@ else
 }
 if ($mem -ne $null)
 {
-    Set-VMMemory $vmName -MaximumAmountPerNumaNodeBytes 1024MB
+    Set-VMMemory $vmName -MaximumAmountPerNumaNodeBytes $staticMemory
     if ($? -eq "True")
     {
         Write-output "Numa memory updated"
