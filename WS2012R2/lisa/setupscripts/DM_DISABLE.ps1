@@ -174,6 +174,10 @@ foreach ($p in $params)
       }
 
     }
+    if (-not $tPvmName)
+    {
+        $tPvmName = $vmName
+    }
 
     if ($tPvmName -and $tpMem -and $tPmemWeight)
     {
@@ -188,6 +192,8 @@ foreach ($p in $params)
 
 if (-not $dmTestParam)
 {
+    "Error: the value is ${dmTestParam}==========="
+    "Error: Got params vmName: $tpvmName and memory: $tpMem with memory weight: $tPmemWeight"
     "Error: not enough parameters received!"
     return $false
 }

@@ -70,6 +70,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 $numCPUs = 0
 $numaNodes = 8
 $sockets = 1
+$mem = $null
 
 $params = $testParams.Split(";")
 foreach ($p in $params)
@@ -88,6 +89,10 @@ foreach ($p in $params)
     {
         $sockets = $fields[1].Trim()
     }
+    if ($fields[0].Trim() -eq "MemSize")
+    {
+        $mem = $fields[1].Trim()
+    }
 }
 
 if ($numCPUs -eq 0)
@@ -105,11 +110,11 @@ if ($procs)
 {
     if ($procs -is [array])
     {
-        $maxCPUs = $procs[0].NumberOfCores
+        $maxCPUs = $procs[0].NumberOfLogicalProcessors *2
     }
     else
     {
-        $maxCPUs = $procs.NumberOfCores
+        $maxCPUs = $procs.NumberOfLogicalProcessors *2
     }
 }
 
@@ -145,6 +150,19 @@ else
     $retVal = $false
     write-host "Error: Unable to update Numa Nodes"
 }
-
+if ($mem -ne $null)
+{
+    Set-VMMemory $vmName -MaximumAmountPerNumaNodeBytes 1024MB
+    if ($? -eq "True")
+    {
+        Write-output "Numa memory updated"
+        $retVal = $true
+    }
+    else
+    {
+        Write-output "Error: Unable to update Numa memory $mem"
+        $retVal = $false
+    }
+}
 
 return $retVal
