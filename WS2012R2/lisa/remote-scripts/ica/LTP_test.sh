@@ -205,7 +205,7 @@ LogMsg "Installing dependencies"
 case $(LinuxRelease) in
 	"SLES")
 		InstallSLESDependencies;;
-	"UBUNTU")
+	"UBUNTU" | "DEBIAN")
 		InstallUbuntuDependencies;;
 	"RHEL")
 		InstallRHELDependencies;;
