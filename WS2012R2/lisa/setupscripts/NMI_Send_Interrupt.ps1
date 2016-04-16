@@ -30,29 +30,29 @@
 	This must be used along with the nmi_verify_interrupt.sh bash script to 
 	check if the NMI is successfully detected by the Linux guest VM.
 
-    The test case definition for this test case would look similar to:
+	The test case definition for this test case would look similar to:
         <test>
             <testName>NMI_Send_Interrupt</testName>
             <testScript>setupscripts\NMI_Send_Interrupt.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
-			<testParams>
+            <testParams>
                 <param>TC_COVERED=NMI-01</param>
                 <param>rootDir=D:\lisa</param>
             </testParams>
             <noReboot>True</noReboot>
         </test>
 		
-		<test>
+	<test>
             <testName>NMI_Verify_Interrupt</testName>
             <testScript>nmi_verify_interrupt.sh</testScript>
-			<files>remote-scripts\ica\nmi_verify_interrupt.sh</files>
+            <files>remote-scripts\ica\nmi_verify_interrupt.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testParams>
                 <param>TC_COVERED=NMI-01</param>
             </testParams>
-			<noReboot>False</noReboot>
+            <noReboot>False</noReboot>
         </test>
 
 .Parameter vmName
@@ -174,7 +174,7 @@ if ($($vm.State) -ne [Microsoft.HyperV.PowerShell.VMState]::Running )
 Debug-VM -Name $vmName -InjectNonMaskableInterrupt -ComputerName $hvServer -Confirm:$False -Force
 if($?)
 {
-	Write-output "Successfully sent a NMI to VM $vmName" | Tee-Object -Append -file $summaryLog
+    Write-output "Successfully sent a NMI to VM $vmName" | Tee-Object -Append -file $summaryLog
     $retVal = $true
 }
 else

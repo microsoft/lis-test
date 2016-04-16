@@ -134,7 +134,7 @@ else
     write-host "Error: Unable to update CPU count"
 }
 
-Set-VMProcessor $vmName -MaximumCountPerNumaNode $numaNodes -MaximumCountPerNumaSocket $sockets
+Set-VMProcessor -VMName $vmName -ComputerName $hvServer -MaximumCountPerNumaNode $numaNodes -MaximumCountPerNumaSocket $sockets
 if ($? -eq "True")
 {
     Write-output "Numa Nodes updated"

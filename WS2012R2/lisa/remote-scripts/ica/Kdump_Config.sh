@@ -60,7 +60,7 @@ LinuxRelease()
             echo "CENTOS";;
         *SUSE*)
             echo "SLES";;
-        Red*Hat*)
+        *Red*Hat*)
             echo "RHEL";;
         Debian*)
             echo "DEBIAN";;
@@ -103,7 +103,13 @@ ConfigRhel()
     
     if [[ -d /boot/grub2 ]]; then
         LogMsg "Update grub"
-        sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /etc/default/grub
+        if grep -iq "crashkernel=" /etc/default/grub
+        then
+            sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /etc/default/grub
+        else
+            sed -i "s/^GRUB_CMDLINE_LINUX=\"/GRUB_CMDLINE_LINUX=\"crashkernel=$crashkernel /g" /etc/default/grub
+        fi
+        grep -iq "crashkernel=$crashkernel" /etc/default/grub
         if [ $? -ne 0 ]; then
             LogMsg "FAILED: Could not set the new crashkernel value in /etc/default/grub."
             echo "FAILED: Could not set the new crashkernel value in /etc/default/grub." >> ~/summary.log
@@ -116,7 +122,13 @@ ConfigRhel()
         grub2-mkconfig -o /boot/grub2/grub.cfg
     else
         if [ -x "/sbin/grubby" ]; then
-            sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/grub/grub.conf
+            if grep -iq "crashkernel=" /boot/grub/grub.conf
+            then
+                sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/grub/grub.conf
+            else
+                sed -i "s/rootdelay=300/rootdelay=300 crashkernel=$crashkernel/g" /boot/grub/grub.conf
+            fi
+            grep -iq "crashkernel=$crashkernel" /boot/grub/grub.conf
             if [ $? -ne 0 ]; then
                 LogMsg "ERROR: Could not set the new crashkernel value."
                 echo "ERROR: Could not set the new crashkernel value." >> ~/summary.log
@@ -155,7 +167,13 @@ ConfigSles()
     echo "Configuring kdump (Sles)..." >> summary.log
 
     if [[ -d /boot/grub2 ]]; then
-        sed -i "s/crashkernel=218M-:109M/crashkernel=$crashkernel/g" /etc/default/grub
+        if grep -iq "crashkernel=" /etc/default/grub
+        then
+            sed -i "s/crashkernel=218M-:109M/crashkernel=$crashkernel/g" /etc/default/grub
+        else
+            sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"crashkernel=$crashkernel /g" /etc/default/grub
+        fi
+        grep -iq "crashkernel=$crashkernel" /etc/default/grub
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Could not set the new crashkernel value in /etc/default/grub."
             echo "ERROR: Could not set the new crashkernel value in /etc/default/grub." >> ~/summary.log
@@ -169,7 +187,13 @@ ConfigSles()
     fi
 
     if [[ -d /boot/grub ]]; then
-        sed -i "s/crashkernel=256M-:128M/crashkernel=$crashkernel/" /boot/grub/menu.lst
+        if grep -iq "crashkernel=" /boot/grub/menu.lst
+        then
+            sed -i "s/crashkernel=218M-:109M/crashkernel=$crashkernel/g" /boot/grub/menu.lst
+        else
+            sed -i "s/rootdelay=300/rootdelay=300 crashkernel=$crashkernel/g" /boot/grub/menu.lst
+        fi
+        grep -iq "crashkernel=$crashkernel" /boot/grub/menu.lst
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Could not configure set the new crashkernel value in /etc/default/grub."
             echo "ERROR: Could not configure set the new crashkernel value in /etc/default/grub." >> ~/summary.log
@@ -211,6 +235,7 @@ ConfigUbuntu()
     LogMsg "Configuring kdump (Ubuntu)..."
     echo "Configuring kdump (Ubuntu)..." >> summary.log
     sed -i 's/USE_KDUMP=0/USE_KDUMP=1/g' /etc/default/kdump-tools
+	grep -q "USE_KDUMP=1" /etc/default/kdump-tools
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: kdump-tools are not existent or cannot be modified."
         echo "ERROR: kdump-tools are not existent or cannot be modified." >> summary.log
@@ -218,13 +243,13 @@ ConfigUbuntu()
         exit 1    
     fi
     sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/grub/grub.cfg
-    cat /boot/grub/grub.cfg | grep $crashkernel
+    grep -q "crashkernel=$crashkernel" /boot/grub/grub.cfg
     if [ $? -ne 0 ]; then
         LogMsg "WARNING: Could not configure set the new crashkernel value in /etc/default/grub. Maybe the default value is wrong. We try other configure."
         echo "WARNING: Could not configure set the new crashkernel value in /etc/default/grub. Maybe the default value is wrong. We try other configure." >> summary.log
 
-        newsize='crashkernel='$crashkernel
-        sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$newsize/" /etc/default/grub
+        sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"crashkernel=$crashkernel /g" /etc/default/grub
+        grep -q "crashkernel=$crashkernel" /etc/default/grub
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Failed to configure the new crashkernel."
             echo "ERROR: Failed to configure the new crashkernel." >> summary.log
