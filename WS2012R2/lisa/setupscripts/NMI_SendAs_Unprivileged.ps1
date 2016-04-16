@@ -81,10 +81,10 @@ function CreateLocalUser()
         return $false
     }
     else
-	{
-		"Successfully created temporary username: $UserName"
-		$retval = $true	
-	}
+    {
+	"Successfully created temporary username: $UserName"
+	$retval = $true	
+    }
 }
 
 #######################################################################
@@ -97,18 +97,18 @@ function DeleteLocalUser()
 {
     $ComputerName = $env:COMPUTERNAME
     $Computer = [adsi]"WinNT://$ComputerName"
-	$UserName = "TestUser_$random"
+    $UserName = "TestUser_$random"
     $User = $Computer.Delete("user",$UserName)
     if(!$?)
     {
-		Write-Output "Unable to delete the temporary username $UserName"  | Tee-Object -Append -file $summaryLog
+        Write-Output "Unable to delete the temporary username $UserName"  | Tee-Object -Append -file $summaryLog
         return $false
     }
     else
-	{
-		"Successfully removed the temporary username $UserName"
-		$retval = $true	
-	}
+    {
+        "Successfully removed the temporary username $UserName"
+        $retval = $true	
+    }
 }
 
 #
@@ -245,7 +245,7 @@ While ($job.State -ne "Completed")
     start-sleep 2
 }
 $nmi_status = Receive-Job -Id $newJob.Id -Wait -WriteJobInResults -WriteEvents
-
+$nmi_status
 #
 # Deleting the previously created user account
 #
@@ -258,7 +258,8 @@ if(!$?)
 #
 # Verifying the job output
 #
-$errorstr = "Hyper-V was unable to find a virtual machine with name"
+#$errorstr = "Hyper-V was unable to find a virtual machine with name"
+$errorstr = "You do not have permission to perform the operation"
 $match = $nmi_status | select-string -Pattern $errorstr -Quiet
 if ($match -eq "True")
 {

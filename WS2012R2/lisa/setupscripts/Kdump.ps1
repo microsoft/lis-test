@@ -195,7 +195,7 @@ else {
 #
 Write-Output "Waiting 200 seconds to record the event..."
 Start-Sleep -S 200
-if ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {                     
+if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {                     
     Write-Output "Error : Lost Communication to VM"
     Stop-VM -Name $vmName -ComputerName $hvServer -Force
     return $False

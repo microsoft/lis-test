@@ -32,7 +32,7 @@ LinuxRelease()
             echo "CENTOS";;
         *SUSE*)
             echo "SLES";;
-        Red*Hat*)
+        *Red*Hat*)
             echo "RHEL";;
         Debian*)
             echo "DEBIAN";;
@@ -41,7 +41,7 @@ LinuxRelease()
 
 LogMsg()
 {
-	# To add the time-stamp to the log file
+    # To add the time-stamp to the log file
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
 
@@ -52,15 +52,15 @@ UpdateTestState()
 
 CheckVmcore()
 {
-	if ! [[ $(find /var/crash/*/vmcore -type f -size +10M) ]]; then
-		LogMsg "Test Failed. No file was found in /var/crash of size greater than 10M."
-	    echo "Test Failed. No file was found in /var/crash of size greater than 10M." >> ~/summary.log
-	    UpdateTestState $ICA_TESTFAILED
-	else 
-		LogMsg "Test Successful. Proper file was found."
-		echo "Test Successful. Proper file was found." >> ~/summary.log
-		UpdateTestState $ICA_TESTCOMPLETED
-	fi
+    if ! [[ $(find /var/crash/*/vmcore -type f -size +10M) ]]; then
+        LogMsg "Test Failed. No file was found in /var/crash of size greater than 10M."
+        echo "Test Failed. No file was found in /var/crash of size greater than 10M." >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+    else 
+        LogMsg "Test Successful. Proper file was found."
+        echo "Test Successful. Proper file was found." >> ~/summary.log
+        UpdateTestState $ICA_TESTCOMPLETED
+    fi
 }
 
 #
@@ -73,21 +73,21 @@ distro=`LinuxRelease`
 
 case $distro in
     "CENTOS" | "RHEL")
-		CheckVmcore
+        CheckVmcore
     ;;
     "UBUNTU")
-		if ! [[ $(find /var/crash/2* -type f -size +10M) ]]; then
-			LogMsg "Test Failed. No file was found in /var/crash of size greater than 10M."
-		    echo "Test Failed. No file was found in /var/crash of size greater than 10M." >> ~/summary.log
-		    UpdateTestState $ICA_TESTFAILED
-		else 
-			LogMsg "Test Successful. Proper file was found."
-			echo "Test Successful. Proper file was found." >> ~/summary.log
-			UpdateTestState $ICA_TESTCOMPLETED
-		fi
+        if ! [[ $(find /var/crash/2* -type f -size +10M) ]]; then
+            LogMsg "Test Failed. No file was found in /var/crash of size greater than 10M."
+            echo "Test Failed. No file was found in /var/crash of size greater than 10M." >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+        else 
+            LogMsg "Test Successful. Proper file was found."
+            echo "Test Successful. Proper file was found." >> ~/summary.log
+            UpdateTestState $ICA_TESTCOMPLETED
+        fi
     ;;
     "SLES")
-		CheckVmcore
+        CheckVmcore
     ;;
      *)
         CheckVmcore
