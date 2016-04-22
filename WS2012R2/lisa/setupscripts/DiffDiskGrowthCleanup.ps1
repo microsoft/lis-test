@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    This cleanup script, which runs after the VM is booted, will removes an  differencing hard drive to the specified VM.
+    This cleanup script, which runs after the VM is booted, removes a differencing disk from the specified VM.
 
 .Description
     ControllerType=Controller Index, Lun or Port, vhd type
@@ -68,13 +68,19 @@
     Test data for this test case
 
 .Example
-    setupScripts\DiffDiskGrowthCleanup.ps1 -vmName sles11sp3x64 -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IPaddr;RootDir=" 
+    setupScripts\DiffDiskGrowthCleanup.ps1 -vmName VM -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=pki_id_rsa.ppk;ipv4=IPaddr;RootDir=" 
 
 .Link
     None.
 #>
 
 param([String] $vmName, [String] $hvServer, [String] $testParams)
+
+$controllerType = $null
+$controllerID = $null
+$lun = $null
+$vhdType = $null
+$parentVhd = $null
 
 #######################################################################
 #
@@ -113,7 +119,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
 # Main script body
 #
 #######################################################################
-
 "DynamicDiskGrowthCleanup.ps1"
 "  vmName = ${vmName}"
 "  hvServer = ${hvServer}"
@@ -131,14 +136,8 @@ if ($hvModule -eq $NULL)
 if ($hvModule.companyName -ne "Microsoft Corporation")
 {
     "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $Falses
+    return $False
 }
-
-$controllerType = $null
-$controllerID = $null
-$lun = $null
-$vhdType = $null
-$parentVhd = $null
 
 #
 # Parse the testParams string
@@ -187,6 +186,7 @@ foreach ($p in $params)
         $controllerType = $lValue
         
         $SCSI = $false
+        $IDE = $false
         if ($controllerType -eq "SCSI")
         {
             $SCSI = $true
@@ -201,7 +201,7 @@ foreach ($p in $params)
         if ($diskArgs.Length -ne 3)
         {
             "Error: Incorrect number of disk arguments: $p"
-            return $Ralse
+            return $False
         }
         
         $controllerID = $diskArgs[0].Trim()
@@ -217,7 +217,7 @@ foreach ($p in $params)
 }
 
 #
-# Make sure we have all the data we need to do our job
+# Make sure we have all the parameters
 #
 if (-not $controllerType)
 {
@@ -246,15 +246,14 @@ if (-not $vhdFormat)
 #
 # Delete the drive if it exists
 #
-
 $controller = $null
 $drive = $null
 
-if($ide)
+if($IDE)
 {
     $controller = Get-VMIdeController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID
 }
-if($scsi)
+if($SCSI)
 {
     $controller = Get-VMScsiController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID
 }
@@ -290,10 +289,9 @@ if (-not $defaultVhdPath.EndsWith("\"))
     $defaultVhdPath += "\"
 }
 
-
 if ($vhdFormat -eq "vhd")
 {
-    # To Make sure we do not use exisiting Diff disk, del if exisit 
+    # To Make sure we do not use exisiting Diff disk, delete if exisit 
     $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"  
 }
 else
@@ -327,6 +325,7 @@ if (-not $parentVhd)
         }
     }
 }
+
 #
 # Put a true string at the end of the script output
 # and exit with a status of zero.
