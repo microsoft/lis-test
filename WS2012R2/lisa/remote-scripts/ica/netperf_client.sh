@@ -26,7 +26,7 @@
 # netperf_client.sh
 #
 # Parameters:
-#     NETPERF_SERVER_IP: the ipv4 address of the server
+#     NETPERF_SERVER_IP: the IP (IPv4 or IPv6) address of the server
 #     TEST_PARAM :  test parameters for netpert tests  
 #     SERVER_OS_USERNAME: the user name used to copy test signal file to server side
 #
@@ -115,7 +115,6 @@ esac
 #
 # Make sure the required test parameters are defined
 #
-
 if [ "${STATIC_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the STATIC_IP test parameter is missing"
     LogMsg "${msg}"
@@ -154,7 +153,7 @@ if [ "${SERVER_OS_USERNAME:="UNDEFINED"}" = "UNDEFINED" ]; then
     echo "${msg}" >> ~/summary.log
 fi
 
-#Get test synthetic interface
+# Get test synthetic interface
 declare __iface_ignore
 
 # Parameter provided in constants file
@@ -246,13 +245,15 @@ if [[ $? -eq 0 ]]; then
 else
     ipVersion=$null
 fi
-#Download netperf
+
+# Download netperf 2.7.0
 wget ftp://ftp.netperf.org/netperf/netperf-2.7.0.tar.gz
 if [ $? -ne 0 ]; then
     LogMsg "Error: Unable to download netperf." >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
 fi
 tar -xvf netperf-2.7.0.tar.gz
+
 #
 # Get the root directory of the tarball
 #
@@ -512,7 +513,7 @@ echo ${ipVersion}
 LogMsg "Starting netperf in client mode."
 for TEST_ITEM in ${TEST_PARAM[*]}
 do
-    THROUGHPUT=$(netperf -H ${NETPERF_SERVER_IP} -t ${TEST_ITEM} -P 0 -v 0 -${ipVersion})> netperf.log 2>&1
+    THROUGHPUT=$(netperf -H ${NETPERF_SERVER_IP} -t ${TEST_ITEM} -P 0 -v 0 ${ipVersion})> netperf.log 2>&1
     if [ $? -eq 0 ]; then
         msg="THROUGHPUT ${TEST_ITEM}: $THROUGHPUT"
         echo "${msg}" >> ~/summary.log
@@ -524,6 +525,7 @@ do
                         exit 140
     fi
 done
+
 UpdateSummary "$msg"
 UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"
@@ -532,10 +534,7 @@ UpdateSummary "Kernel: $(uname -r)"
 # Get logs from server side
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/netperf_ServerScript.log ~/netperf_ServerScript.log
 
-#
-# If we made it here, everything worked
-#
-#Shut down dependency VM
+# Shutdown dependency VM
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "reboot | at now"
 if [ $? -ne 0 ]; then
     msg="Warning: Unable to shut down target server machine"
@@ -543,6 +542,9 @@ if [ $? -ne 0 ]; then
     echo "${msg}" >> ~/summary.log
 fi
 
+#
+# If we made it here, everything worked
+#
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
