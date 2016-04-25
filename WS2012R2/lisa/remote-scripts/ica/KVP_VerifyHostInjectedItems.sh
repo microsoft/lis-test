@@ -119,6 +119,29 @@ if [ "${Items:-UNDEFINED}" = "UNDEFINED" ]; then
 fi
 
 #
+# Verify OS architecture
+#
+uname -a | grep x86_64
+if [ $? -eq 0 ]; then
+    msg="64 bit architecture was detected"
+    LogMsg "$msg"
+    kvp_client="kvp_client64"
+else
+    uname -a | grep i686
+    if [ $? -eq 0 ]; then
+        msg="32 bit architecture was detected"
+        LogMsg "$msg"
+        kvp_client="kvp_client32" 
+    else 
+        msg="Error: Unable to detect OS architecture"
+        LogMsg "$msg"
+        echo "$msg" >> ~/summary.log
+        UpdateTestState $ICA_TESTABORTED
+        exit 60
+    fi
+fi
+
+#
 # Echo TCs we cover
 #
 echo "Covers ${TC_COVERED}" > ~/summary.log
@@ -126,15 +149,15 @@ echo "Covers ${TC_COVERED}" > ~/summary.log
 #
 # Make sure we have the kvp_client tool
 #
-if [ ! -e ~/kvp_client ]; then
-    msg="Error: kvp_client tool is not on the system"
+if [ ! -e ~/${kvp_client} ]; then
+    msg="Error: ${kvp_client} tool is not on the system"
     LogMsg "$msg"
     echo "$msg" >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 60
 fi
 
-chmod 755 ~/kvp_client
+chmod 755 ~/${kvp_client}
 #
 # Check if KVP pool 3 file has a size greater than zero
 #
@@ -162,7 +185,7 @@ fi
 # Check the number of records in Pool 3. Below 11 entries (default value) the test will fail
 #
 echo "Items in pool ${Pool}"
-~/kvp_client $Pool | sed 1,2d
+~/${kvp_client} $Pool | sed 1,2d
 if [ $? -ne 0 ]; then
     msg="Error: Could not list the KVP Items in pool ${Pool}"
     LogMsg "$msg"
@@ -171,7 +194,7 @@ if [ $? -ne 0 ]; then
     exit 70
 fi
 
-poolItemNumber=$(~/kvp_client $Pool | awk 'FNR==2 {print $4}')
+poolItemNumber=$(~/${kvp_client} $Pool | awk 'FNR==2 {print $4}')
 if [ $poolItemNumber -lt $Items ]; then
     msg="Error: Pool $Pool has only $poolItemNumber items. We need $Items items or more"
     LogMsg "$msg"
@@ -180,7 +203,7 @@ if [ $poolItemNumber -lt $Items ]; then
     exit 70
 fi
 
-actualPoolItemNumber=$(~/kvp_client $Pool | grep Key | wc -l)
+actualPoolItemNumber=$(~/${kvp_client} $Pool | grep Key | wc -l)
 if [ $poolItemNumber -ne $actualPoolItemNumber ]; then
     msg="Error: Pool $Pool reported $poolItemNumber items but actually has $actualPoolItemNumber items"
     LogMsg "$msg"

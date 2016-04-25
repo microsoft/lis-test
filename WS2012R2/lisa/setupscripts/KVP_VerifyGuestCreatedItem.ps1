@@ -261,19 +261,40 @@ if (-not $ipv4)
 # copy the file to the test VM.  Set the x bit on the kvp_client
 # image, then run kvp_client to add a non-intrinsic kvp item 
 #
-"Info : chmod 755 kvp_client"
-$cmd = "chmod 755 ./kvp_client"
+"Info: Trying to detect OS architecture"
+$cmd = "uname -a | grep x86_64"
+$kvp_client = $null
+if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}"))
+{
+    $cmd = "uname -a | grep i686"
+    if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}")){
+        "Error: Could not determine OS architecture"
+        return $False
+    }
+    else {
+        "Info : 32 bit architecture detected"
+        $kvp_client = "kvp_client32"
+    }
+} 
+else 
+{
+    "Info : 64 bit architecture detected"
+    $kvp_client = "kvp_client64"
+}  
+
+"Info : chmod 755 $kvp_client"
+$cmd = "chmod 755 ./${kvp_client}"
 if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}" ))
 {
-    "Error: Unable to set the x bit on kvp_client"
+    "Error: Unable to set the x bit on $kvp_client"
     return $False
 }
 
-"Info : kvp_client append 1 ${key} ${value}"
-$cmd = "./kvp_client append 1 ${key} ${value}"
+"Info : $kvp_client append 1 ${key} ${value}"
+$cmd = "./${kvp_client} append 1 ${key} ${value}"
 if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}"))
 {
-    "Error: Unable to run kvp_client on VM '${vmName}'"
+    "Error: Unable to run $kvp_client on VM '${vmName}'"
     return $False
 }
 

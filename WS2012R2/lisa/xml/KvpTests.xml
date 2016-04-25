@@ -79,7 +79,8 @@
         <test>
             <testName>KVP_Add_Key_Values</testName>
             <testScript>KVP_VerifyKeyValue.sh</testScript>
-            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,tools/KVP/kvp_client</files>
+            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
             <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -95,7 +96,8 @@
         <test>
             <testName>KVP_Modify_Key_Values</testName>
             <testScript>KVP_VerifyKeyValue.sh</testScript>
-            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,tools/KVP/kvp_client</files>
+            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
             <preTest>setupscripts\ModifyKeyValue.ps1</preTest>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -125,7 +127,7 @@
         <test>
             <testName>KVP_Push_Key_Values</testName>
             <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
-            <files>tools/KVP/kvp_client</files>
+            <files>tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
             <timeout>600</timeout>
             <onError>Abort</onError>
             <noReboot>True</noReboot>
@@ -168,7 +170,8 @@
         <test>
             <testName>KVP_VerifyHostInjectedItems</testName>
             <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
-            <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,tools/KVP/kvp_client</files>
+            <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
             <timeout>600</timeout>
             <onError>Abort</onError>
             <noReboot>True</noReboot>
