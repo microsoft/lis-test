@@ -151,11 +151,11 @@ if ($procs)
 {
     if ($procs -is [array])
     {
-        $maxCPUs = $procs[0].NumberOfLogicalProcessors *2
+        $maxCPUs = $procs[0].NumberOfLogicalProcessors
     }
     else
     {
-        $maxCPUs = $procs.NumberOfLogicalProcessors *2
+        $maxCPUs = $procs.NumberOfLogicalProcessors
     }
 }
 
