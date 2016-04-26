@@ -850,6 +850,10 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 return $False
             }
         }
+        
+        # Enable Guest integration services - not enabled by default
+        Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
+        
         Write-Host "Info: VM created successfully"
         $retVal = $True       
     }
