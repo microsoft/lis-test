@@ -174,6 +174,10 @@ foreach ($p in $params)
       }
 
     }
+    if (-not $tPvmName)
+    {
+        $tPvmName = $vmName
+    }
 
     if ($tPvmName -and $tpMem -and $tPmemWeight)
     {

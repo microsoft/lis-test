@@ -100,6 +100,10 @@ foreach ($p in $params) {
     {
         $numCPUs = $fields[1].Trim()
     }
+    if ($fields[0].Trim() -eq "NumaNodes")
+    {
+        $vcpuOnNode = $fields[1].Trim()
+    }
 }
 
 # Change the working directory to where we need to be
@@ -130,12 +134,12 @@ $retVal = $True
 #
 # Extracting the node and port name values for the VM attached HBA
 #
-$NumaNodes=Get-VM $vmName | select -ExpandProperty NumaNodesCount
+$GetNumaNodes=Get-VM $vmName | select -ExpandProperty NumaNodesCount
 
 #
 # Send the Numa Nodes value to the guest if it matches with the number of CPUs
 #
-if ( $NumaNodes -eq $numCPUs ) {
+if ( $GetNumaNodes -eq $numCPUs/$vcpuOnNode ) {
     Write-Output "INFO: NumaNodes and the number of CPU are matched."
 }
 else {
@@ -143,7 +147,7 @@ else {
     return $False
 }
 
-$cmd_numanodes="echo `"expected_number=$($NumaNodes)`" >> ~/constants.sh";
+$cmd_numanodes="echo `"expected_number=$($numCPUs/$vcpuOnNode)`" >> ~/constants.sh";
 $result = Execute($cmd_numanodes)
 if (-not $result) {
     Write-Error -Message "Error: Unable to submit command ${cmd} to VM!" -ErrorAction SilentlyContinue
