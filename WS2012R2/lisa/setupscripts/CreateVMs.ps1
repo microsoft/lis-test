@@ -588,24 +588,23 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     $clusterDir = Get-ClusterSharedVolume
                     $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Path $vmDir
-                }   
-                else {          
+                }
+                else {
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer
-                } 
+                }
             }
         else
             {
-                # Enable Guest integration services - not enabled by default
-                Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
-        
                 if ( $vm.hardware.isCluster -eq "True") {
                     $clusterDir = Get-ClusterSharedVolume
                     $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration -Path $vmDir
-                }   
-                else {          
+                }
+                else {
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
-                } 
+                }
+                # Enable Guest integration services - not enabled by default
+                Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
             }
             
         if ($null -eq $newVm)
