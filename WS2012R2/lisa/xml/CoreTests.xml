@@ -244,6 +244,7 @@
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
+            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=CORE-22</param>
                 <param>vmName=VMName</param>
@@ -255,6 +256,7 @@
                 <param>Sockets=1</param>
 				<param>staticMem=2048MB</param>
 				<param>memWeight=0</param>
+                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>600</timeout>
         </test>
