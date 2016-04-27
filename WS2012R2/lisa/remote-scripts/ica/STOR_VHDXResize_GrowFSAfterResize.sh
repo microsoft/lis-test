@@ -55,35 +55,6 @@ UpdateTestState()
     echo $1 > $HOME/state.txt
 }
 
-#######################################################################
-# Checks what Linux distro we are running
-#######################################################################
-LinuxRelease()
-{
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
-
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-        *)
-            LogMsg "Unknown Distro"
-            UpdateTestState "TestAborted"
-            UpdateSummary "Unknown Distro, test aborted"
-            exit 1
-            ;; 
-    esac
-}
-
 if [ -e ~/summary.log ]; then
     LogMsg "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
@@ -107,7 +78,7 @@ fi
 # Verify if guest sees the drive
 #
 if [ ! -e "/dev/sdb" ]; then
-    msg = "The Linux guest cannot detect the drive"
+    msg="The Linux guest cannot detect the drive"
     LogMsg $msg
     echo $msg >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
@@ -132,10 +103,10 @@ LogMsg "Partition restored"
 #
 e2fsck -y -v -f /dev/sdb1
 if [ $? -gt 0 ]; then
-        LogMsg "Failed to check filesystem"
-        echo "Checking filesystem: Failed" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 10
+    LogMsg "Failed to check filesystem"
+    echo "Checking filesystem: Failed" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 10
 fi
 LogMsg "Filesystem checked"
 
@@ -155,7 +126,7 @@ LogMsg "Filesystem resized"
 # Mount partition
 #
 if [ ! -e "/mnt" ]; then
-    mkdir /mnt 2> ~/summary.log
+    mkdir /mnt 2> summary.log
     if [ $? -gt 0 ]; then
         LogMsg "Failed to create mount point"
         echo "Creating mount point: Failed" >> ~/summary.log
@@ -165,7 +136,7 @@ if [ ! -e "/mnt" ]; then
     LogMsg "Mount point /dev/mnt created"
 fi
 
-mount /dev/sdb1 /mnt 2> ~/summary.log
+mount /dev/sdb1 /mnt 2> ~summary.log
 if [ $? -gt 0 ]; then
     LogMsg "Failed to mount partition"
     echo "Mounting partition: Failed" >> ~/summary.log
@@ -177,51 +148,17 @@ LogMsg "Partition mount successful"
 #
 # Read/Write mount point
 #
-mkdir /mnt/ICA2/ 2> ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to create directory /mnt/ICA2/"
-    echo "Creating /mnt/ICA2/ directory: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
+dos2unix STOR_VHDXResize_ReadWrite.sh
+chmod +x STOR_VHDXResize_ReadWrite.sh
+./STOR_VHDXResize_ReadWrite.sh
 
-echo 'testing' > /mnt/ICA2/ICA_Test2.txt 2> ~/summary.log
+#
+# Restore ICA folder
+#
+mkdir /mnt/ICA/ 2> ~/summary.log
 if [ $? -gt 0 ]; then
-    LogMsg "Failed to create file /mnt/ICA2/ICA_Test2.txt"
-    echo "Creating file /mnt/ICA2/ICA_Test2.txt: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
-
-ls /mnt/ICA2/ICA_Test2.txt > ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to list file /mnt/ICA2/ICA_Test2.txt"
-    echo "Listing file /mnt/ICA2/ICA_Test2.txt: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
-
-cat /mnt/ICA2/ICA_Test2.txt > ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to read file /mnt/ICA/ICA_Test.txt"
-    echo "Listing read /mnt/ICA2/ICA_Test2.txt: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
-
-# unalias rm 2> /dev/null
-rm /mnt/ICA2/ICA_Test2.txt > ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to delete file /mnt/ICA2/ICA_Test2.txt"
-    echo "Deleting /mnt/ICA2/ICA_Test2.txt file: Failed" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
-
-rmdir /mnt/ICA2/ 2> ~/summary.log
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to delete directory /mnt/ICA2/"
-    echo "Deleting /mnt/ICA2/ directory: Failed" >> ~/summary.log
+    LogMsg "Failed to restore directory /mnt/ICA/"
+    echo "Restoring /mnt/ICA/ directory: Failed" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 10
 fi
@@ -233,9 +170,8 @@ if [ $? -gt 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 10
 fi
-LogMsg "Unmount partition successful"
 
-(echo d; echo 1; echo w) | fdisk /dev/sdb 2> ~/summary.log
+(echo d; echo w) | fdisk /dev/sdb 2> ~/summary.log
 if [ $? -gt 0 ]; then
     LogMsg "Failed to delete partition"
     echo "Deleting partition: Failed" >> ~/summary.log

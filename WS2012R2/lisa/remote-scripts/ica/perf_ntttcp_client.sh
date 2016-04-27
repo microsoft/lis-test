@@ -526,8 +526,9 @@ fi
 #
 # Start ntttcp client instances
 #
-LogMsg "Starting ntttcp in client mode"
+sleep 3
 
+LogMsg "Starting ntttcp in client mode"
 ntttcp -s${IPERF3_SERVER_IP} ${ipVersion} > ntttcp-for-linux.log 2>&1
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start ntttcp client scripts on the client machine"
