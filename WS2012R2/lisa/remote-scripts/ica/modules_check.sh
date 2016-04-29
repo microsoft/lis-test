@@ -58,7 +58,6 @@ SearchModules()
     LogMsg "Searching for modules..."
     echo "Searching for modules..." >> /root/summary.log
 
-    hv_modules=(vmbus keyboard)
     [[ -d "/root/initr/usr/lib/modules" ]] && abs_path="/root/initr/usr/lib/modules/" || abs_path="/root/initr/lib/modules/"
     for module in "${hv_modules[@]}"; do
         grep -i $module $abs_path*/modules.dep >> /root/summary.log
@@ -81,16 +80,38 @@ SearchModules()
 LogMsg "Updating test case state to running"
 UpdateTestState "TestRunning"
 
+CONSTANTS_FILE="constants.sh"
+
+
+if [ -e ~/${CONSTANTS_FILE} ]; then
+    source ~/${CONSTANTS_FILE}
+else
+    msg="Error: no ${CONSTANTS_FILE} file"
+    echo $msg
+    echo $msg >> ~/summary.log
+    UpdateTestState $ICA_TESTABORTED
+    exit 10
+fi
+
+
 # Remove existing logs
 if [ -e ~/summary.log ]; then
     LogMsg "Cleaning up previous copies of summary.log"
     rm -f ~/summary.log
 fi
 
+if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter fileSystems is not defined in constants file."
+    LogMsg "$msg"
+    echo $msg >> ~/summary.log
+    UpdateTestState $ICA_TESTABORTED
+    exit 30
+fi
+
 if [ -f /boot/initramfs-0-rescue* ]; then
     img=/boot/initramfs-0-rescue*
 else
-    [[ -f "/boot/initrd-`uname -r`" ]] && img="/boot/initrd-`uname -r`" || img="/boot/initrd.img-`uname -r`"    
+    [[ -f "/boot/initrd-`uname -r`" ]] && img="/boot/initrd-`uname -r`" || [[ -f "/boot/initramfs-`uname -r`.img" ]] && img="/boot/initramfs-`uname -r`.img" || img="/boot/initrd.img-`uname -r`"    
 fi
 
 echo "The initrd test image is: $img" >> summary.log
@@ -126,7 +147,7 @@ case $img_type in
         fi
     ;;
     *XZ*)
-		LogMsg "Unpacking the image"
+        LogMsg "Unpacking the image"
         echo "Unpacking the image" >> /root/summary.log
         xzcat boot.img | cpio -i -d -H newc --no-absolute-filenames
         if [ $? -eq 0 ]; then
