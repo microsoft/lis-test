@@ -54,7 +54,7 @@
             <suiteTest>CDmount</suiteTest>
             <suiteTest>VCPU_verify_online</suiteTest>
             <suiteTest>CheckNuma</suiteTest>
-            <suiteTest>Initrd_modules_check</suiteTest>
+            <suiteTest>initrd_modules_check</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -255,8 +255,8 @@
                 <param>VCPU=4</param>
                 <param>NumaNodes=1</param>
                 <param>Sockets=1</param>
-				<param>staticMem=2048MB</param>
-				<param>memWeight=0</param>
+		<param>staticMem=2048MB</param>
+		<param>memWeight=0</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>600</timeout>
@@ -276,21 +276,21 @@
                 <param>NumaNodes=4</param>
                 <param>Sockets=2</param>
                 <param>MemSize=1024MB</param>
-				<param>staticMem=2048MB</param>
-				<param>memWeight=0</param>
+		<param>staticMem=2048MB</param>
+		<param>memWeight=0</param>
             </testParams>
             <timeout>600</timeout>
         </test>
 
         <test>
-            <testName>Initrd_modules_check</testName>
+            <testName>initrd_modules_check</testName>
             <testScript>modules_check.sh</testScript>
             <files>remote-scripts/ica/modules_check.sh</files>
             <testparams>
                 <param>TC_COVERED=CORE-24</param>
                 <param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hv_utils.ko hyperv-keyboard.ko hid-hyperv.ko)</param>
             </testparams>
-            <timeout>200</timeout>
+            <timeout>600</timeout>
         </test>
     </testCases>
 
