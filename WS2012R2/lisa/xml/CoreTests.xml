@@ -54,6 +54,7 @@
             <suiteTest>CDmount</suiteTest>
             <suiteTest>VCPU_verify_online</suiteTest>
             <suiteTest>CheckNuma</suiteTest>
+            <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>initrd_modules_check</suiteTest>
             </suiteTests>
         </suite>
