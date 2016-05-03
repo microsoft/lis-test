@@ -134,16 +134,16 @@ $retVal = $True
 #
 # Extracting the node and port name values for the VM attached HBA
 #
-$GetNumaNodes=Get-VM $vmName | select -ExpandProperty NumaNodesCount
+$GetNumaNodes=Get-VM -Name $vmName -ComputerName $hvServer | select -ExpandProperty NumaNodesCount
 
 #
 # Send the Numa Nodes value to the guest if it matches with the number of CPUs
 #
 if ( $GetNumaNodes -eq $numCPUs/$vcpuOnNode ) {
-    Write-Output "INFO: NumaNodes and the number of CPU are matched."
+    Write-Output "Info: NumaNodes and the number of CPU are matched."
 }
 else {
-    Write-Output "Error: NumaNodes and the number of CPU does not match. "
+    Write-Output "Error: NumaNodes and the number of CPU does not match."
     return $False
 }
 
@@ -163,7 +163,7 @@ if (-not $sts[-1]) {
     return $False
 }
 else {
-    Write-Output "Matching values for NumaNodes: $NumaNodes has been found on the vm! " | Tee-Object -Append -file $summaryLog
+    Write-Output "Matching values for NumaNodes: $NumaNodes has been found on the VM! " | Tee-Object -Append -file $summaryLog
 }
 
 return $retVal
