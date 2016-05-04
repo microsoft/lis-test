@@ -505,7 +505,7 @@ function ShutDownVM([System.Xml.XmlElement] $vm)
         if (-not (SendCommandToVM $vm "init 0") )
         {
             LogMsg 0 "Warn : $($vm.vmName) could not send shutdown command to the VM. Using HyperV to stop the VM."
-            Stop-VM $($vm.vmName) -ComputerName $($vm.hvServer)
+            Stop-VM $($vm.vmName) -ComputerName $($vm.hvServer) -Force
         }
     }
 }
