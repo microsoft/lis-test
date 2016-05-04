@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -19,7 +19,6 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Hot Add a NIC to a Gen2 VM that booted without a NIC.
@@ -29,7 +28,7 @@
     NIC, verify it works, then hot remove the NIC.
 
     Note: The Hot Add NIC feature is only supported on Gen 2 VMs.
-          This test case requires a Gen 2 VM.
+          This test case requires a Generation 2 VM.
 
     The LISA test framework will boot the Linux VM (SUT) which is a Gen2 VM.
     Initially, the SUT has a NIC.  LISA will push files to the VM using SSH,
@@ -104,13 +103,11 @@
 
 param( [String] $vmName, [String] $hvServer, [String] $testParams )
 
-
 $KVP_KEY       = "HotAddTest"
-
 
 #######################################################################
 #
-#
+# Functions definitions
 #
 #######################################################################
 function LinuxRelease()
@@ -126,7 +123,6 @@ function LinuxRelease()
     
     return "Unknown"
 }
-
 
 #######################################################################
 #
@@ -154,7 +150,7 @@ function ConfigureRcLocal()
                  Throw "Error: This script currently does not support the Fedora distribution"
              }
     "RHEL"   {
-                 Throw "Error: This script currently does not support the RHEL distirbution"
+                 Throw "Error: This script currently does not support the RHEL distribution"
              }
     "SLES"   {
                  plink -i ssh\${sshKey} root@${ipv4} "echo 'dos2unix /root/NET_VerifyBootNoNIC.sh'  >> /etc/init.d/after.local"
@@ -169,7 +165,6 @@ function ConfigureRcLocal()
              }
     }   
 }
-
 
 ########################################################################
 #
@@ -236,7 +231,6 @@ function GetKVPItem([String] $vm, [String] $server, [String] $keyName, [Switch] 
 
     return $Null
 }
-
 
 ########################################################################
 #
@@ -361,7 +355,6 @@ function DoTest()
         Throw "Error: The VM never detected the Hot Remove of the NIC"
     }
 }
-
 
 ########################################################################
 #
@@ -629,5 +622,4 @@ catch
 # If we made it here, everything worked
 #
 "Info : Test completed successfully"
-
 return $True
