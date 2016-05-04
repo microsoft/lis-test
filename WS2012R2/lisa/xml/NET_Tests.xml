@@ -54,6 +54,7 @@
                 <suiteTest>VlanTagging</suiteTest>
                 <suiteTest>VlanTrunking</suiteTest>
                 <suiteTest>Network_Hang_Vxlan</suiteTest>
+                <suiteTest>CopyFileScp</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
@@ -383,6 +384,23 @@
             <testScript>setupscripts\NET_Hang_Vxlan.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>CopyFileScp</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
+            <files>remote-Scripts/ica/FCOPY_check_md5.sh</files>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>2500</timeout>
+            <testParams>
+                <param>TC_COVERED=NET-19</param>
+                <param>SCSI=1,0,Dynamic,512,15GB</param>
+                    <param>Type=Fixed</param>
+                    <param>SectorSize=512</param>
+                    <param>DefaultSize=15GB</param>
+                <param>bandwidth=4096</param>
+            </testParams>
         </test>
 
         <!-- The following test requires a Gen 2 VM -->
