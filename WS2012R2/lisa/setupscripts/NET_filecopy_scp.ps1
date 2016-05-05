@@ -33,7 +33,7 @@
             <testName>CopyFileScp</testName>
             <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
             <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
-            <files>remote-Scripts/ica/FCOPY_check_md5.sh</files>
+            <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>2500</timeout>
             <testParams>
@@ -279,8 +279,8 @@ else {
 # Run the remote script to get MD5 checksum on VM
 #
 
-.\bin\plink -i ssh\${sshKey} root@${ipv4} "dos2unix /root/FCOPY_check_md5.sh $testfile"
-.\bin\plink -i ssh\${sshKey} root@${ipv4} "bash /root/FCOPY_check_md5.sh $testfile"
+.\bin\plink -i ssh\${sshKey} root@${ipv4} "dos2unix /root/NET_scp_check_md5.sh $testfile"
+.\bin\plink -i ssh\${sshKey} root@${ipv4} "bash /root/NET_scp_check_md5.sh $testfile"
 if (-not $?) {
     Write-Error -Message  "ERROR: Unable to compute md5 on vm file" -ErrorAction SilentlyContinue
     Write-Output "ERROR: Unable to compute md5 on vm file"
@@ -307,13 +307,13 @@ $md5IsMatching = select-string -pattern $localChksum -path $logfilename
 if ($md5IsMatching -eq $null) 
 { 
     Write-Output "ERROR: MD5 checksums are not matching" >> $summaryLog
-    Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
+    Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
     return $False
 } 
 else 
 { 
     Write-Output "Info: MD5 checksums are matching" | Tee-Object -Append -file $summaryLog
-    Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
+    Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
     $results = "Passed"
     $retVal = $True
 }
