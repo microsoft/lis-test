@@ -51,14 +51,21 @@
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
+
+$sshKey = $null
+$ipv4 = $null
+$rootDir = $null
+$TC_COVERED = "Undefined"
+$memArgs = $null
+
 ######################################################################
 #
-#Get IP from VM
+# Get IP from VM
 #
 ######################################################################
 function get_vmip()
 {
-    $timeout = 120
+    $timeout = 180
     while ($timeout -gt 0)
     {
         #
@@ -107,12 +114,6 @@ if ($hvServer -eq $null)
     "Error: hvServer is null"
     return $retVal
 }
-
-$sshKey = $null
-$ipv4 = $null
-$rootDir = $null
-$TC_COVERED = "Undefined"
-$memArgs = $null
 
 $params = $testParams.Split(";")
 
@@ -212,11 +213,12 @@ ForEach ($memory in $memArgs)
            return $False
         }
     }
+    
     $memoryParam = "VMMemory = ${memory}"
     .\setupScripts\SetVMMemory.ps1 -vmName $vmName -hvServer $hvServer -testParams $memoryParam
     if ($? -eq "True")
     {
-        Write-output "VM Memory count updated to $memory" | Tee-Object -Append -file $summaryLog
+        Write-output "VM memory count updated to $memory" | Tee-Object -Append -file $summaryLog
     }
     else
     {
