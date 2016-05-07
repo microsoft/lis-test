@@ -92,6 +92,7 @@
 				<param>staticMem=512MB</param>
 			</testParams>
 			<testScript>setupScripts\DM_HotAdd.ps1</testScript>
+			<files>remote-scripts/ica/Check_traces.sh</files>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
@@ -110,6 +111,7 @@
 				<param>staticMem=512MB</param>
 			</testParams>
 			<testScript>setupScripts\DM_HotAdd_Stress_ng.ps1</testScript>
+			<files>remote-scripts/ica/Check_traces.sh</files>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
@@ -135,6 +137,7 @@
 				<param>staticMem=1024MB</param>
 			</testParams>
 			<testScript>setupScripts\DM_HotAddRemove.ps1</testScript>
+			<files>remote-scripts/ica/Check_traces.sh</files>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
@@ -192,6 +195,7 @@
 				<param>staticMem=512MB</param>
 			</testParams>
 			<testScript>setupScripts\DM_RemoveUnderPressure.ps1</testScript>
+			<files>remote-scripts/ica/Check_traces.sh</files>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
@@ -210,6 +214,7 @@
 				<param>staticMem=512MB</param>
 			</testParams>
 			<testScript>setupScripts\DM_PressureChangesDemand.ps1</testScript>
+			<files>remote-scripts/ica/Check_traces.sh</files>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
