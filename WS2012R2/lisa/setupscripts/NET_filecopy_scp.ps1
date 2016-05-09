@@ -64,7 +64,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $testfile = $null
 # 10GB file size
 $filesize1 = 10737418240
-# 2GB file size
+# 10GB file size
 $filesize2 = 10737418240
 
 #######################################################################
