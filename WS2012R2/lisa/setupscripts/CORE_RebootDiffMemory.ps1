@@ -249,7 +249,7 @@ ForEach ($memory in $memArgs)
     # Reboot VM
     #
     $sts = SendCommandToVM $ipv4 $sshKey "reboot"
-    if ($sts) {
+    if (-not $sts) {
 		Write-Output "ERROR: Failed to reboot VM" |Tee-Object -Append -file $summaryLog
 		return $False
     }
