@@ -267,7 +267,7 @@ scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ~/constants.s
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_USERNAME}@[${STATIC_IP2}]:
 
 #
-# Start ntttcp in server mode on the Target server side
+# Start apache server configuration on the Target server side
 #
 LogMsg "Starting apache configuration script to server"
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ${SERVER_USERNAME}@${STATIC_IP2} "echo '~/performance_ab_server.sh > APACHE_ServerSideScript.log' | at now"
@@ -357,7 +357,7 @@ suse*)
 esac
 
 LogMsg "Starting the benchmark"
-ab -n ${APACHE_TEST_NUM_REQUESTS} -c ${APACHE_TEST_NUM_CONCURRENCY} http://${APACHE_SERVER}/test.dat > abtest.log
+ab -n ${APACHE_TEST_NUM_REQUESTS} -c ${APACHE_TEST_NUM_CONCURRENCY} http://${APACHE_SERVER}/test.dat >> summary.log
 if [ $? -ne 0 ]; then
     msg="Error: Could not start ab performance test."
     LogMsg "${msg}"
@@ -378,11 +378,6 @@ UpdateSummary "Kernel: $(uname -r)"
 #
 #Shut down dependency VM
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_USERNAME}@${STATIC_IP2} "init 0 | at now"
-if [ $? -ne 0 ]; then
-    msg="Warning: Unable to shut down target server machine"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
 
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED

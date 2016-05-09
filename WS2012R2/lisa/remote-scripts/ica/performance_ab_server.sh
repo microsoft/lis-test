@@ -23,8 +23,6 @@
 
 #######################################################################
 #
-# perf_ntttcp_server.sh
-#
 # Description:
 #     Configuring an APACHE server to be tested.
 #
@@ -211,18 +209,15 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 20      
     fi
-    LogMsg "Info: Generate test data file to Apache server www htdocs folder"
-    dd if=/dev/urandom of=./test.dat bs=1K count=${TEST_FILE_SIZE_IN_KB}
-    if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Failed to generate test data."
-        UpdateTestState $ICA_TESTFAILED
-        exit 20        
-    fi
+
     LogMsg "Info: Restart Apache server"
     service apache2 restart
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to start apache2 service."      
     fi
+
+    LogMsg "Info: Change home folder"
+    cd /var/www/htdocs
     ;;
  redhat*|centos*)
     LogMsg "Info: Running RHEL server"
@@ -235,18 +230,13 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 20    
     fi
-    LogMsg "Info: Generate test data file to Apache server www htdocs folder"
-    dd if=/dev/urandom of=./test.dat bs=1K count=${TEST_FILE_SIZE_IN_KB}
-    if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Failed to generate test data."
-        UpdateTestState $ICA_TESTFAILED
-        exit 20     
-    fi
+
     LogMsg "Info: Restart Apache server"        
     systemctl restart httpd.service
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to start httpd service."        
     fi
+    cd /var/www/html/
     ;;
 suse*)
     LogMsg "Info: Running SLES server"
@@ -259,21 +249,24 @@ suse*)
         UpdateTestState $ICA_TESTFAILED
         exit 20    
     fi
-    LogMsg "Info: Generate test data file to Apache server www htdocs folder"
-    dd if=/dev/urandom of=./test.dat bs=1K count=${TEST_FILE_SIZE_IN_KB}
-    if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Failed to generate test data."
-        UpdateTestState $ICA_TESTFAILED
-        exit 20          
-    fi
+
     LogMsg "Info: Restart Apache server"
     service apache2 stop
     service apache2 start
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to start apache2 service."        
     fi
+    cd /srv/www/htdocs
     ;;
 esac
+
+LogMsg "Info: Generate test data file to Apache server www htdocs folder"
+dd if=/dev/urandom of=./test.dat bs=1K count=${TEST_FILE_SIZE_IN_KB}
+if [ $? -ne 0 ]; then
+    LogMsg "ERROR: Failed to generate test data."
+    UpdateTestState $ICA_TESTFAILED
+    exit 20          
+fi
 
 # set static ips for test interfaces
 declare -i __iterator=0

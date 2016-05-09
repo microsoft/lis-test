@@ -53,6 +53,7 @@
             <testScript>performance_ab_client.sh</testScript>
             <files>remote-scripts/ica/performance_ab_client.sh,remote-scripts/ica/performance_ab_server.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
+                <param>TC_COVERED=PERF-AB-01</param>
                 <param>VM2NAME=VM-Apache-Server</param>
                 <param>VM2SERVER=LIS-PERF05</param>
                 <param>APACHE_SERVER=10.10.10.30</param>
@@ -66,7 +67,6 @@
                 <param>TEST_FILE_SIZE_IN_KB=200</param>
             </testParams>
             <uploadFiles>
-                <file>abtest.log</file>
                 <file>APACHE_ServerSideScript.log</file>
             </uploadFiles>
             <timeout>1200</timeout>
@@ -86,7 +86,7 @@
             <hardware>
                <create>true</create>
                <numCPUs>4</numCPUs>
-               <memSize>2048</memSize>
+               <memSize>8192</memSize>
                <disableDiff>True</disableDiff>
                <nic>VMBus,Vm.Enterprise#1</nic>
                <nic>VMBus,Vm.Private40G#1,001600112200</nic>
@@ -102,7 +102,7 @@
             <hardware>
                <create>true</create>
                <numCPUs>4</numCPUs>
-               <memSize>2048</memSize>
+               <memSize>8192</memSize>
                <disableDiff>True</disableDiff>
                <nic>VMBus,Vm.Enterprise#1,001600112233</nic>
                <nic>VMBus,Vm.Private40G#1,001600112201</nic>
