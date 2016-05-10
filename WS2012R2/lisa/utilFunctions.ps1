@@ -41,35 +41,35 @@ function HasItBeenTooLong([String] $timestamp, [Int] $timeout)
     <#
     .Synopsis
         Check to see if a timeout has occured.
-        
+
     .Description
         Convert the timestamp from a string to a [DateTime] type,
         add in the timeout value and see if it is less than the
         current date/time.
-        
+
     .Parameter timestamp
         A string representing the timestamp
         Type : [String]
-        
+
     .Parameter timeout
         An integer timeout period in seconds.
         Type : [Int]
-        
+
     .ReturnValue
         Return $True if current time is greater than timestamp + timeout,
                $false otherwise.
         Output type : [Boolean]
-        
+
     .Example
         HasItBeenTooLong $myTimeStamp $myTimeOut
     #>
-    
+
     $retVal = $false
 
     if (-not $timeStamp)
     {
         # Bad data - force a timeout
-        return $True    
+        return $True
     }
 
     if (-not $timeout)
@@ -108,35 +108,35 @@ function GetNextTest([System.Xml.XmlElement] $vm, [xml] $xmlData)
     <#
     .Synopsis
         Get the name of the next test the VM is to run
-        
+
     .Description
         Examine the $vm.suite field and then walk through the test suite
         to return the string name of the next test the VM is to perform.
         If all tests have been performed, return the string "done".
-        
+
     .Parameter vm
         An XML element representing the VM
         Type : [System.Xml.XmlElement]
-        
+
     .ReturnValue
         A string of the name of the next test.
         Output type : [Boolean]
-        
+
     .Example
         GetNextTest $myVM
     #>
     LogMsg 9 "Info :    GetNextText($($vm.vmName))"
     LogMsg 9 "Debug:      vm.currentTest = $($vm.currentTest)"
     LogMsg 9 "Debug:      vm.suite = $($vm.suite)"
-    
+
     $done = "done"      # Assume no more tests to run
-    
+
     if (-not $vm)
     {
         LogMsg 0 "Error: GetNextTest() received a null VM parameter"
         return $done
     }
-    
+
     if (-not $xmlData)
     {
         LogMsg 0 "Error: GetNextTest() received a null xmlData parameter"
@@ -156,7 +156,7 @@ function GetNextTest([System.Xml.XmlElement] $vm, [xml] $xmlData)
 
     $tests = $null
     $nextTest = $done
-    
+
     foreach ($suite in $xmlData.config.testSuites.suite)
     {
         if ($suite.suiteName -eq $vm.suite)
@@ -190,7 +190,7 @@ function GetNextTest([System.Xml.XmlElement] $vm, [xml] $xmlData)
                 $nextTest = [string] $t
                 break
             }
-            
+
             if ($currentTest -eq $prev)
             {
                 $nextTest = [string] $t
@@ -199,7 +199,7 @@ function GetNextTest([System.Xml.XmlElement] $vm, [xml] $xmlData)
             $prev = $t
         }
     }
-        
+
     if ($vm.iteration -ne "-1")
     {
         if ($vm.currentTest -eq "none" -or $vm.currentTest -eq "done")
@@ -207,7 +207,7 @@ function GetNextTest([System.Xml.XmlElement] $vm, [xml] $xmlData)
             LogMsg 0 "Error: $($vm.vmName) has a non zero iteration count for test $($vm.currentTest)"
             return $done
         }
-        
+
         $testData = GetTestData $vm.currentTest $xmlData
         if ($testData)
         {
@@ -249,15 +249,15 @@ function GetTestData([String] $testName, [xml] $xmlData)
     <#
     .Synopsis
         Retrieve the xml object for the specified test
-        
+
     .Description
         Find the test named $testName, and return the xml element
         for that test, on $null if the test is not found.
-        
+
     .Parameter testName
         The name of the test to return
         Type : [String]
-        
+
     .ReturnValue
         An xml element of the specific test
         Output type: [System.Xml.XmlElement]
@@ -265,7 +265,7 @@ function GetTestData([String] $testName, [xml] $xmlData)
         GetTestData "MyTest"
     #>
     LogMsg 6 ("Info :    GetTestData($($testName))")
-    
+
     $testData = $null
 
     foreach ($test in $xmlData.config.testCases.test)
@@ -290,15 +290,15 @@ function GetTestTimeout([System.Xml.XmlElement] $vm, [XML] $xmlData)
     <#
     .Synopsis
         Retrieve timeout value for the VM's current test
-        
+
     .Description
         Return the timeout value defined in the .xml file for
         the current test, or $null if no timeout is specified.
-        
+
     .Parameter vm
         The xml element of the virtual machine
         Type : [System.Xml.XmlElement]
-        
+
     .ReturnValue
         A string representing the timeout value in seconds,
         or $null if not timeout is found.
@@ -306,7 +306,7 @@ function GetTestTimeout([System.Xml.XmlElement] $vm, [XML] $xmlData)
     .Example
         GetTestTimeout $myVM
     #>
-    
+
     $timeout = $null
     $testData = GetTestData $vm.currentTest $xmlData
 
@@ -328,12 +328,12 @@ function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
     <#
     .Synopsis
         Mark the current test as aborted.
-        
+
     .Description
-        Displayed msg if provided, set the VM's testCaseResults to 
+        Displayed msg if provided, set the VM's testCaseResults to
         "False", and set the VM's state to completed, update the
         VM's timestamp
-        
+
     .Parameter vm
         The xml element of the virtual machine
         Type : [System.Xml.XmlElement]
@@ -341,10 +341,10 @@ function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
     .Parameter msg
         A string to be included in the ICA log.
         Type : [String]
-        
+
     .ReturnValue
         none
-        
+
     .Example
         AbortCurrentTest $myVM "This is just a test"
     #>
@@ -358,7 +358,7 @@ function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
 
     $vm.testCaseResults = "False"
     $vm.state = $CollectLogFiles
-    
+
     logMsg 2 "Info : $($vm.vmName) transitioned to state $($vm.state)"
     $vm.stateTimestamp = [DateTime]::Now.ToString()
 }
@@ -373,12 +373,12 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
     <#
     .Synopsis
         Append the summary text from each VM into a single string.
-        
+
     .Description
         Append the summary text from each VM one long string. The
-        string includes line breaks so it can be display on a 
+        string includes line breaks so it can be display on a
         console or included in an e-mail message.
-        
+
     .Parameter xmlConfig
         The parsed xml from the $xmlFilename file.
         Type : [System.Xml]
@@ -390,19 +390,19 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
     .Parameter xmlFilename
         The name of the xml file for the current test run.
         Type : [String]
-        
+
     .ReturnValue
         A string containing all the summary message from all
         VMs in the current test run.
-        
+
     .Example
         SummaryToString $testConfig $myStartTime $myXmlTestFile
     #>
-    
+
     $str = "<br />Test Results Summary<br />"
     $str += "LISA test run on " + $startTime
     $str += "<br />XML file: $xmlFilename<br /><br />"
-    
+
     #
     # Add information about the host running ICA to the e-mail summary
     #
@@ -411,13 +411,13 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
     {
         $str += $vm.emailSummary + "<br />"
     }
-     
+
     $fname = [System.IO.Path]::GetFilenameWithoutExtension($xmlFilename)
-    
+
     $hostname = hostname
-    
+
     $str += "Logs can be found at \\$($hostname)\LisaTestResults\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
-    
+
     $str += "</pre><br />"
 
     return $str
@@ -433,19 +433,19 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
     <#
     .Synopsis
         Send an e-mail message with test summary information.
-        
+
     .Description
         Collect the test summary information from each VM.  Send an
         eMail message with this summary information to emailList defined
         in the xml config file.
-        
+
     .Parameter xmlConfig
         The parsed XML from the test xml file
         Type : [System.Xml]
-        
+
     .ReturnValue
         none
-        
+
     .Example
         SendEmail $myConfig
     #>
@@ -455,12 +455,12 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
     {
         $to = $to + $r
     }
-    
+
     $from = $xmlConfig.config.global.email.Sender
     $subject = $xmlConfig.config.global.email.Subject + " " + $startTime
     $smtpServer = $xmlConfig.config.global.email.smtpServer
     $fname = [System.IO.Path]::GetFilenameWithoutExtension($xmlFilename)
-    
+
     $body = SummaryToString $xmlConfig $startTime $fname
     $body = $body.Replace("Aborted", '<em style="background:Aqua; color:Red">Aborted</em>')
     $body = $body.Replace("Failed", '<em style="background:Yellow; color:Red">Failed</em>')
@@ -482,19 +482,19 @@ function ShutDownVM([System.Xml.XmlElement] $vm)
     <#
     .Synopsis
         Stop the VM
-        
+
     .Description
         Try to send a halt command to the VM.  If this fails,
         use the HyperV library Stop-VM call to try and stop
         the VM.  If the VM is already stopped, do nothing.
-        
+
     .Parameter vm
         An xml node representing the VM.
         Type : [System.Xml.XmlElement]
-        
+
     .ReturnValue
         none
-        
+
     .Example
         ShutDownVM $myVM
     #>
@@ -520,10 +520,10 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     <#
     .Synopsis
         Run a separate PowerShell script.
-        
+
     .Description
         Run the specified PowerShell script.
-        
+
     .Parameter vmName
         Name of the VM
         Type : [String]
@@ -580,12 +580,11 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
         return $False
     }
 
-    logMsg 6 ("Info : RunPSScript($vmName, $hvServer, $scriptName")
-
     $vmName = $vm.vmName
     $hvServer = $vm.hvServer
     $testData = GetTestData $vm.currentTest $xmlData
-    
+    logMsg 6 ("Info : RunPSScript($vmName, $hvServer, $scriptName)")
+
     if (-not $testData)
     {
         if ([string]::Compare($vm.role, "SUT", $true) -eq $true)
@@ -601,8 +600,8 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     $params = CreateTestParamString $vm $xmlData
     $params += "scriptMode=${scriptMode};"
     $params += "TestLogDir=${testDir};"
-    $params += "sshKey=$($vm.sshKey);"   
-    
+    $params += "sshKey=$($vm.sshKey);"
+
     #
     # Invoke the setup/cleanup script
     #
@@ -630,8 +629,8 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
 
     #
     # Write script output into log file
-    #    
-    for($i=0; $i -lt $numItems-1; $i++)
+    #
+    for($i=0; $i -lt $numItems; $i++)
     {
         logMsg 3 ("Info :    $vmName - $($sts[$i])")
     }
@@ -727,7 +726,7 @@ function UpdateState([System.Xml.XmlElement] $vm, [string] $newState)
     .ReturnValue
         None
     #>
-    
+
     $oldState = $vm.state
     $vm.state = $newState
     LogMsg 2 "Info : $($vm.vmName) transitioned from ${oldState} to $($vm.state)"
@@ -765,7 +764,7 @@ function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [strin
 
     #bin\pscp -q -i ssh\${sshKey} root@${hostname}:${remoteFile} $localFile
     #if ($?)
-    
+
     $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} root@${hostname}:${remoteFile} ${localFile}" -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
     if ($process.ExitCode -eq 0)
     {
@@ -817,7 +816,7 @@ function SendFileToVM([System.Xml.XmlElement] $vm, [string] $localFile, [string]
     {
         $recurse = "-r"
     }
-            
+
     #bin\pscp -q $recurse -i ssh\${sshKey} $localFile root@${hostname}:${remoteFile}
     #if ($?)
 
@@ -885,7 +884,7 @@ function SendCommandToVM([System.Xml.XmlElement] $vm, [string] $command)
         $retVal = $True
         LogMsg 2 "Success: $vmName successfully sent command to VM. Command = '$command'"
     }
-    
+
     del lisaOut.tmp -ErrorAction "SilentlyContinue"
     del lisaErr.tmp -ErrorAction "SilentlyContinue"
 
@@ -955,13 +954,13 @@ function TestRemotePath ([String] $path, [String] $hvServer)
     {
         $extension = ($fileInfo.Extension).SubString(1)
     }
-    
+
     $directory = $null
     if ( ($fileInfo.DirectoryName).Length -gt 0 )
     {
         $directory = $fileInfo.DirectoryName + "\"
     }
-    
+
     $elements = $directory.Split(":")
     if ($elements -isnot [array])
     {
@@ -990,17 +989,17 @@ function TestRemotePath ([String] $path, [String] $hvServer)
     {
         $filter += " and path=`"$dirPath`""
     }
-    
+
     if ($fileName)
     {
         $filter += " and filename=`"$fileName`""
     }
-    
+
     if ($extension)
     {
         $filter += " and extension=`"$extension`""
     }
-    
+
     #"Info : TestRemotePath filter = $filter"
 
     $fileInfo = gwmi CIM_dataFile -filter $filter -computer $hvServer
@@ -1028,7 +1027,7 @@ function Test-Admin ()
         has Administrator privileges
     .Example
         Test-Admin
-    #> 
+    #>
     $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
     $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
@@ -1070,7 +1069,7 @@ function CreateTestParamString([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 $tp += $param + ";"
             }
         }
-        
+
         #
         # Next, add any test specific testParams
         #
@@ -1082,7 +1081,7 @@ function CreateTestParamString([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 $tp += $param + ";"
             }
         }
-        
+
         #
         # Now, add VM specific testParams
         #
@@ -1095,7 +1094,7 @@ function CreateTestParamString([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
         }
     }
-    
+
     #
     # Add the iteration information if test case is being iterated
     #
@@ -1105,7 +1104,7 @@ function CreateTestParamString([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if ($iterationParam)
         {
             $tp += "iteration=$($vm.iteration);"
-            
+
             if ($iterationParam -ne "")
             {
                 $tp += "iterationParam=${iterationParam};"
@@ -1121,14 +1120,14 @@ function CreateTestParamString([System.Xml.XmlElement] $vm, [XML] $xmlData)
     # Include the test log directory path
     #
     $tp += "rootDir=$PWD;"
-    
+
     #
     # Include the test log directory path
     #
     $tp += "TestLogDir=${testDir};"
 
     #
-    # Include the test name too , to redirect remote scripts log to it . 
+    # Include the test name too , to redirect remote scripts log to it .
     #
     $testname   = $vm.currentTest
     $tp += "TestName=${testname};"
@@ -1163,21 +1162,21 @@ function UpdateCurrentTest([System.Xml.XmlElement] $vm, [XML] $xmlData)
         LogMsg 0 "Error: UpdateCurrentTest() received a null VM object"
         return
     }
-    
+
     if (-not $xmlData)
     {
         LogMsg 0 "Error: UpdateCurrentTest() received a null xmlData object"
         return
     }
-    
+
     #actually this is the previous test. here we need to pick up next new test if existing
-    #if previous test has been marked as "done" - for example, test failed and its XML defined to Abort test onError 
+    #if previous test has been marked as "done" - for example, test failed and its XML defined to Abort test onError
     $previousTest = $vm.currentTest
     if ($previousTest -eq "done")
     {
         return
     }
-    
+
     $previousTestData = GetTestData $previousTest $xmlData
     #$nextTest = $currentTest
 
@@ -1188,7 +1187,7 @@ function UpdateCurrentTest([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $vm.currentTest = "done"
         return
     }
-    
+
     if ($previousTestData.maxIterations)
     {
          $iterationCount = (([int] $vm.iteration) + 1)
@@ -1265,7 +1264,7 @@ function GetIterationParam([System.Xml.XmlElement] $vm, [XML] $xmlData)
         LogMsg 0 "Error: GetIterationParam() received a null VM object"
         return $null
     }
-    
+
     if (-not $xmlData)
     {
         LogMsg 0 "Error: GetIterationParam() received a null xmlData object"
@@ -1278,7 +1277,7 @@ function GetIterationParam([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if ($testData.maxIterations)
         {
             $iterationParam = ""
-            
+
             if ($testData.iterationParams)
             {
                 if ($testData.iterationParams.param.count -eq 1)
@@ -1310,7 +1309,7 @@ function GetIterationParam([System.Xml.XmlElement] $vm, [XML] $xmlData)
         LogMsg 0 "Error: GetIterationParam() could not find test data for test $($vm.currentTest)"
     }
 
-    return $iterationParam   
+    return $iterationParam
 }
 
 #######################################################################
@@ -1485,7 +1484,7 @@ function GetIPv4ViaICASerial( [String] $vmName, [String] $server)
             Write-Error -Message "GetIPv4ViaICASerial: ICAserical returned an error: ${response}" -Category ReadError -ErrorAction SilentlyContinue
             return $null
         }
-            
+
         $ipv4 = $tokens[2].Trim()
     }
 
@@ -1603,7 +1602,7 @@ function GetIPv4([String] $vmName, [String] $server)
         if (-not $addr)
         {
             $errMsg += ("`n" + $error[0].Exception.Message)
-            
+
             $addr = GetIPv4ViaICASerial $vmName $server
             if (-not $addr)
             {
