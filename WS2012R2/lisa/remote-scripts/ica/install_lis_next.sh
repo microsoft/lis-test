@@ -35,6 +35,8 @@ ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
+build_date=$(date "+%d-%b")
+
 LogMsg() {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
 }
@@ -74,15 +76,14 @@ fi
 #
 # Source the utils.sh script
 #
-dos2unix utils.sh
-chmod +x utils.sh
-
 if [ ! -e ~/utils.sh ]; then
-    LogMsg "Error: The utils.sh script was to copied to the VM"
+    LogMsg "Error: The utils.sh script is not present on the VM"
     UpdateTestState $ICA_TESTABORTED
     exit 1
 fi
 
+dos2unix utils.sh
+chmod +x utils.sh
 . ~/utils.sh
 
 #######################################################################
@@ -91,7 +92,7 @@ fi
 #
 #######################################################################
 #
-# If there is a lis-next directory, delete it since it should not exist.
+# Removing existing folder if present.
 #
 if [ -e ./lis-next ]; then
     LogMsg "Info : Removing an old lis-next directory"
@@ -133,8 +134,27 @@ redhat_5|centos_5)
     ;;
 esac
 
+echo "Kernel: $(uname -r)" >> ~/summary.log
+
+#
+# If an existing LIS RPM installation is present,
+# decide if we should clean-up the installed modules
+#
+if [[ ${lis_cleanup} -eq "yes" ]]; then
+    LogMsg "Info: Existing LIS clean-up flag present, removing old modules..."
+	echo "Info: Existing LIS clean-up flag present, removing old modules..." >> ~/summary.log
+	
+	# clean-up previous installed lis modules
+	rm -rf /lib/modules/$(uname -r)/extra/microsoft-hyper-v
+	rm -rf /lib/modules/$(uname -r)/weak-updates/microsoft-hyper-v
+fi
+
 LogMsg "Info : Building ${rhel_version}.x source tree"
 cd lis-next/hv-rhel${rhel_version}.x/hv
+
+# Defining a custom LIS version string in order to acknoledge the use of these drivers
+sed --in-place -e s:"#define HV_DRV_VERSION.*":"#define HV_DRV_VERSION "'"4.1.0-'$build_date'"'"": include/linux/hv_compat.h
+
 ./rhel${rhel_version}-hv-driver-install
 if [ $? -ne 0 ]; then
     LogMsg "Error: Unable to build the lis-next RHEL ${rhel_version} code"
@@ -241,8 +261,10 @@ redhat_7|centos_7)
 			echo "Error: Unable to reload daemon." >> ~/summary.log
 			UpdateTestState $ICA_TESTFAILED
 		fi
+		
 	systemctl start hypervkvpd.service
 		if [ $? -ne 0 ]; then
+			echo "Info: The below warnings can be ignored if no existing LIS daemons are installed." >> ~/summary.log
 			echo "Error: Unable to start hv-kvp-daemon." >> ~/summary.log
 			UpdateTestState $ICA_TESTFAILED
 		fi
@@ -269,7 +291,7 @@ redhat_6|centos_6)
         LogMsg "Running daemons are being stopped."
             service hypervkvpd stop
             if [ $? -ne 0 ]; then
-                    echo "Error: Unabele to stop hypervkvpd." >> ~/summary.log
+                    echo "Error: Unable to stop hypervkvpd." >> ~/summary.log
                     UpdateTestState $ICA_TESTFAILED
             fi
             service hypervvssd stop
@@ -323,8 +345,9 @@ redhat_6|centos_6)
 
     LogMsg "Compiled daemons copied."
 
-    service hypervkvpd start 
+    service hypervkvpd start
         if [ $? -ne 0 ]; then
+			echo "Info: The below warnings can be ignored if no existing LIS daemons are installed." >> ~/summary.log
             echo "Error: Unable to start hv-kvp-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
