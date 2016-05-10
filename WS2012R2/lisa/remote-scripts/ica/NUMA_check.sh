@@ -51,12 +51,12 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
-UpdateTestState "TestRunning"
+UpdateTestState $ICA_TESTRUNNING
 
 if [ -e $HOME/constants.sh ]; then
     . $HOME/constants.sh
 else
-    echo "ERROR: Unable to source the constants file!"
+    LogMsg "ERROR: Unable to source the constants file!"
     UpdateSummary "ERROR: Unable to source the constants file!"
     UpdateTestState $ICA_TESTABORTED
     exit 1
@@ -67,7 +67,7 @@ dos2unix utils.sh
 
 # Source utils.sh
 . utils.sh || {
-    echo "Error: unable to source utils.sh!"
+    LogMsg "Error: unable to source utils.sh!"
     UpdateSummary "Error: unable to source utils.sh!"
     UpdateTestState $ICA_TESTABORTED
     exit 1
@@ -81,10 +81,13 @@ UtilsInit
 #
 numactl -s
 if [ $? -ne 0 ]; then
-	echo "Error: numactl is not installed."
-	UpdateSummary "Error: numactl is not installed."
-	UpdateTestState $ICA_TESTABORTED
-	exit 1
+    yum -y install numactl
+    if [ $? -ne 0]; then
+        LogMsg "Error: numactl cannot be installed by yum."
+        UpdateSummary "Error: numactl cannot be installed by yum."
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
 fi
 
 #
@@ -92,25 +95,44 @@ fi
 #
 
 NumaNodes=`numactl -H | grep cpu | wc -l`
-echo "Info : Detected NUMA nodes = ${NumaNodes}"
-echo "Info : Expected NUMA nodes = ${expected_number}"
+LogMsg "Info : Detected NUMA nodes = ${NumaNodes}"
+LogMsg "Info : Expected NUMA nodes = ${expected_number}"
 
 #
 # We do a matching on the values from host and guest
 #
 if ! [[ $NumaNodes = $expected_number ]]; then
-	echo "Error: Guest VM presented value $NumaNodesm and the host has $expected_number . Test Failed!"
+	LogMsg "Error: Guest VM presented value $NumaNodesm and the host has $expected_number . Test Failed!"
 	UpdateSummary "Error: Guest VM presented value $NumaNodesm and the host has $expected_number . Test Failed!"
     UpdateTestState $ICA_TESTFAILED
     exit 30
 else
-    echo "Info: Numa nodes value is matching with the host. VM presented value is $NumaNodes"
+    LogMsg "Info: Numa nodes value is matching with the host. VM presented value is $NumaNodes"
     UpdateSummary "Info: Numa nodes value is matching with the host. VM presented value is $NumaNodes"
+fi
+
+#
+# Check memory size configured in each NUMA node against max memory size
+# configured in VM if MaxMemSizeEachNode test params configured.
+#
+LogMsg "Info: Max memory size of every node has been set to $MaxMemSizeEachNode MB"
+if [ -n "$MaxMemSizeEachNode" ]; then
+    MemSizeArr=`numactl -H | grep size | awk '{ print $4 }'`
+    for i in ${MemSizeArr}; do
+        LogMsg "Info: Start checking memory size for node: $i MB"
+        if [ $i -gt $MaxMemSizeEachNode]; then
+            LogMsg "Error: The maximum memory size of each NUMA node was $i , which is greater than $MaxMemSizeEachNode MB. Test Failed!"
+        	UpdateSummary "Error: The maximum memory size of each NUMA node was $i , which is greater than $MaxMemSizeEachNode MB. Test Failed!"
+            UpdateTestState $ICA_TESTFAILED
+            exit 30
+        fi
+    done
+    LogMsg "The memory size of all nodes are equal or less than $MaxMemSizeEachNode MB."
 fi
 
 #
 # If we got here, all validations have been successful and no errors have occurred
 #
-echo "Test Completed Successfully"
-UpdateSummary "Test Completed Successfully"
-UpdateTestState "TestCompleted"
+LogMsg "NUMA check test Completed Successfully"
+UpdateSummary "NUMA check test Completed Successfully"
+UpdateTestState $ICA_TESTCOMPLETED
