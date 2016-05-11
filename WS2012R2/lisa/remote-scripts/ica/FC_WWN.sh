@@ -115,7 +115,7 @@ fi
 #
 # Either host1 or host2 special folders must exist, so one of them will be marked as not found, which is expected.
 #
-if test -n "$(find /sys/class/fc_host/host1/ /sys/class/fc_host/host2/ -maxdepth 1 -name '*_name' -print -quit )"; then
+if test -n "$(find /sys/class/fc_host/host*/ -maxdepth 1 -name 'node_name' -o -name 'port_name' -print -quit )"; then
 	echo "Info: The WWN node name file and port name file have been found."
 else
 	echo "Error: The WWN node name file or port name file have not been found!"
@@ -126,8 +126,8 @@ fi
 #
 # Saving the node_name and port_name values from the guest system
 #
-NODE_NAME_VM=`cat /sys/class/fc_host/host*/node_name`
-PORT_NAME_VM=`cat /sys/class/fc_host/host*/port_name`
+NODE_NAME_VM=$(cat /sys/class/fc_host/host*/node_name)
+PORT_NAME_VM=$(cat /sys/class/fc_host/host*/port_name)
 
 #
 # We do a pattern wildcard matching on the values, as the host system doesn't use the 0x notation
