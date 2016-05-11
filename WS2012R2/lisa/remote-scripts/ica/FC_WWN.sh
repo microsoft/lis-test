@@ -115,7 +115,7 @@ fi
 #
 # Either host1 or host2 special folders must exist, so one of them will be marked as not found, which is expected.
 #
-if test -n "$(find /sys/class/fc_host/host*/ -maxdepth 1 -name 'node_name' -o -name 'port_name' -print -quit )"; then
+if test -n "$(find /sys/class/fc_host/host*/ -maxdepth 1 \( -name 'node_name' -o -name 'port_name' \) -print )"; then
 	echo "Info: The WWN node name file and port name file have been found."
 else
 	echo "Error: The WWN node name file or port name file have not been found!"
