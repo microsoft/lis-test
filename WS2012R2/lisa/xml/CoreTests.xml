@@ -289,7 +289,7 @@
             <files>remote-scripts/ica/modules_check.sh</files>
             <testparams>
                 <param>TC_COVERED=CORE-24</param>
-                <param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hv_utils.ko hyperv-keyboard.ko hid-hyperv.ko)</param>
+                <param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
             </testparams>
             <timeout>600</timeout>
         </test>
