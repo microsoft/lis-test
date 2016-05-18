@@ -35,7 +35,6 @@ ICA_TESTABORTED="TestAborted"      # Error during setup of test
 ICA_TESTFAILED="TestFailed"        # Error during execution of test
 
 CONSTANTS_FILE="constants.sh"
-nonCPU0inter=0
 
 LogMsg()
 {
@@ -67,8 +66,8 @@ if [ -e ./${CONSTANTS_FILE} ]; then
     source ${CONSTANTS_FILE}
 else
     msg="Error: no ${CONSTANTS_FILE} file"
-    LogMsg $msg
-    echo $msg >> ~/summary.log
+    LogMsg "$msg"
+    echo "$msg" >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
@@ -77,7 +76,7 @@ fi
 # Identifying the test-case ID
 #
 if [ ! ${TC_COVERED} ]; then
-    LogMsg "The TC_COVERED variable is not defined!"
+	LogMsg "The TC_COVERED variable is not defined!"
 	echo "The TC_COVERED variable is not defined!" >> ~/summary.log
 fi
 
@@ -86,7 +85,6 @@ echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 #
 # Check the file of current_clocksource
 #
-
 CheckSource()
 {
     if ! [[ $(find /sys/devices/system/clocksource/clocksource0/current_clocksource -type f -size +0M) ]]; then
@@ -97,15 +95,16 @@ CheckSource()
     else 
         __file_name=$(cat /sys/devices/system/clocksource/clocksource0/current_clocksource)
         if [ "$__file_name" == "hyperv_clocksource" ]; then
-            LogMsg "Test Successful. Proper file was found."
-            echo "Test Successful. Proper file was found." >> ~/summary.log
+            LogMsg "Test successful. Proper file was found."
+            echo "Test successful. Proper file was found." >> ~/summary.log
         fi
     fi
 }
+
 #
 # MAIN SCRIPT
 #
 CheckSource
-echo "Test pass: the current_clocksource is not null and value is right." >> ~/summary.log
+echo "Test passed: the current_clocksource is not null and value is right." >> ~/summary.log
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
