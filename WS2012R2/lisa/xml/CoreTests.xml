@@ -293,6 +293,18 @@
             </testparams>
             <timeout>600</timeout>
         </test>
+
+        <test>
+		<testName>check_clocksource</testName>
+		<testScript>check_clocksource.sh</testScript>
+		<files>remote-scripts/ica/check_clocksource.sh</files>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+            <param>TC_COVERED=CORE-26</param>
+        </testParams>
+        </test>
     </testCases>
 
     <VMs>
