@@ -56,6 +56,7 @@
             <suiteTest>CheckNuma</suiteTest>
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>initrd_modules_check</suiteTest>
+            <suiteTest>check_clocksource</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -302,8 +303,8 @@
 		<onError>Continue</onError>
 		<noReboot>False</noReboot>
 		<testParams>
-            <param>TC_COVERED=CORE-26</param>
-        </testParams>
+            		<param>TC_COVERED=CORE-26</param>
+		</testParams>
         </test>
     </testCases>
 
