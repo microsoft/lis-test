@@ -169,29 +169,42 @@ function compute_local_md5($filePath){
     }
     return $localChksum
 }
+
+# delete created files
+function remove_files(){
+    #
+    # Removing the temporary test file
+    #
+    Remove-Item -Path \\$hvServer\$file_path_formatted1 -Force
+    if (-not $?) {
+        Write-Output "ERROR: Cannot remove the test file '${testfile1}'!" | Tee-Object -Append -file $summaryLog
+    }
+    Remove-Item -Path \\$hvServer\$file_path_formatted2 -Force
+    if (-not $?) {
+        Write-Output "ERROR: Cannot remove the test file '${testfile2}'!" | Tee-Object -Append -file $summaryLog
+    }
+}
 #######################################################################
 #
 #   Main body script
 
 #######################################################################
 
-$retVal = $false
-
 # Checking the input arguments
 if (-not $vmName) {
     "Error: VM name is null!"
-    return $retVal
+    return $false
 }
 
 if (-not $hvServer) {
     "Error: hvServer is null!"
-    return $retVal
+    return $false
 }
 
 if (-not $testParams) {
     "Error: No testParams provided!"
     "This script requires the test case ID and VM details as the test parameters."
-    return $retVal
+    return $false
 }
 
 #
@@ -222,7 +235,7 @@ foreach ($p in $params) {
 #
 if (-not (Test-Path $rootDir)) {
     "Error: The directory `"${rootDir}`" does not exist"
-    return $retVal
+    return $false
 }
 cd $rootDir
 
@@ -231,15 +244,13 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-$retVal = $True
-
 #
 # Verify the Putty utilities exist.  Without them, we cannot talk to the Linux VM.
 #
 if (-not (Test-Path -Path ".\bin\pscp.exe"))
 {
     LogMsg 0 "Error: The putty utility .\bin\pscp.exe does not exist"
-    return
+    return $false
 }
 
 
@@ -257,7 +268,7 @@ $filePath2, $file_path_formatted2 = create_file $testfile2 $filesize2
 $sts = mount_disk
 if (-not $sts[-1]) {
     Write-Output "ERROR: Failed to mount the disk in the VM." | Tee-Object -Append -file $summaryLog
-    $retVal = $False
+    return $false
 }
 
 $localChksum1 = compute_local_md5 $filePath1
@@ -269,10 +280,9 @@ $localChksum2 = compute_local_md5 $filePath2
 $Error.Clear()
 $command = "${rootDir}\bin\pscp -i ${rootDir}\ssh\${sshKey} ${filePath2} root@${ipv4}:/mnt/"
 $job = Start-Job -ScriptBlock  {Invoke-Expression $args[0]} -ArgumentList $command
-<#$job = Start-Job -ScriptBlock {$rootDir\bin\pscp -i $rootDir\ssh\${sshKey} ${filePath2} root@${ipv4}:/mnt/}#>
 $copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${filePath1} root@${ipv4}:/mnt/ }).totalseconds
 
-while ($True){
+while ($True){f
     if ($job.state -eq "Completed"){
             $copyDuration2 = ($job.PSEndTime - $job.PSBeginTime).seconds
             Remove-Job -id $job.id
@@ -280,33 +290,34 @@ while ($True){
     }
 }
 
-
 if ($Error.Count -eq 0) {
     Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" | Tee-Object -Append -file $summaryLog
 }
 else {
-    Write-Output "ERROR: File could not be copied!" | Tee-Object -Append -file $summaryLog
-    $retVal = $False
+    Write-Output "ERROR: An error occured while copying files!" | Tee-Object -Append -file $summaryLog
+    remove_files
+    return $False
 }
 
 [int]$copyDuration = [math]::floor($copyDuration)
 
-Write-Output "The file copy process took ${copyDuration1} and ${copyDuration2} seconds" | Tee-Object -Append -file $summaryLog
+Write-Output "The file copy process took ${copyDuration1} seconds and ${copyDuration2} seconds" | Tee-Object -Append -file $summaryLog
 
 #
 # Checking if the file is present on the guest and file size is matching
 #
 $sts = check_file $testfile1
-if (-not $sts[-1]) {
+if (-not $sts) {
     Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
-    $retVal = $False
+    return $False
 }
-elseif ($sts[0] -eq $filesize1) {
+elseif ($sts -eq $filesize1) {
     Write-Output "Info: The file copied matches the 10GB size." | Tee-Object -Append -file $summaryLog
 }
 else {
     Write-Output "ERROR: The file copied doesn't match the 10GB size!" | Tee-Object -Append -file $summaryLog
-    $retVal = $False
+    remove_files
+    return $False
 }
 
 #
@@ -315,14 +326,16 @@ else {
 $sts = check_file $testfile2
 if (-not $sts[-1]) {
     Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
-    $retVal = $False
+    remove_files
+    return $False
 }
 elseif ($sts[0] -eq $filesize2) {
-    Write-Output "Info: The file copied matches the 2GB size." | Tee-Object -Append -file $summaryLog
+    Write-Output "Info: The file copied matches the 10GB size." | Tee-Object -Append -file $summaryLog
 }
 else {
-    Write-Output "ERROR: The file copied doesn't match the 2GB size!" | Tee-Object -Append -file $summaryLog
-    $retVal = $False
+    Write-Output "ERROR: The file copied doesn't match the 10GB size!" | Tee-Object -Append -file $summaryLog
+    remove_files
+    return $False
 }
 
 #
@@ -337,6 +350,7 @@ $logfilename = ".\summary.log"
 if (-not $?) {
     Write-Error -Message  "ERROR: Unable to compute md5 on vm file 2" -ErrorAction SilentlyContinue
     Write-Output "ERROR: Unable to compute md5 on vm file 2"
+    remove_files
     return $False
 }
 
@@ -344,6 +358,7 @@ if (-not $?) {
 if (-not $?) {
     Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
     Write-Output "ERROR: Unable to copy the confirmation file from the VM"
+    remove_files
     return $False
 }
 $md5IsMatching = select-string -pattern $localChksum1 -path $logfilename
@@ -351,22 +366,12 @@ if ($md5IsMatching -eq $null)
 { 
     Write-Output "ERROR: MD5 checksums are not matching" >> $summaryLog
     Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
+    remove_files
     return $False
 } 
-else 
-{ 
-    Write-Output "Info: MD5 checksums are matching" | Tee-Object -Append -file $summaryLog
-    Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
-    $results = "Passed"
-    $retVal = $True
-}
 
-<#Write-Output "$remoteScript execution on VM: Success"
-Write-Output "Here are the remote logs:`n`n"
-$logfilename = ".\summary.log"
-Get-Content $logfilename
-Write-Output "$remoteScript execution on VM: Success" 
-#>
+Write-Output "Info: MD5 checksums are matching for first file" | Tee-Object -Append -file $summaryLog
+Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
 
 # 2nd file
 
@@ -374,6 +379,7 @@ Write-Output "$remoteScript execution on VM: Success"
 if (-not $?) {
     Write-Error -Message  "ERROR: Unable to compute md5 on vm file 2" -ErrorAction SilentlyContinue
     Write-Output "ERROR: Unable to compute md5 on vm file 2"
+    remove_files
     return $False
 }
 
@@ -381,34 +387,21 @@ if (-not $?) {
 if (-not $?) {
     Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
     Write-Output "ERROR: Unable to copy the confirmation file from the VM"
+    remove_files
     return $False
 }
 $md5IsMatching = select-string -pattern $localChksum2 -path $logfilename
 if ($md5IsMatching -eq $null) 
 { 
-    Write-Output "ERROR: MD5 checksums are not matching" >> $summaryLog
+    Write-Output "ERROR: MD5 checksums are not matching for file 2" >> $summaryLog
     Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
+    remove_files
     return $False
 } 
-else 
-{ 
-    Write-Output "Info: MD5 checksums are matching" | Tee-Object -Append -file $summaryLog
-    Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
-    $results = "Passed"
-    $retVal = $True
-}
 
+Write-Output "Info: MD5 checksums are matching" | Tee-Object -Append -file $summaryLog
+Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
+$results = "Passed"
 
-#
-# Removing the temporary test file
-#
-Remove-Item -Path \\$hvServer\$file_path_formatted1 -Force
-if (-not $?) {
-    Write-Output "ERROR: Cannot remove the test file '${testfile1}'!" | Tee-Object -Append -file $summaryLog
-}
-Remove-Item -Path \\$hvServer\$file_path_formatted2 -Force
-if (-not $?) {
-    Write-Output "ERROR: Cannot remove the test file '${testfile2}'!" | Tee-Object -Append -file $summaryLog
-}
-
-return $retVal
+remove_files
+return $True
