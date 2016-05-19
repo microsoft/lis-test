@@ -130,7 +130,7 @@ foreach ($p in $params)
 
 if (-not $rootDir)
 {
-    "Warn : no rootdir was specified"
+    "Warn: no rootdir was specified"
 }
 else
 {
@@ -159,7 +159,7 @@ $newVhdxSize = ConvertStringToUInt64 $newSize
 # Make sure the VM has a SCSI 0 controller, and that
 # Lun 0 on the controller has a .vhdx file attached.
 #
-"Info : Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
+"Info: Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
 $vhdxName = $vmName + "-" + $DefaultSize + "-" + $sectorSize + "-test"
 $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
@@ -178,7 +178,7 @@ if (-not $vhdxDrive)
     return $False
 }
 
-"Info : Check if the virtual disk file exists"
+"Info: Check if the virtual disk file exists"
 $vhdPath = $vhdxDrive.Path
 $vhdxInfo = GetRemoteFileInfo $vhdPath $hvServer
 if (-not $vhdxInfo)
@@ -225,9 +225,9 @@ if (-not $($sts[-1]))
     $sts = SummaryLog
     if (-not $($sts[-1]))
     {
-        "Warning : Failed getting summary.log from VM"
+        "Warning: Failed getting summary.log from VM"
     }
-    "Error: Running '${guest_script}' script failed on VM "
+    "Error: Running '${guest_script}' script failed on VM"
     return $False
 }
 
@@ -236,16 +236,16 @@ $CheckResultsts = CheckResult
 $sts = RunTestLog $guest_script $TestLogDir $TestName
 if (-not $($sts[-1]))
 {
-    "Warning : Getting RunTestLog.log from VM, will not exit test case execution "
+    "Warning : Getting RunTestLog.log from VM, will not exit test case execution"
 }
 
 if (-not $($CheckResultsts[-1]))
 {
-    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution"
     return $False
 }
 
-"Info : Resizing the VHDX to ${newSize}"
+"Info: Resizing the VHDX to ${newSize}"
 Resize-VHD -Path $vhdPath -SizeBytes ($newVhdxSize) -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
@@ -262,7 +262,9 @@ Start-Sleep -s $sleepTime
 #
 # Check if the guest sees the added space
 #
-"Info : Check if the guest sees the new space"
+"Info: Check if the guest sees the new space"
+# Older kernels might require a few requests to refresh the disks info
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l > /dev/null"
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
 if (-not $?)
 {
@@ -294,7 +296,7 @@ if (-not $($sts[-1]))
     $sts = SummaryLog
     if (-not $($sts[-1]))
     {
-        "Warning : Failed getting summary.log from VM"
+        "Warning: Failed getting summary.log from VM"
     }
     "Error: Running '${guest_script}' script failed on VM "
     return $False
@@ -305,16 +307,15 @@ $CheckResultsts = CheckResult
 $sts = RunTestLog $guest_script $TestLogDir $TestName
 if (-not $($sts[-1]))
 {
-    "Warning : Getting RunTestLog.log from VM, will not exit test case execution "
+    "Warning: Getting RunTestLog.log from VM, will not exit test case execution "
 }
 
 if (-not $($CheckResultsts[-1]))
 {
-    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+    "Error: Running '${guest_script}'script failed on VM. check VM logs, exiting test case execution."
     return $False
 }
 
-"Info : The guest sees the new size after resizing ($diskSize)"
-"Info : VHDx Resize - ${TC_COVERED} is Done"
-
+"Info: The guest sees the new size after resizing ($diskSize)"
+"Info: VHDx Resize - ${TC_COVERED} is Done"
 return $True
