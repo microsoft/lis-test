@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+ Copyright (c) Microsoft Corporation
+
+ All rights reserved.
+ Licensed under the Apache License, Version 2.0 (the ""License"");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+ ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+ PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+ See the Apache Version 2.0 License for specific language governing
+ permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>PXE</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>PXE Install</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+        <imageStoreDir>\\path\to\empty\vhdx\</imageStoreDir>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>PXE</suiteName>
+            <suiteTests>
+                <suiteTest>PXE_basic</suiteTest>   
+                <suiteTest>PXE_install_singleCpu</suiteTest>
+                <suiteTest>PXE_install_SMP</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>PXE_basic</testName>
+            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\pxe_install.ps1</testScript>
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
+            <testParams>
+                <param>TC_COVERED=PXE-01</param>
+                <param>VM2NAME=aPXE_CLIENT</param>
+                <!-- IsoFilename is mandatory for rhel or sles-->
+                <param>IsoFilename=isoName</param>
+                <param>generation=1</param> 
+                <param>willInstall=no</param> 
+                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <param>distro=rhel</param>
+            </testParams>
+            <timeout>900</timeout>
+            <OnError>Continue</OnError>
+        </test>
+
+        <test>
+            <testName>PXE_install_singleCpu</testName>
+            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\pxe_install.ps1</testScript>
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
+            <testParams>
+                <param>TC_COVERED=PXE-04</param>
+                <param>VM2NAME=PXE_CLIENT</param>
+                <!-- IsoFilename is mandatory for rhel or sles-->
+                <param>IsoFilename=isoName</param>
+                <param>generation=1</param> 
+                <param>willInstall=yes</param>   
+                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <param>distro=rhel</param>
+            </testParams>
+            <timeout>2400</timeout>
+            <OnError>Continue</OnError>
+        </test>
+
+        <test>
+            <testName>PXE_install_SMP</testName>
+            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\pxe_install.ps1</testScript>
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
+            <testParams>
+                <param>TC_COVERED=PXE-05</param>
+                <param>VM2NAME=PXE_CLIENT</param>
+                <!-- IsoFilename is mandatory for rhel or sles-->
+                <param>IsoFilename=isoName</param>
+                <param>generation=1</param> 
+                <param>willInstall=yes</param>  
+                <param>VCPU=4</param>    
+                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <param>distro=rhel</param>
+            </testParams>
+            <timeout>2400</timeout>
+            <OnError>Continue</OnError>
+        </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>PXE_SERVER</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>key.ppk</sshKey>
+            <suite>PXE</suite>
+        </vm>
+
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>PXE_CLIENT</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>key.ppk</sshKey>
+            <hardware>
+               <create>true</create>
+               <numCPUs>1</numCPUs>
+               <memSize>2048</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>Legacy,pxe,001600112233</nic>
+               <generation>1</generation>
+               <secureBoot>false</secureBoot>
+            </hardware>
+        </vm>
+    </VMs>
+</config>
