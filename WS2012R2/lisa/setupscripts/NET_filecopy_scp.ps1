@@ -282,7 +282,7 @@ $command = "${rootDir}\bin\pscp -i ${rootDir}\ssh\${sshKey} ${filePath2} root@${
 $job = Start-Job -ScriptBlock  {Invoke-Expression $args[0]} -ArgumentList $command
 $copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${filePath1} root@${ipv4}:/mnt/ }).totalseconds
 
-while ($True){f
+while ($True){
     if ($job.state -eq "Completed"){
             $copyDuration2 = ($job.PSEndTime - $job.PSBeginTime).seconds
             Remove-Job -id $job.id
@@ -401,7 +401,6 @@ if ($md5IsMatching -eq $null)
 
 Write-Output "Info: MD5 checksums are matching" | Tee-Object -Append -file $summaryLog
 Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
-$results = "Passed"
 
 remove_files
 return $True
