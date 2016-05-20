@@ -392,7 +392,7 @@
             <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
             <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-            <timeout>2500</timeout>
+            <timeout>3000</timeout>
             <testParams>
                 <param>TC_COVERED=NET-19</param>
                 <param>SCSI=1,0,Dynamic,512,15GB</param>
