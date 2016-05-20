@@ -64,6 +64,11 @@
 #
 #######################################################################
 
+DEBUG_LEVEL=3
+CONFIG_FILE=.config
+LINUX_VERSION=$(uname -r)
+START_DIR=$(pwd)
+
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
@@ -71,36 +76,27 @@ function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1}
 }
 
-DEBUG_LEVEL=3
-CONFIG_FILE=.config
-LINUX_VERSION=$(uname -r)
-START_DIR=$(pwd)
-cd ~
-
 #
 # Source the constants.sh file so we know what files to operate on.
 #
+cd ~
 source ./constants.sh
 
-dbgprint()
-{
+dbgprint() {
     if [ $1 -le $DEBUG_LEVEL ]; then
         echo "$2"
     fi
 }
 
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
 
-UpdateSummary()
-{
+UpdateSummary() {
     echo $1 >> ~/summary.log
 }
 
-ApplyPatchesAndCompile()
-{
+ApplyPatchesAndCompile() {
 	#
 	# Create the .config file
 	#
@@ -160,10 +156,16 @@ ApplyPatchesAndCompile()
 		sed --in-place -e s:"# CONFIG_REISERFS_FS is not set":"CONFIG_REISERFS_FS=y\nCONFIG_REISERFS_PROC_INFO=y\nCONFIG_REISERFS_FS_XATTR=y\nCONFIG_REISERFS_FS_POSIX_ACL=y\nCONFIG_REISERFS_FS_SECURITY=y": ${CONFIG_FILE}
 
 		#
-		# Enable Tulip network driver support.  This is needed for the "legacy"
+		# Enable Tulip network driver support. This is needed for the "legacy"
 		# network adapter provided by Hyper-V
 		#
 		sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=y\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
+		
+		#
+		# Enable Hyper-V PCI passthrough. This is needed for the SR-IOV and
+		# other PCI passthrough features.
+		#
+		sed --in-place -e s:"# CONFIG_PCI_HYPERV is not set":"CONFIG_PCI_HYPERV=m": ${CONFIG_FILE}
 		
 		# Disable staging
 		sed --in-place -e s:"CONFIG_STAGING=y":"# CONFIG_STAGING is not set": ${CONFIG_FILE}
@@ -407,7 +409,7 @@ cd ~
 dbgprint 3 "Saving version number of current kernel in oldKernelVersion.txt"
 uname -r > ~/oldKernelVersion.txt
 
-# Grub Modification
+# Grub modification
 grubversion=1
 if [ -e /boot/grub/grub.conf ]; then
         grubfile="/boot/grub/grub.conf"
@@ -448,5 +450,4 @@ fi
 #
 dbgprint 1 "Exiting with state: TestCompleted."
 UpdateTestState "TestCompleted"
-
 exit 0
