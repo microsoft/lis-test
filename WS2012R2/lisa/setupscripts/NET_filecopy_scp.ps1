@@ -301,7 +301,7 @@ else {
 
 [int]$copyDuration = [math]::floor($copyDuration)
 
-Write-Output "The file copy process took ${copyDuration1} seconds and ${copyDuration2} seconds" | Tee-Object -Append -file $summaryLog
+Write-Output "The file copy process took ${copyDuration1} seconds for first file and ${copyDuration2} seconds for second file" | Tee-Object -Append -file $summaryLog
 
 #
 # Checking if the file is present on the guest and file size is matching
