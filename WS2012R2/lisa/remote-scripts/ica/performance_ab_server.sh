@@ -26,7 +26,6 @@
 # Description:
 #     Configuring an APACHE server to be tested.
 #
-#
 #######################################################################
 
 ICA_TESTRUNNING="TestRunning"
@@ -217,7 +216,7 @@ debian*|ubuntu*)
     fi
 
     LogMsg "Info: Change home folder"
-    cd /var/www/htdocs
+    cd /var/www/html
     ;;
  redhat*|centos*)
     LogMsg "Info: Running RHEL server"

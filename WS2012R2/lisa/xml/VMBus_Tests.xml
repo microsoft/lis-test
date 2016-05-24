@@ -43,6 +43,7 @@
 			<suiteTest>VMBus_protocol_version</suiteTest>
 			<suiteTest>VMBus_verify_interrupts</suiteTest>
 			<suiteTest>VMBus_PanicNotifier</suiteTest>
+			<suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
 		</suiteTests>
 		</suite>
 	</testSuites>
@@ -96,7 +97,7 @@
 		<noReboot>False</noReboot>
 		<testParams>
 			<param>TC_COVERED=VMBus-04</param>
-            <param>VMMemory=2GB</param>
+			<param>VMMemory=2GB</param>
 		</testParams>
         </test>
     </testCases>

@@ -30,7 +30,7 @@
             <test>
             <testName>Multi_Cpu_Test</testName>
             <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>  
-            <timeout>1600</timeout>
+            <timeout>800</timeout>
             <noReboot>False</noReboot>
             <testParams>
                 <param>TC_COVERED=CORE-11</param>
@@ -52,14 +52,8 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-#
-# Main script block
-#
-#######################################################################
-
 $retVal = $false
-$timeout = 300
+$timeout = 200
 $maxCPUs = 2
 $Vcpu = 0
 $sshKey = $null
@@ -144,6 +138,11 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 #
 . .\setupscripts\TCUtils.ps1
 
+#######################################################################
+#
+# Main script block
+#
+#######################################################################
 $procs = get-wmiobject -computername $hvServer win32_processor
 if ($procs)
 {

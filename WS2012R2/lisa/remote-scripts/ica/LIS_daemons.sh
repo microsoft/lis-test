@@ -86,7 +86,7 @@ LinuxRelease()
         Debian*)
             echo "DEBIAN";;
         *)
-            echo "Distro not found";;
+            echo "Error: Distro not supported!";;
     esac
 }
 
@@ -94,7 +94,7 @@ ConfigRhel()
 {
     cd linux-next/tools/hv/
         if [ $? -ne 0 ]; then
-			echo "Error: Hv folder does not exist."  >> ~/summary.log
+			echo "Error: Hv folder does not exist!"  >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
         fi
     mkdir -p /usr/include/uapi/linux/
@@ -126,14 +126,15 @@ ConfigRhel()
             echo "Error: Unable to add hyperv.h in hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
         fi
-    echo "Compiling daemons." >> ~/summary.log
+
+    echo "Info: Compiling daemons..." >> ~/summary.log
     make
         if [ $? -ne 0 ]; then
-            echo "Error: Unabele to compiling daemons." >> ~/summary.log
+            echo "Error: Unable to compiling daemons." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
     sleep 5
-    echo "Daemons compiled." >> ~/summary.log
+    echo "Info: Daemons successfully compiled." >> ~/summary.log
 
     kill `ps -ef | grep hyperv | grep -v grep | awk '{print $2}'` 
         if [ $? -ne 0 ]; then
@@ -144,7 +145,7 @@ ConfigRhel()
         echo "Running daemons are being stopped." >> ~/summary.log
             systemctl stop hypervkvpd.service 
             if [ $? -ne 0 ]; then
-                    echo "Error: Unabele to stop hypervkvpd." >> ~/summary.log
+                    echo "Error: Unable to stop hypervkvpd." >> ~/summary.log
                     UpdateTestState $ICA_TESTFAILED                    
             fi
             systemctl stop hypervvssd.service 
@@ -408,7 +409,7 @@ ConfigCentos()
     echo "Compiling daemons." >> ~/summary.log
     make
         if [ $? -ne 0 ]; then
-            echo "Error: Unabele to compiling daemons." >> ~/summary.log
+            echo "Error: Unable to compile the LIS daemons." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
     sleep 5
@@ -423,7 +424,7 @@ ConfigCentos()
         echo "Running daemons are being stopped." >> ~/summary.log
             service hypervkvpd stop
             if [ $? -ne 0 ]; then
-                    echo "Error: Unabele to stop hypervkvpd." >> ~/summary.log
+                    echo "Error: Unable to stop hypervkvpd." >> ~/summary.log
                     UpdateTestState $ICA_TESTFAILED
             fi
             service hypervvssd stop
@@ -491,8 +492,7 @@ ConfigCentos()
         fi
     echo "Daemons started." >> ~/summary.log
 
-    echo "Result : Test Completed Successfully" >> ~/summary.log
-    echo "Exiting with state: TestCompleted."
+    echo "Result : Test Completed successfully" >> ~/summary.log
     UpdateTestState $ICA_TESTCOMPLETED
 }
 
@@ -535,7 +535,7 @@ ConfigUbuntu()
     echo "Compiling daemons." >> ~/summary.log
     make
          if [ $? -ne 0 ]; then
-            echo "Error: Unable to compiled daemons." >> ~/summary.log
+            echo "Error: Unable to compile the LIS daemons!" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
     sleep 5
@@ -557,7 +557,7 @@ ConfigUbuntu()
             echo "Error: Unable to back up hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
         fi
-    echo "Default daemons back up." >> ~/summary.log
+    echo "Default daemons backed up." >> ~/summary.log
     echo "Copying compiled daemons." >> ~/summary.log
 
     yes | cp hv_kvp_daemon  /usr/sbin/hv_kvp_daemon
@@ -597,11 +597,9 @@ ConfigUbuntu()
             echo "Error: Unable to start hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    echo "Daemons started." >> ~/summary.log
+    echo "Info: LIS daemons started." >> ~/summary.log
 
-
-    echo "Result : Test Completed Successfully" >> ~/summary.log
-    echo "Exiting with state: TestCompleted."
+    echo "Result : Test Completed successfully" >> ~/summary.log
     UpdateTestState $ICA_TESTCOMPLETED
 }
 

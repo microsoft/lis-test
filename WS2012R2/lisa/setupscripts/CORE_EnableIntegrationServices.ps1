@@ -39,7 +39,7 @@
             <noReboot>False</noReboot>
         </test>
 .Parameter vmName
-    Name of the VM to read intrinsic data from.
+    Name of the VM on which to set the integration services.
     
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -165,8 +165,8 @@ Write-Output "Info: VM ${vmName} has been stopped successfully."
 #
 # Start all integration services.
 #
-Get-VMIntegrationService -VMName $vmName | ForEach-Object { 
-    Enable-VMIntegrationService -Name $_.Name -VMName $vmName;
+Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ForEach-Object { 
+    Enable-VMIntegrationService -Name $_.Name -VMName $vmName -ComputerName $hvServer;
     if ($? -ne "True") {
         Write-Output "Error while enabling integration services" | Tee-Object -Append -file $summaryLog
         return $False

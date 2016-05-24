@@ -282,6 +282,7 @@ while [ $isOver == false ]; do
             exit 10
         fi
     fi
+    sleep 1
 done
 
 # If we reached this point, time is synced.
