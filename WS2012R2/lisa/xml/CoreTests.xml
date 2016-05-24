@@ -295,7 +295,6 @@
             </testparams>
             <timeout>600</timeout>
         </test>
-<<<<<<< HEAD
 
         <test>
 		<testName>check_clocksource</testName>
@@ -307,7 +306,6 @@
 		<testParams>
             		<param>TC_COVERED=CORE-26</param>
 		</testParams>
-=======
         <test>
             <testName>Disable_NUMA_By_Kernel</testName>
             <setupScript>
@@ -332,7 +330,6 @@
                 <param>Sockets=1</param>
                 <param>MemSize=1024MB</param>
             </testparams>
->>>>>>> d62df0d7d5b492b9f381672307dbc78a34ca02f8
         </test>
     </testCases>
 
