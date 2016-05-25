@@ -278,9 +278,11 @@ $localChksum2 = compute_local_md5 $filePath2
 # Copy the file to the Linux guest VM
 #
 $Error.Clear()
-$command = "${rootDir}\bin\pscp -i ${rootDir}\ssh\${sshKey} ${filePath2} root@${ipv4}:/mnt/"
+$command = "${rootDir}\bin\pscp -i ${rootDir}\ssh\${sshKey} '${filePath2}' root@${ipv4}:/mnt/"
+
 $job = Start-Job -ScriptBlock  {Invoke-Expression $args[0]} -ArgumentList $command
-$copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${filePath1} root@${ipv4}:/mnt/ }).totalseconds
+
+$copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} '${filePath1}' root@${ipv4}:/mnt/ }).totalseconds
 
 while ($True){
     if ($job.state -eq "Completed"){
@@ -344,12 +346,12 @@ else {
 
 # first file
 $logfilename = ".\summary.log"
-.\bin\plink -i ssh\${sshKey} root@${ipv4} "dos2unix /root/FCOPY_check_md5.sh"
+.\bin\plink -i ssh\${sshKey} root@${ipv4} "dos2unix /root/NET_scp_check_md5.sh"
 
-.\bin\plink -i ssh\${sshKey} root@${ipv4} "bash /root/FCOPY_check_md5.sh $testfile1"
+.\bin\plink -i ssh\${sshKey} root@${ipv4} "bash /root/NET_scp_check_md5.sh $testfile1"
 if (-not $?) {
-    Write-Error -Message  "ERROR: Unable to compute md5 on vm file 2" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to compute md5 on vm file 2"
+    Write-Error -Message  "ERROR: Unable to compute md5 on vm for first file" -ErrorAction SilentlyContinue
+    Write-Output "ERROR: Unable to compute md5 on vm for first file" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
@@ -357,28 +359,27 @@ if (-not $?) {
 .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/summary.log .
 if (-not $?) {
     Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to copy the confirmation file from the VM"
+    Write-Output "ERROR: Unable to copy the confirmation file from the VM" | Tee-Object -Append -file $summaryLog 
     remove_files
     return $False
 }
 $md5IsMatching = select-string -pattern $localChksum1 -path $logfilename
 if ($md5IsMatching -eq $null) 
 { 
-    Write-Output "ERROR: MD5 checksums are not matching" >> $summaryLog
-    Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
+    Write-Output "ERROR: MD5 checksums are not matching for first file" | Tee-Object -Append -file $summaryLog
+    Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
     remove_files
     return $False
 } 
 
 Write-Output "Info: MD5 checksums are matching for first file" | Tee-Object -Append -file $summaryLog
-Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
+Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
 
 # 2nd file
-
-.\bin\plink -i ssh\${sshKey} root@${ipv4} "bash /root/FCOPY_check_md5.sh $testfile2"
+.\bin\plink -i ssh\${sshKey} root@${ipv4} "bash /root/NET_scp_check_md5.sh $testfile2"
 if (-not $?) {
-    Write-Error -Message  "ERROR: Unable to compute md5 on vm file 2" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to compute md5 on vm file 2"
+    Write-Error -Message  "ERROR: Unable to compute md5 on vm for second file" -ErrorAction SilentlyContinue
+    Write-Output "ERROR: Unable to compute md5 on vm for second file" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
@@ -386,21 +387,21 @@ if (-not $?) {
 .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/summary.log .
 if (-not $?) {
     Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to copy the confirmation file from the VM"
+    Write-Output "ERROR: Unable to copy the confirmation file from the VM" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
 $md5IsMatching = select-string -pattern $localChksum2 -path $logfilename
 if ($md5IsMatching -eq $null) 
 { 
-    Write-Output "ERROR: MD5 checksums are not matching for file 2" >> $summaryLog
-    Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
+    Write-Output "ERROR: MD5 checksums are not matching for second file" | Tee-Object -Append -file $summaryLog
+    Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
     remove_files
     return $False
 } 
 
-Write-Output "Info: MD5 checksums are matching" | Tee-Object -Append -file $summaryLog
-Remove-Item -Path "FCOPY_check_md5.sh.log" -Force
+Write-Output "Info: MD5 checksums are matching for second file" | Tee-Object -Append -file $summaryLog
+Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
 
 remove_files
 return $True
