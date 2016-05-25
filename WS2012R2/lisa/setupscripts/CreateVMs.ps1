@@ -582,7 +582,9 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         # WS 2012, 2008 R2 do not support generation 2 VMs
         $OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
         if ( ($OSInfo.Caption -match '.2008 R2.') -or 
-             ($OSInfo.Caption -match '.2012 [^R2].') )
+             ($OSInfo.Caption -match '.2012 [^R2].') -or
+             ($OSInfo.Caption -match '.2016.')
+             )
             {
                 if ( $vm.hardware.isCluster -eq "True") {
                     $clusterDir = Get-ClusterSharedVolume
