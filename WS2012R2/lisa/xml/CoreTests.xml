@@ -38,7 +38,25 @@
         <suite>
             <suiteName>Core</suiteName>
             <suiteTests>
+            <suiteTest>VMHeartbeat</suiteTest>
+            <suiteTest>TimeSync</suiteTest>
+            <suiteTest>TimeSync_NTP</suiteTest>
+            <suiteTest>TimeSync_SavedVM</suiteTest>
+            <suiteTest>LISShutdownVM</suiteTest>
+            <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
+            <suiteTest>VerifyLisModules</suiteTest>
+            <suiteTest>Multi_Cpu_Test</suiteTest>
+            <suiteTest>Verify_LISModules_Version</suiteTest>
+            <suiteTest>VerifyItegratedShutdownService</suiteTest>
+            <suiteTest>RebootDifferentMemSettings</suiteTest>
+            <suiteTest>StressReloadModules</suiteTest>
+            <suiteTest>FloppyDisk</suiteTest>
+            <suiteTest>CDmount</suiteTest>
+            <suiteTest>VCPU_verify_online</suiteTest>
             <suiteTest>CheckNuma</suiteTest>
+            <suiteTest>CheckNuma_Maximum</suiteTest>
+            <suiteTest>initrd_modules_check</suiteTest>
+            <suiteTest>check_clocksource</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
