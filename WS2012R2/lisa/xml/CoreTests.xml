@@ -57,6 +57,7 @@
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>initrd_modules_check</suiteTest>
             <suiteTest>check_clocksource</suiteTest>
+            <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -209,7 +210,7 @@
 		<onError>Continue</onError>
             <timeout>600</timeout>
         </test>
-		
+
         <test>
             <testName>CDmount</testName>
             <testScript>Core_LIS_CD.sh</testScript>
@@ -238,7 +239,7 @@
 			<param>vCPU=4</param>
             	</testParams>
         </test>
-        
+
         <test>
             <testName>CheckNuma</testName>
             <setupScript>
@@ -298,6 +299,31 @@
 		    <onError>Continue</onError>
             <timeout>600</timeout>
         </test>
+        <test>
+           <testName>Disable_NUMA_By_Kernel</testName>
+           <setupScript>
+             <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+             <file>setupScripts\ChangeCPU.ps1</file>
+           </setupScript>
+           <testScript>setupScripts\NUMA_Off_Kernel.ps1</testScript>
+           <files>remote-scripts\ica\NUMA_off_kernel.sh</files>
+           <files>remote-scripts\ica\NUMA_check.sh</files>
+           <files>remote-scripts\ica\utils.sh</files>
+           <timeout>600</timeout>
+           <onError>Abort</onError>
+           <noReboot>False</noReboot>
+           <testparams>
+               <param>TC_COVERED=CORE-25</param>
+               <param>publicKey=id_rsa.pub</param>
+               <param>enableDM=no</param>
+               <param>startupMem=4096MB</param>
+               <param>memWeight=20</param>
+               <param>VCPU=4</param>
+               <param>NumaNodes=1</param>
+               <param>Sockets=1</param>
+               <param>MemSize=1024MB</param>
+           </testparams>
+       </test>
 
         <test>
 		<testName>check_clocksource</testName>
