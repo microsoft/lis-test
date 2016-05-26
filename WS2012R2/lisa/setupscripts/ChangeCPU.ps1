@@ -119,7 +119,7 @@ foreach ($p in $params)
     
     if ($fields[0].Trim() -eq "VCPU")
     {
-        $numCPUs = $fields[1].Trim()
+        $numCPUs = [int]$fields[1].Trim()
     }
     if ($fields[0].Trim() -eq "NumaNodes")
     {
@@ -145,13 +145,16 @@ if ($numCPUs -eq 0)
 #
 # do a sanity check on the value provided in the testParams
 #
-$maxCPUs = 2
+$maxCPUs = 0
 $procs = get-wmiobject -computername $hvServer win32_processor
 if ($procs)
 {
     if ($procs -is [array])
     {
-        $maxCPUs = $procs[0].NumberOfLogicalProcessors
+        foreach ($n in $procs)
+        {
+            $maxCPUs += $n.NumberOfLogicalProcessors
+        }
     }
     else
     {
