@@ -247,10 +247,11 @@
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
+		    <timeout>600</timeout>
+		    <onError>Continue</onError>
             <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=CORE-22</param>
-                <param>vmName=VMName</param>
                 <param>enableDM=no</param>
                 <param>staticMem=2048MB</param>
                 <param>memWeight=0</param>
@@ -272,6 +273,8 @@
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
+		    <timeout>600</timeout>
+		    <onError>Continue</onError>
             <testParams>
                 <param>TC_COVERED=CORE-23</param>
                 <param>VCPU=8</param>
@@ -292,6 +295,7 @@
                 <param>TC_COVERED=CORE-24</param>
                 <param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
             </testparams>
+		    <onError>Continue</onError>
             <timeout>600</timeout>
         </test>
 
