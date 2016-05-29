@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    Verify that VM truns off NUMA when "numa=off" param is added to
+    Verify that VM turns off NUMA when "numa=off" param is added to
     kernel boot param.
 .Description
     This script compares the host provided information with the ones
@@ -255,8 +255,8 @@ LogMsg 9 "Debug: VM $vmName is configured with $NumaNodesHost nodes."
 Write-Output "VM $vmName is configured with $NumaNodesHost nodes." | Tee-Object -Append -file $summaryLog
 
 $NumaNodesGuest = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "numactl -H | grep cpu | wc -l"
-LogMsg 9 "Debug: Only $NumaNodesGuest node is avaliable for VM when NUMA-Off kernel param enabled."
-Write-Output "Only $NumaNodesGuest node is avaliable for VM when NUMA-Off kernel param enabled." | Tee-Object -Append -file $summaryLog
+LogMsg 9 "Debug: Only $NumaNodesGuest node is available for VM when NUMA-Off kernel param enabled."
+Write-Output "Only $NumaNodesGuest node is available for VM when NUMA-Off kernel param enabled." | Tee-Object -Append -file $summaryLog
 
 if ($NumaNodesGuest -eq 1) {
     LogMsg 9 "Info: Kernel parameter 'numa=off' works."
