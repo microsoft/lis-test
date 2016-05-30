@@ -577,7 +577,14 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         Write-host "Required parameters check done, creating VM..."
         
         $vmGeneration = 1
-        if ($vm.hardware.generation) { $vmGeneration = [int16]$vm.hardware.generation }
+        if ($vm.hardware.generation) {
+            $vmGeneration = [int16]$vm.hardware.generation
+        }
+
+        if ( $vm.hardware.isCluster -eq "True") {
+            $clusterDir = Get-ClusterSharedVolume
+            $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
+        }
 
         # WS 2012, 2008 R2 do not support generation 2 VMs
         $OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
@@ -586,9 +593,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
              #($OSInfo.Caption -match '.2016.')
              )
             {
-                $clusterDir = Get-ClusterSharedVolume
-                $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
-                
                 if ( $vm.hardware.isCluster -eq "True") {
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Path $vmDir
                 }
@@ -608,8 +612,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
             }
             
-        if ($null -eq $newVm)
-        {
+        if ($null -eq $newVm) {
             Write-Error "Error: Unable to create the VM named $($vm.vmName)."
             return $false
         }
@@ -617,8 +620,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # Disable secure boot on VM unless explicitly told to enable it on Gen2 VMs
         #
-        if (($newVM.Generation -eq 2))
-        {
+        if (($newVM.Generation -eq 2)) {
             if ($vm.hardware.secureBoot -eq "true")
             {
                 Set-VMFirmware -VM $newVm -EnableSecureBoot On
