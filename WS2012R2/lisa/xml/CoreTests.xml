@@ -178,7 +178,7 @@
             <testName>RebootDifferentMemSettings</testName>
             <testParams>
                 <param>TC_COVERED=CORE-17</param>
-                <param>MemSize=6GB,3.5GB,4GB</param>
+                <param>MemSize=6GB,1GB,4GB</param>
             </testParams>
             <testScript>SetupScripts\CORE_RebootDiffMemory.ps1</testScript>
             <timeout>600</timeout>
@@ -248,8 +248,7 @@
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
-		    <timeout>600</timeout>
-		    <onError>Continue</onError>
+            <onError>Continue</onError>
             <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=CORE-22</param>
@@ -274,8 +273,7 @@
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
-		    <timeout>600</timeout>
-		    <onError>Continue</onError>
+            <onError>Continue</onError>
             <testParams>
                 <param>TC_COVERED=CORE-23</param>
                 <param>VCPU=8</param>
@@ -299,6 +297,7 @@
 		    <onError>Continue</onError>
             <timeout>600</timeout>
         </test>
+        
         <test>
            <testName>Disable_NUMA_By_Kernel</testName>
            <setupScript>
@@ -310,7 +309,7 @@
            <files>remote-scripts\ica\NUMA_check.sh</files>
            <files>remote-scripts\ica\utils.sh</files>
            <timeout>600</timeout>
-           <onError>Abort</onError>
+           <onError>Continue</onError>
            <noReboot>False</noReboot>
            <testparams>
                <param>TC_COVERED=CORE-25</param>
