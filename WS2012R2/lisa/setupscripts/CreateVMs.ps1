@@ -31,7 +31,7 @@
    and set to the value "true".  The remaining tags are optional.
 
    Before creating the VM, the script will check to make sure all
-   required tags are present.  It will also check the values of the
+   required tags are present. It will also check the values of the
    settings.  If the exceen the HyperV's resources, a warning message
    will be displayed, and default values will override the specified
    values.
@@ -589,8 +589,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         # WS 2012, 2008 R2 do not support generation 2 VMs
         $OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
         if ( ($OSInfo.Caption -match '.2008 R2.') -or 
-             ($OSInfo.Caption -match '.2012 [^R2].') #-or
-             #($OSInfo.Caption -match '.2016.')
+             ($OSInfo.Caption -match '.2012 [^R2].')
              )
             {
                 if ( $vm.hardware.isCluster -eq "True") {
