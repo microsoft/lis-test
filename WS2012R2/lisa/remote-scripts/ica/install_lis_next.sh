@@ -371,7 +371,10 @@ esac
 echo "Info: Successfully compiled and started the lis-next tree LIS daemons." >> ~/summary.log
 
 # work-around to satisfy requirements
-yum install numactl -y
+numactl -s
+if [ $? -ne 0 ]; then
+	yum -y install numactl
+fi
 
 #
 # If we got here, everything worked as expected.
