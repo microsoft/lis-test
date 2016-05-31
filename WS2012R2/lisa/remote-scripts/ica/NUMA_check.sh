@@ -76,19 +76,51 @@ dos2unix utils.sh
 # Source constants file and initialize most common variables
 UtilsInit
 
-#
-# Check if numactl is installed
-#
-numactl -s
-if [ $? -ne 0 ]; then
-    yum -y install numactl
-    if [ $? -ne 0]; then
-        LogMsg "Error: numactl cannot be installed by yum."
-        UpdateSummary "Error: numactl cannot be installed by yum."
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
-    fi
-fi
+# Get distro
+GetDistro
+
+case $DISTRO in
+    "redhat_x")
+       numactl -s
+        if [ $? -ne 0 ]; then
+             yum -y install numactl
+                 if [ $? -ne 0]; then
+                    LogMsg "Error: numactl cannot be installed.."
+                    UpdateSummary "Error: numactl cannot be installed."
+                    UpdateTestState $ICA_TESTABORTED
+                    exit 1
+                fi
+        fi
+    ;;
+   "ubuntu_x")
+        numactl -s
+            if [ $? -ne 0 ]; then
+                 apt-get -y install numactl
+                     if [ $? -ne 0]; then
+                        LogMsg "Error: numactl cannot be installed."
+                        UpdateSummary "Error: numactl cannot be installed."
+                        UpdateTestState $ICA_TESTABORTED
+                        exit 1
+                    fi
+            fi
+    ;;
+    "suse_x")
+        numactl -s
+            if [ $? -ne 0 ]; then
+                 zypper -y install numactl
+                     if [ $? -ne 0]; then
+                        LogMsg "Error: numactl cannot be installed."
+                        UpdateSummary "Error: numactl cannot be installed."
+                        UpdateTestState $ICA_TESTABORTED
+                        exit 1
+                    fi
+            fi            
+     ;;
+     *)
+        LogMsg "WARNING: Distro '${distro}' not supported."
+        UpdateSummary "WARNING: Distro '${distro}' not supported."
+    ;;
+esac
 
 #
 # Check Numa nodes
