@@ -31,7 +31,7 @@
    and set to the value "true".  The remaining tags are optional.
 
    Before creating the VM, the script will check to make sure all
-   required tags are present.  It will also check the values of the
+   required tags are present. It will also check the values of the
    settings.  If the exceen the HyperV's resources, a warning message
    will be displayed, and default values will override the specified
    values.
@@ -577,16 +577,22 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         Write-host "Required parameters check done, creating VM..."
         
         $vmGeneration = 1
-        if ($vm.hardware.generation) { $vmGeneration = [int16]$vm.hardware.generation }
+        if ($vm.hardware.generation) {
+            $vmGeneration = [int16]$vm.hardware.generation
+        }
+
+        if ( $vm.hardware.isCluster -eq "True") {
+            $clusterDir = Get-ClusterSharedVolume
+            $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
+        }
 
         # WS 2012, 2008 R2 do not support generation 2 VMs
         $OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
         if ( ($OSInfo.Caption -match '.2008 R2.') -or 
-             ($OSInfo.Caption -match '.2012 [^R2].') )
+             ($OSInfo.Caption -match '.2012 [^R2].')
+             )
             {
                 if ( $vm.hardware.isCluster -eq "True") {
-                    $clusterDir = Get-ClusterSharedVolume
-                    $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Path $vmDir
                 }
                 else {
@@ -596,8 +602,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         else
             {
                 if ( $vm.hardware.isCluster -eq "True") {
-                    $clusterDir = Get-ClusterSharedVolume
-                    $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration -Path $vmDir
                 }
                 else {
@@ -607,8 +611,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
             }
             
-        if ($null -eq $newVm)
-        {
+        if ($null -eq $newVm) {
             Write-Error "Error: Unable to create the VM named $($vm.vmName)."
             return $false
         }
@@ -616,8 +619,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # Disable secure boot on VM unless explicitly told to enable it on Gen2 VMs
         #
-        if (($newVM.Generation -eq 2))
-        {
+        if (($newVM.Generation -eq 2)) {
             if ($vm.hardware.secureBoot -eq "true")
             {
                 Set-VMFirmware -VM $newVm -EnableSecureBoot On
