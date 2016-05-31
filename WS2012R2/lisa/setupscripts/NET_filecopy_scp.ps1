@@ -282,7 +282,7 @@ $command = "${rootDir}\bin\pscp -i ${rootDir}\ssh\${sshKey} '${filePath2}' root@
 
 $job = Start-Job -ScriptBlock  {Invoke-Expression $args[0]} -ArgumentList $command
 
-$copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} '${filePath1}' root@${ipv4}:/mnt/ }).totalseconds
+$copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${filePath1} root@${ipv4}:/mnt/ }).totalseconds
 
 while ($True){
     if ($job.state -eq "Completed"){
