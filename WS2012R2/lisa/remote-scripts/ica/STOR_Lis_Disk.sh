@@ -115,53 +115,53 @@ function TestFileSystem()
     (echo d;echo;echo w)|fdisk  $driveName
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk  $driveName
     if [ "$?" = "0" ]; then
-    sleep 5
-
-   # IntegrityCheck $driveName
-    mkfs.$fs  ${driveName}1
-    if [ "$?" = "0" ]; then
-        LogMsg "mkfs.$fs   ${driveName}1 successful..."
-        mount   ${driveName}1 /mnt
-                if [ "$?" = "0" ]; then
-                LogMsg "Drive mounted successfully..."
-                mkdir /mnt/Example
-                dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
-                if [ "$?" = "0" ]; then
-                    LogMsg "Successful created directory /mnt/Example"
-                    LogMsg "Listing directory: ls /mnt/Example"
-                    ls /mnt/Example
-                    rm -f /mnt/Example/data
-                    df -h
-                    umount /mnt
+        sleep 5
+       # IntegrityCheck $driveName
+        mkfs.$fs  ${driveName}1 -f
+        if [ "$?" = "0" ]; then
+            LogMsg "mkfs.$fs   ${driveName}1 successful..."
+            mount   ${driveName}1 /mnt
                     if [ "$?" = "0" ]; then
-                        LogMsg "Drive unmounted successfully..."
-                 fi
-                    LogMsg "Disk test's completed for ${driveName}1 with filesystem ${fs}"
-                    echo "Disk test's is completed for ${driveName}1 with filesystem ${fs}" >> ~/summary.log
+                        LogMsg "Drive mounted successfully..."
+                        mkdir /mnt/Example
+                        dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
+                        if [ "$?" = "0" ]; then
+                            LogMsg "Successful created directory /mnt/Example"
+                            LogMsg "Listing directory: ls /mnt/Example"
+                            ls /mnt/Example
+                            rm -f /mnt/Example/data
+                            df -h
+                            umount /mnt
+                                if [ "$?" = "0" ]; then
+                                    LogMsg "Drive unmounted successfully..."
+                                fi
+                        LogMsg "Disk test's completed for ${driveName}1 with filesystem ${fs}"
+                        echo "Disk test's is completed for ${driveName}1 with filesystem ${fs}" >> ~/summary.log
+                    else
+                        LogMsg "Error in creating directory /mnt/Example..."
+                        echo "Error in creating directory /mnt/Example" >> ~/summary.log
+                        UpdateTestState $ICA_TESTFAILED
+                        exit 60
+                    fi
                 else
-                    LogMsg "Error in creating directory /mnt/Example..."
-                    echo "Error in creating directory /mnt/Example" >> ~/summary.log
+                    LogMsg "Error in mounting drive..."
+                    echo "Drive mount : Failed" >> ~/summary.log
                     UpdateTestState $ICA_TESTFAILED
-                    exit 60
+                    exit 70
                 fi
-            else
-                LogMsg "Error in mounting drive..."
-                echo "Drive mount : Failed" >> ~/summary.log
+           else
+                LogMsg "Error in creating file system.."
+                echo "Creating Filesystem : Failed" >> ~/summary.log
                 UpdateTestState $ICA_TESTFAILED
-                exit 70
-            fi
-       else
-            LogMsg "Error in creating file system.."
-            echo "Creating Filesystem : Failed" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 80
+                exit 80
         fi
-    else
-        LogMsg "Error in executing fdisk  ${driveName}1"
-        echo "Error in executing fdisk  ${driveName}1" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 90
+        else
+            LogMsg "Error in executing fdisk  ${driveName}1"
+            echo "Error in executing fdisk  ${driveName}1" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 90
     fi
+
 
     # Perform Data integrity test
 
@@ -323,9 +323,5 @@ do
 
   done
 done
-
-
-
 UpdateTestState $ICA_TESTCOMPLETED
-
 exit 0
