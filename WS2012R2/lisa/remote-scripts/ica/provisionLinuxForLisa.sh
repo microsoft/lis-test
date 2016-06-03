@@ -280,12 +280,17 @@ function RhelTasks
 	# Disable the firewall
 	#
 	LogMsg "Info : Disabling the firewall"
+    if [ $1 -eq 7 ]; then
+        systemctl stop firewalld
+        systemctl disable firewalld
+    fi
+    if [ $1 -eq 6 ]; then
+        service iptables stop
+    	chkconfig iptables off
 
-	service iptables stop
-	chkconfig iptables off
-
-	service ip6tables stop
-	chkconfig ip6tables off
+    	service ip6tables stop
+    	chkconfig ip6tables off
+    fi
 
 	#
 	# Disable SELinux
