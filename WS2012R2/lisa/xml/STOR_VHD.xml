@@ -56,7 +56,7 @@
             </testParams>
             <testScript>STOR_pass_offline.sh</testScript>
             <files>remote-scripts/ica/STOR_pass_offline.sh</files>
-            <timeout>10800</timeout>
+            <timeout>1800</timeout>
         </test>
 
         <test>
@@ -66,7 +66,7 @@
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <preTest>setupscripts\AddHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic</param>
                 <param>TC_COVERED=STOR-11</param>
@@ -85,7 +85,7 @@
             </setupscript>
             <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic</param>
                 <param>TC_COVERED=STOR-11</param>
@@ -106,7 +106,7 @@
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
-            <timeout>10800</timeout>
+            <timeout>1800</timeout>
         </test>
         <test>
             <testName>VHD_SCSI_0_1_Dynamic_Large_Disk</testName>
@@ -119,7 +119,7 @@
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
-            <timeout>10800</timeout>
+            <timeout>3600</timeout>
         </test>
 
         <test>
@@ -128,7 +128,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <preTest>setupscripts\AddHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic</param>
                 <param>SCSI=0,1,Dynamic</param>
@@ -144,7 +144,7 @@
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic</param>
                 <param>SCSI=0,1,Dynamic</param>
@@ -160,7 +160,7 @@
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,PassThrough</param>
                 <param>SCSI=0,1,PassThrough</param>
@@ -176,7 +176,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <preTest>setupscripts\AddHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,PassThrough</param>
                 <param>SCSI=0,1,PassThrough</param>
@@ -199,7 +199,7 @@
                 <param>TC_COVERED=STOR-16</param>
             </testParams>
             <onError>Continue</onError>
-            <timeout>10800</timeout>
+            <timeout>1800</timeout>
         </test>
 
         <test>
@@ -216,7 +216,7 @@
                 <param>TC_COVERED=STOR-17,STOR-18</param>
             </testParams>
             <onError>Continue</onError>
-            <timeout>12800</timeout>
+            <timeout>1800</timeout>
         </test>
 
         <test>
@@ -224,7 +224,7 @@
             <testScript>setupscripts\DiffDiskGrowthTestCase.ps1</testScript>
             <setupScript>setupscripts\DiffDiskGrowthSetup.ps1</setupScript>
             <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>IDE=1,1,Diff</param>
                 <param>FILESYS=ext3</param>
@@ -239,7 +239,7 @@
             <testScript>setupscripts\DiffDiskGrowthTestCase.ps1</testScript>
             <setupScript>setupscripts\DiffDiskGrowthSetup.ps1</setupScript>
             <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,Diff</param>
                 <param>FILESYS=ext3</param>
@@ -255,7 +255,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic</param>
                 <param>SCSI=0,1,Dynamic</param>
@@ -271,7 +271,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,Fixed</param>
                 <param>SCSI=0,1,Fixed</param>
@@ -286,7 +286,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <testparams>
                 <param>IDE=0,1,Fixed</param>
                 <param>IDE=1,1,Fixed</param>
@@ -306,7 +306,7 @@
                 <param>IDE=0,1,Dynamic</param>
                 <param>TC_COVERED=STOR-02</param>
             </testParams>
-            <timeout>10800</timeout>
+            <timeout>1800</timeout>
         </test>
 
         <test>
