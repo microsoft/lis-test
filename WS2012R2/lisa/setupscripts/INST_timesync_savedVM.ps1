@@ -1,7 +1,29 @@
+########################################################################
+#
+# Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+# Copyright (c) Microsoft Corporation
+#
+# All rights reserved.
+# Licensed under the Apache License, Version 2.0 (the ""License"");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+# OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+# ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+# PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+#
+# See the Apache Version 2.0 License for specific language governing
+# permissions and limitations under the License.
+#
+########################################################################
+
 #####################################################################
 #
-# This test will check the time sync of guest OS with the host. It will save the state of the VM.
-# It will wait for 10 mins, start the VM from saved state and will re-check the time sync.
+# This test will check the time sync of guest OS with the host. 
+# It will save the state of the VM.
+# It will then wait for 10 mins, start the VM from saved state and will re-check the time sync.
 # 
 # testParams
 #    HOME_DIR=C:\lisa\
@@ -14,6 +36,10 @@
 #####################################################################
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
+
+$sshKey = $null
+$ipv4 = $null
+$rootDir = $null
 
 #####################################################################
 #
@@ -39,7 +65,6 @@ function SendCommandToVM([String] $sshKey, [String] $ipv4, [string] $command)
 
     return $retVal
 }
-
 
 #####################################################################
 #
@@ -69,7 +94,6 @@ function GetUnixVMTime([String] $sshKey, [String] $ipv4)
     
     return $unixTimeStr
 }
-
 
 #####################################################################
 #
@@ -130,7 +154,6 @@ function GetTimeSync([String] $sshKey, [String] $ipv4)
 # Main script body
 #
 #####################################################################
-
 $retVal = $False
 
 #
@@ -157,10 +180,6 @@ if (-not $testParams)
 #
 # Parse the testParams string
 #
-$sshKey = $null
-$ipv4 = $null
-$rootDir = $null
-
 $params = $testParams.Split(";")
 foreach($p in $params)
 {
@@ -197,10 +216,6 @@ if (-not $ipv4)
     return $False
 }
 
-"  sshKey  = ${sshKey}"
-"  ipv4    = ${ipv4}"
-"  rootDir = ${rootDir}"
-
 #
 # Change the working directory
 #
@@ -221,10 +236,10 @@ Write-Output "Covers TC34" | Out-File -Append $summaryLog
 
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 
-$msg = "Test case FAILED"
+$msg = "Error: Test case failed!"
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    $msg = "Time is properly synced"
+    $msg = "Info: Time is properly synced"
     $retVal = $true
 }
 
@@ -254,13 +269,12 @@ if ($? -ne "True")
 
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 
-$msg = "Test case FAILED"
+$msg = "Error: Test case failed!"
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    $msg = "After start from save state, Time is properly synced"
+    $msg = "Info: After start from save state, time is properly synced"
     $retVal = $true
 }
 
 Write-Output $msg | Out-File $summaryLog
-
 return $retVal
