@@ -41,7 +41,7 @@
         <suite>
             <suiteName>PXE</suiteName>
             <suiteTests>
-                <suiteTest>PXE_basic</suiteTest>   
+                <suiteTest>PXE_basic</suiteTest>  
                 <suiteTest>PXE_install_singleCpu</suiteTest>
                 <suiteTest>PXE_install_SMP</suiteTest>
             </suiteTests>
@@ -55,12 +55,12 @@
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
-                <param>TC_COVERED=PXE-01</param>
+                <param>TC_COVERED=PXE-03</param>
                 <param>VM2NAME=PXE_CLIENT</param>
                 <!-- IsoFilename is mandatory for rhel or sles-->
-                <param>IsoFilename=isoName</param>
-                <param>generation=1</param> 
-                <param>willInstall=no</param> 
+                <!-- <param>IsoFilename=isoName</param>  -->
+                <param>generation=2</param> 
+                <param>willInstall=no</param>   
                 <!-- Mandatory: please complete with rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
@@ -74,12 +74,12 @@
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
-                <param>TC_COVERED=PXE-04</param>
+                <param>TC_COVERED=PXE-06</param>
                 <param>VM2NAME=PXE_CLIENT</param>
                 <!-- IsoFilename is mandatory for rhel or sles-->
                 <param>IsoFilename=isoName</param>
-                <param>generation=1</param> 
-                <param>willInstall=yes</param>   
+                <param>generation=2</param> 
+                <param>willInstall=yes</param>    
                 <!-- Mandatory: please complete with rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
@@ -93,15 +93,15 @@
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
-                <param>TC_COVERED=PXE-05</param>
+                <param>TC_COVERED=PXE-07</param>
                 <param>VM2NAME=PXE_CLIENT</param>
                 <!-- IsoFilename is mandatory for rhel or sles-->
-                <param>IsoFilename=isoName</param>
-                <param>generation=1</param> 
+                <!-- <param>IsoFilename=isoName</param> -->
+                <param>generation=2</param> 
                 <param>willInstall=yes</param>  
-                <param>VCPU=4</param>    
+                <param>VCPU=4</param>  
                 <!-- Mandatory: please complete with rhel, sles or ubuntu -->
-                <param>distro=rhel</param>
+                <param>distro=ubuntu</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -129,8 +129,8 @@
                <numCPUs>1</numCPUs>
                <memSize>2048</memSize>
                <disableDiff>True</disableDiff>
-               <nic>Legacy,pxe,001600112233</nic>
-               <generation>1</generation>
+               <nic>VMBus,pxe,001600112233</nic>
+               <generation>2</generation>
                <secureBoot>false</secureBoot>
             </hardware>
         </vm>

@@ -225,6 +225,7 @@ elif [ $distro == "sles" ]; then
         fi
         echo "  initrdefi uefi/PXE/initrd" >> /var/lib/tftpboot/uefi/grub.cfg
         echo "  }" >> /var/lib/tftpboot/uefi/grub.cfg
+
     elif [ $generation -eq 1 ]; then
         # Copy boot image files to tftp server
         cp /mnt/boot/x86_64/loader/linux /var/lib/tftpboot/pxelinux/PXE
@@ -244,8 +245,21 @@ elif [ $distro == "ubuntu" ]; then
     # Download latest netboot files
     wget http://archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/current/images/netboot/ubuntu-installer/amd64/initrd.gz
     wget http://archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/current/images/netboot/ubuntu-installer/amd64/linux
-    
-    if [ $generation -eq 1 ]; then
+    if [ $generation -eq 2 ]; then
+        # Copy boot image files to tftp server
+        cp linux /var/lib/tftpboot/uefi/PXE/
+        cp initrd.gz /var/lib/tftpboot/uefi/PXE/
+
+        echo "  menuentry 'Ubuntu' {" >> /var/lib/tftpboot/uefi/grub.cfg
+        if [ $willInstall == "no" ]; then
+            echo "  linuxefi uefi/PXE/linux auto=true priority=critical quiet --" >> /var/lib/tftpboot/uefi/grub.cfg
+        else
+            echo "  linuxefi uefi/PXE/linux auto=true priority=critical interface=auto url=http://10.10.10.10/ubuntu16/preseed/ubuntuGen2.seed" >> /var/lib/tftpboot/uefi/grub.cfg
+        fi
+        echo "  initrdefi uefi/PXE/initrd.gz" >> /var/lib/tftpboot/uefi/grub.cfg
+        echo "  }" >> /var/lib/tftpboot/uefi/grub.cfg
+
+    elif [ $generation -eq 1 ]; then
        
         # Copy boot image files to tftp server
         cp linux /var/lib/tftpboot/pxelinux/PXE
@@ -258,7 +272,7 @@ elif [ $distro == "ubuntu" ]; then
         if [ $willInstall == "no" ]; then
             echo "append initrd=ubuntu16/initrd.gz auto=true priority=critical quiet --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         else
-            echo "append initrd=ubuntu16/initrd.gz auto=true priority=critical interface=auto file=http://10.10.10.10/ubuntu16/preseed/ubuntu.seed vga=788 ks=http://10.10.10.10/ubuntu16/ks.cfg quiet --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+            echo "append initrd=ubuntu16/initrd.gz auto=true priority=critical interface=auto url=http://10.10.10.10/ubuntu16/preseed/ubuntu.seed vga=788 quiet --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         fi
     fi    
 fi
