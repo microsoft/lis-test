@@ -513,7 +513,7 @@ echo ${ipVersion}
 LogMsg "Starting netperf in client mode."
 for TEST_ITEM in ${TEST_PARAM[*]}
 do
-    THROUGHPUT=$(netperf -H ${NETPERF_SERVER_IP} -t ${TEST_ITEM} -P 0 -v 0 ${ipVersion})> netperf.log 2>&1
+    THROUGHPUT=$(netperf -H ${NETPERF_SERVER_IP} -t ${TEST_ITEM} -P 0 -v 0 ${ipVersion} -f G)> netperf.log 2>&1
     if [ $? -eq 0 ]; then
         msg="THROUGHPUT ${TEST_ITEM}: $THROUGHPUT"
         echo "${msg}" >> ~/summary.log
