@@ -19,20 +19,25 @@
 ##############################################################################
 <#
 .Synopsis
-    Verify the time sysc after VM paused
+    Verify the time sync after VM paused
 .Description
     This test will check the time sync of guest OS with the host. It will pause the VM.It will wait for 10 mins, 
 resume the VM from paused state and will re-check the time sync.
 
- testParams
-    HOME_DIR=C:\lisa\
-    ipv4=
-    sshKey=
+.Parameter vmName
+    Name of the VM to test.
 
- now=`date "+%m/%d/%Y %H:%M:%S%p"
- returns 04/27/2012 16:10:30PM
+.Parameter hvServer
+    Name of the Hyper-V server hosting the VM.
+
+.Parameter testParams
+    Test data for this test case.
+
+.Example
+    setupScripts\INST_timesync_pausedVM.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
 
 #>
+
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
 #####################################################################
@@ -198,6 +203,7 @@ foreach($p in $params)
     "sshkey"  { $sshKey = $val }
     "ipv4"    { $ipv4 = $val }
     "rootdir" { $rootDir = $val }
+    "tc_covered" {$tcCovered = $val}
     default  { continue }
     }
 }
@@ -237,7 +243,7 @@ cd $rootDir
 #
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
-Write-Output "Covers TC34" | Out-File -Append $summaryLog
+Write-Output "Covers ${tcCovered}" | Out-File -Append $summaryLog
 
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 
