@@ -31,7 +31,7 @@
          <test> 
             <testName>Performance_Orion</testName> 
             <testScript>Performance_Orion.sh</testScript>
-            <files>remote-scripts/ica/Performance_Orion.sh,tools/orion_linux_x86-64.gz,tools/orion_config.lun</files>
+            <files>remote-scripts/ica/Performance_Orion.sh,tools/orion_linux_x86-64.gz</files>
             <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
@@ -45,8 +45,10 @@
                 <param>ORION_SCENARIO_FILE=orion_config</param>
             </testParams> 
             <uploadFiles>
-                <file>orion-dss.tar.gz</file>
-                <file>orion-oltp.tar.gz</file>
+                <file>oltp_iops.csv</file>
+                <file>oltp_lat.csv</file>
+                <file>dss_iops.csv</file>
+                <file>dss_lat.csv</file>
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
