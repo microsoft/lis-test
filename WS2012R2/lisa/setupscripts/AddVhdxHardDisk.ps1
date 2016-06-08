@@ -285,7 +285,24 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     $fileInfo = GetRemoteFileInfo -filename $vhdName -server $server
     if (-not $fileInfo)
     {
-        $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Dynamic:($vhdType -eq "Dynamic") -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
+      $nv = $null
+      switch ($vhdType)
+      {
+          "Dynamic"
+              {
+                  $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Dynamic -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
+              }
+          "Fixed"
+              {
+                  $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Fixed -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
+              }
+
+          default
+              {
+                  Write-Output "Error: unknow vhd type of ${vhdType}"
+                  return $False
+              }
+       }
         if ($nv -eq $null)
         {
             "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
@@ -413,7 +430,6 @@ foreach ($p in $params)
         $retVal = $false
         continue
     }
-
 }
 
 return $retVal
