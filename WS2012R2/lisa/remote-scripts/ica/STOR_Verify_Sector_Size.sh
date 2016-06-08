@@ -19,12 +19,7 @@
 # See the Apache Version 2.0 License for specific language governing
 # permissions and limitations under the License.
 #
-########################################################################
 
-ICA_TESTRUNNING="TestRunning"
-ICA_TESTCOMPLETED="TestCompleted"
-ICA_TESTABORTED="TestAborted"
-ICA_TESTFAILED="TestFailed"        # Error while performing the test
 #######################################################################
 # STOR_Verify_Sector_Size.sh
 # Description:
@@ -36,6 +31,11 @@ ICA_TESTFAILED="TestFailed"        # Error while performing the test
 #    3. Verify the logial sector and physical size
 #    note: for logical size is 4096, already 4k align, no need to test
 ########################################################################
+
+ICA_TESTRUNNING="TestRunning"
+ICA_TESTCOMPLETED="TestCompleted"
+ICA_TESTABORTED="TestAborted"
+ICA_TESTFAILED="TestFailed"
 
 # Adds a timestamp to the log file
 #######################################################################
