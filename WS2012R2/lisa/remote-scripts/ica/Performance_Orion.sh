@@ -26,7 +26,7 @@
 # Performance_Orion.sh
 #
 # Description:
-#     For the test to run you have to place the orion_linux_x86-64.gz archive and mystat.lun in the
+#     For the test to run you have to place the orion_linux_x86-64.gz archive and $ORION_SCENARIO_FILE.lun in the
 #     Tools folder under lisa.
 #      
 #      For the test to run  you have attach a PassThrough disk on SSD.
@@ -136,6 +136,13 @@ case $(LinuxRelease) in
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
+        apt-get -y install sysstat
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            echo "Failed to install the sysstat!" >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+            exit 41
+        fi
         FS="ext4"
         
         # Disable multipath so that it doesn't lock the disks
@@ -153,6 +160,13 @@ case $(LinuxRelease) in
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the libaio-dev library!" >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+            exit 41
+        fi
+        yum -y install sysstat
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            echo "Failed to install the sysstat!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
@@ -239,28 +253,61 @@ chmod 755 orion_linux_x86-64
 
 LogMsg "ORION was installed successfully!"
 
-#
-#Create a directory log for dss:
-mkdir /root/orion-dss 
-mkdir /root/orion-oltp
-cp ${ORION_SCENARIO_FILE} /root/orion-dss
-cp ${ORION_SCENARIO_FILE} /root/orion-oltp
+#Create .lun file
+echo "/dev/sdb" > /root/$ORION_SCENARIO_FILE.lun
 
-# Run ORION in dss level:
-./orion_linux_x86-64 -run dss -testname /root/orion-dss/${ORION_SCENARIO_FILE}
-if [ $? -eq 0 ]; then
-    LogMsg "Orion in dss level completed successfully."
-    tar -zcvf orion-dss.tar.gz /root/orion-dss
-fi
+#all read
+$TEST_SUITE_COLLECTION=("oltp" "dss" "simple" "normal" "normal" "normal")
 
-# Run ORION in oltp level:
-./orion_linux_x86-64 -run oltp -testname /root/orion-oltp/${ORION_SCENARIO_FILE} 
-if [ $? -eq 0 ]; then
-    LogMsg "Orion in oltp level completed successfully."
-    tar -zcvf orion-oltp.tar.gz /root/orion-oltp
-fi
+t=0
+for currenttest in "${$TEST_SUITE_COLLECTION[@]}"
+do
+        echo "$currenttest"
+		# DSS test runs longest time, which is 65 minutes. 4000 = 65 * 60 + 100buffer
+        iostat -x -d 1 4000 sdb  2>&1 > /root/benchmark/orion/$t.$currenttest.iostat.diskio.log  &
+        vmstat       1 4000      2>&1 > /root/benchmark/orion/$t.$currenttest.vmstat.memory.cpu.log  &
 
-#
+        ./orion_linux_x86-64 -run $currenttest -testname $$ORION_SCENARIO_FILE
+        sts=$?
+        if [ 0 -eq ${sts} ]; then
+        	#Rename the log
+        	if [ $currenttest -eq "oltp" ]; then
+        		mv $ORION_SCENARIO_FILE_*iops.csv oltp_iops.csv
+        		mv $ORION_SCENARIO_FILE_*lat.csv oltp_lat.csv
+        	fi
+
+        	if [ $currenttest -eq "dss" ]; then
+        		mv $ORION_SCENARIO_FILE_*mbps.csv dss_iops.csv
+        		mv $ORION_SCENARIO_FILE_*lat.csv dss_lat.csv
+        	fi
+        fi
+        pkill -f iostat
+        pkill -f vmstat
+
+        echo "test completed. sleep 60 seconds and then try next test..."
+        sleep 60
+        t=$(($t + 1))
+done
+
+#all write
+./orion_linux_x86-64 -run oltp -testname $ORION_SCENARIO_FILE -write 100
+./orion_linux_x86-64 -run dss -testname $ORION_SCENARIO_FILE -write 100
+./orion_linux_x86-64 -run advanced -size_small 8 -size_large 1024 -type rand -simulate concat -write 100 -duration 60 -matrix basic
+./orion_linux_x86-64 -run advanced -size_small 8 -size_large 1024 -type rand -simulate concat -write 100 -duration 60 -matrix detailed
+#redo the "normal" test
+./orion_linux_x86-64 -run advanced -size_small 8 -size_large 1024 -type rand -simulate concat -write 100 -duration 60 -matrix detailed
+./orion_linux_x86-64 -run advanced -size_small 8 -size_large 1024 -type rand -simulate concat -write 100 -duration 60 -matrix detailed
+
+#read50% and write 50%
+./orion_linux_x86-64 -run oltp -testname $ORION_SCENARIO_FILE -write 50 
+./orion_linux_x86-64 -run dss -testname $ORION_SCENARIO_FILE -write 50
+./orion_linux_x86-64 -run advanced -size_small 8 -size_large 1024 -type rand -simulate concat -write 50 -duration 60 -matrix basic
+./orion_linux_x86-64 -run advanced -size_small 8 -size_large 1024 -type rand -simulate concat -write 50 -duration 60 -matrix detailed
+#redo the "normal" test
+./orion_linux_x86-64 -run advanced -size_small 8 -size_large 1024 -type rand -simulate concat -write 50 -duration 60 -matrix detailed
+./orion_linux_x86-64 -run advanced -size_small 8 -size_large 1024 -type rand -simulate concat -write 50 -duration 60 -matrix detailed
+
+
 # Check if the SCSI disk is still connected
 #
 mkdir /mnt/Example
