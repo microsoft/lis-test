@@ -36,11 +36,13 @@
                 <suiteTest>VHDx_4k_HotADD_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</suiteTest>
                 <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_3TB</suiteTest>
-                <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
+                <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>-->
                 <!-- The test case below requires a 64bit virtual machine -->
                 <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
                 <!-- The test case below requires a SSD disk -->
                 <suiteTest>TrimSupport</suiteTest>
+                <suiteTest>VHDx_Verify_SectorSize</suiteTest>
+
             </suiteTests>
         </suite>
     </testSuites>
@@ -374,6 +376,23 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
+
+     <test>
+      <testName>VHDx_Verify_SectorSize</testName>
+      <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
+      <testScript>STOR_Verify_Sector_Size.sh</testScript>
+      <files>remote-scripts/ica/STOR_Verify_Sector_Size.sh</files>
+      <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+      <timeout>18000</timeout>
+      <param>TC_COVERED=STOR-103</param>
+      <testparams>
+          <param>SCSI=0,0,Dynamic,512</param>
+      </testparams>
+      <onError>Continue</onError>
+      <noReboot>True</noReboot>
+    </test>
+
+
     </testCases>
 
     <VMs>
