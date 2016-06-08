@@ -340,9 +340,9 @@
 	    <test>
             <testName>TimeSync_PausedVM</testName>
             <testScript>SetupScripts\INST_timesync_pausedVM.ps1</testScript>
-            <timeout>800</timeout>
+            <timeout>1000</timeout>
             <onError>Continue</onError>
-            <noReboot>False</noReboot>
+            <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=CORE-27</param>
             </testparams>
