@@ -42,6 +42,7 @@
             <suiteTest>TimeSync</suiteTest>
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
+            <suiteTest>TimeSync_PausedVM</suiteTest>
             <suiteTest>LISShutdownVM</suiteTest>
             <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
             <suiteTest>VerifyLisModules</suiteTest>
@@ -334,6 +335,17 @@
 		<testParams>
             		<param>TC_COVERED=CORE-26</param>
 		</testParams>
+        </test>
+
+	    <test>
+            <testName>TimeSync_PausedVM</testName>
+            <testScript>SetupScripts\INST_timesync_pausedVM.ps1</testScript>
+            <timeout>800</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=CORE-27</param>
+            </testparams>
         </test>
     </testCases>
 
