@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -19,65 +19,54 @@
 #
 ########################################################################
 
+<#
+.Synopsis
+    Parse the ICMP ping data from the test log results.
 
-function ParseBenchmarkLogFile( [string]$LogFolder, [string]$XMLFileName )
-{
+.Parameter XMLFileName
+    The LISA XML file used for the test run. 
+
+.Exmple
+    Parse-Log.Perf_Ping.ps1 D:\Lisa\XML\ping_icmp.xml
+#>
+
+function ParseBenchmarkLogFile( [string]$LogFolder, [string]$XMLFileName ) {
+    $latencyInMS = $null
+    
     #----------------------------------------------------------------------------
     # The log file pattern. The log is produced by the Ping tool
     #----------------------------------------------------------------------------
-    $PingLofFile = "*_ping.log"
+    $PingLogFile = "*__Ping_IPv4_summary.log"
 
     #----------------------------------------------------------------------------
     # Read the Ping log file
     #----------------------------------------------------------------------------
-    $icaLogs = Get-ChildItem "$LogFolder\$PingLofFile" -Recurse
-    Write-Host "Number of Log files found: "
+    $icaLogs = Get-ChildItem "$LogFolder\$PingLogFile" -Recurse
+    Write-Host "Number of log files found: "
     Write-Host $icaLogs.Count
 
-    if($icaLogs.Count -eq 0)
-    {
+    if($icaLogs.Count -eq 0) {
         return $false
     }
 
-    $latencyInMS = $null
-    # should only have one file. but in case there are more than one files, just use the last one simply
-    foreach ($logFile  in $icaLogs)
-    {
+    # should only have one file. but in case there are more than one files, just simply use the last one
+    foreach ($logFile  in $icaLogs) {
         Write-Host "One log file has been found: $logFile" 
         
-        #we should find the result in the second line
-        #result example: rtt min/avg/max/mdev = 0.280/1.121/4.796/1.644 ms
-        $resultFound = $false
-        $iTry=1
-        while (($resultFound -eq $false) -and ($iTry -lt 3))
-        {
-            $line = (Get-Content $logFile)[-1* $iTry]
-            Write-Host $line
+        #we should find the results in the second line
+        #results example: rtt min/avg/max/mdev = 0.280/1.121/4.796/1.644 ms
+        [string]$line = (Get-Content $logFile | Select-String -pattern "rtt min/avg/max/mdev")
+        Write-Host "Found line that contains the results: $line"
 
-            if ($line.Trim() -eq "")
-            {
-                $iTry++
-                continue
-            }
-            elseif ( ($line.StartsWith("rtt min/avg/max/mdev") -eq $false) -or ($line.Contains("=") -eq $false) -or ($line.Contains("ms") -eq $false))
-            {
-                $iTry++
-                continue
-            }
-            else
-            {
-                $element = $line.Split('=')
-                $elementValue = $element[1].Split('/')
-                $latencyInMS = $elementValue[0].Trim()
-                Write-Host "The min latency is: " $latencyInMS  "(ms)"
-                break
-            }
-        }
+        $element = $line.Split('=')
+        $elementValue = $element[1].Split('/')
+        $latencyInMS = $elementValue[0].Trim()
+        Write-Host "The min latency is: " $latencyInMS  "(ms)"
     }
+
     Write-Host "LatencyInMS = $latencyInMS"
-    if ($latencyInMS -eq $null)
-    {
-        Write-Host "ERROR: Cannot find performance result from the log file"
+    if ($latencyInMS -eq $null) {
+        Write-Host "ERROR: Cannot find performance result from the log file!"
         return $false
     }
 
@@ -102,4 +91,3 @@ function ParseBenchmarkLogFile( [string]$LogFolder, [string]$XMLFileName )
     $array
     return $true
 }
-
