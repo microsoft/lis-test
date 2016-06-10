@@ -128,6 +128,7 @@ else
 fi
 
 sleep 1
+mkdir /var/www/PXE
 if [ $distro != "ubuntu" ]; then
     LogMsg "Mount the CDROM"
     mount /dev/cdrom /mnt/
@@ -154,7 +155,6 @@ if [ $distro != "ubuntu" ]; then
         LogMsg "Data read successfully from the CDROM"
     fi
 
-    mkdir /var/www/PXE
     cp -r /mnt/* /var/www/PXE/
 fi
 
@@ -191,7 +191,7 @@ if [ $distro == "rhel" ]; then
         if [ $willInstall == "no" ]; then
             echo "  linuxefi uefi/PXE/vmlinuz ip=dhcp inst.repo=http://10.10.10.10/PXE" >> /var/lib/tftpboot/uefi/grub.cfg
         else
-            echo "  linuxefi uefi/PXE/vmlinuz ip=dhcp inst.repo=http://10.10.10.10/PXE ks=http://10.10.10.10/rhel7/ks.cfg" >> /var/lib/tftpboot/uefi/grub.cfg
+            echo "  linuxefi uefi/PXE/vmlinuz ip=dhcp inst.repo=http://10.10.10.10/PXE ks=http://10.10.10.10/PXE/ks.cfg" >> /var/lib/tftpboot/uefi/grub.cfg
         fi
         echo "  initrdefi uefi/PXE/initrd.img" >> /var/lib/tftpboot/uefi/grub.cfg
         echo "  }" >> /var/lib/tftpboot/uefi/grub.cfg
@@ -207,7 +207,7 @@ if [ $distro == "rhel" ]; then
         if [ $willInstall == "no" ]; then
             echo "append initrd=PXE/initrd.img ip=dhcp inst.repo=http://10.10.10.10/PXE" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         else
-            echo "  append initrd=PXE/initrd.img ip=dhcp inst.repo=http://10.10.10.10/PXE ks=http://10.10.10.10/rhel7/ks.cfg" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+            echo "  append initrd=PXE/initrd.img ip=dhcp inst.repo=http://10.10.10.10/PXE ks=http://10.10.10.10/PXE/ks.cfg" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         fi
 
     fi
@@ -221,7 +221,7 @@ elif [ $distro == "sles" ]; then
         if [ $willInstall == "no" ]; then
             echo "  linuxefi uefi/PXE/linux install=http://10.10.10.10/PXE inst.stage2=http://10.10.10.10/PXE" >> /var/lib/tftpboot/uefi/grub.cfg
         else
-            echo "  linuxefi uefi/PXE/linux install=http://10.10.10.10/PXE inst.stage2=http://10.10.10.10/PXE autoyast=http:/10.10.10.10/sles12/autoinstGen2.xml" >> /var/lib/tftpboot/uefi/grub.cfg
+            echo "  linuxefi uefi/PXE/linux install=http://10.10.10.10/PXE inst.stage2=http://10.10.10.10/PXE autoyast=http:/10.10.10.10/PXE/autoinstGen2.xml" >> /var/lib/tftpboot/uefi/grub.cfg
         fi
         echo "  initrdefi uefi/PXE/initrd" >> /var/lib/tftpboot/uefi/grub.cfg
         echo "  }" >> /var/lib/tftpboot/uefi/grub.cfg
@@ -238,7 +238,7 @@ elif [ $distro == "sles" ]; then
         if [ $willInstall == "no" ]; then
             echo "append initrd=PXE/initrd ip=dhcp install=http://10.10.10.10/PXE inst.stage2=http://10.10.10.10/PXE" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         else
-            echo "append initrd=PXE/initrd ip=dhcp install=http://10.10.10.10/PXE inst.stage2=http://10.10.10.10/PXE autoyast=http://10.10.10.10/sles12/autoinstGen1.xml" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+            echo "append initrd=PXE/initrd ip=dhcp install=http://10.10.10.10/PXE inst.stage2=http://10.10.10.10/PXE autoyast=http://10.10.10.10/PXE/autoinstGen1.xml" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         fi
     fi    
 elif [ $distro == "ubuntu" ]; then
@@ -254,7 +254,7 @@ elif [ $distro == "ubuntu" ]; then
         if [ $willInstall == "no" ]; then
             echo "  linuxefi uefi/PXE/linux auto=true priority=critical quiet --" >> /var/lib/tftpboot/uefi/grub.cfg
         else
-            echo "  linuxefi uefi/PXE/linux auto=true priority=critical interface=auto url=http://10.10.10.10/ubuntu16/preseed/ubuntuGen2.seed" >> /var/lib/tftpboot/uefi/grub.cfg
+            echo "  linuxefi uefi/PXE/linux auto=true priority=critical interface=auto url=http://10.10.10.10/PXE/ubuntuGen2.seed" >> /var/lib/tftpboot/uefi/grub.cfg
         fi
         echo "  initrdefi uefi/PXE/initrd.gz" >> /var/lib/tftpboot/uefi/grub.cfg
         echo "  }" >> /var/lib/tftpboot/uefi/grub.cfg
@@ -272,7 +272,7 @@ elif [ $distro == "ubuntu" ]; then
         if [ $willInstall == "no" ]; then
             echo "append initrd=ubuntu16/initrd.gz auto=true priority=critical quiet --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         else
-            echo "append initrd=ubuntu16/initrd.gz auto=true priority=critical interface=auto url=http://10.10.10.10/ubuntu16/preseed/ubuntu.seed vga=788 quiet --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+            echo "append initrd=ubuntu16/initrd.gz auto=true priority=critical interface=auto url=http://10.10.10.10/PXE/ubuntu.seed vga=788 quiet --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         fi
     fi    
 fi

@@ -51,7 +51,8 @@
     <testCases>
         <test>
             <testName>PXE_basic</testName>
-            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh</files>
+            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
+                    Infrastructure\PXE\routingScript.sh</files>
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
@@ -70,7 +71,8 @@
 
         <test>
             <testName>PXE_install_singleCpu</testName>
-            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh</files>
+            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
+                    Infrastructure\PXE\routingScript.sh</files>
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
@@ -89,7 +91,8 @@
 
         <test>
             <testName>PXE_install_SMP</testName>
-            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh</files>
+            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
+                    Infrastructure\PXE\routingScript.sh</files>
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
