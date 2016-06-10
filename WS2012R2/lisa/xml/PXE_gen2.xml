@@ -58,11 +58,11 @@
             <testParams>
                 <param>TC_COVERED=PXE-03</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for rhel or sles-->
+                <!-- IsoFilename is mandatory for centos, rhel or sles-->
                 <!-- <param>IsoFilename=isoName</param>  -->
                 <param>generation=2</param> 
                 <param>willInstall=no</param>   
-                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
             <timeout>900</timeout>
@@ -78,11 +78,11 @@
             <testParams>
                 <param>TC_COVERED=PXE-06</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for rhel or sles-->
+                <!-- IsoFilename is mandatory for centos, rhel or sles-->
                 <param>IsoFilename=isoName</param>
                 <param>generation=2</param> 
                 <param>willInstall=yes</param>    
-                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
             <timeout>2400</timeout>
@@ -98,12 +98,12 @@
             <testParams>
                 <param>TC_COVERED=PXE-07</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for rhel or sles-->
+                <!-- IsoFilename is mandatory for centos, rhel or sles-->
                 <!-- <param>IsoFilename=isoName</param> -->
                 <param>generation=2</param> 
                 <param>willInstall=yes</param>  
                 <param>VCPU=4</param>  
-                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
                 <param>distro=ubuntu</param>
             </testParams>
             <timeout>2400</timeout>

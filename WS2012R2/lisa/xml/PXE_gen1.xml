@@ -58,11 +58,11 @@
             <testParams>
                 <param>TC_COVERED=PXE-01</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for rhel or sles-->
+                <!-- IsoFilename is mandatory for centos, rhel or sles-->
                 <param>IsoFilename=isoName</param>
                 <param>generation=1</param> 
                 <param>willInstall=no</param> 
-                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
             <timeout>900</timeout>
@@ -78,11 +78,11 @@
             <testParams>
                 <param>TC_COVERED=PXE-04</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for rhel or sles-->
+                <!-- IsoFilename is mandatory for centos, rhel or sles-->
                 <param>IsoFilename=isoName</param>
                 <param>generation=1</param> 
                 <param>willInstall=yes</param>   
-                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
             <timeout>2400</timeout>
@@ -98,12 +98,12 @@
             <testParams>
                 <param>TC_COVERED=PXE-05</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for rhel or sles-->
+                <!-- IsoFilename is mandatory for centos, rhel or sles-->
                 <param>IsoFilename=isoName</param>
                 <param>generation=1</param> 
                 <param>willInstall=yes</param>  
                 <param>VCPU=4</param>    
-                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
             <timeout>2400</timeout>

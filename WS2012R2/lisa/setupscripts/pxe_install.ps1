@@ -24,7 +24,7 @@
     Install an OS over pxe
 
 .Description
-    On RHEL and SLES: In the PXE Server VM is mounted an ISO. This will be 
+    On CentOS, RHEL and SLES: In the PXE Server VM is mounted an ISO. This will be 
     copied in the http server folder and will be available to a second vm. 
     For Ubuntu: Netboot and installation files will be downloaded from 
     the public repository. 
@@ -513,7 +513,7 @@ if ($willInstall -eq "yes"){
         if ($distro -eq "ubuntu"){
             $configFileName = "ubuntu.seed"
         }
-        if ($distro -eq "rhel"){
+        if ($distro -eq "rhel" -Or $distro -eq "centos"){
             $configFileName = "ks.cfg"
         }
         if ($distro -eq "sles"){
@@ -525,7 +525,7 @@ if ($willInstall -eq "yes"){
         if ($distro -eq "ubuntu"){
             $configFileName = "ubuntuGen2.seed"
         }
-        if ($distro -eq "rhel"){
+        if ($distro -eq "rhel" -Or $distro -eq "centos"){
             $configFileName = "ks.cfg"
         }
         if ($distro -eq "sles"){
@@ -535,6 +535,9 @@ if ($willInstall -eq "yes"){
 
     echo y | .\bin\pscp -i ssh\${sshKey} .\Infrastructure\PXE\${configFileName} root@${ipv4}:"/var/www/PXE/"
 }
+
+
+
 # Run the routing script - this will redirect traffic from the private nic to External
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix routingScript.sh  2> /dev/null"
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod 775 routingScript.sh  2> /dev/null"

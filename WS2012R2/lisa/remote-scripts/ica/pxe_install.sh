@@ -26,7 +26,7 @@
 #     This script was created to automate the setup of a PXE Server
 #     It sets up the tftp server and http server for PXE install.
 #     If distro is set to ubuntu, it will download necessary files
-#     If distro is rhel or sles, it will mount an iso and copy the files
+#     If distro is centos, rhel or sles, it will mount an iso and copy the files
 #  
 #     MANDATORY: The PXE server has to have a dhcp, http and tftp server
 #                running already
@@ -181,13 +181,13 @@ else
     exit 1   
 fi
 
-if [ $distro == "rhel" ]; then
+if [ $distro == "rhel" ] || [ $distro == "centos" ]; then
     if [ $generation -eq 2 ]; then
         # Copy boot image files to tftp server
         cp /mnt/images/pxeboot/vmlinuz /var/lib/tftpboot/uefi/PXE/
         cp /mnt/images/pxeboot/initrd.img /var/lib/tftpboot/uefi/PXE/
 
-        echo "  menuentry 'RHEL' {" >> /var/lib/tftpboot/uefi/grub.cfg
+        echo "  menuentry 'RHEL_CENTOS' {" >> /var/lib/tftpboot/uefi/grub.cfg
         if [ $willInstall == "no" ]; then
             echo "  linuxefi uefi/PXE/vmlinuz ip=dhcp inst.repo=http://10.10.10.10/PXE" >> /var/lib/tftpboot/uefi/grub.cfg
         else
@@ -200,8 +200,8 @@ if [ $distro == "rhel" ]; then
         cp /mnt/images/pxeboot/vmlinuz /var/lib/tftpboot/pxelinux/PXE
         cp /mnt/images/pxeboot/initrd.img /var/lib/tftpboot/pxelinux/PXE
 
-        echo "label RHEL" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
-        echo "  menu label ^Install RHEL" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+        echo "label RHEL_CENTOS" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+        echo "  menu label ^Install RHEL_CENTOS" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         echo "  menu default" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         echo "  kernel PXE/vmlinuz" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         if [ $willInstall == "no" ]; then
