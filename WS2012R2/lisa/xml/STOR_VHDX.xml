@@ -41,12 +41,7 @@
                 <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
                 <!-- The test case below requires a SSD disk -->
                 <suiteTest>TrimSupport</suiteTest>
-<<<<<<< HEAD
-=======
-                <suiteTest>VHDx_Copy_5G_IDE_Dynamic</suiteTest>
-                <suiteTest>VHDx_Copy_5G_SCSI_Dynamic</suiteTest>
                 <suiteTest>VHDx_Mount_NFS</suiteTest>
->>>>>>> 0be344a... STOR_VHDX: add one case for test mount nfs client and dd file
             </suiteTests>
         </suite>
     </testSuites>
@@ -380,52 +375,6 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-<<<<<<< HEAD
-=======
-            <test>
-          <testName>VHDx_Copy_5G_IDE_Dynamic</testName>
-          <testScript>STOR_Large_Disk_CopyFile.sh</testScript>
-          <files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
-          <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
-          <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-          <timeout>18000</timeout>
-          <testparams>
-              <param>TC_COVERED=STOR-100</param>
-              <param>Type=Dynamic</param>
-              <param>SectorSize=512</param>
-              <param>DefaultSize=6GB</param>
-              <param>fileSystems=(ext4)</param>
-              <param>ControllerType=IDE</param>
-              <param>NFS_Path=10.00.0.0:/share</param>
-              <param>Wget_Path=http://fileshare/test.iso</param>
-
-        </testparams>
-          <onError>Continue</onError>
-          <noReboot>False</noReboot>
-      </test>
-
-      <test>
-        <testName>VHDx_Copy_5G_SCSI_Dynamic</testName>
-        <testScript>STOR_Large_Disk_CopyFile.sh</testScript>
-        <files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
-        <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
-        <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-        <timeout>18000</timeout>
-        <testparams>
-            <param>TC_COVERED=STOR-101</param>
-            <param>Type=Dynamic</param>
-            <param>SectorSize=512</param>
-            <param>DefaultSize=6GB</param>
-            <param>fileSystems=(ext4)</param>
-            <param>ControllerType=SCSI</param>
-            <param>NFS_Path=10.00.0.0:/share</param>
-            <param>Wget_Path=http://fileshare/test.iso</param>
-
-        </testparams>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-     </test>
-
      <test>
        <testName>VHDx_Mount_NFS</testName>
        <testScript>STOR_NFS_Client.sh</testScript>
@@ -442,7 +391,6 @@
        <noReboot>False</noReboot>
      </test>
 
->>>>>>> 0be344a... STOR_VHDX: add one case for test mount nfs client and dd file
     </testCases>
 
     <VMs>
