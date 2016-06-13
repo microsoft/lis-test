@@ -58,7 +58,6 @@
 	setupScripts\NET_ADD_Switch -vmName sles11sp3x64 -hvServer localhost -testParams "switch=Internal,InternalNet"
 #>
 
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $retVal = $false
@@ -68,13 +67,13 @@ $retVal = $false
 #
 if (-not $vmName)
 {
-    "Error: VM name is null. "
+    "Error: VM name is null."
     return $retVal
 }
 
 if (-not $hvServer)
 {
-    "Error: hvServer is null"
+    "Error: hvServer is null."
     return $retVal
 }
 
@@ -110,7 +109,7 @@ foreach ($p in $params)
         $switchName = $switchArgs[1].Trim()
 
         #
-        # Validate the virutal switch type
+        # Validate the virtual switch type
         #
         if (@("External", "Internal", "Private") -notcontains $switchType)
         {
@@ -122,7 +121,7 @@ foreach ($p in $params)
 }
 
 #
-# Add a new swtich if there's no this kind of switch with the same switch name
+# Add a new switch if there's no this kind of switch with the same name
 #
 $vmSwitch = Get-VMSwitch -SwitchType $switchType
 if (-not $vmSwitch)
