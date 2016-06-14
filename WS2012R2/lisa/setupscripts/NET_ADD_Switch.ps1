@@ -45,9 +45,6 @@
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
 
-   .Parameter vmName
-	Name of the VM to add NIC to .
-
 	.Parameter hvServer
 	Name of the Hyper-V server hosting the VM.
 
@@ -55,7 +52,7 @@
 	Test data for this test case.
 
 	.Example
-	setupScripts\NET_ADD_Switch -vmName sles11sp3x64 -hvServer localhost -testParams "switch=Internal,InternalNet"
+	setupScripts\NET_ADD_Switch -hvServer localhost -testParams "switch=Internal,InternalNet"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -65,12 +62,6 @@ $retVal = $false
 #
 # Check input arguments
 #
-if (-not $vmName)
-{
-    "Error: VM name is null."
-    return $retVal
-}
-
 if (-not $hvServer)
 {
     "Error: hvServer is null."
