@@ -45,12 +45,32 @@
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
 
+   .Parameter vmName
+	Name of the VM to add NIC to .
+
+	.Parameter hvServer
+	Name of the Hyper-V server hosting the VM.
+
+	.Parameter testParams
+	Test data for this test case.
+
+	.Example
+	setupScripts\NET_ADD_Switch -vmName sles11sp3x64 -hvServer localhost -testParams "switch=Internal,InternalNet"
 #>
 
-
-param([string] $testParams)
+param( [string] $hvServer, [string] $testParams)
 
 $retVal = $false
+
+#
+# Check input arguments
+#
+if (-not $hvServer)
+{
+    "Error: hvServer is null."
+    return $retVal
+}
+
 #
 # Parse the testParams string, then process each parameter
 #
@@ -83,7 +103,7 @@ foreach ($p in $params)
         $switchName = $switchArgs[1].Trim()
 
         #
-        # Validate the virutal switch type
+        # Validate the virtual switch type
         #
         if (@("External", "Internal", "Private") -notcontains $switchType)
         {
@@ -95,7 +115,7 @@ foreach ($p in $params)
 }
 
 #
-# Add a new swtich if there's no this kind of switch with the same switch name
+# Add a new switch if there's no this kind of switch with the same name
 #
 $vmSwitch = Get-VMSwitch -SwitchType $switchType
 if (-not $vmSwitch)
