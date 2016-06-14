@@ -51,17 +51,18 @@
     <testCases>
         <test>
             <testName>PXE_basic</testName>
-            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh</files>
+            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
+                    Infrastructure\PXE\routingScript.sh</files>
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PXE-01</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for rhel or sles-->
+                <!-- IsoFilename is mandatory for centos, rhel or sles-->
                 <param>IsoFilename=isoName</param>
                 <param>generation=1</param> 
                 <param>willInstall=no</param> 
-                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
             <timeout>900</timeout>
@@ -70,17 +71,18 @@
 
         <test>
             <testName>PXE_install_singleCpu</testName>
-            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh</files>
+            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
+                    Infrastructure\PXE\routingScript.sh</files>
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PXE-04</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for rhel or sles-->
+                <!-- IsoFilename is mandatory for centos, rhel or sles-->
                 <param>IsoFilename=isoName</param>
                 <param>generation=1</param> 
                 <param>willInstall=yes</param>   
-                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
             <timeout>2400</timeout>
@@ -89,18 +91,19 @@
 
         <test>
             <testName>PXE_install_SMP</testName>
-            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh</files>
+            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
+                    Infrastructure\PXE\routingScript.sh</files>
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PXE-05</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for rhel or sles-->
+                <!-- IsoFilename is mandatory for centos, rhel or sles-->
                 <param>IsoFilename=isoName</param>
                 <param>generation=1</param> 
                 <param>willInstall=yes</param>  
                 <param>VCPU=4</param>    
-                <!-- Mandatory: please complete with rhel, sles or ubuntu -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
                 <param>distro=rhel</param>
             </testParams>
             <timeout>2400</timeout>
