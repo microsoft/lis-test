@@ -38,15 +38,21 @@
         <suite>
             <suiteName>VHDxResize</suiteName>
             <suiteTests>
+
                 <suiteTest>VHDxResizeToBigger512</suiteTest>
                 <suiteTest>VHDxResizeToBigger4096</suiteTest>
+                <suiteTest>VHDxResizeToBigger512_Dynamic_IDE</suiteTest>
+                <suiteTest>VHDxResizeToBigger512_Fixed_IDE</suiteTest>
+
                 <suiteTest>VHDxResizeToSmaller512</suiteTest>
                 <suiteTest>VHDxResizeToSmaller4096</suiteTest>
                 <suiteTest>VHDxResizeGrowShrink</suiteTest>
                 <suiteTest>VHDxResizeGrowFilesystem512</suiteTest>
                 <suiteTest>VHDxResizeGrowFilesystem4096</suiteTest>
                 <suiteTest>VHDxResizeOver2TB</suiteTest>
+                <suiteTest>VHDxResizeOver2TB_IDE</suiteTest>
                 <suiteTest>VHDxResizeLiveMigration</suiteTest>
+
             </suiteTests>
         </suite>
     </testSuites>
@@ -86,6 +92,46 @@
                 <param>TC_COVERED=STOR-VHDx-01b</param>
             </testparams>
         </test>
+
+        <test>
+            <testName>VHDxResizeToBigger512_Fixed_IDE</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=1GB</param>
+                <param>NewSize=2GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=IDE</param>
+                <param>TC_COVERED=STOR-VHDx-105</param>
+             </testparams>
+       </test>
+       <test>
+            <testName>VHDxResizeToBigger512_Dynamic_IDE</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=1GB</param>
+                <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=IDE</param>
+                <param>TC_COVERED=STOR-VHDx-106</param>
+            </testparams>
+            <noReboot>True</noReboot>
+       </test>
+
+
         <test>
             <testName>VHDxResizeToSmaller512</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -189,6 +235,27 @@
                 <param>TC_COVERED=STOR-VHDx-05</param>
             </testparams>
         </test>
+        <test>
+            <testName>VHDxResizeOver2TB_IDE</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <timeout>3000</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=127GB</param>
+                <param>NewSize=2304GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>TC_COVERED=STOR-VHDx-107</param>
+                 <param>ControllerType=IDE</param>
+            </testparams>
+        </test>
+
+
+
         <test>
             <testName>VHDxResizeLiveMigration</testName>
             <testScript>SetupScripts\STOR_VHDXResize_BasicLM.ps1</testScript>

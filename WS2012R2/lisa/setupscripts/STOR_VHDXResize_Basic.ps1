@@ -40,6 +40,8 @@
             <testparams>
                 <param>SCSI=0,0,Dynamic,512</param>
                 <param>NewSize=4GB</param>
+                <param>ControllerType=SCSI</param>
+                <param>Type=Dynamic</param>
                 <param>TC_COVERED=STOR-VHDx-01</param>
             </testparams>
         </test>
@@ -68,6 +70,8 @@ $TC_COVERED = $null
 $TestLogDir = $null
 $TestName   = $null
 $vhdxDrive  = $null
+$controllerType = "SCSI"
+$type = "Dynamic"
 
 #######################################################################
 #
@@ -124,6 +128,8 @@ foreach ($p in $params)
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
     "TestName"   { $TestName = $fields[1].Trim() }
+    "ControllerType"   { $controllerType = $fields[1].Trim() }
+    "Type"   { $type = $fields[1].Trim() }
     default     {}  # unknown param - just ignore it
     }
 }
@@ -154,12 +160,13 @@ Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 # Convert the new size
 #
 $newVhdxSize = ConvertStringToUInt64 $newSize
-
+$sizeFlag = ConvertStringToUInt64 "50GB"
 #
 # Make sure the VM has a SCSI 0 controller, and that
 # Lun 0 on the controller has a .vhdx file attached.
 #
-"Info: Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
+
+"Info : Check if VM ${vmName} has a $controllerType drive"
 $vhdxName = $vmName + "-" + $DefaultSize + "-" + $sectorSize + "-test"
 $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
@@ -168,12 +175,12 @@ foreach ($vhdx in $vhdxDisks)
     $vhdxPath = $vhdx.Path
     if ($vhdxPath.Contains($vhdxName))
     {
-        $vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber $vhdx.ControllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
+        $vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype $controllertype -ControllerNumber $vhdx.ControllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
     }
 }
 if (-not $vhdxDrive)
 {
-    "Error: VM ${vmName} does not have a SCSI 0 Lun 0 drive on ${hvServer}"
+    "Error: VM ${vmName} does not have a $controllertype $vhdxDrive.ControllerNumber lun $vhdxDrive.ControllerLocation drive on ${hvServer}"
     $error[0].Exception.Message
     return $False
 }
@@ -187,10 +194,10 @@ if (-not $vhdxInfo)
     return $False
 }
 
-"Info : Verify the file is a .vhdx"
+"Info: Verify the file is a .vhdx"
 if (-not $vhdPath.EndsWith(".vhdx") -and -not $vhdPath.EndsWith(".avhdx"))
 {
-    "Error: SCSI 0 Lun 0 virtual disk is not a .vhdx file."
+    "Error: $controllertype $vhdxDrive.ControllerNumber lun $vhdxDrive.ControllerLocation virtual disk is not a .vhdx file."
     "       Path = ${vhdPath}"
     return $False
 }
@@ -206,7 +213,8 @@ if (-not $diskInfo)
     return $False
 }
 
-if ($diskInfo.FreeSpace -le $newVhdxSize + 10MB)
+# if disk is very large, e.g. 2T with dynamic, require less disk free space
+if ($diskInfo.FreeSpace -le $sizeFlag + 10MB)
 {
     "Error: Insufficent disk free space"
     "       This test case requires ${newSize} free"
@@ -217,40 +225,56 @@ if ($diskInfo.FreeSpace -le $newVhdxSize + 10MB)
 #
 # Make sure if we can perform Read/Write operations on the guest VM
 #
+
 $guest_script = "STOR_VHDXResize_PartitionDisk"
-
-$sts = RunTest $guest_script
-if (-not $($sts[-1]))
+RunRemoteScriptCheckResult $guest_script
+if ( -not $? )
 {
-    $sts = SummaryLog
-    if (-not $($sts[-1]))
-    {
-        "Warning: Failed getting summary.log from VM"
-    }
-    "Error: Running '${guest_script}' script failed on VM"
-    return $False
+  "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+  return $False
 }
 
-$CheckResultsts = CheckResult
+# for IDE need to stop VM before resize
 
-$sts = RunTestLog $guest_script $TestLogDir $TestName
-if (-not $($sts[-1]))
+write-output "Controller type is $controllerType"
+if ( $controllerType -eq "IDE" )
 {
-    "Warning : Getting RunTestLog.log from VM, will not exit test case execution"
+  "Info: Resize IDE disck needs to turn off VM"
+  Stop-VM -VMName $vmName -ComputerName $hvServer -force
 }
 
-if (-not $($CheckResultsts[-1]))
-{
-    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution"
-    return $False
-}
-
-"Info: Resizing the VHDX to ${newSize}"
 Resize-VHD -Path $vhdPath -SizeBytes ($newVhdxSize) -ComputerName $hvServer -ErrorAction SilentlyContinue
+
 if (-not $?)
 {
    "Error: Unable to grow VHDX file '${vhdPath}"
    return $False
+}
+
+# Now start the VM if IDE disk attached
+if ( $controllerType -eq "IDE" )
+{
+  $timeout = 300
+  $sts = Start-VM -Name $vmName -ComputerName $hvServer
+  if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
+  {
+      Write-Output "ERROR: ${vmName} failed to start"
+      return $False
+  }
+  else
+  {
+      Write-Output "INFO: Started VM ${vmName}"
+  }
+
+}
+
+# check file size after resize
+$vhdxInfoResize = Get-VHD -Path $vhdPath -ComputerName $hvServer -ErrorAction SilentlyContinue
+
+if ( $newSize.contains("GB") -and $vhdxInfoResize.Size/1gb -ne $newSize.Trim("GB") )
+{
+  "Error: Failed to Resize Disk to new Size"
+  return $False
 }
 
 #
@@ -261,16 +285,19 @@ Start-Sleep -s $sleepTime
 
 #
 # Check if the guest sees the added space
+
 #
 "Info: Check if the guest sees the new space"
 # Older kernels might require a few requests to refresh the disks info
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l > /dev/null"
+
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
 if (-not $?)
 {
-    "Error: Failed to force SCSI device rescan"
+    "Error: Failed to force $controllerType device rescan"
     return $False
 }
+
 
 $diskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
 if (-not $?)
@@ -288,34 +315,24 @@ if ($diskSize -ne $newVhdxSize)
 #
 # Make sure if we can perform Read/Write operations on the guest VM
 #
-$guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
 
-$sts = RunTest $guest_script
-if (-not $($sts[-1]))
+if ([int]($newVhdxGrowSize/1gb) -gt 2048)
 {
-    $sts = SummaryLog
-    if (-not $($sts[-1]))
-    {
-        "Warning: Failed getting summary.log from VM"
-    }
-    "Error: Running '${guest_script}' script failed on VM "
-    return $False
+  $guest_script = "STOR_VHDXResize_PartitionDiskOver2TB"
 }
 
-$CheckResultsts = CheckResult
-
-$sts = RunTestLog $guest_script $TestLogDir $TestName
-if (-not $($sts[-1]))
+else
 {
-    "Warning: Getting RunTestLog.log from VM, will not exit test case execution "
+ $guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
 }
 
-if (-not $($CheckResultsts[-1]))
+RunRemoteScriptCheckResult $guest_script
+if ( -not $? )
 {
-    "Error: Running '${guest_script}'script failed on VM. check VM logs, exiting test case execution."
-    return $False
+  "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+  return $False
 }
+"Info : The guest sees the new size after resizing ($diskSize)"
+"Info : VHDx Resize - ${TC_COVERED} is Done"
 
-"Info: The guest sees the new size after resizing ($diskSize)"
-"Info: VHDx Resize - ${TC_COVERED} is Done"
 return $True
