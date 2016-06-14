@@ -42,7 +42,6 @@
             <suiteTest>TimeSync</suiteTest>
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
-            <suiteTest>TimeDrift_RebootVM</suiteTest>
             <suiteTest>TimeSync_PausedVM</suiteTest>
             <suiteTest>LISShutdownVM</suiteTest>
             <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
