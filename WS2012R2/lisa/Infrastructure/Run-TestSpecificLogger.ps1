@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -19,8 +19,6 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
     Parse the network bandwidth data from the iPerf test log.
@@ -31,7 +29,7 @@
 .Parameter XMLFileName
     The LISA XML file. 
 
-.Exmple
+.Example
     Run-TestSpecificLogger.ps1 D:\Lisa\XML\Perf_iPerf.xml
 
 #>
@@ -79,7 +77,6 @@ if ($testCaseName.Length -gt 50)
     # in database, this field only allows 50 chars
     $testCaseName = $testCaseName.Substring(0, 50)
 }
-
 
 # Get the Log Folder defined in the XML file
 $LogFolder = $xmlConfig.config.global.logfileRootDir
@@ -249,7 +246,9 @@ $dataSource = "MyTestDB"
 $user = "sa"
 $password= "saPassword"
 $database ="LisaTestResults"
-$connectionString = "Server=$dataSource;uid=$user; pwd=$password;Database=$database;Integrated Security=False;"
+#$connectionString = "Server=$dataSource;uid=$user; pwd=$password;Database=$database;Integrated Security=False;"
+# the below string is compatible with Azure SQL
+$connectionString = "Server=$dataSource;uid=$user; pwd=$password;Database=$database;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
 Write-Host "ConnectionString: $connectionString"
 
 $query = "INSERT INTO $dataTableName (" + $fieldConn + ") VALUES (" + $valueConn + ")"
