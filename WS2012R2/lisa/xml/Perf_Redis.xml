@@ -23,6 +23,9 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
         <email>
             <recipients>
                 <to>myself@mycompany.com</to>
@@ -31,8 +34,7 @@
             <subject>LIS Performance Test Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
-
-        <!-- Optional testParams go here -->
+        <imageStoreDir>\\path\to\image</imageStoreDir>
         <testParams>
             <param>vmCpuNumber=4</param>
             <param>vmMemory=16GB</param>
@@ -50,19 +52,30 @@
 
     <testCases>
          <test>
-            <testName>Perf_Redis</testName>          
+            <testName>Perf_Redis</testName>        
             <testScript>performance_redis.sh</testScript>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <files>remote-scripts/ica/performance_redis.sh</files>
-            <files>Tools/redis-2.8.17.tar.gz</files>
+            <files> 
+                Tools/redis.tar.gz,
+                remote-scripts/ica/utils.sh,
+                remote-scripts/ica/NET_set_static_ip.sh
+            </files>
             <testParams>
-                <param>REDIS_PACKAGE=redis-2.8.17.tar.gz</param>
-                <param>REDIS_HOST_IP=192.168.1.100</param>
+                <param>REDIS_PACKAGE=redis.tar.gz</param>
+                <param>REDIS_HOST_IP=192.168.1.88</param>
                 <param>REDIS_HOST_PORT=6379</param>
                 <param>REDIS_CLIENTS=1000</param>
-                <param>REDIS_RANDOM_KEY_SCOPE=100000000000</param>
-                <param>REDIS_DATA_SIZE=1</param>
-                <param>REDIS_TESTSUITES=SET</param>
+                <param>REDIS_DATA_SIZE=4000</param>
+                <param>REDIS_TESTSUITES=SET,GET</param>
                 <param>REDIS_NUMBER_REQUESTS=10000000</param>
+                <param>SERVER_SSHKEY=KEY</param>
+                <param>STATIC_IP=192.168.1.89</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>VM2NAME=VM-Redis-server</param>
+                <param>VM2SERVER=LIS-HOST02</param>
+                <param>MAC=001600112233</param>
+                <param>TEST_PIPELINE_COLLECTION=(1 8 16 32 64 128)</param>
             </testParams>
             <uploadFiles>
                 <file>redis.log</file>
@@ -79,18 +92,33 @@
             <vmName>VM-Redis-Client</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>id_rsa.ppk</sshKey>
+            <sshKey>KEY.ppk</sshKey>
             <suite>Redis</suite>
+            <hardware>
+               <create>true</create>
+               <numCPUs>4</numCPUs>
+               <memSize>2048</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,External</nic>
+               <nic>VMBus,Private</nic>
+            </hardware>
             <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
         <vm>
-            <role>NonSUT1</role>
-            <hvServer>LIS-HOST02</hvServer>
-            <vmName>VM-Redis-Server</vmName>
+             <hvServer>LIS-HOST02</hvServer>
+            <vmName>VM-Redis-server</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>id_rsa.ppk</sshKey>
-            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>            
+            <sshKey>KEY.ppk</sshKey>
+            <hardware>
+               <create>true</create>
+               <numCPUs>4</numCPUs>
+               <memSize>2048</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,External,001600112233</nic>
+               <nic>VMBus,Private</nic>
+            </hardware>    
+            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>       
         </vm>
     </VMs>
 </config>
