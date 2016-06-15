@@ -48,7 +48,8 @@
             <suiteTest>VerifyLisModules</suiteTest>
             <suiteTest>Multi_Cpu_Test</suiteTest>
             <suiteTest>Verify_LISModules_Version</suiteTest>
-            <suiteTest>VerifyItegratedShutdownService</suiteTest>
+            <suiteTest>VerifyIntegratedShutdownService</suiteTest>
+            <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
             <suiteTest>StressReloadModules</suiteTest>
             <suiteTest>FloppyDisk</suiteTest>
@@ -167,7 +168,7 @@
         </test>
 
 	<test>
-            <testName>VerifyItegratedShutdownService</testName>
+            <testName>VerifyIntegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <timeout>600</timeout>
             <testParams>
@@ -346,6 +347,15 @@
             <testparams>
                 <param>TC_COVERED=CORE-27</param>
             </testparams>
+        </test>
+        <test>
+            <testName>VerifyIntegratedTimeSyncService</testName>
+            <testScript>setupscripts\INST_LIS_TimeSyncServiceDisableEnable.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=CORE-29</param>
+                <param>MaxTimeDiff=5</param>
+            </testParams>
         </test>
     </testCases>
 
