@@ -24,9 +24,9 @@
     Disable then enable the Time Sync service and verify Time Sync still works.
 
 .Description
-    Disable, then re-enable the LIS Time Sync service.  Then verify that
-    a Time Sync request still works.  The XML test case definition for
-    this test would look similar to:
+    Disable, then re-enable the LIS Time Sync service. Then also save the VM and
+    verify that after these operations a Time Sync request still works.
+    The XML test case definition for this test would look similar to:
     <test>
         <testName>VerifyIntegratedTimeSyncService</testName>
         <testScript>setupscripts\INST_LIS_TimeSyncServiceDisableEnable.ps1</testScript>
@@ -47,7 +47,7 @@
     A semicolon separated list of test parameters.
 
 .Example
-    .\INST_LIS_Time SyncServiceDisableEnable.ps1 "myVM" "localhost" "rootDir=D:\lisa\trunk\lisablue;TC_COVERED=10"
+    .\INST_LIS_TimeSyncServiceDisableEnable.ps1 "myVM" "localhost" "rootDir=D:\WS2012R2\lisa;TC_COVERED=29"
 #>
 
 param([String] $vmName, [String] $hvServer, [String] $testParams)
