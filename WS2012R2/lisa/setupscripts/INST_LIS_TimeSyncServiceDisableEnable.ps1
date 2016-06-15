@@ -29,7 +29,7 @@
     a Time Sync request still works.  The XML test case definition for
     this test would look similar to:
     <test>
-        <testName>VerifyItegratedTimeSyncService</testName>
+        <testName>VerifyIntegratedTimeSyncService</testName>
         <testScript>setupscripts\INST_LIS_TimeSyncServiceDisableEnable.ps1</testScript>
         <timeout>600</timeout>
         <testParams>
@@ -187,7 +187,7 @@ $service = "Time Synchronization"
 $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $service
 if ($status.Enabled -ne $True)
 {
-    "Error: The Itegrated Time Sync Service is already disabled"
+    "Error: The Integrated Time Sync Service is already disabled"
     return $False
 }
 

@@ -48,8 +48,8 @@
             <suiteTest>VerifyLisModules</suiteTest>
             <suiteTest>Multi_Cpu_Test</suiteTest>
             <suiteTest>Verify_LISModules_Version</suiteTest>
-            <suiteTest>VerifyItegratedShutdownService</suiteTest>
-            <suiteTest>VerifyItegratedTimeSyncService</suiteTest>
+            <suiteTest>VerifyIntegratedShutdownService</suiteTest>
+            <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
             <suiteTest>StressReloadModules</suiteTest>
             <suiteTest>FloppyDisk</suiteTest>
@@ -168,7 +168,7 @@
         </test>
 
 	<test>
-            <testName>VerifyItegratedShutdownService</testName>
+            <testName>VerifyIntegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <timeout>600</timeout>
             <testParams>
@@ -349,20 +349,7 @@
             </testparams>
         </test>
         <test>
-            <testName>TimeDrift_RebootVM</testName>
-            <testScript>SetupScripts\TK_timedrift_rebootVM.ps1</testScript>
-            <files>remote-scripts\ica\auto_rdos_Reboot.sh</files>
-            <files>remote-scripts\ica\AUTO_Reboot.sh</files>
-            <timeout>2000</timeout>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-            <testparams>
-                <param>TC_COVERED=CORE-28</param>
-                <param>REBOOT_COUNT=10</param>
-            </testparams>
-          </test>
-        <test>
-            <testName>VerifyItegratedTimeSyncService</testName>
+            <testName>VerifyIntegratedTimeSyncService</testName>
             <testScript>setupscripts\INST_LIS_TimeSyncServiceDisableEnable.ps1</testScript>
             <timeout>600</timeout>
             <testParams>
