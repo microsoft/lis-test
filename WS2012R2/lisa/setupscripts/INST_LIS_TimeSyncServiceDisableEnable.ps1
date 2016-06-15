@@ -19,7 +19,6 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Disable then enable the Time Sync service and verify Time Sync still works.
@@ -51,10 +50,14 @@
     .\INST_LIS_Time SyncServiceDisableEnable.ps1 "myVM" "localhost" "rootDir=D:\lisa\trunk\lisablue;TC_COVERED=10"
 #>
 
-
-
 param([String] $vmName, [String] $hvServer, [String] $testParams)
 
+$retVal = $False
+$sshKey = $null
+$rootDir = $null
+$ipv4 = $null
+$tcCovered = "Undefined"
+$service = "Time Synchronization"
 
 #####################################################################
 #
@@ -86,13 +89,13 @@ function GetUnixVMTime([String] $sshKey, [String] $ipv4)
 
     return $unixTimeStr
 }
+
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
 
-$retVal = $False
 #
 # Check input arguments
 #
@@ -117,11 +120,6 @@ if ($testParams -eq $null)
 #
 # Parse the testParams string
 #
-$sshKey = $null
-$rootDir = $null
-$tcCovered = "Undefined"
-$ipv4 = $null
-
 "Parsing testParams"
 $params = $testParams.Split(";")
 foreach ($p in $params)
@@ -157,13 +155,6 @@ if (-not (Test-Path $rootDir) )
 }
 
 #
-# Display the test parameters so they are captured in the log
-#
-"IPv4      = ${ipv4}"
-"rootDir   = ${rootDir}"
-"tcCovered = ${tcCovered}"
-
-#
 # PowerShell test case scripts are run as a PowerShell job.  The
 # default directory for a PowerShell job is not the LISA directory.
 # Change the current directory to where we need to be.
@@ -182,7 +173,6 @@ Write-Output "Covers ${tcCovered}" | Out-File $summaryLog
 #
 # Get the VMs Integrated Services and verify Time Sync is enabled and status is OK
 #
-$service = "Time Synchronization"
 "Info : Verify the Integrated Services Time Sync Service is enabled"
 $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $service
 if ($status.Enabled -ne $True)
@@ -238,7 +228,7 @@ if ($status.PrimaryOperationalStatus -ne "Ok")
 "Info : Integrated Time Sync Service successfully Enabled"
 
 #
-# Now do a Time Sync to ensure the Time Sync Service is still functioning
+# Now also save the VM for 60 seconds
 #
 "Info : Saving the VM"
 
@@ -268,8 +258,8 @@ if (-not (WaitForVMToStartSSH $ipv4 $StartTimeout))
     "Error: VM did not start within timeout period"
     return $False
 }
-
 "Info : VM successfully started"
+
 # Check time sync
 # Get a time string from the VM, then convert the Unix time string into a .NET DateTime object
 #
@@ -287,7 +277,7 @@ if (-not $unixTimeStr)
 $windowsTime = [DateTime]::Now.ToUniversalTime()
 
 #
-# Convert the Unix tiime string into a DateTime object
+# Convert the Unix time string into a DateTime object
 #
 $unixTime = [DateTime]::Parse($unixTimeStr)
 
@@ -313,7 +303,7 @@ $diffInSeconds = [Math]::Abs($timeSpan.TotalSeconds)
 "Unix time: $($unixTime.ToString())"
 "Difference: ${diffInSeconds}"
 
-$msg = "Test case FAILED.  Time difference greater than ${maxTimeDiff} seconds"
+$msg = "Test case FAILED. Time difference is greater than ${maxTimeDiff} seconds"
 if ($diffInSeconds -and $diffInSeconds -lt $maxTimeDiff)
 {
     $msg = "Test case passed"
