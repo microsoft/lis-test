@@ -73,6 +73,7 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=KVP-01</param>
+                <param>DE_change=no</param>
             </testparams>
         </test>
 

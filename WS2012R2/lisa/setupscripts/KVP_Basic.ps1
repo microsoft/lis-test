@@ -38,6 +38,7 @@
             <testparams>
                 <param>rootDir=D:\lisa\trunk\lisablue</param>
                 <param>TC_COVERED=KVP-01</param>
+                <param>DE_change=no</param>
             </testparams>
         </test>
 .Parameter vmName
@@ -45,7 +46,7 @@
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
 .Parameter testParams
-    Test data for this test case
+    Test data for this test case , when DE_change=yes .this case do uncheck and check operation with intergated service
 .Example
     setupScripts\KvpBasic.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=KVP-01"
 .Link
@@ -146,6 +147,7 @@ foreach ($p in $params)
     "nonintrinsic" { $intrinsic = $False }
     "rootdir"      { $rootDir   = $fields[1].Trim() }
     "TC_COVERED"   { $tcCovered = $fields[1].Trim() }
+    "DE_change"   { $deChanged = $fields[1].Trim() }
     default  {}       
     }
 }
@@ -184,6 +186,52 @@ if (-not $serviceEnabled)
 {
     "Error: The Data Exchange Service is not enabled for VM '${vmName}'"
     return $False
+}
+#
+#Verify if the DE_Changed is set 
+#
+if ($deChanged -eq "yes")
+{
+    
+    #
+    #Disable the Key-Value Pair Exchange
+    #
+    "Info : Disabling the Integrated Services Shutdown Service"
+
+    Disable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Key-Value Pair Exchange"
+    $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Key-Value Pair Exchange"
+    if ($status.Enabled -ne $False)
+    {
+        "Error: Key-Value Pair Exchange could not be disabled"
+         return $False
+    }
+
+    if ($status.PrimaryOperationalStatus -ne "Ok")
+    {
+    "Error: Incorrect Operational Status for Key-Value Pair Exchange Service: $($status.PrimaryOperationalStatus)"
+        return $False
+    }
+    "Info : Integrated Key-Value Pair Exchange Service successfully disabled"
+
+    #
+    # Enable the Shutdown service
+    #
+    "Info : Enabling the Integrated Services Key-Value Pair Exchange Service"
+
+    Enable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Key-Value Pair Exchange"
+    $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Key-Value Pair Exchange"
+    if ($status.Enabled -ne $True)
+    {
+        "Error: Integrated Key-Value Pair Exchange Service could not be enabled"
+         return $False
+    }
+
+    if ($status.PrimaryOperationalStatus -ne "Ok")
+    {
+        "Error: Incorrect Operational Status for Key-Value Pair Exchange Service: $($status.PrimaryOperationalStatus)"
+            return $False
+    }
+    "Info : Integrated Key-Value Pair Exchange Service successfully Enabled"
 }
 #
 # Create a data exchange object and collect KVP data from the VM
