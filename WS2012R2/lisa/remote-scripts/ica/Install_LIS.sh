@@ -100,7 +100,7 @@ cd /mnt/
 if [ "$first_install" == "" ];then
  first_install=0
 fi
- 
+
 # Deleting old LIS
 if [[ "$action" == "install" && "$first_install" == 0 ]]; then
     UpdateSummary "successfully removed LIS"
@@ -111,7 +111,7 @@ fi
 
 ./$action.sh >> ~/LIS_log.log 2>&1
 sts=$?
-if [ 0 -eq ${sts} ]; then
+if [ 0 -ne ${sts} ]; then
     UpdateSummary "Unable to run ${action}"
     UpdateTestState "TestFailed"
     exit 1
@@ -119,22 +119,14 @@ else
     UpdateSummary "LIS drivers ${action}ed successfully"
 fi
 
-#search for fail
-cat ~/LIS_log.log | grep "fail"
-sts=$?
-if [ 0 -eq ${sts} ]; then
-    UpdateSummary "Fail at $action LIS"
-    echo "ERROR: Errors at $action LIS. Fail messages." >> LIS_log.log
-    UpdateTestState "TestFailed"
-    exit 1
-fi
-
 #search for warnings
 cat ~/LIS_log.log | grep "arning"
 sts=$?
 if [ 0 -eq ${sts} ]; then
-    echo "Warnnin: Errors at $action LIS. Warnning messages." >> LIS_log.log
+    echo "Warning: Errors at $action LIS. Warning messages." >> LIS_log.log
     UpdateSummary "Warnings at $action LIS"
+    UpdateTestState "TestAborted"
+    exit 1
 fi
 
 #search for error

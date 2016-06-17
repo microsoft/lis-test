@@ -3,11 +3,11 @@
 <!--
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
     ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
@@ -26,7 +26,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>File Copy test run on WS2012R2</subject>
+            <subject>LIS deploy run on WS2012R2</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -46,7 +46,7 @@
         </suite>
     </testSuites>
 
-    <testCases>         
+    <testCases>
         <test>
             <testName>Install_LIS</testName>
             <setupScript>
@@ -179,7 +179,7 @@
             </testParams>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         </test>
-        
+
         <test>
             <testName>Upgrade_kernel_Install</testName>
             <setupScript>
@@ -206,7 +206,7 @@
             </testParams>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         </test>
-        
+
         <test>
             <testName>Install_uninstall</testName>
             <setupScript>

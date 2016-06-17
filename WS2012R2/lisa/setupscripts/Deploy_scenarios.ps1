@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
- 
+
     Test different scenarios for LIS CDs
    .Parameter vmName
     Name of the VM.
@@ -40,7 +40,7 @@ function enable_gsi($vmName, $hvServer){
     #
     $gsi = Get-VMIntegrationService -vmName $vmName -ComputerName $hvServer -Name "Guest Service Interface"
     if (-not $gsi) {
-        "Error: Unable to retrieve Integration Service status from VM '${vmName}'" 
+        "Error: Unable to retrieve Integration Service status from VM '${vmName}'"
         return $False
     }
 
@@ -52,7 +52,7 @@ function enable_gsi($vmName, $hvServer){
              "Error: Unable to shutdown $vmName"
              return $false
         }
-        Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer 
+        Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
         if (-not $?)
         {
             "Error: Unable to enable Guest Service Interface for $vmName."
@@ -65,32 +65,39 @@ function enable_gsi($vmName, $hvServer){
 function get_logs(){
     $ipv4 = GetIPv4 $vmName $hvserver
     # Get LOGS
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
 
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:LIS_log.log $logdir
+    GetfileFromVm $ipv4 $sshkey "/root/summary.log" $logdir
+    GetfileFromVm $ipv4 $sshkey "/root/LIS_log.log" $logdir
+    GetfileFromVm $ipv4 $sshkey "/root/kernel_install.log" $logdir
 
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:kernel_install.log $logdir
+    $logFile = $logdir + "\LIS_log.log"
+    $content = Get-Content $logFile
+    Write-Output $content | Tee-Object -Append -file $summaryLog
 }
 
 function install_lis(){
     # Install, upgrade or uninstall LIS
     $remoteScript = "Install_LIS.sh"
     $sts = RunRemoteScript $remoteScript
-    if(-not $sts){
-        Write-Output "Error: Cannot verify LIS version on '${$vmName}'" 
+    if(-not $sts[-1]){
+        Write-Output "Error: Cannot install LIS"  >> $summaryLog
+        get_logs
         return $false
     }
     #search for errors
     $sts = GetfileFromVm $ipv4 $sshkey "/root/state.txt" "."
-    if(-not $sts){
-        Write-Output "Error: Cannot get state file from vm" 
+    if(-not $sts[-1]){
+        Write-Output "Error: Cannot get state file from vm"  >> $summaryLog
+        get_logs
         return $false
     }
-    $errors = Select-String -Path ".\state.txt" -Pattern TestFailed
-    if($errors.Length -eq 0){
-        Write-Output "Error: Errors at install LIS"
+    $x = Select-String -Path ".\state.txt" -Pattern TestFailed
+    if($x.Length -ne 0){
+        Write-Output "Error: Errors at install LIS"  >> $summaryLog
+        get_logs
         return $false
     }
+    remove-item .\state.txt
     return $true
 }
 
@@ -98,20 +105,20 @@ function verify_daemons_modules(){
     # Verify LIS Modules version and daemons
     $remoteScript = "CORE_LISmodules_version.sh"
     $sts = RunRemoteScript $remoteScript
-    if(-not $sts){
+    if(-not $sts[-1]){
         Write-Output "Error: Cannot verify LIS magic version on '${$vmName}'"
-        get_logs 
+        get_logs
         return $false
     }
 
     $remoteScript = "check_lis_daemons.sh"
     $sts = RunRemoteScript $remoteScript
-    if(-not $sts){
+    if(-not $sts[-1]){
         Write-Output "Error: Not all deamons are running '${$vmName}'"
         get_logs
         return $false
     }
-    
+
     return $true
 }
 
@@ -119,29 +126,23 @@ function check_lis_version($version){
     $LIS_version=.\bin\plink.exe -i $sshkey root@$ipv4 "modinfo hv_vmbus | grep -w 'version:'"
     if ($LIS_version.Contains($version) -eq $False) {
         Write-Output "Error: LIS Version from host is not matching with the expected one from params."
-        get_logs 
+        get_logs
         return $false
     }
     return $true
 }
 
-
 function verify_errors(){
     #search for errors
     $sts = GetfileFromVm $ipv4 $sshkey "/root/state.txt" "."
-    if(-not $sts){
-        Write-Output "Error: Cannot get state file from vm"
-        return $false
-    }
-    $errors = Select-String -Path ".\state.txt" -Pattern TestFailed
-    if($errors.Length -ne 0){
-        Write-Output "Error: Errors at state file. Check logs."
+    if(-not $sts[-1]){
+        Write-Output "Error: Cannot get state file from vm" >> $summaryLog
         get_logs
         return $false
     }
-    $errors = Select-String -Path ".\state.txt" -Pattern TestAborted
-    if($errors.Length -ne 0){
-        Write-Output "Error: Errors at state file. Check logs."
+    $completed = Select-String -Path ".\state.txt" -Pattern TestCompleted
+    if($completed.Length -eq 0){
+        Write-Output "Error: Errors at state file. Check logs." >> $summaryLog
         get_logs
         return $false
     }
@@ -188,7 +189,7 @@ if (-not $testParams) {
 $params = $testParams.Split(";")
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    
+
     if ($fields[0].Trim() -eq "rootDir") {
         $rootDir = $fields[1].Trim()
     }
@@ -243,16 +244,16 @@ else
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 
-# 
+#
 # Enable Guest Service Interface
 #
 $sts = enable_gsi $vmName $hvServer
 if( -not $sts){
-    Write-Output "Error: Cannot enable Guest Service Interface for '${$vmName}'" 
+    Write-Output "Error: Cannot enable Guest Service Interface for '${$vmName}'"
     return $false
 }
 
-# 
+#
 # Start VM
 #
 if ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "Off") {
@@ -270,44 +271,44 @@ switch ($scenario){
     "1" {
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
-        if( -not $sts){
-            Write-Output "Error: Cannot install LIS for $vmName" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot install LIS for $vmName"
             return $false
         }
         $sts = verify_errors
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error: Errors encountered at installing LIS $version"
             return $false
         }
-
+        Write-output "Successfully installed LIS"
         # Reboot the VM
         Restart-VM -VMName $vmName -ComputerName $hvServer -Force
         $sts = WaitForVMToStartSSH $ipv4 200
-        if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot restart $vmName"
             return $false
         }
-
+        write-output "Successfully rebooted VM"
         $sts = verify_daemons_modules
-        if( -not $sts){
-            Write-Output "Error: Daemons/Modules verification failed for $vmName" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Daemons/Modules verification failed for $vmName"
             return $false
         }
 
         $sts = check_lis_version $version
         if( -not $sts){
-            Write-Output "Error: LIS version: $version from host is not the expected one after install." 
+            Write-Output "Error: LIS version: $version from host is not the expected one after install."
             return $false
         }
-        
+
         $sts = verify_errors
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error: Errors encountered after installing LIS $version"
             return $false
         }
@@ -321,45 +322,45 @@ switch ($scenario){
     "2" {
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
         if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+            Write-Output "Error: Cannot install LIS for '${$vmName}'"
             return $false
         }
-        
+
         $sts = verify_errors
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error: Errors encountered at installing LIS $version"
             return $false
         }
-        
+
         # Reboot the VM
         Restart-VM -VMName $vmName -ComputerName $hvServer -Force
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
+            Write-Output "Error: Cannot restart $vmName"
             return $false
         }
 
         $sts = verify_daemons_modules
         if( -not $sts){
-            Write-Output "Error: Daemons/Modules verification failed for $vmName" 
+            Write-Output "Error: Daemons/Modules verification failed for $vmName"
             return $false
         }
 
         $sts = check_lis_version $version
         if( -not $sts){
-            Write-Output "Error: LIS version: $version from host is not the expected one after install." 
+            Write-Output "Error: LIS version: $version from host is not the expected one after install."
             return $false
         }
 
         $sts = verify_errors
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error: Errors encountered after installing LIS $version"
             return $false
         }
@@ -372,27 +373,27 @@ switch ($scenario){
             Write-Output "Error: Cannot stop $vmName"
             return $false
         }
-        
+
         Start-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot start $vmName" 
+            Write-Output "Error: Cannot start $vmName"
             return $false
         }
 
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=upgrade/g' constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
         if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+            Write-Output "Error: Cannot install LIS for '${$vmName}'"
             return $false
         }
         $sts = verify_errors
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error: Errors encountered at upgrading LIS $version2"
             return $false
         }
@@ -402,47 +403,47 @@ switch ($scenario){
         Restart-VM -VMName $vmName -ComputerName $hvServer -Force
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
+            Write-Output "Error: Cannot restart $vmName"
             return $false
         }
 
         $sts = verify_daemons_modules
         if( -not $sts){
-            Write-Output "Error: Daemons/Modules verification failed for $vmName'" 
+            Write-Output "Error: Daemons/Modules verification failed for $vmName'"
             return $false
         }
 
         $sts = check_lis_version $version2
         if( -not $sts){
-            Write-Output "Error: LIS version: $version2 from host is not the expected one after upgrade." 
+            Write-Output "Error: LIS version: $version2 from host is not the expected one after upgrade."
             return $false
         }
 
         $sts = verify_errors
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error: Errors encountered after upgrading LIS $version2"
             return $false
         }
-        
+
     }
 
     "3" {
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
         if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+            Write-Output "Error: Cannot install LIS for '${$vmName}'"
             return $false
         }
 
         $sts = verify_errors
         if( -not $sts){
-            Write-Output "Error: Errors were encounted when installing LIS $vmName" 
+            Write-Output "Error: Errors were encounted when installing LIS $vmName"
             return $false
         }
 
@@ -450,26 +451,26 @@ switch ($scenario){
         Restart-VM -VMName $vmName -ComputerName $hvServer -Force
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
+            Write-Output "Error: Cannot restart $vmName"
             return $false
         }
 
         # validate install
         $sts = verify_daemons_modules
         if( -not $sts){
-            Write-Output "Error: Daemons/Modules verification failed for $vmName" 
+            Write-Output "Error: Daemons/Modules verification failed for $vmName"
             return $false
         }
 
         $sts = check_lis_version $version
         if( -not $sts){
-            Write-Output "Error: LIS version: $version from host is not the expected one after install." 
+            Write-Output "Error: LIS version: $version from host is not the expected one after install."
             return $false
         }
 
         $sts = verify_errors
         if( -not $sts){
-            Write-Output "Error: Errors were encounted after installing LIS $vmName" 
+            Write-Output "Error: Errors were encounted after installing LIS $vmName"
             return $false
         }
 
@@ -480,26 +481,26 @@ switch ($scenario){
         Start-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot start $vmName" 
+            Write-Output "Error: Cannot start $vmName"
             return $false
         }
 
         # Mount and upgrade LIS
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=upgrade/g' constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
         if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+            Write-Output "Error: Cannot install LIS for '${$vmName}'"
             return $false
         }
 
         $sts = verify_errors
         if( -not $sts){
-            Write-Output "Error: Errors were encounted when upgrading LIS $vmName" 
+            Write-Output "Error: Errors were encounted when upgrading LIS $vmName"
             return $false
         }
 
@@ -514,26 +515,26 @@ switch ($scenario){
         # validate upgrade
         $sts = verify_daemons_modules
         if( -not $sts){
-            Write-Output "Error: Daemons/Modules verification failed for $vmName" 
+            Write-Output "Error: Daemons/Modules verification failed for $vmName"
             return $false
         }
 
         $sts = check_lis_version $version2
         if( -not $sts){
-            Write-Output "Error: LIS version: $version2 from host is not the expected one after upgrade." 
+            Write-Output "Error: LIS version: $version2 from host is not the expected one after upgrade."
             return $false
         }
 
         $sts = verify_errors
         if( -not $sts){
-            Write-Output "Error: Errors were encounted when upgrading LIS $vmName" 
+            Write-Output "Error: Errors were encounted when upgrading LIS $vmName"
             return $false
         }
 
         # Unstall LIS
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=uninstall/g' constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
@@ -541,33 +542,33 @@ switch ($scenario){
         Stop-VM -vmName $vmName -ComputerName $hvServer -force
         $sts = .\setupscripts\InsertIsoInDvd.ps1 $vmName $hvServer "isofilename=$IsoFilename"
         if( -not $sts){
-            Write-Output "Error: Cannot attach LIS iso on $vmName" 
+            Write-Output "Error: Cannot attach LIS iso on $vmName"
             return $false
         }
 
         Start-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot start $vmName" 
+            Write-Output "Error: Cannot start $vmName"
             return $false
         }
 
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=install/g' constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
         if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+            Write-Output "Error: Cannot install LIS for '${$vmName}'"
             return $false
         }
 
         $sts = verify_errors
         if( -not $sts){
-            Write-Output "Error: Errors were encounted when installing LIS $vmName" 
+            Write-Output "Error: Errors were encounted when installing LIS $vmName"
             return $false
         }
 
@@ -582,19 +583,19 @@ switch ($scenario){
         # validate install
         $sts = verify_daemons_modules
         if( -not $sts){
-            Write-Output "Error: Daemons/Modules verification failed for $vmName" 
+            Write-Output "Error: Daemons/Modules verification failed for $vmName"
             return $false
         }
 
         $sts = check_lis_version $version
         if( -not $sts){
-            Write-Output "Error: LIS version: $version from host is not the expected one after install." 
+            Write-Output "Error: LIS version: $version from host is not the expected one after install."
             return $false
         }
 
         $sts = verify_errors
         if( -not $sts){
-            Write-Output "Error: Errors were encounted after installing LIS $vmName" 
+            Write-Output "Error: Errors were encounted after installing LIS $vmName"
             return $false
         }
     }
@@ -602,51 +603,51 @@ switch ($scenario){
     "4"{
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
-        if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot install LIS for '${$vmName}'"
             return $false
         }
         $sts = verify_errors
-        if( -not $sts){
-            Write-Output "Error: Errors were encountered when installing LIS $vmName" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Errors were encountered when installing LIS $vmName"
             return $false
         }
         Write-output "Successfully installed LIS $version"
-        
+
         # Attach the new iso.
         Stop-VM -vmName $vmName -ComputerName $hvServer -force
         .\setupscripts\InsertIsoInDvd.ps1 $vmName $hvServer "isofilename=$IsoFilename2"
 
         Start-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
         $sts = WaitForVMToStartSSH $ipv4 200
-        if( -not $sts){
-            Write-Output "Error: Cannot start $vmName" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot start $vmName"
             return $false
         }
-        
+
         # Upgrade kernel
         SendCommandToVM $ipv4 $sshkey "echo 'kernel version before upgrade:`uname -r`' >> kernel_install.log"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
         Write-Output "Successfully upgraded kernel"
         sleep 30
         # check if kernel upgraded
         $sts = kernel_upgrade
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error at kernel upgrade"
             return $false;
         }
         # Mount and install LIS
         $sts = install_lis
-        if( -not $sts){
+        if( -not $sts[-1]){
             $sts = verify_errors
             if($sts -eq $true){
                 Write-Output "Error: LIS installation succeded $vmName"
@@ -662,21 +663,21 @@ switch ($scenario){
         }
 
         $sts = WaitForVMToStartSSH $ipv4 200
-        if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot restart $vmName"
             return $false
         }
 
         $sts = verify_daemons_modules
         if( -not $sts){
-            Write-Output "Error: Daemons/Modules verification failed for $vmName" 
+            Write-Output "Error: Daemons/Modules verification failed for $vmName"
             return $false
         }
 
         $version="3.1"
         $sts = check_lis_version $version
         if( -not $sts){
-            Write-Output "Error: LIS version: $version from host is not the expected one after kernel upgrade." 
+            Write-Output "Error: LIS version: $version from host is not the expected one after kernel upgrade."
             return $false
         }
     }
@@ -684,22 +685,22 @@ switch ($scenario){
     "5"{
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
         $sts = install_lis
         if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+            Write-Output "Error: Cannot install LIS for '${$vmName}'"
             return $false
         }
         $sts = verify_errors
         if( -not $sts){
-            Write-Output "Error: Errors were encountered when installing LIS $vmName" 
+            Write-Output "Error: Errors were encountered when installing LIS $vmName"
             return $false
         }
         Write-output "Successfully installed LIS $version"
-        
+
         # Reboot the VM
         Restart-VM -VMName $vmName -ComputerName $hvServer -Force
         $ipv4 = GetIPv4 $vmName $hvserver
@@ -707,40 +708,40 @@ switch ($scenario){
             sleep 5
             $ipv4 = GetIPv4 $vmName $hvserver
         }
-       
+
         Write-output "Rebooted VM"
 
         # validate install
         $sts = verify_daemons_modules
         if( -not $sts){
-            Write-Output "Error: Cannot install LIS for $vmName" 
+            Write-Output "Error: Cannot install LIS for $vmName"
             return $false
         }
 
         $sts = check_lis_version $version
         if( -not $sts){
-            Write-Output "Error: LIS version: $version from host is not the expected one after install." 
+            Write-Output "Error: LIS version: $version from host is not the expected one after install."
             return $false
         }
 
         $sts = verify_errors
         if( -not $sts){
-            Write-Output "Error: Errors were encounted when installing LIS $vmName" 
+            Write-Output "Error: Errors were encounted when installing LIS $vmName"
             return $false
         }
         Write-output "Daemons and modules status: OK"
-        
+
         SendCommandToVM $ipv4 $sshkey "echo 'kernel version before upgrade:`uname -r`' >> kernel_install.log"
         # Upgrade kernel
-        if(-not $sts){
-            Write-Output "Error: Unable to install new kernel on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to install new kernel on $vmName"
             return $false
         }
 
         Sleep 30
         # check if kernel upgraded
         $sts = kernel_upgrade
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error at kernel upgrade"
             return $false;
         }
@@ -749,16 +750,16 @@ switch ($scenario){
         Restart-VM -VMName $vmName -ComputerName $hvServer -Force
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
+            Write-Output "Error: Cannot restart $vmName"
             return $false
         }
         Write-output "Rebooted VM"
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
+            Write-Output "Error: Cannot restart $vmName"
             return $false
         }
-        
+
         # chech modules
         $sts = verify_daemons_modules
         if( -not $sts){
@@ -769,12 +770,12 @@ switch ($scenario){
         $version="3.1"
         $sts = check_lis_version $version
         if( -not $sts){
-            Write-Output "Error: LIS version($version) from host is not the expected one after kernel upgrade." 
+            Write-Output "Error: LIS version($version) from host is not the expected one after kernel upgrade."
             return $false
         }
 
         $sts = verify_errors
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error: Errors were encountered in state.txt on $vmName"
             return $false
         }
@@ -783,8 +784,8 @@ switch ($scenario){
     "6" {
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
@@ -794,8 +795,8 @@ switch ($scenario){
             return $false
         }
         $sts = verify_errors
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
@@ -803,25 +804,25 @@ switch ($scenario){
         Restart-VM -VMName $vmName -ComputerName $hvServer -Force
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
+            Write-Output "Error: Cannot restart $vmName"
             return $false
         }
 
         # validate install
         $sts = verify_daemons_modules
         if( -not $sts){
-            Write-Output "Error: Daemons/Modules verification failed for $vmName after install." 
+            Write-Output "Error: Daemons/Modules verification failed for $vmName after install."
             return $false
         }
 
         $sts = check_lis_version $version
         if( -not $sts){
-            Write-Output "Error: LIS version: $version from host is not the expected one after install." 
+            Write-Output "Error: LIS version: $version from host is not the expected one after install."
             return $false
         }
 
         $sts = verify_errors
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error: Errors were encountered in state.txt on $vmName"
             return $false
         }
@@ -833,24 +834,24 @@ switch ($scenario){
         Start-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
         $sts = WaitForVMToStartSSH $ipv4 200
         if( -not $sts){
-            Write-Output "Error: Cannot start $vmName" 
+            Write-Output "Error: Cannot start $vmName"
             return $false
         }
 
         # Mount and upgrade LIS
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=upgrade/g' constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
         if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+            Write-Output "Error: Cannot install LIS for '${$vmName}'"
             return $false
         }
         $sts = verify_errors
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error: Unexpected behaviour in state.txt $vmName"
             return $false
         }
@@ -866,33 +867,33 @@ switch ($scenario){
         # validate upgrade
         $sts = verify_daemons_modules
         if( -not $sts){
-            Write-Output "Error: Daemons/Modules verification failed for $vmName after upgrade." 
+            Write-Output "Error: Daemons/Modules verification failed for $vmName after upgrade."
             return $false
         }
 
         $sts = check_lis_version $version2
         if( -not $sts){
-            Write-Output "Error: LIS version: $version2 from host is not the expected one after upgrade." 
+            Write-Output "Error: LIS version: $version2 from host is not the expected one after upgrade."
             return $false
         }
 
         $sts = verify_errors
-        if(-not $sts){
-            Write-Output "Error: Unexpected behaviour in state.txt on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unexpected behaviour in state.txt on $vmName"
             return $false
         }
 
         SendCommandToVM $ipv4 $sshkey "echo 'kernel version before upgrade:`uname -r`' >> kernel_install.log"
         # upgrade kernel
         $sts = SendCommandToVM $ipv4 $sshkey "yum install -y kernel >> ~/kernel_install.log"
-        if(-not $sts){
-            Write-Output "Error: Unable to upgrade kernel on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to upgrade kernel on $vmName"
             return $false
         }
 
         Start-Sleep 30
         $sts = kernel_upgrade
-        if(-not $sts){
+        if(-not $sts[-1]){
             Write-Output "Error at kernel upgrade"
             return $false;
         }
@@ -907,83 +908,60 @@ switch ($scenario){
         SendCommandToVM $ipv4 $sshkey "echo 'kernel version after upgrade:`uname -r`' >> kernel_install.log"
 
         $sts = verify_errors
-        if(-not $sts){
-            Write-Output "Error: Unexpected behaviour in state.txt in $vmName" 
-            return $false
-        }
-
-        
-        $version="3.1"
-        $sts = check_lis_version $version
-        if( -not $sts){
-            Write-Output "Error: LIS version: $version from host is not the expected one after kernel upgrade." 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unexpected behaviour in state.txt in $vmName"
             return $false
         }
     }
 
-    "7"{
+   "7"{
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
         if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
-        if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot install LIS for $vmName"
             return $false
         }
-        
+
         $sts = verify_errors
-        if( -not $sts){
-            Write-Output "Error: Errors were encountered when installing LIS $vmName" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Errors were encountered when installing LIS $vmName"
             return $false
         }
         Write-output "Successfully installed LIS $version"
-        
+
         # Reboot the VM
         Restart-VM -VMName $vmName -ComputerName $hvServer -Force
         $sts = WaitForVMToStartSSH $ipv4 200
-        if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot restart $vmName"
             return $false
         }
-        
+
         # uninstall lis
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=uninstall/g' constants.sh"
-        if(-not $sts){
-            Write-Output "Error: Unable to add action in constants.sh on $vmName" 
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on $vmName"
             return $false
         }
 
         $sts = install_lis
-        if( -not $sts){
-            Write-Output "Error: Cannot install LIS for '${$vmName}'" 
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot install LIS for '${$vmName}'"
             return $false
         }
         Write-Output "Successfully removed LIS"
 
-        # Reboot the VM
-        Restart-VM -VMName $vmName -ComputerName $hvServer -Force
-        $sts = WaitForVMToStartSSH $ipv4 200
-        if( -not $sts){
-            Write-Output "Error: Cannot restart $vmName" 
-            return $false
-        }
-
-
-        # TO BE DONE
         $ipv4 = GetIPv4 $vmName $hvserver
-        $kernel_version=.\bin\plink.exe -i $sshkey root@$ipv4 "uname -r"
-        $count=.\bin\plink.exe -i $sshkey root@$ipv4 "ls /lib/modules/$kernel_version/extra/microsoft-hyper-v | wc -l"
-        Write-Output $count | Tee-Object -Append -file $summaryLog
-        Write-Output $kernel_version | Tee-Object -Append -file $summaryLog
-        Write-Output $count
-        Write-Output $kernel_version
+        $count=.\bin\plink.exe -i $sshkey root@$ipv4 "ls /lib/modules/$`(uname -r)`/extra/microsoft-hyper-v | wc -l"
         if ($count -ge 1) {
             Write-Output "Error: LIS modules from the LIS RPM's were't removed."
-            get_logs 
+            get_logs
             return $false
         }
     }
