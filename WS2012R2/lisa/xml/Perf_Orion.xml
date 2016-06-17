@@ -61,8 +61,6 @@
             <noReboot>False</noReboot> 
         </test>
     </testCases>
-        </test>
-    </testCases>
     
     <VMs>
         <vm>
