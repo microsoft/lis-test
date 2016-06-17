@@ -27,15 +27,15 @@
         </suite>
     </testSuites>
 
-    <testCases>
+   <testCases>
         <test> 
             <testName>Performance_Orion</testName> 
             <testScript>Performance_Orion.sh</testScript>
             <files>remote-scripts/ica/Performance_Orion.sh,tools/orion_linux_x86-64.gz</files>
-            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
-            <testScript>STOR_Lis_Disk.sh</testScript>
-            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
-            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>setupScripts\AddHardDisk.ps1</file>
+            </setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>18000</timeout>
             <testParams> 
@@ -59,6 +59,8 @@
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
+        </test>
+    </testCases>
         </test>
     </testCases>
     
