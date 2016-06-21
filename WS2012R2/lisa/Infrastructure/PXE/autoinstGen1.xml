@@ -568,7 +568,6 @@
     </dhcp_options>
     <dns>
       <dhcp_hostname config:type="boolean">true</dhcp_hostname>
-      <domain>guest.corp.microsoft.com</domain>
       <hostname>linux-fd6t</hostname>
       <resolv_conf_policy>auto</resolv_conf_policy>
       <write_hostname config:type="boolean">false</write_hostname>
@@ -579,18 +578,6 @@
         <device>eth0</device>
         <dhclient_set_default_route>yes</dhclient_set_default_route>
         <startmode>auto</startmode>
-      </interface>
-      <interface>
-        <bootproto>static</bootproto>
-        <broadcast>127.255.255.255</broadcast>
-        <device>lo</device>
-        <firewall>no</firewall>
-        <ipaddr>127.0.0.1</ipaddr>
-        <netmask>255.0.0.0</netmask>
-        <network>127.0.0.0</network>
-        <prefixlen>8</prefixlen>
-        <startmode>nfsroot</startmode>
-        <usercontrol>no</usercontrol>
       </interface>
     </interfaces>
     <ipv6 config:type="boolean">true</ipv6>
