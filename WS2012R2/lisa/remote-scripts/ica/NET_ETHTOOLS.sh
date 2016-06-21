@@ -91,6 +91,36 @@ case $? in
 		;;
 esac
 
+GetDistro
+
+case $DISTRO in
+    "redhat_7")
+       msg="Checking keys with ethtool ......"
+       LogMsg "${msg}"
+       UpdateSummary "${msg}"
+    ;;
+   "ubuntu_x")
+       msg="Failed: No ubuntu specific code to test case"
+       LogMsg "${msg}"
+       UpdateSummary "${msg}"
+       UpdateTestState $ICA_TESTABORTED
+       exit 1
+    ;;
+    "suse_x")
+       msg="Failed: No SUSE specific code to test case"
+       LogMsg "${msg}"
+       UpdateSummary "${msg}"
+       UpdateTestState $ICA_TESTABORTED
+       exit 1
+     ;;
+     *)
+       LogMsg "WARNING: Distro '${distro}' not supported."
+       UpdateSummary "WARNING: Distro '${distro}' not supported."
+       UpdateTestState $ICA_TESTABORTED
+       exit 1
+    ;;
+esac
+
 declare __iface_ignore
 
 # Parameter provided in constants file
