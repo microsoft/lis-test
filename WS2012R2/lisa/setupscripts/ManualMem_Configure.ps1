@@ -166,14 +166,16 @@ foreach ($p in $params)
 
       }
 
-      # Verify VM Version is 7
+      # Verify VM Version is greater than 7
       $version = Get-VM -Name $vmName -ComputerName $hvServer | select -ExpandProperty Version
-      if ( $version[0] -ne "7" )
+      [int]$version = [convert]::ToInt32($version[0],10)
+
+      if ( $version -lt 7 )
       {
-        "Error: $vmName is version $version. It needs to be 7.0"
+        "Error: $vmName is version $version. It needs to be 7 or greater"
         return $false
       }
-
+      
       Set-VMMemory -vmName $vmName -ComputerName $hvServer -DynamicMemoryEnabled $DM_Enabled `
                       -StartupBytes $startupMem 
       if (-not $?)
