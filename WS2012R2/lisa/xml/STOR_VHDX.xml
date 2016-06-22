@@ -22,6 +22,7 @@
                 <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
                 <suiteTest>VHDx_IDE_0_1_Fixed</suiteTest>
                 <suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest>
+                <suiteTest>VHDx_IDE_SCSI_Mixed_Dynamic</suiteTest>
                 <suiteTest>VHDx_AddDiff_Disk_IDE</suiteTest>
                 <suiteTest>VHDx_AddDiff_Disk_SCSI</suiteTest>
                 <suiteTest>VHDx_HotADD_Multi_Dynamic_SCSI</suiteTest>
@@ -230,6 +231,23 @@
             </testparams>
             <onError>Continue</onError>
         </test>
+
+        <test>
+            <testName>VHDx_IDE_SCSI_Mixed_Dynamic</testName>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
+            <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <timeout>18000</timeout>
+            <testparams>
+                <param>SCSI=0,0,Dynamic,512</param>
+                <param>IDE=0,1,Dynamic,512</param>
+                <param>TC_COVERED=STOR-43</param>
+            </testparams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
         <test>
             <testName>VHDx_AddDiff_Disk_IDE</testName>
             <testScript>setupscripts\DiffDiskGrowthTestCase.ps1</testScript>
