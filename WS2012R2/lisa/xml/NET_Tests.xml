@@ -55,6 +55,7 @@
                 <suiteTest>VlanTrunking</suiteTest>
                 <suiteTest>Network_Hang_Vxlan</suiteTest>
                 <suiteTest>CopyFileScp</suiteTest>
+                <suiteTest>CheckKeywithEthtool</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
@@ -400,6 +401,22 @@
                     <param>SectorSize=512</param>
                     <param>DefaultSize=20GB</param>
             </testParams>
+        </test>
+
+        <test>
+            <testName>CheckKeywithEthtool</testName>
+             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,None,None,001600112200</param>
+                <param>TC_COVERED=NET-20</param>
+            </testParams>
+            <testScript>NET_ETHTOOLS.sh</testScript>
+            <files>remote-scripts/ica/NET_ETHTOOLS.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
         </test>
 
         <!-- The following test requires a Gen 2 VM -->
