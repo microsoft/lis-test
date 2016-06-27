@@ -72,6 +72,7 @@
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-01a</param>
             </testparams>
         </test>
@@ -89,6 +90,7 @@
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-01b</param>
             </testparams>
         </test>
@@ -146,6 +148,7 @@
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
@@ -163,6 +166,7 @@
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
@@ -181,6 +185,7 @@
                 <param>growSize=4GB</param>
                 <param>shrinkSize=3GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-03</param>
             </testparams>
         </test>
@@ -198,6 +203,7 @@
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-04a</param>
             </testparams>
         </test>
@@ -215,6 +221,7 @@
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-04b</param>
             </testparams>
         </test>
@@ -232,6 +239,7 @@
                 <param>DefaultSize=127GB</param>
                 <param>NewSize=2304GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-05</param>
             </testparams>
         </test>
@@ -270,6 +278,7 @@
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-06</param>
             </testparams>
         </test>

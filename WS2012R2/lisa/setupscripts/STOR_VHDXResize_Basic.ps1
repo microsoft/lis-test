@@ -70,8 +70,6 @@ $TC_COVERED = $null
 $TestLogDir = $null
 $TestName   = $null
 $vhdxDrive  = $null
-$controllerType = "SCSI"
-$type = "Dynamic"
 
 #######################################################################
 #
@@ -227,8 +225,10 @@ if ($diskInfo.FreeSpace -le $sizeFlag + 10MB)
 #
 
 $guest_script = "STOR_VHDXResize_PartitionDisk"
-RunRemoteScriptCheckResult $guest_script
-if ( -not $? )
+
+
+$sts = RunRemoteScriptCheckResult $guest_script
+if (-not $($sts[-1]))
 {
   "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
   return $False
@@ -326,8 +326,8 @@ else
  $guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
 }
 
-RunRemoteScriptCheckResult $guest_script
-if ( -not $? )
+$sts = RunRemoteScriptCheckResult $guest_script
+if (-not $($sts[-1]))
 {
   "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
   return $False
