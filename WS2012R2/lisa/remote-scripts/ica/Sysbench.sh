@@ -23,7 +23,7 @@
 ########################################################################
 #
 # Description:
-#       This script installs and runs Sysbench Test on a guest VM
+#       This script installs and runs Sysbench tests on a guest VM
 #
 #       Steps:
 #       1. Installs dependencies
@@ -39,8 +39,8 @@ ICA_TESTCOMPLETED="TestCompleted"                                  # The test co
 ICA_TESTABORTED="TestAborted"                                      # Error during setup of test
 ICA_TESTFAILED="TestFailed"                                        # Error while performing the test
 
-
 CONSTANTS_FILE="constants.sh"
+ROOT_DIR="/root"
 
 #######################################################################
 # Adds a timestamp to the log file
@@ -48,11 +48,6 @@ CONSTANTS_FILE="constants.sh"
 function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1}
 }
-
-#######################################################################
-# Updates the summary.log file
-#######################################################################
-
 
 #######################################################################
 # Keeps track of the state of the test
@@ -73,6 +68,7 @@ else
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
+
 UpdateSummary()
 {
  if [ -f "$__LIS_SUMMARY_FILE" ]; then
@@ -90,10 +86,12 @@ UpdateSummary()
 
  return 0
 }
+
 function UpdateSummary()
 {
     echo $1 >> ~/summary.log
 }
+
 #######################################################################
 #
 # Main script body
@@ -109,7 +107,6 @@ dos2unix utils.sh
     exit 2
 }
 
-ROOT_DIR="/root"
 pushd $ROOT_DIR
 LogMsg "Cloning sysbench"
 git clone https://github.com/akopytov/sysbench.git
@@ -132,25 +129,25 @@ LogMsg "This script tests sysbench on VM."
 if is_fedora ; then
     # Installing dependencies of sysbench on fedora.
     # yum install -y mysql-devel
-    wget ftp://mirror.switch.ch/pool/4/mirror/mysql/Downloads/MySQL-5.6/MySQL-devel-5.6.24-1.el7.x86_64.rpm
-    rpm -iv MySQL-devel-5.6.24-1.el7.x86_64.rpm
+    
+    # mysql-devel should not be a requirement if we compile without mysql support
+    #wget ftp://mirror.switch.ch/pool/4/mirror/mysql/Downloads/MySQL-5.6/MySQL-devel-5.6.24-1.el7.x86_64.rpm
+    #rpm -iv MySQL-devel-5.6.24-1.el7.x86_64.rpm
 
-    if [ $? -eq 0 ]; then
-        LogMsg "Dependecies are installed ..."
-        bash ./autogen.sh
-        bash ./configure --without-mysql
-        make
-        make install
-        if [ $? -ne 0 ]; then
-            LogMsg "ERROR: Unable to install sysbench. Aborting..."
-            UpdateTestState $ICA_TESTABORTED
-            exit 10
-        fi
+    bash ./autogen.sh
+    bash ./configure --without-mysql
+    make
+    make install
+    if [ $? -ne 0 ]; then
+        LogMsg "ERROR: Unable to install sysbench. Aborting..."
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
         LogMsg "Sysbench installed successfully."
     fi
  elif is_ubuntu ; then
      # Installing sysbench on ubuntu
-     apt-get install -y sysbench
+    apt-get install -y sysbench
     if [ $? -ne 0 ]; then
              LogMsg "ERROR: Unable to install sysbench. Aborting..."
              UpdateTestState $ICA_TESTABORTED
@@ -159,7 +156,6 @@ if is_fedora ; then
         LogMsg "Sysbench installed successfully!"
 
  elif is_suse ; then
-    LogMsg "Dependecies are installed ..."
         bash ./autogen.sh
         bash ./configure --without-mysql
         make
@@ -235,7 +231,6 @@ function fileio ()
     return "$FILEIO_PASS"
  }
 
-
 LogMsg " Testing fileio. Writing to fileio.log."
 for test_item in ${TEST_FILE[*]}
 do
@@ -245,7 +240,7 @@ do
         UpdateTestState $ICA_TESTFAILED
     fi
 done
-UpdateSummary "Fileio Tests passed."
+UpdateSummary "Fileio tests passed."
 
 if [ "$FILEIO_PASS" = "$CPU_PASS" ]; then
     UpdateSummary "All tests completed."
