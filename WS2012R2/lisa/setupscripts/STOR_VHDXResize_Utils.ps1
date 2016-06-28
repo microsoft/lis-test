@@ -24,7 +24,7 @@
     Basic functions for STOR_VHDXResize TC area
 .Description
     This is a PowerShell script which contains all the functions needed by
-	the STOR_VHDXResize test and setup scripts 
+	the STOR_VHDXResize test and setup scripts
     Functions included:
 		- GetRemoteFileInfo([String] $filename, [String] $server )
 		- ConvertStringToUInt64([string] $str)
@@ -32,6 +32,7 @@
 		- CheckResult()
 		- SummaryLog()
 		- RunTestLog([String] $filename, [String] $logDir, [String] $TestName)
+    - RunRemoteScriptCheckResult ([String] $guest_script)
 		- MigrateVM()
 #>
 
@@ -112,13 +113,12 @@ function ConvertStringToUInt64([string] $str)
 #######################################################################
 function RunTest ([String] $filename)
 {
-
     "exec ./${filename}.sh &> ${filename}.log " | out-file -encoding ASCII -filepath runtest.sh
 
     .\bin\pscp.exe -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)
     {
-       Write-Error -Message "Error: Unable to copy startstress.sh to the VM" -ErrorAction SilentlyContinue
+       Write-Error -Message "Error: Unable to copy ${filename}.sh to the VM" -ErrorAction SilentlyContinue
        return $False
     }
 
@@ -316,6 +316,46 @@ function RunTestLog([String] $filename, [String] $logDir, [String] $TestName)
     }
      return $retVal
 }
+
+
+#######################################################################
+#
+# Combine runTest, SummaryLog, CheckResult,RunTestLog to one function ()
+#
+#######################################################################
+function RunRemoteScriptCheckResult([String] $guest_script)
+{
+  $sts = RunTest $guest_script
+
+  if (-not $($sts[-1]))
+  {
+      $sts = SummaryLog
+      if (-not $($sts[-1]))
+      {
+          "Warning : Failed getting summary.log from VM"
+      }
+      "Error: Running '${guest_script}' script failed on VM "
+      return $False
+  }
+
+  $CheckResultsts = CheckResult
+
+  $sts = RunTestLog $guest_script $TestLogDir $TestName
+  if (-not $($sts[-1]))
+  {
+      "Warning : Getting RunTestLog.log from VM, will not exit test case execution "
+  }
+
+  if (-not $($CheckResultsts[-1]))
+  {
+      "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+      return $False
+  }
+
+  return $True
+}
+
+
 
 #######################################################################
 #
