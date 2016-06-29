@@ -4,11 +4,11 @@
  Linux on Hyper-V and Azure Test Code, ver. 1.0.0
  Copyright (c) Microsoft Corporation
 
- All rights reserved. 
+ All rights reserved.
  Licensed under the Apache License, Version 2.0 (the ""License"");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
-     http://www.apache.org/licenses/LICENSE-2.0  
+     http://www.apache.org/licenses/LICENSE-2.0
 
  THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
  OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -35,10 +35,6 @@
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
         <imageStoreDir>\\path\to\image</imageStoreDir>
-        <testParams>
-            <param>vmCpuNumber=4</param>
-            <param>vmMemory=16GB</param>
-        </testParams>
     </global>
 
     <testSuites>
@@ -80,7 +76,7 @@
             <uploadFiles>
                 <file>redis.log</file>
             </uploadFiles>
-            <timeout>1200</timeout>
+            <timeout>3600</timeout>
             <OnError>Continue</OnError>
          </test>
     </testCases>
@@ -97,15 +93,14 @@
             <hardware>
                <create>true</create>
                <numCPUs>4</numCPUs>
-               <memSize>2048</memSize>
+               <memSize>16384</memSize>
                <disableDiff>True</disableDiff>
-               <nic>VMBus,External</nic>
-               <nic>VMBus,Private</nic>
+               <nic>VMBus,Vm.Enterprise#1</nic>
+               <nic>VMBus,Vm.Private40G#1,001600112200</nic>
             </hardware>
-            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>
         </vm>
         <vm>
-             <hvServer>LIS-HOST02</hvServer>
+            <hvServer>LIS-HOST02</hvServer>
             <vmName>VM-Redis-server</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
@@ -113,12 +108,11 @@
             <hardware>
                <create>true</create>
                <numCPUs>4</numCPUs>
-               <memSize>2048</memSize>
+               <memSize>16384</memSize>
                <disableDiff>True</disableDiff>
-               <nic>VMBus,External,001600112233</nic>
-               <nic>VMBus,Private</nic>
-            </hardware>    
-            <preStartConfig>setupScripts/Config-VM.ps1</preStartConfig>       
+               <nic>VMBus,Vm.Enterprise#1,001600112233</nic>
+               <nic>VMBus,Vm.Private40G#1,001600112201</nic>
+            </hardware>
         </vm>
     </VMs>
 </config>
