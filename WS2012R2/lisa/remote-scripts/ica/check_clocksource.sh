@@ -92,11 +92,15 @@ CheckSource()
         echo "Test Failed. No file was found in clocksource of size greater than 0M." >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
         exit 1
-    else 
+    else
         __file_name=$(cat /sys/devices/system/clocksource/clocksource0/current_clocksource)
-        if [ "$__file_name" == "hyperv_clocksource" ]; then
+        if [[ "$__file_name" =~ "hyperv_clocksource" ]]; then
             LogMsg "Test successful. Proper file was found."
             echo "Test successful. Proper file was found." >> ~/summary.log
+        else
+            LogMsg "Test failed. Proper file was NOT found."
+            echo "Test failed. Proper file was NOT found." >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
         fi
     fi
 }
