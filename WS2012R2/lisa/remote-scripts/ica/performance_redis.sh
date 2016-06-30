@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -48,8 +48,6 @@
 #
 #######################################################################
 
-
-
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
@@ -58,7 +56,6 @@ ICA_TESTFAILED="TestFailed"
 #
 # Function definitions
 #
-
 LogMsg()
 {
     echo `date "+%a %b %d %T %Y"` ": ${1}"
@@ -74,7 +71,6 @@ UpdateTestState()
 # Main script body
 #
 #######################################################################
-
 cd ~
 UpdateTestState $ICA_TESTRUNNING
 LogMsg "Starting test"
@@ -194,13 +190,13 @@ ssh -i /root/.ssh/${SERVER_SSHKEY} root@${STATIC_IP2} "echo 'STATIC_IP=${REDIS_H
 ssh -i /root/.ssh/${SERVER_SSHKEY} root@${STATIC_IP2} "echo 'ipv4=${STATIC_IP2}' >> /root/constants.sh"
 ssh -i /root/.ssh/${SERVER_SSHKEY} root@${STATIC_IP2} "dos2unix ./NET_set_static_ip.sh; chmod +x ./NET_set_static_ip.sh; ./NET_set_static_ip.sh"
 if [ $? -ne 0 ]; then
-    msg="Error: Unable set static ip on vm2"
+    msg="Error: Unable to set a static IP on VM2"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 40
 fi
-msg="Successfully assigned ip to vm2"
+msg="Info: Successfully set an IP to VM2"
 LogMsg "${msg}"
 echo "${msg}" >> ~/summary.log
 #
@@ -354,7 +350,6 @@ done
 
 #
 # If we made it here, everything worked.
-# Indicate success
 #
 ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} "shutdown now"
 LogMsg "Test completed successfully"
