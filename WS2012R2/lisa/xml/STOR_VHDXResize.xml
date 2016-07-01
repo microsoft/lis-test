@@ -38,12 +38,10 @@
         <suite>
             <suiteName>VHDxResize</suiteName>
             <suiteTests>
-
                 <suiteTest>VHDxResizeToBigger512</suiteTest>
                 <suiteTest>VHDxResizeToBigger4096</suiteTest>
                 <suiteTest>VHDxResizeToBigger512_Dynamic_IDE</suiteTest>
                 <suiteTest>VHDxResizeToBigger512_Fixed_IDE</suiteTest>
-
                 <suiteTest>VHDxResizeToSmaller512</suiteTest>
                 <suiteTest>VHDxResizeToSmaller4096</suiteTest>
                 <suiteTest>VHDxResizeGrowShrink</suiteTest>
@@ -52,7 +50,6 @@
                 <suiteTest>VHDxResizeOver2TB</suiteTest>
                 <suiteTest>VHDxResizeOver2TB_IDE</suiteTest>
                 <suiteTest>VHDxResizeLiveMigration</suiteTest>
-
             </suiteTests>
         </suite>
     </testSuites>
@@ -133,7 +130,6 @@
             <noReboot>True</noReboot>
        </test>
 
-
         <test>
             <testName>VHDxResizeToSmaller512</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -152,6 +148,7 @@
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
+        
         <test>
             <testName>VHDxResizeToSmaller4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -170,6 +167,7 @@
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
+        
         <test>
             <testName>VHDxResizeGrowShrink</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
@@ -189,6 +187,7 @@
                 <param>TC_COVERED=STOR-VHDx-03</param>
             </testparams>
         </test>
+        
         <test>
             <testName>VHDxResizeGrowFilesystem512</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
@@ -207,6 +206,7 @@
                 <param>TC_COVERED=STOR-VHDx-04a</param>
             </testparams>
         </test>
+        
         <test>
             <testName>VHDxResizeGrowFilesystem4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
@@ -225,6 +225,7 @@
                 <param>TC_COVERED=STOR-VHDx-04b</param>
             </testparams>
         </test>
+        
         <test>
             <testName>VHDxResizeOver2TB</testName>
             <testScript>SetupScripts\STOR_VHDXResize_DiskOver2TB.ps1</testScript>
@@ -243,6 +244,7 @@
                 <param>TC_COVERED=STOR-VHDx-05</param>
             </testparams>
         </test>
+        
         <test>
             <testName>VHDxResizeOver2TB_IDE</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -261,8 +263,6 @@
                  <param>ControllerType=IDE</param>
             </testparams>
         </test>
-
-
 
         <test>
             <testName>VHDxResizeLiveMigration</testName>
@@ -294,5 +294,4 @@
             <suite>VHDxResize</suite>
         </vm>
     </VMs>
-
 </config>
