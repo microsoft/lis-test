@@ -47,6 +47,7 @@
                 <suiteTest>ManualMem_SmallDecrease100</suiteTest>
                 <suiteTest>ManualMem_MultipleAddRemove</suiteTest>
                 <suiteTest>ManualMem_StressHotRemove</suiteTest>
+                <suiteTest>ManualMem_HotAdd_Reboot</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -146,6 +147,17 @@
             <testParams>
                 <param>TC_COVERED=MemHotAdd-08</param>                                   
                 <param>startupMem=4GB</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>ManualMem_HotAdd_Reboot</testName>
+            <setupScript>setupscripts\ManualMem_Configure.ps1</setupScript>
+            <testScript>setupscripts\ManualMem_HotAdd_reboot.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=MemHotAdd-09</param>                                   
+                <param>startupMem=4000MB</param>
             </testParams>
             <timeout>1200</timeout>
         </test>
