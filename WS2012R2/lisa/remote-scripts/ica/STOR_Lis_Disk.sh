@@ -116,8 +116,13 @@ function TestFileSystem()
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk  $driveName
     if [ "$?" = "0" ]; then
         sleep 5
-       # IntegrityCheck $driveName
-        mkfs.$fs  ${driveName}1 -f
+      # IntegrityCheck $driveName
+      # for xfs, if overwrite original file system, need to use -f
+        if [ $fs = "xfs" ]; then
+          mkfs.$fs  ${driveName}1 -f
+        else
+          mkfs.$fs  ${driveName}1
+        fi
         if [ "$?" = "0" ]; then
             LogMsg "mkfs.$fs   ${driveName}1 successful..."
             mount   ${driveName}1 /mnt
