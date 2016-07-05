@@ -368,7 +368,8 @@ if (-not $sts[-1])
     Write-Output "###################`n"
     return $False
 }
-Write-Output "$remoteScript execution on VM: Success"
+
+#Write-Output "$remoteScript execution on VM: Success"
 Write-Output "Here are the remote logs:`n`n###################"
 $logfilename = ".\$remoteScript.log"
 Get-Content $logfilename
