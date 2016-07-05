@@ -3133,7 +3133,14 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
             foreach ($line in $jobResults)
             {
-                $line >> $logFilename
+                if ($line -ne "null")
+                {
+                    $line | out-file -encoding ASCII >> $logFilename
+                }
+                else
+                {
+                    $line >> $logFilename
+                }
             }
 
             #
