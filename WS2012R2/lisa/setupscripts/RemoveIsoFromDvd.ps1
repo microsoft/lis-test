@@ -87,7 +87,11 @@ $error.Clear()
 #
 # Remove the .iso file from the VMs DVD drive
 #
-Set-VMDvdDrive -vmName $vmName -ControllerNumber 1 -ControllerLocation 0 -Path $null
+$dvdcount = $(Get-VMDvdDrive -VMName $vmName).ControllerLocation.count 
+for ($i=0; $i -lt $dvdcount; $i++)
+{
+    Remove-VMDvdDrive -VMName $vmName -ControllerNumber 1 -ControllerLocation $i
+}
 if (-not $?)
 {
     "Error: Unable to remove the .iso from the DVD"
