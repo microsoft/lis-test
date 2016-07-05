@@ -271,9 +271,7 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
 # Main script body
 #
 ############################################################################
-
 $retVal = $False
-
 $remoteScript = "PartitionDisks.sh"
 
 #
@@ -533,25 +531,17 @@ if (-not $sts[-1])
     Write-Output "###################`n"
     return $False
 }
-Write-Output "$remoteScript execution on VM: Success"
+
+# Write-Output "$remoteScript execution on VM: Success"
 Write-Output "Here are the remote logs:`n`n###################"
 $logfilename = ".\$remoteScript.log"
 Get-Content $logfilename
 Write-Output "###################`n"
 Remove-Item $logfilename
 
-# return $true
 #
 # Tell the guest OS on the VM to mount the differencing disk
 #
-
-# $sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mount /dev/sdb1 /mnt" | out-null
-# if (-not $?)
-# {
-#     "Error: Unable to send mount request to VM"
-#     return $False
-# }
-
 $sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir -p /mnt/2/DiffDiskGrowthTestCase" | out-null
 if (-not $?)
 {
@@ -568,8 +558,6 @@ if (-not $?)
     "Error: Unable to send cp command to VM to grow the .vhd"
     return $False
 }
-
-# return $true
 
 #
 # Tell the guest OS on the VM to unmount the differencing disk
