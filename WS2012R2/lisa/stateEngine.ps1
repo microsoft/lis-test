@@ -3133,7 +3133,7 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
             foreach ($line in $jobResults)
             {
-                $line | out-file -encoding ASCII >> $logFilename
+                $line >> $logFilename
             }
 
             #
