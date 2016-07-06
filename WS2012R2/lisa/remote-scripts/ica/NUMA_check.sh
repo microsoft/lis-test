@@ -80,11 +80,11 @@ UtilsInit
 GetDistro
 
 case $DISTRO in
-    "redhat_x")
+    redhat*)
        numactl -s
         if [ $? -ne 0 ]; then
              yum -y install numactl
-                 if [ $? -ne 0]; then
+                 if [ $? -ne 0 ]; then
                     LogMsg "Error: numactl cannot be installed.."
                     UpdateSummary "Error: numactl cannot be installed."
                     UpdateTestState $ICA_TESTABORTED
@@ -92,11 +92,11 @@ case $DISTRO in
                 fi
         fi
     ;;
-   "ubuntu_x")
+   ubuntu*)
         numactl -s
             if [ $? -ne 0 ]; then
                  apt-get -y install numactl
-                     if [ $? -ne 0]; then
+                     if [ $? -ne 0 ]; then
                         LogMsg "Error: numactl cannot be installed."
                         UpdateSummary "Error: numactl cannot be installed."
                         UpdateTestState $ICA_TESTABORTED
@@ -104,21 +104,21 @@ case $DISTRO in
                     fi
             fi
     ;;
-    "suse_x")
+    suse*)
         numactl -s
             if [ $? -ne 0 ]; then
                  zypper -y install numactl
-                     if [ $? -ne 0]; then
+                     if [ $? -ne 0 ]; then
                         LogMsg "Error: numactl cannot be installed."
                         UpdateSummary "Error: numactl cannot be installed."
                         UpdateTestState $ICA_TESTABORTED
                         exit 1
                     fi
-            fi            
+            fi
      ;;
      *)
-        LogMsg "WARNING: Distro '${distro}' not supported."
-        UpdateSummary "WARNING: Distro '${distro}' not supported."
+        LogMsg "WARNING: Distro '${DISTRO}' not supported."
+        UpdateSummary "WARNING: Distro '${DISTRO}' not supported."
     ;;
 esac
 
@@ -145,14 +145,14 @@ fi
 
 #
 # Check memory size configured in each NUMA node against max memory size
-# configured in VM if MaxMemSizeEachNode test params configured.
+# configured in VM if MemSize test params configured.
 #
-LogMsg "Info: Max memory size of every node has been set to $MaxMemSizeEachNode MB"
 if [ -n "$MaxMemSizeEachNode" ]; then
+    LogMsg "Info: Max memory size of every node has been set to $MaxMemSizeEachNode MB"
     MemSizeArr=`numactl -H | grep size | awk '{ print $4 }'`
     for i in ${MemSizeArr}; do
         LogMsg "Info: Start checking memory size for node: $i MB"
-        if [ $i -gt $MaxMemSizeEachNode]; then
+        if [ $i -gt $MaxMemSizeEachNode ]; then
             LogMsg "Error: The maximum memory size of each NUMA node was $i , which is greater than $MaxMemSizeEachNode MB. Test Failed!"
         	UpdateSummary "Error: The maximum memory size of each NUMA node was $i , which is greater than $MaxMemSizeEachNode MB. Test Failed!"
             UpdateTestState $ICA_TESTFAILED
