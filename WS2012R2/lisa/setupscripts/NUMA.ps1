@@ -83,7 +83,7 @@ foreach ($p in $params) {
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
-    
+
     if ($fields[0].Trim() -eq "ipv4") {
         $IPv4 = $fields[1].Trim()
     }
@@ -163,7 +163,7 @@ if (-not $sts[-1]) {
     return $False
 }
 else {
-    Write-Output "Matching values for NumaNodes: $NumaNodes has been found on the VM! " | Tee-Object -Append -file $summaryLog
+    Write-Output "Matching values for NumaNodes: $vcpuOnNode has been found on the VM! " | Tee-Object -Append -file $summaryLog
 }
 
 return $retVal
