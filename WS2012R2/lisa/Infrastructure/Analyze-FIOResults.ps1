@@ -45,7 +45,7 @@ if (Test-Path $rootDir)
 }
 else
 {
-    "Error: RootDir = $rootDir is not a valid path"
+    "Error: RootDir $rootDir is not a valid path"
     return $false
 }
 
@@ -86,7 +86,7 @@ foreach ( $file in $directories )
     Write-Host ("---")
     write-host ("$block_size")
 
-    #seq-read:
+    #seq-read
     $linenumbers = select-string "seq-read:" $file.Fullname | select LineNumber
     write-host ("seq-read:")
     foreach ($line in $LineNumbers)
@@ -99,7 +99,7 @@ foreach ( $file in $directories )
         }
     }
 
-    #rand-read:
+    #rand-read
     $linenumbers = select-string "rand-read:" $file.Fullname | select LineNumber
     write-host ("rand-read:")
     foreach ($line in $LineNumbers)
@@ -112,7 +112,7 @@ foreach ( $file in $directories )
         }
     }
 
-    #seq-write:
+    #seq-write
     $linenumbers = select-string "seq-write:" $file.Fullname | select LineNumber
     write-host ("seq-write:")
     foreach ($line in $LineNumbers)
@@ -125,7 +125,7 @@ foreach ( $file in $directories )
         }
     }
 
-    #rand-write:
+    #rand-write
     $linenumbers = select-string "rand-write:" $file.Fullname | select LineNumber
     write-host ("rand-write:")
     foreach ($line in $LineNumbers)
@@ -141,5 +141,5 @@ foreach ( $file in $directories )
     Export-CSV -InputObject $a -Path $logDir\FIO-Results.csv -Append
 }
 Write-Host ("--------FIO RESULTS---------")
-Write-Host "Archive logs and CSV  are here: $logDir."
+Write-Host "Archive logs and CSV are here: $logDir"
 Write-Host "------------------------------"
