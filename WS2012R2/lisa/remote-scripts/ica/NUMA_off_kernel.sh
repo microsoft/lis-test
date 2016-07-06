@@ -30,36 +30,6 @@
 #
 ################################################################
 
-ICA_TESTRUNNING="TestRunning"      # The test is running
-ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
-ICA_TESTABORTED="TestAborted"      # Error during setup of test
-ICA_TESTFAILED="TestFailed"        # Error during execution of test
-
-UpdateTestState() {
-    echo $1 > $HOME/state.txt
-}
-
-UpdateSummary() {
-    # To add the timestamp to the log file
-    echo `date "+%a %b %d %T %Y"` : ${1} >> ~/summary.log
-}
-
-cd ~
-if [ -e ~/summary.log ]; then
-    rm -rf ~/summary.log
-fi
-
-UpdateTestState $ICA_TESTRUNNING
-
-if [ -e $HOME/constants.sh ]; then
-    . $HOME/constants.sh
-else
-    echo "ERROR: Unable to source the constants file!"
-    UpdateSummary "ERROR: Unable to source the constants file!"
-    UpdateTestState $ICA_TESTABORTED
-    exit 1
-fi
-
 # Convert eol
 dos2unix utils.sh
 
@@ -67,54 +37,22 @@ dos2unix utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
     UpdateSummary "Error: unable to source utils.sh!"
-    UpdateTestState $ICA_TESTABORTED
+    echo "TestAborted" > $HOME/state.txt
     exit 1
 }
 
 # Source constants file and initialize most common variables
 UtilsInit
 
-#
-# Start the testing
-#
-UpdateSummary "KernelRelease=${LINUX_VERSION}"
-UpdateSummary "$(uname -a)"
-
-LinuxRelease()
-{
-    DISTRO=$(grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version})
-
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        Cent??*6*)
-            echo "CENTOS6";;
-        Cent??*7*)
-            echo "CENTOS7";;
-        *SUSE*)
-            echo "SLES";;
-        *Red*Hat*)
-            echo "RHEL";;
-        *Red*6.*)
-            echo "RHEL6";;
-        Debian*)
-            echo "DEBIAN";;
-        *)
-            echo "Error: Distro not supported!";;
-    esac
-}
-
 ConfigRhel()
 {
     if [ $VmGeneration -eq 1 ]; then
             LogMsg "Updating RHEL7 Gen$VmGeneration grub confiuration"
-            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/numa=off"/' /etc/default/grub
+            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/ numa=off"/' /etc/default/grub
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
@@ -123,11 +61,11 @@ ConfigRhel()
             grub2-mkconfig -o /boot/grub2/grub.cfg
         elif [ $VmGeneration -eq 2 ]; then
             LogMsg "Update RHEL7 Gen$VmGeneration grub"
-            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/numa=off"/' /etc/default/grub
+            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/ numa=off"/' /etc/default/grub
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
@@ -137,7 +75,7 @@ ConfigRhel()
         else
             LogMsg "FAILED: Could not find VmGeneration variable."
             UpdateSummary "FAILED: Could not find VmGeneration variable."
-            UpdateTestState $ICA_TESTABORTED
+            SetTestStateAborted
             exit 2
         fi
 }
@@ -151,11 +89,11 @@ ConfigRhel6()
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /boot/grub/grub.conf."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /boot/grub/grub.conf."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
-                UpdateSummary "Success: added the 'numa=off' value." >> ~/summary.log
+                UpdateSummary "Success: added the 'numa=off' value."
             fi
         elif [ $VmGeneration -eq 2 ]; then
             LogMsg "Update RHEL6 Gen$VmGeneration grub"
@@ -163,7 +101,7 @@ ConfigRhel6()
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /boot/efi/EFI/redhat/grub.conf."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /boot/efi/EFI/redhat/grub.conf."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
@@ -172,20 +110,20 @@ ConfigRhel6()
         else
             LogMsg "FAILED: Could not find VmGeneration variable."
             UpdateSummary "FAILED: Could not find VmGeneration variable."
-            UpdateTestState $ICA_TESTABORTED
+            SetTestStateAborted
             exit 2
-        fi    
+        fi
 }
 
 ConfigSles()
 {
    if [ $VmGeneration -eq 1 ]; then
             LogMsg "Updating SLES Gen$VmGeneration grub confiuration"
-            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/numa=off"/' /etc/default/grub
+            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/ numa=off"/' /etc/default/grub
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
@@ -194,11 +132,11 @@ ConfigSles()
             grub2-mkconfig -o /boot/grub2/grub.cfg
         elif [ $VmGeneration -eq 2 ]; then
             LogMsg "Update SLES Gen$VmGeneration grub"
-            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/numa=off"/' /etc/default/grub
+            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/ numa=off"/' /etc/default/grub
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
@@ -208,7 +146,7 @@ ConfigSles()
         else
             LogMsg "FAILED: Could not find VmGeneration variable."
             UpdateSummary "FAILED: Could not find VmGeneration variable."
-            UpdateTestState $ICA_TESTABORTED
+            SetTestStateAborted
             exit 2
         fi
 }
@@ -221,11 +159,11 @@ ConfigCentos()
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /boot/grub/grub.conf."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /boot/grub/grub.conf."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
-                UpdateSummary "Success: added the 'numa=off' value." >> ~/summary.log
+                UpdateSummary "Success: added the 'numa=off' value."
             fi
         elif [ $VmGeneration -eq 2 ]; then
             LogMsg "Update CentOS6 Gen$VmGeneration grub"
@@ -233,7 +171,7 @@ ConfigCentos()
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /boot/efi/EFI/redhat/grub.conf."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /boot/efi/EFI/redhat/grub.conf."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
@@ -242,7 +180,7 @@ ConfigCentos()
         else
             LogMsg "FAILED: Could not find VmGeneration variable."
             UpdateSummary "FAILED: Could not find VmGeneration variable."
-            UpdateTestState $ICA_TESTABORTED
+            SetTestStateAborted
             exit 2
         fi
 }
@@ -255,7 +193,7 @@ ConfigUbuntu()
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
@@ -264,11 +202,11 @@ ConfigUbuntu()
             grub-mkconfig -o /boot/grub/grub.cfg
         elif [ $VmGeneration -eq 2 ]; then
             LogMsg "Update Ubuntu Gen$VmGeneration grub"
-            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/numa=off"/' /etc/default/grub
+            sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/ numa=off"/' /etc/default/grub
             if [ $? -ne 0 ]; then
                 LogMsg "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
                 UpdateSummary "FAILED: Could not set the 'numa=off' value in /etc/default/grub."
-                UpdateTestState $ICA_TESTABORTED
+                SetTestStateAborted
                 exit 2
             else
                 LogMsg "Success: added the 'numa=off' value."
@@ -278,40 +216,40 @@ ConfigUbuntu()
         else
             LogMsg "FAILED: Could not find VmGeneration variable."
             UpdateSummary "FAILED: Could not find VmGeneration variable."
-            UpdateTestState $ICA_TESTABORTED
+            SetTestStateAborted
             exit 2
         fi
 }
 
-case $(LinuxRelease) in
-    "DEBIAN" | "UBUNTU")
+case $DISTRO in
+    debian* | ubuntu*)
         ConfigUbuntu
     ;;
 
-    "CENTOS6")
+    "centos_6")
         ConfigCentos
     ;;
 
-    "RHEL" | "CENTOS7")
+    "redhat_7" | "centos_7")
         ConfigRhel
     ;;
 
-    "RHEL6")
+    "redhat_6")
         ConfigRhel6
     ;;
 
-    "SLES")
+    suse*)
         ConfigSles
     ;;
 
     *)
-       echo "Error: Distro '${distro}' not supported." >> ~/summary.log
+       echo "Error: Distro '${DISTRO}' not supported." >> ~/summary.log
        UpdateTestState "TestAborted"
-       UpdateSummary "Error: Distro '${distro}' not supported."
+       UpdateSummary "Error: Distro '${DISTRO}' not supported."
        exit 1
     ;;
 esac
 
 LogMsg "NUMA off setup Completed Successfully"
 UpdateSummary "NUMA off setup Completed Successfully"
-UpdateTestState $ICA_TESTCOMPLETED
+SetTestStateCompleted

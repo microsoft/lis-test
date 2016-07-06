@@ -136,15 +136,15 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 $retVal = $True
 
 # Source TCUtils.ps1 for test related functions
-  if (Test-Path ".\setupScripts\TCUtils.ps1")
-  {
-    . .\setupScripts\TCUtils.ps1
-  }
-  else
-  {
-    LogMsg 0 "Error: Could not find setupScripts\TCUtils.ps1"
-    return $false
-  }
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+. .\setupScripts\TCUtils.ps1
+}
+else
+{
+LogMsg 0 "Error: Could not find setupScripts\TCUtils.ps1"
+return $false
+}
 
 #
 # Collecting the VM generation info
@@ -171,7 +171,7 @@ else {
 $cmd_numanodes="(echo expected_number=$NumaNodes; echo MaxMemSizeEachNode=$MaxMemSizeEachNode; echo VmGeneration=$VmGeneration) >> ~/constants.sh";
 $result = Execute($cmd_numanodes)
 if (-not $result) {
-    LogMsg 0 -Message "Error: Unable to submit command ${cmd} to VM!" -ErrorAction SilentlyContinue
+    LogMsg 0 "Error: Unable to submit command ${cmd} to VM!"
     return $False
 }
 
