@@ -197,6 +197,7 @@ foreach($MN in $MNs)
 # States a VM can be in
 #
 New-Variable SystemDown          -value "SystemDown"          -option ReadOnly
+New-Variable ApplyCheckpoint     -value "ApplyCheckpoint"     -option ReadOnly
 New-variable RunSetupScript      -value "RunSetupScript"      -option ReadOnly
 New-Variable StartSystem         -value "StartSystem"         -option ReadOnly
 New-Variable SystemStarting      -value "SystemStarting"      -option ReadOnly
@@ -559,6 +560,12 @@ function DoStateMachine([XML] $xmlConfig)
                     $done = $false
                 }
 
+            $ApplyCheckpoint
+                {
+                    DoApplyCheckpoint $vm $xmlConfig
+                    $done = $false
+                }
+
             $RunSetupScript
                 {
                     DoRunSetupScript $vm $xmlConfig
@@ -817,36 +824,7 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
         else
         {
-            $testData = GetTestData $vm.currentTest $xmlData
-            if ($testData -is [System.Xml.XmlElement])
-            {
-                if (-not (VerifyTestResourcesExist $vm $testData))
-                {
-                    #
-                    # One or more resources used by the VM or test case does not exist - fail the test
-                    #
-                    $testName = $testData.testName
-                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed")
-                    $vm.emailSummary += "          Missing resources<br />"
-                    return
-                }
-
-                if ($vm.preStartConfig -or $testData.setupScript)
-                {
-                    UpdateState $vm $RunSetupScript
-                }
-                else
-                {
-                    UpdateState $vm $StartSystem
-                }
-            }
-            else
-            {
-                LogMsg 0 "Error: No test data for test $($vm.currentTest) in the .xml file`n       $($vm.vmName) has been disabled"
-                $vm.emailSummary += "          No test data found for test $($vm.currentTest)<br />"
-                $vm.currentTest = "done"
-                UpdateState $vm $Disabled
-            }
+            UpdateState $vm $ApplyCheckpoint
         }
     }
     else
@@ -860,6 +838,143 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
         {
             UpdateState $vm $StartSystem
         }
+    }
+}
+
+
+########################################################################
+#
+# DoApplyCheckpoint()
+#
+########################################################################
+function DoApplyCheckpoint([System.Xml.XmlElement] $vm, [XML] $xmlData)
+{
+    <#
+    .Synopsis
+        Apply checkpoint to let VM go into a know status if noCheckpoint=False.
+    .Description
+        Apply checkpoint if noCheckpoint=False. Then transition to RunSetupScript
+        if the currentTest defines a setup script. Otherwise, transition to StartSystem.
+        If noCheckpoint=True or not configured, no checkpoint is applied and do state
+        transition instead.
+    .Parameter vm
+        XML Element representing the VM under test.
+    .Parameter xmlData
+        XML document for the test.
+    .Example
+        DoSystemDown $testVM $xmlData
+    #>
+
+    if (-not $vm -or $vm -isnot [System.Xml.XmlElement])
+    {
+        LogMsg 0 "Error: DoApplyCheckpoint received an bad VM parameter"
+        return
+    }
+
+    LogMsg 9 "Info : Entering DoApplyCheckpoint( $($vm.vmName) )"
+
+    if (-not $xmlData -or $xmlData -isnot [XML])
+    {
+        LogMsg 0 "Error: DoApplyCheckpoint received a null or bad xmlData parameter - VM $($vm.vmName) disabled"
+        $vm.emailSummary += "    DoApplyCheckpoint received a null xmlData parameter - VM disabled<br />"
+        $vm.currentTest = "done"
+        UpdateState $vm $Disabled
+    }
+
+    $testData = GetTestData $vm.currentTest $xmlData
+    if ($testData -is [System.Xml.XmlElement])
+    {
+        # Do not need to recover from checkpoint
+        if ($testData.noCheckpoint -and $testData.noCheckpoint -eq "True")
+        {
+            LogMsg 9 "Info : noCheckpoint is not configured or set to True."
+            if (-not (VerifyTestResourcesExist $vm $testData))
+            {
+                #
+                # One or more resources used by the VM or test case does not exist - fail the test
+                #
+                $testName = $testData.testName
+                $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed")
+                $vm.emailSummary += "          Missing resources<br />"
+                $vm.currentTest = "done"
+                UpdateState $vm $Disabled
+            }
+        }
+        # Case requires a fresh new state VM to run.
+        else
+        {
+            #
+            # Reset the VM to a snapshot to put the VM in a known state.  The default name is
+            # ICABase.  This can be overridden by the global.defaultSnapshot in the global section
+            # and then by the vmSnapshotName in the VM definition.
+            #
+            $snapshotName = "ICABase"
+
+            if ($xmlData.config.global.defaultSnapshot)
+            {
+                $snapshotName = $xmlData.config.global.defaultSnapshot
+                LogMsg 5 "Info : $($vm.vmName) Over-riding default snapshotName from global section to $snapshotName"
+            }
+
+            if ($vm.vmSnapshotName)
+            {
+                $snapshotName = $vm.vmSnapshotName
+                LogMsg 5 "Info : $($vm.vmName) Over-riding default snapshotName from VM section to $snapshotName"
+            }
+
+            #
+            # Find the snapshot we need and apply the snapshot
+            #
+            $snapshotFound = $false
+            $snaps = Get-VMSnapshot $vm.vmName -ComputerName $vm.hvServer
+            foreach($s in $snaps)
+            {
+                if ($s.Name -eq $snapshotName)
+                {
+                    LogMsg 3 "Info : $($vm.vmName) is being reset to snapshot $($s.Name)"
+                    Restore-VMSnapshot $s -Confirm:$false | out-null
+                    $snapshotFound = $true
+                    break
+                }
+            }
+
+            #
+            # Make sure the snapshot left the VM in a stopped state.
+            #
+            if ($snapshotFound)
+            {
+                #
+                # If a VM is in the Suspended (Saved) state after applying the snapshot,
+                # the following will handle this case
+                #
+                $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
+                if ($v.State -eq "Paused")
+                {
+                    LogMsg 3 "Info : $($vm.vmName) - resetting to a stopped state after restoring a snapshot"
+                    Stop-VM $vm.vmName -ComputerName $vm.hvServer -Force | out-null
+                }
+            }
+            else
+            {
+                LogMsg 0 "Warn : $($vm.vmName) does not have a snapshot named $snapshotName."
+            }
+        }
+    }
+    else
+    {
+        LogMsg 0 "Error: No test data for test $($vm.currentTest) in the .xml file`n       $($vm.vmName) has been disabled"
+        $vm.emailSummary += "          No test data found for test $($vm.currentTest)<br />"
+        $vm.currentTest = "done"
+        UpdateState $vm $Disabled
+    }
+
+    if ($vm.preStartConfig -or $testData.setupScript)
+    {
+        UpdateState $vm $RunSetupScript
+    }
+    else
+    {
+        UpdateState $vm $StartSystem
     }
 }
 
@@ -1652,7 +1767,7 @@ function DoPushTestFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 
     #
-    # If the test script is not a PowerShell script, do some additional 
+    # If the test script is not a PowerShell script, do some additional
     # work - e.g. dos2unix, set x bit
     #
     if (-not ($testScript.EndsWith(".ps1")))
@@ -2271,7 +2386,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     SendCommandToVM $vm "rm -f state.txt"
 
     LogMsg 0 "Info : $($vm.vmName) Status for test $currentTest $iterationMsg = $completionCode"
-        
+
 
     if ( $($testData.postTest) )
     {
