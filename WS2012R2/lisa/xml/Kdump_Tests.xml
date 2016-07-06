@@ -37,6 +37,7 @@
                 <suiteTest>Crash_single_core</suiteTest>
                 <suiteTest>Crash_SMP</suiteTest>
                 <suiteTest>Crash_NMI</suiteTest>
+                <suiteTest>Crash_differentVCPU</suiteTest>
                 <!-- Only for REDHAT. Test with crashkernel=auto -->
                 <suiteTest>Crash_Auto_size</suiteTest>
             </suiteTests>
@@ -108,6 +109,23 @@
                 <param>crashkernel=auto</param>
                 <param>TC_COVERED=KDUMP-04</param>
                 <param>VCPU=2</param>
+                <param>VMMemory=2GB</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>Crash_DifferentVCPU</testName>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\kdump.ps1</testScript>
+            <testParams>
+                <!-- Minimum RAM=2GB -->
+                <param>crashkernel=256M@128M</param>
+                <param>TC_COVERED=KDUMP-05</param>
+                <param>VCPU=4</param>
                 <param>VMMemory=2GB</param>
             </testParams>
             <timeout>600</timeout>

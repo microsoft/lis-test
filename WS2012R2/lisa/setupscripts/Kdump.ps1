@@ -187,7 +187,13 @@ if ($nmi -eq 1){
     Debug-VM -Name $vmName -InjectNonMaskableInterrupt -ComputerName $hvServer -Force
 }
 else {
-    $retVal = SendCommandToVM $ipv4 $sshKey "echo 'echo c > /proc/sysrq-trigger' | at now + 1 minutes"
+    if ($vcpu -eq 4){
+        "Kdump will be triggered on VCPU 3 of 4"
+        $retVal = SendCommandToVM $ipv4 $sshKey "taskset -c 2 echo c > /proc/sysrq-trigger 2>/dev/null &"    
+    } 
+    else {
+        $retVal = SendCommandToVM $ipv4 $sshKey "echo c > /proc/sysrq-trigger 2>/dev/null &"
+    }
 }
 
 #
@@ -202,38 +208,31 @@ if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.nam
 }
 
 Write-Output "VM Heartbeat is OK."
-#
+
 # Waiting the VM to have a connection
 Write-Output "Checking the VM connection after kernel panic..."
-$temporar = 60
-do {
-    sleep 5
-    $temporar -= 5
-    if ($temporar -eq 0)
-    {
-        Write-Output "Error: Cannont connect to VM in time, maybe kernel panic occured again after reboot. Check summary.log for configuration problems."
-        Stop-VM -Name $vmName -ComputerName $hvServer -Force
-        return $False   
-    } 
-} until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
+
+$sts = WaitForVMToStartSSH $ipv4 100
+if (-not $sts[-1]){
+    Write-Output "Error: $vmName didn't restart after triggering the crash"
+    return $false
+}
 
 #
 # Verifying if the kernel panic process creates a vmcore file of size 10M+
 #
 Write-Output "Connection to VM is good. Checking the results..."
-if ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "Running") {
-    $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\kdump_results.sh" "/root/kdump_results.sh"
+$retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\kdump_results.sh" "/root/kdump_results.sh"
 
-    # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
-        Write-Output "Error: Failed to send kdump_results.sh to VM."
-        return $false
-    }
-    Write-Output "Success: send kdump_results.sh to VM."
-
-    $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh"
+# check the return Value of SendFileToVM
+if (-not $retVal)
+{
+    Write-Output "Error: Failed to send kdump_results.sh to VM."
+    return $false
 }
+Write-Output "Success: sent kdump_results.sh to VM."
+
+$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh"
 
 $retVal = CheckResults $sshKey $ipv4
 return $retVal
