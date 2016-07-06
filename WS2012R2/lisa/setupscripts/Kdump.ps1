@@ -187,7 +187,13 @@ if ($nmi -eq 1){
     Debug-VM -Name $vmName -InjectNonMaskableInterrupt -ComputerName $hvServer -Force
 }
 else {
-    $retVal = SendCommandToVM $ipv4 $sshKey "echo c > /proc/sysrq-trigger 2>/dev/null &"
+    if ($vcpu -eq 4){
+        "Kdump will be triggered on VCPU 3 of 4"
+        $retVal = SendCommandToVM $ipv4 $sshKey "taskset -c 2 echo c > /proc/sysrq-trigger 2>/dev/null &"    
+    } 
+    else {
+        $retVal = SendCommandToVM $ipv4 $sshKey "echo c > /proc/sysrq-trigger 2>/dev/null &"
+    }
 }
 
 #
