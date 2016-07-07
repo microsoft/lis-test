@@ -143,8 +143,8 @@ if is_fedora ; then
         UpdateTestState $ICA_TESTABORTED
         exit 10
     fi
-        LogMsg "Sysbench installed successfully."
-    fi
+    LogMsg "Sysbench installed successfully."
+
  elif is_ubuntu ; then
      # Installing sysbench on ubuntu
     apt-get install -y sysbench
