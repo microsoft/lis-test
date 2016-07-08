@@ -395,11 +395,12 @@
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>3000</timeout>
             <testParams>
-                <param>TC_COVERED=NET-19</param>
-                <param>SCSI=1,0,Dynamic,512,15GB</param>
+                    <param>TC_COVERED=NET-19</param>
+                    <param>SCSI=1,0,Dynamic,512,15GB</param>
                     <param>Type=Fixed</param>
                     <param>SectorSize=512</param>
                     <param>DefaultSize=20GB</param>
+                    <param>ControllerType=SCSI</param>
             </testParams>
         </test>
 
