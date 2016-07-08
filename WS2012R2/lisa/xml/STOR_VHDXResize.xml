@@ -127,7 +127,6 @@
                 <param>ControllerType=IDE</param>
                 <param>TC_COVERED=STOR-VHDx-106</param>
             </testparams>
-            <noReboot>True</noReboot>
        </test>
 
         <test>
