@@ -41,6 +41,7 @@
                 <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
                 <!-- The test case below requires a SSD disk -->
                 <suiteTest>TrimSupport</suiteTest>
+                <suiteTest>VHDx_Mount_NFS</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -374,6 +375,22 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
+     <test>
+       <testName>VHDx_Mount_NFS</testName>
+       <testScript>STOR_NFS_Client.sh</testScript>
+       <files>remote-scripts/ica/STOR_NFS_Client.sh</files>
+       <timeout>18000</timeout>
+       <testparams>
+          <param>TC_COVERED=STOR-102</param>
+          <!-- dd fileSystems_size=5GB -->
+          <param>File_DD_Bs=2048</param>
+          <param>File_DD_Count=2500000</param>
+          <param>NFS_Path=10.0.0.0:/share</param>
+       </testparams>
+       <onError>Continue</onError>
+       <noReboot>False</noReboot>
+     </test>
+
     </testCases>
 
     <VMs>
