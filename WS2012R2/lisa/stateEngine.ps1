@@ -3128,14 +3128,14 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
             if ($error.Count -gt 0)
             {
                 "Error: ${currentTest} script encountered an error"
-                $error[0].Exception.Message | out-file -encoding ASCII>> $logFilename
+                $error[0].Exception.Message | out-file -encoding ASCII -append -filePath $logFilename
             }
 
             foreach ($line in $jobResults)
             {
-                if ($line -ne "null")
+                if ($line -ne $null)
                 {
-                    $line | out-file -encoding ASCII >> $logFilename
+                    $line | out-file -encoding ASCII -append -filePath $logFilename
                 }
                 else
                 {
