@@ -42,12 +42,14 @@
             <suiteTest>TimeSync</suiteTest>
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
+            <suiteTest>TimeSync_PausedVM</suiteTest>
             <suiteTest>LISShutdownVM</suiteTest>
             <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
             <suiteTest>VerifyLisModules</suiteTest>
             <suiteTest>Multi_Cpu_Test</suiteTest>
             <suiteTest>Verify_LISModules_Version</suiteTest>
-            <suiteTest>VerifyItegratedShutdownService</suiteTest>
+            <suiteTest>VerifyIntegratedShutdownService</suiteTest>
+            <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
             <suiteTest>StressReloadModules</suiteTest>
             <suiteTest>FloppyDisk</suiteTest>
@@ -56,6 +58,8 @@
             <suiteTest>CheckNuma</suiteTest>
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>initrd_modules_check</suiteTest>
+            <suiteTest>check_clocksource</suiteTest>
+            <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -164,7 +168,7 @@
         </test>
 
 	<test>
-            <testName>VerifyItegratedShutdownService</testName>
+            <testName>VerifyIntegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <timeout>600</timeout>
             <testParams>
@@ -176,7 +180,7 @@
             <testName>RebootDifferentMemSettings</testName>
             <testParams>
                 <param>TC_COVERED=CORE-17</param>
-                <param>MemSize=6GB,3.5GB,4GB</param>
+                <param>MemSize=6GB,1GB,4GB</param>
             </testParams>
             <testScript>SetupScripts\CORE_RebootDiffMemory.ps1</testScript>
             <timeout>600</timeout>
@@ -208,7 +212,7 @@
 		<onError>Continue</onError>
             <timeout>600</timeout>
         </test>
-		
+
         <test>
             <testName>CDmount</testName>
             <testScript>Core_LIS_CD.sh</testScript>
@@ -237,7 +241,7 @@
 			<param>vCPU=4</param>
             	</testParams>
         </test>
-        
+
         <test>
             <testName>CheckNuma</testName>
             <setupScript>
@@ -246,10 +250,10 @@
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
+            <onError>Continue</onError>
             <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=CORE-22</param>
-                <param>vmName=VMName</param>
                 <param>enableDM=no</param>
                 <param>staticMem=2048MB</param>
                 <param>memWeight=0</param>
@@ -271,6 +275,7 @@
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
+            <onError>Continue</onError>
             <testParams>
                 <param>TC_COVERED=CORE-23</param>
                 <param>VCPU=8</param>
@@ -289,9 +294,68 @@
             <files>remote-scripts/ica/modules_check.sh</files>
             <testparams>
                 <param>TC_COVERED=CORE-24</param>
-                <param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hv_utils.ko hyperv-keyboard.ko hid-hyperv.ko)</param>
+                <param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
             </testparams>
+		    <onError>Continue</onError>
             <timeout>600</timeout>
+        </test>
+        
+        <test>
+           <testName>Disable_NUMA_By_Kernel</testName>
+           <setupScript>
+             <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+             <file>setupScripts\ChangeCPU.ps1</file>
+           </setupScript>
+           <testScript>setupScripts\NUMA_Off_Kernel.ps1</testScript>
+           <files>remote-scripts\ica\NUMA_off_kernel.sh</files>
+           <files>remote-scripts\ica\NUMA_check.sh</files>
+           <files>remote-scripts\ica\utils.sh</files>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <noReboot>False</noReboot>
+           <testparams>
+               <param>TC_COVERED=CORE-25</param>
+               <param>publicKey=id_rsa.pub</param>
+               <param>enableDM=no</param>
+               <param>startupMem=4096MB</param>
+               <param>memWeight=20</param>
+               <param>VCPU=4</param>
+               <param>NumaNodes=1</param>
+               <param>Sockets=1</param>
+               <param>MemSize=1024MB</param>
+           </testparams>
+       </test>
+
+        <test>
+		<testName>check_clocksource</testName>
+		<testScript>check_clocksource.sh</testScript>
+		<files>remote-scripts/ica/check_clocksource.sh</files>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+            		<param>TC_COVERED=CORE-26</param>
+		</testParams>
+        </test>
+
+	    <test>
+            <testName>TimeSync_PausedVM</testName>
+            <testScript>SetupScripts\INST_timesync_pausedVM.ps1</testScript>
+            <timeout>1000</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=CORE-27</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VerifyIntegratedTimeSyncService</testName>
+            <testScript>setupscripts\INST_LIS_TimeSyncServiceDisableEnable.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=CORE-29</param>
+                <param>MaxTimeDiff=5</param>
+            </testParams>
         </test>
     </testCases>
 

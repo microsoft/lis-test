@@ -98,6 +98,14 @@
         
         If the VM in the .xml file does not have <Role> defined, this script will treat it 
         as SUT1 by default.
+
+        In the <VMs> section of the .xml file , if there is a param which is defined as VM2NAME
+            <param>VM2NAME=something</param>
+        the code will create a unique name of "Vm.VM2NAME" and then look for
+        that unique name in the parameterized file.  If this unique name is present
+        in the parameterized file, then the value of the VMs testParam "VM2NAME"
+        will be updated.  After substitution, the updated test param would look like:
+            <param>VM2NAME=Version_Client</param>
         
 .parameter inputXml
     The input XML file.
@@ -111,7 +119,9 @@
     output XML file.
 
 .example
+    The param can be modified by File and Params
     .\IntegrateParams.ps1 -inputXml xml\myTests.xml -outputXml ~\localizedMyTests.xml -parameterFile ~\myParams.xml
+    .\IntegrateParams.ps1 -inputXml xml\myTests.xml -outputXml ~\localizedMyTests.xml -parameterFile "VM2NAME=Version_Client"
 #>
 
 
@@ -174,39 +184,60 @@ function UpdateParams( $children, [string] $label)
 #######################################################################
 function ReplaceParameterizedTestParams([String] $paramXmlFile, [System.Xml.XmlDocument] $xmlTests)
 {
+    $params = @{}
     if (! (test-path $paramXmlFile))
     {
-        Throw "Error: XML config file '$paramXmlFile' does not exist."
-    }
+        $params_string = $paramXmlFile.Split(";")
+        foreach ($p in $params_string)
+        {
+            $fields = $p.Split("=")
+            if ($fields.Length -ne 2)
+            {
+                Write-Host "Warn: Invalid parameter syntax: '${p}'.  Ignoring"
+                continue
+            }
 
-    $paramData = [xml] (Get-Content -Path $paramXmlFile)
-    if ($null -eq $paramData)
-    {
-        Throw "Error: Unable to parse the parameters .xml file"
+            $params.Add($fields[0].Trim(), $fields[1].Trim())
+            
+        }
     }
+    else
+    { 
+        $paramData = [xml] (Get-Content -Path $paramXmlFile)
+        if ($null -eq $paramData)
+        {
+            Throw "Error: Unable to parse the parameters .xml file"
+        }
 
     #
     # Put the Parameter data into a hash table
     #
-    $params = @{}
-    foreach ($p in $paramDAta.Parameters.param)
-    {
-        $fields = $p.Split("=")
-        if ($fields.Length -ne 2)
+        foreach ($p in $paramDAta.Parameters.param)
         {
-            Write-Host "Warn: Invalid parameter syntax: '${p}'.  Ignoring"
-            continue
+            $fields = $p.Split("=")
+            if ($fields.Length -ne 2)
+            {
+                Write-Host "Warn: Invalid parameter syntax: '${p}'.  Ignoring"
+                continue
+            }
+
+            $params.Add($fields[0].Trim(), $fields[1].Trim())
         }
-
-        $params.Add($fields[0].Trim(), $fields[1].Trim())
     }
-
     #
     # Walk through the global test parameters
     #
     if ($xmlTests.config.global.testParams)
     {
         SubstituteParams $xmlTests.config.global.testParams.childNodes "Global"
+    }
+
+    #
+    # Walk through the global test parameters
+    #
+    if ($xmlTests.config.VMs.vm.testParams)
+    {
+        SubstituteParams $xmlTests.config.VMs.vm.testParams.childNodes "Vm"
     }
 
     #
@@ -273,11 +304,11 @@ if (-not $outputXML)
     exit 1
 }
 
-if (! (test-path $parameterFile))
-{
-    "Error: The parameterFile '${parameterFile}' does not exist."
-    exit 1
-}
+#if (! (test-path $parameterFile))
+#{
+#    "Error: The parameterFile '${parameterFile}' does not exist."
+#    exit 1
+#}
 
 $xmlData = [xml] (Get-Content -Path $inputXml)
 if ($null -eq $xmlData)

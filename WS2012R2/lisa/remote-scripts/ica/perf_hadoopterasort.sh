@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -54,7 +54,7 @@
 #     9. Start yarn
 #    10. Generate content for terasort
 #    11. Run terasort
-#   
+#
 #    This script assumes the test machines which will be used to form
 #    the cluster have been provisioned properly.  Provisioning includes:
 #
@@ -66,7 +66,7 @@
 #
 #        The SSH keys are not password protected.
 #
-#        The SSH daemon and client are configured with strict mode disabled. 
+#        The SSH daemon and client are configured with strict mode disabled.
 #
 #    This script uses a constants.sh script to read in test parameters.
 #    A typical constants.sh will look similar to the following:
@@ -191,7 +191,8 @@ ConfigRhel()
             exit 1
         fi
     fi
-	
+    yum install -y cmake
+
     #
     # Figure out where Java is installed so we can configure a JAVA_HOME variable
     #
@@ -221,6 +222,9 @@ ConfigRhel()
     # Need to revisit this to find a better solution.
     #
     #hostname localhost
+    service iptables stop
+    iptables -F
+    iptables -X
 }
 
 
@@ -249,6 +253,7 @@ ConfigSles()
             exit 1
         fi
     fi
+    zypper --non-interactive install cmake
 
     #
     # Figure out where Java is installed so we can configure a JAVA_HOME variable
@@ -276,6 +281,8 @@ ConfigSles()
     # need the following workaround to allow hadoop to use localhost
     #
     #hostname localhost
+    iptables -F
+    iptables -X
 }
 
 
@@ -292,11 +299,10 @@ ConfigUbuntu()
     # Install Java
     #
     LogMsg "Check if Java is installed"
-
     javaInstalled=`which java`
     if [ ! $javaInstalled ]; then
         LogMsg "Installing Java"
-
+        apt-get update
         apt-get -y install default-jdk
         if [ $? -ne 0 ]; then
             LogMsg "Error: Unable to install java"
@@ -304,6 +310,7 @@ ConfigUbuntu()
             exit 1
         fi
     fi
+    apt-get install -y maven libssl-dev build-essential pkgconf cmake protobuf-compiler libprotobuf-dev openjdk-8-jdk bc
 
     #
     # Figure out where Java is installed so we can configure a JAVA_HOME variable
@@ -324,6 +331,9 @@ ConfigUbuntu()
         UpdateTestState $ICA_TESTFAILED
         exit 1
     fi
+    service ufw stop
+    iptables -F
+    iptables -X
 }
 
 
@@ -345,11 +355,11 @@ RunConfigOnSlaves()
     # Then chmod the files.  Finally, run the config script on each slave.
     #
 
-    for slave in $SLAVE_HOSTNAMES
+    for slave in ${SLAVE_HOSTNAMES[@]}
     do
         LogMsg "Info : Running config on slave '${slave}'"
 
-        scp -i ${sshKey} /root/${HADOOP_ARCHIVE} root@${slave}:
+        scp -i ${sshKey} -o StrictHostKeyChecking=no /root/${HADOOP_ARCHIVE} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy file ${HADOOP_ARCHIVE} to slave ${slave}"
             LogMsg "${msg}"
@@ -358,7 +368,7 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        scp -i ${sshKey} ${CONFIG_SCRIPT} root@${slave}:
+        scp -i ${sshKey} -o StrictHostKeyChecking=no ${CONFIG_SCRIPT} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy file ${CONFIG_SCRIPT} to slave ${slave}"
             LogMsg "${msg}"
@@ -376,10 +386,10 @@ RunConfigOnSlaves()
             exit 1
         fi
 
-        scp -i ${sshKey} ${CONSTANTS_FILE} root@${slave}:
+        scp -i ${sshKey} -o StrictHostKeyChecking=no ${CONSTANTS_FILE} root@${slave}:
         if [ $? -ne 0 ]; then
             msg="Error: Unable to copy constants.sh to slave ${slave}"
-            LogMsg "${msg}" 
+            LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
             exit 1
@@ -407,10 +417,11 @@ RunConfigOnSlaves()
 #    all cluster nodes by name.  Verify all nodes can ping
 #    each other by name.
 #
-#    
+#
 #######################################################################
 CheckProvisioning()
 {
+    echo "$ipv4 $HADOOP_MASTER_HOSTNAME" >> /etc/hosts
     #
     # Make sure all nodes can ping all other nodes by name
     #
@@ -438,8 +449,9 @@ CheckProvisioning()
 
     LogMsg "Info : Check Provisioning - ping each slave hostname"
 
-    for host in $SLAVE_HOSTNAMES
+    for host in ${SLAVE_HOSTNAMES[@]}
     do
+        echo "${!host} $host" >> /etc/hosts
         ping -c 1 $host
         if [ $? -ne 0 ]; then
             msg="Error: Unable to ping slave host '${host}'"
@@ -521,6 +533,11 @@ HADOOP_URL="http://apache.cs.utah.edu/hadoop/common/hadoop-${HADOOP_VERSION}/${H
 
 LogMsg "Info : TERAGEN_RECORDS = ${TERAGEN_RECORDS}"
 
+# Set hostnames
+ifconfig | grep $ipv4
+if [ $? -eq 0 ]; then
+    hostnamectl set-hostname ${HADOOP_MASTER_HOSTNAME}
+fi
 #
 # Check provisioning of the cluster nodes
 #
@@ -553,7 +570,7 @@ case $distro in
         UpdateTestState "TestAborted"
         UpdateSummary " Distro '${distro}' not supported"
         exit 1
-    ;; 
+    ;;
 esac
 
 #
@@ -584,7 +601,7 @@ if [ $? -ne 0 ]; then
     LogMsg "Error: Unable to extract hadoop from its archive"
     UpdateTestState $ICA_TESTFAILED
     exit 1
-fi    
+fi
 
 if [ ! -e "/root/hadoop-${HADOOP_VERSION}" ]; then
     LogMsg "Error: The expected hadoop directory '~/hadoop-${HADOOP_VERSION}' was not created when extracting hadoop"
@@ -660,6 +677,7 @@ fi
 LogMsg "Updating hadoop-env.sh"
 
 sed -i "s~export JAVA_HOME=\${JAVA_HOME}~export JAVA_HOME=${JAVA_HOME}~g" ./hadoop-env.sh
+echo "export HADOOP_OPTS=-Djava.net.preferIPv4Stack=true" >> ./hadoop-env.sh
 if [ $? -ne 0 ]; then
     LogMsg "Error: Unable to update hadoop-env.sh"
     UpdateTestState $ICA_TESTFAILED
@@ -673,7 +691,7 @@ LogMsg "Updating core-site.xml"
 
 sed -i "s~</configuration>~    <property>~g" ./core-site.xml
 echo "        <name>fs.default.name</name>" >> ./core-site.xml
-echo "        <value>hdfs://${HADOOP_MASTER_HOSTNAME}:9000</value>" >> ./core-site.xml
+echo "        <value>hdfs://${ipv4}:9000</value>" >> ./core-site.xml
 echo "    </property>" >> ./core-site.xml
 echo "</configuration>" >> ./core-site.xml
 
@@ -747,19 +765,19 @@ fi
 #
 #LogMsg "Creating node and data directories on the localhost"
 
-#mkdir -p /usr/local/hadoop_store/hdfs/namenode
-#if [ $? -ne 0 ]; then
+# mkdir -p /usr/local/hadoop_store/hdfs/namenode
+# if [ $? -ne 0 ]; then
 #    LogMsg "Error: Unable to create the namenode directory"
 #    UpdateTestState $ICA_TESTFAILED
 #    exit 1
-#fi
+# fi
 
-#mkdir -p /usr/local/hadoop_store/hdfs/datanode
-#if [ $? -ne 0 ]; then
+# mkdir -p /usr/local/hadoop_store/hdfs/datanode
+# if [ $? -ne 0 ]; then
 #    LogMsg "Error: Unable to create the datanode directory"
 #    UpdateTestState $ICA_TESTFAILED
 #    exit 1
-#fi
+# fi
 
 #
 # Update the hdfs-site.xml
@@ -793,7 +811,7 @@ fi
 if [ "${SLAVE_HOSTNAMES:-undefined}" != "undefined" ]; then
     rm -f ./slaves
     touch ./slaves
-    for host in $SLAVE_HOSTNAMES
+    for host in ${SLAVE_HOSTNAMES[@]}
     do
         echo $host >> ./slaves
     done
@@ -835,6 +853,9 @@ fi
 #
 
 if [ "${hname}" = "${HADOOP_MASTER_HOSTNAME}" ]; then
+    # update the knows_hosts with a simple ls command
+    ssh-keyscan -H ${HADOOP_MASTER_HOSTNAME} >> ~/.ssh/known_hosts
+    ssh-keyscan -H 0.0.0.0 >> ~/.ssh/known_hosts
     #
     # Make sure we have the changes added to .bashrc
     #
@@ -884,7 +905,7 @@ if [ "${hname}" = "${HADOOP_MASTER_HOSTNAME}" ]; then
     fi
 
     LogMsg "Info : Running terasort to sort test data"
-	#Number of Reduce tasks = 7 ( 1.75 * num-of-worker-nodes * num-of-cores-per-node )
+    #Number of Reduce tasks = 7 ( 1.75 * num-of-worker-nodes * num-of-cores-per-node )
     /usr/local/hadoop/bin/hadoop jar /usr/local/hadoop/share/hadoop/mapreduce/hadoop-*examples*.jar terasort -Dmapred.reduce.tasks=7 /data/genout /data/sortout 2&> ~/terasort.log
     if [ $? -ne 0 ]; then
         msg="Error: Unable to sort the test data"
@@ -924,4 +945,3 @@ fi
 UpdateTestState $ICA_TESTCOMPLETED
 
 exit 0
-

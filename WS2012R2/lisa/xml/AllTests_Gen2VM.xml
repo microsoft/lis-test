@@ -23,7 +23,14 @@
             <suiteTest>Multi_Cpu_Test</suiteTest>
             <suiteTest>StressReloadModules</suiteTest>
             <suiteTest>CDmount</suiteTest>
+            <suiteTest>VCPU_verify_online</suiteTest>
+            <suiteTest>CheckNuma</suiteTest>
+            <suiteTest>CheckNuma_Maximum</suiteTest>
+            <suiteTest>initrd_modules_check</suiteTest>
+            <suiteTest>check_clocksource</suiteTest>
+            <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
 
+            <suiteTest>SQM_Basic</suiteTest>
             <suiteTest>KVP_Basic</suiteTest>
             <suiteTest>KVP_Add_Key_Values</suiteTest>
             <suiteTest>KVP_Modify_Key_Values</suiteTest>
@@ -31,6 +38,7 @@
             <suiteTest>KVP_Push_Key_Values</suiteTest>
             <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
             <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+            <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
 
             <suiteTest>STOR_VSS_BackupRestore</suiteTest>
             <suiteTest>STOR_VSS_BackupRestore_ext3_vhdx</suiteTest>
@@ -52,6 +60,7 @@
             <suiteTest>VHDxResizeGrowFilesystem512</suiteTest>
             <suiteTest>VHDxResizeGrowFilesystem4096</suiteTest>
             <suiteTest>VHDxResizeOver2TB</suiteTest>
+            <suiteTest>VHDxResizeLiveMigration</suiteTest>
 
             <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
             <suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest>
@@ -68,7 +77,7 @@
             <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
             <!-- The test case below requires a 64bit virtual machine -->
             <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
-
+            
             <suiteTest>NMI_Send_Interrupt</suiteTest>
             <suiteTest>NMI_Verify_Interrupt</suiteTest>
             <suiteTest>NMI_different_vmStates</suiteTest>
@@ -77,12 +86,13 @@
             <suiteTest>VMBus_protocol_version</suiteTest>
             <suiteTest>VMBus_verify_interrupts</suiteTest>
             <suiteTest>VMBus_PanicNotifier</suiteTest>
+            <suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
 
             <!-- The following tests require a Generation 2 VM -->
             <suiteTest>HotAddMultiNIC</suiteTest>
             <suiteTest>BootNoNicHotAddNic</suiteTest>
+            <suiteTest>HotAddRemoveNic</suiteTest>
 
-            <suiteTest>ConfigureNetwork</suiteTest>
             <suiteTest>External</suiteTest>
             <suiteTest>InternalNetwork</suiteTest>
             <suiteTest>GuestOnlyNetwork</suiteTest>
@@ -96,6 +106,9 @@
             <suiteTest>VlanTrunking</suiteTest>
             <suiteTest>JumboFrame</suiteTest>
             <suiteTest>NetworkMode</suiteTest>
+            <suiteTest>CopyFileDifferentMTU</suiteTest>
+            <suiteTest>Network_Hang_Vxlan</suiteTest>
+            <suiteTest>CopyFileScp</suiteTest>
 
             <suiteTest>IPInjection</suiteTest>
 
@@ -134,11 +147,14 @@
             <suiteTest>Crash_single_core</suiteTest>
             <suiteTest>Crash_SMP</suiteTest>
             <suiteTest>Crash_NMI</suiteTest>
+            <!-- Only for REDHAT. Test with crashkernel=auto -->
+            <suiteTest>Crash_Auto_size</suiteTest>
 
             <suiteTest>FC_disks_detection</suiteTest>
             <suiteTest>FC_stressTest</suiteTest>
             <suiteTest>FC_SaveRestore_VM</suiteTest>
             <suiteTest>FC_disks_multipath_detection</suiteTest>
+            <suiteTest>FC_WWN_basic</suiteTest>
         </suiteTests>
     </suite>
     </testSuites>
@@ -302,7 +318,129 @@
         <noReboot>False</noReboot>
     </test>
 
+    <test>
+        <testName>VCPU_verify_online</testName>
+        <testScript>vcpu_verify_online.sh</testScript>
+        <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+        <files>remote-scripts/ica/vcpu_verify_online.sh</files>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+        <testParams>
+            <param>TC_COVERED=CORE-21</param>
+            <param>vCPU=4</param>
+        </testParams>
+    </test>
+
+    <test>
+        <testName>CheckNuma</testName>
+        <setupScript>
+            <file>SetupScripts\DM_DISABLE.ps1</file>
+            <file>setupScripts\ChangeCPU.ps1</file>
+        </setupScript>
+        <testScript>setupScripts\NUMA.ps1</testScript>
+        <files>remote-scripts\ica\utils.sh</files>
+        <onError>Continue</onError>
+        <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
+        <testParams>
+            <param>TC_COVERED=CORE-22</param>
+            <param>enableDM=no</param>
+            <param>staticMem=2048MB</param>
+            <param>memWeight=0</param>
+            <param>VCPU=4</param>
+            <param>NumaNodes=1</param>
+            <param>Sockets=1</param>
+            <param>staticMem=2048MB</param>
+            <param>memWeight=0</param>
+            <param>snapshotName=ICABase</param>
+        </testParams>
+        <timeout>600</timeout>
+    </test>
+
+    <test>
+        <testName>CheckNuma_Maximum</testName>
+        <setupScript>
+            <file>setupScripts\DM_DISABLE.ps1</file>
+            <file>setupScripts\ChangeCPU.ps1</file>
+        </setupScript>
+        <testScript>setupScripts\NUMA.ps1</testScript>
+        <files>remote-scripts\ica\utils.sh</files>
+        <onError>Continue</onError>
+        <testParams>
+            <param>TC_COVERED=CORE-23</param>
+            <param>VCPU=8</param>
+            <param>NumaNodes=4</param>
+            <param>Sockets=2</param>
+            <param>MemSize=1024MB</param>
+            <param>staticMem=2048MB</param>
+            <param>memWeight=0</param>
+        </testParams>
+        <timeout>600</timeout>
+    </test>
+
+    <test>
+        <testName>initrd_modules_check</testName>
+        <testScript>modules_check.sh</testScript>
+        <files>remote-scripts/ica/modules_check.sh</files>
+        <testparams>
+            <param>TC_COVERED=CORE-24</param>
+            <param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
+        </testparams>
+        <onError>Continue</onError>
+        <timeout>600</timeout>
+    </test>
+
+    <test>
+           <testName>Disable_NUMA_By_Kernel</testName>
+           <setupScript>
+             <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+             <file>setupScripts\ChangeCPU.ps1</file>
+           </setupScript>
+           <testScript>setupScripts\NUMA_Off_Kernel.ps1</testScript>
+           <files>remote-scripts\ica\NUMA_off_kernel.sh</files>
+           <files>remote-scripts\ica\NUMA_check.sh</files>
+           <files>remote-scripts\ica\utils.sh</files>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <noReboot>False</noReboot>
+           <testparams>
+               <param>TC_COVERED=CORE-25</param>
+               <param>publicKey=id_rsa.pub</param>
+               <param>enableDM=no</param>
+               <param>startupMem=4096MB</param>
+               <param>memWeight=20</param>
+               <param>VCPU=4</param>
+               <param>NumaNodes=1</param>
+               <param>Sockets=1</param>
+               <param>MemSize=1024MB</param>
+           </testparams>
+    </test>
+
+    <test>
+        <testName>check_clocksource</testName>
+        <testScript>check_clocksource.sh</testScript>
+        <files>remote-scripts/ica/check_clocksource.sh</files>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+        <testParams>
+                    <param>TC_COVERED=CORE-26</param>
+        </testParams>
+    </test>
+
+
     <!-- KVP_Tests -->
+
+    <test>
+        <testName>SQM_Basic</testName>
+        <testScript>SetupScripts\SQM_Basic.ps1</testScript>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+        <testparams>
+            <param>TC_COVERED=SQM-01</param>
+        </testparams>
+    </test>
 
     <test>
         <testName>KVP_Basic</testName>
@@ -400,6 +538,21 @@
             <param>Key=AAA</param>
             <param>Value=000</param>
             <param>Pool=0</param>
+        </testparams>
+    </test>
+
+    <test>
+        <testName>KVP_VerifyHostInjectedItems</testName>
+        <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
+        <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,
+            tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+        <timeout>600</timeout>
+        <onError>Abort</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+            <param>TC_COVERED=KVP-10</param>
+            <param>Pool=3</param>
+            <param>Items=11</param>
         </testparams>
     </test>
 
@@ -503,23 +656,25 @@
         </testParams>
         <timeout>600</timeout>
     </test>
-        
-     <!-- NET_Tests -->
 
     <test>
-        <testName>ConfigureNetwork</testName>
-        <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+        <testName>Crash_Auto_size</testName>
+        <setupScript>
+            <file>setupscripts\ChangeCPU.ps1</file>
+            <file>setupScripts\SetVMMemory.ps1</file>
+        </setupScript>
+        <testScript>setupScripts\kdump.ps1</testScript>
         <testParams>
-        <param>NIC=NetworkAdapter,External,External,001600112200</param>
-            <param>TC_COVERED=NET-01</param>
-            <param>REMOTE_SERVER=8.8.8.8</param>
+            <!-- Minimum RAM=2GB -->
+            <param>crashkernel=auto</param>
+            <param>TC_COVERED=KDUMP-04</param>
+            <param>VCPU=2</param>
+            <param>VMMemory=2GB</param>
         </testParams>
-        <testScript>NET_CONFIGURE_NETWORK.sh</testScript>
-        <files>remote-scripts/ica/NET_CONFIGURE_NETWORK.sh,remote-scripts/ica/utils.sh</files>
-        <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-        <timeout>800</timeout>
-        <noReboot>True</noReboot>
+        <timeout>600</timeout>
     </test>
+        
+     <!-- NET_Tests -->
 
     <test>
         <testName>InternalNetwork</testName>
@@ -727,6 +882,58 @@
     </test>
 
     <test>
+        <testName>CopyFileDifferentMTU</testName>
+        <setupScript>
+            <file>setupscripts\RevertSnapshot.ps1</file>
+            <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            <file>setupscripts\StartVM.ps1</file>
+        </setupScript>
+        <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+        <testParams>
+            <param>NIC=NetworkAdapter,External,External,001600112200</param>
+            <param>TC_COVERED=NET-13</param>
+            <param>MAC=001600112233</param>
+            <param>ZERO_FILE=yes</param>
+            <param>FILE_SIZE_GB=1</param>
+            <param>REMOTE_USER=root</param>
+        </testParams>
+        <testScript>NET_Copy_Different_MTU.sh</testScript>
+        <files>remote-scripts/ica/NET_Copy_Different_MTU.sh,remote-scripts/ica/utils.sh</files>
+        <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+        <timeout>1800</timeout>
+    </test>
+
+    <test>
+        <testName>CopyFileScp</testName>
+        <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+        <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
+        <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
+        <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+        <timeout>3000</timeout>
+        <testParams>
+            <param>TC_COVERED=NET-19</param>
+            <param>SCSI=1,0,Dynamic,512,15GB</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=20GB</param>
+        </testParams>
+    </test>
+
+    <test>
+        <testName>Network_Hang_Vxlan</testName>
+        <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+        <testParams>
+            <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+            <param>STATIC_IP1=10.10.10.10</param>
+            <param>STATIC_IP2=10.10.10.20</param>
+            <param>NETMASK=255.255.255.0</param>
+        </testParams>
+        <testScript>setupscripts\NET_Hang_Vxlan.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh</files>
+        <timeout>800</timeout>
+    </test>
+
+    <test>
         <testName>VlanTrunking</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
@@ -814,6 +1021,21 @@
         <noReboot>False</noReboot>
         <testparams>
             <param>TC_COVERED=NET-??</param>
+            <param>Switch_Name=External</param>
+        </testparams>
+    </test>
+
+    <test>
+        <testName>HotAddRemoveNIC</testName>
+        <setupScript>
+            <file>setupscripts\RevertSnapshot.ps1</file>
+        </setupScript>
+        <testScript>SetupScripts\NET_HotAddRemoveNIC.ps1</testScript>
+        <files>remote-scripts\ica\NET_VerifyHotAddMultiNIC.sh,remote-scripts\ica\utils.sh</files>
+        <timeout>1800</timeout>
+        <onError>Continue</onError>
+        <testparams>
+            <param>TC_COVERED=NET-17</param>
             <param>Switch_Name=External</param>
         </testparams>
     </test>
@@ -997,13 +1219,16 @@
             <testScript>SetupScripts\STOR_VHDXResize_BasicLM.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
                 <param>SectorSize=512</param>
+                <param>SCSI=0,1,Fixed,512</param>
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-06</param>
             </testparams>
         </test>
@@ -1297,6 +1522,19 @@
     </test>
 
     <test>
+        <testName>VMBus_PanicNotifier_onKdump</testName>
+        <testScript>SetupScripts\VMBus_PanicNotifier_onKdump.ps1</testScript>
+        <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
+        <timeout>800</timeout>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+        <testParams>
+            <param>TC_COVERED=VMBus-04</param>
+            <param>VMMemory=2GB</param>
+        </testParams>
+        </test>
+
+    <test>
         <testName>PreVSS_TakeSnapshot</testName>
         <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
         <timeout>600</timeout>
@@ -1573,7 +1811,7 @@
             <param>maxMem=70%</param>
             <param>startupMem=70%</param>
             <param>memWeight=0</param>
-             <param>staticMem=1024MB</param>
+            <param>staticMem=1024MB</param>
         </testParams>
         <testScript>setupScripts\DM_HotAddRemove.ps1</testScript>
         <cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
@@ -1817,10 +2055,10 @@
         <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
         <timeout>900</timeout>
          <testParams>
-                <param>TC_COVERED=FCopy-04</param>
-                    <param>Type=Fixed</param>
-                    <param>SectorSize=512</param>
-                    <param>DefaultSize=15GB</param>
+            <param>TC_COVERED=FCopy-04</param>
+            <param>Type=Fixed</param>
+            <param>SectorSize=512</param>
+            <param>DefaultSize=15GB</param>
             <param>SCSI=1,0,Dynamic,512,15GB</param>
         </testParams>
         <noReboot>False</noReboot>
@@ -1894,7 +2132,7 @@
         <testParams>
             <param>TC_COVERED=FC-07</param>
             <param>vSANName=vFC</param>
-            </testParams>
+        </testParams>
     </test>
 
     <test>
@@ -1906,6 +2144,19 @@
         <testParams>
             <param>TC_COVERED=FC-08</param>
             <param>vSANName=vFC</param>
+        </testParams>
+    </test>
+
+    <test>
+        <testName>FC_WWN_basic</testName>
+        <testScript>setupScripts\FC_WWN.ps1</testScript>
+        <files>remote-scripts\ica\FC_WWN.sh,remote-scripts/ica/utils.sh</files>
+        <setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+        <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+        <timeout>800</timeout>
+        <testParams>
+            <param>TC_COVERED=FC-09</param>
+            <param>vSANName=FC_NAME</param>
         </testParams>
     </test>
 </testCases>

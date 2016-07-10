@@ -73,9 +73,9 @@ LinuxRelease()
 #######################################################################
 Rhel()
 {
-    LogMsg "Waiting 50 seconds for kdump to become active."
-    echo "Waiting 50 seconds for kdump to become active." >> summary.log
-    sleep 50
+    LogMsg "Waiting 70 seconds for kdump to become active."
+    echo "Waiting 70 seconds for kdump to become active." >> summary.log
+    sleep 70
 
     systemctl status kdump.service | grep -q "active"
     if  [ $? -ne 0 ]; then

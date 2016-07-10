@@ -299,7 +299,6 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
         }
 
         $drive = Get-VMScsiController -VMName $vmName -ControllerNumber $ControllerID -ComputerName $server | Get-VMHardDiskDrive -ControllerLocation $Lun
-
     }
     else
     {
@@ -325,58 +324,67 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
     {
         Remove-VMDvdDrive $dvd
     }
+    #Add an exist vhd
+    Add-VMHardDiskDrive -VMName $vmName -ControllerType ${controllerType} -ControllerNumber $controllerID -DiskNumber $passthrough_number -Passthru
+    if ( $? )
+        {
+            write-output "Attached existed  PassThrough disk."
+        }
+        else
+        {
 
-    # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
-    $hostInfo = Get-VMHost -ComputerName $server
-    if (-not $hostInfo)
-    {
-        "ERROR: Unable to collect Hyper-V settings for ${server}"
-        return $false
-    }
+            # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
+            $hostInfo = Get-VMHost -ComputerName $server
+            if (-not $hostInfo)
+            {
+                "ERROR: Unable to collect Hyper-V settings for ${server}"
+                return $false
+            }
 
-    $defaultVhdPath = $hostInfo.VirtualHardDiskPath
-    if (-not $defaultVhdPath.EndsWith("\"))
-    {
-        $defaultVhdPath += "\"
-    }
+            $defaultVhdPath = $hostInfo.VirtualHardDiskPath
+            if (-not $defaultVhdPath.EndsWith("\"))
+            {
+                $defaultVhdPath += "\"
+            }
 
-    $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-pass"  + ".vhd"
+            $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-pass"  + ".vhd"
 
-    if(Test-Path $vhdName)
-    {
-        Dismount-VHD -Path $vhdName -ErrorAction Ignore
-        Remove-Item $vhdName
-    }
-    $newVhd = $null
+            if(Test-Path $vhdName)
+            {
+                Dismount-VHD -Path $vhdName -ErrorAction Ignore
+                Remove-Item $vhdName
+            }
+            $newVhd = $null
 
-    $newVhd = New-VHD -Path $vhdName -size 1GB -ComputerName $server -Fixed
-    if ($newVhd -eq $null)
-    {
-        "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
-        return $false
-    }
+            $newVhd = New-VHD -Path $vhdName -size 1GB -ComputerName $server -Fixed
+            if ($newVhd -eq $null)
+            {
+                "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
+                return $false
+            }
 
-    $newVhd = $newVhd | Mount-VHD -Passthru
-    $phys_disk = $newVhd | Initialize-Disk -PartitionStyle MBR -PassThru
-    $phys_disk | Set-Disk -IsOffline $true
+            $newVhd = $newVhd | Mount-VHD -Passthru
+            $phys_disk = $newVhd | Initialize-Disk -PartitionStyle MBR -PassThru
+            $phys_disk | Set-Disk -IsOffline $true
 
-    $ERROR.Clear()
-    $phys_disk | Add-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
-    if ($ERROR.Count -gt 0)
-    {
-        "ERROR: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
-        $ERROR[0].Exception
-        return $false
-    }
-    else
-    {
-        $retVal=$true
-    }
+            $ERROR.Clear()
+            $phys_disk | Add-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
+            if ($ERROR.Count -gt 0)
+            {
+                "ERROR: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
+                $ERROR[0].Exception
+                return $false
+            }
+            else
+            {
+                $retVal=$true
+            }
 
-     "INFO: Successfully attached passthrough drive"
-    return $retVal
+             "INFO: Successfully attached passthrough drive"
+            return $retVal
+        }
+    
 }
-
 
 ############################################################################
 #
@@ -612,6 +620,8 @@ foreach ($p in $params)
     $controllerID = $diskArgs[0].Trim()
     $lun = $diskArgs[1].Trim()
     $vhdType = $diskArgs[2].Trim()
+    $passthrough_number = $diskArgs[3].Trim()
+
     $VHDSize = $global:MinDiskSize
     if ($diskArgs.Length -eq 4)
     {

@@ -283,7 +283,7 @@ GetDistro
 case "$DISTRO" in
 debian*|ubuntu*)
     LogMsg "Updating apt repositories"
-    apt-get update
+    apt-get update & wait
 
     LogMsg "Installing sar on Ubuntu"
     apt-get install sysstat -y
@@ -395,6 +395,11 @@ redhat_7)
     fi
     ;;
 suse_12)
+	#
+	# Install gcc which is required to build iperf3
+	#
+	zypper --non-interactive install gcc
+
     LogMsg "Check iptables status on RHEL7"
     service SuSEfirewall2 status
     if [ $? -ne 3 ]; then
@@ -421,11 +426,6 @@ suse_12)
     fi
     ;;
 esac
-
-#
-# Install gcc which is required to build iperf3
-#
-zypper --non-interactive install gcc
 
 #
 # Build iperf

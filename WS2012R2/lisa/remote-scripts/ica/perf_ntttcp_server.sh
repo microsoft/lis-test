@@ -252,6 +252,7 @@ redhat_5|redhat_6)
     service iptables status
     if [ $? -ne 3 ]; then
         LogMsg "Disabling firewall on Redhat"
+        iptables -X
         iptables -F
         if [ $? -ne 0 ]; then
             msg="Error: Failed to flush iptables rules. Continuing"

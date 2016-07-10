@@ -41,7 +41,7 @@
 #       NETMASK
 #       GATEWAY
 #
-#   Parameter explanation:
+#   Parameters explanation:
 #   STATIC_IP2 is the address of the second VM.
 #   The script assumes that the SSH_PRIVATE_KEY is located in $HOME/.ssh/$SSH_PRIVATE_KEY
 #   TC_COVERED is the test id from LIS testing
@@ -103,7 +103,6 @@ case $? in
 esac
 
 # Parameters to check in constants file
-
 if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="ERROR: The test parameter STATIC_IP2 is not defined in ${LIS_CONSTANTS_FILE}"
     LogMsg "$msg"
@@ -160,7 +159,7 @@ if [ $? -ne 0 ]; then
                 exit 10
             fi
             ;;
-        ubuntu*)
+        ubuntu*|debian*)
             apt-get install expect -y
             if [ $? -ne 0 ]; then
                 msg="ERROR: Failed to install expect"
@@ -170,7 +169,7 @@ if [ $? -ne 0 ]; then
                 exit 10
             fi
             ;;
-        redhat*)
+        redhat*|centos*)
             yum install expect -y
             if [ $? -ne 0 ]; then
                 msg="ERROR: Failed to install expect"
@@ -189,7 +188,6 @@ if [ $? -ne 0 ]; then
             ;;
     esac
 fi
-
 
 IFS=',' read -a networkType <<< "$NIC"
 
@@ -266,7 +264,6 @@ else
     fi
 fi
 
-
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
 
@@ -288,7 +285,6 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
     SetTestStateAborted
     exit 10
 fi
-
 
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
@@ -601,7 +597,6 @@ __iterator=0
 
 # If SSH_PRIVATE_KEY was specified, ssh into the STATIC_IP2 and set the MTU of all interfaces to $__max_mtu
 # If not, assume that it was already set.
-
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
     LogMsg "Setting all interfaces on $STATIC_IP2 mtu to $__max_mtu"
     ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "

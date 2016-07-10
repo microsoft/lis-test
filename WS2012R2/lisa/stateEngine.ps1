@@ -2904,7 +2904,7 @@ function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData)
     {
         $msg = "Error: $vmName PowerShell test script does not exist: $testScript"
         LogMsg 0 $msg
-        $msg | out-file $logFilename
+        $msg | out-file -encoding ASCII -append -filePath $logFilename
 
         UpdateState $vm $PS1TestCompleted
     }
@@ -2917,7 +2917,7 @@ function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $params += "scriptMode=TestCase;"
         $params += "ipv4=$($vm.ipv4);sshKey=$($vm.sshKey);"
         $msg = "Creating Log File for : $testScript"
-        $msg | out-file $logFilename
+        $msg | out-file -encoding ASCII -append -filePath $logFilename
 
         #
         # Start the PowerShell test case script
@@ -3128,12 +3128,19 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
             if ($error.Count -gt 0)
             {
                 "Error: ${currentTest} script encountered an error"
-                $error[0].Exception.Message >> $logfilename
+                $error[0].Exception.Message | out-file -encoding ASCII -append -filePath $logFilename
             }
 
             foreach ($line in $jobResults)
             {
-                $line >> $logFilename
+                if ($line -ne $null)
+                {
+                    $line | out-file -encoding ASCII -append -filePath $logFilename
+                }
+                else
+                {
+                    $line >> $logFilename
+                }
             }
 
             #

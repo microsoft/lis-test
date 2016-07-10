@@ -54,6 +54,8 @@
                 <suiteTest>VlanTagging</suiteTest>
                 <suiteTest>VlanTrunking</suiteTest>
                 <suiteTest>Network_Hang_Vxlan</suiteTest>
+                <suiteTest>CopyFileScp</suiteTest>
+                <suiteTest>CheckKeywithEthtool</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
@@ -382,6 +384,38 @@
             </testParams>
             <testScript>setupscripts\NET_Hang_Vxlan.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>CopyFileScp</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
+            <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>3000</timeout>
+            <testParams>
+                <param>TC_COVERED=NET-19</param>
+                <param>SCSI=1,0,Dynamic,512,15GB</param>
+                    <param>Type=Fixed</param>
+                    <param>SectorSize=512</param>
+                    <param>DefaultSize=20GB</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>CheckKeywithEthtool</testName>
+             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,None,None,001600112200</param>
+                <param>TC_COVERED=NET-20</param>
+            </testParams>
+            <testScript>NET_ETHTOOLS.sh</testScript>
+            <files>remote-scripts/ica/NET_ETHTOOLS.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
 

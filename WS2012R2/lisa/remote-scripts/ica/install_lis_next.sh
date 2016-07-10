@@ -278,6 +278,8 @@ redhat_7|centos_7)
 			echo "Error: Unable to start hv-fcopy-daemon." >> ~/summary.log
 			UpdateTestState $ICA_TESTFAILED
 		fi
+	# fcopy daemon can be disabled by default in some configurations
+	systemctl enable hypervfcopyd.service
 ;;
 
 redhat_6|centos_6)
@@ -369,7 +371,10 @@ esac
 echo "Info: Successfully compiled and started the lis-next tree LIS daemons." >> ~/summary.log
 
 # work-around to satisfy requirements
-yum install numactl -y
+numactl -s
+if [ $? -ne 0 ]; then
+	yum -y install numactl
+fi
 
 #
 # If we got here, everything worked as expected.
