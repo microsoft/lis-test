@@ -39,9 +39,13 @@
                 <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
                 <!-- The test case below requires a 64bit virtual machine -->
                 <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
+                <suiteTest>VHDx_SCSI_Dynamic_Local_Copy_File</suiteTest>
+                <suiteTest>VHDx_SCSI_Dynamic_Wget_File</suiteTest>
+                <suiteTest>VHDx_SCSI_Dynamic_NFS_File</suiteTest>
                 <!-- The test case below requires a SSD disk -->
                 <suiteTest>TrimSupport</suiteTest>
                 <suiteTest>VHDx_Mount_NFS</suiteTest>
+
             </suiteTests>
         </suite>
     </testSuites>
@@ -167,8 +171,9 @@
                 <param>Type2=Dynamic</param>
                 <param>SectorSize2=512</param>
                 <param>DefaultSize2=2GB</param>
-            </testparams>  
-            <timeout>800</timeout>  
+            </testparams>
+            <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -390,6 +395,68 @@
        <onError>Continue</onError>
        <noReboot>False</noReboot>
      </test>
+        <test>
+         <testName>VHDx_SCSI_Dynamic_Local_Copy_File</testName>
+         <testScript>STOR_Large_Disk_CopyFile.sh</testScript>
+         <files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
+         <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+         <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+         <timeout>18000</timeout>
+         <testparams>
+             <param>TC_COVERED=STOR-100</param>
+             <param>Type=Dynamic</param>
+             <param>SectorSize=512</param>
+             <param>DefaultSize=6GB</param>
+             <param>fileSystems=(ext4)</param>
+             <param>ControllerType=SCSI</param>
+             <param>TestLocalCopy=True</param>
+         </testparams>
+         <onError>Continue</onError>
+         <noReboot>False</noReboot>
+      </test>
+
+      <test>
+       <testName>VHDx_SCSI_Dynamic_Wget_File</testName>
+       <testScript>STOR_Large_Disk_CopyFile.sh</testScript>
+       <files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
+       <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+       <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+       <timeout>18000</timeout>
+       <testparams>
+           <param>TC_COVERED=STOR-101</param>
+           <param>Type=Dynamic</param>
+           <param>SectorSize=512</param>
+           <param>DefaultSize=6GB</param>
+           <param>fileSystems=(ext4)</param>
+           <param>ControllerType=SCSI</param>
+           <param>TestWget=True</param>
+           <param>Wget_Path=http://fileshare/test.iso</param>
+       </testparams>
+       <onError>Continue</onError>
+       <noReboot>False</noReboot>
+    </test>
+
+    <test>
+     <testName>VHDx_SCSI_Dynamic_NFS_File</testName>
+     <testScript>STOR_Large_Disk_CopyFile.sh</testScript>
+     <files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
+     <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+     <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+     <timeout>18000</timeout>
+     <testparams>
+         <param>TC_COVERED=STOR-102</param>
+         <param>Type=Dynamic</param>
+         <param>SectorSize=512</param>
+         <param>DefaultSize=6GB</param>
+         <param>fileSystems=(ext4)</param>
+         <param>ControllerType=SCSI</param>
+         <param>TestNFSCopy=True</param>
+         <param>NFS_Path=10.00.0.0:/share</param>
+     </testparams>
+     <onError>Continue</onError>
+     <noReboot>False</noReboot>
+    </test>
+>>>>>>> 2b3f7b7... STOR_VHDX: Add three cases about copying file locally, by wget and nfs for scsi
 
     </testCases>
 
