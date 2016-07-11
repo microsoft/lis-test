@@ -16,7 +16,7 @@
 
     <testSuites>
         <suite>
-            <suiteName>VHDx</suiteName>
+            <suiteName>STOR_VHDx</suiteName>
             <suiteTests>
                 <suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>
                 <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
@@ -42,8 +42,9 @@
                 <suiteTest>VHDx_SCSI_Dynamic_Local_Copy_File</suiteTest>
                 <suiteTest>VHDx_SCSI_Dynamic_Wget_File</suiteTest>
                 <suiteTest>VHDx_SCSI_Dynamic_NFS_File</suiteTest>
-                <!-- The test case below requires a SSD disk -->
-                <suiteTest>TrimSupport</suiteTest>
+                <!-- The TrimSupport test case requires a SSD disk
+				Test case is currently being revised
+                <suiteTest>TrimSupport</suiteTest>-->
                 <suiteTest>VHDx_Mount_NFS</suiteTest>
 
             </suiteTests>
@@ -56,7 +57,7 @@
             <testScript>SetupScripts\STOR_Trim_Check.ps1</testScript>
             <files>remote-scripts/ica/STOR_trim.sh</files>
             <setupScript>SetupScripts\Add-VHDXHardDiskWithLocation.ps1</setupScript>
-            <timeout>18000</timeout>
+            <timeout>3600</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic,512,10GB,H:\Virtual Hard Disks\ssd\</param>
                 <param>TC_COVERED=TRIM-01</param>
@@ -126,7 +127,7 @@
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>3600</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic,512</param>
                 <param>SCSI=0,1,Dynamic,4096</param>
@@ -146,7 +147,7 @@
             </setupscript>
             <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
-            <timeout>18000</timeout>
+            <timeout>3600</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic,512</param>
                 <param>SCSI=0,1,Dynamic,4096</param>
@@ -196,7 +197,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>3600</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic,512</param>
                 <param>SCSI=0,1,Dynamic,512</param>
@@ -226,7 +227,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>3600</timeout>
             <testparams>
                 <param>SCSI=0,0,Fixed,512</param>
                 <param>SCSI=0,1,Fixed,512</param>
@@ -255,7 +256,7 @@
             <testScript>setupscripts\DiffDiskGrowthTestCase.ps1</testScript>
             <setupScript>setupscripts\DiffDiskGrowthSetup.ps1</setupScript>
             <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>3600</timeout>
             <testparams>
                 <param>SCSI=0,0,Diff</param>
                 <param>TC_COVERED=STOR-27</param>
@@ -285,7 +286,7 @@
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
             <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
             <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
-            <timeout>18000</timeout>
+            <timeout>3600</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic,512</param>
                 <param>SCSI=0,1,Dynamic,512</param>
@@ -313,7 +314,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>3600</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic,4096</param>
                 <param>SCSI=0,1,Dynamic,4096</param>
@@ -322,6 +323,7 @@
             </testparams>
             <onError>Continue</onError>
         </test>
+		
         <test>
             <testName>VHDx_4k_IDE_0_1_Fixed</testName>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
@@ -335,6 +337,7 @@
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
         </test>
+		
         <test>
             <testName>VHDx_4k_MultiDiskSCSI_Fixed</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
@@ -350,6 +353,7 @@
             </testparams>
             <onError>Continue</onError>
         </test>
+		
         <test>
             <testName>VHDx_4k_HotADD_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
@@ -365,6 +369,7 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
+		
         <test>
             <testName>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_hot_remove.sh</testScript>
@@ -380,11 +385,12 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
+		
      <test>
        <testName>VHDx_Mount_NFS</testName>
        <testScript>STOR_NFS_Client.sh</testScript>
        <files>remote-scripts/ica/STOR_NFS_Client.sh</files>
-       <timeout>18000</timeout>
+       <timeout>3600</timeout>
        <testparams>
           <param>TC_COVERED=STOR-102</param>
           <!-- dd fileSystems_size=5GB -->
@@ -395,13 +401,14 @@
        <onError>Continue</onError>
        <noReboot>False</noReboot>
      </test>
+	 
         <test>
          <testName>VHDx_SCSI_Dynamic_Local_Copy_File</testName>
          <testScript>STOR_Large_Disk_CopyFile.sh</testScript>
          <files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
          <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
          <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-         <timeout>18000</timeout>
+         <timeout>3600</timeout>
          <testparams>
              <param>TC_COVERED=STOR-100</param>
              <param>Type=Dynamic</param>
@@ -421,7 +428,7 @@
        <files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
        <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
        <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-       <timeout>18000</timeout>
+       <timeout>3600</timeout>
        <testparams>
            <param>TC_COVERED=STOR-101</param>
            <param>Type=Dynamic</param>
@@ -442,7 +449,7 @@
      <files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
      <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
      <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-     <timeout>18000</timeout>
+     <timeout>3600</timeout>
      <testparams>
          <param>TC_COVERED=STOR-102</param>
          <param>Type=Dynamic</param>
@@ -456,18 +463,17 @@
      <onError>Continue</onError>
      <noReboot>False</noReboot>
     </test>
->>>>>>> 2b3f7b7... STOR_VHDX: Add three cases about copying file locally, by wget and nfs for scsi
 
     </testCases>
 
     <VMs>
-	<vm>
+		<vm>
             <hvServer>localhost</hvServer>
             <vmName>vmName</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>key_id_rsa.ppk</sshKey>
-            <suite>VHDx</suite>
+            <suite>STOR_VHDx</suite>
         </vm>
     </VMs>
 </config>

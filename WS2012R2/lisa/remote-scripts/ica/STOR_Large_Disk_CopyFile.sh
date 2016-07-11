@@ -20,12 +20,12 @@
 # permissions and limitations under the License.
 #
 ########################################################################
+#
 # STOR_Large_Disk_CopyFile.sh
 # Description:
 #     This script will verify if you can copy 5G files on the disk, perform dd, wget, cp, nfs
 #
-#     Hyper-V setting pane. The test performs the following
-#     step
+#     The test performs the following steps:
 #    1. Creates partition
 #    2. Creates filesystem
 #    3. Performs copy operations by copy locally, wget, copy from nfs
@@ -33,6 +33,7 @@
 #    5. Deletes partition
 #
 ########################################################################
+
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
@@ -67,7 +68,6 @@ function CheckForError()
     done
 }
 
-
 # test dd 5G files, dd one 5G file locally, then copy to /mnt which is mounted to disk
 function TestLocalCopyFile()
 {
@@ -84,7 +84,6 @@ function TestLocalCopyFile()
  file_size1=`ls -l /mnt/data | awk '{ print $5}' | tr -d '\r'`
  echo "file_size after dd=$file_size"
  echo "file_size after copyed= $file_size1"
- # ls
 
  if [[ $file_size1 = $file_size ]]; then
      LogMsg "Successful copy file"
@@ -125,7 +124,6 @@ function TestWgetFile()
   fi
 
   rm -rf /mnt/*
-
 }
 
 # test copy from nfs path, dd one 5G file to /mnt2 which is mounted to nfs, then copy to /mnt
@@ -138,7 +136,7 @@ function TestNFSCopyFile()
   mount -t nfs $NFS_Path /mnt_2
 
   if [ "$?" = "0" ]; then
-      LogMsg "Mount nfs successfully... from $NFS_Path"
+      LogMsg "Mount nfs successfully from $NFS_Path"
       # dd 5G file
       dd if=/dev/zero of=/mnt_2/data bs=2048 count=2500000
       LogMsg "Finish dd file in nfs path, start to copy to drive..."
@@ -166,7 +164,6 @@ function TestNFSCopyFile()
   fi
 
 }
-
 
 # Format the disk and create a file system, mount and create file on it.
 function TestFileSystemCopy()
@@ -228,9 +225,6 @@ function TestFileSystemCopy()
 
 }
 
-# Check for call trace log
-CheckForError &
-
 # Source the constants file
 if [ -e ~/${CONSTANTS_FILE} ]; then
     source ~/${CONSTANTS_FILE}
@@ -263,13 +257,14 @@ fi
 
 #Check for Testcase count
 if [ ! ${TC_COVERED} ]; then
-    LogMsg "Error: The TC_COVERED variable is not defined."
-    echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
-    UpdateTestState "TestAborted"
-    exit 1
+    LogMsg "Warning: The TC_COVERED variable is not defined."
+    echo "Warning: The TC_COVERED variable is not defined." >> ~/summary.log
 fi
 
 echo "Covers: ${TC_COVERED}" >> ~/summary.log
+
+# Check for call trace log
+CheckForError &
 
 # Count the number of SCSI= and IDE= entries in constants
 diskCount=0
@@ -292,8 +287,7 @@ done
 
 echo "constants disk count= $diskCount"
 
-# Compute the number of sd* drives on the system.
-
+# Compute the number of sd* drives on the system
 for driveName in /dev/sd*[^0-9];
 do
 
