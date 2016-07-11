@@ -31,6 +31,8 @@ if (-not $?)
     "Mandatory param RootDir=Path; not found!"
     return $false
 }
+
+$date = Get-Date -format "dd-MM-yyyy"
 $rootDir = $Matches[1]
 
 if (Test-Path $rootDir)
@@ -74,72 +76,58 @@ foreach ($p in $params)
 $logDir = $workDir
 
 Write-Host ("--------FIO RESULTS---------")
-[regex]$regex = "iops=[0-9]*"
+$strings = @("iops=[0-9]*", "avg=[0-9]+.[0-9]+")
+$sequences = @("rand-read:", "seq-write:", "seq-read:", "rand-write:")
+$loc = @(0, 3)
 
+$result = New-Object System.Collections.Hashtable
+
+$regex = [regex] $strings[0]
 $outItems = New-Object System.Collections.Generic.List[System.Object]
-$directories = ls -recurse $logDir\Perf-FIO_Performance_FIO_FIOLog*.log
+$directories = ls -recurse $logDir\Perf-*FIO_Performance_FIO_FIOLog*.log
 
 foreach ( $file in $directories )
 {   
     $block_size = $file.Name.Split("-")[-1].Split(".")[0]
-    $result = @{'BlockSize' = $block_size}
+    $result['BlockSize'] = $block_size
     Write-Host ("---")
     write-host ("$block_size")
 
-    #seq-read
-    $linenumbers = select-string "seq-read:" $file.Fullname | select LineNumber
-    write-host ("seq-read:")
-    foreach ($line in $LineNumbers)
-    {
-        $w = select-string $regex -InputObject (get-content $file.Fullname)[$line.LineNumber] -All
-        if ($w.matches.value)
+    foreach ($sequence in $sequences){
+        $linenumbers = select-string $sequence $file.Fullname | select LineNumber
+        write-host "$sequence"
+        foreach ($line in $LineNumbers)
         {
-            write-host $w.matches.value.split("=")[1]
-            $result['seq-read']=$w.matches.value.split("=")[1]
+            $w = select-string $regex -InputObject (get-content $file.Fullname)[$line.LineNumber + $loc[$strings.indexof($strings[0])]] -All
+            if ($w.matches.value)
+            {
+                write-host $w.matches.value.split("=")[1]
+                $result[$sequence]=$w.matches.value.split("=")[1]
+            }
         }
     }
-
-    #rand-read
-    $linenumbers = select-string "rand-read:" $file.Fullname | select LineNumber
-    write-host ("rand-read:")
-    foreach ($line in $LineNumbers)
-    {
-        $w = select-string $regex -InputObject (get-content $file.Fullname)[$line.LineNumber] -All
-        if ($w.matches.value)
+    foreach ($sequence in $sequences){
+        $linenumbers = select-string $sequence $file.Fullname | select LineNumber
+        write-host "latency $sequence"
+        foreach ($line in $LineNumbers)
         {
-            write-host $w.matches.value.split("=")[1]
-            $result['rand-read']=$w.matches.value.split("=")[1]
+            $latency = [regex] $strings[1]
+            $w = select-string $latency -InputObject (get-content $file.Fullname)[$line.LineNumber + $loc[$strings.indexof($strings[1])]] -All
+            if ($w.matches.value)
+            {
+                write-host $w.matches.value.split("=")[1]
+                $result["$sequence latency"]=$w.matches.value.split("=")[1]
+            }
         }
     }
-
-    #seq-write
-    $linenumbers = select-string "seq-write:" $file.Fullname | select LineNumber
-    write-host ("seq-write:")
-    foreach ($line in $LineNumbers)
-    {
-        $w = select-string $regex -InputObject (get-content $file.Fullname)[$line.LineNumber] -All
-        if ($w.matches.value)
-        {
-            write-host $w.matches.value.split("=")[1]
-            $result['seq-write']=$w.matches.value.split("=")[1]
-        }
+    if($result.count -gt 1){
+        $a = New-Object System.Management.Automation.PSObject -Property $result
+        Export-CSV -InputObject $a -Path $logDir\FIO-Results-${date}.csv -Append
     }
-
-    #rand-write
-    $linenumbers = select-string "rand-write:" $file.Fullname | select LineNumber
-    write-host ("rand-write:")
-    foreach ($line in $LineNumbers)
-    {
-        $w = select-string $regex -InputObject (get-content $file.Fullname)[$line.LineNumber] -All
-        if ($w.matches.value)
-        {
-            write-host $w.matches.value.split("=")[1]
-            $result['rand-write']=$w.matches.value.split("=")[1]
-        }
-    }
-    $a = New-Object System.Management.Automation.PSObject -Property $result
-    Export-CSV -InputObject $a -Path $logDir\FIO-Results.csv -Append
 }
+
+
+
 Write-Host ("--------FIO RESULTS---------")
 Write-Host "Archive logs and CSV are here: $logDir"
 Write-Host "------------------------------"
