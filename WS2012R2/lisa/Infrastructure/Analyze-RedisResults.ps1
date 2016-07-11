@@ -23,13 +23,26 @@ param([string] $vmName, [string] $testParams)
 
 # Write out test Params
 $testParams
+$data = new-object PSObject
+$tokens = New-Object System.Collections.ArrayList
+$tokens.Add("pipelines") | out-null
+$tokens.Add("set-time") | out-null
+$tokens.Add("set-requests") | out-null
+$tokens.Add("get-time") | out-null
+$tokens.Add("get-requests") | out-null
+
+$default_percent = "99.95"
+$min_diff = 1
+$token_rotation = 0
+$date = Get-Date -format "dd-MM-yyyy"
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
 {
-    "Mandatory param RootDir=Path; not found!"
+    Write-Host "Mandatory param RootDir=Path; not found!"
     return $false
+    exit 1
 }
 $rootDir = $Matches[1]
 
@@ -38,8 +51,9 @@ if (Test-Path $rootDir)
     Set-Location -Path $rootDir
     if (-not $?)
     {
-        "Error: Could not change directory to $rootDir !"
+        Write-Host "Error: Could not change directory to $rootDir !"
         return $false
+        exit 1
     }
     "Changed working directory to $rootDir"
 }
@@ -47,6 +61,14 @@ else
 {
     "Error: RootDir $rootDir is not a valid path"
     return $false
+    exit 1
+}
+
+if (-not $vmName)
+{
+    Write-Host "Error: VM name is null"
+    return $false
+    exit 1
 }
 
 $params = $testParams.Split(";")
@@ -59,21 +81,7 @@ foreach ($p in $params)
     default      {}  # unknown param - just ignore it
     }
 }
-
-#Initialize variables
 $logDir = $workDir
-
-$data = new-object PSObject
-$tokens = New-Object System.Collections.ArrayList
-$tokens.Add("pipelines") | out-null
-$tokens.Add("set-time") | out-null
-$tokens.Add("set-requests") | out-null
-$tokens.Add("get-time") | out-null
-$tokens.Add("get-requests") | out-null
-
-$default_percent = "99.95"
-$min_diff = 1
-$token_rotation = 0
 
 $content = Get-Content $logDir\${vmName}_Perf_Redis_redis.log
 
@@ -133,7 +141,7 @@ foreach ($line in $content)
     {
         #Reset the rotation value
         $token_rotation = 0
-        Export-CSV -InputObject $data -Path $logDir\Redis-Results.csv -Append
+        Export-CSV -InputObject $data -Path $logDir\Redis-Results-${date}.csv -Append
         $data = new-object PSObject
     }
 }
