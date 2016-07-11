@@ -48,11 +48,12 @@
 
     <testCases>
          <test>
-            <testName>Perf_Redis</testName>        
+            <testName>Perf_Redis</testName>
             <testScript>performance_redis.sh</testScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+            <postTest>Infrastructure\Analyze-RedisResults.ps1</postTest>
             <files>remote-scripts/ica/performance_redis.sh</files>
-            <files> 
+            <files>
                 Tools/redis.tar.gz,
                 remote-scripts/ica/utils.sh,
                 remote-scripts/ica/NET_set_static_ip.sh
@@ -80,7 +81,7 @@
             <OnError>Continue</OnError>
          </test>
     </testCases>
-    
+
     <VMs>
         <vm>
             <role>SUT1</role>
