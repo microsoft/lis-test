@@ -30,12 +30,12 @@
 #     Tools folder under lisa.
 #
 # Parameters:
-#      REDIS_PACKAGE:            the redis tool package 
+#      REDIS_PACKAGE:            the redis tool package
 #      REDIS_HOST_IP:            the ip address of the machine runs Redis server
 #      REDIS_HOST_PORT:          the ip port of the machine runs Redis server
-#      REDIS_CLIENTS:            number of parallel connections 
+#      REDIS_CLIENTS:            number of parallel connections
 #      REDIS_RANDOM_KEY_SCOPE:   use random keys for SET/GET/INCR, random values for SADD
-#      REDIS_DATA_SIZE:          data size of SET/GET value in bytes 
+#      REDIS_DATA_SIZE:          data size of SET/GET value in bytes
 #      REDIS_TESTSUITES:         only run the comma-separated list of tests. The test names are the same as the ones produced as output.
 #      REDIS_NUMBER_REQUESTS:    total number of requests
 #      SERVER_SSHKEY:            key for server
@@ -180,7 +180,7 @@ fi
 dos2unix ./NET_set_static_ip.sh
 chmod +x ./NET_set_static_ip.sh
 ./NET_set_static_ip.sh
-if [ $? -ne 0 ]; then 
+if [ $? -ne 0 ]; then
     exit 1
 fi
 ssh -i /root/.ssh/${SERVER_SSHKEY} -o StrictHostKeyChecking=no root@${STATIC_IP2} "exit"
@@ -225,7 +225,7 @@ LogMsg "rootDir = ${rootDir}"
 cd ${rootDir}
 
 # Build tool on client machine
-make 
+make
 if [ $? -ne 0 ]; then
     msg="Error: make redis tool failed"
     LogMsg "${msg}"
@@ -288,13 +288,15 @@ ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} mkdir -p $log_folder
 mkdir -p $log_folder
 
 pkill -f redis-benchmark
-ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} pkill -f redis-server  >> /dev/null 
+ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} pkill -f redis-server  >> /dev/null
 cd src/
 t=0
 
+ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} iptables -I INPUT -p tcp -s ${STATIC_IP} --dport ${REDIS_HOST_PORT} -j ACCEPT
+
 while [ "x${TEST_PIPELINE_COLLECTION[$t]}" != "x" ]
 do
-    
+
     pipelines=${TEST_PIPELINE_COLLECTION[$t]}
     msg="TEST: $pipelines pipelines"
     LogMsg "${msg}"
@@ -306,7 +308,7 @@ do
     ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} "sar -n DEV 1 900   2>&1 > $log_folder/$pipelines/$pipelines.sar.netio.log " &
     ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} "iostat -x -d 1 900 2>&1 > $log_folder/$pipelines/$pipelines.iostat.diskio.log " &
     ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} "vmstat 1 900       2>&1 > $log_folder/$pipelines/$pipelines.vmstat.memory.cpu.log " &
-    
+
     # start redis server
     ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} "/root/${rootDir}/src/redis-server >> /dev/null &"
     if [ $? -ne 0 ]; then
@@ -319,7 +321,7 @@ do
 
     # prepare running redis-benchmark
     mkdir -p                   $log_folder/$pipelines
-    sar -n DEV 1 900   2>&1  > $log_folder/$pipelines/$pipelines.sar.netio.log &         >> /dev/null        
+    sar -n DEV 1 900   2>&1  > $log_folder/$pipelines/$pipelines.sar.netio.log &         >> /dev/null
     iostat -x -d 1 900 2>&1  > $log_folder/$pipelines/$pipelines.iostat.diskio.log &     >> /dev/null
     vmstat 1 900       2>&1  > $log_folder/$pipelines/$pipelines.vmstat.memory.cpu.log & >> /dev/null
 
@@ -334,8 +336,8 @@ do
     #cleanup redis-server
     ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} pkill -f sar           >> /dev/null
     ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} pkill -f iostat        >> /dev/null
-    ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} pkill -f vmstat        >> /dev/null 
-    ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} pkill -f redis-server  >> /dev/null   
+    ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} pkill -f vmstat        >> /dev/null
+    ssh -i /root/.ssh/${SERVER_SSHKEY} root@${REDIS_HOST_IP} pkill -f redis-server  >> /dev/null
 
     #cleanup redis-benchmark
     pkill -f sar             >> /dev/null
