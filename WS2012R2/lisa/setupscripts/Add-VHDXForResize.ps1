@@ -28,7 +28,7 @@
      The script will create a minimum 3GB vhdx file, and mount it to the
      specified hard drive.
      The .xml entry to specify this startup script would be:
-         <setupScript>SetupScripts\Add-VHDXForResize.ps1.ps1</setupScript>
+         <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
     The  scripts will always pass the vmName, hvServer, and a string of
     testParams from the test definition separated by semicolons. The testParams
     for this script identifies VHDx type, sector size and the default size.
