@@ -152,9 +152,10 @@ $scriptBlock = {
           exit 100
         fi
 
-        dos2unix Check_traces.sh
-        chmod +x Check_traces.sh
-        ./Check_traces.sh
+        rm ~/HotAddErrors.log -f
+        dos2unix check_traces.sh
+        chmod +x check_traces.sh
+        ./check_traces.sh &
         
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
@@ -425,8 +426,20 @@ while ($timeout -gt 0)
 
 }
 
-start-sleep -s 20
+# Verify if errors occured on guest
+$isAlive = WaitForVMToStartKVP $vm1Name $hvServer 10
+if (-not $isAlive){
+  "Error: VM is unresponsive after running the memory stress test"
+  return $false
+}
 
+$errorsOnGuest = echo y | bin\plink -i ssh\${sshKey} root@$ipv4 "cat HotAddErrors.log"
+if (-not  [string]::IsNullOrEmpty($errorsOnGuest)){
+  $errorsOnGuest
+  return $false
+}
+
+start-sleep -s 20
 # get memory stats after stress-ng finished
 [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
 [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
@@ -440,5 +453,5 @@ if ($vm1AfterDemand -ge $vm1Demand)
   return $false
 }
 
-"Success!"
+"Memory Hot Add (using stress-ng) completed successfully!"
 return $true

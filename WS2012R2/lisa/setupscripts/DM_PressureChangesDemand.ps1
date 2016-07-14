@@ -162,9 +162,10 @@ $scriptBlock = {
   MemTotal=`$((MemTotal / mega))
   timeOut=20
   
-  dos2unix Check_traces.sh
-  chmod +x Check_traces.sh
-  ./Check_traces.sh
+  rm ~/HotAddErrors.log -f
+  dos2unix check_traces.sh
+  chmod +x check_traces.sh
+  ./check_traces.sh &
 
   while [ `$MemTotal -gt `$Memory ] ; do
        stressapptest -s `$timeOut -M `$Memory & >/dev/null 2>&1
@@ -452,7 +453,19 @@ while ($timeout -gt 0)
 
 }
 
+# Verify if errors occured on guest
+$isAlive = WaitForVMToStartKVP $vm1Name $hvServer 10
+if (-not $isAlive){
+  "Error: VM is unresponsive after running the memory stress test"
+  return $false
+}
+
+$errorsOnGuest = echo y | bin\plink -i ssh\${sshKey} root@$ipv4 "cat HotAddErrors.log"
+if (-not  [string]::IsNullOrEmpty($errorsOnGuest)){
+  $errorsOnGuest
+  return $false
+}
 
 # Everything ok
-"Success!"
+"Success: Memory Demand changed with pressure on Linux guest"
 return $true
