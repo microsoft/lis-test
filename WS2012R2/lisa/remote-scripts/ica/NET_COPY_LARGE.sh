@@ -21,10 +21,11 @@
 #
 #####################################################################
 
+#############################################################################################################
+#
 # Description:
-#	This script verifies that the network doesn't
-#	loose connection by copying a large file(~10GB)file
-#	between two VM's with IC installed.
+#	This script verifies that the network doesn't loose connection 
+#	by copying a large file(~10GB)file between two VM's with IC installed.
 #
 #	Steps:
 #	1. Verify configuration file constants.sh
@@ -64,9 +65,7 @@
 #	NETMASK of this VM's subnet. Defaults to /24 if not set.
 #	GATEWAY is the IP Address of the default gateway
 #
-#
 #############################################################################################################
-
 
 # Convert eol
 dos2unix utils.sh
@@ -117,7 +116,6 @@ case $? in
 esac
 
 # Parameters to check in constants file
-
 if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter STATIC_IP2 is not defined in ${LIS_CONSTANTS_FILE}"
     LogMsg "$msg"
@@ -129,7 +127,6 @@ fi
 if [ "${STATIC_IP2_V6:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter STATIC_IP2_V6 is not defined in ${LIS_CONSTANTS_FILE}. No IPV6 related tests will be run."
     LogMsg "$msg"
-    UpdateSummary "$msg"
     if [ "${TestIPV6}" = "yes" ]; then
 	    SetTestStateFailed
 	    exit 30
@@ -143,7 +140,6 @@ if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" = "UNDEFINED" ]; then
     SetTestStateAborted
     exit 30
 fi
-
 
 # Set remote user
 if [ "${REMOTE_USER:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -323,8 +319,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 			fi
 		fi
 
-		LogMsg "Trying to ping $REMOTE_SERVER"
-		UpdateSummary "Trying to ping $REMOTE_SERVER"
+		LogMsg "Trying to ping $STATIC_IP2"
 		sleep 20
 
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`copy`null`dhcp`null`
@@ -440,8 +435,6 @@ if [ 0 -ne $? ]; then
 fi
 
 LogMsg "Enough free space locally to create the file"
-UpdateSummary "Enough free space locally to create the file"
-
 LogMsg "Checking for disk space on $STATIC_IP2"
 # Check disk size on remote vm. Cannot use IsFreeSpace function directly. Need to export utils.sh to the remote_vm, source it and then access the functions therein
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no utils.sh "$REMOTE_USER"@"$STATIC_IP2":/tmp
@@ -484,7 +477,6 @@ if [ 0 -ne $sts ]; then
 fi
 
 LogMsg "Enough free space remotely to create the file"
-UpdateSummary "Enough free space (both locally and remote) to create the file"
 
 # get source to create the file
 
