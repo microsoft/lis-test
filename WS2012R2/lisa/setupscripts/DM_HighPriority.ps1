@@ -160,9 +160,10 @@ $scriptBlock = {
           exit 100
         fi
 
-        dos2unix Check_traces.sh
-        chmod +x Check_traces.sh
-        ./Check_traces.sh
+        rm ~/HotAddErrors.log -f
+        dos2unix check_traces.sh
+        chmod +x check_traces.sh
+        ./check_traces.sh &
         
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
@@ -643,6 +644,19 @@ if ($vm1bigger -le $vm2bigger)
 # stop vm2
 Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
+# Verify if errors occured on VM1
+$isAlive = WaitForVMToStartKVP $vm1Name $hvServer 10
+if (-not $isAlive){
+  "Error: VM is unresponsive after running the memory stress test"
+  return $false
+}
+
+$errorsOnGuest = echo y | bin\plink -i ssh\${sshKey} root@$ipv4 "cat HotAddErrors.log"
+if (-not  [string]::IsNullOrEmpty($errorsOnGuest)){
+  $errorsOnGuest
+  return $false
+}
+
 # Everything ok
-"Success!"
+"Success: High priority VM received more memory under same pressure"
 return $true

@@ -162,9 +162,10 @@ $scriptBlock = {
           exit 100
         fi
 
-        dos2unix Check_traces.sh
-        chmod +x Check_traces.sh
-        ./Check_traces.sh
+        rm ~/HotAddErrors.log -f
+        dos2unix check_traces.sh
+        chmod +x check_traces.sh
+        ./check_traces.sh &
         
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
@@ -769,6 +770,19 @@ if ($vm1EndAssigned -le 0 -or $vm1EndDemand -le 0 -or $vm2EndAssigned -le 0 -or 
 Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 Stop-VM -VMName $vm3name -ComputerName $hvServer -force
 
+# Verify if errors occured on guest
+$isAlive = WaitForVMToStartKVP $vm1Name $hvServer 10
+if (-not $isAlive){
+  "Error: VM is unresponsive after running the memory stress test"
+  return $false
+}
+
+$errorsOnGuest = echo y | bin\plink -i ssh\${sshKey} root@$ipv4 "cat HotAddErrors.log"
+if (-not  [string]::IsNullOrEmpty($errorsOnGuest)){
+  $errorsOnGuest
+  return $false
+}
+
 # Everything ok
-"Success!"
+"Success: Memory was removed from a low priority VM with minimal memory pressure to a VM with high memory pressure!"
 return $true
