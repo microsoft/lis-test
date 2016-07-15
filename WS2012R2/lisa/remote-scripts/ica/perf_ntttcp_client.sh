@@ -260,7 +260,6 @@ git clone https://github.com/Microsoft/ntttcp-for-linux.git
 rootDir="ntttcp-for-linux"
 
 LogMsg "rootDir = ${rootDir}"
-cd ${rootDir}/src
 
 #
 # Distro specific setup
@@ -299,7 +298,41 @@ debian*|ubuntu*)
         fi
     fi
     ;;
-redhat_5|redhat_6)
+redhat_5|redhat_6|centos_6)
+    if [ "$DISTRO" == "redhat_6" ] || [ "$DISTRO" == "centos_6" ]; then
+        # Import CERN's GPG key
+        rpm --import http://ftp.scientificlinux.org/linux/scientific/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to import CERN's GPG key."
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+
+        # Save repository information
+        wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to save repository information."
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+
+        # The below will also install all the required dependencies
+        yum install -y devtoolset-2-gcc-c++
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to install the new version of gcc."
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+
+        echo "source /opt/rh/devtoolset-2/enable" >> /root/.bashrc
+        source /root/.bashrc
+    fi
     LogMsg "Check iptables status on RHEL"
     service iptables status
     if [ $? -ne 3 ]; then
@@ -414,6 +447,7 @@ redhat_7)
 
 esac
 
+cd ${rootDir}/src
 make
 if [ $? -ne 0 ]; then
     msg="Error: Unable to build ntttcp"
