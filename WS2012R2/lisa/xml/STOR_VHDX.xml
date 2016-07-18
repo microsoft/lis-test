@@ -46,6 +46,7 @@
 				Test case is currently being revised
                 <suiteTest>TrimSupport</suiteTest>-->
                 <suiteTest>VHDx_Mount_NFS</suiteTest>
+                <suiteTest>VHDx_DiskHotAddRemove_Loop</suiteTest>
 
             </suiteTests>
         </suite>
@@ -463,6 +464,26 @@
      <onError>Continue</onError>
      <noReboot>False</noReboot>
     </test>
+    <test>
+       <testName>VHDx_DiskHotAddRemove_Loop</testName>
+       <testScript>setupscripts\STOR_unPlug_Plug_Loop.ps1</testScript>
+       <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+       <setupScript>setupscripts\Add-VHDXForResize.ps1</setupScript>
+       <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+       <testparams>
+           <param>TC_COVERED=STOR-123</param>
+           <param>Type1=Dynamic</param>
+           <param>SectorSize1=512</param>
+           <param>DefaultSize1=1GB</param>
+           <param>Type2=Dynamic</param>
+           <param>SectorSize2=512</param>
+           <param>DefaultSize2=2GB</param>
+           <param>ControllerType=SCSI</param>
+           <param>LoopCount=5</param>
+
+       </testparams>
+       <timeout>800</timeout>
+   </test>
 
     </testCases>
 
