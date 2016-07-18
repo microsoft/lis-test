@@ -849,10 +849,10 @@ function RunTests ([String] $xmlFilename )
     #
     if ($eMail)
     {
-        SendEmail $xmlConfig $Script:testStartTime $xmlFilename
+        SendEmail $xmlConfig $Script:testStartTime $xmlFilename $rootDir
     }
 
-    $summary = SummaryToString $xmlConfig $Script:testStartTime $xmlFilename
+    $summary = SummaryToString $xmlConfig $Script:testStartTime $xmlFilename $rootDir
     
     #
     # The summary message is formatted for HTML body mail messages
