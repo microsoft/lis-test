@@ -368,7 +368,7 @@ function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
 # SummaryToString
 #
 #####################################################################
-function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename)
+function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename, [string] $logDir)
 {
     <#
     .Synopsis
@@ -389,6 +389,10 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
 
     .Parameter xmlFilename
         The name of the xml file for the current test run.
+        Type : [String]
+
+    .Parameter logDir
+        The path of the folder containing the log files
         Type : [String]
 
     .ReturnValue
@@ -416,7 +420,19 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
 
     $hostname = hostname
 
-    $str += "Logs can be found at \\$($hostname)\LisaTestResults\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
+    #
+    # Check to see if the provided log path is absolute
+    #
+    if ([System.IO.Path]::IsPathRooted($logDir)) 
+    {
+        $logPath = $logDir
+    }
+    else
+    {
+        $logPath = (Get-Item -Path ".\" -Verbose).FullName + "\" + $logDir    
+    }
+
+    $str += "Logs can be found at " + $logPath + "\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
 
     $str += "</pre><br />"
 
@@ -428,7 +444,7 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
 # SendEmail
 #
 #####################################################################
-function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename)
+function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename, [string] $logDir)
 {
     <#
     .Synopsis
@@ -442,6 +458,10 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
     .Parameter xmlConfig
         The parsed XML from the test xml file
         Type : [System.Xml]
+
+    .Parameter logDir
+        The path of the folder containing the log files
+        Type : [String]
 
     .ReturnValue
         none
@@ -464,10 +484,21 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
     $body = SummaryToString $xmlConfig $startTime $fname
     $body = $body.Replace("Aborted", '<em style="background:Aqua; color:Red">Aborted</em>')
     $body = $body.Replace("Failed", '<em style="background:Yellow; color:Red">Failed</em>')
-
-    # TODO: remove hard coded log file directory
+    
     $hostname = hostname
-    $str += "Logs can be found at \\$($hostname)\Public\LisaTestResults\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
+    #
+    # Check to see if the provided log path is absolute
+    #
+    if ([System.IO.Path]::IsPathRooted($logDir)) 
+    {
+        $logPath = $logDir
+    }
+    else
+    {
+        $logPath = (Get-Item -Path ".\" -Verbose).FullName + "\" + $logDir    
+    }
+
+    $str += "Logs can be found at " + $logPath + "\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
 
     Send-mailMessage -to $to -from $from -subject $subject -body $body -BodyAsHtml -smtpserver $smtpServer
 }
