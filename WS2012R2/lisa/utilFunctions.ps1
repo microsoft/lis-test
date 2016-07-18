@@ -418,8 +418,6 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
 
     $fname = [System.IO.Path]::GetFilenameWithoutExtension($xmlFilename)
 
-    $hostname = hostname
-
     #
     # Check to see if the provided log path is absolute
     #
@@ -433,9 +431,7 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
     }
 
     $str += "Logs can be found at " + $logPath + "\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
-
     $str += "</pre><br />"
-
     return $str
 }
 
@@ -485,7 +481,6 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
     $body = $body.Replace("Aborted", '<em style="background:Aqua; color:Red">Aborted</em>')
     $body = $body.Replace("Failed", '<em style="background:Yellow; color:Red">Failed</em>')
     
-    $hostname = hostname
     #
     # Check to see if the provided log path is absolute
     #
@@ -576,7 +571,6 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     #>
 
     $retVal = $False
-
     $scriptMode = "unknown"
 
     #
