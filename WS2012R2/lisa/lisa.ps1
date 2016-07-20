@@ -213,6 +213,7 @@ param([string] $cmdVerb,
       [switch] $email,
       [switch] $examples,
       [string] $CLIlogDir,
+      [string] $CLImageStorDir,
       [string] $os,
       [int]    $dbgLevel=0
      )
@@ -351,6 +352,7 @@ function    DumpParams()
     LogMsg 0 "Info : email:      $email"
     LogMsg 0 "Info : examples:   $examples"
     LogMsg 0 "Info : CLIlogDir:  $CLIlogDir"
+    LogMsg 0 "Info : CLImageStorDir: $CLImageStorDir"
     LogMsg 0 "Info : os:         $os"
     LogMsg 0 "Info : dbgLevel:   $dbgLevel"
 }
@@ -709,6 +711,26 @@ function RunTests ([String] $xmlFilename )
         return $false
     }
 
+    if ( $CLImageStorDir )
+    {
+        # Check the path given as parameter
+        if (Test-Path $CLImageStorDir){
+
+            # Check XML file for imageStoreDir key
+            # If the key is present, its value will be overwritten with the param
+            if ($xmlConfig.config.global.imageStoreDir) {
+                $xmlFilenameEdit = $PSScriptRoot + $xmlFilename.Substring(1)
+                # Edit the XML file with the new value given as parameter
+                $xmlConfig.config.global.imageStoreDir = $CLImageStorDir
+                $xmlConfig.Save("$xmlFilenameEdit")
+            }
+        }
+        else {
+            Write-host -f "Error: Path $CLImageStorDir given as parameter does not exist"
+            return $false
+        }
+    }
+
     if ( $CLIlogDir)
     {
         #   logfile dir is specified on the command line
@@ -735,14 +757,13 @@ function RunTests ([String] $xmlFilename )
             return $false
         }
     }
-    
+
     $fname = [System.IO.Path]::GetFilenameWithoutExtension($xmlFilename)
     $testRunDir = $fname + "-" + $Script:testStartTime.ToString("yyyyMMdd-HHmmss")
     $testDir = join-path -path $rootDir -childPath $testRunDir
     mkdir $testDir | out-null
-    
+
     $logFile = Join-Path -path $testDir -childPath $logFile
-        
     LogMsg 0 "LIS Automation script - version $lisaVersion"
     LogMsg 4 "Info : Created directory: $testDir"
     LogMsg 4 "Info : Logfile =  $logfile"
