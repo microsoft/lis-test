@@ -405,11 +405,12 @@ function RunICTests([XML] $xmlConfig)
     #
     # Add LIS version to the email summary text
     #
-    $vm.emailSummary += "<br /><br />"
     if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
+        $vm.emailSummary += "<br />"
         $vm.emailSummary += "LIS Version :  Could not determine LIS version $Script:LIS_version"
     }
     else {
+        $vm.emailSummary += "<br />"
         $vm.emailSummary += "LIS Version :  $Script:LIS_version"
     }
     $vm.emailSummary += "<br /><br />"
