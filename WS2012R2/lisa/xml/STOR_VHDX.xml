@@ -158,24 +158,25 @@
             <noReboot>False</noReboot>
        </test>
 
-         <test>
-            <testName>VHDx_DiskHotPlugUnplug</testName>
-            <testScript>setupscripts\STOR_unPlug.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/STOR_unPlug.sh</files>
-            <cleanupScript>setupscripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-            <setupScript>setupscripts\Add-VHDXForResize.ps1</setupScript>
-            <testparams>
-                <param>TC_COVERED=STOR-31b,STOR-42b</param>
-                <param>Type1=Dynamic</param>
-                <param>SectorSize1=512</param>
-                <param>DefaultSize1=1GB</param>
-                <param>Type2=Dynamic</param>
-                <param>SectorSize2=512</param>
-                <param>DefaultSize2=2GB</param>
-            </testparams>
-            <timeout>800</timeout>
-            <onError>Continue</onError>
-        </test>
+        <test>
+           <testName>VHDx_DiskHotPlugUnplug</testName>
+           <testScript>setupscripts\STOR_unPlug_Plug.ps1</testScript>
+           <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+           <setupScript>setupscripts\Add-VHDXForResize.ps1</setupScript>
+           <cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+           <testparams>
+               <param>TC_COVERED=STOR-31b,STOR-42b</param>
+               <param>Type1=Dynamic</param>
+               <param>SectorSize1=512</param>
+               <param>DefaultSize1=1GB</param>
+               <param>Type2=Dynamic</param>
+               <param>SectorSize2=512</param>
+               <param>DefaultSize2=2GB</param>
+               <param>ControllerType=SCSI</param>
+               <param>LoopCount=5</param>
+           </testparams>
+           <timeout>800</timeout>
+       </test>
 
         <test>
             <testName>VHDx_IDE_0_1_Dynamic</testName>
