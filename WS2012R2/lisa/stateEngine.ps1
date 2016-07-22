@@ -344,7 +344,7 @@ function RunICTests([XML] $xmlConfig)
         {
             $vm.emailSummary += " SP $($OSInfo.ServicePackMajorVersion)"
         }
-        $vm.emailSummary += " build $($OSInfo.BuildNumber)"
+        $vm.emailSummary += " build $($OSInfo.BuildNumber)<br />"
         $vm.emailSummary += "<br /><br />"
 
         #
@@ -395,10 +395,24 @@ function RunICTests([XML] $xmlConfig)
         }
     }
 
+    $Script:LIS_version = $null
+
     #
     # run the state engine
     #
     DoStateMachine $xmlConfig
+
+    #
+    # Add LIS version to the email summary text
+    #
+    $vm.emailSummary += "<br /><br />"
+    if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
+        $vm.emailSummary += "LIS Version :  Could not determine LIS version $Script:LIS_version"
+    }
+    else {
+        $vm.emailSummary += "LIS Version :  $Script:LIS_version"
+    }
+    $vm.emailSummary += "<br /><br />"
 }
 
 
@@ -1398,6 +1412,17 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     echo y | bin\plink -i ssh\${sshKey} root@${hostname} exit
 
     #
+    #Determine LIS version on guest VM
+    #
+
+    if ($Script:LIS_version -eq $null) {
+        $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'version:' | cut -d : -f 2 | sed 's/^[ \t]*//'"
+        if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
+            $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//'"
+        }
+    }
+
+    #
     # Determine the VMs OS
     #
     $os = (GetOSType $vm).ToString()
@@ -1652,7 +1677,7 @@ function DoPushTestFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 
     #
-    # If the test script is not a PowerShell script, do some additional 
+    # If the test script is not a PowerShell script, do some additional
     # work - e.g. dos2unix, set x bit
     #
     if (-not ($testScript.EndsWith(".ps1")))
@@ -2271,7 +2296,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
     SendCommandToVM $vm "rm -f state.txt"
 
     LogMsg 0 "Info : $($vm.vmName) Status for test $currentTest $iterationMsg = $completionCode"
-        
+
 
     if ( $($testData.postTest) )
     {
