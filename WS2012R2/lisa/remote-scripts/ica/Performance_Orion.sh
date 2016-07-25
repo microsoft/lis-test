@@ -127,22 +127,14 @@ fi
 case $(LinuxRelease) in
     "UBUNTU")
         LogMsg "Run test on Ubuntu. Install dependencies..."
-        apt-get -y install make
-        apt-get -y install gcc
-        apt-get -y install libaio-dev
+        apt-get -y install make gcc libaio-dev sysstat
         sts=$?
         if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the libaio-dev library!" >> ~/summary.log
+            echo "Failed to install the dependency packages!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
-        apt-get -y install sysstat
-        sts=$?
-        if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the sysstat!" >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-            exit 41
-        fi
+
         FS="ext4"
         
         # Disable multipath so that it doesn't lock the disks
@@ -156,20 +148,14 @@ case $(LinuxRelease) in
     ;;
     "RHEL"|"CENTOS")
         LogMsg "Run test on RHEL. Install libaio-devel..."
-        yum -y install libaio-devel
+        yum -y install libaio-devel sysstat
         sts=$?
         if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the libaio-dev library!" >> ~/summary.log
+            echo "Failed to install the dependency packages!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
-        yum -y install sysstat
-        sts=$?
-        if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the sysstat!" >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-            exit 41
-        fi
+
         FS="ext4"
     ;;
     "SLES")
@@ -177,7 +163,7 @@ case $(LinuxRelease) in
         zypper --non-interactive install libaio-devel
         sts=$?
         if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the libaio-devel library!" >> ~/summary.log
+            echo "Failed to install the dependency packages!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
@@ -280,7 +266,7 @@ run_oltp()
     	pkill -f vmstat
         sleep 60
     else
-        echo "Oltp test failed." >> ~/summary.log
+        echo "OLTP test failed." >> ~/summary.log
         return 1
     fi    
 }
@@ -298,12 +284,12 @@ run_dss()
         DSS_STS="yes"
         cp /root/${ORION_SCENARIO_FILE}_${DATE}_iops.csv /root/dss_iops.csv
         cp /root/${ORION_SCENARIO_FILE}_${DATE}_lat.csv /root/dss_lat.csv
-        echo "Dss test completed. Sleep 60 seconds." >> ~/summary.log
+        echo "DSS test completed. Sleep 60 seconds." >> ~/summary.log
         pkill -f iostat
     	pkill -f vmstat
         sleep 60
     else
-        echo "Dss test failed." >> ~/summary.log
+        echo "DSS test failed." >> ~/summary.log
         return 1
     fi
 }
