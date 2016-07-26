@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -48,10 +48,10 @@ UpdateTestState() {
     echo $1 > ~/state.txt
 }
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 # Create the state.txt file so ICA knows we are running
 UpdateTestState $ICA_TESTRUNNING
@@ -82,12 +82,12 @@ if [ ${#filelist[@]} -gt 0 ]; then # check if we found anything
     if [ ${#filelist[@]} -gt 1 ]; then # check if we found multiple files
         LogMsg "Error: More than one udev rules found. Aborting test!"
         LogMsg "Following DM udev files were found:"
-        # list the files 
+        # list the files
         for rulefile in "${filelist[@]}"; do
             LogMsg $rulefile
         done
         UpdateTestState $ICA_TESTFAILED
-        UpdateSummary "Hot-Add udev rule present: Failed"
+        UpdateSummary "Hot-Add udev rule present: Failed. More than one udev rules found."
         exit 1
     else
         LogMsg "Hot-Add udev rule present: Success"
