@@ -29,6 +29,7 @@
                 <suiteTest>VHDx_HotADD_Dynamic_SCSI_SMP</suiteTest>
                 <suiteTest>VHDx_HotRemove_Dynamic_SCSI_SMP</suiteTest>
                 <suiteTest>VHDx_DiskHotPlugUnplug</suiteTest>
+                <suiteTest>VHDx_DiskHotPlugUnplug_Multi_SCSI</suiteTest>
                 <suiteTest>VHDx_4k_IDE_0_1_Dynamic</suiteTest>
                 <suiteTest>VHDx_4k_MultiDiskSCSI_Dynamic</suiteTest>
                 <suiteTest>VHDx_4k_IDE_0_1_Fixed</suiteTest>
@@ -177,6 +178,22 @@
            </testparams>
            <timeout>800</timeout>
        </test>
+
+       <test>
+           <testName>VHDx_DiskHotPlugUnplug_Multi_SCSI</testName>
+           <preTest>
+               <file>setupscripts\AddVhdxHardDisk.ps1</file>
+               <file>setupscripts\RemoveVhdxHardDisk.ps1</file>
+           </preTest>
+           <testScript>STOR_hot_remove.sh</testScript>
+           <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+           <testparams>
+               <param>TC_COVERED=STOR-124</param>
+               <param>SCSI=0,0,Dynamic,512</param>
+               <param>diskCount=64</param>
+          </testparams>
+          <timeout>800</timeout>
+        </test>
 
         <test>
             <testName>VHDx_IDE_0_1_Dynamic</testName>
