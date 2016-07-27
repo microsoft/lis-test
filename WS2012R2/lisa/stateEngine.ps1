@@ -851,12 +851,14 @@ function DoApplyCheckpoint([System.Xml.XmlElement] $vm, [XML] $xmlData)
 {
     <#
     .Synopsis
-        Apply checkpoint to let VM go into a know status if noCheckpoint=False.
+        Apply checkpoint to let VM go into a know status
+        if RevertDefaultSnapshot=True.
     .Description
-        Apply checkpoint if noCheckpoint=False. Then transition to RunSetupScript
-        if the currentTest defines a setup script. Otherwise, transition to StartSystem.
-        If noCheckpoint=True or not configured, no checkpoint is applied and do state
-        transition instead.
+        Apply checkpoint if RevertDefaultSnapshot=True. Then transition 
+        to RunSetupScript if the currentTest defines a setup script.
+        Otherwise, transition to StartSystem. If RevertDefaultSnapshot=False
+        or not configured, there's no checkpoint restoring applied in VM
+        and do state transition instead.
     .Parameter vm
         XML Element representing the VM under test.
     .Parameter xmlData
@@ -885,7 +887,7 @@ function DoApplyCheckpoint([System.Xml.XmlElement] $vm, [XML] $xmlData)
     if ($testData -is [System.Xml.XmlElement])
     {
         # Do not need to recover from checkpoint
-        if ($testData.noCheckpoint -and $testData.noCheckpoint -eq "True")
+        if (-not $testData.RevertDefaultSnapshot -or $testData.RevertDefaultSnapshot -eq "False")
         {
             LogMsg 9 "Info : noCheckpoint is not configured or set to True."
             if (-not (VerifyTestResourcesExist $vm $testData))
