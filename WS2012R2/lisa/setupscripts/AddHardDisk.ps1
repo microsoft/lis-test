@@ -322,7 +322,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
     $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $server
     if ($dvd)
     {
-        Remove-VMDvdDrive $dvd
+        Remove-VMDvdDrive $dvd -ErrorAction SilentlyContinue
     }
     #Add an exist vhd
     Add-VMHardDiskDrive -VMName $vmName -ControllerType ${controllerType} -ControllerNumber $controllerID -DiskNumber $passthrough_number -Passthru
@@ -620,7 +620,10 @@ foreach ($p in $params)
     $controllerID = $diskArgs[0].Trim()
     $lun = $diskArgs[1].Trim()
     $vhdType = $diskArgs[2].Trim()
-    $passthrough_number = $diskArgs[3].Trim()
+    try{
+        $passthrough_number = $diskArgs[3].Trim()
+    }
+    catch{}
 
     $VHDSize = $global:MinDiskSize
     if ($diskArgs.Length -eq 4)
