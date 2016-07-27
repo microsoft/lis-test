@@ -1408,18 +1408,16 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     # Send a "no-op command to the VM and assume this is the first SSH connection,
     # so pipe a 'y' respone into plink
     #
-
     LogMsg 9 "INFO : Call: echo y | bin\plink -i ssh\$sshKey root@$hostname exit"
     echo y | bin\plink -i ssh\${sshKey} root@${hostname} exit
 
     #
     #Determine LIS version on guest VM
     #
-
     if ($Script:LIS_version -eq $null) {
-        $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'version:' | cut -d : -f 2 | sed 's/^[ \t]*//'"
+        $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'version:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/ //g'"
         if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
-            $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//'"
+            $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"
         }
     }
 
@@ -1428,31 +1426,6 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     $os = (GetOSType $vm).ToString()
     LogMsg 9 "INFO : The OS type is $os"
-
-    #
-    # Update the time on the Linux VM
-    #
-    #$dateTimeCmd = GetOSDateTimeCmd $vm
-    #if ($dateTimeCmd)
-    #{
-        #$linuxDateTime = [Datetime]::Now.ToString("MMddHHmmyyyy")
-        #LogMsg 3 "Info : $($vm.vmName) Updating time on the VM (${dateTimeCmd})."
-        #if (-not (SendCommandToVM $vm "$dateTimeCmd") )
-        #{
-        #    LogMsg 0 "Error: $($vm.vmName) could not update time"
-        #    $vm.emailSummary += "    Unable to update time on VM - test aborted<br />"
-        #    $vm.testCaseResults = "False"
-        #    UpdateState $vm $DetermineReboot
-        #}
-        #else
-        #{
-        #    UpdateState $vm $PushTestFiles
-        #}
-    #}
-    #else
-    #{
-    #    UpdateState $vm $PushTestFiles
-    #}
 
     If ($vm.role.ToLower().StartsWith("sut"))
     {
@@ -1466,7 +1439,6 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
 
 }
-
 
 ########################################################################
 #
