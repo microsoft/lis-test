@@ -47,7 +47,6 @@
 				Test case is currently being revised
                 <suiteTest>TrimSupport</suiteTest>-->
                 <suiteTest>VHDx_Mount_NFS</suiteTest>
-
             </suiteTests>
         </suite>
     </testSuites>
@@ -125,7 +124,10 @@
             <testName>VHDx_HotADD_Dynamic_SCSI_SMP</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
-            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <setupScript>
+                <file>setupScripts\ChangeCPU.ps1</file>
+                <file>setupscripts\RemoveIsoFromDvd.ps1</file>
+            </setupScript>
             <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>3600</timeout>
@@ -181,12 +183,14 @@
 
        <test>
            <testName>VHDx_DiskHotPlugUnplug_Multi_SCSI</testName>
+
+           <testScript>STOR_hot_remove.sh</testScript>
+           <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+           <setupScript>setupscripts\RemoveIsoFromDvd.ps1</setupScript>
            <preTest>
                <file>setupscripts\AddVhdxHardDisk.ps1</file>
                <file>setupscripts\RemoveVhdxHardDisk.ps1</file>
            </preTest>
-           <testScript>STOR_hot_remove.sh</testScript>
-           <files>remote-scripts/ica/STOR_hot_remove.sh</files>
            <testparams>
                <param>TC_COVERED=STOR-124</param>
                <param>SCSI=0,0,Dynamic,512</param>
@@ -287,6 +291,7 @@
             <testName>VHDx_HotADD_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <setupScript>setupscripts\RemoveIsoFromDvd.ps1</setupScript>
             <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
@@ -376,6 +381,7 @@
             <testName>VHDx_4k_HotADD_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <setupScript>setupscripts\RemoveIsoFromDvd.ps1</setupScript>
             <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
