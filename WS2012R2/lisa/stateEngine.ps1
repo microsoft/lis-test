@@ -1773,6 +1773,10 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                         if (-not $sts)
                         {
                             LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
+                            $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - pretest script failed")
+                            $vm.currentTest = "done"
+                            UpdateState $vm $finished
+                            return
                         }
                     }
                 }
@@ -2347,6 +2351,10 @@ function DoRunPostTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 if (-not $sts)
                 {
                     LogMsg 0 "Error: VM $($vm.vmName) postTest script for test $($testData.testName) failed"
+                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - post script failed")
+                    $vm.currentTest = "done"
+                    UpdateState $vm $finished
+                    return
                 }
             }
         }

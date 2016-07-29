@@ -94,23 +94,25 @@ CheckForError &
 #
 # Count the number of SCSI= and IDE= entries in constants
 #
-diskCount=0
-for entry in $(cat ./constants.sh)
-do
+if [ -z $diskCount ];  then
+    diskCount=0
+    for entry in $(cat ./constants.sh)
+    do
     # Convert to lower case
-    lowStr="$(tr '[A-Z]' '[a-z' <<<"$entry")"
+        lowStr="$(tr '[A-Z]' '[a-z' <<<"$entry")"
 
     # does it start wtih ide or scsi
-    if [[ $lowStr == ide* ]];
-    then
-        diskCount=$((diskCount+1))
-    fi
+        if [[ $lowStr == ide* ]];
+        then
+            diskCount=$((diskCount+1))
+        fi
 
-    if [[ $lowStr == scsi* ]];
-    then
-        diskCount=$((diskCount+1))
-    fi
-done
+        if [[ $lowStr == scsi* ]];
+        then
+            diskCount=$((diskCount+1))
+        fi
+      done
+fi
 
 LogMsg "constants disk count = $diskCount"
 
