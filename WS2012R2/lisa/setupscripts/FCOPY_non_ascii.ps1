@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -274,14 +274,11 @@ if ($null -eq $rootdir)
     return $False
 }
 
-echo $params
-
 # Change the working directory to where we need to be
 cd $rootDir
 
 # Source the TCUtils.ps1 file
 . .\setupscripts\TCUtils.ps1
-
 
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 #
@@ -386,19 +383,16 @@ else {
         Write-Output "100 MB auxiliary file auxFile successfully created"
     }
 
-    # Remove the 2MB sample file
-    RemoveTestFile
+    # Move the auxiliary file to testfile
+    Move-Item -Path $MyDir"auxFile" -Destination $pathToFile -Force
 
-    # Rename the auxiliary file to testfile
-    Rename-Item $MyDir"auxFile" $pathToFile
-
-    #Checking file size. It must be around 100MB
+    # Checking file size. It must be over 85MB
     $testfileSize = (Get-Item $pathToFile).Length 
     if ($testfileSize -le 85mb) {
         Write-Output "ERROR: File not big enough! $testfileSize"
         $testfileSize = $testfileSize / 1MB
         $testfileSize = [math]::round($testfileSize,2)
-        Write-Output "ERROR: File not big enough! File size : $testfileSize MB" >> $summaryLog   
+        Write-Output "ERROR: File not big enough (over 85MB)! File size : $testfileSize MB" >> $summaryLog   
         RemoveTestFile
         return $False   
     }
@@ -408,7 +402,7 @@ else {
         Write-Output "File size : $testfileSize MB"    
     }
 
-    #Getting MD5 checksum of the file
+    # Getting MD5 checksum of the file
     $localChksum = Get-FileHash .\$testfile -Algorithm MD5 | select -ExpandProperty hash
     if (-not $?){
         Write-Output "ERROR: Unable to get MD5 checksum"
@@ -440,7 +434,6 @@ else {
 # Removing previous test files on the VM
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f /tmp/testfile-*"
 
-
 # Verifying if /tmp folder on guest exists; if not, it will be created
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /tmp ]"
 if (-not $?){
@@ -451,7 +444,6 @@ if (-not $?){
 #
 # Sending the test file to VM
 #
-
 $Error.Clear()
 Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
 if ($Error.Count -eq 0) {
