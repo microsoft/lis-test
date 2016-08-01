@@ -211,7 +211,7 @@ else {
 # Have to stop and start. Restart-VM will loss unsaved data.
 #
 Stop-VM -Name $vmName -ComputerName $hvServer
-LogMsg 9 "Info: VM is shutting down."
+
 Write-Output "VM $vmName is shutting down." | Tee-Object -Append -file $summaryLog
 if (-not $?)
 {
@@ -227,7 +227,6 @@ if (-not $sts)
 }
 
 Start-VM -Name $vmName -ComputerName $hvServer
-LogMsg 9 "Info: VM is starting to make NUMA-off work."
 Write-Output "VM $vmName is starting to make NUMA-off work." | Tee-Object -Append -file $summaryLog
 $timeout = 120
 while ($timeout -gt 0)
@@ -251,7 +250,6 @@ if ($timeout -eq 0)
 # Check the kernel parameter working or not
 #
 $NumaNodesHost = Get-VM $vmName | select -ExpandProperty NumaNodesCount
-LogMsg 9 "Debug: VM $vmName is configured with $NumaNodesHost nodes."
 Write-Output "VM $vmName is configured with $NumaNodesHost nodes." | Tee-Object -Append -file $summaryLog
 
 $NumaNodesGuest = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "numactl -H | grep cpu | wc -l"
