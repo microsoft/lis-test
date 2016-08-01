@@ -282,7 +282,7 @@ run_dss()
     sts=$?
     if [ $sts -eq 0 ]; then
         DSS_STS="yes"
-        cp /root/${ORION_SCENARIO_FILE}_${DATE}_iops.csv /root/dss_iops.csv
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_mbps.csv /root/dss_mbps.csv
         cp /root/${ORION_SCENARIO_FILE}_${DATE}_lat.csv /root/dss_lat.csv
         echo "DSS test completed. Sleep 60 seconds." >> ~/summary.log
         pkill -f iostat
