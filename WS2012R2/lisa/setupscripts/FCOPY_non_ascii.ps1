@@ -371,7 +371,7 @@ else {
 
     # Multiply the contents of the sample file up to an 100MB auxiliary file
     New-Item $MyDir"auxFile" -type file | Out-Null
-    2..47| % {
+    2..130| % {
         $testfileContent = Get-Content $pathToFile
         Add-Content $MyDir"auxFile" $testfileContent
     }
@@ -395,8 +395,10 @@ else {
     #Checking file size. It must be around 100MB
     $testfileSize = (Get-Item $pathToFile).Length 
     if ($testfileSize -le 85mb) {
-        Write-Output "ERROR: File not big enough!"
-        Write-Output "ERROR: File not big enough!" >> $summaryLog
+        Write-Output "ERROR: File not big enough! $testfileSize"
+        $testfileSize = $testfileSize / 1MB
+        $testfileSize = [math]::round($testfileSize,2)
+        Write-Output "ERROR: File not big enough! File size : $testfileSize MB" >> $summaryLog   
         RemoveTestFile
         return $False   
     }
