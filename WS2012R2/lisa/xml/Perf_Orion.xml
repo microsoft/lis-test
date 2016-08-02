@@ -49,7 +49,7 @@
             <uploadFiles>
                 <file>oltp_iops.csv</file>
                 <file>oltp_lat.csv</file>
-                <file>dss_iops.csv</file>
+                <file>dss_mbps.csv</file>
                 <file>dss_lat.csv</file>
                 <file>simple_lat.csv</file>
                 <file>simple_iops.csv</file>
