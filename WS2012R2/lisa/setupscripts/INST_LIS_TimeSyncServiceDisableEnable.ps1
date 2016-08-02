@@ -77,7 +77,7 @@ function GetUnixVMTime([String] $sshKey, [String] $ipv4)
     }
 
     $unixTimeStr = $null
-    $command =  "date '+%m/%d/%Y%t%T%p ' -u"
+    $command = 'date "+%m/%d/%Y/%T" -u'
 
     $sshKeyPath = Resolve-Path $sshKey
     $unixTimeStr = .\bin\plink.exe -i ${sshKeyPath} root@${ipv4} $command
@@ -279,7 +279,8 @@ $windowsTime = [DateTime]::Now.ToUniversalTime()
 #
 # Convert the Unix time string into a DateTime object
 #
-$unixTime = [DateTime]::Parse($unixTimeStr)
+$pattern = 'MM/dd/yyyy/HH:mm:ss'
+$unixTime = [DateTime]::ParseExact($unixTimeStr, $pattern, $null)
 
 #
 # Compute the timespan, then convert it to the absolute value of the total difference in seconds
