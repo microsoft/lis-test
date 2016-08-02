@@ -113,7 +113,7 @@ function TestWgetFile()
   echo "file_size before wget=$file_size"
   echo "file_size after wget=$file_size1"
 
-  if [ $file_size = $file_size1 ]; then
+  if [[ $file_size = $file_size1 ]]; then
       LogMsg "Drive wget to ${driveName}1 with filesystem ${fs} successfully"
       echo "Drive wget to ${driveName}1 with filesystem ${fs} successfully" >> ~/summary.log
   else
