@@ -886,7 +886,7 @@ function DoApplyCheckpoint([System.Xml.XmlElement] $vm, [XML] $xmlData)
     $testData = GetTestData $vm.currentTest $xmlData
     if ($testData -is [System.Xml.XmlElement])
     {
-        # Do not need to recover from checkpoint
+        # Do not need to recover from RevertDefaultSnapshot
         if (-not $testData.RevertDefaultSnapshot -or $testData.RevertDefaultSnapshot -eq "False")
         {
             LogMsg 9 "Info : noCheckpoint is not configured or set to True."
