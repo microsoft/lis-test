@@ -213,7 +213,7 @@ function PrintNetworkAdapterSettingData($nasd)
     }
 }
 
-function injectIpOnVm($ipAddr)
+function injectIpOnVm($IPv4Address)
 {
     $colItems = get-wmiobject -class "Win32_NetworkAdapterConfiguration"  -namespace "root\CIMV2" -computername localhost
 
@@ -227,50 +227,6 @@ function injectIpOnVm($ipAddr)
             }
         }
     }
-
-    #
-    # Parse the testParams
-    #
-    $tcCovered = "Unknown"
-    $rootDir = $null
-    $DHCPEnabled = $False
-    $ProtocolIFType = 4096
-
-    "$IPv4Address will be injected in place of $testIPv4Address"
-
-    $params = $testParams.TrimEnd(";").Split(";")
-    foreach ($p in $params)
-    {
-        $fields = $p.Split("=")
-        $value = $fields[1].Trim()
-
-        switch ($fields[0].Trim())
-        {
-        "dhcpenabled"    { $DHCPEnabled    = $fields[1].Trim() }
-        "ipv4address"    { $IPv4Address    = $fields[1].Trim() }
-        "ipv4subnet"     { $IPv4subnet     = $fields[1].Trim() }
-        "dnsserver"      { $DnsServer      = $fields[1].Trim() }
-        "ipv4Gateway"    { $IPv4Gateway    = $fields[1].Trim() }
-        "protocoliftype" { $ProtocolIFType = $fields[1].Trim() }
-        "rootdir"        { $rootDir   = $fields[1].Trim() }
-        "TC_COVERED"     { $tcCovered = $fields[1].Trim() }
-        default          {}  # unknown param - just ignore it
-        }
-    }
-
-    #
-    # Change the working directory to where LISA is located
-    #
-    if (-not $rootDir)
-    {
-        "Warn : no rootDir test parameter was specified"
-    }
-
-    cd $rootDir
-
-    $summaryLog  = "${vmName}_summary.log"
-    del $summaryLog -ErrorAction SilentlyContinue
-    echo "Covers : ${tcCovered}" > $summarylog
 
     #
     # Get the VMs IP addresses before injecting, then make sure the
@@ -291,6 +247,7 @@ function injectIpOnVm($ipAddr)
         exit 1
     }
 
+   "$IPv4Address will be injected in place of $testIPv4Address"
     #
     # Collect WMI objects for the virtual machine we are interested in
     # so we can inject some IP setting into the VM.
@@ -326,6 +283,50 @@ function injectIpOnVm($ipAddr)
 # Main script body
 #
 ##############################################################################
+
+#
+# Parse the testParams
+#
+$tcCovered = "Unknown"
+$rootDir = $null
+$DHCPEnabled = $False
+$ProtocolIFType = 4096
+
+$params = $testParams.TrimEnd(";").Split(";")
+foreach ($p in $params)
+{
+    $fields = $p.Split("=")
+    $value = $fields[1].Trim()
+
+    switch ($fields[0].Trim())
+    {
+    "dhcpenabled"    { $DHCPEnabled    = $fields[1].Trim() }
+    "ipv4address"    { $IPv4Address    = $fields[1].Trim() }
+    "ipv4subnet"     { $IPv4subnet     = $fields[1].Trim() }
+    "dnsserver"      { $DnsServer      = $fields[1].Trim() }
+    "ipv4Gateway"    { $IPv4Gateway    = $fields[1].Trim() }
+    "protocoliftype" { $ProtocolIFType = $fields[1].Trim() }
+    "rootdir"        { $rootDir   = $fields[1].Trim() }
+    "TC_COVERED"     { $tcCovered = $fields[1].Trim() }
+    default          {}  # unknown param - just ignore it
+    }
+}
+
+#
+# Change the working directory to where LISA is located
+#
+if (-not $rootDir)
+{
+    "Warn : no rootDir test parameter was specified"
+}
+
+cd $rootDir
+
+$summaryLog  = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+echo "Covers : ${tcCovered}" > $summarylog
+
+
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
@@ -396,11 +397,17 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 
 $oldIpAddress = $null
 $isPassed= $false
+
+
 $testIPv4Address = GetIPv4 $vmName $hvServer
+
 
 for ($i=0; $i -le 2; $i++)
 {
-    $IPv4Address = GenerateIpv4 $testIPv4Address $oldIpAddress
+  if ($IPv4Address -eq $null -or $IPv4Address -eq "" )
+  {
+     $IPv4Address = GenerateIpv4 $testIPv4Address $oldIpAddress
+  }
     injectIpOnVm $IPv4Address
     #
     # Now collect the IP addresses assigned to the VM and make
@@ -420,7 +427,7 @@ for ($i=0; $i -le 2; $i++)
     if ($ipAddrs -notcontains $IPv4Address) {
         "Info: The address '${IPv4Address}' was not injected into the VM. `n"
         $oldIpAddress = $IPv4Address
-    }  
+    }
     else{
         "Info: The address '${IPv4Address}' was successfully injected into the VM. `n"
         $isPassed = $true

@@ -33,7 +33,7 @@
             <smtpServer>smtp.your.company.com</smtpServer>
         </email>
     </global>
-    
+
 	<testSuites>
         <suite>
             <suiteName>LiveMigration</suiteName>
@@ -58,7 +58,7 @@
             </suiteTests>
         </suite>
     </testSuites>
-	
+
 	<testCases>
         <test>
             <testName>LiveMigrate</testName>
@@ -246,7 +246,7 @@
                 <param>TC_COVERED=NET_LIVEMIG-08c</param>
             </testparams>
         </test>
-	<test>
+	      <test>
             <testName>IPInjection</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
@@ -254,11 +254,16 @@
             <testParams>
                 <param>TC_COVERED=NET_LIVEMIG-09</param>
                 <param>SnapshotName=ICABase</param>
+                <param>ipv4address=192.168.1.14</param>
+                <param>ipv4subnet=255.255.255.0</param>
+                <param>ipv4Gateway=192.168.1.1</param>
+                <param>dnsserver=192.168.1.2</param>
             </testParams>
             <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <timeout>600</timeout>
         </test>
+
     </testCases>
     <VMs>
         <vm>
@@ -270,5 +275,5 @@
             <suite>LiveMigration</suite>
         </vm>
     </VMs>
-	
+
 </config>
