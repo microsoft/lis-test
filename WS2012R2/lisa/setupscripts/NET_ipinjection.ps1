@@ -44,6 +44,22 @@ function ReportError($Message)
     Write-Host $Message -ForegroundColor Red
 }
 
+
+#
+# Checks if hv_set_ifconfig is present in the VM
+#
+function check_hv_set_ifconfig()
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "find /usr/|grep hv_set_ifconfig"
+    if (-not $?) {
+        Write-Error -Message  "ERROR: hv_set_ifconfig is not present or verification failed" -ErrorAction SilentlyContinue
+        Write-Output "ERROR: hv_set_ifconfig is not present or verification failed"
+        break
+    }
+    Write-Host "hv_set_ifconfig is present in the VM"
+
+}
+
 #
 # Print VM Info related to replication
 #
@@ -394,6 +410,30 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $retVal
 }
 
+$params = $testParams.Split(";")
+foreach ($p in $params) {
+    $fields = $p.Split("=")
+
+    if ($fields[0].Trim() -eq "TC_COVERED") {
+        $TC_COVERED = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "rootDir") {
+        $rootDir = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "ipv4") {
+        $IPv4 = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "sshkey") {
+        $sshkey = $fields[1].Trim()
+    }
+}
+
+#
+# Check if hv_set_ifconfig is on the VM
+#
+
+check_hv_set_ifconfig
+
 $oldIpAddress = $null
 $isPassed= $false
 $testIPv4Address = GetIPv4 $vmName $hvServer
@@ -420,7 +460,7 @@ for ($i=0; $i -le 2; $i++)
     if ($ipAddrs -notcontains $IPv4Address) {
         "Info: The address '${IPv4Address}' was not injected into the VM. `n"
         $oldIpAddress = $IPv4Address
-    }  
+    }
     else{
         "Info: The address '${IPv4Address}' was successfully injected into the VM. `n"
         $isPassed = $true
