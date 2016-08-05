@@ -122,7 +122,7 @@ foreach ( $file in $directories )
     }
     if($result.count -gt 1){
         $a = New-Object System.Management.Automation.PSObject -Property $result
-        Export-CSV -InputObject $a -Path $logDir\FIO-Results-${date}.csv -Append
+        Export-CSV -NoTypeInformation -InputObject $a -Path $logDir\FIO-Results-${date}.csv -Append
     }
 }
 
