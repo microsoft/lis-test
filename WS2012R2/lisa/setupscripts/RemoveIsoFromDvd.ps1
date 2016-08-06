@@ -90,7 +90,11 @@ $error.Clear()
 $dvdcount = $(Get-VMDvdDrive -VMName $vmName).ControllerLocation.count 
 for ($i=0; $i -lt $dvdcount; $i++)
 {
-    Remove-VMDvdDrive -VMName $vmName -ControllerNumber 1 -ControllerLocation $i
+    $dvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber 1 -ControllerLocation $i
+    if ($dvd)
+    {
+        Remove-VMDvdDrive -VMName $vmName -ControllerNumber 1 -ControllerLocation $i
+    }
 }
 if (-not $?)
 {
