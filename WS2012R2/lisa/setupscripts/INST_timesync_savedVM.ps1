@@ -84,7 +84,7 @@ function GetUnixVMTime([String] $sshKey, [String] $ipv4)
     }
 
     $unixTimeStr = $null
-    $command =  'date "+%m/%d/%Y%t%T%p " -u'
+    $command = 'date "+%m/%d/%Y/%T" -u'
 
     $unixTimeStr = SendCommandToVM ${sshKey} $ipv4 $command
     if (-not $unixTimeStr -and $unixTimeStr.Length -lt 20)
@@ -121,7 +121,8 @@ function GetTimeSync([String] $sshKey, [String] $ipv4)
         return $False
     }
 
-    $unixTime = [DateTime]::Parse($unixTimeStr)
+    $pattern = 'MM/dd/yyyy/HH:mm:ss'
+    $unixTime = [DateTime]::ParseExact($unixTimeStr, $pattern, $null)
 
     #
     # Get our time
