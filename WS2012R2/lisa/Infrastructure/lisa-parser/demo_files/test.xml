@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+       <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>KVP Test Run on WS2012R2</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+
+        <!-- Optional testParams go here -->
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>KVP</suiteName>
+            <suiteTests>
+                <suiteTest>SQM_Basic</suiteTest>
+                <suiteTest>KVP_Basic</suiteTest>
+                <suiteTest>KVP_Add_Key_Values</suiteTest>
+                <suiteTest>KVP_Modify_Key_Values</suiteTest>
+                <suiteTest>KVP_Remove_Key_Values</suiteTest>
+                <suiteTest>KVP_Push_Key_Values</suiteTest>
+                <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
+                <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+                <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>SQM_Basic</testName>
+            <testScript>SetupScripts\SQM_Basic.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=SQM-01</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Basic</testName>
+            <testScript>SetupScripts\KVP_Basic.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-01</param>
+                <param>DE_change=no</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Add_Key_Values</testName>
+            <testScript>KVP_VerifyKeyValue.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-02</param>
+                <param>Key=EEE</param>
+                <param>Value=555</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Modify_Key_Values</testName>
+            <testScript>KVP_VerifyKeyValue.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <preTest>setupscripts\ModifyKeyValue.ps1</preTest>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-03</param>
+                <param>Key=EEE</param>
+                <param>Value=999</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Remove_Key_Values</testName>
+            <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-04</param>
+                <param>Key=EEE</param>
+                <param>Value=999</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Push_Key_Values</testName>
+            <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
+            <files>tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-05</param>
+                <param>Key=BBB</param>
+                <param>Value=111</param>
+                <param>sshKey=rhel5_id_rsa.ppk</param>
+            </testparams>
+        </test>
+
+    	<test>
+    		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
+    		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+    		<timeout>600</timeout>
+    		<onError>Abort</onError>
+    		<noReboot>True</noReboot>
+    		<testparams>
+    			<param>TC_COVERED=KVP-06</param>
+    			<param>Key=AAA</param>
+    			<param>Value=000</param>
+    			<param>Pool=0</param>
+    		</testparams>
+    	</test>
+
+    	<test>
+    		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
+    		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+    		<timeout>600</timeout>
+    		<onError>Abort</onError>
+    		<noReboot>True</noReboot>
+    		<testparams>
+    			<param>TC_COVERED=KVP-07</param>
+    			<param>Key=AAA</param>
+    			<param>Value=000</param>
+    			<param>Pool=0</param>
+    		</testparams>
+    	</test>
+
+        <test>
+            <testName>KVP_VerifyHostInjectedItems</testName>
+            <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-10</param>
+                <param>Pool=3</param>
+                <param>Items=11</param>
+            </testparams>
+        </test>
+    </testCases>
+
+    <VMs>
+	    <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>ubuntu-server-16.04</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>ubuntu-16.04-64\id_rsa</sshKey>
+            <suite>KVP</suite>
+        </vm>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>centos7</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <suite>KVP</suite>
+        </vm>
+    </VMs>
+
+</config>
