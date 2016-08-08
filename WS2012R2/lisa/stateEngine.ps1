@@ -1746,6 +1746,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
             # For SUT VMs: Run pretest script if one is specified
             #
             $testData = GetTestData $($vm.currentTest) $xmlData
+            $testName = $testData.testName
             if ($testData -is [System.Xml.XmlElement])
             {
                 if ($testData.preTest)
