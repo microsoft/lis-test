@@ -98,6 +98,7 @@ if [ $? -gt 0 ]; then
 fi
 LogMsg "Partition restored"
 
+sleep 5
 #
 #Checking filesystem
 #
@@ -126,7 +127,7 @@ LogMsg "Filesystem resized"
 # Mount partition
 #
 if [ ! -e "/mnt" ]; then
-    mkdir /mnt 2> summary.log
+    mkdir /mnt 2> ~/summary.log
     if [ $? -gt 0 ]; then
         LogMsg "Failed to create mount point"
         echo "Creating mount point: Failed" >> ~/summary.log
@@ -136,7 +137,7 @@ if [ ! -e "/mnt" ]; then
     LogMsg "Mount point /dev/mnt created"
 fi
 
-mount /dev/sdb1 /mnt 2> ~summary.log
+mount /dev/sdb1 /mnt 2> ~/summary.log
 if [ $? -gt 0 ]; then
     LogMsg "Failed to mount partition"
     echo "Mounting partition: Failed" >> ~/summary.log

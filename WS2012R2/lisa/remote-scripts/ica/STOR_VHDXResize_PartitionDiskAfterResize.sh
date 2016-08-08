@@ -99,7 +99,7 @@ if [ $? -gt 0 ]; then
     exit 10
 fi
 LogMsg "Partition created"
-
+sleep 5
 #
 # Format the partition
 #
