@@ -1746,6 +1746,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
             # For SUT VMs: Run pretest script if one is specified
             #
             $testData = GetTestData $($vm.currentTest) $xmlData
+            $testName = $testData.testName
             if ($testData -is [System.Xml.XmlElement])
             {
                 if ($testData.preTest)
@@ -1762,6 +1763,9 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                             if (! $sts)
                             {
                                 LogMsg 0 "Error: $($vm.vmName) PreTest script ${script} for test $($testData.testName) failed"
+                                $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - pretest script failed")
+                                UpdateState $vm $DetermineReboot
+                                return
                             }
                         }
                     }
@@ -1774,8 +1778,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                         {
                             LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
                             $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - pretest script failed")
-                            $vm.currentTest = "done"
-                            UpdateState $vm $finished
+                            UpdateState $vm $DetermineReboot
                             return
                         }
                     }
