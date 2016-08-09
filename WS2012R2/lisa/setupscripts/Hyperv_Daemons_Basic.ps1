@@ -159,8 +159,8 @@ if (-not $gsi.Enabled) {
 	} until (Test-NetConnection $IPv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 }
 sleep 2
-
-$sts = RunRemoteScript "Hyperv_Daemons_Files_Status.sh"
+$remoteScript = "Hyperv_Daemons_Files_Status.sh"
+$sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
 {
 		Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
