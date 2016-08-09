@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+ Copyright (c) Microsoft Corporation
+ All rights reserved.
+ Licensed under the Apache License, Version 2.0 (the ""License"");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+     http://www.apache.org/licenses/LICENSE-2.0
+ THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+ ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+ PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+ See the Apache Version 2.0 License for specific language governing
+ permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS Performance Test Results</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+        <imageStoreDir>\\path\to\vhd</imageStoreDir>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>MongoDB</suiteName>
+            <suiteTests>
+                <suiteTest>Mongoperf</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+         <test>
+            <testName>Mongoperf</testName>
+            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+            <testScript>perf_mongodb_client.sh</testScript>
+            <files>
+                remote-scripts/ica/perf_mongodb_client.sh,
+                remote-scripts/ica/perf_mongodb_server.sh,
+                remote-scripts/ica/utils.sh
+            </files>
+            <testParams>
+                <param>MD_SERVER=10.10.10.10</param>
+                <param>MONGODB_VERSION=3.2.8</param>
+                <param>YCSB_VERSION=0.10.0</param>
+                <param>threads=(1 2 4 8 16 32 64 128)</param>
+                <param>SSH_PRIVATE_KEY=id_rsa</param>
+                <param>STATIC_IP=10.10.10.20</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>MAC=001600112233</param>
+                <param>SERVER_OS_USERNAME=root</param>
+                <param>VM2NAME=Mongo-Server</param>
+                <param>VM2SERVER=LIS-PERF05</param>
+                <param>pattern=(CLEANUP.*Operations RunTime Throughput READ.*95thPercentileLatency UPDATE.*95thPercentileLatency)</param>
+            </testParams>
+            <uploadFiles>
+                <file>mongodb.csv</file>
+                <file>ycsb.log</file>
+                <file>mongodServerConsole.txt</file>
+            </uploadFiles>
+            <timeout>1500</timeout>
+            <OnError>Continue</OnError>
+         </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <role>SUT1</role>
+            <hvServer>LIS-PERF06</hvServer>
+            <vmName>Mongo-Client</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <suite>MongoDB</suite>
+            <hardware>
+               <create>true</create>
+               <numCPUs>8</numCPUs>
+               <memSize>8192</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,Vm.Enterprise#1</nic>
+               <nic>VMBus,Vm.Private40G#1,001600112200</nic>
+            </hardware>
+        </vm>
+        <vm>
+            <role>NonSUT1</role>
+            <hvServer>LIS-PERF05</hvServer>
+            <vmName>Mongo-Server</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>id_rsa.ppk</sshKey>
+            <hardware>
+               <create>true</create>
+               <numCPUs>8</numCPUs>
+               <memSize>8192</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,Vm.Enterprise#1,001600112233</nic>
+               <nic>VMBus,Vm.Private40G#1,001600112201</nic>
+            </hardware>
+        </vm>
+    </VMs>
+</config>
