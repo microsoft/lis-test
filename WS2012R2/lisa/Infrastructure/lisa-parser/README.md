@@ -1,4 +1,4 @@
-# LISA Persist
+# LISA Parser
 
 An utility for LIS Automation framework that parses the input and output files of a test run and persists the
 results in an SQL Server database
