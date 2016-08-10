@@ -75,6 +75,7 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=3TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
+                <param>SCSI=0,0,Dynamic,512,3TB</param>
                 <param>fileSystems=(ext4 xfs btrfs)</param>
                 <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-32-A</param>
@@ -94,6 +95,7 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=16TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
+                <param>SCSI=0,0,Dynamic,512,16TB</param>
                 <param>fileSystems=(ext4 xfs btrfs)</param>
                 <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-32-B</param>
@@ -114,6 +116,7 @@
                 <param>DefaultSize=64TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
                 <param>ControllerType=SCSI</param>
+                <param>SCSI=0,0,Dynamic,512,64TB</param>
                 <param>fileSystems=(ext4 xfs btrfs)</param>
                 <param>TC_COVERED=STOR-32-C</param>
             </testParams>
@@ -429,7 +432,7 @@
           <!-- dd fileSystems_size=5GB -->
           <param>File_DD_Bs=2048</param>
           <param>File_DD_Count=2500000</param>
-          <param>NFS_Path=10.0.0.0:/share</param>
+          <param>NFS_Path=10.66.10.35:/mnt/nfs_nfs</param>
        </testparams>
        <onError>Continue</onError>
        <noReboot>False</noReboot>
@@ -470,7 +473,7 @@
            <param>fileSystems=(ext4)</param>
            <param>ControllerType=SCSI</param>
            <param>TestWget=True</param>
-           <param>Wget_Path=http://fileshare/test.iso</param>
+           <param>Wget_Path=http://10.66.10.35/pub/kernel/kernel-3.10.0-305.el7.x86_64.rpm</param>
        </testparams>
        <onError>Continue</onError>
        <noReboot>False</noReboot>
@@ -491,7 +494,7 @@
          <param>fileSystems=(ext4)</param>
          <param>ControllerType=SCSI</param>
          <param>TestNFSCopy=True</param>
-         <param>NFS_Path=10.00.0.0:/share</param>
+         <param>NFS_Path=10.66.10.35:/mnt/nfs_nfs</param>
      </testparams>
      <onError>Continue</onError>
      <noReboot>False</noReboot>

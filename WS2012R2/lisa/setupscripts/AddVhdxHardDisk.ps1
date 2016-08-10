@@ -363,7 +363,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 #
 $SCSICount = 0
 $IDECount = 0
-$diskCount = 1
+$diskCount=$null
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($p in $params)
 {
@@ -387,7 +387,7 @@ foreach ($p in $params)
 # if define diskCount number, only support one SCSI parameter
 if ($diskCount -ne $null)
 {
-  if ($SCSICount -gt 0)
+  if ($SCSICount -gt 1 -or $IDECount -gt 0)
   {
     "Error: Invalid SCSI/IDE arguments, only support to define one SCSI disk"
     return $False

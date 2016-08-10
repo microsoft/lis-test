@@ -288,7 +288,7 @@ if ($hvModule -eq $NULL)
 if ($hvModule.companyName -ne "Microsoft Corporation")
 {
     "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $Falses
+    return $False
 }
 
 #
@@ -299,7 +299,8 @@ if ($hvModule.companyName -ne "Microsoft Corporation")
 #
 $SCSICount = 0
 $IDECount = 0
-$diskCount =1
+$diskCount =$null
+
 $params = $testParams.Split(';')
 
 $params = $testParams.TrimEnd(";").Split(";")
@@ -323,7 +324,7 @@ foreach ($p in $params)
 # if define diskCount number, only support one SCSI parameter
 if ($diskCount -ne $null)
 {
-  if ($SCSICount -gt 1)
+  if ($SCSICount -gt 1 -or $IDECount -gt 0)
   {
      "Error: Invalid SCSI/IDE arguments, only support to define one SCSI disk"
       return  $Falses
