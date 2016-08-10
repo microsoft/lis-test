@@ -363,6 +363,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 #
 $SCSICount = 0
 $IDECount = 0
+$diskCount=$null
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($p in $params)
 {

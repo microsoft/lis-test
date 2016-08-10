@@ -288,7 +288,7 @@ if ($hvModule -eq $NULL)
 if ($hvModule.companyName -ne "Microsoft Corporation")
 {
     "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $Falses
+    return $False
 }
 
 #
@@ -297,6 +297,10 @@ if ($hvModule.companyName -ne "Microsoft Corporation")
 #
 # Create an array of string, each element is separated by the ;
 #
+$SCSICount = 0
+$IDECount = 0
+$diskCount =$null
+
 $params = $testParams.Split(';')
 
 $params = $testParams.TrimEnd(";").Split(";")

@@ -75,13 +75,15 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=3TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
-                <param>fileSystems=(ext4 xfs btrfs)</param>
                 <param>SCSI=0,0,Dynamic,512,3TB</param>
+                <param>fileSystems=(ext4 xfs btrfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-32-A</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
             <timeout>3600</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -93,13 +95,15 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=16TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
-                <param>fileSystems=(ext4 xfs btrfs)</param>
                 <param>SCSI=0,0,Dynamic,512,16TB</param>
+                <param>fileSystems=(ext4 xfs btrfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-32-B</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
             <timeout>3600</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -111,13 +115,15 @@
                 <param>SectorSize=4096</param>
                 <param>DefaultSize=64TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
+                <param>ControllerType=SCSI</param>
+                <param>SCSI=0,0,Dynamic,512,64TB</param>
                 <param>fileSystems=(ext4 xfs btrfs)</param>
-                <param>SCSI=0,0,Dynamic,4096,64TB</param>
                 <param>TC_COVERED=STOR-32-C</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
             <timeout>3600</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -179,6 +185,7 @@
                <param>LoopCount=5</param>
            </testparams>
            <timeout>800</timeout>
+           <onError>Continue</onError>
        </test>
 
        <test>
@@ -197,6 +204,7 @@
                <param>diskCount=64</param>
           </testparams>
           <timeout>800</timeout>
+          <onError>Continue</onError>
         </test>
 
         <test>
@@ -212,6 +220,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
+            <onError>Continue</onError>
       </test>
         <test>
             <testName>VHDx_MultiDiskSCSI_Dynamic</testName>
@@ -242,6 +251,7 @@
              <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
              <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
              <timeout>1800</timeout>
+             <onError>Continue</onError>
          </test>
         <test>
             <testName>VHDx_MultiDiskSCSI_Fixed</testName>
@@ -330,6 +340,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
+            <onError>Continue</onError>
         </test>
         <test>
             <testName>VHDx_4k_MultiDiskSCSI_Dynamic</testName>
@@ -359,6 +370,7 @@
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
+            <onError>Continue</onError>
         </test>
 		
         <test>
@@ -420,7 +432,7 @@
           <!-- dd fileSystems_size=5GB -->
           <param>File_DD_Bs=2048</param>
           <param>File_DD_Count=2500000</param>
-          <param>NFS_Path=10.0.0.0:/share</param>
+          <param>NFS_Path=10.66.10.35:/mnt/nfs_nfs</param>
        </testparams>
        <onError>Continue</onError>
        <noReboot>False</noReboot>
@@ -461,7 +473,7 @@
            <param>fileSystems=(ext4)</param>
            <param>ControllerType=SCSI</param>
            <param>TestWget=True</param>
-           <param>Wget_Path=http://fileshare/test.iso</param>
+           <param>Wget_Path=http://10.66.10.35/pub/kernel/kernel-3.10.0-305.el7.x86_64.rpm</param>
        </testparams>
        <onError>Continue</onError>
        <noReboot>False</noReboot>
@@ -482,7 +494,7 @@
          <param>fileSystems=(ext4)</param>
          <param>ControllerType=SCSI</param>
          <param>TestNFSCopy=True</param>
-         <param>NFS_Path=10.00.0.0:/share</param>
+         <param>NFS_Path=10.66.10.35:/mnt/nfs_nfs</param>
      </testparams>
      <onError>Continue</onError>
      <noReboot>False</noReboot>
