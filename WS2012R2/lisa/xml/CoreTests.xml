@@ -60,11 +60,13 @@
             <suiteTest>initrd_modules_check</suiteTest>
             <suiteTest>check_clocksource</suiteTest>
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
+            <suiteTest>Check_HypervDaemons_Files_Status</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
+
     	<test>
             <testName>VMHeartBeat</testName>
             <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
@@ -299,7 +301,7 @@
 		    <onError>Continue</onError>
             <timeout>600</timeout>
         </test>
-        
+
         <test>
            <testName>Disable_NUMA_By_Kernel</testName>
            <setupScript>
@@ -356,6 +358,17 @@
                 <param>TC_COVERED=CORE-29</param>
                 <param>MaxTimeDiff=5</param>
             </testParams>
+        </test>
+
+        <test>
+              <testName>Check_HypervDaemons_Files_Status</testName>
+              <testScript>setupscripts\Hyperv_Daemons_Basic.ps1</testScript>
+              <files>remote-scripts/ica/Hyperv_Daemons_Files_Status.sh</files>
+
+              <timeout>600</timeout>
+              <testParams>
+                  <param>TC_COVERED=CORE-30</param>
+              </testParams>
         </test>
     </testCases>
 
