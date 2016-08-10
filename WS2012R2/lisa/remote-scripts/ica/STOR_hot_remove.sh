@@ -21,7 +21,6 @@
 #
 ########################################################################
 
-
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
@@ -51,7 +50,6 @@ function CheckForError()
 
     done
 }
-
 
 #
 # Create the state.txt file so ICA knows we are running
@@ -128,7 +126,6 @@ fdisk -l > /dev/null
 sdCount=0
 sdCount=`fdisk -l | grep "Disk /dev/sd*" | wc -l`
 
-
 #
 # Subtract the boot disk from the sdCount, then make
 # sure the two disk counts match
@@ -143,12 +140,10 @@ if [ $sdCount == $diskCount ]; then
     exit 30
 else
     if [ "$sdCount" == "0" ]; then
-	    LogMsg "Hot remove of Disk was successful"
-	    echo "Hot remove Disk was successful" >> ~/summary.log
+	    LogMsg "Info: Hot remove of Disk was successful"
 	else
-	    LogMsg "Disk count mismatch, count is $sdCount"
-		echo "Disk count mismatch, count is $sdCount" >> ~/summary.log
-		UpdateTestState $ICA_TESTFAILED
+	    LogMsg "Info: Disk count mismatch, count is $sdCount"
+	    UpdateTestState $ICA_TESTFAILED
         exit 40
     fi
 fi
