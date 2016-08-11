@@ -60,6 +60,8 @@
             <suiteTest>initrd_modules_check</suiteTest>
             <suiteTest>check_clocksource</suiteTest>
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
+            <!-- This test is available only on RHEL/CENTOS with LIS built-in -->
+            <suiteTest>LISdaemons_selinux_check</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -299,7 +301,7 @@
 		    <onError>Continue</onError>
             <timeout>600</timeout>
         </test>
-        
+
         <test>
            <testName>Disable_NUMA_By_Kernel</testName>
            <setupScript>
@@ -357,7 +359,21 @@
                 <param>MaxTimeDiff=5</param>
             </testParams>
         </test>
+
+        <test>
+            <testName>LISdaemons_selinux_check</testName>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
+            <testScript>CORE_LISdaemons_selinux.sh</testScript>
+            <files>remote-scripts/ica/CORE_LISdaemons_selinux.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testParams>
+                <param>TC_COVERED=CORE-30</param>
+                <param>selinux=enforcing</param>
+            </testParams>
+        </test>
     </testCases>
+
 
     <VMs>
 	<vm>
