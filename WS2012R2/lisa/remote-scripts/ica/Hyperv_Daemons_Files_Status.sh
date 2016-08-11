@@ -130,14 +130,16 @@ CheckDaemonsFilesRHEL7()
   dameonFile=`ls /usr/lib/systemd/system | grep -i $1`
   dameonFile2=`ls /etc/systemd/system/multi-user.target.wants | grep -i $1`
   if [[ "$dameonFile" != $1 ]] || [[ "$dameonFile2" != $1 ]] ; then
-    LogMsg "ERROR: $1 is not in /usr/lib/systemd or /etc/systemd/system/multi-user.target.wants , test failed"
+    LogMsg "ERROR: $1 is not in /usr/lib/systemd/system or /etc/systemd/system/multi-user.target.wants , test failed"
+    UpdateSummary "ERROR: $1 is not in /usr/lib/systemd/system or /etc/systemd/system/multi-user.target.wants , test failed"
     UpdateTestState $ICA_TESTFAILED
     exit 1
   fi
 
   dameonPreset=`cat /lib/systemd/system-preset/90-default.preset | grep -i $1`
   if [ "$dameonPreset" != "enable $1" ]; then
-    LogMsg "ERROR: $1 is not in 90-default.preset, test aborted"
+    LogMsg "ERROR: $1 is not in 90-default.preset, test failed"
+    UpdateSummary "ERROR: $1 is not in 90-default.preset, test failed"
     UpdateTestState $ICA_TESTFAILED
     exit 1
   fi
@@ -152,6 +154,7 @@ CheckDaemonsFilesRHEL6()
 
   if [[ "$dameonFile" != $1 ]] ; then
     LogMsg "ERROR: $1 is not in /etc/rc.d/init.d , test failed"
+    UpdateSummary "ERROR: $1 is not in /etc/rc.d/init.d , test failed"
     UpdateTestState $ICA_TESTFAILED
     exit 1
   fi
@@ -165,8 +168,8 @@ CheckDaemonsStatusRHEL7()
   dameonStatus=`systemctl is-active $1`
   if [ $dameonStatus != "active" ]; then
     LogMsg "ERROR: $1 is not in running state, test aborted"
-    UpdateTestState $ICA_TESTFAILED
-    UpdateSummary "ERROR: Please check whehter enable 'Guest Services and Data Exchange'"
+    UpdateSummary "ERROR: $1 is not in running state, test aborted"
+    UpdateTestState $ICA_TESTABORTED
     exit 1
 
   fi
@@ -183,6 +186,7 @@ CheckDaemonsStatus()
 
   else
       LogMsg "ERROR: $1 Daemon not running, test aborted"
+      UpdateSummary "ERROR: $1 Daemon not running, test aborted"
       UpdateTestState $ICA_TESTABORTED
       exit 1
   fi

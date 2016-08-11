@@ -29,15 +29,16 @@
 
     A typical XML definition for this test case would look similar
     to the following:
-		<test>
-			<testName>FCOPY_basic</testName>
-			<testScript>setupscripts\FCOPY_basic.ps1</testScript>
-			<timeout>900</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-01</param>
-			</testParams>
-			<noReboot>True</noReboot>
-		</test>
+    <test>
+          <testName>Check_HypervDaemons_Files_Status</testName>
+          <testScript>setupscripts\Hyperv_Daemons_Basic.ps1</testScript>
+          <files>remote-scripts/ica/Hyperv_Daemons_Files_Status.sh</files>
+
+          <timeout>600</timeout>
+          <testParams>
+              <param>TC_COVERED=CORE-30</param>
+          </testParams>
+    </test>
 
 .Parameter vmName
     Name of the VM to test.
@@ -49,14 +50,13 @@
     Test data for this test case.
 
 .Example
-    setupScripts\FCOPY_basic.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
+    setupScripts\Hyperv_Daemons_Files_Status.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $retVal = $false
 $gsi = $null
-
 
 
 ################################################
@@ -101,6 +101,10 @@ foreach ($p in $params) {
 	if ($fields[0].Trim() -eq "sshkey") {
         $sshkey = $fields[1].Trim()
     }
+
+  if ($fields[0].Trim() -eq "TestLogDir") {
+          $TestLogDir = $fields[1].Trim()
+      }
 }
 
 #
@@ -158,7 +162,7 @@ if (-not $gsi.Enabled) {
 		sleep 5
 	} until (Test-NetConnection $IPv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 }
-sleep 2
+
 $remoteScript = "Hyperv_Daemons_Files_Status.sh"
 $sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
