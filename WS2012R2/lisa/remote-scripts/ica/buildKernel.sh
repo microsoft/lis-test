@@ -19,6 +19,9 @@
 #         ROOTDIR=linux2.6
 #
 
+DEBUG_LEVEL=3
+CONFIG_FILE=.config
+
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
@@ -26,8 +29,13 @@ function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1}
 }
 
-DEBUG_LEVEL=3
-CONFIG_FILE=.config
+UpdateTestState() {
+    echo $1 > ~/state.txt
+}
+
+UpdateSummary() {
+    echo $1 >> ~/summary.log
+}
 
 START_DIR=$(pwd)
 cd ~
@@ -50,16 +58,6 @@ dbgprint()
     if [ $1 -le $DEBUG_LEVEL ]; then
         echo "$2"
     fi
-}
-
-UpdateTestState()
-{
-    echo $1 > ~/state.txt
-}
-
-UpdateSummary()
-{
-    echo $1 >> ~/summary.log
 }
 
 #
@@ -145,7 +143,7 @@ elif is_ubuntu ; then
         UpdateTestState $TestAborted
     fi
 elif is_suse ; then
-    #If distro is SLES we need to install soime packages first
+    #If distro is SLES we need to install some packages first
     echo "Nothing to do."
 fi
 
@@ -235,7 +233,7 @@ else
 	#
 	# Enable HyperV support
 	#
-	dbgprint 3 "Enabling HyperV support in the ${CONFIG_FILE}"
+	dbgprint 3 "Enabling Hyper-V support in the ${CONFIG_FILE}"
 	# On this first 'sed' command use --in-place=.orig to make a backup
 	# of the original .config file created with 'defconfig'
 	sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=m\nCONFIG_HYPERV_UTILS=m\nCONFIG_HYPERV_BALLOON=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=m\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
@@ -352,7 +350,7 @@ if [ -e /boot/grub/grub.conf ]; then
         grubfile="/boot/grub/grub.conf"
 elif [ -e /boot/grub/menu.lst ]; then
         grubfile="/boot/grub/menu.lst"
-elif [ -e /boot/grub2/grub.cfg ]; then
+elif [ -e /boot/grub2/grub.cfg ] || [ -e /boot/efi/EFI/redhat/grub.cfg ] ; then
         grubversion=2
         grub2-mkconfig -o /boot/grub2/grub.cfg
 	grub2-set-default 0
