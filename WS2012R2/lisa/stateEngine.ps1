@@ -1805,14 +1805,16 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 if (-not $sts)
                 {
                     LogMsg 0 "Error: Info: NonSUT VM $($vm.vmName) postStartConfig script for test $($vm.postStartConfig) failed"
+                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - post script failed")
                 }
             }
             else
             {
                 LogMsg 9 "Info : NonSUT VM: $($vm.vmName) entered RunPreTestScript with no postStartConfig script defined"
+                $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - post script failed")
             }
 
-            UpdateState $vm $Finished
+            UpdateState $vm $DetermineReboot
         }
     }
 }

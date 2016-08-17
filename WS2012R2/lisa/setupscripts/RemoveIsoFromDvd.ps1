@@ -63,6 +63,7 @@ param ([String] $vmName, [String] $hvServer, [String] $testParams)
 "  testParams = ${testParams}"
 
 $isoFilename = $null
+$controllerNumber=$null
 
 #
 # Check arguments
@@ -87,13 +88,30 @@ $error.Clear()
 #
 # Remove the .iso file from the VMs DVD drive
 #
-$dvdcount = $(Get-VMDvdDrive -VMName $vmName).ControllerLocation.count 
-for ($i=0; $i -lt $dvdcount; $i++)
+
+#
+#Get the version of VM
+#
+$vmGeneration = Get-VM $vmName | select -ExpandProperty Generation
+#
+# Make sure the DVD drive exists on the VM
+#
+if ($vmGeneration -eq 1)
 {
-    $dvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber 1 -ControllerLocation $i
+    $controllerNumber=1
+}
+else
+{
+    $controllerNumber=0
+}
+
+$dvdcount = $(Get-VMDvdDrive -VMName $vmName).ControllerLocation.count 
+for ($i=0; $i -le $dvdcount; $i++)
+{
+    $dvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber $controllerNumber -ControllerLocation $i
     if ($dvd)
     {
-        Remove-VMDvdDrive -VMName $vmName -ControllerNumber 1 -ControllerLocation $i
+        Remove-VMDvdDrive -VMName $vmName -ControllerNumber $controllerNumber -ControllerLocation $i
     }
 }
 if (-not $?)
