@@ -192,7 +192,6 @@ fi
 #
 if [ "${TC_COVERED:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter TC_COVERED is not defined in ${CONSTANTS_FILE}"
-    echo $msg
     echo $msg >> ~/summary.log
 fi
 
@@ -224,10 +223,10 @@ test -d "$TOP_SRCDIR" || mkdir -p "$TOP_SRCDIR"
 cd $TOP_SRCDIR
 
 LogMsg "Cloning LTP"
-git clone https://github.com/linux-test-project/ltp.git
+git clone --depth 1 https://github.com/linux-test-project/ltp.git
 TOP_SRCDIR="$HOME/src/ltp"
 
-LogMsg "Configuring LTP"
+LogMsg "Configuring LTP..."
 cd $TOP_SRCDIR
 make autotools
 
