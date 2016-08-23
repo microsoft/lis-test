@@ -162,7 +162,7 @@ function compute_local_md5($filePath){
     if (-not $?){
         Write-Output "ERROR: Unable to get MD5 checksum"
         Write-Output "ERROR: Unable to get MD5 checksum" >> $summaryLog
-        exit -1 
+        exit -1
     }
     else {
         Write-Output "MD5 checksum on Hyper-V: $localChksum" >> $summaryLog
@@ -272,7 +272,7 @@ if (-not $sts[-1]) {
 }
 
 $localChksum1 = compute_local_md5 $filePath1
-$localChksum2 = compute_local_md5 $filePath2 
+$localChksum2 = compute_local_md5 $filePath2
 
 #
 # Copy the file to the Linux guest VM
@@ -286,7 +286,7 @@ $copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${filePath1} root@
 
 while ($True){
     if ($job.state -eq "Completed"){
-            $copyDuration2 = ($job.PSEndTime - $job.PSBeginTime).seconds
+            $copyDuration2 = ($job.PSEndTime - $job.PSBeginTime).totalseconds
             Remove-Job -id $job.id
        break
     }
@@ -359,18 +359,18 @@ if (-not $?) {
 .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/summary.log .
 if (-not $?) {
     Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to copy the confirmation file from the VM" | Tee-Object -Append -file $summaryLog 
+    Write-Output "ERROR: Unable to copy the confirmation file from the VM" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
 $md5IsMatching = select-string -pattern $localChksum1 -path $logfilename
-if ($md5IsMatching -eq $null) 
-{ 
+if ($md5IsMatching -eq $null)
+{
     Write-Output "ERROR: MD5 checksums are not matching for first file" | Tee-Object -Append -file $summaryLog
     Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
     remove_files
     return $False
-} 
+}
 
 Write-Output "Info: MD5 checksums are matching for first file" | Tee-Object -Append -file $summaryLog
 Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
@@ -392,13 +392,13 @@ if (-not $?) {
     return $False
 }
 $md5IsMatching = select-string -pattern $localChksum2 -path $logfilename
-if ($md5IsMatching -eq $null) 
-{ 
+if ($md5IsMatching -eq $null)
+{
     Write-Output "ERROR: MD5 checksums are not matching for second file" | Tee-Object -Append -file $summaryLog
     Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
     remove_files
     return $False
-} 
+}
 
 Write-Output "Info: MD5 checksums are matching for second file" | Tee-Object -Append -file $summaryLog
 Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
