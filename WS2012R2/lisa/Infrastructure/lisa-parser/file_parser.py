@@ -22,6 +22,7 @@ permissions and limitations under the License.
 from __future__ import print_function
 import logging
 import re
+import os
 import sys
 import csv
 import fileinput
@@ -240,3 +241,147 @@ def parse_from_csv(csv_path):
         for csv_dict in reader:
             list_csv_dict.append(csv_dict)
     return list_csv_dict
+
+
+class BaseLogsReader(object):
+    """
+    Base class for collecting data from multiple log files
+    """
+    def __init__(self, log_path):
+        """
+        Init Base logger.
+        :param log_path: Required
+        """
+        self.log_path = log_path
+        self.headers = None
+        self.log_matcher = None
+
+    @property
+    def log_files(self):
+        """
+        Compute all files from a path.
+        :returns: List
+        :rtype: List or None
+        """
+        return [log_name for log_name in os.listdir(self.log_path)
+                if os.path.isfile(os.path.join(self.log_path, log_name))]
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Placeholder method for collecting data. Will be overwritten in
+        subclasses with the logic.
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        return log_dict
+
+    def process_logs(self):
+        """
+        General data collector method parsing through each log file matching the
+        regex filter and call on self.collect_data() for the customized logic.
+        :return: <list of dict> e.g. [{'t_col1': 'val1',
+                                   't_col2': 'val2',
+                                   ...
+                                   },
+                                  ...]
+             [] - on failed parsing
+        """
+        list_log_dict = []
+        for log_file in self.log_files:
+            f_match = re.match(self.log_matcher, log_file)
+            if not f_match:
+                continue
+            log_dict = dict.fromkeys(self.headers)
+            list_log_dict.append(self.collect_data(f_match, log_file, log_dict))
+        return list_log_dict
+
+
+class FIOLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing FIO log files e.g.
+    PERF-8kFIO_Performance_FIO_FIOLog-qXXX.log
+    """
+    def __init__(self, log_path=None):
+        super(FIOLogsReader, self).__init__(log_path)
+        self.headers = ['rand-read:', 'rand-read: latency',
+                        'rand-write: latency', 'seq-write: latency',
+                        'rand-write:', 'seq-write:', 'seq-read:',
+                        'seq-read: latency', 'BlockSize']
+        self.log_matcher = 'PERF-[0-9]+[a-zA-Z_]+FIOLog-(q[0-9]+)'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for FIO test case.
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['BlockSize'] = f_match.group(1)
+        with open(os.path.join(self.log_path, log_file), 'r') as f:
+            lines = f.readlines()
+            for key in log_dict:
+                if not log_dict[key]:
+                    for i in range(0, len(lines)):
+                        if all(markers in lines[i] for markers in
+                               [key.split(':')[0], 'pid=']):
+                            if 'latency' in key:
+                                lat = re.match('.+lat \(.+avg=([0-9. ]+)',
+                                               lines[i + 4])
+                                if lat:
+                                    log_dict[key] = lat.group(1).strip()
+                            else:
+                                iops = re.match('.+iops=([0-9. ]+)',
+                                                lines[i + 1])
+                                if iops:
+                                    log_dict[key] = iops.group(1).strip()
+        return log_dict
+
+
+class NTTTCPLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing NTTTCP log files e.g.
+    ntttcp-pXXX.log
+    tcping-ntttcp-pXXX.log - avg latency
+    """
+    def __init__(self, log_path=None):
+        super(NTTTCPLogsReader, self).__init__(log_path)
+        self.headers = ['#test_connections', 'throughput_gbps',
+                        'average_tcp_latency', 'average_packet_size']
+        self.log_matcher = 'ntttcp-p([0-9X]+)'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for NTTTCP test case.
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        # compute the number of connections from the log name
+        n_conn = reduce(lambda x, y: int(x) * int(y),
+                        f_match.group(1).split('X'))
+        log_dict['#test_connections'] = n_conn
+        for key in log_dict:
+            if not log_dict[key]:
+                if 'throughput' in key:
+                    with open(os.path.join(self.log_path, log_file), 'r') as f:
+                        lines = f.readlines()
+                        for i in range(0, len(lines)):
+                            throughput = re.match('.+throughput.+:([0-9.]+)',
+                                                  lines[i])
+                            if throughput:
+                                log_dict[key] = throughput.group(1).strip()
+                elif 'latency' in key:
+                    lat_file = os.path.join(self.log_path,
+                                            'tcping-ntttcp-p{}.log'
+                                            .format(f_match.group(1)))
+                    with open(lat_file, 'r') as f:
+                        lines = f.readlines()
+                        for i in range(0, len(lines)):
+                            latency = re.match('.+avg =([0-9. ]+)', lines[i])
+                            if latency:
+                                log_dict[key] = latency.group(1).strip()
+        return log_dict
