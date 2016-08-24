@@ -87,28 +87,35 @@ def compare_lengths(cursor, values_dict):
 
 
 def insert_values(cursor, values_dict):
-    """Executes an insert command on the db using the values
+    """Creates an insert command from a template and calls the pyodbc method
 
-     provided by de value_dict in which the keys represent
-     table columns and the dict values are the values to be
-     inserted
+     Provided with a dictionary that is structured so the keys match the
+     column names and the values are represented by the items that are to be
+     inserted the function composes the sql command from a template and
+     calls a pyodbc to execute the command.
     """
-    insert_command = Template('insert into $tableName($columns)'
+    insert_command_template = Template('insert into $tableName($columns)'
                               ' values($values)')
     logger.debug('Line to be inserted %s', values_dict)
     values = ''
+    table_name = '"' + env.str('TableName') + '"'
     for item in values_dict.values():
         if type(item) == str:
             values = ', '.join([values, "'" + item + "'"])
         else:
             values = ', '.join([values, str(item)])
-    print(values)
-    try:
-        cursor.execute(insert_command.substitute(
-            tableName=env.str('TableName'),
+
+    insert_command = insert_command_template.substitute(
+            tableName=table_name,
             columns=', '.join(values_dict.keys()),
             values=values[1:]
-        ))
+        )
+
+    logger.debug('Insert command that will be exectued:')
+    logger.debug(insert_command)
+
+    try:
+        cursor.execute(insert_command)
     except pyodbc.DataError as data_error:
         print(dir(data_error))
         if data_error[0] == '22001':
