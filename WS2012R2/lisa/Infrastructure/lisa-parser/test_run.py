@@ -274,6 +274,5 @@ class TestCase(object):
                     return value
         except KeyError:
             logger.warning('No test case ID found for %s', self.name)
-            logger.warning('Saving empty value')
 
-        return '-'
+        return 'NO_ID'
