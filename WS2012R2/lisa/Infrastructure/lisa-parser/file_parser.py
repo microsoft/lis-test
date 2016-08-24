@@ -85,7 +85,7 @@ class ParseXML(object):
         for test_property in test_root.getchildren():
             if test_property.tag == 'testName':
                 continue
-            elif not test_property.getchildren():
+            elif not test_property.getchildren() and test_property.text:
                 test_dict[test_property.tag.lower()] = \
                     test_property.text.strip().split()
             else:

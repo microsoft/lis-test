@@ -16,23 +16,23 @@ $ pip install -r requirements.txt
 ### Basic usage
 
 ```bash
-$ python lisa_parser.py -demo_files/test.xml  demo_files/ica.log
+$ python lisa_parser.py path_to_xml_file  path_to_ica_log_file
 ```
 
 ### Optional Arguments:
 
 ```
--c | --config      Path to .env file that holds values for the database connection - config/.env default
+-c | --config      Path to config file that holds values for the database connection - config/db.config default
 -l | --loglevel Logging level for the script - 2 default 
                 Levels: 1 - Warning, 2 - Info, 3 - Debug
 -k | --skipkvp  Flag that indicates if the script searches for DistroVersion and KernelVersion from the VM - default True
 -p | --perf     Attribute that indicates if a performance test is being run and the path to the test report log
 ```
 
-### Specify env file
+### Specify config file
 
 ```bash
-$ python lisa-parser.py demo_files/test.xml demo_files/ica.log -c path_to_config_file
+$ python lisa-parser.py path_to_xml_file path_to_ica_log_file -c path_to_config_file
 ```
 
 ## Documentation
@@ -102,7 +102,7 @@ All the information is handled by a method that formats data in order to be proc
 the sql_utils module - parse_for_db_insertion()
 
 ### sql_utils.py
-Database interaction is handled by the pyodbc module, connection variables being saved in the .env file.
+Database interaction is handled by the pyodbc module, connection variables being saved in the config file.
 
 The main method, insert_values, expects a dict in which the keys represent the table column names and the values
 are the final values to be inserted
