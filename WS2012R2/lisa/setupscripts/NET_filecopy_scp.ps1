@@ -25,7 +25,7 @@
 
 .Description
     The script will copy 2 random generated 10GB files from a Windows host to
-    the Linux VM, and then checks if the size is matching.
+    the Linux VM, and then checks if the sizes and checksums are matching.
 
     A typical XML definition for this test case would look similar
     to the following:
@@ -57,7 +57,6 @@
 .Example
     setupScripts\NET_filecopy_scp.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
 #>
-
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
@@ -120,11 +119,12 @@ function mount_disk()
 
     return $True
 }
-#####################
+
+#######################################################################
 #
-#   create file
+#   Create the test file
 #
-#######################
+#######################################################################
 function create_file($filename, $filesize){
 
     # Get VHD path of tested server; file will be copied there
@@ -149,11 +149,12 @@ function create_file($filename, $filesize){
     }
     return $filePath, $file_path_formatted
 }
-#############3
+
+#######################################################################
 #
-#   calculate local md5
+#   Compute local files MD5
 #
-###########
+#######################################################################
 function compute_local_md5($filePath){
     #
     #Getting MD5 checksum of the files
@@ -165,7 +166,7 @@ function compute_local_md5($filePath){
         exit -1
     }
     else {
-        Write-Output "MD5 checksum on Hyper-V: $localChksum" >> $summaryLog
+        "MD5 checksum on Hyper-V: $localChksum"
     }
     return $localChksum
 }
@@ -184,10 +185,11 @@ function remove_files(){
         Write-Output "ERROR: Cannot remove the test file '${testfile2}'!" | Tee-Object -Append -file $summaryLog
     }
 }
+
 #######################################################################
 #
 #   Main body script
-
+#
 #######################################################################
 
 # Checking the input arguments
@@ -203,14 +205,13 @@ if (-not $hvServer) {
 
 if (-not $testParams) {
     "Error: No testParams provided!"
-    "This script requires the test case ID and VM details as the test parameters."
+    "This script requires the VM details as the test parameters."
     return $false
 }
 
 #
 # Checking the mandatory testParams. New parameters must be validated here.
 #
-
 $params = $testParams.Split(";")
 foreach ($p in $params) {
     $fields = $p.Split("=")
@@ -242,10 +243,11 @@ cd $rootDir
 # Delete any previous summary.log file, then create a new one
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
+
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
-# Verify the Putty utilities exist.  Without them, we cannot talk to the Linux VM.
+# Verify the Putty utilities exist. Without them, we cannot talk to the Linux VM.
 #
 if (-not (Test-Path -Path ".\bin\pscp.exe"))
 {
@@ -253,14 +255,11 @@ if (-not (Test-Path -Path ".\bin\pscp.exe"))
     return $false
 }
 
-
 # Define the file-name to use with the current time-stamp
 $testfile1 = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
 $filePath1, $file_path_formatted1 = create_file $testfile1 $filesize1
 
-# second file
-
-# Define the file-name to use with the current time-stamp
+# Define the second file-name to use with the current time-stamp
 $testfile2 = "testfile-2-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
 $filePath2, $file_path_formatted2 = create_file $testfile2 $filesize2
 
@@ -282,11 +281,11 @@ $command = "${rootDir}\bin\pscp -i ${rootDir}\ssh\${sshKey} '${filePath2}' root@
 
 $job = Start-Job -ScriptBlock  {Invoke-Expression $args[0]} -ArgumentList $command
 
-$copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${filePath1} root@${ipv4}:/mnt/ }).totalseconds
+$copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${filePath1} root@${ipv4}:/mnt/ }).TotalMinutes
 
 while ($True){
     if ($job.state -eq "Completed"){
-            $copyDuration2 = ($job.PSEndTime - $job.PSBeginTime).totalseconds
+            $copyDuration2 = ($job.PSEndTime - $job.PSBeginTime).TotalMinutes
             Remove-Job -id $job.id
        break
     }
@@ -301,9 +300,7 @@ else {
     return $False
 }
 
-[int]$copyDuration = [math]::floor($copyDuration)
-
-Write-Output "The file copy process took ${copyDuration1} seconds for first file and ${copyDuration2} seconds for second file" | Tee-Object -Append -file $summaryLog
+Write-Output "The file copy process took $([System.Math]::Round($copyDuration1, 2)) minutes for first file and $([System.Math]::Round($copyDuration2, 2)) minutes for second file" | Tee-Object -Append -file $summaryLog
 
 #
 # Checking if the file is present on the guest and file size is matching
@@ -314,7 +311,7 @@ if (-not $sts) {
     return $False
 }
 elseif ($sts -eq $filesize1) {
-    Write-Output "Info: The file copied matches the 10GB size." | Tee-Object -Append -file $summaryLog
+    "Info: The file copied matches the 10GB size."
 }
 else {
     Write-Output "ERROR: The file copied doesn't match the 10GB size!" | Tee-Object -Append -file $summaryLog
@@ -363,6 +360,7 @@ if (-not $?) {
     remove_files
     return $False
 }
+
 $md5IsMatching = select-string -pattern $localChksum1 -path $logfilename
 if ($md5IsMatching -eq $null)
 {
@@ -391,6 +389,7 @@ if (-not $?) {
     remove_files
     return $False
 }
+
 $md5IsMatching = select-string -pattern $localChksum2 -path $logfilename
 if ($md5IsMatching -eq $null)
 {
@@ -400,7 +399,7 @@ if ($md5IsMatching -eq $null)
     return $False
 }
 
-Write-Output "Info: MD5 checksums are matching for second file" | Tee-Object -Append -file $summaryLog
+Write-Output "Info: MD5 checksums are matching for the second file" | Tee-Object -Append -file $summaryLog
 Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
 
 remove_files
