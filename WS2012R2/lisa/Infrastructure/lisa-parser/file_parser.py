@@ -20,11 +20,11 @@ permissions and limitations under the License.
 """
 
 from __future__ import print_function
+import csv
+import fileinput
 import logging
 import re
 import sys
-import csv
-import fileinput
 
 try:
     import xml.etree.cElementTree as ElementTree
@@ -83,9 +83,12 @@ class ParseXML(object):
 
         test_dict = dict()
         for test_property in test_root.getchildren():
+            print(test_property.tag)
+            print(test_property.text)
+            print('----------------')
             if test_property.tag == 'testName':
                 continue
-            elif not test_property.getchildren():
+            elif not test_property.getchildren() and test_property.text:
                 test_dict[test_property.tag.lower()] = \
                     test_property.text.strip().split()
             else:
@@ -151,14 +154,11 @@ class ParseXML(object):
 
 
 def parse_ica_log(log_path):
-    """ Parser for the generated log file after a lisa run - ica.log
+    """Parser for the generated log file after a lisa run - ica.log
 
     The method iterates until the start of the test outcome section. After that
      it searches, using regex, for predefined fields and saves them in a
      dict structure.
-
-    :param log_path:
-    :return:
     """
     logger.debug(
         'Iterating through %s file until the test results part', log_path
@@ -198,9 +198,11 @@ def parse_ica_log(log_path):
                                   'section.It will be ignored from the final'
                                   'results', test)
             elif re.search('^os', line):
-                parsed_ica['vms'][vm_name]['hostOS'] = line.split(':')[1].strip()
+                parsed_ica['vms'][vm_name]['hostOS'] = \
+                    line.split(':')[1].strip()
             elif re.search('^server', line):
-                parsed_ica['vms'][vm_name]['hvServer'] = line.split(':')[1].strip()
+                parsed_ica['vms'][vm_name]['hvServer'] = \
+                    line.split(':')[1].strip()
             elif re.search('^logs can be found at', line):
                 parsed_ica['logPath'] = line.split()[-1]
             elif re.search('^lis version', line):
