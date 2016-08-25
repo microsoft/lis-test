@@ -220,19 +220,6 @@ $scriptBlock = {
   }
 }
 
-#######################################################################
-#
-# Checks if test file is present
-#
-#######################################################################
-function check_kernel
-{
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "uname -r"
-    if (-not $?) {
-        Write-Output "ERROR: Unable to read file" -ErrorAction SilentlyContinue
-        return $False
-    }
-}
 
 #######################################################################
 #
