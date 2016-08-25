@@ -118,7 +118,7 @@ function checkStressapptest([String]$conIpv4, [String]$sshKey)
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
   # function for starting stresstestapp
-  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir)
+  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir, [int]$timeoutStress)
   {
 
   # because function is called as job, setup rootDir and source TCUtils again
@@ -162,18 +162,23 @@ $scriptBlock = {
         dos2unix check_traces.sh
         chmod +x check_traces.sh
         ./check_traces.sh &
-        
+
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
         echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1
-        __iterations=10
         __chunks=128
-        echo "Going to start `$__iterations instance(s) of stresstestapp each consuming 256MB memory" >> /root/HotAdd.log 2>&1
+        declare -i __iterations
+        declare -i duration
+        if [ $timeoutStress -eq 1 ]; then
+          duration=10
+        else
+          duration=$timeoutStress*10/2
+        fi
+        __iterations=100+`$duration
+        echo "Going to start `$__iterations instance(s) of stresstestapp with a duration of `$duration and a timeout of $timeoutStress each consuming 128MB memory" >> /root/HotAdd.log 2>&1
         for ((i=0; i < `$__iterations; i++)); do
-          stressapptest -M `$__chunks -s 10 &
-          sleep 10
-          __chunks=`$((__chunks+128))
-          echo "Memory chunks: `$__chunks" >> /root/HotAdd.log 2>&1
+          stressapptest -M `$__chunks -s `$duration &
+          sleep $timeoutStress
         done
         echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
         wait
@@ -351,6 +356,22 @@ if (-not $retVal)
 
 "Stressapptest is installed! Will begin running memory stress tests shortly."
 
+# Check kernel version
+$sts = check_kernel
+
+if (-not $sts) {
+  "ERROR: Could not check kernel version"
+  $retVal = $False
+}
+elseif ($sts -like '2.6*') {
+  "Info: 2.6.x kernel version detected. Higher timeout is used between stressapp processes."
+  $timeoutStress = 8
+}
+else {
+  "Kernel version: ${sts}"
+  $timeoutStress = 1
+}
+
 # get memory stats from vm1
 # wait up to 2 min for it
 start-sleep -s 30
@@ -384,7 +405,7 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0)
 "  ${vm1Name}: assigned - $vm1BeforeAssigned | demand - $vm1BeforeDemand"
 
 # Send Command to consume
-$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir) ConsumeMemory $ip $sshKey $rootDir } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir)
+$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $timeoutStress) ConsumeMemory $ip $sshKey $rootDir $timeoutStress } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$timeoutStress)
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
@@ -393,7 +414,7 @@ if (-not $?)
 }
 
 # sleep a few seconds so all stresstestapp processes start and the memory assigned/demand gets updated
-start-sleep -s 50
+start-sleep -s 100
 # get memory stats for vm1 after stresstestapp starts
 [int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
 [int64]$vm1Demand = ($vm1.MemoryDemand/1MB)
