@@ -72,18 +72,21 @@ function setup_io_scheduler {
     sleep 5
 }
 
-echo "###Setting sysctl params###"
-setup_sysctl
-if [[ $? -ne 0 ]]
-then
-    echo "ERROR: Unable to set sysctl params"
-    exit 1
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    echo "###Setting sysctl params###"
+    setup_sysctl
+    if [[ $? -ne 0 ]]
+    then
+        echo "ERROR: Unable to set sysctl params"
+        exit 1
+    fi
+    echo "###Setting elevator to noop###"
+    setup_io_scheduler
+    if [[ $? -ne 0 ]]
+    then
+        echo "ERROR: Unable to set elevator to noop."
+        exit 1
+    fi
+    echo "Done."
 fi
-echo "###Setting elevator to noop###"
-setup_io_scheduler
-if [[ $? -ne 0 ]]
-then
-    echo "ERROR: Unable to set elevator to noop."
-    exit 1
-fi
-echo "Done."
+
