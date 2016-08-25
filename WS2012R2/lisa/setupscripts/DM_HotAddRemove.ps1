@@ -454,7 +454,7 @@ if (-not $sts) {
   $retVal = $False
 }
 elseif ($sts -like '2.6*') {
-  "Info: 2.6.x kernel version detected. We'll go easer on the memory."
+  "Info: 2.6.x kernel version detected. Higher timeout is used between stressapp processes."
   $timeoutStress = 8
 }
 else {
