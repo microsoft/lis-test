@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -17,6 +17,7 @@
 # See the Apache Version 2.0 License for specific language governing
 # permissions and limitations under the License.
 ##############################################################################
+
 <#
 .Synopsis
     Verify the time sync after VM paused
@@ -40,6 +41,10 @@ resume the VM from paused state and will re-check the time sync.
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
+$sshKey = $null
+$ipv4 = $null
+$rootDir = $null
+
 #####################################################################
 #
 # SendCommandToVM()
@@ -48,7 +53,6 @@ param ([String] $vmName, [String] $hvServer, [String] $testParams)
 function SendCommandToVM([String] $sshKey, [String] $ipv4, [string] $command)
 {
     $retVal = $null
-
     $sshKeyPath = Resolve-Path $sshKey
 
     $dt = .\bin\plink.exe -i ${sshKeyPath} root@${ipv4} $command
@@ -94,7 +98,6 @@ function GetUnixVMTime([String] $sshKey, [String] $ipv4)
 
     return $unixTimeStr
 }
-
 
 #####################################################################
 #
@@ -183,10 +186,6 @@ if (-not $testParams)
 #
 # Parse the testParams string
 #
-$sshKey = $null
-$ipv4 = $null
-$rootDir = $null
-
 $params = $testParams.Split(";")
 foreach($p in $params)
 {
@@ -224,10 +223,6 @@ if (-not $ipv4)
     return $False
 }
 
-"  sshKey  = ${sshKey}"
-"  ipv4    = ${ipv4}"
-"  rootDir = ${rootDir}"
-
 #
 # Change the working directory
 #
@@ -248,10 +243,10 @@ Write-Output "Covers ${tcCovered}" | Out-File -Append $summaryLog
 
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 
-$msg = "Test case FAILED"
+$msg = "Error: Time is out of sync!"
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    $msg = "Time is properly synced"
+    $msg = "Info: Time is properly synced"
     $retVal = $true
 }
 
@@ -283,15 +278,13 @@ if ($? -ne "True")
 
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 
-$msg = "Test case FAILED"
+$msg = "Error: Time is out of sync after resuming the VM!"
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    $msg = "After resume from pause state, Time is properly synced"
+    $msg = "Info: After resume from pause state, time is properly synced"
     $retVal = $true
 }
 
 $msg
-
 Write-Output $msg | Out-File $summaryLog
-
 return $retVal
