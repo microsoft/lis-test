@@ -365,7 +365,7 @@ $SCSICount = 0
 $IDECount = 0
 $diskCount=$null
 $lun=$null
-$vmGeneration = Get-VM $vmName | select -ExpandProperty Generation
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation
 
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($p in $params)
