@@ -44,9 +44,10 @@
                 <suiteTest>VHDx_SCSI_Dynamic_Wget_File</suiteTest>
                 <suiteTest>VHDx_SCSI_Dynamic_NFS_File</suiteTest>
                 <!-- The TrimSupport test case requires a SSD disk
-				Test case is currently being revised
+                  Test case is currently being revised
                 <suiteTest>TrimSupport</suiteTest>-->
                 <suiteTest>VHDx_Mount_NFS</suiteTest>
+                <suiteTest>VHDx_Verify_SectorSize</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -357,7 +358,7 @@
             </testparams>
             <onError>Continue</onError>
         </test>
-		
+
         <test>
             <testName>VHDx_4k_IDE_0_1_Fixed</testName>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
@@ -372,7 +373,7 @@
             <timeout>1800</timeout>
             <onError>Continue</onError>
         </test>
-		
+
         <test>
             <testName>VHDx_4k_MultiDiskSCSI_Fixed</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
@@ -388,7 +389,7 @@
             </testparams>
             <onError>Continue</onError>
         </test>
-		
+
         <test>
             <testName>VHDx_4k_HotADD_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
@@ -405,7 +406,7 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-		
+
         <test>
             <testName>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_hot_remove.sh</testScript>
@@ -421,7 +422,7 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-		
+
      <test>
        <testName>VHDx_Mount_NFS</testName>
        <testScript>STOR_NFS_Client.sh</testScript>
@@ -437,7 +438,7 @@
        <onError>Continue</onError>
        <noReboot>False</noReboot>
      </test>
-	 
+
         <test>
          <testName>VHDx_SCSI_Dynamic_Local_Copy_File</testName>
          <testScript>STOR_Large_Disk_CopyFile.sh</testScript>
@@ -498,6 +499,21 @@
      </testparams>
      <onError>Continue</onError>
      <noReboot>False</noReboot>
+    </test>
+
+    <test>
+      <testName>VHDx_Verify_SectorSize</testName>
+      <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
+      <testScript>STOR_Verify_Sector_Size.sh</testScript>
+      <files>remote-scripts/ica/STOR_Verify_Sector_Size.sh</files>
+      <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+      <timeout>18000</timeout>
+      <param>TC_COVERED=STOR-103</param>
+      <testparams>
+          <param>SCSI=0,0,Dynamic,512</param>
+      </testparams>
+      <onError>Continue</onError>
+      <noReboot>False</noReboot>
     </test>
 
     </testCases>
