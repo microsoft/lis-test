@@ -303,6 +303,7 @@ $ipv4 = $null
 $TC_COVERED = $null
 $vhdFormat = $null
 
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation
 #
 # Parse the testParams string and make sure all
 # required test parameters have been specified.
@@ -465,6 +466,14 @@ if (-not $defaultVhdPath.EndsWith("\"))
     $defaultVhdPath += "\"
 }
 
+if ($vmGeneration -eq 1)
+{
+    $lun = [int]($diskArgs[1].Trim())
+}
+else
+{
+    $lun = [int]($diskArgs[1].Trim()) +1
+}
 if ($vhdFormat -eq "vhd")
 {
     $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"

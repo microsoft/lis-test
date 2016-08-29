@@ -217,6 +217,7 @@ $lun = $null
 $vhdType = $null
 $parentVhd = $null
 $vhdFormat =$null
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation
 #
 # Parse the testParams string
 #
@@ -364,6 +365,14 @@ else # Make sure the controller ID is valid for IDE
     }
 }
 
+if ($vmGeneration -eq 1)
+{
+    $lun = [int]($diskArgs[1].Trim())
+}
+else
+{
+    $lun = [int]($diskArgs[1].Trim()) +1
+}
 $drives = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun 
 if ($drives)
 {
