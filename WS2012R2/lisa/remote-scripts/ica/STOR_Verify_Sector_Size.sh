@@ -21,6 +21,7 @@
 #
 
 #######################################################################
+# 
 # STOR_Verify_Sector_Size.sh
 # Description:
 #    This script will verify logical sector size for 512 only and physical
@@ -29,13 +30,17 @@
 #    1. Fdisk with {n,p,w}, fdisk -lu (by default display sections units )
 #    2. Verify the first sector of the disk can divide 8
 #    3. Verify the logial sector and physical size
-#    note: for logical size is 4096, already 4k align, no need to test
+#    Note: for logical size is 4096, already 4k align, no need to test.
+#
 ########################################################################
 
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
+
+# Need to add one disk before test
+driveName=/dev/sdb
 
 # Adds a timestamp to the log file
 #######################################################################
@@ -89,10 +94,6 @@ else
     exit 1
 fi
 
-# Need to add one disk before test
-
-driveName=/dev/sdb
-
 # add new disk partition with "n" and showing the sectors units format
 (echo n; echo p; echo 1; echo ; echo ; echo w) |  fdisk $driveName
 
@@ -111,7 +112,6 @@ else
 fi
 
 #check logical sector size is 512 and physical sector is 4096, 4k alignment only needs to test in 512 sector
-
 if [[ $logicalSectorSize = 512 && $PhysicalSectorSize = 4096 ]]; then
 
    echo "Check logical and physical sector size on disk $driveName : Success"
