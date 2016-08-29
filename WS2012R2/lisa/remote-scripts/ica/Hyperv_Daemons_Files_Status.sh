@@ -61,7 +61,6 @@ UpdateTestState()
 LinuxRelease()
 {
     DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux\|Oracle" /etc/{issue,*release,*version}`
-
     case $DISTRO in
         *buntu*)
             echo "UBUNTU";;
@@ -109,7 +108,6 @@ CheckHypervDaemons()
               CheckDaemonsStatusRHEL7 ${hv_service[$i]}
             done
             ;;
-
         *)
             LogMsg "Distro not supported"
             UpdateTestState "TestAborted"
@@ -119,12 +117,10 @@ CheckHypervDaemons()
         esac
 }
 
-
 #######################################################################
 # Check hyper-v daemons service status under 90-default.preset and
 # systemd multi-user.target.wants for rhel7
 #######################################################################
-
 CheckDaemonsFilesRHEL7()
 {
   dameonFile=`ls /usr/lib/systemd/system | grep -i $1`
@@ -210,8 +206,6 @@ if [ -e constants.sh ]; then
 else
     LogMsg "WARN: Unable to source the constants file."
 fi
-
-
 
 CheckHypervDaemons
 

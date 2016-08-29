@@ -21,11 +21,12 @@
 
 <#
 .Synopsis
-    This script tests the file copy functionality.
+    This script tests hyper-v daemons service status and files.
 
 .Description
-    The script will copy a random generated 10MB file from a Windows host to
-	the Linux VM, and then checks if the size is matching.
+    The script will enable "Guest services" in "Integration Service" if it
+    is disabled, then execute "Hyperv_Daemons_Files_Status" to check hypervkvpd,
+    hypervvssd,hypervfcopyd status and default files.
 
     A typical XML definition for this test case would look similar
     to the following:
@@ -33,7 +34,6 @@
           <testName>Check_HypervDaemons_Files_Status</testName>
           <testScript>setupscripts\Hyperv_Daemons_Basic.ps1</testScript>
           <files>remote-scripts/ica/Hyperv_Daemons_Files_Status.sh</files>
-
           <timeout>600</timeout>
           <testParams>
               <param>TC_COVERED=CORE-30</param>
@@ -50,15 +50,13 @@
     Test data for this test case.
 
 .Example
-    setupScripts\Hyperv_Daemons_Files_Status.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
+    setupScripts\Hyperv_Daemons_Basic.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $retVal = $false
 $gsi = $null
-
-
 ################################################
 #
 #	Main body script
@@ -117,7 +115,6 @@ if (-not (Test-Path $rootDir)) {
 }
 cd $rootDir
 
-
 # Source TCUtils.ps1 for test related functions
 if (Test-Path ".\setupscripts\TCUtils.ps1")
 {
@@ -171,6 +168,5 @@ if (-not $sts[-1])
 		Write-Output "ERROR: Running $remoteScript script failed on VM!"
 		return $False
 }
-
 
 return $True

@@ -377,7 +377,6 @@
               <testName>Check_HypervDaemons_Files_Status</testName>
               <testScript>setupscripts\Hyperv_Daemons_Basic.ps1</testScript>
               <files>remote-scripts/ica/Hyperv_Daemons_Files_Status.sh</files>
-
               <timeout>600</timeout>
               <testParams>
                   <param>TC_COVERED=CORE-31</param>
