@@ -172,7 +172,7 @@ if (-not $sts)
 #
 # Now iterate through different CPU counts and assign to VM
 #
-for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 ) 
+for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;[int]$numCPUs = $numCPUs /2 ) 
 {
     if ($numCPUs -gt 1 -and $numCPUs -lt 2) {
         $numCPUs = 1;
