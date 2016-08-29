@@ -142,9 +142,20 @@ if (-not $isoFilename)
 $error.Clear()
 
 #
+#Get the version of VM
+#
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
+#
 # Make sure the DVD drive exists on the VM
 #
-$dvd = Get-VMDvdDrive $vmName -ComputerName $hvServer -ControllerLocation 0 -ControllerNumber 1
+if ($vmGeneration -eq 1)
+{
+    $dvd = Get-VMDvdDrive $vmName -ComputerName $hvServer -ControllerLocation 1 -ControllerNumber 1
+}
+else
+{
+    $dvd = Get-VMDvdDrive $vmName -ComputerName $hvServer -ControllerLocation 2 -ControllerNumber 0
+}
 if ($dvd)
 {
     Remove-VMDvdDrive $dvd -Confirm:$False
@@ -191,7 +202,14 @@ if (-not $isoFileInfo)
 #
 # Insert the .iso file into the VMs DVD drive
 #
-Add-VMDvdDrive -VMName $vmName -Path $isoFilename -ControllerNumber 1 -ControllerLocation 0 -ComputerName $hvServer -Confirm:$False
+if ($vmGeneration -eq 1)
+{
+    Add-VMDvdDrive -VMName $vmName -ComputerName $hvServer -Path $isoFilename -ControllerNumber 1 -ControllerLocation 1 -ComputerName $hvServer -Confirm:$False
+}
+else
+{
+    Add-VMDvdDrive -VMName $vmName -ComputerName $hvServer -Path $isoFilename -ControllerNumber 0 -ControllerLocation 2 -ComputerName $hvServer -Confirm:$False
+}
 if ($? -ne "True")
 {
     "Error: Unable to mount"
