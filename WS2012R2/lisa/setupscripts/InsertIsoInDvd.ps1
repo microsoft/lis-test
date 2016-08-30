@@ -43,6 +43,7 @@ param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
 $retVal = $False
 $isoFilename = $null
+$vmGeneration = $null
 
 #######################################################################
 #
@@ -141,10 +142,16 @@ if (-not $isoFilename)
 
 $error.Clear()
 
-#
-#Get the version of VM
-#
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
+$OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
+if ( ($OSInfo.Caption -match '.2008 R2.') -or 
+     ($OSInfo.Caption -match '.2012$'))
+{
+   $vmGeneration = 1 
+}
+else
+{
+    $vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
+}
 #
 # Make sure the DVD drive exists on the VM
 #
@@ -204,11 +211,11 @@ if (-not $isoFileInfo)
 #
 if ($vmGeneration -eq 1)
 {
-    Add-VMDvdDrive -VMName $vmName -ComputerName $hvServer -Path $isoFilename -ControllerNumber 1 -ControllerLocation 1 -ComputerName $hvServer -Confirm:$False
+    Add-VMDvdDrive -VMName $vmName -Path $isoFilename -ControllerNumber 1 -ControllerLocation 1 -ComputerName $hvServer -Confirm:$False
 }
 else
 {
-    Add-VMDvdDrive -VMName $vmName -ComputerName $hvServer -Path $isoFilename -ControllerNumber 0 -ControllerLocation 2 -ComputerName $hvServer -Confirm:$False
+    Add-VMDvdDrive -VMName $vmName -Path $isoFilename -ControllerNumber 0 -ControllerLocation 2 -ComputerName $hvServer -Confirm:$False
 }
 if ($? -ne "True")
 {
