@@ -176,7 +176,7 @@ def parse_ica_log(log_path):
 
         # Get timestamp
         parsed_ica['timestamp'] = re.search('([0-9/]+) ([0-9:]+)',
-            log_file.next()).group(0)
+                                            log_file.next()).group(0)
 
         vm_name = ""
         for line in log_file:
@@ -399,7 +399,7 @@ class NTTTCPLogsReader(BaseLogsReader):
                                 log_dict[key] = throughput.group(1).strip()
                 elif 'latency' in key:
                     lat_file = os.path.join(self.log_path,
-                                            'tcping-ntttcp-p{}.log'
+                                            'lagscope-ntttcp-p{}.log'
                                             .format(f_match.group(1)))
                     with open(lat_file, 'r') as f:
                         lines = f.readlines()

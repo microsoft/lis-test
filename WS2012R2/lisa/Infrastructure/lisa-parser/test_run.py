@@ -233,13 +233,13 @@ class PerfTestRun(TestRun):
 
             # TODO - Find fix for hardcoded values
             table_dict['GuestSize'] = '8VP8G40G'
-            table_dict['BlockSize'] = '8k'
 
             test_case_obj = self.test_cases[table_dict['TestCaseName']]
             if self.suite.lower() == 'fio':
                 self.prep_for_fio(table_dict, test_case_obj)
+                table_dict['BlockSize'] = '8k'
             elif self.suite.lower() == 'ntttcp':
-                pass
+                self.prep_for_ntttcp(table_dict, test_case_obj)
 
             table_dict['TestCaseName'] = table_dict['TestCaseName'][:-1]
 

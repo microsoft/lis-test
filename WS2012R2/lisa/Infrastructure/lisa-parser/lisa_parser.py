@@ -70,7 +70,8 @@ def main(args):
     test_run.update_from_xml(parsed_arguments.xml_file_path)
 
     logger.info('Parsing log file - %s', parsed_arguments.log_file_path)
-    test_run.update_from_ica(parsed_arguments.log_file_path)
+    if not parsed_arguments.perf:
+        test_run.update_from_ica(parsed_arguments.log_file_path)
 
     if not parsed_arguments.skipkvp:
         logger.info('Getting KVP values from VM')
