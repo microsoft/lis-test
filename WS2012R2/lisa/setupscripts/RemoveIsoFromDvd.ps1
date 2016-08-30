@@ -95,7 +95,7 @@ $error.Clear()
 #
 $OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
 if ( ($OSInfo.Caption -match '.2008 R2.') -or 
-     ($OSInfo.Caption -match '.2012'))
+     ($OSInfo.Caption -match '.2012$'))
 {
    $vmGeneration = 1 
 }
