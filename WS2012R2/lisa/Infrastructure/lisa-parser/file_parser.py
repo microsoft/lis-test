@@ -201,9 +201,11 @@ def parse_ica_log(log_path):
                                   'section.It will be ignored from the final'
                                   'results', test)
             elif re.search('^os', line):
-                parsed_ica['vms'][vm_name]['hostOS'] = line.split(':')[1].strip()
+                parsed_ica['vms'][vm_name]['hostOS'] = line.split(':')[1]\
+                    .strip()
             elif re.search('^server', line):
-                parsed_ica['vms'][vm_name]['hvServer'] = line.split(':')[1].strip()
+                parsed_ica['vms'][vm_name]['hvServer'] = line.split(':')[1]\
+                    .strip()
             elif re.search('^logs can be found at', line):
                 parsed_ica['logPath'] = line.split()[-1]
             elif re.search('^lis version', line):
@@ -315,7 +317,7 @@ class BaseLogsReader(object):
             f_match = re.match(self.log_matcher, log_file)
             if not f_match:
                 continue
-            log_dict = dict.fromkeys(self.headers)
+            log_dict = dict.fromkeys(self.headers, '')
             list_log_dict.append(self.collect_data(f_match, log_file, log_dict))
         self.teardown()
         return list_log_dict
@@ -372,7 +374,8 @@ class NTTTCPLogsReader(BaseLogsReader):
     def __init__(self, log_path=None):
         super(NTTTCPLogsReader, self).__init__(log_path)
         self.headers = ['#test_connections', 'throughput_gbps',
-                        'average_tcp_latency', 'average_packet_size']
+                        'average_tcp_latency', 'average_packet_size',
+                        'IPVersion', 'Protocol']
         self.log_matcher = 'ntttcp-p([0-9X]+)'
         self.eth_log_csv = parse_from_csv(os.path.join(self.log_path,
                                                        'eth_report.log'))
@@ -392,6 +395,7 @@ class NTTTCPLogsReader(BaseLogsReader):
         for key in log_dict:
             if not log_dict[key]:
                 if 'throughput' in key:
+                    log_dict[key] = 0
                     with open(os.path.join(self.log_path, log_file), 'r') as fl:
                         f_lines = fl.readlines()
                         for x in range(0, len(f_lines)):
@@ -399,17 +403,31 @@ class NTTTCPLogsReader(BaseLogsReader):
                                                   f_lines[x])
                             if throughput:
                                 log_dict[key] = throughput.group(1).strip()
+                                break
                 elif 'latency' in key:
+                    log_dict[key] = 0
                     lat_file = os.path.join(self.log_path,
                                             'lagscope-ntttcp-p{}.log'
                                             .format(f_match.group(1)))
                     with open(lat_file, 'r') as fl:
                         f_lines = fl.readlines()
                         for x in range(0, len(f_lines)):
-                            r_latency = re.match('.+Average = ([0-9.]+)',
-                                                 f_lines[x])
-                            if r_latency:
-                                log_dict[key] = r_latency.group(1).strip()
+                            if not log_dict.get('IPVersion', None):
+                                ip_version = re.match('domain:.+(IPv[4,6])',
+                                                      f_lines[x])
+                                if ip_version:
+                                    log_dict['IPVersion'] = ip_version.group(
+                                        1).strip()
+                            if not log_dict.get('Protocol', None):
+                                ip_proto = re.match('protocol:.+([A-Z]{3})',
+                                                    f_lines[x])
+                                if ip_proto:
+                                    log_dict['Protocol'] = ip_proto.group(
+                                        1).strip()
+                            latency = re.match('.+Average = ([0-9.]+)',
+                                               f_lines[x])
+                            if latency:
+                                log_dict[key] = latency.group(1).strip()
                 elif 'packet_size' in key:
                     avg_pkg_size = [elem[key] for elem in self.eth_log_csv
                                     if (int(elem[self.headers[0]]) ==
@@ -419,5 +437,5 @@ class NTTTCPLogsReader(BaseLogsReader):
                     except IndexError:
                         logger.warning('Could not find average_packet size in '
                                        'eth_report.log')
-                        raise
+                        log_dict[key] = 0
         return log_dict

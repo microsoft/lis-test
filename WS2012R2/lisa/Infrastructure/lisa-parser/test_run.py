@@ -237,7 +237,6 @@ class PerfTestRun(TestRun):
             test_case_obj = self.test_cases[table_dict['TestCaseName']]
             if self.suite.lower() == 'fio':
                 self.prep_for_fio(table_dict, test_case_obj)
-                table_dict['BlockSize'] = '8k'
             elif self.suite.lower() == 'ntttcp':
                 self.prep_for_ntttcp(table_dict, test_case_obj)
 
@@ -271,6 +270,8 @@ class PerfTestRun(TestRun):
                                              'average_tcp_latency'])
         table_dict['PacketSize_KBytes'] = float(test_case_obj.perf_dict[
                                                     'average_packet_size'])
+        table_dict['IPVersion'] = test_case_obj.perf_dict['IPVersion']
+        table_dict['ProtocolType'] = test_case_obj.perf_dict['Protocol']
 
 
 class TestCase(object):
