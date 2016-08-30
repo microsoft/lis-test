@@ -225,21 +225,21 @@ def parse_from_csv(csv_path):
     """
     # python [2.7.10, 3.0)  does not support context manager for fileinput
     # strip csv of empty spaces or tabs
-    f = fileinput.input(csv_path, inplace=True)
-    for line in f:
+    f_csv = fileinput.input(csv_path, inplace=True)
+    for line in f_csv:
         # redirect std to file write
         print(' '.join(line.split()))
-    f.close()
+    f_csv.close()
 
     list_csv_dict = []
-    with open(csv_path, 'rb') as f:
+    with open(csv_path, 'rb') as fl:
         try:
-            csv_dialect = csv.Sniffer().sniff(f.read(), delimiters=";, ")
+            csv_dialect = csv.Sniffer().sniff(fl.read(), delimiters=";, ")
         except Exception as e:
             logger.error('Error reading csv file {}: {}'.format(csv_path, e))
             return None
-        f.seek(0)
-        reader = csv.DictReader(f, dialect=csv_dialect)
+        fl.seek(0)
+        reader = csv.DictReader(fl, dialect=csv_dialect)
         for csv_dict in reader:
             list_csv_dict.append(csv_dict)
     return list_csv_dict
@@ -259,8 +259,8 @@ class BaseLogsReader(object):
             # extracting zip to current path
             # it is required that all logs are zipped in a folder
             with zipfile.ZipFile(log_path, "r") as z:
-                unzip_folder = [f for f in z.namelist()
-                                if f.endswith('/')][0][:-1]
+                unzip_folder = [fis for fis in z.namelist()
+                                if fis.endswith('/')][0][:-1]
                 z.extractall(dir_path)
             self.log_path = os.path.join(dir_path, unzip_folder)
             self.cleanup = True
@@ -343,21 +343,21 @@ class FIOLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['BlockSize'] = f_match.group(1)
-        with open(os.path.join(self.log_path, log_file), 'r') as f:
-            lines = f.readlines()
+        with open(os.path.join(self.log_path, log_file), 'r') as fl:
+            f_lines = fl.readlines()
             for key in log_dict:
                 if not log_dict[key]:
-                    for i in range(0, len(lines)):
-                        if all(markers in lines[i] for markers in
+                    for x in range(0, len(f_lines)):
+                        if all(markers in lines[x] for markers in
                                [key.split(':')[0], 'pid=']):
                             if 'latency' in key:
                                 lat = re.match('.+lat \(.+avg=([0-9. ]+)',
-                                               lines[i + 4])
+                                               lines[x + 4])
                                 if lat:
                                     log_dict[key] = lat.group(1).strip()
                             else:
                                 iops = re.match('.+iops=([0-9. ]+)',
-                                                lines[i + 1])
+                                                lines[x + 1])
                                 if iops:
                                     log_dict[key] = iops.group(1).strip()
         return log_dict
@@ -386,29 +386,30 @@ class NTTTCPLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         # compute the number of connections from the log name
-        n_conn = reduce(lambda x, y: int(x) * int(y),
+        n_conn = reduce(lambda x1, x2: int(x1) * int(x2),
                         f_match.group(1).split('X'))
         log_dict['#test_connections'] = n_conn
         for key in log_dict:
             if not log_dict[key]:
                 if 'throughput' in key:
-                    with open(os.path.join(self.log_path, log_file), 'r') as f:
-                        lines = f.readlines()
-                        for i in range(0, len(lines)):
+                    with open(os.path.join(self.log_path, log_file), 'r') as fl:
+                        f_lines = fl.readlines()
+                        for x in range(0, len(f_lines)):
                             throughput = re.match('.+throughput.+:([0-9.]+)',
-                                                  lines[i])
+                                                  f_lines[x])
                             if throughput:
                                 log_dict[key] = throughput.group(1).strip()
                 elif 'latency' in key:
                     lat_file = os.path.join(self.log_path,
                                             'lagscope-ntttcp-p{}.log'
                                             .format(f_match.group(1)))
-                    with open(lat_file, 'r') as f:
-                        lines = f.readlines()
-                        for i in range(0, len(lines)):
-                            latency = re.match('.+avg = ([0-9.]+)', lines[i])
-                            if latency:
-                                log_dict[key] = latency.group(1).strip()
+                    with open(lat_file, 'r') as fl:
+                        f_lines = fl.readlines()
+                        for x in range(0, len(f_lines)):
+                            r_latency = re.match('.+Average = ([0-9.]+)',
+                                                 lines[x])
+                            if r_latency:
+                                log_dict[key] = r_latency.group(1).strip()
                 elif 'packet_size' in key:
                     avg_pkg_size = [elem[key] for elem in self.eth_log_csv
                                     if (int(elem[self.headers[0]]) ==
