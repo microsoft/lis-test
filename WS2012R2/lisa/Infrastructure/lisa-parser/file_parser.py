@@ -348,16 +348,16 @@ class FIOLogsReader(BaseLogsReader):
             for key in log_dict:
                 if not log_dict[key]:
                     for x in range(0, len(f_lines)):
-                        if all(markers in lines[x] for markers in
+                        if all(markers in f_lines[x] for markers in
                                [key.split(':')[0], 'pid=']):
                             if 'latency' in key:
                                 lat = re.match('.+lat \(.+avg=([0-9. ]+)',
-                                               lines[x + 4])
+                                               f_lines[x + 4])
                                 if lat:
                                     log_dict[key] = lat.group(1).strip()
                             else:
                                 iops = re.match('.+iops=([0-9. ]+)',
-                                                lines[x + 1])
+                                                f_lines[x + 1])
                                 if iops:
                                     log_dict[key] = iops.group(1).strip()
         return log_dict
@@ -407,7 +407,7 @@ class NTTTCPLogsReader(BaseLogsReader):
                         f_lines = fl.readlines()
                         for x in range(0, len(f_lines)):
                             r_latency = re.match('.+Average = ([0-9.]+)',
-                                                 lines[x])
+                                                 f_lines[x])
                             if r_latency:
                                 log_dict[key] = r_latency.group(1).strip()
                 elif 'packet_size' in key:
