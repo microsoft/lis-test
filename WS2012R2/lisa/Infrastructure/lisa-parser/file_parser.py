@@ -374,6 +374,8 @@ class NTTTCPLogsReader(BaseLogsReader):
         self.headers = ['#test_connections', 'throughput_gbps',
                         'average_tcp_latency', 'average_packet_size']
         self.log_matcher = 'ntttcp-p([0-9X]+)'
+        self.eth_log_csv = parse_from_csv(os.path.join(self.log_path,
+                                                       'eth_report.log'))
 
     def collect_data(self, f_match, log_file, log_dict):
         """
@@ -404,7 +406,17 @@ class NTTTCPLogsReader(BaseLogsReader):
                     with open(lat_file, 'r') as f:
                         lines = f.readlines()
                         for i in range(0, len(lines)):
-                            latency = re.match('.+avg =([0-9. ]+)', lines[i])
+                            latency = re.match('.+avg = ([0-9.]+)', lines[i])
                             if latency:
                                 log_dict[key] = latency.group(1).strip()
+                elif 'packet_size' in key:
+                    avg_pkg_size = [elem[key] for elem in self.eth_log_csv
+                                    if (int(elem[self.headers[0]]) ==
+                                        log_dict[self.headers[0]])]
+                    try:
+                        log_dict[key] = avg_pkg_size[0].strip()
+                    except IndexError:
+                        logger.warning('Could not find average_packet size in '
+                                       'eth_report.log')
+                        raise
         return log_dict
