@@ -23,10 +23,12 @@
             <vmName>Test_VM_Name</vmName>
             <os>Linux</os>
             <ipv4>192.168.1.100</ipv4>
-            <sshKey>demo_id_rsa.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>Core</suite>
             <testparams>
                 <param>RootDir=C:\lis-test\WS2008R2\lisa</param>
+                <!-- Same IP as above, this is required for the Networking tests -->
+                <param>ipv4=192.168.1.100</param>
             </testparams>
         </vm>
     </VMs>
