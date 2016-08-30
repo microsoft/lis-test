@@ -26,6 +26,8 @@ import os
 import sys
 import csv
 import fileinput
+import zipfile
+import shutil
 
 try:
     import xml.etree.cElementTree as ElementTree
@@ -252,7 +254,19 @@ class BaseLogsReader(object):
         Init Base logger.
         :param log_path: Required
         """
-        self.log_path = log_path
+        if zipfile.is_zipfile(log_path):
+            dir_path = os.path.dirname(os.path.abspath(log_path))
+            # extracting zip to current path
+            # it is required that all logs are zipped in a folder
+            with zipfile.ZipFile(log_path, "r") as z:
+                unzip_folder = [f for f in z.namelist()
+                                if f.endswith('/')][0][:-1]
+                z.extractall(dir_path)
+            self.log_path = os.path.join(dir_path, unzip_folder)
+            self.cleanup = True
+        else:
+            self.log_path = log_path
+            self.cleanup = False
         self.headers = None
         self.log_matcher = None
 
@@ -265,6 +279,14 @@ class BaseLogsReader(object):
         """
         return [log_name for log_name in os.listdir(self.log_path)
                 if os.path.isfile(os.path.join(self.log_path, log_name))]
+
+    def teardown(self):
+        """
+        Cleanup files/folders created for setting up the parser.
+        :return: None
+        """
+        if self.cleanup:
+            shutil.rmtree(self.log_path)
 
     def collect_data(self, f_match, log_file, log_dict):
         """
@@ -295,6 +317,7 @@ class BaseLogsReader(object):
                 continue
             log_dict = dict.fromkeys(self.headers)
             list_log_dict.append(self.collect_data(f_match, log_file, log_dict))
+        self.teardown()
         return list_log_dict
 
 
