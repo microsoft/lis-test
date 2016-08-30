@@ -64,6 +64,7 @@ param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
 $isoFilename = $null
 $controllerNumber=$null
+$vmGeneration = $null
 
 #
 # Check arguments
@@ -92,7 +93,16 @@ $error.Clear()
 #
 #Get the version of VM
 #
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
+$OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
+if ( ($OSInfo.Caption -match '.2008 R2.') -or 
+     ($OSInfo.Caption -match '.2012$'))
+{
+   $vmGeneration = 1 
+}
+else
+{
+    $vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
+}
 #
 # Make sure the DVD drive exists on the VM
 #
