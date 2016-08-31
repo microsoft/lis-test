@@ -38,7 +38,7 @@
 #######################################################################
 
 ICA_TESTRUNNING="TestRunning"
-ICA_IPERF3RUNNING="iPerf3Running"
+ICA_NTTTCPRUNNING="NtttcpRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
@@ -193,14 +193,27 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 #
 # Check for internet protocol version
 #
-CheckIPV6 "$IPERF3_SERVER_IP"
+CheckIPV6 "$SERVER_IP"
 if [[ $? -eq 0 ]]; then
     ipVersion="-6"
 else
     ipVersion=$null
 fi
 
-git clone https://github.com/Microsoft/ntttcp-for-linux.git
+echo "Installing LAGSCOPE ..." >> ~/summary.log
+if [ "$(which lagscope)" == "" ]; then
+    rm -rf lagscope
+    git clone https://github.com/Microsoft/lagscope
+    if [ $? -eq 0 ]; then
+        cd lagscope/src
+        make && make install
+        echo "LAGSCOPE installed.." >> ~/summary.log
+        LogMsg "LAGSCOPE instaled.."
+    fi        
+cd $HOME
+fi
+
+   git clone https://github.com/Microsoft/ntttcp-for-linux.git
 
 #
 # Get the root directory of the tarball
@@ -300,7 +313,7 @@ redhat_5|redhat_6|centos_6)
             UpdateTestState $ICA_TESTFAILED
             exit 85
         fi
-		service ip6tables stop
+        service ip6tables stop
         if [ $? -ne 0 ]; then
             msg="Error: Failed to stop ip6tables"
             LogMsg "${msg}"
@@ -431,7 +444,7 @@ declare -i __iterator=0
 
 while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
     LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-    CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $IPERF3_SERVER_IP $NETMASK
+    CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $SERVER_IP $NETMASK
 
     if [ 0 -ne $? ]; then
         msg="Unable to set address for ${SYNTH_NET_INTERFACES[$__iterator]} through static"
@@ -449,16 +462,7 @@ done
 # Start ntttcp server instances
 #
 sleep 3
-LogMsg "Starting ntttcp in server mode"
+LogMsg "Ntttcp is ready to start in server mode."
 
-UpdateTestState $ICA_IPERF3RUNNING
-LogMsg "ntttcp server instances are now ready to run"
-
-ntttcp -r${IPERF3_SERVER_IP} ${ipVersion}
-if [ $? -ne 0 ]; then
-    msg="Error: Unable to start ntttcp server scripts on the target server machine"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 130
-fi
+UpdateTestState $ICA_NTTTCPRUNNING
+LogMsg "Ntttcp server instances are now ready to run"
