@@ -22,7 +22,8 @@ permissions and limitations under the License.
 from __future__ import print_function
 from file_parser import ParseXML
 from file_parser import parse_ica_log
-from file_parser import parse_from_csv
+from file_parser import FIOLogsReader
+from file_parser import NTTTCPLogsReader
 from virtual_machine import VirtualMachine
 from copy import deepcopy
 import logging
@@ -196,7 +197,11 @@ class PerfTestRun(TestRun):
 
     def update_from_ica(self, log_path):
         super(PerfTestRun, self).update_from_ica(log_path)
-        parsed_perf_log = parse_from_csv(self.perf_path)
+        parsed_perf_log = None
+        if self.suite.lower() == 'fio':
+            parsed_perf_log = FIOLogsReader(self.perf_path).process_logs()
+        elif self.suite.lower() == 'ntttcp':
+            parsed_perf_log = NTTTCPLogsReader(self.perf_path).process_logs()
 
         tests_cases = dict()
         test_index = 0
@@ -228,13 +233,12 @@ class PerfTestRun(TestRun):
 
             # TODO - Find fix for hardcoded values
             table_dict['GuestSize'] = '8VP8G40G'
-            table_dict['BlockSize'] = '8k'
 
             test_case_obj = self.test_cases[table_dict['TestCaseName']]
             if self.suite.lower() == 'fio':
                 self.prep_for_fio(table_dict, test_case_obj)
             elif self.suite.lower() == 'ntttcp':
-                pass
+                self.prep_for_ntttcp(table_dict, test_case_obj)
 
             table_dict['TestCaseName'] = table_dict['TestCaseName'][:-1]
 
@@ -255,6 +259,19 @@ class PerfTestRun(TestRun):
         table_dict['Latency_SeqRead'] = float(test_case_obj.perf_dict[
             'seq-read: latency'])
         table_dict['Iodepth'] = float(test_case_obj.perf_dict['BlockSize'][1:])
+
+    @staticmethod
+    def prep_for_ntttcp(table_dict, test_case_obj):
+        table_dict['NumberOfConnections'] = int(test_case_obj.perf_dict[
+                                                    '#test_connections'])
+        table_dict['Throughput_Gbps'] = float(test_case_obj.perf_dict[
+                                                   'throughput_gbps'])
+        table_dict['Latency_ms'] = float(test_case_obj.perf_dict[
+                                             'average_tcp_latency'])
+        table_dict['PacketSize_KBytes'] = float(test_case_obj.perf_dict[
+                                                    'average_packet_size'])
+        table_dict['IPVersion'] = test_case_obj.perf_dict['IPVersion']
+        table_dict['ProtocolType'] = test_case_obj.perf_dict['Protocol']
 
 
 class TestCase(object):
