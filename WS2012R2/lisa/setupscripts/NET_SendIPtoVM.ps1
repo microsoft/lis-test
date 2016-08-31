@@ -67,7 +67,7 @@ function Execute ([string] $command)
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} $command
     return $?
 }
-
+    
 #
 # Check input arguments
 #
@@ -169,7 +169,29 @@ foreach ($p in $params)
     "ipv4"    { $ipv4    = $fields[1].Trim() }
     "MAC"     { $vm2MacAddress = $fields[1].Trim() }
     "VM2SERVER"    { $vm2Server    = $fields[1].Trim() }
+    "ENABLE_VMMQ"   { $EnableVmmq    = $fields[1].Trim()}
     default   {}  # unknown param - just ignore it
+    }
+}
+
+if ($EnableVmmq -like "yes")
+{
+    write-output "Info: Activating VMMQ for $vm2Name"
+    Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $vm2Server -VmmqEnabled $True
+    if (-not $?)
+    {
+        "Error: Unable to activate VMMQ for ${vm2Name}"
+        $error[0].Exception
+        return $False
+    }
+
+    Write-Output "Info: Activating VMMQ for $VMNAME"
+    Set-VMNetworkAdapter -VMName $VMNAME -ComputerName $hvserver -VmmqEnabled $True
+    if (-not $?)
+    {
+        "Error: Unable to activate VMMQ for ${vm2Name}"
+        $error[0].Exception
+        return $False
     }
 }
 
@@ -216,7 +238,6 @@ if ($checkState.State -notlike "Running")
         $error[0].Exception
         return $False
     }
-
     $timeout = 240 # seconds
     if (-not (WaitForVMToStartKVP $vm2Name $vm2Server $timeout))
     {
