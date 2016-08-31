@@ -38,6 +38,7 @@
         <suite>
             <suiteName>VHDxResize</suiteName>
             <suiteTests>
+
                 <suiteTest>VHDxResizeToBigger512</suiteTest>
                 <suiteTest>VHDxResizeToBigger4096</suiteTest>
                 <suiteTest>VHDxResizeToBigger512_Dynamic_IDE</suiteTest>
@@ -45,16 +46,22 @@
                 <suiteTest>VHDxResizeToSmaller512</suiteTest>
                 <suiteTest>VHDxResizeToSmaller4096</suiteTest>
                 <suiteTest>VHDxResizeGrowShrink</suiteTest>
+                <suiteTest>VHDxResizeGrowShrink_IDE</suiteTest>
+                <suiteTest>VHDxResizeGrowShrink_SCSI_Offline</suiteTest>
                 <suiteTest>VHDxResizeGrowFilesystem512</suiteTest>
                 <suiteTest>VHDxResizeGrowFilesystem4096</suiteTest>
                 <suiteTest>VHDxResizeOver2TB</suiteTest>
                 <suiteTest>VHDxResizeOver2TB_IDE</suiteTest>
+                <suiteTest>VHDxResizeGrowOver2TShrink_SCSI_Online</suiteTest>
+                <suiteTest>VHDxResizeGrowOver2TShrink_IDE</suiteTest>
+                <suiteTest>VHDxResizeGrowOver2TShrink_SCSI_Offline</suiteTest>
                 <suiteTest>VHDxResizeLiveMigration</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
+
         <test>
             <testName>VHDxResizeToBigger512</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -73,6 +80,7 @@
                 <param>TC_COVERED=STOR-VHDx-01a</param>
             </testparams>
         </test>
+
         <test>
             <testName>VHDxResizeToBigger4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -110,6 +118,7 @@
                 <param>TC_COVERED=STOR-VHDx-105</param>
              </testparams>
        </test>
+
        <test>
             <testName>VHDxResizeToBigger512_Dynamic_IDE</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -147,7 +156,7 @@
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeToSmaller4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -166,7 +175,7 @@
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeGrowShrink</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
@@ -186,7 +195,48 @@
                 <param>TC_COVERED=STOR-VHDx-03</param>
             </testparams>
         </test>
-        
+
+      <test>
+          <testName>VHDxResizeGrowShrink_IDE</testName>
+          <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
+          <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+          <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+          <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+          <timeout>600</timeout>
+          <onError>Continue</onError>
+          <testparams>
+              <param>Type=Dynamic</param>
+              <param>SectorSize=512</param>
+              <param>DefaultSize=3GB</param>
+              <param>growSize=4GB</param>
+              <param>shrinkSize=3GB</param>
+              <param>fileSystems=(ext4 ext3 xfs)</param>
+              <param>TC_COVERED=STOR-VHDx-107</param>
+              <param>ControllerType=IDE</param>
+          </testparams>
+        </test>
+
+        <test>
+           <testName>VHDxResizeGrowShrink_SCSI_Offline</testName>
+           <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
+           <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+           <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+           <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <testparams>
+               <param>Type=Dynamic</param>
+               <param>SectorSize=512</param>
+               <param>DefaultSize=3GB</param>
+               <param>growSize=4GB</param>
+               <param>shrinkSize=3GB</param>
+               <param>fileSystems=(ext4 ext3 xfs)</param>
+               <param>TC_COVERED=STOR-VHDx-108</param>
+               <param>ControllerType=SCSI</param>
+               <param>Offline=True</param>
+           </testparams>
+        </test>
+
         <test>
             <testName>VHDxResizeGrowFilesystem512</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
@@ -205,7 +255,7 @@
                 <param>TC_COVERED=STOR-VHDx-04a</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeGrowFilesystem4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
@@ -224,7 +274,7 @@
                 <param>TC_COVERED=STOR-VHDx-04b</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeOver2TB</testName>
             <testScript>SetupScripts\STOR_VHDXResize_DiskOver2TB.ps1</testScript>
@@ -243,7 +293,7 @@
                 <param>TC_COVERED=STOR-VHDx-05</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeOver2TB_IDE</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -259,8 +309,69 @@
                 <param>NewSize=2304GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-107</param>
-                 <param>ControllerType=IDE</param>
+                <param>ControllerType=IDE</param>
             </testparams>
+        </test>
+
+        <test>
+            <testName>VHDxResizeGrowOver2TShrink_IDE</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
+                <param>growSize=2304GB</param>
+                <param>shrinkSize=3GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>TC_COVERED=STOR-VHDx-110</param>
+                <param>ControllerType=IDE</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>VHDxResizeGrowOver2TShrink_SCSI_Online</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
+                <param>growSize=2304GB</param>
+                <param>shrinkSize=3GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
+               <param>TC_COVERED=STOR-VHDx-111</param>
+            </testparams>
+       </test>
+
+       <test>
+           <testName>VHDxResizeGrowOver2TShrink_SCSI_Offline</testName>
+           <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
+           <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+           <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+           <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <testparams>
+               <param>Type=Dynamic</param>
+               <param>SectorSize=512</param>
+               <param>DefaultSize=3GB</param>
+               <param>growSize=2304GB</param>
+               <param>shrinkSize=3GB</param>
+               <param>fileSystems=(ext4 ext3 xfs)</param>
+               <param>TC_COVERED=STOR-VHDx-112</param>
+               <param>ControllerType=SCSI</param>
+               <param>Offline=True</param>
+           </testparams>
         </test>
 
         <test>
