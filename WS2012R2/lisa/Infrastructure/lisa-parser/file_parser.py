@@ -273,7 +273,7 @@ class BaseLogsReader(object):
 
     def get_log_path(self, log_path):
         """
-        Detect if log_path is a zip, then unzip and return log's the location.
+        Detect if log_path is a zip, then unzip it and return log's location.
         :param log_path:
         :return: log's location
         """
