@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -22,14 +22,13 @@
 ########################################################################
 #
 # Synopsis
-#     This tests Network Time Protocol sync.
+#     This script tests NTP time syncronization.
 #
 # Description
 #     This script was created to automate the testing of a Linux
 #     Integration services. It enables Network Time Protocol and 
 #     checks if the time is in sync.
 #    
-#     
 #     A typical xml entry looks like this:
 # 
 #         <test>
@@ -75,7 +74,6 @@ function UpdateSummary() {
 # Main script body 
 # 
 #######################################################################
-
 cd ~
 
 # Create the state.txt file so LISA knows we are running
@@ -95,40 +93,40 @@ dos2unix utils.sh
     exit 2
 }
 
-LogMsg "This script tests NTP time syncronization"
-
 # Try to restart NTP. If it fails we try to install it.
-# We check this distro specific.
 if is_fedora ; then
-    # Check if ntpd is running.
+    # Check if ntpd is running
     service ntpd restart
     if [[ $? -ne 0 ]]; then
-        echo "NTPD not installed. Trying to install ..."
-        yum install -y ntp ntpdate ntp-doc
+        echo "Info: NTPD not installed. Trying to install..."
+        yum install -y ntp ntpdate
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to install ntpd. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
+        
         chkconfig ntpd on
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to chkconfig ntpd on. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
+        
         ntpdate pool.ntp.org
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to set ntpdate. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
+        
         service ntpd start
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to start ntpd. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
-        echo "NTPD installed succesfully!"
+        echo "Info: NTPD has been installed succesfully!"
     fi
 
     # set rtc clock to system time & restart NTPD
@@ -150,14 +148,14 @@ elif is_ubuntu ; then
     # Check if ntp is running
     service ntp restart
     if [[ $? -ne 0 ]]; then
-        LogMsg "NTP is not installed. Trying to install ..."
+        LogMsg "NTP is not installed. Trying to install..."
         apt-get install ntp -y
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to install ntp. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
-        LogMsg "NTP installed succesfully!"
+        echo "Info: NTPD has been installed succesfully!"
     fi
 
     # set rtc clock to system time & restart NTPD
@@ -229,15 +227,15 @@ elif is_suse ; then
     fi
 
 else # other distro
-    LogMsg "Distro not suported. Aborting"
+    LogMsg "Warning: Distro not suported. Aborting"
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
 
-# Now let's see if the VM is in sync with ntp server
+# Now let's see if the VM is in sync with the NTP server
 ntpq -p
 if [[ $? -ne 0 ]]; then
-    LogMsg "Unable to query NTP deamon!"
+    LogMsg "Error: Unable to query NTP deamon!"
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
@@ -286,8 +284,7 @@ while [ $isOver == false ]; do
 done
 
 # If we reached this point, time is synced.
-LogMsg "NTP offset is $delay seconds."
-LogMsg "SUCCESS: NTP time synced!"
+LogMsg "Test passed. NTP offset is $delay seconds."
 
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
