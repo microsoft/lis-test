@@ -256,19 +256,8 @@ class BaseLogsReader(object):
         Init Base logger.
         :param log_path: Required
         """
-        if zipfile.is_zipfile(log_path):
-            dir_path = os.path.dirname(os.path.abspath(log_path))
-            # extracting zip to current path
-            # it is required that all logs are zipped in a folder
-            with zipfile.ZipFile(log_path, "r") as z:
-                unzip_folder = [fis for fis in z.namelist()
-                                if fis.endswith('/')][0][:-1]
-                z.extractall(dir_path)
-            self.log_path = os.path.join(dir_path, unzip_folder)
-            self.cleanup = True
-        else:
-            self.log_path = log_path
-            self.cleanup = False
+        self.cleanup = False
+        self.log_path = self.get_log_path(log_path)
         self.headers = None
         self.log_matcher = None
 
@@ -281,6 +270,28 @@ class BaseLogsReader(object):
         """
         return [log_name for log_name in os.listdir(self.log_path)
                 if os.path.isfile(os.path.join(self.log_path, log_name))]
+
+    def get_log_path(self, log_path):
+        """
+        Detect if log_path is a zip, then unzip and return log's the location.
+        :param log_path:
+        :return: log's location
+        """
+        if zipfile.is_zipfile(log_path):
+            dir_path = os.path.dirname(os.path.abspath(log_path))
+            # extracting zip to current path
+            # it is required that all logs are zipped in a folder
+            with zipfile.ZipFile(log_path, 'r') as z:
+                if any('/' in fis for fis in z.namelist()):
+                    unzip_folder = z.namelist()[0].split('/')[0]
+                else:
+                    unzip_folder = ''
+                z.extractall(dir_path)
+            if unzip_folder:
+                self.cleanup = True
+            return os.path.join(dir_path, unzip_folder)
+        else:
+            return log_path
 
     def teardown(self):
         """
