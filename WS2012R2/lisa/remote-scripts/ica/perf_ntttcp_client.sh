@@ -632,8 +632,8 @@ else
     echo "Something gone wrong. Please re-run.." >> ~/summary.log
 fi
 #Prepare the logs:
-cd $HOME/$log_folder
-zip -r ../$log_folder.zip *
+cd $HOME
+zip -r $log_folder.zip . -i $log_folder/*
 if [ $? -ne 0 ]; then
     echo "Unable to archive log folder."
     LogMsg "Unable to archive log folder." >> ~/summary.log
