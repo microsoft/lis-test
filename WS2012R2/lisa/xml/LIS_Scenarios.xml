@@ -50,9 +50,11 @@
         <test>
             <testName>Install_LIS</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\InsertIsoInDvd.ps1</file>
                 <file>setupscripts\DM_CONFIGURE_MEMORY.ps1</file>
             </setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
             <testScript>setupscripts\Deploy_scenarios.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
             <timeout>1900</timeout>
@@ -68,16 +70,22 @@
                 <param>DAEMONS=(kvp vss fcopy)</param>
                 <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
                 <param>IsoFilename=NewVersion.iso</param>
-                <param>version=4.1.1</param>
+                <param>current_lis=4.1.1</param>
+                <param>snapshotname=ICABase</param>
+                <param>selinux=enforcing</param>
+                <param>TC_COVERED=LISDeploy-01</param>
             </testParams>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         </test>
+
         <test>
             <testName>Upgrade_LIS</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\InsertIsoInDvd.ps1</file>
                 <file>setupscripts\DM_CONFIGURE_MEMORY.ps1</file>
             </setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
             <testScript>setupscripts\Deploy_scenarios.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
             <timeout>2900</timeout>
@@ -93,18 +101,24 @@
                 <param>DAEMONS=(kvp vss fcopy)</param>
                 <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
                 <param>IsoFilename=OldVersion.iso</param>
-                <param>version=4.1.0</param>
+                <param>previous_lis=4.1.0</param>
                 <param>IsoFilename2=NewVersion.iso</param>
-                <param>version2=4.1.1</param>
+                <param>current_lis=4.1.1</param>
+                <param>snapshotname=ICABase</param>
+                <param>selinux=enforcing</param>
+                <param>TC_COVERED=LISDeploy-02</param>
             </testParams>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         </test>
+
         <test>
             <testName>Downgrade_previous_LIS</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\InsertIsoInDvd.ps1</file>
                 <file>setupscripts\DM_CONFIGURE_MEMORY.ps1</file>
             </setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
             <testScript>setupscripts\Deploy_scenarios.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
             <timeout>2900</timeout>
@@ -119,19 +133,25 @@
                 <param>staticMem=2048MB</param>
                 <param>DAEMONS=(kvp vss fcopy)</param>
                 <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
-                <param>IsoFilename=OldVersion.iso.iso</param>
-                <param>version=4.1.0</param>
-                <param>IsoFilename2=NewVersion.iso.iso</param>
-                <param>version2=4.1.1</param>
+                <param>IsoFilename=OldVersion.iso</param>
+                <param>previous_lis=4.1.0</param>
+                <param>IsoFilename2=NewVersion.iso</param>
+                <param>current_lis=4.1.1</param>
+                <param>snapshotname=ICABase</param>
+                <param>selinux=enforcing</param>
+                <param>TC_COVERED=LISDeploy-03</param>
             </testParams>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         </test>
+
         <test>
             <testName>Upgrade_LIS_before_kernel</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\InsertIsoInDvd.ps1</file>
                 <file>setupscripts\DM_CONFIGURE_MEMORY.ps1</file>
             </setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
             <testScript>setupscripts\Deploy_scenarios.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
             <timeout>2900</timeout>
@@ -147,18 +167,24 @@
                 <param>DAEMONS=(kvp vss fcopy)</param>
                 <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
                 <param>IsoFilename=OldVersion.iso</param>
-                <param>version=4.1.0</param>
+                <param>previous_lis=4.1.0</param>
                 <param>IsoFilename2=NewVersion.iso</param>
-                <param>version2=4.1.1</param>
+                <param>current_lis=4.1.1</param>
+                <param>snapshotname=ICABase</param>
+                <param>selinux=enforcing</param>
+                <param>TC_COVERED=LISDeploy-06</param>
             </testParams>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         </test>
+
         <test>
             <testName>Upgrade_kernel_Install_noreboot</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\InsertIsoInDvd.ps1</file>
                 <file>setupscripts\DM_CONFIGURE_MEMORY.ps1</file>
             </setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
             <testScript>setupscripts\Deploy_scenarios.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
             <timeout>2600</timeout>
@@ -174,8 +200,12 @@
                 <param>DAEMONS=(kvp vss fcopy)</param>
                 <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
                 <param>IsoFilename=OldVersion.iso</param>
-                <param>version=4.1.1</param>
+                <param>previous_lis=4.1.0</param>
                 <param>IsoFilename2=NewVersion.iso</param>
+                <param>current_lis=4.1.1</param>
+                <param>snapshotname=ICABase</param>
+                <param>selinux=enforcing</param>
+                <param>TC_COVERED=LISDeploy-04</param>
             </testParams>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         </test>
@@ -183,9 +213,11 @@
         <test>
             <testName>Upgrade_kernel_Install</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\InsertIsoInDvd.ps1</file>
                 <file>setupscripts\DM_CONFIGURE_MEMORY.ps1</file>
             </setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
             <testScript>setupscripts\Deploy_scenarios.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
             <timeout>2600</timeout>
@@ -200,9 +232,11 @@
                 <param>staticMem=2048MB</param>
                 <param>DAEMONS=(kvp vss fcopy)</param>
                 <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
-                <param>IsoFilename=OldVersion.iso</param>
-                <param>version=4.1.1</param>
-                <param>IsoFilename2=NewVersion.iso</param>
+                <param>IsoFilename=NewVersion.iso</param>
+                <param>current_lis=4.1.1</param>
+                <param>snapshotname=ICABase</param>
+                <param>selinux=enforcing</param>
+                <param>TC_COVERED=LISDeploy-05</param>
             </testParams>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         </test>
@@ -210,9 +244,11 @@
         <test>
             <testName>Install_uninstall</testName>
             <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\InsertIsoInDvd.ps1</file>
                 <file>setupscripts\DM_CONFIGURE_MEMORY.ps1</file>
             </setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
             <testScript>setupscripts\Deploy_scenarios.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
             <timeout>2600</timeout>
@@ -227,8 +263,11 @@
                 <param>staticMem=2048MB</param>
                 <param>DAEMONS=(kvp vss fcopy)</param>
                 <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
-                <param>version2=.1.1</param>
                 <param>IsoFilename=NewVersion.iso</param>
+                <param>current_version=4.1.1</param>
+                <param>snapshotname=ICABase</param>
+                <param>selinux=enforcing</param>
+                <param>TC_COVERED=LISDeploy-07</param>
             </testParams>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
         </test>

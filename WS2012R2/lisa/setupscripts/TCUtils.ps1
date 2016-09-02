@@ -411,7 +411,7 @@ function GenerateIpv4($tempipv4, $oldipv4)
     [int]$i= $null
     [int]$check = $null
     if ($oldipv4 -eq $null){
-        [int]$octet = 102   
+        [int]$octet = 102
     }
     else {
         $oldIpPart = $oldipv4.Split(".")
@@ -1178,4 +1178,18 @@ function RunRemoteScript($remoteScript)
     del runtest.sh -ErrorAction "SilentlyContinue"
 
     return $retValue
+}
+
+#######################################################################
+#
+# Checks kernel version on VM
+#
+#######################################################################
+function check_kernel
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "uname -r"
+    if (-not $?) {
+        Write-Output "ERROR: Unable check kernel version" -ErrorAction SilentlyContinue
+        return $False
+    }
 }

@@ -25,14 +25,9 @@
 # Description:
 #     This script was created to automate the testing of a Linux
 #     Integration services. This script detects the CDROM
-#     and performs read operations .
+#     and performs LIS installation.
 #
 ################################################################
-
-UpdateSummary()
-{
-    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
-}
 
 UpdateTestState()
 {
@@ -41,16 +36,11 @@ UpdateTestState()
 
 UpdateSummary()
 {
-    echo $1 >> ~/summary.log
+    echo $1 >> ~/summary_scenario_$scenario.log
 }
 
 cd ~
 UpdateTestState "TestRunning"
-
-if [ -e ~/summary.log ]; then
-    UpdateSummary "Cleaning up previous copies of summary.log"
-    rm -rf ~/summary.log
-fi
 
 if [ -e $HOME/constants.sh ]; then
     . $HOME/constants.sh
@@ -104,50 +94,49 @@ fi
 # Deleting old LIS
 if [[ "$action" == "install" && "$first_install" == 0 ]]; then
     UpdateSummary "successfully removed LIS"
-    rpm -qa | grep microsoft | xargs rpm -e >> ~/LIS_log.log
+    rpm -qa | grep microsoft | xargs rpm -e >> ~/LIS_log_scenario_$scenario.log
     chmod +w ~/constants.sh
     echo "first_install=1" >> ~/constants.sh
 fi
 
-./$action.sh >> ~/LIS_log.log 2>&1
+./$action.sh >> ~/LIS_log_scenario_$scenario.log 2>&1
 sts=$?
 if [ 0 -ne ${sts} ]; then
     UpdateSummary "Unable to run ${action}"
     UpdateTestState "TestFailed"
     exit 1
-else
-    UpdateSummary "LIS drivers ${action}ed successfully"
 fi
 
 #search for warnings
-cat ~/LIS_log.log | grep "arning"
+cat ~/LIS_log_scenario_$scenario.log | grep -i "Warning"
 sts=$?
 if [ 0 -eq ${sts} ]; then
-    echo "Warning: Errors at $action LIS. Warning messages." >> LIS_log.log
+    echo "Warning: Errors at $action LIS. Warning messages." >> LIS_log_scenario_$scenario.log
     UpdateSummary "Warnings at $action LIS"
     UpdateTestState "TestAborted"
     exit 1
 fi
 
 #search for error
-cat ~/LIS_log.log | grep "Error"
+cat ~/LIS_log_scenario_$scenario.log | grep -i "Error"
 sts=$?
 if [ 0 -eq ${sts} ]; then
     UpdateSummary "Errors at install LIS"
-    echo "ERROR: Errors at $action LIS" >> LIS_log.log
+    echo "ERROR: Errors at $action LIS" >> LIS_log_scenario_$scenario.log
     UpdateTestState "TestFailed"
     exit 1
 fi
 
-#search for error
-cat ~/LIS_log.log | grep "aborting"
+#search for aborts
+cat ~/LIS_log_scenario_$scenario.log | grep -i "aborting"
 sts=$?
 if [ 0 -eq ${sts} ]; then
     UpdateSummary "Errors at $action LIS"
-    echo "ERROR: Errors at $action LIS. Abort messages." >> LIS_log.log
+    echo "ERROR: Errors at $action LIS. Abort messages." >> LIS_log_scenario_$scenario.log
     UpdateTestState "TestFailed"
     exit 1
 fi
+UpdateSummary "LIS drivers ${action}ed successfully"
 
 cd ~
 umount /mnt/
@@ -159,7 +148,36 @@ if [ 0 -ne ${sts} ]; then
 else
     UpdateSummary  "CDROM unmounted successfully"
 fi
-
 UpdateSummary "CDROM mount & LIS ${action} returned no errors"
+
+# Apply selinux policy
+if [[ "$action" == "install" && ! -f hyperv-daemons.te ]]; then
+    release_versions=("6.6" "6.7" "6.8" "7.1" "7.2")
+    for release in ${release_versions[*]}; do
+        grep $release /etc/redhat-release
+        if [ $? -eq 0 ]; then
+            UpdateSummary "Release version is ${release}. Applying SELinux policies"
+            echo "module hyperv-daemons 1.0;
+            require {
+             type hypervkvp_t;
+             type device_t;
+             type hypervvssd_t;
+             class chr_file { read write open };
+            }
+            allow hypervkvp_t device_t:chr_file { read write open };
+            allow hypervvssd_t device_t:chr_file { read write open };" >> hyperv-daemons.te
+            make -f /usr/share/selinux/devel/Makefile hyperv-daemons.pp
+            if [ $? -ne 0 ]; then
+                UpdateSummary "WARNING: could not compile hyperv-daemons.pp"
+            fi
+            semodule -s targeted -i hyperv-daemons.pp
+            if [ $? -ne 0 ]; then
+                UpdateSummary "WARNING: could not add module to SELinux"
+            fi
+        fi
+    done
+fi
+
+sync
 UpdateTestState "TestCompleted"
 exit 0
