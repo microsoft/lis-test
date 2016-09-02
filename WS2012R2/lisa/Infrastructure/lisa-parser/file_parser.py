@@ -178,6 +178,7 @@ def parse_ica_log(log_path):
         vm_name = ""
         for line in log_file:
             line = line.strip().lower()
+            logger.debug('Parsing line %s', line)
             if re.search("^vm:", line) and len(line.split()) == 2:
                 vm_name = line.split()[1]
                 parsed_ica['vms'][vm_name] = dict()
