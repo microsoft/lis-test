@@ -26,6 +26,7 @@ from file_parser import parse_from_csv
 from virtual_machine import VirtualMachine
 from copy import deepcopy
 import logging
+import re
 import os
 
 logger = logging.getLogger(__name__)
@@ -236,7 +237,7 @@ class PerfTestRun(TestRun):
             elif self.suite.lower() == 'ntttcp':
                 pass
 
-            table_dict['TestCaseName'] = table_dict['TestCaseName'][:-1]
+            table_dict['TestCaseName'] = " ".join(re.findall("[a-zA-Z]+", table_dict['TestCaseName']))
 
         return insertion_list
 
