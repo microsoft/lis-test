@@ -27,6 +27,7 @@ from file_parser import NTTTCPLogsReader
 from virtual_machine import VirtualMachine
 from copy import deepcopy
 import logging
+import re
 import os
 
 logger = logging.getLogger(__name__)
@@ -240,7 +241,7 @@ class PerfTestRun(TestRun):
             elif self.suite.lower() == 'ntttcp':
                 self.prep_for_ntttcp(table_dict, test_case_obj)
 
-            table_dict['TestCaseName'] = table_dict['TestCaseName'][:-1]
+            table_dict['TestCaseName'] = re.findall("[a-zA-z]+", table_dict['TestCaseName'])
 
         return insertion_list
 
