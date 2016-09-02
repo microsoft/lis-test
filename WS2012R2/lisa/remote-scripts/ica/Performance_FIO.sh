@@ -26,12 +26,16 @@
 # Performance_FIO.sh
 #
 # Description:
-#     For the test to run you have to place the fio-2.1.10.tar.gz archive in the
+#     For the test to run you have to place the fio-2.1.10.tar.gz  archive and lis-ssd-test.fio in the
 #     Tools folder under lisa.
 #
 # Parameters:
 #     TOTAL_DISKS: Number of disks attached
 #     TEST_DEVICE1 = /dev/sdb
+#     FILE_NAME=fio-2.1.10.tar.gz
+#     FIO_SCENARIO_FILE=lis-ssd-test.fio
+#     TestLogDir=/path/to/log/dir/
+#     
 #
 ############################################################################
 
@@ -275,38 +279,50 @@ fi
 
 LogMsg "FIO was installed successfully!"
 
-# Run FIO with block size 4k
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-4k.log
+# Run FIO with block size 8k and iodepth 2
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-2q.log
 
-# Run FIO with block size 8k
-sed --in-place=.orig -e s:"bs=4k":"bs=8k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-8k.log
+# Run FIO with block size 8k and iodepth 4
+sed --in-place=.orig -e s:"iodepth=2":"iodepth=4": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-4q.log
 
-# Run FIO with block size 16k
-sed --in-place=.orig -e s:"bs=8k":"bs=16k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-16k.log
+# Run FIO with block size 8k and iodepth 8
+sed --in-place=.orig -e s:"iodepth=4":"iodepth=8": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-8q.log
 
-# Run FIO with block size 32k
-sed --in-place=.orig -e s:"bs=16k":"bs=32k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-32k.log
+# Run FIO with block size 8k and iodepth 16
+sed --in-place=.orig -e s:"iodepth=8":"iodepth=16": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-16q.log
 
-# Run FIO with block size 64k
-sed --in-place=.orig -e s:"bs=32k":"bs=64k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-64k.log
+# Run FIO with block size 8k and iodepth 32
+sed --in-place=.orig -e s:"iodepth=16":"iodepth=32": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-32q.log
 
-# Run FIO with block size 128k
-sed --in-place=.orig -e s:"bs=64k":"bs=128k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-128k.log
+# Run FIO with block size 8k and iodepth 64
+sed --in-place=.orig -e s:"iodepth=32":"iodepth=64": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-64q.log
 
-# Run FIO with block size 256k
-sed --in-place=.orig -e s:"bs=128k":"bs=256k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-256k.log
+# Run FIO with block size 8k and iodepth 128
+sed --in-place=.orig -e s:"iodepth=64":"iodepth=128": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-128q.log
+
+# Run FIO with block size 8k and iodepth 256
+sed --in-place=.orig -e s:"iodepth=128":"iodepth=256": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-256q.log
+
+# Run FIO with block size 8k and iodepth 512
+sed --in-place=.orig -e s:"iodepth=256":"iodepth=512": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-512q.log
+
+# Run FIO with block size 8k and iodepth 1024
+sed --in-place=.orig -e s:"iodepth=512":"iodepth=1024": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-1024q.log
 
 #
 # Check if the SCSI disk is still connected
 #
 mkdir /mnt/Example
-dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
+dd if=/dev/zero of=/mnt/Example/data iodepth=10M count=50
     if [ $? -ne 0 ]; then
         LogMsg "FIO test failed!"
         echo "FIO test failed!" >> ~/summary.log
