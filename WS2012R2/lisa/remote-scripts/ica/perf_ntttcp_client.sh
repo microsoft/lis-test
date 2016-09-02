@@ -142,7 +142,7 @@ function get_tx_pkts(){
     fi    
 }
 
-#Create eth_report.log
+#Create log folder
 if [ -d  $log_folder ]; then
     echo "File $log_folder exists: will be deleted."
     LogMsg "File $log_folder exists." >> ~/summary.log
@@ -626,16 +626,12 @@ sts=$?
 if [ $sts -eq 0 ]; then 
     LogMsg "Ntttcp succeeded with all connections."
     echo "Ntttcp succeeded with all connections." >> ~/summary.log
+    cd $HOME
+    zip -r $log_folder.zip . -i $log_folder/*
+    sleep 20
     UpdateTestState $ICA_TESTCOMPLETED
 else 
     LogMsg "Something gone wrong. Please re-run.."
     echo "Something gone wrong. Please re-run.." >> ~/summary.log
-fi
-#Prepare the logs:
-cd $HOME
-zip -r $log_folder.zip . -i $log_folder/*
-if [ $? -ne 0 ]; then
-    echo "Unable to archive log folder."
-    LogMsg "Unable to archive log folder." >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
 fi
