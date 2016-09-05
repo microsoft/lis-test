@@ -348,14 +348,10 @@ class BaseLogsReader(object):
         else:
             log_files.extend(self.get_log_files(self.log_path))
         for log_file in log_files:
-            print(os.path.basename(log_file))
-            print(self.log_matcher)
             f_match = re.match(self.log_matcher, os.path.basename(log_file))
-            print(f_match)
             if not f_match:
                 continue
             log_dict = dict.fromkeys(self.headers, '')
-            print(log_dict)
             list_log_dict.append(self.collect_data(f_match, log_file, log_dict))
         self.teardown()
         return list_log_dict
@@ -450,7 +446,6 @@ class NTTTCPLogsReader(BaseLogsReader):
                                                   f_lines[x])
                             if throughput:
                                 log_dict[key] = throughput.group(1).strip()
-                                print(log_dict[key])
                                 break
                 elif 'latency' in key:
                     log_dict[key] = 0
