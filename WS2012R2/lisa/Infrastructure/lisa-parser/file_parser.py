@@ -255,28 +255,20 @@ class BaseLogsReader(object):
     def __init__(self, log_path):
         """
         Init Base logger.
-        :param log_path: Required
+        :param log_path: Path containing zipped logs.
         """
         self.cleanup = False
-        self.log_path = self.get_log_path(log_path)
+        self.log_path = self.process_log_path(log_path)
         self.headers = None
         self.log_matcher = None
 
-    @property
-    def log_files(self):
-        """
-        Compute all files from a path.
-        :returns: List
-        :rtype: List or None
-        """
-        return [log_name for log_name in os.listdir(self.log_path)
-                if os.path.isfile(os.path.join(self.log_path, log_name))]
-
-    def get_log_path(self, log_path):
+    def process_log_path(self, log_path):
         """
         Detect if log_path is a zip, then unzip it and return log's location.
         :param log_path:
-        :return: log's location
+        :return: log location - if the log_path is not a zip
+                 unzipped location - if log_path is a zip
+                 list of zipped logs - if log_path contains the zipped logs
         """
         if zipfile.is_zipfile(log_path):
             dir_path = os.path.dirname(os.path.abspath(log_path))
@@ -291,6 +283,14 @@ class BaseLogsReader(object):
             if unzip_folder:
                 self.cleanup = True
             return os.path.join(dir_path, unzip_folder)
+        elif any(zipfile.is_zipfile(os.path.join(log_path, z))
+                 for z in os.listdir(log_path)):
+            zip_list = []
+            for z in os.listdir(log_path):
+                zip_file_path = os.path.join(log_path, z)
+                if zipfile.is_zipfile(zip_file_path):
+                    zip_list.append(self.process_log_path(zip_file_path))
+            return zip_list
         else:
             return log_path
 
@@ -300,7 +300,23 @@ class BaseLogsReader(object):
         :return: None
         """
         if self.cleanup:
-            shutil.rmtree(self.log_path)
+            if isinstance(self.log_path, list):
+                for path in self.log_path:
+                    shutil.rmtree(path)
+            else:
+                shutil.rmtree(self.log_path)
+
+    @staticmethod
+    def get_log_files(log_path):
+        """
+        Compute and check all files from a path.
+        :param: log_path: path to check
+        :returns: List of checked files
+        :rtype: List or None
+        """
+        return [os.path.join(log_path, log_name)
+                for log_name in os.listdir(log_path)
+                if os.path.isfile(os.path.join(log_path, log_name))]
 
     def collect_data(self, f_match, log_file, log_dict):
         """
@@ -325,8 +341,14 @@ class BaseLogsReader(object):
              [] - on failed parsing
         """
         list_log_dict = []
-        for log_file in self.log_files:
-            f_match = re.match(self.log_matcher, log_file)
+        log_files = []
+        if isinstance(self.log_path, list):
+            for path in self.log_path:
+                log_files.extend(self.get_log_files(path))
+        else:
+            log_files.extend(self.get_log_files(self.log_path))
+        for log_file in log_files:
+            f_match = re.match(self.log_matcher, os.path.basename(log_file))
             if not f_match:
                 continue
             log_dict = dict.fromkeys(self.headers, '')
@@ -352,12 +374,12 @@ class FIOLogsReader(BaseLogsReader):
         """
         Customized data collect for FIO test case.
         :param f_match: regex file matcher
-        :param log_file: log file name
+        :param log_file: full path log file name
         :param log_dict: dict constructed from the defined headers
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['BlockSize'] = f_match.group(1)
-        with open(os.path.join(self.log_path, log_file), 'r') as fl:
+        with open(log_file, 'r') as fl:
             f_lines = fl.readlines()
             for key in log_dict:
                 if not log_dict[key]:
@@ -389,8 +411,17 @@ class NTTTCPLogsReader(BaseLogsReader):
                         'average_tcp_latency', 'average_packet_size',
                         'IPVersion', 'Protocol']
         self.log_matcher = 'ntttcp-p([0-9X]+)'
-        self.eth_log_csv = parse_from_csv(os.path.join(self.log_path,
-                                                       'eth_report.log'))
+        self.eth_log_csv = dict()
+        self.__get_eth_log_csv()
+
+    def __get_eth_log_csv(self):
+        if isinstance(self.log_path, list):
+            for path in self.log_path:
+                self.eth_log_csv[path] = parse_from_csv(os.path.join(
+                    path, 'eth_report.log'))
+        else:
+            self.eth_log_csv[self.log_path] = parse_from_csv(os.path.join(
+                self.log_path, 'eth_report.log'))
 
     def collect_data(self, f_match, log_file, log_dict):
         """
@@ -408,7 +439,7 @@ class NTTTCPLogsReader(BaseLogsReader):
             if not log_dict[key]:
                 if 'throughput' in key:
                     log_dict[key] = 0
-                    with open(os.path.join(self.log_path, log_file), 'r') as fl:
+                    with open(log_file, 'r') as fl:
                         f_lines = fl.readlines()
                         for x in range(0, len(f_lines)):
                             throughput = re.match('.+throughput.+:([0-9.]+)',
@@ -418,9 +449,9 @@ class NTTTCPLogsReader(BaseLogsReader):
                                 break
                 elif 'latency' in key:
                     log_dict[key] = 0
-                    lat_file = os.path.join(self.log_path,
-                                            'lagscope-ntttcp-p{}.log'
-                                            .format(f_match.group(1)))
+                    lat_file = os.path.join(os.path.dirname(os.path.abspath(
+                        log_file)), 'lagscope-ntttcp-p{}.log'
+                        .format(f_match.group(1)))
                     with open(lat_file, 'r') as fl:
                         f_lines = fl.readlines()
                         for x in range(0, len(f_lines)):
@@ -441,7 +472,10 @@ class NTTTCPLogsReader(BaseLogsReader):
                             if latency:
                                 log_dict[key] = latency.group(1).strip()
                 elif 'packet_size' in key:
-                    avg_pkg_size = [elem[key] for elem in self.eth_log_csv
+                    avg_pkg_size = [elem[key]
+                                    for elem in self.eth_log_csv[
+                                        os.path.dirname(os.path.abspath(
+                                            log_file))]
                                     if (int(elem[self.headers[0]]) ==
                                         log_dict[self.headers[0]])]
                     try:
