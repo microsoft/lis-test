@@ -287,7 +287,7 @@ if [[ $? -eq 0 ]]; then
         exit 60
     fi
 else
-    ipVersion=$null
+    ipVersion=
 fi
 
 #
@@ -596,13 +596,13 @@ do
     echo "======================================"
     
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f ntttcp"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} -P $num_threads_P -t ${TEST_DURATION}" &
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} -P $num_threads_P -t ${TEST_DURATION} ${ipVersion}" &
 
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f lagscope"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "lagscope -r${SERVER_IP}" &
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "lagscope -r${SERVER_IP} ${ipVersion}" &
     
     sleep 2
-    lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V  > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
+    lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V ${ipVersion} > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
     ntttcp -s${SERVER_IP} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION} ${ipVersion} > "./$log_folder/ntttcp-p${num_threads_P}X${num_threads_n}.log"
 
     current_tx_bytes=$(get_tx_bytes)
