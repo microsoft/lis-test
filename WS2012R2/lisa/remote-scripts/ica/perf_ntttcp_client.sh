@@ -128,6 +128,7 @@ function get_tx_bytes(){
     then
         #TX packets 223558709  bytes 15463202847 (14.4 GiB)
         Tx_bytes=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $5}'`
+        echo $Tx_bytes
     fi    
 }
 
@@ -139,6 +140,7 @@ function get_tx_pkts(){
     then
         #TX packets 223558709  bytes 15463202847 (14.4 GiB)
         Tx_pkts=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $3}'`
+        echo $Tx_pkts
     fi    
 }
 
