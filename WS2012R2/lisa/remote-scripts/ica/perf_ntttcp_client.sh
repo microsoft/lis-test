@@ -144,8 +144,9 @@ function get_tx_bytes(){
     then
         #TX packets 223558709  bytes 15463202847 (14.4 GiB)
         Tx_bytes=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $5}'`
-        echo $Tx_bytes
-    fi    
+    fi
+    echo $Tx_bytes
+
 }
 
 function get_tx_pkts(){
@@ -155,9 +156,9 @@ function get_tx_pkts(){
     if [ "x$Tx_pkts" == "x" ]
     then
         #TX packets 223558709  bytes 15463202847 (14.4 GiB)
-        Tx_pkts=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $3}'`
-        echo $Tx_pkts
-    fi    
+        Tx_pkts=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $3}'`        
+    fi
+    echo $Tx_pkts   
 }
 
 #Create log folder
