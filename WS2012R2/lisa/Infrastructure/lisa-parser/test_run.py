@@ -241,7 +241,7 @@ class PerfTestRun(TestRun):
             elif self.suite.lower() == 'ntttcp':
                 self.prep_for_ntttcp(table_dict, test_case_obj)
 
-            table_dict['TestCaseName'] = re.findall("[a-zA-z]+", table_dict['TestCaseName'])
+            table_dict['TestCaseName'] = re.findall("[a-zA-z]+", table_dict['TestCaseName'])[0]
 
         return insertion_list
 
