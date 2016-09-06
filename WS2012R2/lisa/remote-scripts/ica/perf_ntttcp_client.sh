@@ -74,6 +74,7 @@ touch ~/summary.log
 
 # Convert eol
 dos2unix utils.sh
+dos2unix perf_utils.sh
 
 # Source utils.sh
 . utils.sh || {
@@ -82,8 +83,23 @@ dos2unix utils.sh
     exit 2
 }
 
+# Source perf_utils.sh
+. perf_utils.sh || {
+    echo "Error: unable to source perf_utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
 # Source constants file and initialize most common variables
 UtilsInit
+
+#Apling performance parameters
+setup_sysctl
+if [ $? -ne 0 ]; then
+    echo "Unable to add performance parameters."
+    LogMsg "Unable to add performance parameters."
+    UpdateTestState $ICA_TESTABORTED
+fi
 
 # In case of error
 case $? in
@@ -528,6 +544,8 @@ if [ $? -ne 0 ]; then
 fi
 scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/perf_utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+
 
 #
 # Start ntttcp in server mode on the Target server side
