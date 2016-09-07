@@ -360,15 +360,15 @@ class BaseLogsReader(object):
 class FIOLogsReader(BaseLogsReader):
     """
     Subclass for parsing FIO log files e.g.
-    PERF-8kFIO_Performance_FIO_FIOLog-qXXX.log
+    FIOLog-XXXq.log
     """
     def __init__(self, log_path=None):
         super(FIOLogsReader, self).__init__(log_path)
         self.headers = ['rand-read:', 'rand-read: latency',
                         'rand-write: latency', 'seq-write: latency',
                         'rand-write:', 'seq-write:', 'seq-read:',
-                        'seq-read: latency', 'BlockSize']
-        self.log_matcher = 'PERF-[0-9]+[a-zA-Z_]+FIOLog-(q[0-9]+)'
+                        'seq-read: latency', 'QDepth']
+        self.log_matcher = 'FIOLog-([0-9]+)q'
 
     def collect_data(self, f_match, log_file, log_dict):
         """
@@ -378,7 +378,7 @@ class FIOLogsReader(BaseLogsReader):
         :param log_dict: dict constructed from the defined headers
         :return: <dict> {'head1': 'val1', ...}
         """
-        log_dict['BlockSize'] = f_match.group(1)
+        log_dict['QDepth'] = f_match.group(1)
         with open(log_file, 'r') as fl:
             f_lines = fl.readlines()
             for key in log_dict:

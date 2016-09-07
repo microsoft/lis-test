@@ -175,6 +175,7 @@ class TestRun(object):
                 logger.debug('Parsed line %s for insertion', test_dict)
                 insertion_list.append(test_dict)
 
+        print(insertion_list)
         return insertion_list
 
     @staticmethod
@@ -241,25 +242,29 @@ class PerfTestRun(TestRun):
             elif self.suite.lower() == 'ntttcp':
                 self.prep_for_ntttcp(table_dict, test_case_obj)
 
-            table_dict['TestCaseName'] = re.findall("[a-zA-z]+", table_dict['TestCaseName'])[0]
-
+            table_dict['TestCaseName'] = re.findall(
+                "[a-zA-z]+", table_dict['TestCaseName'])[0]
         return insertion_list
 
     @staticmethod
     def prep_for_fio(table_dict, test_case_obj):
-        table_dict['RandRead'] = float(test_case_obj.perf_dict['rand-read:'])
-        table_dict['Latency_RandRead'] = float(test_case_obj.perf_dict[
+        table_dict['rand_read_iops'] = float(test_case_obj.perf_dict[
+                                                 'rand-read:'])
+        table_dict['rand_read_lat_usec'] = float(test_case_obj.perf_dict[
             'rand-read: latency'])
-        table_dict['RandWrite'] = float(test_case_obj.perf_dict['rand-write:'])
-        table_dict['Latency_RandWrite'] = float(test_case_obj.perf_dict[
+        table_dict['rand_write_iops'] = float(test_case_obj.perf_dict[
+                                                  'rand-write:'])
+        table_dict['rand_write_lat_usec'] = float(test_case_obj.perf_dict[
             'rand-write: latency'])
-        table_dict['SeqRead'] = float(test_case_obj.perf_dict['seq-read:'])
-        table_dict['SeqWrite'] = float(test_case_obj.perf_dict['seq-write:'])
-        table_dict['Latency_SeqWrite'] = float(test_case_obj.perf_dict[
+        table_dict['seq_read_iops'] = float(test_case_obj.perf_dict[
+                                                'seq-read:'])
+        table_dict['seq_write_iops'] = float(test_case_obj.perf_dict[
+                                                 'seq-write:'])
+        table_dict['seq_write_lat_usec'] = float(test_case_obj.perf_dict[
             'seq-write: latency'])
-        table_dict['Latency_SeqRead'] = float(test_case_obj.perf_dict[
+        table_dict['seq_read_lat_usec'] = float(test_case_obj.perf_dict[
             'seq-read: latency'])
-        table_dict['Iodepth'] = float(test_case_obj.perf_dict['BlockSize'][1:])
+        table_dict['QDepth'] = int(test_case_obj.perf_dict['QDepth'])
 
     @staticmethod
     def prep_for_ntttcp(table_dict, test_case_obj):
