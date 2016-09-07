@@ -110,7 +110,10 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $global:MinDiskSize = 1GB
 $global:DefaultDynamicSize = 127GB
-
+$SCSICount = 0
+$IDECount = 0
+$diskCount=$null
+$lun=$null
 
 #######################################################################
 #
@@ -326,14 +329,11 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     return $retVal
 }
 
-
-
 ############################################################################
 #
 # Main entry point for script
 #
 ############################################################################
-
 $retVal = $true
 
 #
@@ -358,14 +358,16 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $False
 }
 
-#
-# Parse the testParams string
-#
-$SCSICount = 0
-$IDECount = 0
-$diskCount=$null
-$lun=$null
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation
+$OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
+if ( ($OSInfo.Caption -match '.2008 R2.') -or 
+     ($OSInfo.Caption -match '.2012$'))
+{
+   $vmGeneration = 1 
+}
+else
+{
+    $vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
+}
 
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($p in $params)
