@@ -358,7 +358,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $False
 }
 
-$OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
+$OSInfo = get-wmiobject Win32_OperatingSystem -ComputerName $hvServer
 if ( ($OSInfo.Caption -match '.2008 R2.') -or 
      ($OSInfo.Caption -match '.2012$'))
 {
