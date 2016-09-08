@@ -57,7 +57,28 @@
     .Example
     StartVM -vmName myVM -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM2NAME=vm2Name"
 #>
+
 param([string] $vmName, [string] $hvServer, [string] $testParams)
+
+$EnableVmmq = $null
+
+# sshKey used to authenticate ssh connection and send commands
+$sshKey = $null
+
+# IP Address of first VM
+$ipv4 = $null
+
+# Name of second VM
+$vm2Name = $null
+
+# In case the dependency VM is on another server than the test VM
+$vm2Server = $null
+
+#IP assigned to test interfaces
+$tempipv4VM2 = $null
+$testipv4VM2 = $null
+$testipv6VM2 = $null
+
 
 #
 #Helper function to execute command on remote machine.
@@ -92,24 +113,6 @@ if ($testParams -eq $null)
 # Write out test Params
 $testParams
 
-# sshKey used to authenticate ssh connection and send commands
-$sshKey = $null
-
-# IP Address of first VM
-$ipv4 = $null
-
-# Name of second VM
-$vm2Name = $null
-
-# In case the dependency VM is on another server than the test VM
-$vm2Server = $null
-
-#IP assigned to test interfaces
-
-$tempipv4VM2 = $null
-$testipv4VM2 = $null
-$testipv6VM2 = $null
-
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
@@ -127,7 +130,6 @@ if (Test-Path $rootDir)
         "Error: Could not change directory to $rootDir !"
         return $false
     }
-    "Changed working directory to $rootDir"
 }
 else
 {
