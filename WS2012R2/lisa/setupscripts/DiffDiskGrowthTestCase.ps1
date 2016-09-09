@@ -303,7 +303,7 @@ $ipv4 = $null
 $TC_COVERED = $null
 $vhdFormat = $null
 
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation
+$vmGeneration = $null 
 #
 # Parse the testParams string and make sure all
 # required test parameters have been specified.
@@ -464,6 +464,12 @@ $defaultVhdPath = $hostInfo.VirtualHardDiskPath
 if (-not $defaultVhdPath.EndsWith("\"))
 {
     $defaultVhdPath += "\"
+}
+
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq "False")
+{
+   $vmGeneration = 1
 }
 
 if ($vmGeneration -eq 1)

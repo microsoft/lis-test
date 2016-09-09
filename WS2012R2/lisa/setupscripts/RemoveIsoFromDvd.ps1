@@ -90,18 +90,10 @@ $error.Clear()
 # Remove the .iso file from the VMs DVD drive
 #
 
-#
-#Get the version of VM
-#
-$OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
-if ( ($OSInfo.Caption -match '.2008 R2.') -or 
-     ($OSInfo.Caption -match '.2012$'))
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq "False")
 {
-   $vmGeneration = 1 
-}
-else
-{
-    $vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
+   $vmGeneration = 1
 }
 #
 # Make sure the DVD drive exists on the VM

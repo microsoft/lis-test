@@ -96,14 +96,11 @@
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $vmGeneration = $null
-# WS 2012, 2008 R2 do not support generation 2 VMs
-$OSInfo = get-wmiobject Win32_OperatingSystem -ComputerName $hvServer
-if ( ($OSInfo.Caption -match '.2008 R2.') -or 
-     ($OSInfo.Caption -match '.2012 [^R2].')) {
+
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq "False")
+{
    $vmGeneration = 1
-} else
-	{
-	$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
 }
 ############################################################################
 #

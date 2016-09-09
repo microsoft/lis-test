@@ -158,7 +158,11 @@ if( $kernel.StartsWith("2.6") -or $kernel.EndsWith(".i686")){
 #
 # Collecting the VM generation info
 #
-$VmGeneration = Get-VM $vmName | select -ExpandProperty Generation
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq "False")
+{
+   $vmGeneration = 1
+}
 LogMsg 9 "Info: The VM you are working on is a generation $VmGeneration VM."
 
 #

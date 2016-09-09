@@ -217,7 +217,7 @@ $lun = $null
 $vhdType = $null
 $parentVhd = $null
 $vhdFormat =$null
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation
+$vmGeneration = $null
 #
 # Parse the testParams string
 #
@@ -365,15 +365,12 @@ else # Make sure the controller ID is valid for IDE
     }
 }
 
-# WS 2012, 2008 R2 do not support generation 2 VMs
-$OSInfo = get-wmiobject Win32_OperatingSystem -ComputerName $hvServer
-if ( ($OSInfo.Caption -match '.2008 R2.') -or 
-     ($OSInfo.Caption -match '.2012$.')) {
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq "False")
+{
    $vmGeneration = 1
-} else
-	{
-	$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
 }
+
 if ($vmGeneration -eq 1)
 {
     $lun = [int]($diskArgs[1].Trim())
