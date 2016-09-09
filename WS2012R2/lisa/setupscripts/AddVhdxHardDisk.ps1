@@ -335,6 +335,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
 #
 ############################################################################
 $retVal = $true
+$vmGeneration=$null
 
 #
 # Check input arguments
@@ -359,7 +360,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 }
 
 $vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq "False")
+if ($? -eq $False)
 {
    $vmGeneration = 1
 }

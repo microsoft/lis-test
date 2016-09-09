@@ -143,7 +143,7 @@ if (-not $isoFilename)
 $error.Clear()
 
 $vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq "False")
+if ($? -eq $False)
 {
    $vmGeneration = 1
 }
