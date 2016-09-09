@@ -248,7 +248,7 @@ if (-not $vhdFormat)
 #
 $controller = $null
 $drive = $null
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
+$vmGeneration = $null 
 
 if($IDE)
 {
@@ -259,6 +259,15 @@ if($SCSI)
     $controller = Get-VMScsiController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID
 }
 
+# WS 2012, 2008 R2 do not support generation 2 VMs
+$OSInfo = get-wmiobject Win32_OperatingSystem -ComputerName $hvServer
+if ( ($OSInfo.Caption -match '.2008 R2.') -or 
+     ($OSInfo.Caption -match '.2012$')) {
+   $vmGeneration = 1
+} else
+	{
+	$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation
+}
 if ($vmGeneration -eq 1)
 {
     $lun = [int]($diskArgs[1].Trim())
