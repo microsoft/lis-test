@@ -158,16 +158,17 @@ if( $kernel.StartsWith("2.6") -or $kernel.EndsWith(".i686")){
 #
 # Collecting the VM generation info
 #
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinuif ($? -eq "False")
-if ($? -eq $False)
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq $False) {
    $vmGeneration = 1
 }
+
 LogMsg 9 "Info: The VM you are working on is a generation $VmGeneration VM."
 
 #
 # Extracting the node and port name values for the VM attached HBA
 #
-$NumaNodes = Get-VM $vmName | select -ExpandProperty NumaNodesCount
+$NumaNodes = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty NumaNodesCount
 
 #
 # Send the Numa Nodes value to the guest if it matches with the number of CPUs
