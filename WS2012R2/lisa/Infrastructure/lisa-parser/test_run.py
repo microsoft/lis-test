@@ -202,8 +202,12 @@ class PerfTestRun(TestRun):
         parsed_perf_log = None
         if self.suite.lower() == 'fio':
             parsed_perf_log = FIOLogsReader(self.perf_path).process_logs()
+            parsed_perf_log = sorted(parsed_perf_log, key=lambda column: (
+                column['QDepth']))
         elif self.suite.lower() == 'ntttcp':
             parsed_perf_log = NTTTCPLogsReader(self.perf_path).process_logs()
+            parsed_perf_log = sorted(parsed_perf_log, key=lambda column: (
+                column['IPVersion'], column['#test_connections']))
 
         tests_cases = dict()
         test_index = 0
