@@ -263,6 +263,10 @@ LogMsg "Running LTP..."
 
 LogMsg "Updating summary log"
 grep -A 5 "Total Tests" $LTP_RESULTS >> ~/summary.log
-
+if grep FAIL $LTP_OUTPUT
+then
+	echo "Failed Tests:" >> ~/summary.log
+	grep FAIL $LTP_OUTPUT | cut -d':' -f 2- >> ~/summary.log
+fi
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
