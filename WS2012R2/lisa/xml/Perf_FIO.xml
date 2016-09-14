@@ -31,33 +31,23 @@
          <test> 
             <testName>Performance_FIO</testName> 
             <testScript>Performance_FIO.sh</testScript>
-            <files>remote-scripts/ica/Performance_FIO.sh,tools/fio-2.1.10.tar.gz,tools/lis-ssd-test.fio</files>
+            <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/perf_utils.sh,tools/fio-2.1.10.tar.gz,tools/lis-ssd-test.fio</files>
             <setupScript>
                 <file>setupScripts\Check_PowerPlan.ps1</file>
                 <file>setupScripts\AddHardDisk.ps1</file>
             </setupScript>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <postTest>Infrastructure\Analyze-FIOResults.ps1</postTest>
             <timeout>18000</timeout>
             <testParams>  
-                <param>SCSI=0,0,Fixed,60GB</param> 
+                <param>TC_COVERED=FIO</param>
+            	<param>SCSI=0,0,Physical</param>
                 <param>TOTAL_DISKS=1</param> 
                 <param>TEST_DEVICE1=/dev/sdb</param>  
                 <param>FILE_NAME=fio-2.1.10.tar.gz</param>
                 <param>FIO_SCENARIO_FILE=lis-ssd-test.fio</param>
-                <param>TestLogDir=/path/to/log/dir/</param>
             </testParams> 
             <uploadFiles>
-                <file>FIOLog-2q.log</file>
-                <file>FIOLog-4q.log</file>
-                <file>FIOLog-8q.log</file>
-                <file>FIOLog-16q.log</file>
-                <file>FIOLog-32q.log</file>
-                <file>FIOLog-64q.log</file>
-                <file>FIOLog-128q.log</file>
-                <file>FIOLog-256q.log</file>
-                <file>FIOLog-512q.log</file>
-                <file>FIOLog-1024q.log</file>
+                <file>fio_logs.zip</file>                
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
