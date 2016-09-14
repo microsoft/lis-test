@@ -22,16 +22,16 @@
 
 <#
 .Synopsis
- --THIS TEST IS THRESHOLD ONLY--
- Verify that can remove memory while stress tool is running.
+	Verify that memory assigned to VM changes.
 
  Description:
-    Verify that memory changes while stress tool is running.
+   Verify that memory changes if small chunks memory are added or removed.
+   "decrease" parameter will be set "no" for HotAdd case and "yes" for HotRemove case
 
    Only 1 VM is required for this test.
 
    .Parameter vmName
-    Name of the VM to remove NIC from .
+    Name of the VM to test Manual Memory Add/Remove.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -40,8 +40,8 @@
     Test data for this test case
 
     .Example
-    setupscripts\ManualMem_StressHotRemove.ps1 -vmName nameOfVM -hvServer localhost -testParams 
-    'sshKey=KEY; ipv4=IPAddress; rootDir=path\to\dir; TC_COVERED=??; startupMem=2GB'
+    setupscripts\Runtime_Mem_HotAdd_Chunks.ps1 -vmName nameOfVM -hvServer localhost -testParams 
+    'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; startupMem=2GB;chunkMem=128MB; decrease=no'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -89,6 +89,7 @@ function checkStressNg([String]$conIpv4, [String]$sshKey)
         sts=`$?
         exit `$sts
 "@
+
     #"pingVMs: sendig command to vm: $cmdToVM"
     $filename = "CheckStress-ng.sh"
 
@@ -101,6 +102,12 @@ function checkStressNg([String]$conIpv4, [String]$sshKey)
 
     # send file
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0){
+        Remove-Item ".\${filename}"
+    }
+
     # check the return Value of SendFileToVM
     if (-not $retVal){
         return $false
@@ -108,6 +115,7 @@ function checkStressNg([String]$conIpv4, [String]$sshKey)
 
     # execute command
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
     return $retVal
 }
 
@@ -146,13 +154,10 @@ $scriptBlock = {
         __freeMem=`$(cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }')
         __freeMem=`$((__freeMem/1024))
         echo ConsumeMemory: Free Memory found `$__freeMem MB >> /root/HotAdd.log 2>&1
-        # Will stress only half of free memory
-        __freeMem=`$((__freeMem/2))
-        echo ConsumeMemory: Memory to be stressed: `$__freeMem MB >> /root/HotAdd.log 2>&1
-        __threads=16
+        __threads=32
         __chunks=`$((`$__freeMem / `$__threads))
-        echo "Going to start `$__threads instance(s) of stress-ng every 2 seconds, each consuming `$__chunks memory" >> /root/HotAdd.log 2>&1
-        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t 150 --backoff 1500000
+        echo "Going to start `$__threads instance(s) of stress-ng every 2 seconds, each consuming 128MB memory" >> /root/HotAdd.log 2>&1
+        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t 120 --backoff 1500000
         echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
         wait
         exit 0
@@ -170,6 +175,12 @@ $scriptBlock = {
 
     # send file
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0){
+      Remove-Item ".\${filename}"
+    }
+
     # check the return Value of SendFileToVM
     if (-not $retVal[-1]){
       return $false
@@ -177,9 +188,11 @@ $scriptBlock = {
 
     # execute command as job
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
     return $retVal
   }
 }
+
 
 #######################################################################
 #
@@ -213,9 +226,6 @@ $sshKey = $null
 
 # IP Address of first VM
 $ipv4 = $null
-
-# Name of first VM
-$vm1Name = $null
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
@@ -252,23 +262,40 @@ foreach ($p in $params){
     $fields = $p.Split("=")
 
     switch ($fields[0].Trim()){
-      "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() }
+      "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() } 
       "ipv4"          { $ipv4       = $fields[1].Trim() }
       "sshKey"        { $sshKey     = $fields[1].Trim() }
+      "decrease"      { $decrease   = $fields[1].Trim() }
       "startupMem"  { 
-        $startupMem  = ConvertToMemSize $fields[1].Trim() $hvServer
+        $startupMem = ConvertToMemSize $fields[1].Trim() $hvServer
 
         if ($startupMem -le 0){
           "Error: Unable to convert startupMem to int64."
           return $false
         }
+
         "startupMem: $startupMem"
+      }
+      "chunkMem"  { 
+        $chunkMem  = ConvertToMemSize $fields[1].Trim() $hvServer
+
+        if ($chunkMem -le 0){
+          "Error: Unable to convert chunkMem to int64."
+          return $false
+        }
+
+        "chunkMem: $chunkMem"
       }
     }
 }
 
 if (-not $sshKey){
   "Error: Please pass the sshKey to the script."
+  return $false
+}
+
+if (-not $startupMem){
+  "Error: startupMem is not set!"
   return $false
 }
 
@@ -310,6 +337,7 @@ while ($sleepPeriod -gt 0){
 
   $sleepPeriod-= 5
   start-sleep -s 5
+
 }
 
 if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm1BeforeAssignedGuest -le 0){
@@ -320,50 +348,28 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm1BeforeAssignedGu
 "Memory stats after $vmName started reporting "
 "  ${vmName}: assigned - $vm1BeforeAssigned | demand - $vm1BeforeDemand"
 
-# Send Command to consume
-$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir) ConsumeMemory $ip $sshKey $rootDir } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir)
-if (-not $?){
-  "Error: Unable to start job for creating pressure on $vmName"
-  return $false
-}
-
-# sleep a few seconds so stress-ng starts and the memory assigned/demand gets updated
-start-sleep -s 80
-
-# get memory stats while stress-ng is running
-[int64]$vm1Demand = ($vm1.MemoryDemand/1MB)
-[int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
-"Memory stats after $vm1Name started stress-ng"
-"  ${vmName}: assigned - $vm1Assigned | demand - $vm1Demand"
-
-if ($vm1Demand -le $vm1BeforeDemand){
-  "Error: Memory Demand did not increase after starting stress-ng"
-  return $false
-}
-
-# Memory value to be assigned will be 300mb higher than memory demand (below that we might receive an error)
-[int64]$testMem = $vm1.MemoryDemand + 314572800
-
-# Adjust testMem value if it's not an even number
-[int64]$testMem = $testMem / 1048576
-if ($testMem % 2 -eq 0 ){
-  [int64]$testMem = $testMem * 1048576
-}   
-else{
-  [int64]$testMem = $testMem + 1
-  [int64]$testMem = $testMem * 1048576
-}
-
+$testMem = $startupMem
 # Set new memory value
-for ($i=0; $i -lt 3; $i++){
+for ($i=1; $i -lt 5; $i++){
+  # Modify testMem accordingly to testcase (increase or decrease)
+  if ($decrease -like "no"){
+      $testMem =  $testMem + $chunkMem
+  }
+  else{
+      $testMem =  $testMem - $chunkMem
+  }
+
   Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
   Start-sleep -s 5
   if ($vm1.MemoryAssigned -eq $testMem){
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
     [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
 
+    "Memory stats after ${i} run"
+    "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
+
     [int64]$vm1AfterAssignedGuest = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
-    break
+    Start-sleep -s 5
   }
 }
 
@@ -381,16 +387,45 @@ if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
     return $false
 }
 
-if ($vm1AfterAssignedGuest -ge $vm1BeforeAssignedGuest){
-    "Error: Guest reports that memory value hasn't decreased!"
+# Verify memory reported inside guest VM
+if ($decrease -like "no"){
+   [int64]$deltaMemGuest = ($vm1AfterAssignedGuest - $vm1BeforeAssignedGuest) / 1024
+}
+else{
+   [int64]$deltaMemGuest = ($vm1BeforeAssignedGuest - $vm1AfterAssignedGuest) / 1024
+}
+
+"Free memory difference reported by guest vm before - after assigning the new memory value: ${deltaMemGuest} MB"
+if ( $deltaMemGuest -lt 128){
+    "Error: Guest reports that memory value hasn't increased or decreased enough!"
     "Memory stats after $vmName memory was changed "
-    "  ${vmName}: Initial Memory - $vm1BeforeAssignedGuest KB :: After setting new value - $vm1AfterAssignedGuest KB"
+    "  ${vmName}: Initial Memory - $vm1BeforeAssignedGuest KB :: After setting new value - $vm1AfterAssignedGuest"
     return $false 
 }
 
 "Memory stats after $vmName memory was changed "
 "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
-"  Reported free memory inside ${vmName}: Before - $vm1BeforeAssignedGuest KB | After - $vm1AfterAssignedGuest KB"
+
+# Send Command to consume
+$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir) ConsumeMemory $ip $sshKey $rootDir } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir)
+if (-not $?){
+  "Error: Unable to start job for creating pressure on $vmName"
+  return $false
+}
+
+# sleep a few seconds so stress-ng starts and the memory assigned/demand gets updated
+start-sleep -s 50
+
+# get memory stats while stress-ng is running
+[int64]$vm1Demand = ($vm1.MemoryDemand/1MB)
+[int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
+"Memory stats after $vmName started stress-ng"
+"  ${vmName}: assigned - $vm1Assigned | demand - $vm1Demand"
+
+if ($vm1Demand -le $vm1BeforeDemand){
+  "Error: Memory Demand did not increase after starting stress-ng"
+  return $false
+}
 
 # Wait for jobs to finish now and make sure they exited successfully
 $timeout = 120
@@ -400,12 +435,13 @@ while ($timeout -gt 0){
     $firstJobStatus = $true
     $retVal = Receive-Job $job1
     if (-not $retVal[-1]){
-      "Error: Consume Memory script returned false on VM $vmName"
+      "Error: Consume Memory script returned false on VM1 $vmName"
       return $false
     }
     $diff = $totalTimeout - $timeout
     "Job finished in $diff seconds."
   }
+
   if ($firstJobStatus){
     break
   }

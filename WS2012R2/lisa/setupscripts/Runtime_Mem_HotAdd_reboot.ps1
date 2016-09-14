@@ -22,8 +22,7 @@
 
 <#
 .Synopsis
- --THIS TEST IS WS2016 ONLY--
- Verify Hot Add feature with dynamic memory disabled.
+	Verify runtime memory hot add feature with Dynamic Memory disabled.
 
  Description:
    Verify that memory changes with non 128-MB aligned values. This test will
@@ -34,7 +33,7 @@
    Only 1 VM is required for this test.
 
    .Parameter vmName
-    Name of the VM to hot add memory.
+    Name of the VM to hot add memory to.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -43,8 +42,8 @@
     Test data for this test case
 
     .Example
-    setupscripts\ManualMem_HotAdd_reboot.ps1 -vmName nameOfVM -hvServer localhost -testParams 
-    'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; TC_COVERED=??; startupMem=4000MB'
+    setupscripts\Runtime_Mem_HotAdd_reboot.ps1 -vmName nameOfVM -hvServer localhost -testParams 
+    'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; startupMem=4000MB'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -288,5 +287,5 @@ if ( $i -eq 3 ){
 "Memory stats after $vmName memory was increased with 1000MB"
 "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
 
-"VM changed its memory successfully!"
+"Info: VM memory changed successfully!"
 return $true
