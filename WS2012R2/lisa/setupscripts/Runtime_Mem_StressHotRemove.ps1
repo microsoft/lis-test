@@ -19,7 +19,6 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
 	Verify that can remove memory while stress tool is running.
@@ -271,7 +270,11 @@ if (-not $sshKey){
   return $false
 }
 
-"This script covers test case: ${TC_COVERED}"
+# Delete any previous summary.log file
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+
+Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 $vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 

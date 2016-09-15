@@ -19,7 +19,6 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
 	Verify that demand changes with memory pressure inside the VM.
@@ -268,7 +267,7 @@ foreach ($p in $params){
 }
 
 if (-not $sshKey){
-  "Error: Please pass the sshKey to the script."
+  "Error: Please pass the sshKey to the script!"
   return $false
 }
 
@@ -277,7 +276,11 @@ if (-not $startupMem){
   return $false
 }
 
-"This script covers test case: ${TC_COVERED}"
+# Delete any previous summary.log file
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+
+Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 $vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
@@ -296,7 +299,7 @@ if (-not $retVal){
     return $false
 }
 
-"Stress-ng is installed!"
+"Stress-ng is installed! Will begin running memory stress tests shortly."
 
 # Get memory stats from vm1
 start-sleep -s 10

@@ -19,7 +19,6 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
 	Verify that memory assigned to VM changes when adding or removing a big amount (e.g. 2GB).
@@ -289,7 +288,11 @@ if (-not $testMem){
   return $false
 }
 
-"This script covers test case: ${TC_COVERED}"
+# Delete any previous summary.log file
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+
+Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 $vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
