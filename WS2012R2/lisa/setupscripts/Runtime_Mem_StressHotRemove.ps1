@@ -19,29 +19,27 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
- --THIS TEST IS THRESHOLD ONLY--
- Verify that demand changes with memory pressure inside the VM.
+	Verify that can remove memory while stress tool is running.
 
  Description:
-   Verify that memory changes if multiple memory add/remove operations are done.
+    Verify that memory changes while stress tool is running.
 
-   Only 1 VM is required for this test.
+	Only 1 VM is required for this test.
 
    .Parameter vmName
-    Name of the VM to remove NIC from .
+    Name of the VM under test.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
 
     .Parameter testParams
-    Test data for this test case
+    Test data for this test case.
 
     .Example
-    setupscripts\ManualMem_MultipleAddRemove.ps1 -vmName nameOfVM -hvServer localhost -testParams 
-    'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; TC_COVERED=??; startupMem=2GB'
+    setupscripts\Runtime_Mem_StressHotRemove.ps1 -vmName nameOfVM -hvServer localhost -testParams 
+    'sshKey=KEY; ipv4=IPAddress; rootDir=path\to\dir; startupMem=2GB'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -101,7 +99,6 @@ function checkStressNg([String]$conIpv4, [String]$sshKey)
 
     # send file
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
     # check the return Value of SendFileToVM
     if (-not $retVal){
         return $false
@@ -109,7 +106,6 @@ function checkStressNg([String]$conIpv4, [String]$sshKey)
 
     # execute command
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
     return $retVal
 }
 
@@ -123,8 +119,8 @@ $scriptBlock = {
   if (Test-Path $rootDir){
     Set-Location -Path $rootDir
     if (-not $?){
-      "Error: Could not change directory to $rootDir !"
-      return $false
+    "Error: Could not change directory to $rootDir !"
+    return $false
     }
     "Changed working directory to $rootDir"
   }
@@ -148,10 +144,13 @@ $scriptBlock = {
         __freeMem=`$(cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }')
         __freeMem=`$((__freeMem/1024))
         echo ConsumeMemory: Free Memory found `$__freeMem MB >> /root/HotAdd.log 2>&1
-        __threads=8
+        # Will stress only half of free memory
+        __freeMem=`$((__freeMem/2))
+        echo ConsumeMemory: Memory to be stressed: `$__freeMem MB >> /root/HotAdd.log 2>&1
+        __threads=16
         __chunks=`$((`$__freeMem / `$__threads))
-        echo "Going to start `$__threads instance(s) of stress-ng every 2 seconds, each consuming 128MB memory" >> /root/HotAdd.log 2>&1
-        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t 120 --backoff 1500000
+        echo "Going to start `$__threads instance(s) of stress-ng every 2 seconds, each consuming `$__chunks memory" >> /root/HotAdd.log 2>&1
+        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t 150 --backoff 1500000
         echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
         wait
         exit 0
@@ -169,7 +168,6 @@ $scriptBlock = {
 
     # send file
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
     # check the return Value of SendFileToVM
     if (-not $retVal[-1]){
       return $false
@@ -177,7 +175,6 @@ $scriptBlock = {
 
     # execute command as job
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
     return $retVal
   }
 }
@@ -257,7 +254,7 @@ foreach ($p in $params){
       "ipv4"          { $ipv4       = $fields[1].Trim() }
       "sshKey"        { $sshKey     = $fields[1].Trim() }
       "startupMem"  { 
-        $startupMem = ConvertToMemSize $fields[1].Trim() $hvServer
+        $startupMem  = ConvertToMemSize $fields[1].Trim() $hvServer
 
         if ($startupMem -le 0){
           "Error: Unable to convert startupMem to int64."
@@ -266,7 +263,6 @@ foreach ($p in $params){
         "startupMem: $startupMem"
       }
     }
-
 }
 
 if (-not $sshKey){
@@ -274,12 +270,11 @@ if (-not $sshKey){
   return $false
 }
 
-if (-not $startupMem){
-  "Error: startupMem is not set!"
-  return $false
-}
+# Delete any previous summary.log file
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
 
-"This script covers test case: ${TC_COVERED}"
+Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 $vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
@@ -298,7 +293,7 @@ if (-not $retVal){
     return $false
 }
 
-"Stress-ng is installed!"
+"Stress-ng is installed! Will begin running memory stress tests shortly."
 
 # Get memory stats from vm1
 start-sleep -s 10
@@ -309,10 +304,9 @@ while ($sleepPeriod -gt 0){
   [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/1MB)
   [int64]$vm1BeforeDemand = ($vm1.MemoryDemand/1MB)
 
-  [int64]$vm1BeforeIncrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
-  "Free memory reported by guest VM before increase: $vm1BeforeIncrease"
+  [int64]$vm1BeforeAssignedGuest = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
 
-  if ($vm1BeforeAssigned -gt 0 -and $vm1BeforeDemand -gt 0 -and $vm1BeforeIncrease -gt 0){
+  if ($vm1BeforeAssigned -gt 0 -and $vm1BeforeDemand -gt 0 -and $vm1BeforeAssignedGuest -gt 0){
     break
   }
 
@@ -320,171 +314,13 @@ while ($sleepPeriod -gt 0){
   start-sleep -s 5
 }
 
-if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm1BeforeIncrease -le 0){
+if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm1BeforeAssignedGuest -le 0){
   "Error: vm1 $vmName reported 0 memory (assigned or demand)."
   return $False
 }
+
 "Memory stats after $vmName started reporting "
 "  ${vmName}: assigned - $vm1BeforeAssigned | demand - $vm1BeforeDemand"
-
-# Change 1 - Increase
-$testMem = $startupMem + 2147483648
-
-# Set new memory value
-for ($i=0; $i -lt 3; $i++){
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
-  Start-sleep -s 5
-  if ($vm1.MemoryAssigned -eq $testMem){
-    [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
-
-    [int64]$vm1AfterIncrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
-    "Free memory reported by guest VM after increase: $vm1AfterIncrease KB"
-    break
-  }
-}
-
-if ( $i -eq 3 ){
-  "Error: VM failed to change memory!"
-  "LIS 4.1 or kernel version 4.4 required"
-  return $false
-}
-
-if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
-    "Error: Memory assigned doesn't match the memory set as parameter!"
-    "Memory stats after $vmName memory was changed "
-    "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
-    return $false
-}
-
-if ( ($vm1AfterIncrease - $vm1BeforeIncrease) -le 2000000){
-    "Error: Guest reports that memory value hasn't increased enough!"
-    "Memory stats after $vmName memory was changed "
-    "  ${vmName}: Initial Memory - $vm1BeforeIncrease KB :: After setting new value - $vm1AfterIncrease"
-    return $false 
-}
-"Memory stats after $vmName memory was increased by 2GB "
-"  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
-
-# Change 2 - Decrease
-Start-sleep -s 10
-$testMem = $testMem - 2147483648
-
-# Set new memory value
-for ($i=0; $i -lt 3; $i++){
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
-  Start-sleep -s 5
-  if ($vm1.MemoryAssigned -eq $testMem){
-    [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
-
-    [int64]$vm1AfterDecrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
-    "Free memory reported by guest VM after decrease: $vm1AfterDecrease KB"
-    break
-  }
-}
-
-if ( $i -eq 3 ){
-  "Error: VM failed to change memory!"
-  "LIS 4.1 or kernel version 4.4 required"
-  return $false
-}
-
-if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
-    "Error: Memory assigned doesn't match the memory set as parameter!"
-    "Memory stats after $vm1Name memory was changed "
-    "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
-    return $false
-}
-
-if ( ($vm1AfterIncrease - $vm1AfterDecrease) -le 2000000){
-    "Error: Guest reports that memory value hasn't decreased enough!"
-    "Memory stats after $vmName memory was changed "
-    "  ${vmName}: Initial Memory - $vm1AfterIncrease KB :: After setting new value - $vm1AfterDecrease KB"
-    return $false 
-}
-"Memory stats after $vmName memory was decreased by 2GB "
-"  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
-
-# Change 3 - Increase by 1GB
-Start-sleep -s 10
-$testMem = $testMem + 1073741824
-
-# Set new memory value
-for ($i=0; $i -lt 3; $i++){
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
-  Start-sleep -s 5
-  if ($vm1.MemoryAssigned -eq $testMem){
-    [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
-
-    [int64]$vm1AfterIncrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
-    "Free memory reported by guest VM guest VM after increase: $vm1AfterIncrease KB"
-    break
-  }
-}
-
-if ( $i -eq 3 ){
-  "Error: VM failed to change memory!"
-  "LIS 4.1 or kernel version 4.4 required"
-  return $false
-}
-
-if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
-    "Error: Memory assigned doesn't match the memory set as parameter!"
-    "Memory stats after $vm1Name memory was changed "
-    "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
-    return $false
-}
-
-if ( ($vm1AfterIncrease - $vm1AfterDecrease) -le 1000000){
-    "Error: Guest reports that memory value hasn't decreased enough!"
-    "Memory stats after $vm1Name memory was changed "
-    "  ${vmName}: Initial Memory - $vm1AfterDecrease KB :: After setting new value - $vm1AfterIncrease KB"
-    return $false 
-}
-"Memory stats after $vmName memory was decreased by 2GB "
-"  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
-
-
-# Change 4 - Decrease by 2GB
-Start-sleep -s 10
-$testMem = $testMem - 2147483648
-# Set new memory value
-for ($i=0; $i -lt 3; $i++){
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
-  Start-sleep -s 5
-  if ($vm1.MemoryAssigned -eq $testMem){
-    [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
-
-    [int64]$vm1AfterDecrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
-    "Free memory reported by guest VM guest VM after increase: $vm1AfterDecrease KB"
-    break
-  }
-}
-
-if ( $i -eq 3 ){
-  "Error: VM failed to change memory!"
-  "LIS 4.1 or kernel version 4.4 required"
-  return $false
-}
-
-if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
-    "Error: Memory assigned doesn't match the memory set as parameter!"
-    "Memory stats after $vm1Name memory was changed "
-    "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
-    return $false
-}
-
-if ( ($vm1AfterIncrease - $vm1AfterDecrease) -le 2000000){
-    "Error: Guest reports that memory value hasn't decreased enough!"
-    "Memory stats after $vmName memory was changed "
-    "  ${vmName}: Initial Memory - $vm1AfterIncrease KB :: After setting new value - $vm1AfterDecrease KB"
-    return $false 
-}
-"Memory stats after $vmName memory was decreased by 2GB "
-"  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
 
 # Send Command to consume
 $job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir) ConsumeMemory $ip $sshKey $rootDir } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir)
@@ -494,18 +330,69 @@ if (-not $?){
 }
 
 # sleep a few seconds so stress-ng starts and the memory assigned/demand gets updated
-start-sleep -s 50
+start-sleep -s 80
 
 # get memory stats while stress-ng is running
 [int64]$vm1Demand = ($vm1.MemoryDemand/1MB)
 [int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
-"Memory stats after $vmName started stress-ng"
+"Memory stats after $vm1Name started stress-ng"
 "  ${vmName}: assigned - $vm1Assigned | demand - $vm1Demand"
 
 if ($vm1Demand -le $vm1BeforeDemand){
   "Error: Memory Demand did not increase after starting stress-ng"
   return $false
 }
+
+# Memory value to be assigned will be 300mb higher than memory demand (below that we might receive an error)
+[int64]$testMem = $vm1.MemoryDemand + 314572800
+
+# Adjust testMem value if it's not an even number
+[int64]$testMem = $testMem / 1048576
+if ($testMem % 2 -eq 0 ){
+  [int64]$testMem = $testMem * 1048576
+}   
+else{
+  [int64]$testMem = $testMem + 1
+  [int64]$testMem = $testMem * 1048576
+}
+
+# Set new memory value
+for ($i=0; $i -lt 3; $i++){
+  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
+  Start-sleep -s 5
+  if ($vm1.MemoryAssigned -eq $testMem){
+    [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
+    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
+
+    [int64]$vm1AfterAssignedGuest = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
+    break
+  }
+}
+
+[int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
+if ( $vm1AfterAssigned -eq $vm1BeforeAssigned ){
+  "Error: VM failed to change memory!"
+  "LIS 4.1 or kernel version 4.4 required"
+  return $false
+}
+
+if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
+    "Error: Memory assigned doesn't match the memory set as parameter!"
+    "Memory stats after $vmName memory was changed "
+    "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
+    return $false
+}
+
+if ($vm1AfterAssignedGuest -ge $vm1BeforeAssignedGuest){
+    "Error: Guest reports that memory value hasn't decreased!"
+    "Memory stats after $vmName memory was changed "
+    "  ${vmName}: Initial Memory - $vm1BeforeAssignedGuest KB :: After setting new value - $vm1AfterAssignedGuest KB"
+    return $false 
+}
+
+"Memory stats after $vmName memory was changed "
+"  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
+"  Reported free memory inside ${vmName}: Before - $vm1BeforeAssignedGuest KB | After - $vm1AfterAssignedGuest KB"
 
 # Wait for jobs to finish now and make sure they exited successfully
 $timeout = 120
@@ -515,13 +402,12 @@ while ($timeout -gt 0){
     $firstJobStatus = $true
     $retVal = Receive-Job $job1
     if (-not $retVal[-1]){
-      "Error: Consume Memory script returned false on VM1 $vmName"
+      "Error: Consume Memory script returned false on VM $vmName"
       return $false
     }
     $diff = $totalTimeout - $timeout
     "Job finished in $diff seconds."
   }
-
   if ($firstJobStatus){
     break
   }

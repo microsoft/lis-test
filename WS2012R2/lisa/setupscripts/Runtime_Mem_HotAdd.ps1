@@ -19,11 +19,9 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
- --THIS TEST IS THRESHOLD ONLY--
- Verify that memory assigned to VM changes when adding or removing a big amount (e.g. 2GB).
+	Verify that memory assigned to VM changes when adding or removing a big amount (e.g. 2GB).
 
  Description:
     Verify that memory changes if a big chunk of memory is added or removed.
@@ -31,17 +29,17 @@
    Only 1 VM is required for this test.
 
    .Parameter vmName
-    Name of the VM to remove NIC from .
+    Name of the VM under test.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
 
     .Parameter testParams
-    Test data for this test case
+    Test data for this test case.
 
     .Example
-    setupscripts\ManualMem_HotAdd.ps1 -vmName nameOfVM -hvServer localhost -testParams 
-    'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; TC_COVERED=??; startupMem=2GB; testMem=4GB'
+    setupscripts\Runtime_Mem_HotAdd.ps1 -vmName nameOfVM -hvServer localhost -testParams 
+    'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; startupMem=2GB; testMem=4GB'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -290,7 +288,11 @@ if (-not $testMem){
   return $false
 }
 
-"This script covers test case: ${TC_COVERED}"
+# Delete any previous summary.log file
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+
+Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 $vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
