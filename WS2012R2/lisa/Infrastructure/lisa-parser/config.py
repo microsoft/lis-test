@@ -58,6 +58,37 @@ def init_arg_parser():
 
     return arg_parser
 
+def LT_arg_parser():
+    arg_parser = argparse.ArgumentParser()
+
+    arg_parser.add_argument(
+        "build",
+        help="build url",
+    )
+
+    arg_parser.add_argument(
+        "-t", "--tests",
+        help="path to the csv file containing "
+             "the test areas and test files",
+        default='config/tests.csv'
+    )
+
+    arg_parser.add_argument(
+        "-r", "--regex",
+        help="path to the csv file containing "
+             "the database's column names and "
+             "the regexes used to extract the "
+             "data",
+        default='config/regexes.csv'
+    )
+
+    arg_parser.add_argument(
+        "-c", "--config",
+        help="path to the config file",
+        default='config/db.config'
+    )
+    return arg_parser
+
 
 def validate_input(parsed_arguments):
     # TODO - Add help messages for each case
@@ -73,7 +104,6 @@ def validate_input(parsed_arguments):
             return False
 
     return True
-
 
 def setup_logging(
         default_path='config/log_config.json',
