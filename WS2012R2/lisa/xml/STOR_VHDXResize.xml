@@ -353,7 +353,7 @@
         </test>
 
         <test>
-            <testName>VHDxResizeGrowOver2TShrink_IDE</testName>
+            <testName>VHDxResizeGrowOver2TB_Shrink_IDE</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
