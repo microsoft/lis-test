@@ -163,11 +163,12 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     #
     $vm = Get-VM $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
-    # Delete from cluster if it is already present
-    if ( $vm.hardware.isCluster -eq "True") {
-        $group = Get-ClusterGroup
+    # Delete Role from cluster if it is already present
+    Get-Command "Get-ClusterResource" -ErrorAction SilentlyContinue
+    if ($?){
+        $group = Get-ClusterGroup -ErrorAction SilentlyContinue
         if ( $group.name -contains $vmName) {
-            Remove-ClusterGroup -VMId $vm.VMId -RemoveResources -Force
+            Remove-ClusterGroup -Name $vmName -RemoveResources -Force
         }
     }
 

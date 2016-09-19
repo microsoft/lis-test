@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -22,8 +22,8 @@
 ########################################################################
 # STOR_VHDXResize_PartitionDisk.sh
 # Description:
-#     This script will verify if you can create, format, mount, perform 
-#     read/write operation, unmount and deleting a partition on   
+#     This script will verify if you can create, format, mount, perform
+#     read/write operation, unmount and deleting a partition on
 #     a VHDx file
 #     Hyper-V setting pane. The test performs the following
 #     step
@@ -32,7 +32,7 @@
 #    3. Creates filesystem
 #    4. Performs read/write operations
 #    5. Unmounts partition
-#    6. Deletes partition 
+#    6. Deletes partition
 #
 ########################################################################
 
@@ -113,7 +113,9 @@ LogMsg "The Linux guest detected the drive"
 
 #
 # Create the new partition
-#
+# delete partition firstly maily used if partition size >2TB, after use parted
+# to rm partition, still can show in fdisk -l even it does not exist in fact.
+(echo d; echo w) | fdisk /dev/sdb 2> /dev/null
 (echo n; echo p; echo 1; echo ; echo ;echo w) | fdisk /dev/sdb 2> /dev/null
 if [ $? -gt 0 ]; then
     LogMsg "Failed to create partition"
@@ -153,9 +155,9 @@ if [ $count -eq ${#fileSystems[@]} ]; then
     echo "Formating partition: Failed with all filesystems proposed." >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 10
-fi  
-    
-    
+fi
+
+
 #
 # Mount partition
 #

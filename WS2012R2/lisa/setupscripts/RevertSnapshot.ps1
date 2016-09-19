@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -40,8 +40,8 @@ Description
 
    The LiSA automation scripts will always pass the vmName, hvServer,
    and a string of testParams.  The testParams is a string of semicolon
-   separated key value pairs.  
-   
+   separated key value pairs.
+
    The setup (and cleanup) scripts need to parse the testParam
    string to find any parameters it needs.
 
@@ -50,13 +50,13 @@ Description
 
 .Parameter vmName
     Name of the VM to perform the test with.
-    
+
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
-    
+
 .Parameter testParams
     A semicolon separated list of test parameters.
-    
+
 .Example
     .\RevertSnapshot.ps1 -vmName "myVM" -hvServer "localhost" -testParams "snapshotName=ICABase"
 #>
@@ -88,41 +88,55 @@ if (-not $testParams)
     return $retVal
 }
 
+$vms = New-Object System.Collections.ArrayList
+$vm = ""
+$vms.Add($vmName)
+
 #
 # Find the testParams we require.
 #
 $Snapshot = $null
+$revert_vms = $null
 
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
-    if ($fields[0].Trim() -eq "SnapshotName")
+        switch -wildcard ($fields[0].Trim())
+        {
+        "VM[0-9]NAME" { $vm = $fields[1].Trim() }
+        "snapshotName" { $snapshot = $fields[1].Trim() }
+        "revert_dependency_vms" { $revert_vms = $fields[1].Trim() }
+        default  {}
+        }
+    if ($vm -ne "")
     {
-        $Snapshot = $fields[1].Trim()
+        $vms.Add($vm)
+        $vm = ""
     }
-            
 }
 
-if (-not $Snapshot)
+if ($revert_vms -ne "yes" -or $revert_vms -eq $null)
 {
-    "Error: Missing testParam SnapshotName"
-    return $retVal
+    $vms.Clear()
+    $vms.Add($vmName)
 }
 
-$snap = Get-VMSnapshot -ComputerName $hvServer -VMName   $VmName -Name $Snapshot
+foreach ($vmName in $vms)
+{
+    $snap = Get-VMSnapshot -ComputerName $hvServer -VMName $VmName -Name $Snapshot
 
-Restore-VMSnapshot $snap -Confirm:$false -Verbose
-if ($? -ne "True")
-{
-write-host "Error while reverting VM snapshot"
-return $False
-}
-else
-{
-    Write-Output "VM snapshot reverted"
-    $retVal = $true
+    Restore-VMSnapshot $snap -Confirm:$false -Verbose
+    if ($? -ne "True")
+    {
+    write-host "Error while reverting VM snapshot on $vmName"
+    return $False
+    }
+    else
+    {
+        Write-Output "VM snapshot reverted on $vmName"
+        $retVal = $true
+    }
 }
 
 return $retVal

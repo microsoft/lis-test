@@ -22,7 +22,8 @@ permissions and limitations under the License.
 from __future__ import print_function
 from file_parser import ParseXML
 from file_parser import parse_ica_log
-from file_parser import parse_from_csv
+from file_parser import FIOLogsReader
+from file_parser import NTTTCPLogsReader
 from virtual_machine import VirtualMachine
 from copy import deepcopy
 import logging
@@ -174,6 +175,7 @@ class TestRun(object):
                 logger.debug('Parsed line %s for insertion', test_dict)
                 insertion_list.append(test_dict)
 
+        print(insertion_list)
         return insertion_list
 
     @staticmethod
@@ -197,7 +199,15 @@ class PerfTestRun(TestRun):
 
     def update_from_ica(self, log_path):
         super(PerfTestRun, self).update_from_ica(log_path)
-        parsed_perf_log = parse_from_csv(self.perf_path)
+        parsed_perf_log = None
+        if self.suite.lower() == 'fio':
+            parsed_perf_log = FIOLogsReader(self.perf_path).process_logs()
+            parsed_perf_log = sorted(parsed_perf_log, key=lambda column: (
+                column['QDepth']))
+        elif self.suite.lower() == 'ntttcp':
+            parsed_perf_log = NTTTCPLogsReader(self.perf_path).process_logs()
+            parsed_perf_log = sorted(parsed_perf_log, key=lambda column: (
+                column['IPVersion'], column['#test_connections']))
 
         tests_cases = dict()
         test_index = 0
@@ -229,33 +239,49 @@ class PerfTestRun(TestRun):
 
             # TODO - Find fix for hardcoded values
             table_dict['GuestSize'] = '8VP8G40G'
-            table_dict['BlockSize'] = '8k'
 
             test_case_obj = self.test_cases[table_dict['TestCaseName']]
             if self.suite.lower() == 'fio':
                 self.prep_for_fio(table_dict, test_case_obj)
             elif self.suite.lower() == 'ntttcp':
-                pass
+                self.prep_for_ntttcp(table_dict, test_case_obj)
 
-            table_dict['TestCaseName'] = " ".join(re.findall("[a-zA-Z]+", table_dict['TestCaseName']))
-
+            table_dict['TestCaseName'] = re.findall(
+                "[a-zA-z]+", table_dict['TestCaseName'])[0]
         return insertion_list
 
     @staticmethod
     def prep_for_fio(table_dict, test_case_obj):
-        table_dict['RandRead'] = float(test_case_obj.perf_dict['rand-read:'])
-        table_dict['Latency_RandRead'] = float(test_case_obj.perf_dict[
+        table_dict['rand_read_iops'] = float(test_case_obj.perf_dict[
+                                                 'rand-read:'])
+        table_dict['rand_read_lat_usec'] = float(test_case_obj.perf_dict[
             'rand-read: latency'])
-        table_dict['RandWrite'] = float(test_case_obj.perf_dict['rand-write:'])
-        table_dict['Latency_RandWrite'] = float(test_case_obj.perf_dict[
+        table_dict['rand_write_iops'] = float(test_case_obj.perf_dict[
+                                                  'rand-write:'])
+        table_dict['rand_write_lat_usec'] = float(test_case_obj.perf_dict[
             'rand-write: latency'])
-        table_dict['SeqRead'] = float(test_case_obj.perf_dict['seq-read:'])
-        table_dict['SeqWrite'] = float(test_case_obj.perf_dict['seq-write:'])
-        table_dict['Latency_SeqWrite'] = float(test_case_obj.perf_dict[
+        table_dict['seq_read_iops'] = float(test_case_obj.perf_dict[
+                                                'seq-read:'])
+        table_dict['seq_write_iops'] = float(test_case_obj.perf_dict[
+                                                 'seq-write:'])
+        table_dict['seq_write_lat_usec'] = float(test_case_obj.perf_dict[
             'seq-write: latency'])
-        table_dict['Latency_SeqRead'] = float(test_case_obj.perf_dict[
+        table_dict['seq_read_lat_usec'] = float(test_case_obj.perf_dict[
             'seq-read: latency'])
-        table_dict['Iodepth'] = float(test_case_obj.perf_dict['BlockSize'][1:])
+        table_dict['QDepth'] = int(test_case_obj.perf_dict['QDepth'])
+
+    @staticmethod
+    def prep_for_ntttcp(table_dict, test_case_obj):
+        table_dict['NumberOfConnections'] = int(test_case_obj.perf_dict[
+                                                    '#test_connections'])
+        table_dict['Throughput_Gbps'] = float(test_case_obj.perf_dict[
+                                                   'throughput_gbps'])
+        table_dict['Latency_ms'] = float(test_case_obj.perf_dict[
+                                             'average_tcp_latency'])
+        table_dict['PacketSize_KBytes'] = float(test_case_obj.perf_dict[
+                                                    'average_packet_size'])
+        table_dict['IPVersion'] = test_case_obj.perf_dict['IPVersion']
+        table_dict['ProtocolType'] = test_case_obj.perf_dict['Protocol']
 
 
 class TestCase(object):
@@ -275,6 +301,5 @@ class TestCase(object):
                     return value
         except KeyError:
             logger.warning('No test case ID found for %s', self.name)
-            logger.warning('Saving empty value')
 
-        return '-'
+        return 'NO_ID'

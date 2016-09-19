@@ -34,6 +34,9 @@
             <testName>Test50TimesReboot</testName>
             <testScript>setupScripts\Test50TimesReboot.ps1</testScript>
             <timeout>3600</timeout>
+            <testParams>
+                <param>TC_COVERED=Stress-01</param>
+            </testParams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
@@ -49,6 +52,7 @@
             <testParams>
                 <param>SCSI=0,1,Fixed,60GB</param>
                 <param>FILE_NAME=iozone3_420.tar</param>
+                <param>TC_COVERED=Stress-02</param>
             </testParams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -60,6 +64,7 @@
             <files>remote-scripts/ica/Sysbench.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
                     <param>TEST_FILE=(seqwr seqrewr seqrd rndrd rndwr rndrw)</param>
+                    <param>TC_COVERED=Stress-03</param>
             </testParams>
             <timeout>800</timeout>
             <OnError>Abort</OnError>

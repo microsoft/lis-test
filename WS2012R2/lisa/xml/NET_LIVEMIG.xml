@@ -91,10 +91,10 @@
                 <param>TC_COVERED=NET_LIVEMIG-03</param>
             </testparams>
         </test>
-		<test>
+	<test>
             <testName>Failover</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
-            <timeout>3600</timeout>
+            <timeout>1800</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>stopClusterNode=True</param>
@@ -246,7 +246,7 @@
                 <param>TC_COVERED=NET_LIVEMIG-08c</param>
             </testparams>
         </test>
-	      <test>
+        <test>
             <testName>IPInjection</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
@@ -267,11 +267,11 @@
     </testCases>
     <VMs>
         <vm>
-            <hvServer>HYPERV_SERVER</hvServer>
+            <hvServer>localhost</hvServer>
             <vmName>VM_NAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>YOUR_KEY.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>LiveMigration</suite>
         </vm>
     </VMs>

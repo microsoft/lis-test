@@ -114,7 +114,7 @@ if (-not $vm)
 $ipv4 = GetIPv4 $vmName $hvServer
 
 # Change selinux policy
-$sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/SELINUX=\S*/SELINUX=${selinux}/g' /etc/selinux/config"
+$sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/SELINUX=\S*/SELINUX=${selinux}/g' /etc/selinux/config && sync"
 if (-not $sts[-1]){
     Write-Output "Error: Could not change the selinux policy."
     return $False
@@ -123,7 +123,7 @@ if (-not $sts[-1]){
 # Reboot the VM to apply the changes
 Restart-VM -VMName $vmName -ComputerName $hvServer -Force
 
-$sts = WaitForVMToStartSSH $ipv4 180
+$sts = WaitForVMToStartSSH $ipv4 300
 if (-not $sts[-1]){
     Write-Output "Error: $vmName didn't start after reboot"
     return $False

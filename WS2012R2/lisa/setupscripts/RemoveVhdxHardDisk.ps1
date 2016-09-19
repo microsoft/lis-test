@@ -95,6 +95,13 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$vmGeneration = $null
+
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq $False)
+{
+   $vmGeneration = 1
+}
 ############################################################################
 #
 # DeleteHardDrive
@@ -142,7 +149,14 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
     # Set and validate the controller ID and disk LUN
     #
     $controllerID = $fields[0].Trim()
-    $lun = [int]($fields[1].Trim())
+    if ($vmGeneration -eq 1)
+    {
+        $lun = [int]($fields[1].Trim())
+    }
+    else
+    {
+        $lun = [int]($fields[1].Trim()) +1
+    }
     if ($scsi)
     {
         # Hyper-V only allows 4 SCSI controllers
@@ -151,8 +165,8 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
             write-output "Error - bad SCSI controllerID: $controllerID"
             return $false
         }
-        # We will limit SCSI LUNs to 4 (0-63)
-        if ($lun -lt 0 -or $lun -gt 63)
+        # We will limit SCSI LUNs to 4 (1-64)
+        if ($lun -lt 0 -or $lun -gt 64)
         {
             write-output "Error - bad SCSI Lun: $Lun"
              return $false
@@ -207,8 +221,16 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
          # here only test scsi for adding multiple scsi
          if ($diskCount -gt 0 -and $scsi -eq $true)
           {
-            $startLun = 0
-            $endLun = $diskCount-1
+            if ($vmGeneration -eq 1)
+            {
+                $startLun = 0
+                $endLun = $diskCount-1
+            }
+            else
+            {
+                $startLun = 1
+                $endLun = $diskCount-2
+            }
           }
           else
           {

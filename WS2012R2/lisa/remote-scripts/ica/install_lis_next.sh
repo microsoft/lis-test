@@ -289,22 +289,31 @@ redhat_6|centos_6)
             UpdateTestState $ICA_TESTFAILED
         fi
 		
-    if [[ $(service --status -all | grep _daemon) ]]; then
+    if [[ $(service --status-all | grep _daemon) ]]; then
         LogMsg "Running daemons are being stopped."
             service hypervkvpd stop
             if [ $? -ne 0 ]; then
+                service hv_kvp_daemon stop
+                if [ $? -ne 0 ]; then
                     echo "Error: Unable to stop hypervkvpd." >> ~/summary.log
                     UpdateTestState $ICA_TESTFAILED
+                fi
             fi
             service hypervvssd stop
             if [ $? -ne 0 ]; then
+                service hv_vss_daemon stop
+                if [ $? -ne 0 ]; then
                      echo "Error: Unable to stop hypervvssd." >> ~/summary.log
                      UpdateTestState $ICA_TESTFAILED
+                fi
             fi
             service hypervfcopyd stop
              if [ $? -ne 0 ]; then
+                service hv_fcopy_daemon stop
+                if [ $? -ne 0 ]; then
                     echo "Error: Unable to stop hypervfcopyd." >> ~/summary.log
                     UpdateTestState $ICA_TESTFAILED
+                fi
             fi
         LogMsg "Running daemons stopped."
     fi
@@ -349,19 +358,28 @@ redhat_6|centos_6)
 
     service hypervkvpd start
         if [ $? -ne 0 ]; then
-			echo "Info: The below warnings can be ignored if no existing LIS daemons are installed." >> ~/summary.log
-            echo "Error: Unable to start hv-kvp-daemon." >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
+            service hv_kvp_daemon start
+            if [ $? -ne 0 ]; then
+    			echo "Info: The below warnings can be ignored if no existing LIS daemons are installed." >> ~/summary.log
+                echo "Error: Unable to start hv-kvp-daemon." >> ~/summary.log
+                UpdateTestState $ICA_TESTFAILED
+            fi
         fi
     service hypervvssd start 
         if [ $? -ne 0 ]; then
-            echo "Error: Unable to start hv-vss-daemon." >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
+             service hv_vss_daemon start
+            if [ $? -ne 0 ]; then
+                echo "Error: Unable to start hv-vss-daemon." >> ~/summary.log
+                UpdateTestState $ICA_TESTFAILED
+            fi
         fi
     service hypervfcopyd start 
         if [ $? -ne 0 ]; then
-            echo "Error: Unable to start hv-fcopy-daemon." >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
+            service hv_fcopy_daemon start 
+                if [ $? -ne 0 ]; then
+                echo "Error: Unable to start hv-fcopy-daemon." >> ~/summary.log
+                UpdateTestState $ICA_TESTFAILED
+            fi
         fi
 		
     LogMsg "Info: LIS daemons started."

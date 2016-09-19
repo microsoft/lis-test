@@ -62,6 +62,7 @@
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
             <!-- This test is available only on RHEL/CENTOS with LIS built-in -->
             <suiteTest>LISdaemons_selinux_check</suiteTest>
+            <suiteTest>Check_HypervDaemons_Files_Status</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -371,6 +372,15 @@
                 <param>TC_COVERED=CORE-30</param>
                 <param>selinux=enforcing</param>
             </testParams>
+        </test>
+        <test>
+              <testName>Check_HypervDaemons_Files_Status</testName>
+              <testScript>setupscripts\Hyperv_Daemons_Basic.ps1</testScript>
+              <files>remote-scripts/ica/Hyperv_Daemons_Files_Status.sh</files>
+              <timeout>600</timeout>
+              <testParams>
+                  <param>TC_COVERED=CORE-31</param>
+              </testParams>
         </test>
     </testCases>
 

@@ -110,7 +110,10 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $global:MinDiskSize = 1GB
 $global:DefaultDynamicSize = 127GB
-
+$SCSICount = 0
+$IDECount = 0
+$diskCount=$null
+$lun=$null
 
 #######################################################################
 #
@@ -326,15 +329,13 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     return $retVal
 }
 
-
-
 ############################################################################
 #
 # Main entry point for script
 #
 ############################################################################
-
 $retVal = $true
+$vmGeneration=$null
 
 #
 # Check input arguments
@@ -358,12 +359,11 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $False
 }
 
-#
-# Parse the testParams string
-#
-$SCSICount = 0
-$IDECount = 0
-$diskCount=$null
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq $False)
+{
+   $vmGeneration = 1
+}
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($p in $params)
 {
@@ -440,7 +440,14 @@ foreach ($p in $params)
     }
 
     $controllerID = $diskArgs[0].Trim()
-    $lun = [int]($diskArgs[1].Trim())
+    if ($vmGeneration -eq 1)
+    {
+        $lun = [int]($diskArgs[1].Trim())
+    }
+    else
+    {
+        $lun = [int]($diskArgs[1].Trim()) +1
+    }
     $vhdType = $diskArgs[2].Trim()
 
     $sectorSize = 512
@@ -464,8 +471,16 @@ foreach ($p in $params)
     # here only test scsi when use diskCount
     if ($diskCount -ne $null -and $SCSI -eq $true)
     {
-      $startLun = 0
-      $endLun = $diskCount-1
+        if ($vmGeneration -eq 1)
+        {
+            $startLun = 0
+            $endLun = $diskCount-1
+        }
+        else
+        {
+            $startLun = 1
+            $endLun = $diskCount-2
+        }
     }
     else
     {
