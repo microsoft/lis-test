@@ -35,10 +35,11 @@ class VirtualMachine(object):
     ran and also executes methods that interact and get data from that specific
     vm.
     """
-    def __init__(self, vm_name, hv_server, os=None, host_os=None, check=True):
+    def __init__(self, vm_name, hv_server, os=None, host_os=None, ssh_key=None, check=True):
         self.vm_name = vm_name
         self.hv_server = hv_server
         self.os = os
+        self.ssh_key = ssh_key
         self.host_os = host_os
         self.kvp_info = dict()
         self.location = ''
