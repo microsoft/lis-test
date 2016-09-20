@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LISA Core Tests Run on WS2012R2</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>lsvmbus</suiteName>
+            <suiteTests>
+                <suiteTest>lsvmbus_basic</suiteTest>
+                <suiteTest>lsvmbus_target</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+        <testName>lsvmbus_basic</testName>
+        <setupScript>
+            <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+            <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+        </setupScript>
+        <testScript>lsvmbus_basic.sh</testScript>
+        <files>remote-scripts/ica/lsvmbus_basic.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=lsvmbus-01</param>
+            <param>vmName=LinuxVM</param>
+            <param>enableDM=yes</param>
+            <param>minMem=2048MB</param>
+            <param>maxMem=2GB</param>
+            <param>startupMem=2048MB</param>
+            <param>memWeight=0</param>
+            <param>staticMem=2048MB</param>
+        </testParams>
+        <timeout>800</timeout>
+        </test>
+
+        <test>
+        <testName>lsvmbus_target</testName>
+        <setupScript>
+            <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+            <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+            <file>setupScripts\ChangeCPU.ps1</file>
+        </setupScript>
+        <testScript>lsvmbus_target.sh</testScript>
+        <files>remote-scripts/ica/lsvmbus_target.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=lsvmbus-02</param>
+            <param>vmName=LinuxVM</param>
+            <param>enableDM=yes</param>
+            <param>minMem=2048MB</param>
+            <param>maxMem=2GB</param>
+            <param>startupMem=2048MB</param>
+            <param>memWeight=0</param>
+            <param>staticMem=2048MB</param>
+            <param>VCPU=8</param>
+        </testParams>
+        <timeout>800</timeout>
+        </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>LinuxVM</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <suite>lsvmbus</suite>
+        </vm>
+    </VMs>
+</config>
