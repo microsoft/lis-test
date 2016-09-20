@@ -101,9 +101,14 @@ class TestRun(object):
             self.vms[vm_name].location = props['TestLocation']
 
         to_remove = []
+        remove_vms = self.vms.keys()
         for test_name, test_props in self.test_cases.iteritems():
             try:
                 self.test_cases[test_name].update_results(parsed_ica['tests'][test_name])
+
+                if parsed_ica['tests'][test_name][0] in remove_vms:
+                    remove_vms.remove(parsed_ica['tests'][test_name][0])
+
                 logger.debug(
                     'Saving test result for %s - %s',
                     test_name, parsed_ica['tests'][test_name][1]
@@ -111,6 +116,10 @@ class TestRun(object):
             except KeyError:
                 logger.warning('Result for %s was not found in ICA log file', test_name)
                 to_remove.append(test_name)
+
+        if remove_vms:
+            for vm_name in remove_vms:
+                del self.vms[vm_name]
 
         if to_remove:
             self.remove_tests(to_remove)
