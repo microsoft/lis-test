@@ -120,7 +120,6 @@ class TestRun(object):
             for vm_name in remove_vms:
                 del self.vms[vm_name]
 
-
         if to_remove:
             self.remove_tests(to_remove)
 
