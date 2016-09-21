@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -22,8 +22,8 @@
 ########################################################################
 # STOR_VHDXResize_PartitionDiskOver2TB.sh
 # Description:
-#     This script will verify if you can create, format, mount, perform 
-#     read/write operation, unmount and deleting a partition on   
+#     This script will verify if you can create, format, mount, perform
+#     read/write operation, unmount and deleting a partition on
 #     a VHDx file larger than 2TB
 #     Hyper-V setting pane. The test performs the following
 #     step
@@ -32,10 +32,9 @@
 #    3. Creates filesystem
 #    4. Performs read/write operations
 #    5. Unmounts partition
-#    6. Deletes partition 
+#    6. Deletes partition
 #
 ########################################################################
-
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
@@ -88,17 +87,23 @@ if [ ! -e "/dev/sdb" ]; then
 fi
 LogMsg "The Linux guest detected the drive"
 
+# Support $NewSize and $growSize,if not define $NewSize, check $growSize
+if [ -z $NewSize ] && [ -n $growSize ]; then
+  NewSize=$growSize
+  LogMsg "Target parted size is $NewSize"
+fi
+
 #
 # Create the new partition
 #
 parted /dev/sdb -s mklabel gpt mkpart primary 0GB $NewSize 2> ~/summary.log
 if [ $? -gt 0 ]; then
-    LogMsg "Failed to create partition"
-    echo "Creating partition: Failed" >> ~/summary.log
+    LogMsg "Failed to create partition by parted with $NewSize"
+    echo "Creating partition: Failed by parted with $NewSize" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 10
 fi
-LogMsg "Partition created"
+LogMsg "Partition created by parted"
 sleep 5
 
 #
@@ -130,7 +135,7 @@ if [ $count -eq ${#fileSystems[@]} ]; then
     echo "Formating partition: Failed with all filesystems proposed." >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 10
-fi  
+fi
 
 
 #

@@ -324,66 +324,56 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
     {
         Remove-VMDvdDrive $dvd
     }
-    #Add an exist vhd
-    Add-VMHardDiskDrive -VMName $vmName -ControllerType ${controllerType} -ControllerNumber $controllerID -DiskNumber $passthrough_number -Passthru
-    if ( $? )
+    
+
+    # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
+    $hostInfo = Get-VMHost -ComputerName $server
+    if (-not $hostInfo)
         {
-            write-output "Attached existed  PassThrough disk."
+            "ERROR: Unable to collect Hyper-V settings for ${server}"
+             return $false
+        }
+
+    $defaultVhdPath = $hostInfo.VirtualHardDiskPath
+    if (-not $defaultVhdPath.EndsWith("\"))
+        {
+            $defaultVhdPath += "\"
+        }
+
+    $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-pass"  + ".vhd"
+    if(Test-Path $vhdName)
+        {
+            Dismount-VHD -Path $vhdName -ErrorAction Ignore
+            Remove-Item $vhdName
+        }
+        $newVhd = $null
+
+    $newVhd = New-VHD -Path $vhdName -size 1GB -ComputerName $server -Fixed
+    if ($newVhd -eq $null)
+        {
+            "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
+            return $false
+        }
+
+    $newVhd = $newVhd | Mount-VHD -Passthru
+    $phys_disk = $newVhd | Initialize-Disk -PartitionStyle MBR -PassThru
+    $phys_disk | Set-Disk -IsOffline $true
+
+    $ERROR.Clear()
+    $phys_disk | Add-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
+    if ($ERROR.Count -gt 0)
+        {
+            "ERROR: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
+            $ERROR[0].Exception
+            return $false
         }
         else
-        {
-
-            # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
-            $hostInfo = Get-VMHost -ComputerName $server
-            if (-not $hostInfo)
-            {
-                "ERROR: Unable to collect Hyper-V settings for ${server}"
-                return $false
-            }
-
-            $defaultVhdPath = $hostInfo.VirtualHardDiskPath
-            if (-not $defaultVhdPath.EndsWith("\"))
-            {
-                $defaultVhdPath += "\"
-            }
-
-            $vhdName = $defaultVhdPath + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $Lun + "-pass"  + ".vhd"
-
-            if(Test-Path $vhdName)
-            {
-                Dismount-VHD -Path $vhdName -ErrorAction Ignore
-                Remove-Item $vhdName
-            }
-            $newVhd = $null
-
-            $newVhd = New-VHD -Path $vhdName -size 1GB -ComputerName $server -Fixed
-            if ($newVhd -eq $null)
-            {
-                "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
-                return $false
-            }
-
-            $newVhd = $newVhd | Mount-VHD -Passthru
-            $phys_disk = $newVhd | Initialize-Disk -PartitionStyle MBR -PassThru
-            $phys_disk | Set-Disk -IsOffline $true
-
-            $ERROR.Clear()
-            $phys_disk | Add-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
-            if ($ERROR.Count -gt 0)
-            {
-                "ERROR: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
-                $ERROR[0].Exception
-                return $false
-            }
-            else
             {
                 $retVal=$true
             }
 
-             "INFO: Successfully attached passthrough drive"
-            return $retVal
-        }
-    
+    "INFO: Successfully attached passthrough drive"
+    return $retVal
 }
 
 ############################################################################
@@ -494,6 +484,13 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
                 {
                     $newVhd = New-VHD -Path $vhdName -size $newVHDSize -ComputerName $server -Fixed -ErrorAction SilentlyContinue
                 }
+            "Physical"
+                {
+                    Write-Output "Searching physical drive..."
+                    $findVhd = Get-Disk | Where-Object OperationalStatus -eq Offline
+                    $newVhd = $findVhd.Number
+                    Write-Output "Physical drive found: $newVhd"
+                }
             "Diff"
                 {
                     $parentVhdName = $defaultVhdPath + "icaDiffParent.vhd"
@@ -525,7 +522,22 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     #
     # Attach the .vhd file to the new drive
     #
-    $disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $server -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $Lun -Path $vhdName
+    if ($vhdType -eq "Physical")
+    {
+        Write-Output "Attaching physical drive..."
+        $ERROR.Clear()
+        $disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $server -ControllerType $controllerType -ControllerNumber $controllerID -DiskNumber $newVhd
+        if ($ERROR.Count -gt 0)
+        {
+            "ERROR: Unable to attach physical drive."
+            $ERROR[0].Exception
+            return $false
+        }
+    }
+    else
+    {
+        $disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $server -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $Lun -Path $vhdName
+    }
 
     if ($disk -contains "Exception")
     {
@@ -571,7 +583,7 @@ if ($hvServer -eq $null -or $hvServer.Length -eq 0)
 if ($testParams -eq $null -or $testParams.Length -lt 3)
 {
     "Error: No testParams provided"
-    "       AddHardDisk.ps1 requires test params"
+    "AddHardDisk.ps1 requires test params"
     return $false
 }
 
@@ -620,7 +632,6 @@ foreach ($p in $params)
     $controllerID = $diskArgs[0].Trim()
     $lun = $diskArgs[1].Trim()
     $vhdType = $diskArgs[2].Trim()
-    $passthrough_number = $diskArgs[3].Trim()
 
     $VHDSize = $global:MinDiskSize
     if ($diskArgs.Length -eq 4)
@@ -628,7 +639,7 @@ foreach ($p in $params)
         $VHDSize = $diskArgs[3].Trim()
     }
 
-    if (@("Fixed", "Dynamic", "PassThrough", "Diff") -notcontains $vhdType)
+    if (@("Fixed", "Dynamic", "PassThrough", "Diff", "Physical") -notcontains $vhdType)
     {
         "Error: Unknown disk type: $p"
         $retVal = $false

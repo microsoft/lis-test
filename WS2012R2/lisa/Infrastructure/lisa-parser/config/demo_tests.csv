@@ -1,0 +1,9 @@
+my_test_suite_1, test_1_1.sh
+my_test_suite_1, test_1_2.ps1
+my_test_suite_1, test_1_3.ps1
+my_test_suite_1, test_1_4.sh
+
+my_test_suite_2, test_2_1.ps1
+my_test_suite_2, test_2_2.sh
+
+my_test_suite_3, test_3_1.sh
