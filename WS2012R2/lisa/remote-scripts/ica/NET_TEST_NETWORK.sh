@@ -408,7 +408,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		exit 10
 	fi
 
-	UpdateSummary "Failed pinged $PING_FAIL on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} (as expected)"
+	UpdateSummary "Failed to ping $PING_FAIL on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} (as expected)"
 
 	# ping the second wrong address, fi specified. should also not succeed
 	if [ "${PING_FAIL2:-UNDEFINED}" != "UNDEFINED" ]; then
@@ -421,7 +421,7 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			SetTestStateFailed
 			exit 10
 		fi
-		UpdateSummary "Failed pinged $PING_FAIL2 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} (as expected)"
+		UpdateSummary "Failed to ping $PING_FAIL2 on synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]} (as expected)"
 	fi
 
 done
