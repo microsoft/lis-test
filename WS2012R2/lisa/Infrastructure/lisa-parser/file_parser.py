@@ -493,12 +493,3 @@ class NTTTCPLogsReader(BaseLogsReader):
                                        'eth_report.log')
                         log_dict[key] = 0
         return log_dict
-
-if __name__ == '__main__':
-    lo_path = "C:\\Users\\Mihai Costache\\Desktop\\logs\\dobarb-FIO_FIO_fio_logs.zip"
-    import pprint
-    parsed_perf_log = FIOLogsReader(lo_path).process_logs()
-    # pprint.pprint(parsed_perf_log)
-    parsed_perf_log = sorted(parsed_perf_log, key=lambda column: (
-        int(column['QDepth'])))
-    pprint.pprint(parsed_perf_log)
