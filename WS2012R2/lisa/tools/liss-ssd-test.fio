@@ -13,7 +13,7 @@
 [global]
 bs=8k
 ioengine=libaio
-iodepth=2
+iodepth=1
 size=16g
 direct=1
 runtime=300
