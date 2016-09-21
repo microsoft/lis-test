@@ -175,7 +175,6 @@ class TestRun(object):
                 logger.debug('Parsed line %s for insertion', test_dict)
                 insertion_list.append(test_dict)
 
-        print(insertion_list)
         return insertion_list
 
     @staticmethod
@@ -268,7 +267,7 @@ class PerfTestRun(TestRun):
             'seq-write: latency'])
         table_dict['seq_read_lat_usec'] = float(test_case_obj.perf_dict[
             'seq-read: latency'])
-        table_dict['QDepth'] = int(test_case_obj.perf_dict['QDepth'])
+        table_dict['QDepth'] = test_case_obj.perf_dict['QDepth']
 
     @staticmethod
     def prep_for_ntttcp(table_dict, test_case_obj):
