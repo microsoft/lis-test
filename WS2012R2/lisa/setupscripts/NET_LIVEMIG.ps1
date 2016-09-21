@@ -66,11 +66,11 @@ $lastPing       = $False
 function Create-TempFile
 {
     param(
-		[Parameter(mandatory=$True)]
-		[String]$FilePath,
-		[Parameter(mandatory=$True)]
-		[double]$Size
-		)
+        [Parameter(mandatory=$True)]
+        [String]$FilePath,
+        [Parameter(mandatory=$True)]
+        [double]$Size
+        )
 
     $file = [System.IO.File]::Create($FilePath)
     $file.SetLength($Size)
@@ -87,15 +87,15 @@ function Create-TempFile
 function Copy-TempFile
 {
     param(
-		[Parameter(mandatory=$True)]
-		[String]$FilePath,
-		[Parameter(mandatory=$True)]
-		[String]$sshKey,
-		[Parameter(mandatory=$True)]
-		[String]$Ip,
-		[Parameter(mandatory=$True)]
-		[String]$ScpDir
-		)
+        [Parameter(mandatory=$True)]
+        [String]$FilePath,
+        [Parameter(mandatory=$True)]
+        [String]$sshKey,
+        [Parameter(mandatory=$True)]
+        [String]$Ip,
+        [Parameter(mandatory=$True)]
+        [String]$ScpDir
+        )
 
     & "$ScpDir\pscp.exe" -i $sshKey $FilePath root@${Ip}:
     if(-not $?)
@@ -116,7 +116,7 @@ function Copy-TempFile
 if (-not $vmName -or $vmName.Length -eq 0)
 {
     "Error: No vmName was specified"
-    Return $False   
+    Return $False
 }
 
 if (-not $hvServer)
@@ -129,6 +129,42 @@ if (-not $testParams)
 {
     "Error: No test parameters specified"
     Return $False
+}
+
+# change working directory to root dir
+$testParams -match "RootDir=([^;]+)"
+if (-not $?)
+{
+  "Mandatory param RootDir=Path; not found!"
+  return $false
+}
+$rootDir = $Matches[1]
+
+if (Test-Path $rootDir)
+{
+  Set-Location -Path $rootDir
+  if (-not $?)
+  {
+    "Error: Could not change directory to $rootDir !"
+    return $false
+  }
+  "Changed working directory to $rootDir"
+}
+else
+{
+  "Error: RootDir = $rootDir is not a valid path"
+  return $false
+}
+
+# Source TCUitls.ps1 for getipv4 and other functions
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+  . .\setupScripts\TCUtils.ps1
+}
+else
+{
+  "Error: Could not find setupScripts\TCUtils.ps1"
+  return $false
 }
 
 $params = $testParams.TrimEnd(";").Split(";")
@@ -217,7 +253,7 @@ while ($migrateJobRunning)
     if($copyFile)
     {
         "Info: Creating a 256MB temp file"
-        $sts = Create-TempFile -FilePath "$rootDir\temp.txt" -Size 256MB 
+        $sts = Create-TempFile -FilePath "$rootDir\temp.txt" -Size 256MB
         if (-not $?)
         {
             "Error: Unable to create the temp file"
@@ -290,4 +326,3 @@ Write-Output "Bad pings  = $badPings"  | Tee-Object -Append -file $summaryLog
 $retVal = ($jobInfo[$jobInfo.Length-1] -eq $True) -and ($lastPing)
 
 return $retVal
-
