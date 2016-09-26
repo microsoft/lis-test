@@ -82,9 +82,10 @@
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
             <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-03</param>
-                <param>IDE=0,1,Dynamic</param>
+                <param>SCSI=0,1,Dynamic</param>
                 <param>FILESYS=ext3</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -99,9 +100,10 @@
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
             <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-04</param>
-                <param>IDE=0,1,Dynamic</param>
+                <param>SCSI=0,1,Dynamic</param>
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -116,9 +118,10 @@
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
             <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-05</param>
-                <param>IDE=0,1,Dynamic</param>
+                <param>SCSI=0,1,Dynamic</param>
                 <param>FILESYS=btrfs</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -133,6 +136,7 @@
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
             <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-06</param>
                 <param>IDE=0,1,Dynamic</param>
@@ -148,9 +152,10 @@
             <testName>ProductionCheckpoint_SCSI_vhdx</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\AddHardDisk.ps1</file>
+                <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
             <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-07</param>
                 <param>SCSI=0,1,Dynamic</param>
