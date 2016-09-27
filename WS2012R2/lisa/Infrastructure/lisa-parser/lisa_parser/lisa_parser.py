@@ -20,13 +20,16 @@ permissions and limitations under the License.
 """
 
 from __future__ import print_function
-from envparse import env
-from test_run import TestRun
-from test_run import PerfTestRun
-import config
+
 import logging
-import sql_utils
 import sys
+
+from envparse import env
+
+import sql_utils
+from lisa_parser import config
+from test_run import PerfTestRun
+from test_run import TestRun
 
 logger = logging.getLogger(__name__)
 

@@ -26,6 +26,7 @@ from file_parser import FIOLogsReader
 from file_parser import NTTTCPLogsReader
 from virtual_machine import VirtualMachine
 from copy import deepcopy
+from envparse import env
 import logging
 import re
 import os
@@ -68,6 +69,7 @@ class TestRun(object):
                 vm_name=vm_name,
                 hv_server=vm_details['hvServer'],
                 os=vm_details['os'],
+                ssh_key=vm_details['sshKey'],
                 check=self.validate_vm
                 )
 
@@ -103,7 +105,6 @@ class TestRun(object):
         for test_name, test_props in self.test_cases.iteritems():
             try:
                 self.test_cases[test_name].update_results(parsed_ica['tests'][test_name])
-
                 # Remove dependency VMs
                 if parsed_ica['tests'][test_name][0] in remove_vms:
                     remove_vms.remove(parsed_ica['tests'][test_name][0])
@@ -119,7 +120,6 @@ class TestRun(object):
         if remove_vms:
             for vm_name in remove_vms:
                 del self.vms[vm_name]
-
 
         if to_remove:
             self.remove_tests(to_remove)
@@ -167,20 +167,32 @@ class TestRun(object):
                     logger.warning('No values found for VM Distro and '
                                    'VM Kernel Version')
                 else:
-                    try:
-                        """For some distros OSMajorVersion field is empty"""
-                        # Apparently in some cases OSMajorVersion is saved as none
-                        # TODO : Refactor this quick fix
-                        if not vm_object.kvp_info['OSMajorVersion']:
-                            test_dict['GuestOSDistro'] = vm_object.kvp_info[
-                                'OSName']
-                        else:
-                            test_dict['GuestOSDistro'] = ' '.join([
-                                vm_object.kvp_info['OSName'],
-                                vm_object.kvp_info['OSMajorVersion']
-                            ])
-                    except KeyError:
-                        test_dict['GuestOSDistro'] = vm_object.kvp_info['OSName']
+                    if 'centos' in vm_object.kvp_info['OSName'].strip().lower():
+                        cmd_list = [
+                            env.str('PLINK'), '-i', vm_object.ssh_key, 'root@'+vm_object.kvp_info['NetworkAddressIPv4'],
+                            'cat', '/etc/redhat-release'
+                        ]
+                        os_version = VirtualMachine.execute_command(cmd_list)
+                        pattern = re.compile('^CentOS Linux release (0-9]*[.][0-9])')
+                        test_dict['GuestOSDistro'] = ''.join([
+                            vm_object.kvp_info['OSName'], ' ',
+                            pattern.search(os_version).group(1)
+                        ])
+                    else:
+                        try:
+                            """For some distros OSMajorVersion field is empty"""
+                            # Apparently in some cases OSMajorVersion is saved as none
+                            # TODO : Refactor this quick fix
+                            if not vm_object.kvp_info['OSMajorVersion']:
+                                test_dict['GuestOSDistro'] = vm_object.kvp_info[
+                                    'OSName']
+                            else:
+                                test_dict['GuestOSDistro'] = ' '.join([
+                                    vm_object.kvp_info['OSName'],
+                                    vm_object.kvp_info['OSMajorVersion']
+                                ])
+                        except KeyError:
+                            test_dict['GuestOSDistro'] = vm_object.kvp_info['OSName']
                     test_dict['KernelVersion'] = vm_object.kvp_info['OSBuildNumber']
 
                 logger.debug('Parsed line %s for insertion', test_dict)
