@@ -1,12 +1,14 @@
-from envparse import env
-from urllib2 import urlopen
-import config
 import csv
+import logging
 import os
 import re
-import sql_utils
 import sys
-import logging
+from urllib2 import urlopen
+
+from envparse import env
+
+import sql_utils
+from lisa_parser import config
 
 logger = logging.getLogger(__file__.split('/')[-1])
 
