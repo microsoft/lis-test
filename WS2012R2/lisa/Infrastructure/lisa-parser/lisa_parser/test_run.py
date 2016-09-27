@@ -105,7 +105,7 @@ class TestRun(object):
         for test_name, test_props in self.test_cases.iteritems():
             try:
                 self.test_cases[test_name].update_results(parsed_ica['tests'][test_name])
-
+                # Remove dependency VMs
                 if parsed_ica['tests'][test_name][0] in remove_vms:
                     remove_vms.remove(parsed_ica['tests'][test_name][0])
 
