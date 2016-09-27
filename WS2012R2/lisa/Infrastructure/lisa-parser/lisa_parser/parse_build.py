@@ -75,7 +75,7 @@ class Parser:
         tests = self.suite_tests[self.suite]
         for test in tests:
             try:
-                aux = re.search(".*Test " + test +" :( )+ \w+", self.content).group(0)
+                aux = re.search(".*Test " + test + " :( )+ \w+", self.content).group(0)
                 result = re.compile("\w+").findall(aux)[-1]
                 results[test] = result
             except Exception:
@@ -113,4 +113,3 @@ class Parser:
 if __name__ == "__main__":
     parser = Parser(sys.argv[1:])
     parser.parse_build()
-
