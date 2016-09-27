@@ -295,8 +295,11 @@ else
 fi
 mkdir /root/${log_folder}
 LogMsg "FIO was installed successfully!"
+# Run FIO with block size 8k and iodepth 1
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-1q.log
 
 # Run FIO with block size 8k and iodepth 2
+sed --in-place=.orig -e s:"iodepth=1":"iodepth=2": /root/${FIO_SCENARIO_FILE}
 /root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-2q.log
 
 # Run FIO with block size 8k and iodepth 4
