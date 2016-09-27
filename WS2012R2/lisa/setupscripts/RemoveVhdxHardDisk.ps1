@@ -138,7 +138,7 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
     $lun = -1
 
     $fields = $arguments.Trim().Split(',')
-    if ($fields.Length -ne 3)
+    if ($fields.Length -ne 4)
     {
         write-output "Error - Incorrect number of arguments: $arguments"
         write-output "        args = ControllerID,Lun,vhdtype"
@@ -269,7 +269,6 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
 # Main entry point for script
 #
 ############################################################################
-
 $retVal = $false
 
 #
@@ -396,5 +395,4 @@ foreach ($p in $params)
 }
 
 "RemoveHardDisk returning $retVal"
-
 return $retVal
