@@ -87,7 +87,6 @@
                 <param>TC_COVERED=PC-03</param>
                 <param>SCSI=0,1,Dynamic,512</param>
                 <param>FILESYS=ext3</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -105,7 +104,6 @@
                 <param>TC_COVERED=PC-04</param>
                 <param>SCSI=0,1,Dynamic,512</param>
                 <param>FILESYS=ext4</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -123,7 +121,6 @@
                 <param>TC_COVERED=PC-05</param>
                 <param>SCSI=0,1,Dynamic,512</param>
                 <param>FILESYS=btrfs</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -142,7 +139,6 @@
                 <param>IDE=0,1,Dynamic,512</param>
                 <param>SCSI=0,1,Dynamic,512</param>
                 <param>FILESYS=ext4</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -160,7 +156,6 @@
                 <param>TC_COVERED=PC-07</param>
                 <param>SCSI=0,1,Dynamic,512</param>
                 <param>FILESYS=xfs</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -172,7 +167,6 @@
             <testScript>setupscripts\Production_checkpoint_ISO_NoNetwork.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=PC-08</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -184,7 +178,6 @@
             <testScript>setupscripts\Production_checkpoint_3Chain_VHD.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=PC-09</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -199,7 +192,6 @@
                 <param>TargetIP=TARGET_IP</param>
                 <param>IQN=TARGET_IQN</param>
                 <param>FILESYS=ext4</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -214,6 +206,9 @@
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>Production_Checkpoint</suite>
+            <testParams>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
         </vm>
     </VMs>
 </config>
