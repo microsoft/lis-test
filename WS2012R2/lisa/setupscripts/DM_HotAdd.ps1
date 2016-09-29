@@ -72,7 +72,7 @@ function checkStressapptest([String]$conIpv4, [String]$sshKey)
 
     $cmdToVM = @"
 #!/bin/bash
-        command -v stressapptest
+        command -v stress-ng
         sts=`$?
         if [ 0 -ne `$sts ]; then
             echo "Stressapptest is not installed! Please install it before running the memory stress tests." >> /root/HotAdd.log 2>&1

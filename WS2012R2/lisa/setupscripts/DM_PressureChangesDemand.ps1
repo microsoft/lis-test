@@ -74,7 +74,7 @@ function checkStressapptest([String]$conIpv4, [String]$sshKey)
 
     $cmdToVM = @"
 #!/bin/bash
-        command -v stressapptest
+        command -v stress-ng
         sts=`$?
         if [ 0 -ne `$sts ]; then
             echo "Stressapptest is not installed! Please install it before running the memory stress tests." >> /root/HotAdd.log 2>&1
@@ -120,7 +120,7 @@ function checkStressapptest([String]$conIpv4, [String]$sshKey)
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
   # function which $memMB MB of memory on VM with IP $conIpv4 with stresstestapp
-  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir,[int64]$memMB)
+  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir,[int]$timeoutStress)
   {
 
   # because function is called as job, setup rootDir and source TCUtils again
@@ -155,41 +155,36 @@ $scriptBlock = {
 
       $cmdToVM = @"
 #!/bin/bash
+        if [ ! -e /proc/meminfo ]; then
+          echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/HotAdd.log 2>&1
+          exit 100
+        fi
 
-  mega=1024
-  Memory=128
-  MemTotal=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
-  MemTotal=`$((MemTotal / mega))
-  timeOut=20
-  
-  rm ~/HotAddErrors.log -f
-  dos2unix check_traces.sh
-  chmod +x check_traces.sh
-  ./check_traces.sh &
+        rm ~/HotAddErrors.log -f
+        dos2unix check_traces.sh
+        chmod +x check_traces.sh
+        ./check_traces.sh &
 
-  while [ `$MemTotal -gt `$Memory ] ; do
-       stressapptest -s `$timeOut -M `$Memory & >/dev/null 2>&1
-       NewMemTotal=`$( cat /proc/meminfo | grep -i MemTotal | awk '{print `$2}' )
-       NewMemTotal=`$((NewMemTotal / mega))
-       if [ `$NewMemTotal -gt `$MemTotal   ]; then
-
-             UpdateTestState `$ICA_TESTCOMPLETED
-             echo "Total Memory before Hot Add is `$MemTotal" >> /root/PressureChangesDemand.log 2>&1
-             echo "Total Memory After Hot Add is `$NewMemTotal" >> /root/PressureChangesDemand.log 2>&1
-             echo  "Test PASS : Memory hot add success" >> /root/PressureChangesDemand.log 2>&1
-             UpdateSummary "Total Memory After Hot Add is `$NewMemTotal"
-             exit 0
-       fi
-       sleep 2
-       ((Memory=`$Memory+128))
-  done
-
-  echo "Total Memory before Hot Add is `$MemTotal" >> /root/PressureChangesDemand.log 2>&1
-  echo "Total Memory After Hot Add is `$NewMemTotal" >> /root/PressureChangesDemand.log 2>&1
-  echo -e "Test Fail : Hot Add Failed " >> /root/PressureChangesDemand.log 2>&1
-  UpdateTestState `$ICA_TESTABORTED
-  UpdateSummary "Total Memory After Hot Add is `$NewMemTotal"
-  exit 0
+        __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
+        __totalMem=`$((__totalMem/1024))
+        echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1
+        __chunks=128
+        __threads=16
+        declare -i __iterations
+        declare -i duration
+        declare -i timeout
+        if [ $timeoutStress -eq 1 ]; then
+          duration=120
+          timeout=4000000
+        else
+          duration=180
+          timeout=8000000
+        fi
+        echo "Going to start `$__iterations instance(s) of stresstestapp with a duration of `$duration and a timeout of $timeoutStress each consuming 128MB memory" >> /root/HotAdd.log 2>&1
+        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t `$duration --backoff `$timeout
+        echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
+        wait
+        exit 0
 "@
 
     #"pingVMs: sendig command to vm: $cmdToVM"
@@ -363,6 +358,23 @@ if (-not $retVal)
 
 "Stressapptest is installed! Will begin running memory stress tests shortly."
 
+# Check kernel version
+$sts = check_kernel
+
+if (-not $sts) {
+  "ERROR: Could not check kernel version"
+  $retVal = $False
+}
+elseif ($sts -like '2.6*') {
+  "Info: 2.6.x kernel version detected. Higher timeout is used between stressapp processes."
+  $timeoutStress = 8
+}
+else {
+  "Kernel version: ${sts}"
+  $timeoutStress = 1
+}
+
+
 # get memory stats from vm1
 # wait up to 2 min for it
 
@@ -400,7 +412,7 @@ $vm1ConsumeMem = ($vm1ConsumeMem / 4) * 3
 # transform to MB
 $vm1ConsumeMem /= 1MB
 # Send Command to consume
-$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $memMB) ConsumeMemory $ip $sshKey $rootDir $memMB } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$vm1ConsumeMem)
+$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $timeoutStress) ConsumeMemory $ip $sshKey $rootDir $timeoutStress } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$timeoutStress)
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"

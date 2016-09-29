@@ -32,8 +32,8 @@
 
    The testParams have the format of:
 
-      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%], 
-      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100) 
+      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%],
+      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100)
 
    Only the vmName param is taken into consideration. This needs to appear at least twice for
    the test to start.
@@ -51,7 +51,7 @@
        vmName=sles11x64sp3_2;enable=yes;minMem=512MB;maxMem=25%;startupMem=25%;memWeight=0"
 
    All scripts must return a boolean to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
     Name of the VM to remove NIC from .
 
@@ -70,7 +70,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
   # function which $memMB MB of memory on VM with IP $conIpv4 with stresstestapp
-  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir,[int64]$memMB,[int64]$chunckSize,[int]$duration)
+  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir,[int64]$memMB,[int64]$chunckSize,[int]$duration,[int]$timeoutStress)
   {
 
   # because function is called as job, setup rootDir and source TCUtils again
@@ -101,71 +101,73 @@ $scriptBlock = {
     "Error: Could not find setupScripts\TCUtils.ps1"
     return $false
   }
-  
-  
+
+
       $cmdToVM = @"
 #!/bin/bash
         if [ ! -e /proc/meminfo ]; then
-          echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/RemoveUnderPressure.log 2>&1
+          echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/HotAdd.log 2>&1
           exit 100
         fi
+
+        rm ~/HotAddErrors.log -f
+        dos2unix check_traces.sh
+        chmod +x check_traces.sh
+        ./check_traces.sh &
+
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
-        echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/RemoveUnderPressure.log 2>&1
-        if [ $memMB -ge `$__totalMem ];then
-          echo ConsumeMemory: memory to consume $memMB is greater than total Memory `$__totalMem >> /root/RemoveUnderPressure.log 2>&1
-          exit 200
-        fi
-        __ChunkInMB=$chunckSize
-        if [ $memMB -ge `$__ChunkInMB ]; then
-          #for-loop starts from 0
-          __iterations=`$(($memMB/__ChunkInMB))
+        echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1
+        declare -i __chunks
+        declare -i __threads
+        declare -i duration
+        declare -i timeout
+        __chunks=128
+        __threads=`$(($memMB/__chunks))
+        if [ $timeoutStress -eq 1 ]; then
+          timeout=4000000
+          duration=`$((5*__threads))
         else
-          __iterations=1
-          __ChunkInMB=$memMB
+          timeout=8000000
+          duration=`$((9*__threads))
         fi
-        echo "Going to start `$__iterations instance(s) of stresstestapp each consuming `$__ChunkInMB MB memory" >> /root/RemoveUnderPressure.log 2>&1
-        __start=`$(date +%s)
-        for ((i=0; i < `$__iterations; i++)); do
-          echo Starting instance `$i of stressapptest >> /root/RemoveUnderPressure.stressapptest 2>&1
-          stressapptest -M `$__ChunkInMB -s $duration >> /root/RemoveUnderPressure.stressapptest 2>&1 &
-        done
-        echo "Waiting for jobs to finish" >> /root/RemoveUnderPressure.log 2>&1
+        echo "Going to start `$__threads instance(s) of stresstestapp with a duration of `$duration and a timeout of `$timeout each consuming 128MB memory" >> /root/HotAdd.log 2>&1
+        echo "Other info: chunks: `$__chunks , memory: $memMB" >> /root/HotAdd.log 2>&1
+        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t `$duration --backoff `$timeout
+        echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
         wait
-        __end=`$(date +%s)
-        echo "All jobs finished in `$((__end-__start)) seconds" >> /root/RemoveUnderPressure.log 2>&1
         exit 0
 "@
 
     #"pingVMs: sendig command to vm: $cmdToVM"
     $filename = "ConsumeMemOn${conIpv4}.sh"
-    
+
     # check for file
     if (Test-Path ".\${filename}")
     {
       Remove-Item ".\${filename}"
     }
-    
+
     Add-Content $filename "$cmdToVM"
-    
+
     # send file
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${filename}"
-    
+
     # delete file unless the Leave_trail param was set to yes.
     if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
     {
       Remove-Item ".\${filename}"
     }
-    
+
     # check the return Value of SendFileToVM
     if (-not $retVal[-1])
     {
       return $false
     }
-    
+
     # execute command as job
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-  
+
     return $retVal
 
   }
@@ -266,7 +268,7 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
+
     switch ($fields[0].Trim())
     {
       "vmName"  { $vmNames = $vmNames + $fields[1].Trim() }
@@ -274,7 +276,7 @@ foreach ($p in $params)
       "sshKey"  { $sshKey  = $fields[1].Trim() }
       "tries"  { $tries  = $fields[1].Trim() }
     }
-    
+
 }
 
 if (-not $sshKey)
@@ -306,7 +308,7 @@ if ($vm1Name -notlike $vmName)
     $vm2Name = $vmNames[0]
 
   }
-  else 
+  else
   {
     "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml."
     return $false
@@ -347,10 +349,10 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
     {
       "Warning: Unable to start VM ${vm2Name} on attempt $i"
     }
-    else 
+    else
     {
       $i = 0
-      break   
+      break
     }
 
     Start-sleep -s 30
@@ -369,6 +371,22 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
 {
   "Error: $vm2Names never started."
   return $false
+}
+
+# Check kernel version
+$sts = check_kernel
+
+if (-not $sts) {
+  "ERROR: Could not check kernel version"
+  $retVal = $False
+}
+elseif ($sts -like '2.6*') {
+  "Info: 2.6.x kernel version detected. Higher timeout is used between stressapp processes."
+  $timeoutStress = 8
+}
+else {
+  "Kernel version: ${sts}"
+  $timeoutStress = 1
 }
 
 # get memory stats from vm1 and vm2
@@ -408,7 +426,7 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm2BeforeAssigned -
 # get vm2 IP
 $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
-# wait for ssh to start on vm2 
+# wait for ssh to start on vm2
 $timeout = 30 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
@@ -431,7 +449,7 @@ $vm2ConsumeMem /= 1MB
 [int]$vm2Duration = 60 #seconds
 
 
-$job = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $memMB, $memChunks, $duration) ConsumeMemory $ip $sshKey $rootDir $memMB $memChunks $duration } -InitializationScript $scriptBlock -ArgumentList($vm2ipv4,$sshKey,$rootDir,$vm2ConsumeMem,$vm2Chunks,$vm2Duration)
+$job = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $memMB, $memChunks, $duration, $timeoutStress) ConsumeMemory $ip $sshKey $rootDir $memMB $memChunks $duration $timeoutStress} -InitializationScript $scriptBlock -ArgumentList($vm2ipv4,$sshKey,$rootDir,$vm2ConsumeMem,$vm2Chunks,$vm2Duration,$timeoutStress)
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
@@ -515,7 +533,7 @@ for ($i = 0; $i -lt $samples; $i++)
   {
     "Error: $vm2Name assigned memory exceeded the maximum memory set"
     Stop-VM -VMName $vm2name -ComputerName $hvServer -force
-    return $false 
+    return $false
   }
 }
 

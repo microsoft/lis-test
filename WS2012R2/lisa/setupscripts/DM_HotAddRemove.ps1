@@ -73,7 +73,7 @@ function checkStressapptest([String]$conIpv4, [String]$sshKey)
 
     $cmdToVM = @"
 #!/bin/bash
-        command -v stressapptest
+        command -v stress-ng >> /root/HotAdd.log 2>&1
         sts=`$?
         if [ 0 -ne `$sts ]; then
             echo "Stressapptest is not installed! Please install it before running the memory stress tests." >> /root/HotAdd.log 2>&1
@@ -119,7 +119,7 @@ function checkStressapptest([String]$conIpv4, [String]$sshKey)
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
   # function for starting stresstestapp
-  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir, [int]$timeoutStress)
+  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir, [int]$timeoutStress, [int64]$memMB)
   {
 
   # because function is called as job, setup rootDir and source TCUtils again
@@ -167,20 +167,22 @@ $scriptBlock = {
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
         echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1
-        __chunks=128
-        declare -i __iterations
+        declare -i __chunks
+        declare -i __threads
         declare -i duration
+        declare -i timeout
+        __chunks=128
+        __threads=`$(($memMB/__chunks))
         if [ $timeoutStress -eq 1 ]; then
-          duration=10
+          timeout=4000000
+          duration=`$((5*__threads))
         else
-          duration=$timeoutStress*10/2
+          timeout=8000000
+          duration=`$((9*__threads))
         fi
-        __iterations=100+`$duration
-        echo "Going to start `$__iterations instance(s) of stresstestapp with a duration of `$duration and a timeout of $timeoutStress each consuming 128MB memory" >> /root/HotAdd.log 2>&1
-        for ((i=0; i < `$__iterations; i++)); do
-          stressapptest -M `$__chunks -s `$duration &
-          sleep $timeoutStress
-        done
+        echo "Going to start `$__threads instance(s) of stresstestapp with a duration of `$duration and a timeout of `$timeout each consuming 128MB memory" >> /root/HotAdd.log 2>&1
+        echo "Other info: chunks: `$__chunks , memory: $memMB" >> /root/HotAdd.log 2>&1
+        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t `$duration --backoff `$timeout
         echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
         wait
         exit 0
@@ -495,8 +497,14 @@ if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
     return $False
 }
 
+# Calculate the amount of memory to be consumed on VM1 and VM2 with stresstestapp
+[int64]$vm1ConsumeMem = (Get-VMMemory -VM $vm1).Maximum
+
+# transform to MB
+$vm1ConsumeMem /= 1MB
+
 # Send Command to consume
-$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $timeoutStress) ConsumeMemory $ip $sshKey $rootDir $timeoutStress } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$timeoutStress)
+$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $timeoutStress, $vm1ConsumeMem) ConsumeMemory $ip $sshKey $rootDir $timeoutStress $vm1ConsumeMem} -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$timeoutStress,$vm1ConsumeMem)
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
@@ -505,7 +513,7 @@ if (-not $?)
 }
 
 # sleep a few seconds so all stresstestapp processes start and the memory assigned/demand gets updated
-start-sleep -s 90
+start-sleep -s 180
 # get memory stats for vm1 after stresstestapp starts
 [int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
 [int64]$vm1Demand = ($vm1.MemoryDemand/1MB)
