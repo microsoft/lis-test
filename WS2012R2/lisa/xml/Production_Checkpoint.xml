@@ -5,11 +5,11 @@
     Copyright (c) Microsoft Corporation
 
 
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
 
 
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
@@ -46,7 +46,7 @@
                 <suiteTest>ProductionCheckpoint_ext4</suiteTest>
                 <suiteTest>ProductionCheckpoint_btrfs</suiteTest>
                 <suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
-                <suiteTest>ProductionCheckpoint_SCSI_vhdx</suiteTest>
+                <suiteTest>ProductionCheckpoint_SCSI_vhdx_xfs</suiteTest>
                 <suiteTest>ProductionCheckpoint_ISO_NoNetwork</suiteTest> 
                 <suiteTest>ProductionCheckpoint_3Chain_VHD</suiteTest>
                 <suiteTest>ProductionCheckpoint_iSCSI</suiteTest>
@@ -79,13 +79,13 @@
             <testName>ProductionCheckpoint_ext3</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\AddHardDisk.ps1</file>
+                <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
             <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-03</param>
-                <param>SCSI=0,1,Dynamic</param>
+                <param>SCSI=0,1,Dynamic,512</param>
                 <param>FILESYS=ext3</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -97,13 +97,13 @@
             <testName>ProductionCheckpoint_ext4</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\AddHardDisk.ps1</file>
+                <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
             <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-04</param>
-                <param>SCSI=0,1,Dynamic</param>
+                <param>SCSI=0,1,Dynamic,512</param>
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -115,13 +115,13 @@
             <testName>ProductionCheckpoint_btrfs</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\AddHardDisk.ps1</file>
+                <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
             <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-05</param>
-                <param>SCSI=0,1,Dynamic</param>
+                <param>SCSI=0,1,Dynamic,512</param>
                 <param>FILESYS=btrfs</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -133,14 +133,14 @@
             <testName>ProductionCheckpoint_IDE_SCSI</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\AddHardDisk.ps1</file>
+                <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
             <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-06</param>
-                <param>IDE=0,1,Dynamic</param>
-                <param>SCSI=0,1,Dynamic</param>
+                <param>IDE=0,1,Dynamic,512</param>
+                <param>SCSI=0,1,Dynamic,512</param>
                 <param>FILESYS=ext4</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
@@ -149,7 +149,7 @@
         </test>
 
         <test>
-            <testName>ProductionCheckpoint_SCSI_vhdx</testName>
+            <testName>ProductionCheckpoint_SCSI_vhdx_xfs</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddVhdxHardDisk.ps1</file>
@@ -158,8 +158,8 @@
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-07</param>
-                <param>SCSI=0,1,Dynamic</param>
-                <param>FILESYS=ext4</param>
+                <param>SCSI=0,1,Dynamic,512</param>
+                <param>FILESYS=xfs</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
@@ -212,7 +212,7 @@
             <vmName>VMNAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>id_key.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>Production_Checkpoint</suite>
         </vm>
     </VMs>
