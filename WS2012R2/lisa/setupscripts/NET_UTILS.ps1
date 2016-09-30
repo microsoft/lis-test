@@ -420,3 +420,29 @@ function NetworkToCIDR([String]$IPv4, [String] $Netmask)
 	$cidrnetmask = netmaskToCIDR $Netmask
 	return "$networkID"+"/"+"$cidrnetmask"
 }
+# CIDR to netmask
+function CIDRtoNetmask([int]$cidr){
+
+    for($i=0; $i -lt 32; $i+=1){
+        if($i -lt $cidr){
+            $ip+="1"
+        }else{
+            $ip+= "0"
+        }
+    }
+    $mask = ""
+    for($byte=0; $byte -lt $ip.Length/8; $byte+=1){
+        $decimal = 0
+        for($bit=0;$bit -lt 8; $bit+=1){
+            $poz = $byte * 8 + $bit
+            if( $ip[$poz] -eq "1"){
+                $decimal += [math]::Pow(2, 8 - $bit -1)
+            }
+        }
+        $mask +=[convert]::ToString($decimal)
+        if ( $byte -ne $ip.Length /8 -1){
+             $mask += "."
+         }
+    }
+    return $mask
+}
