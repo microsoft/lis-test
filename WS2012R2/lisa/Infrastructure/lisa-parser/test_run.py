@@ -212,12 +212,8 @@ class PerfTestRun(TestRun):
         parsed_perf_log = None
         if self.suite.lower() == 'fio':
             parsed_perf_log = FIOLogsReader(self.perf_path).process_logs()
-            parsed_perf_log = sorted(parsed_perf_log, key=lambda column: (
-                column['QDepth']))
         elif self.suite.lower() == 'ntttcp':
             parsed_perf_log = NTTTCPLogsReader(self.perf_path).process_logs()
-            parsed_perf_log = sorted(parsed_perf_log, key=lambda column: (
-                column['IPVersion'], column['#test_connections']))
 
         tests_cases = dict()
         test_index = 0
@@ -258,27 +254,36 @@ class PerfTestRun(TestRun):
 
             table_dict['TestCaseName'] = re.findall(
                 "[a-zA-z]+", table_dict['TestCaseName'])[0]
+
+        if self.suite.lower() == 'fio':
+            insertion_list = sorted(insertion_list, key=lambda column: (
+                column['QDepth']))
+        elif self.suite.lower() == 'ntttcp':
+            insertion_list = sorted(insertion_list, key=lambda column: (
+                column['ProtocolType'], column['NumberOfConnections']))
+
         return insertion_list
 
     @staticmethod
     def prep_for_fio(table_dict, test_case_obj):
         table_dict['rand_read_iops'] = float(test_case_obj.perf_dict[
                                                  'rand-read:'])
-        table_dict['rand_read_lat_usec'] = float(test_case_obj.perf_dict[
-            'rand-read: latency'])
+        table_dict['rand_read_lat_usec'] = test_case_obj.perf_dict[
+            'rand-read: latency']
         table_dict['rand_write_iops'] = float(test_case_obj.perf_dict[
                                                   'rand-write:'])
-        table_dict['rand_write_lat_usec'] = float(test_case_obj.perf_dict[
-            'rand-write: latency'])
+        table_dict['rand_write_lat_usec'] = test_case_obj.perf_dict[
+            'rand-write: latency']
         table_dict['seq_read_iops'] = float(test_case_obj.perf_dict[
                                                 'seq-read:'])
         table_dict['seq_write_iops'] = float(test_case_obj.perf_dict[
                                                  'seq-write:'])
-        table_dict['seq_write_lat_usec'] = float(test_case_obj.perf_dict[
-            'seq-write: latency'])
-        table_dict['seq_read_lat_usec'] = float(test_case_obj.perf_dict[
-            'seq-read: latency'])
+        table_dict['seq_write_lat_usec'] = test_case_obj.perf_dict[
+            'seq-write: latency']
+        table_dict['seq_read_lat_usec'] = test_case_obj.perf_dict[
+            'seq-read: latency']
         table_dict['QDepth'] = test_case_obj.perf_dict['QDepth']
+        table_dict['BlockSize_KB'] = test_case_obj.perf_dict['BlockSize_KB']
 
     @staticmethod
     def prep_for_ntttcp(table_dict, test_case_obj):
