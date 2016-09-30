@@ -362,6 +362,11 @@ class FIOLogsReader(BaseLogsReader):
     Subclass for parsing FIO log files e.g.
     FIOLog-XXXq.log
     """
+    # conversion unit dict reference for latency to 'usec'
+    CUNIT = {'usec': 1,
+             'msec': 1000,
+             'sec': 1000000}
+
     def __init__(self, log_path=None):
         super(FIOLogsReader, self).__init__(log_path)
         self.headers = ['rand-read:', 'rand-read: latency',
@@ -378,7 +383,8 @@ class FIOLogsReader(BaseLogsReader):
         :param log_dict: dict constructed from the defined headers
         :return: <dict> {'head1': 'val1', ...}
         """
-        log_dict['QDepth'] = f_match.group(1)
+        log_dict['QDepth'] = int(f_match.group(1))
+        log_dict['BlockSize_KB'] = 8
         with open(log_file, 'r') as fl:
             f_lines = fl.readlines()
             for key in log_dict:
@@ -387,12 +393,17 @@ class FIOLogsReader(BaseLogsReader):
                         if all(markers in f_lines[x] for markers in
                                [key.split(':')[0], 'pid=']):
                             if 'latency' in key:
-                                lat = re.match('.+lat \(.+avg=([0-9. ]+)',
-                                               f_lines[x + 4])
+                                lat = re.match(
+                                    '\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)',
+                                    f_lines[x + 4])
                                 if lat:
-                                    log_dict[key] = lat.group(1).strip()
+                                    unit = lat.group(1).strip()
+                                    log_dict[key] = float(
+                                        lat.group(2).strip()) * self.CUNIT[unit]
+                                else:
+                                    log_dict[key] = 0
                             else:
-                                iops = re.match('.+iops=([0-9. ]+)',
+                                iops = re.match('.+iops=\s*([0-9. ]+)',
                                                 f_lines[x + 1])
                                 if iops:
                                     log_dict[key] = iops.group(1).strip()
