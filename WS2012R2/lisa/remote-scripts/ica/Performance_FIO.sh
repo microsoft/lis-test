@@ -45,7 +45,6 @@ ICA_TESTABORTED="TestAborted"      # Error during setup of test
 ICA_TESTFAILED="TestFailed"        # Error during test
 
 CONSTANTS_FILE="constants.sh"
-log_folder="fiolog"
 LogMsg()
 {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the time-stamp to the log file
@@ -293,53 +292,53 @@ if [ 0 -ne ${sts} ]; then
 else
     echo "make: Success"
 fi
-mkdir /root/${log_folder}
+mkdir /root/${LOG_FOLDER}
 LogMsg "FIO was installed successfully!"
 # Run FIO with block size 8k and iodepth 1
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-1q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1q.log
 
 # Run FIO with block size 8k and iodepth 2
 sed --in-place=.orig -e s:"iodepth=1":"iodepth=2": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-2q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-2q.log
 
 # Run FIO with block size 8k and iodepth 4
 sed --in-place=.orig -e s:"iodepth=2":"iodepth=4": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-4q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-4q.log
 
 # Run FIO with block size 8k and iodepth 8
 sed --in-place=.orig -e s:"iodepth=4":"iodepth=8": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-8q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-8q.log
 
 Run FIO with block size 8k and iodepth 16
 sed --in-place=.orig -e s:"iodepth=8":"iodepth=16": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-16q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-16q.log
 
 # Run FIO with block size 8k and iodepth 32
 sed --in-place=.orig -e s:"iodepth=16":"iodepth=32": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-32q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-32q.log
 
 # Run FIO with block size 8k and iodepth 64
 sed --in-place=.orig -e s:"iodepth=32":"iodepth=64": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-64q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-64q.log
 
 # Run FIO with block size 8k and iodepth 128
 sed --in-place=.orig -e s:"iodepth=64":"iodepth=128": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-128q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-128q.log
 
 # Run FIO with block size 8k and iodepth 256
 sed --in-place=.orig -e s:"iodepth=128":"iodepth=256": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-256q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-256q.log
 
 # Run FIO with block size 8k and iodepth 512
 sed --in-place=.orig -e s:"iodepth=256":"iodepth=512": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-512q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-512q.log
 
 # Run FIO with block size 8k and iodepth 1024
 sed --in-place=.orig -e s:"iodepth=512":"iodepth=1024": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${log_folder}/FIOLog-1024q.log
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1024q.log
 
 cd /root
-zip -r fio_logs.zip . -i ${log_folder}/*
+zip -r ${LOG_FOLDER}.zip . -i ${LOG_FOLDER}/*
 #
 # Check if the SCSI disk is still connected
 #
