@@ -38,7 +38,7 @@
                 <file>setupScripts\AddHardDisk.ps1</file>
             </setupScript>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>300</timeout>
             <testParams>  
                 <param>TC_COVERED=FIO</param>
             	<param>SCSI=0,0,Physical</param>
@@ -64,7 +64,7 @@
                 <file>setupScripts\AddHardDisk.ps1</file>
             </setupScript>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>300</timeout>
             <testParams>  
                 <param>TC_COVERED=FIO</param>
                 <param>SCSI=0,0,Physical</param>
