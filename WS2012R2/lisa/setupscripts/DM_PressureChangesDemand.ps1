@@ -68,55 +68,6 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 Set-PSDebug -Strict
 
-function checkStressapptest([String]$conIpv4, [String]$sshKey)
-{
-
-
-    $cmdToVM = @"
-#!/bin/bash
-        command -v stress-ng
-        sts=`$?
-        if [ 0 -ne `$sts ]; then
-            echo "Stressapptest is not installed! Please install it before running the memory stress tests." >> /root/HotAdd.log 2>&1
-        else
-            echo "Stressapptest is installed! Will begin running memory stress tests shortly." >> /root/HotAdd.log 2>&1
-        fi
-        echo "CheckStressappreturned `$sts"
-        exit `$sts
-"@
-
-    #"pingVMs: sendig command to vm: $cmdToVM"
-    $filename = "CheckStressapp.sh"
-
-    # check for file
-    if (Test-Path ".\${filename}")
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    Add-Content $filename "$cmdToVM"
-
-    # send file
-    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
-    # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
-        return $false
-    }
-
-    # execute command
-    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
-    return $retVal
-}
-
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
   # function which $memMB MB of memory on VM with IP $conIpv4 with stresstestapp
@@ -335,8 +286,6 @@ if ($vmName -notlike $vm1Name)
   return $false
 }
 
-
-
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 
 if (-not $vm1)
@@ -345,18 +294,18 @@ if (-not $vm1)
   return $false
 }
 
-# Check if stressapptest is installed
-"Checking if Stressapptest is installed"
+# Check if stress-ng is installed
+"Checking if stress-ng is installed"
 
-$retVal = checkStressapptest $ipv4 $sshKey
+$retVal = check_app "stress-ng"
 
 if (-not $retVal)
 {
-    "Stressapptest is not installed! Please install it before running the memory stress tests."
+    "stress-ng is not installed! Please install it before running the memory stress tests."
     return $false
 }
 
-"Stressapptest is installed! Will begin running memory stress tests shortly."
+"stress-ng is installed! Will begin running memory stress tests shortly."
 
 # Check kernel version
 $sts = check_kernel
@@ -366,7 +315,7 @@ if (-not $sts) {
   $retVal = $False
 }
 elseif ($sts -like '2.6*') {
-  "Info: 2.6.x kernel version detected. Higher timeout is used between stressapp processes."
+  "Info: 2.6.x kernel version detected. Higher timeout is used between stress-ng processes."
   $timeoutStress = 8
 }
 else {

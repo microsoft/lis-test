@@ -373,6 +373,19 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
   return $false
 }
 
+# Check if stress-ng is installed
+"Checking if stress-ng is installed"
+
+$retVal = check_app "stress-ng"
+
+if (-not $retVal)
+{
+    "stress-ng is not installed! Please install it before running the memory stress tests."
+    return $false
+}
+
+"stress-ng is installed! Will begin running memory stress tests shortly."
+
 # Check kernel version
 $sts = check_kernel
 
@@ -381,7 +394,7 @@ if (-not $sts) {
   $retVal = $False
 }
 elseif ($sts -like '2.6*') {
-  "Info: 2.6.x kernel version detected. Higher timeout is used between stressapp processes."
+  "Info: 2.6.x kernel version detected. Higher timeout is used between stress-ng processes."
   $timeoutStress = 8
 }
 else {

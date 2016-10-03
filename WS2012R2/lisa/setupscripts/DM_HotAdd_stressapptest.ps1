@@ -66,55 +66,6 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-function checkStressapptest([String]$conIpv4, [String]$sshKey)
-{
-
-
-    $cmdToVM = @"
-#!/bin/bash
-        command -v stress-ng
-        sts=`$?
-        if [ 0 -ne `$sts ]; then
-            echo "Stressapptest is not installed! Please install it before running the memory stress tests." >> /root/HotAdd.log 2>&1
-        else
-            echo "Stressapptest is installed! Will begin running memory stress tests shortly." >> /root/HotAdd.log 2>&1
-        fi
-        echo "CheckStressappreturned `$sts"
-        exit `$sts
-"@
-
-    #"pingVMs: sendig command to vm: $cmdToVM"
-    $filename = "CheckStressapp.sh"
-
-    # check for file
-    if (Test-Path ".\${filename}")
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    Add-Content $filename "$cmdToVM"
-
-    # send file
-    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
-    # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
-        return $false
-    }
-
-    # execute command
-    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
-    return $retVal
-}
-
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
   # function for starting stresstestapp
@@ -346,7 +297,7 @@ if (-not $vm1)
 # Check if stressapptest is installed
 "Checking if Stressapptest is installed"
 
-$retVal = checkStressapptest $ipv4 $sshKey
+$retVal = check_app "stressapptest"
 
 if (-not $retVal)
 {

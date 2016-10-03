@@ -24,7 +24,7 @@
 
 				<!-- Dynamic Memory – Hot Add -->
 				<suiteTest>HotAdd</suiteTest>
-				<suiteTest>HotAddStressNg</suiteTest>
+				<suiteTest>HotAddStressapptest</suiteTest>
 				<suiteTest>HotRemove</suiteTest>
 				<suiteTest>StartupHighCompete</suiteTest>
 				<suiteTest>DemandPressure</suiteTest>
@@ -79,7 +79,7 @@
 		</test>
 
 		<test>
-			<testName>HotAdd</testName>
+			<testName>HotAddStressapptest</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
 				<param>TC_COVERED=DM-03</param>
@@ -91,14 +91,14 @@
 				<param>memWeight=100</param>
 				<param>staticMem=512MB</param>
 			</testParams>
-			<testScript>setupScripts\DM_HotAdd.ps1</testScript>
+			<testScript>setupScripts\DM_HotAdd_stressapptest.ps1</testScript>
 			<files>remote-scripts/ica/check_traces.sh</files>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
 
 		<test>
-			<testName>HotAddStressNg</testName>
+			<testName>HotAdd</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
 				<param>TC_COVERED=DM-04</param>
