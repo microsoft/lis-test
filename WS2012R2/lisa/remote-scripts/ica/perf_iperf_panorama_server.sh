@@ -136,6 +136,12 @@ if [ "${IPERF_PACKAGE:="UNDEFINED"}" = "UNDEFINED" ]; then
     exit 20
 fi
 
+if [ "${IPERF3_PROTOCOL:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Info: no IPERF3_PROTOCOL was specified, assuming default TCP"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
+
 if [ "${INDIVIDUAL_TEST_DURATION:="UNDEFINED"}" = "UNDEFINED" ]; then
     INDIVIDUAL_TEST_DURATION=600
     msg="Error: the INDIVIDUAL_TEST_DURATION test parameter is missing and the default value will be used: ${INDIVIDUAL_TEST_DURATION}."
@@ -233,6 +239,7 @@ done
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
 echo "iPerf package name		= ${IPERF_PACKAGE}"
+echo "iPerf protocol        = ${IPERF3_PROTOCOL-TCP}"
 echo "individual test duration (sec)	= ${INDIVIDUAL_TEST_DURATION}"
 echo "connections per iperf3		= ${CONNECTIONS_PER_IPERF3}"
 echo "test signal file			= ${TEST_SIGNAL_FILE}"
@@ -521,7 +528,7 @@ while true; do
 
         for ((i=8001; i<=$number_of_iperf_instances; i++))
         do
-            /root/${rootDir}/src/iperf3 -s -D $ipVersion -p $i
+            /root/${rootDir}/src/iperf3 -s ${IPERF3_PROTOCOL+-u} -D $ipVersion -p $i
         done
         x=$(ps -aux | grep iperf | wc -l)
         echo "ps -aux | grep iperf | wc -l: $x"
