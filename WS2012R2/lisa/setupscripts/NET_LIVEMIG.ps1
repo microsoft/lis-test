@@ -243,8 +243,18 @@ while ($migrateJobRunning)
     }
 }
 
-"Info: Pinging VM after migration"
-$pingReply = $ping.Send($ipv4)
+"Info: Pinging VM multiple times after migration"
+$counter = 0
+while ($counter -ne 10) 
+{
+	$pingReply = $ping.Send($ipv4)
+	if ($pingReply.Status -eq "Success") 
+	{
+		break
+	}
+	$counter++
+}
+
 if ($pingReply.Status -eq "Success")
 {
     $goodPings += 1
