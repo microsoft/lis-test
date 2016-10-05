@@ -208,7 +208,7 @@ if ($hvModule -eq $NULL)
 if ($hvModule.companyName -ne "Microsoft Corporation")
 {
     "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $Falses
+    return $False
 }
 
 $controllerType = $null
@@ -217,7 +217,7 @@ $lun = $null
 $vhdType = $null
 $parentVhd = $null
 $vhdFormat =$null
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation
+$vmGeneration = $null
 #
 # Parse the testParams string
 #
@@ -363,6 +363,12 @@ else # Make sure the controller ID is valid for IDE
         "Error: CreateHardDrive was passed an invalid IDE Controller ID: $ControllerID"
         return $false
     }
+}
+
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq $False)
+{
+   $vmGeneration = 1
 }
 
 if ($vmGeneration -eq 1)

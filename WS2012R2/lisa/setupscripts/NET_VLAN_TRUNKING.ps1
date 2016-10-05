@@ -532,7 +532,7 @@ foreach ($p in $params)
         #
         if (@("External", "Internal", "Private") -notcontains $networkType)
         {
-            "Error: Invalid netowrk type: $networkType .  Network type must be either: External, Internal, Private"
+            "Error: Invalid network type: $networkType . Network type must be either: External, Internal or Private"
             return $false
         }
 
@@ -1370,5 +1370,4 @@ if ($scriptAddedNIC)
 }
 
 "Test successful!"
-
 return $true

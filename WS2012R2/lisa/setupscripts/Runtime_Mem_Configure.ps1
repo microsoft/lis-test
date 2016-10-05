@@ -22,19 +22,19 @@
 
 <#
 .Synopsis
- Configure Manual Memory for given Virtual Machines (no DM).
+	Configure Runtime Memory Resize for a given VM.
 
-   .Parameter vmName
-    Name of the VM which will be asssigned a new Memory value
+	.Parameter vmName
+	Name of the VM which will be asssigned a new Memory value
 
-    .Parameter hvServer
-    Name of the Hyper-V server hosting the VM.
+	.Parameter hvServer
+	Name of the Hyper-V server hosting the VM.
 
-    .Parameter testParams
-    Test data for this test case
+	.Parameter testParams
+	Test data for this test case
 
-    .Example
-    setupScripts\ManualMem_Configure.ps1 -vmName VM -hvServer localhost -testParams "vmName=VM;startupMem=2GB"
+	.Example
+	setupScripts\Runtime_Mem_Configure.ps1 -vmName VM -hvServer localhost -testParams "vmName=VM;startupMem=2GB"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -172,7 +172,7 @@ foreach ($p in $params)
 
       if ( $version -lt 7 )
       {
-        "Error: $vmName is version $version. It needs to be 7 or greater"
+        "Error: $vmName is version $version. It needs to be version 7 or greater"
         return $false
       }
       

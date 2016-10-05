@@ -27,6 +27,7 @@ from file_parser import NTTTCPLogsReader
 from virtual_machine import VirtualMachine
 from copy import deepcopy
 import logging
+import re
 import os
 
 logger = logging.getLogger(__name__)
@@ -98,9 +99,15 @@ class TestRun(object):
             self.vms[vm_name].location = props['TestLocation']
 
         to_remove = []
+        remove_vms = self.vms.keys()
         for test_name, test_props in self.test_cases.iteritems():
             try:
                 self.test_cases[test_name].update_results(parsed_ica['tests'][test_name])
+
+                # Remove dependency VMs
+                if parsed_ica['tests'][test_name][0] in remove_vms:
+                    remove_vms.remove(parsed_ica['tests'][test_name][0])
+
                 logger.debug(
                     'Saving test result for %s - %s',
                     test_name, parsed_ica['tests'][test_name][1]
@@ -108,6 +115,11 @@ class TestRun(object):
             except KeyError:
                 logger.warning('Result for %s was not found in ICA log file', test_name)
                 to_remove.append(test_name)
+
+        if remove_vms:
+            for vm_name in remove_vms:
+                del self.vms[vm_name]
+
 
         if to_remove:
             self.remove_tests(to_remove)
@@ -240,25 +252,38 @@ class PerfTestRun(TestRun):
             elif self.suite.lower() == 'ntttcp':
                 self.prep_for_ntttcp(table_dict, test_case_obj)
 
-            table_dict['TestCaseName'] = table_dict['TestCaseName'][:-1]
+            table_dict['TestCaseName'] = re.findall(
+                "[a-zA-z]+", table_dict['TestCaseName'])[0]
+
+        if self.suite.lower() == 'fio':
+            insertion_list = sorted(insertion_list, key=lambda column: (
+                column['QDepth']))
+        elif self.suite.lower() == 'ntttcp':
+            insertion_list = sorted(insertion_list, key=lambda column: (
+                column['ProtocolType'], column['NumberOfConnections']))
 
         return insertion_list
 
     @staticmethod
     def prep_for_fio(table_dict, test_case_obj):
-        table_dict['RandRead'] = float(test_case_obj.perf_dict['rand-read:'])
-        table_dict['Latency_RandRead'] = float(test_case_obj.perf_dict[
-            'rand-read: latency'])
-        table_dict['RandWrite'] = float(test_case_obj.perf_dict['rand-write:'])
-        table_dict['Latency_RandWrite'] = float(test_case_obj.perf_dict[
-            'rand-write: latency'])
-        table_dict['SeqRead'] = float(test_case_obj.perf_dict['seq-read:'])
-        table_dict['SeqWrite'] = float(test_case_obj.perf_dict['seq-write:'])
-        table_dict['Latency_SeqWrite'] = float(test_case_obj.perf_dict[
-            'seq-write: latency'])
-        table_dict['Latency_SeqRead'] = float(test_case_obj.perf_dict[
-            'seq-read: latency'])
-        table_dict['Iodepth'] = float(test_case_obj.perf_dict['BlockSize'][1:])
+        table_dict['rand_read_iops'] = float(test_case_obj.perf_dict[
+                                                 'rand-read:'])
+        table_dict['rand_read_lat_usec'] = test_case_obj.perf_dict[
+            'rand-read: latency']
+        table_dict['rand_write_iops'] = float(test_case_obj.perf_dict[
+                                                  'rand-write:'])
+        table_dict['rand_write_lat_usec'] = test_case_obj.perf_dict[
+            'rand-write: latency']
+        table_dict['seq_read_iops'] = float(test_case_obj.perf_dict[
+                                                'seq-read:'])
+        table_dict['seq_write_iops'] = float(test_case_obj.perf_dict[
+                                                 'seq-write:'])
+        table_dict['seq_write_lat_usec'] = test_case_obj.perf_dict[
+            'seq-write: latency']
+        table_dict['seq_read_lat_usec'] = test_case_obj.perf_dict[
+            'seq-read: latency']
+        table_dict['QDepth'] = test_case_obj.perf_dict['QDepth']
+        table_dict['BlockSize_KB'] = test_case_obj.perf_dict['BlockSize_KB']
 
     @staticmethod
     def prep_for_ntttcp(table_dict, test_case_obj):

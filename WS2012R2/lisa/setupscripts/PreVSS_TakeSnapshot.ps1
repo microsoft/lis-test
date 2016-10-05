@@ -21,32 +21,31 @@
 
 <#
 .Synopsis
-	Creates a quick snapshot, to not revert to the default ICABase snapshot.
-
+    Creates a quick snapshot, to not revert to the default ICABase snapshot.
 .Description
     Modified version of STOR_TakeRevert_Snapshot.ps1 to only create a snapshot.
     This is usefull if the default snapshot represents a clean state,
     then a temporary additional snapshot is needed before further changes.
-
     A typical test case definition for this test script would look
     similar to the following:
-             <test>
-            <testName>PreVSS_TakeSnapshot</testName>
+            <test>
+            <testName>MainVM_Checkpoint</testName>
             <testScript>setupScripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotName=ICABase</param>
+                <param>snapshot_vm=main(dependency)</param>
+            </testParams>
             <timeout>1500</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-
 .Parameter vmName
     Name of the VM to perform the test with.
-
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
-
 .Parameter testParams
     A semicolon separated list of test parameters.
-
 .Example
     setupScripts\PreVSS_TakeSnapshot.ps1 -vmName "myVm" -hvServer "localhost" -TestParams ""
 #>
@@ -80,6 +79,10 @@ if (-not $testParams)
     return $retVal
 }
 
+$snapshot_vm = ""
+$vms = New-Object System.Collections.ArrayList
+$vm = ""
+
 #
 # Checking the mandatory testParams
 #
@@ -87,12 +90,30 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-        switch ($fields[0].Trim())
+        switch -wildcard ($fields[0].Trim())
         {
         "ipv4" { $ipv4 = $fields[1].Trim() }
         "rootdir" { $rootDir = $fields[1].Trim() }
+        "VM[0-9]NAME" { $vm = $fields[1].Trim() }
+        "snapshotName" { $snapshot = $fields[1].Trim() }
+        "snapshotVm" { $snapshot_vm = $fields[1].Trim() }
         default  {}
         }
+    if ($vm -ne "")
+    {
+        $vms.Add($vm)
+        $vm = ""
+    }
+}
+
+if ($snapshot_vm -ne "dependency")
+{
+    $vms.Clear()
+}
+
+if ($snapshot_vm -eq "" -or $snapshot_vm -eq "main")
+{
+    $vms.Add($vmName)
 }
 
 if (-not $rootDir)
@@ -120,62 +141,66 @@ cd $rootDir
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 
-#######################################################################
-#
-# Main script block
-#
-#######################################################################
-
 # Source the TCUtils.ps1 file
 . .\setupscripts\TCUtils.ps1
 
-Write-Host "Waiting for VM $vmName to stop..."
-if ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
-    Stop-VM -ComputerName $hvServer -Name $vmName -Force -Confirm:$false
-}
-
-#
-# Waiting until the VM is off
-#
-if (-not (WaitForVmToStop $vmName $hvServer 300))
+foreach ($vmName in $vms)
 {
-    Write-Output "Error: Unable to stop VM"
-    return $False
-}
 
-#
-# Take a snapshot then restore the VM to the snapshot
-#
-"Info: Taking Snapshot of VM $vmName"
-
-Checkpoint-VM -Name $vmName -SnapshotName ICABase_Upstream -ComputerName $hvServer
-if (-not $?)
-{
-    Write-Output "Error taking snapshot!" | Out-File -Append $summaryLog
-    return $False
-}
-
-#
-# Waiting for the VM to run again and respond to SSH - port 22
-#
-Start-VM $vmName -ComputerName $hvServer
-
-$timeout = 300
-while ($timeout -gt 0) {
-    if ( (TestPort $ipv4) ) {
-        break
+    Write-Host "Waiting for VM $vmName to stop..."
+    if ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
+        Stop-VM -ComputerName $hvServer -Name $vmName -Force -Confirm:$false
     }
 
-    Start-Sleep -seconds 2
-    $timeout -= 2
+    #
+    # Waiting until the VM is off
+    #
+    if (-not (WaitForVmToStop $vmName $hvServer 300))
+    {
+        Write-Output "Error: Unable to stop VM"
+        return $False
+    }
+
+    #
+    # Take a snapshot then restore the VM to the snapshot
+    #
+    "Info: Taking Snapshot of VM $vmName"
+
+    Checkpoint-VM -Name $vmName -SnapshotName $snapshot -ComputerName $hvServer
+    if (-not $?)
+    {
+        Write-Output "Error taking snapshot!" | Out-File -Append $summaryLog
+        return $False
+    }
+
+    #
+    # Waiting for the VM to run again and respond to SSH - port 22
+    #
+    Start-VM $vmName -ComputerName $hvServer
+
+    $timeout = 180
+    while ($timeout -gt 0)
+    {
+        #
+        # Check if the VM is in the Hyper-v Running state
+        #
+        $ipv4 = GetIPv4 $vmName $hvServer
+        if ($ipv4)
+        {
+            break
+        }
+        start-sleep -seconds 1
+        $timeout -= 1
+    }
+
+    if ($timeout -eq 0) {
+        Write-Output "Error: Test case timed out waiting for VM to boot" | Out-File -Append $summaryLog
+        return $False
+    }
+
+    $retVal = $True
+    Write-Output "Snapshot has been created on $vmName." | Out-File -Append $summaryLog
+    Stop-VM $vmName -ComputerName $hvServer
+
 }
-
-if ($timeout -eq 0) {
-    Write-Output "Error: Test case timed out waiting for VM to boot" | Out-File -Append $summaryLog
-    return $False
-}
-
-$retVal = $True
-Write-Output "Snapshot has been created." | Out-File -Append $summaryLog
-
 return $retVal

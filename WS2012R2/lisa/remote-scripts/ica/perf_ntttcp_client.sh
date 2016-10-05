@@ -74,6 +74,7 @@ touch ~/summary.log
 
 # Convert eol
 dos2unix utils.sh
+dos2unix perf_utils.sh
 
 # Source utils.sh
 . utils.sh || {
@@ -82,8 +83,23 @@ dos2unix utils.sh
     exit 2
 }
 
+# Source perf_utils.sh
+. perf_utils.sh || {
+    echo "Error: unable to source perf_utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
 # Source constants file and initialize most common variables
 UtilsInit
+
+#Apling performance parameters
+setup_sysctl
+if [ $? -ne 0 ]; then
+    echo "Unable to add performance parameters."
+    LogMsg "Unable to add performance parameters."
+    UpdateTestState $ICA_TESTABORTED
+fi
 
 # In case of error
 case $? in
@@ -128,7 +144,9 @@ function get_tx_bytes(){
     then
         #TX packets 223558709  bytes 15463202847 (14.4 GiB)
         Tx_bytes=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $5}'`
-    fi    
+    fi
+    echo $Tx_bytes
+
 }
 
 function get_tx_pkts(){
@@ -138,11 +156,12 @@ function get_tx_pkts(){
     if [ "x$Tx_pkts" == "x" ]
     then
         #TX packets 223558709  bytes 15463202847 (14.4 GiB)
-        Tx_pkts=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $3}'`
-    fi    
+        Tx_pkts=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $3}'`        
+    fi
+    echo $Tx_pkts   
 }
 
-#Create eth_report.log
+#Create log folder
 if [ -d  $log_folder ]; then
     echo "File $log_folder exists: will be deleted."
     LogMsg "File $log_folder exists." >> ~/summary.log
@@ -526,6 +545,8 @@ if [ $? -ne 0 ]; then
 fi
 scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/perf_utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+
 
 #
 # Start ntttcp in server mode on the Target server side
@@ -626,16 +647,12 @@ sts=$?
 if [ $sts -eq 0 ]; then 
     LogMsg "Ntttcp succeeded with all connections."
     echo "Ntttcp succeeded with all connections." >> ~/summary.log
+    cd $HOME
+    zip -r $log_folder.zip . -i $log_folder/*
+    sleep 20
     UpdateTestState $ICA_TESTCOMPLETED
 else 
     LogMsg "Something gone wrong. Please re-run.."
     echo "Something gone wrong. Please re-run.." >> ~/summary.log
-fi
-#Prepare the logs:
-cd $HOME/$log_folder
-zip -r ../$log_folder.zip *
-if [ $? -ne 0 ]; then
-    echo "Unable to archive log folder."
-    LogMsg "Unable to archive log folder." >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
 fi

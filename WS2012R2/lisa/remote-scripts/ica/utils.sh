@@ -21,6 +21,8 @@
 #
 #####################################################################
 
+###########################################################################################
+#
 # Description:
 #
 # This script contains all distro-specific functions, as well as other common functions
@@ -67,10 +69,6 @@ declare -a SYNTH_NET_INTERFACES
 
 # LEGACY_NET_INTERFACES is an array containing all legacy network interfaces found
 declare -a LEGACY_NET_INTERFACES
-
-
-
-
 
 ######################################## Functions ########################################
 
@@ -809,7 +807,7 @@ CreateVlanConfig()
 
 	GetDistro
 	case $DISTRO in
-		redhat*)
+		redhat*|centos*)
 			__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface"
 			if [ -e "$__file_path" ]; then
 				LogMsg "CreateVlanConfig: warning, $__file_path already exists."
@@ -1620,22 +1618,6 @@ ControlNetworkManager()
 			fi
 			# now try to start|stop the service
 			service NetworkManager $1
-			if [ 0 -ne $? ]; then
-				LogMsg "Unable to $1 NetworkManager."
-				return 1
-			else
-				LogMsg "Successfully ${1}ed NetworkManager."
-			fi
-			;;
-		debian*)
-			# check that we have a NetworkManager service running
-			service network-manager status
-			if [ 0 -ne $? ]; then
-				LogMsg "NetworkManager does not appear to be running."
-				return 0
-			fi
-			# now try to start|stop the service
-			service network-manager $1
 			if [ 0 -ne $? ]; then
 				LogMsg "Unable to $1 NetworkManager."
 				return 1

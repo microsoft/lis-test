@@ -41,6 +41,7 @@
                 <param>SCSI=0,0,Dynamic,512</param>
                 <param>shrinkSize=3GB</param>
                 <param>growSize=4GB</param>
+                <param>Offline=False</param>
                 <param>TC_COVERED=STOR-VHDx-01</param>
             </testparams>
         </test>
@@ -51,7 +52,7 @@
 .Parameter testParams
     Test data for this test case
 .Example
-    setupScripts\STOR_VHDXResize_GrowShrink.ps1 -vmName "VM_Name" -hvServer "HYPERV_SERVER" -TestParams "ipv4=255.255.255.255;sshKey=YOUR_KEY.ppk;growSize=4GB;shrinkSize=3GB;TC_COVERED=STOR-VHDx-01"
+    setupScripts\STOR_VHDXResize_GrowShrink.ps1 -vmName "VM_Name" -hvServer "HYPERV_SERVER" -TestParams "ipv4=255.255.255.255;sshKey=YOUR_KEY.ppk;growSize=4GB;shrinkSize=3GB;Offline=False;TC_COVERED=STOR-VHDx-01"
 #>
 
 param( [String] $vmName,
@@ -70,7 +71,8 @@ $TC_COVERED = $null
 $TestLogDir = $null
 $TestName   = $null
 $vhdxDrive  = $null
-
+# when resize disk, if need to shut down VM, set offline as "True", otherwise "False".
+$offline = "False"
 #######################################################################
 #
 # Main script body
@@ -127,6 +129,9 @@ foreach ($p in $params)
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
     "TestName"   { $TestName = $fields[1].Trim() }
+    "ControllerType"   { $controllerType = $fields[1].Trim() }
+    "Type"   { $type = $fields[1].Trim() }
+    "Offline"   { $offline = $fields[1].Trim() }
     default     {}  # unknown param - just ignore it
     }
 }
@@ -155,15 +160,17 @@ Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
 # Convert the new size
-#
+
 $newVhdxGrowSize = ConvertStringToUInt64 $newGrowSize
 $newVhdxShrinkSize = ConvertStringToUInt64 $newShrinkSize
+$sizeFlag = ConvertStringToUInt64 "50GB"
 
 #
 # Make sure the VM has a SCSI 0 controller, and that
 # Lun 0 on the controller has a .vhdx file attached.
 #
-"Info : Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
+
+"Info : Check if VM ${vmName} has a $controllerType drive"
 $vhdxName = $vmName + "-" + $DefaultSize + "-" + $sectorSize + "-test"
 $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
@@ -172,12 +179,13 @@ foreach ($vhdx in $vhdxDisks)
     $vhdxPath = $vhdx.Path
     if ($vhdxPath.Contains($vhdxName))
     {
-        $vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber $vhdx.ControllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
+        $vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype $controllerType -ControllerNumber $vhdx.ControllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
     }
 }
+
 if (-not $vhdxDrive)
 {
-    "Error: VM ${vmName} does not have a SCSI 0 Lun 0 drive"
+    "Error: VM ${vmName} does not have a $controllerType drive"
     $error[0].Exception.Message
     return $False
 }
@@ -194,7 +202,7 @@ if (-not $vhdxInfo)
 "Info : Verify the file is a .vhdx"
 if (-not $vhdPath.EndsWith(".vhdx") -and -not $vhdPath.EndsWith(".avhdx"))
 {
-    "Error: SCSI 0 Lun 0 virtual disk is not a .vhdx file."
+    "Error: $controllerType virtual disk is not a .vhdx file."
     "       Path = ${vhdPath}"
     return $False
 }
@@ -210,51 +218,72 @@ if (-not $diskInfo)
     return $False
 }
 
-if ($diskInfo.FreeSpace -le $newVhdxSize + 10MB)
+if ($diskInfo.FreeSpace -le $sizeFlag + 10MB)
 {
     "Error: Insufficent disk free space"
     "       This test case requires ${newSize} free"
     "       Current free space is $($diskInfo.FreeSpace)"
     return $False
 }
+#
+# Prepare for expanding disk and expand disk
+#
 
-#
 # Make sure if we can perform Read/Write operations on the guest VM
-#
 $guest_script = "STOR_VHDXResize_PartitionDisk"
 
-$sts = RunTest $guest_script
+$sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
-    $sts = SummaryLog
-    if (-not $($sts[-1]))
-    {
-        "Warning : Failed getting summary.log from VM"
-    }
-    "Error: Running '${guest_script}' script failed on VM "
-    return $False
+  "Error: Running ${guest_script} script failed on VM. check VM logs , exiting test case execution "
+  return $False
 }
 
-$CheckResultsts = CheckResult
+# Source the TCUtils.ps1 file
+. .\setupscripts\TCUtils.ps1
 
-$sts = RunTestLog $guest_script $TestLogDir $TestName
-if (-not $($sts[-1]))
+# for IDE and offline resize disk need to stop VM before resize
+
+if ( $controllerType -eq "IDE" -or $offline -eq "True"  )
 {
-    "Warning : Getting RunTestLog.log from VM, will not exit test case execution "
+  "Info: Resize IDE disk or testing offline needs to turn off VM"
+  Stop-VM -VMName $vmName -ComputerName $hvServer -force
 }
 
-if (-not $($CheckResultsts[-1]))
-{
-    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
-    return $False
-}
+"Info : Growing the VHDX to ${newGrowSize}"
+write-output "Resize-VHD -Path $vhdPath -SizeBytes $newVhdxGrowSize -ComputerName $hvServer -ErrorAction SilentlyContinue"
+Resize-VHD -Path $vhdPath -SizeBytes $newVhdxGrowSize -ComputerName $hvServer -ErrorAction SilentlyContinue
 
-"Info : Growing the VHDX to ${growSize}"
-Resize-VHD -Path $vhdPath -SizeBytes ($newVhdxGrowSize) -ComputerName $hvServer -ErrorAction SilentlyContinue
+
 if (-not $?)
 {
    "Error: Unable to grow VHDX file '${vhdPath}"
    return $False
+}
+
+# Now start the VM if IDE disk attached or offline resize
+if ( $controllerType -eq "IDE" -or $offline -eq "True" )
+{
+  "Info: Check disk from VM needs to turn on VM"
+  $timeout = 300
+  $sts = Start-VM -Name $vmName -ComputerName $hvServer
+  if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
+  {
+      Write-Output "ERROR: ${vmName} failed to start"
+      return $False
+  }
+  else
+  {
+      Write-Output "INFO: Started VM ${vmName}"
+  }
+}
+
+$vhdxInfoResize = Get-VHD -Path $vhdPath -ComputerName $hvServer -ErrorAction SilentlyContinue
+
+if ( $newSize.contains("GB") -and $vhdxInfoResize.Size/1gb -ne $newSize.Trim("GB") )
+{
+  "Error: Failed to Resize Disk to new Size"
+  return $False
 }
 
 #
@@ -267,10 +296,12 @@ Start-Sleep -s $sleepTime
 # Check if the guest sees the added space
 #
 "Info : Check if the guest sees the new space"
+# Older kernels might require a few requests to refresh the disks info
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l > /dev/null"
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
 if (-not $?)
 {
-    "Error: Failed to force SCSI device rescan"
+    "Error: Failed to force $controllerType device rescan"
     return $False
 }
 
@@ -290,35 +321,37 @@ if ($growDiskSize -ne $newVhdxGrowSize)
 #
 # Make sure if we can perform Read/Write operations on the guest VM
 #
-$guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
 
-$sts = RunTest $guest_script
+# if file size larger than 2T (2048G), use parted to format disk
+ if ([int]($newVhdxGrowSize/1gb) -gt 2048)
+ {
+   $guest_script = "STOR_VHDXResize_PartitionDiskOver2TB"
+ }
+
+else
+{
+  $guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
+}
+
+$sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
-    $sts = SummaryLog
-    if (-not $($sts[-1]))
-    {
-        "Warning : Failed getting summary.log from VM"
-    }
-    "Error: Running '${guest_script}' script failed on VM "
-    return $False
+  "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+  return $False
 }
 
-$CheckResultsts = CheckResult
+#
+# Prepare for shrinking disk and shrink disk
+#
 
-$sts = RunTestLog $guest_script $TestLogDir $TestName
-if (-not $($sts[-1]))
+# for IDE and offline resize disk need to stop VM before resize
+if ( $controllerType -eq "IDE" -or $offline -eq "True")
 {
-    "Warning : Getting RunTestLog.log from VM, will not exit test case execution "
+  "Info: Resize IDE disk or testing offline needs to turn off VM"
+  Stop-VM -VMName $vmName -ComputerName $hvServer -force
 }
 
-if (-not $($CheckResultsts[-1]))
-{
-    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
-    return $False
-}
-
-"Info : Shrinking the VHDX to ${shrinkSize}"
+"Info : Shrinking the VHDX to ${newShrinkSize}"
 Resize-VHD -Path $vhdPath -SizeBytes ($newVhdxShrinkSize) -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
@@ -332,14 +365,34 @@ if (-not $?)
 $sleepTime = 60
 Start-Sleep -s $sleepTime
 
+# Now start the VM if IDE disk attached or offline resize
+
+if ( $controllerType -eq "IDE" -or $offline -eq "True" )
+{
+  "Info: Check disk from VM needs to turn on VM"
+  $timeout = 300
+  $sts = Start-VM -Name $vmName -ComputerName $hvServer
+  if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
+  {
+      Write-Output "ERROR: ${vmName} failed to start"
+      return $False
+  }
+  else
+  {
+      "Info: Started VM ${vmName}"
+  }
+}
+
 #
 # Check if the guest sees the added space
 #
 "Info : Check if the guest sees the new size"
+# Older kernels might require a few requests to refresh the disks info
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l > /dev/null"
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
 if (-not $?)
 {
-    "Error: Failed to force SCSI device rescan"
+    "Error: Failed to force $controllerType device rescan"
     return $False
 }
 
@@ -360,31 +413,11 @@ if ($shrinkDiskSize -ne $newVhdxShrinkSize)
 # Make sure if we can perform Read/Write operations on the guest VM
 #
 $guest_script = "STOR_VHDXResize_PartitionDisk"
-
-$sts = RunTest $guest_script
+$sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
-    $sts = SummaryLog
-    if (-not $($sts[-1]))
-    {
-        "Warning : Failed getting summary.log from VM"
-    }
-    "Error: Running '${guest_script}' script failed on VM "
-    return $False
-}
-
-$CheckResultsts = CheckResult
-
-$sts = RunTestLog $guest_script $TestLogDir $TestName
-if (-not $($sts[-1]))
-{
-    "Warning : Getting RunTestLog.log from VM, will not exit test case execution "
-}
-
-if (-not $($CheckResultsts[-1]))
-{
-    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
-    return $False
+  "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+  return $False
 }
 
 "Info : The guest sees the new grow size ($growDiskSize) and the new shrink size ($shrinkDiskSize)"
