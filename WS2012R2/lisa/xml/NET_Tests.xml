@@ -56,6 +56,7 @@
                 <suiteTest>Network_Hang_Vxlan</suiteTest>
                 <suiteTest>CopyFileScp</suiteTest>
                 <suiteTest>CheckKeywithEthtool</suiteTest>
+                <suiteTest>IPInjection</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
@@ -412,6 +413,23 @@
             <timeout>800</timeout>
         </test>
 
+        <test>
+            <testName>IPInjection</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>TC_COVERED=NET_LIVEMIG-09</param>
+                <param>ipv4address=192.168.1.14</param>
+                <param>ipv4subnet=255.255.255.0</param>
+                <param>ipv4Gateway=192.168.1.1</param>
+                <param>dnsserver=192.168.1.2</param>
+            </testParams>
+            <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <timeout>600</timeout>
+        </test>
+        
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>HotAddMultiNIC</testName>
