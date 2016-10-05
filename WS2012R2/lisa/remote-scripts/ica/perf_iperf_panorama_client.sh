@@ -163,12 +163,6 @@ if [ "${IPERF3_SERVER_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
     exit 20
 fi
 
-if [ "${IPERF3_PROTOCOL:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Info: no IPERF3_PROTOCOL was specified, assuming default TCP"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
 if [ "${STATIC_IP2:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the STATIC_IP2 test parameter is missing"
     LogMsg "${msg}"
@@ -291,7 +285,6 @@ echo "iPerf package name        = ${IPERF_PACKAGE}"
 echo "iPerf client test interface ip           = ${STATIC_IP}"
 echo "iPerf server ip           = ${STATIC_IP2}"
 echo "iPerf server test interface ip        = ${IPERF3_SERVER_IP}"
-echo "iPerf protocol        = ${IPERF3_PROTOCOL-TCP}"
 echo "individual test duration (sec)    = ${INDIVIDUAL_TEST_DURATION}"
 echo "connections per iperf3        = ${CONNECTIONS_PER_IPERF3}"
 echo "user name on server       = ${SERVER_OS_USERNAME}"
@@ -403,7 +396,7 @@ redhat_5|redhat_6)
             UpdateTestState $ICA_TESTFAILED
             exit 85
         fi
-        service ip6tables stop
+		service ip6tables stop
         if [ $? -ne 0 ]; then
             msg="Error: Failed to stop ip6tables"
             LogMsg "${msg}"
@@ -662,13 +655,13 @@ do
 
     while [ $number_of_connections -gt $CONNECTIONS_PER_IPERF3 ]; do
         number_of_connections=$(($number_of_connections-$CONNECTIONS_PER_IPERF3))
-        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port $ipVersion -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
         port=$(($port + 1))
     done
 
     if [ $number_of_connections -gt 0 ]
     then
-        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port $ipVersion -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
     fi
 
     sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
