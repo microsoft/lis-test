@@ -366,13 +366,16 @@ class FIOLogsReader(BaseLogsReader):
     CUNIT = {'usec': 1,
              'msec': 1000,
              'sec': 1000000}
+    CSIZE = {'K': 1,
+             'M': 1024,
+             'G': 1048576}
 
     def __init__(self, log_path=None):
         super(FIOLogsReader, self).__init__(log_path)
         self.headers = ['rand-read:', 'rand-read: latency',
                         'rand-write: latency', 'seq-write: latency',
                         'rand-write:', 'seq-write:', 'seq-read:',
-                        'seq-read: latency', 'QDepth']
+                        'seq-read: latency', 'QDepth', 'BlockSize_KB']
         self.log_matcher = 'FIOLog-([0-9]+)q'
 
     def collect_data(self, f_match, log_file, log_dict):
@@ -384,11 +387,16 @@ class FIOLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['QDepth'] = int(f_match.group(1))
-        log_dict['BlockSize_KB'] = 8
         with open(log_file, 'r') as fl:
             f_lines = fl.readlines()
             for key in log_dict:
                 if not log_dict[key]:
+                    if 'BlockSize' in key:
+                        block_size = re.match(
+                            '.+rw=read, bs=\s*([0-9])([A-Z])-', f_lines[0])
+                        um = block_size.group(2).strip()
+                        log_dict[key] = \
+                            int(block_size.group(1).strip()) * self.CSIZE[um]
                     for x in range(0, len(f_lines)):
                         if all(markers in f_lines[x] for markers in
                                [key.split(':')[0], 'pid=']):
