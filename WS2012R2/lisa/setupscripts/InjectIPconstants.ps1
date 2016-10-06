@@ -189,7 +189,7 @@ if($AddressFamily -eq "IPv4"){
 
 $interfaces = (Get-NetIPAddress -AddressFamily $AddressFamily)
 foreach($interface in $interfaces){ 
-    if($interface.InterfaceAlias -like "*Internal*"){
+    if($interface.InterfaceAlias -like "*(Internal)*"){
         break
     } 
 }
