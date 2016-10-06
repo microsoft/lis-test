@@ -373,7 +373,7 @@ if (-not $?)
 }
 
 # sleep a few seconds so stress-ng starts and the memory assigned/demand gets updated
-start-sleep -s 180
+start-sleep -s 120
 # get memory stats for vm1 after stress-ng starts
 [int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
 [int64]$vm1Demand = ($vm1.MemoryDemand/1MB)

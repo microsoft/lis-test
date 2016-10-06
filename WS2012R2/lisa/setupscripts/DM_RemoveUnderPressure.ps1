@@ -565,7 +565,7 @@ if (-not $?)
 }
 
 # sleep a few seconds so all stresstestapp processes start and the memory assigned/demand gets updated
-start-sleep -s 180
+start-sleep -s 120
 # get memory stats for vm1 and vm2 just before vm3 starts
 [int64]$vm1Assigned = ($vm1.MemoryAssigned/[int64]1048576)
 [int64]$vm1Demand = ($vm1.MemoryDemand/[int64]1048576)
