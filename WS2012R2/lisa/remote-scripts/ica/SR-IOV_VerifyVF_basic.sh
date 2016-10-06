@@ -22,10 +22,8 @@
 ########################################################################
 
 # Description:
-#   This script verifies that the network doesn't
-#   lose connection by copying a large file(~1GB)file
-#   between two VM's when MTU is set to 9000 on the network 
-#   adapters.
+#   Basic SR-IOV test that checks if VF has loaded. 
+#   Also checks the bonding script & network capability for the VF
 #
 #   Steps:
 #   1. Verify/install pciutils package
@@ -111,7 +109,7 @@ if [ $? -ne 0 ]; then
                 exit 10
             fi
             ;;
-        redhat*)
+        redhat*|centos*)
             yum install pciutils -y
             if [ $? -ne 0 ]; then
                 msg="ERROR: Failed to install pciutils"
@@ -131,6 +129,16 @@ if [ $? -ne 0 ]; then
     esac
 fi
 
+# Using lsmod command, verify if driver is loaded
+lsmod | grep ixgbevf
+if [ $? -ne 0 ]; then
+    msg="ERROR: ixgbevf driver not loaded!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+    exit 10
+fi
+
 # Using the lspci command, verify if NIC has SR-IOV support
 lspci -vvv | grep ixgbevf
 if [ $? -ne 0 ]; then
@@ -141,15 +149,6 @@ if [ $? -ne 0 ]; then
     exit 10
 fi
 
-# Using lsmod command, verify if driver is loaded
-lsmod | grep ixgbevf
-if [ $? -ne 0 ]; then
-    msg="ERROR: ixgbevf driver not loaded!"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-    exit 10
-fi
 UpdateSummary "VF is present on VM!"
 
 # Parameter provided in constants file

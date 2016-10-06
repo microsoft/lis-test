@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    Pause a VM with single NIC SR-IOV.
+    SR-IOV Save/Pause tests
 
 .Description
     1. Transfer a 1GB file between 2 VMs to verify SR-IOV functionality
@@ -42,23 +42,25 @@
 
 .Example
     <test>
-        <testName>VerifyVF_basic</testName>
-        <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
-        <files>remote-scripts\ica\SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh</files> 
+        <testName>Single_SaveVM</testName>
+        <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh</files> 
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
         </setupScript> 
         <noReboot>False</noReboot>
         <testParams>
-            <param>NIC_sriov_name=SRIOV</param>
-            <param>TC_COVERED=??</param>
+            <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
+            <param>TC_COVERED=??</param>                                   
             <param>BOND_IP1=10.11.12.31</param>
             <param>BOND_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <param>REMOTE_USER=root</param>
+            <!-- VM_STATE has to be 'pause' or 'save' -->
+            <param>VM_STATE=save</param>
         </testParams>
-        <timeout>600</timeout>
+        <timeout>1800</timeout>
     </test>
 #>
 

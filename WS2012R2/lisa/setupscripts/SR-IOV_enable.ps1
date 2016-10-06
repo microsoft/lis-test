@@ -554,7 +554,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -like "Running" })
 
     if (-not $?)
     {
-        "ERROR: Unable to shut $vm2Name down (in order to add a new network Adapter)"
+        "ERROR: Failed to shut $vm2Name down (in order to add a new network Adapter)"
         return $false
     }
 
@@ -564,7 +564,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -like "Running" })
     {
         if ($timeout -le 0)
         {
-            "ERROR: Unable to shutdown $vm2Name"
+            "ERROR: Failed to shutdown $vm2Name"
             return $false
         }
 
@@ -623,7 +623,7 @@ if ($? -eq "True")
 }
 else
 {
-    "ERROR: Unable to enable SR-IOV on $vmName!"
+    "ERROR: Failed to enable SR-IOV on $vmName!"
 }
 
 Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IovWeight 1
@@ -633,7 +633,7 @@ if ($? -eq "True")
 }
 else
 {
-    "ERROR: Unable to enable SR-IOV on $vm2Name!"
+    "ERROR: Failed to enable SR-IOV on $vm2Name!"
 }
 
 # Start VM2
@@ -642,7 +642,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
     Start-VM -Name $vm2Name -ComputerName $hvServer
     if (-not $?)
     {
-        "ERROR: Unable to start VM ${vm2Name}"
+        "ERROR: Failed to start VM ${vm2Name}"
         $ERROR[0].Exception
         return $False
     }
@@ -675,7 +675,7 @@ if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 # send utils.sh to VM2
 if (-not (Test-Path ".\remote-scripts\ica\utils.sh"))
 {
-    "ERROR: Unable to find remote-scripts\ica\utils.sh "
+    "ERROR: Failed to find remote-scripts\ica\utils.sh "
     return $false
 }
 

@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    Pause a VM with single NIC SR-IOV.
+    SR-IOV ReplicationVM tests.
 
 .Description
     1. Transfer a 1GB file between 2 VMs to verify SR-IOV functionality
@@ -43,23 +43,28 @@
 
 .Example
     <test>
-        <testName>VerifyVF_basic</testName>
-        <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
-        <files>remote-scripts\ica\SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh</files> 
+        <testName>Replication_Single_VF</testName>
+        <testScript>setupScripts\SR-IOV_Replication.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh</files> 
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
         </setupScript> 
         <noReboot>False</noReboot>
         <testParams>
-            <param>NIC_sriov_name=SRIOV</param>
-            <param>TC_COVERED=??</param>
+            <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
+            <param>TC_COVERED=??</param>                                   
             <param>BOND_IP1=10.11.12.31</param>
             <param>BOND_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <param>REMOTE_USER=root</param>
+            <param>ReplicationServer=ReplicaServer</param>
+            <param>ReplicationPort=8080</param>
+            <param>enableVF=yes</param>
+            <!-- Optional param - fill only if replication server is clustered -->
+            <param>clusterName=cluster_name</param>
         </testParams>
-        <timeout>600</timeout>
+        <timeout>2400</timeout>
     </test>
 #>
 
