@@ -129,7 +129,7 @@ $scriptBlock = {
           timeout=4000000
         else
           duration=180
-          timeout=8000000
+          timeout=10000000
         fi
         echo "Going to start `$__iterations instance(s) of stresstestapp with a duration of `$duration and a timeout of $timeoutStress each consuming 128MB memory" >> /root/HotAdd.log 2>&1
         stress-ng -m `$__threads --vm-bytes `${__chunks}M -t `$duration --backoff `$timeout

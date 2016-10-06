@@ -131,8 +131,8 @@
 				<param>vmName=VM2Name</param>
 				<param>enableDM=yes</param>
 				<param>minMem=512MB</param>
-				<param>maxMem=68%</param>
-				<param>startupMem=68%</param>
+				<param>maxMem=70%</param>
+				<param>startupMem=65%</param>
 				<param>memWeight=0</param>
 				<param>staticMem=1024MB</param>
 			</testParams>

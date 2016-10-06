@@ -131,7 +131,7 @@ $scriptBlock = {
           timeout=4000000
           duration=`$((3*__threads))
         else
-          timeout=8000000
+          timeout=10000000
           duration=`$((7*__threads))
         fi
         echo "Going to start `$__threads instance(s) of stresstestapp with a duration of `$duration and a timeout of `$timeout each consuming 128MB memory" >> /root/HotAdd.log 2>&1
