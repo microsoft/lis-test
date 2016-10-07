@@ -48,11 +48,11 @@
 				<param>TC_COVERED=DM-01</param>
 				<param>vmName=VMName</param>
 				<param>enableDM=yes</param>
-				<param>minMem=512MB</param>
-				<param>maxMem=1GB</param>
-				<param>startupMem=512MB</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=2GB</param>
+				<param>startupMem=1024MB</param>
 				<param>memWeight=0</param>
-				<param>staticMem=512MB</param>
+				<param>staticMem=1024MB</param>
 			</testParams>
 			<testScript>DM_VERIFY_LOADED.sh</testScript>
 			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh,remote-scripts/ica/utils.sh</files>
@@ -70,7 +70,7 @@
 				<param>maxMem=2GB</param>
 				<param>startupMem=1024MB</param>
 				<param>memWeight=20</param>
-				<param>staticMem=512MB</param>
+				<param>staticMem=1024MB</param>
 			</testParams>
 			<testScript>DM_HotAdd_Verify_udev.sh</testScript>
 			<files>remote-scripts/ica/DM_HotAdd_Verify_udev.sh</files>
@@ -89,7 +89,7 @@
 				<param>maxMem=4GB</param>
 				<param>startupMem=1024MB</param>
 				<param>memWeight=100</param>
-				<param>staticMem=512MB</param>
+				<param>staticMem=1024MB</param>
 			</testParams>
 			<testScript>setupScripts\DM_HotAdd_stressapptest.ps1</testScript>
 			<files>remote-scripts/ica/check_traces.sh</files>
@@ -108,7 +108,7 @@
 				<param>maxMem=4GB</param>
 				<param>startupMem=1024MB</param>
 				<param>memWeight=100</param>
-				<param>staticMem=512MB</param>
+				<param>staticMem=1024MB</param>
 			</testParams>
 			<testScript>setupScripts\DM_HotAdd_Stress_ng.ps1</testScript>
 			<files>remote-scripts/ica/check_traces.sh</files>
@@ -157,8 +157,8 @@
 				<param>vmName=VM2Name</param>
 				<param>enableDM=yes</param>
 				<param>minMem=1024MB</param>
-				<param>maxMem=20%</param>
-				<param>startupMem=20%</param>
+				<param>maxMem=25%</param>
+				<param>startupMem=25%</param>
 				<param>memWeight=0</param>
 				<param>staticMem=1024MB</param>
 			</testParams>
@@ -185,7 +185,7 @@
 				<param>maxMem=40%</param>
 				<param>startupMem=40%</param>
 				<param>memWeight=0</param>
-				<param>staticMem=512MB</param>
+				<param>staticMem=1024MB</param>
 				<param>vmName=VM3Name</param>
 				<param>enableDM=yes</param>
 				<param>minMem=1024MB</param>
@@ -252,9 +252,9 @@
 				<param>TC_COVERED=DM-10</param>
 				<param>vmName=VMName</param>
 				<param>enableDM=yes</param>
-				<param>minMem=50%</param>
+				<param>minMem=40%</param>
 				<param>maxMem=80%</param>
-				<param>startupMem=65%</param>
+				<param>startupMem=70%</param>
 				<param>memWeight=0</param>
 				<param>staticMem=1024MB</param>
 				<param>vmName=VM2Name</param>
