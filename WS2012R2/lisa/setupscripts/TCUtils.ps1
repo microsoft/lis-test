@@ -980,7 +980,7 @@ function WaitForVMToStartSSH([String] $ipv4addr, [int] $timeout)
 # WaiForVMToStop()
 #
 #######################################################################
-function  WaitForVMToStop ([string] $vmName ,[string]  $hvServer, [int] $timeout)
+function  WaitForVMToStop ([string] $vmName, [string] $hvServer, [int] $timeout)
 {
     <#
     .Synopsis
@@ -1190,6 +1190,26 @@ function check_kernel
     .\bin\plink -i ssh\${sshKey} root@${ipv4} "uname -r"
     if (-not $?) {
         Write-Output "ERROR: Unable check kernel version" -ErrorAction SilentlyContinue
+        return $False
+    }
+}
+
+#######################################################################
+#
+# Check for application on VM
+#
+#######################################################################
+function check_app([string]$app_name, [string]$custom_ip)
+{
+    IF([string]::IsNullOrWhiteSpace($custom_ip)) {
+        $target_ip = $ipv4
+    }
+    else {
+        $target_ip = $custom_ip
+    }
+    .\bin\plink -i ssh\${sshKey} root@${target_ip} "command -v ${app_name}"
+    if (-not $?) {
+        Write-Output "ERROR: ${app_name} is not installed on the VM" -ErrorAction SilentlyContinue
         return $False
     }
 }

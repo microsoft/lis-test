@@ -67,59 +67,10 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-function checkStressapptest([String]$conIpv4, [String]$sshKey)
-{
-
-
-    $cmdToVM = @"
-#!/bin/bash
-        command -v stressapptest
-        sts=`$?
-        if [ 0 -ne `$sts ]; then
-            echo "Stressapptest is not installed! Please install it before running the memory stress tests." >> /root/HotAdd.log 2>&1
-        else
-            echo "Stressapptest is installed! Will begin running memory stress tests shortly." >> /root/HotAdd.log 2>&1
-        fi
-        echo "CheckStressappreturned `$sts"
-        exit `$sts
-"@
-
-    #"pingVMs: sendig command to vm: $cmdToVM"
-    $filename = "CheckStressapp.sh"
-
-    # check for file
-    if (Test-Path ".\${filename}")
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    Add-Content $filename "$cmdToVM"
-
-    # send file
-    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
-    # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
-        return $false
-    }
-
-    # execute command
-    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
-    return $retVal
-}
-
 # we need a scriptblock in order to pass this function to start-job
 $scriptBlock = {
   # function for starting stresstestapp
-  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir, [int]$timeoutStress)
+  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir, [int]$timeoutStress, [int64]$memMB)
   {
 
   # because function is called as job, setup rootDir and source TCUtils again
@@ -167,20 +118,22 @@ $scriptBlock = {
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
         echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1
-        __chunks=128
-        declare -i __iterations
+        declare -i __chunks
+        declare -i __threads
         declare -i duration
+        declare -i timeout
+        __chunks=128
+        __threads=`$(($memMB/__chunks))
         if [ $timeoutStress -eq 1 ]; then
-          duration=10
+          timeout=4000000
+          duration=`$((5*__threads))
         else
-          duration=$timeoutStress*10/2
+          timeout=10000000
+          duration=`$((9*__threads))
         fi
-        __iterations=100+`$duration
-        echo "Going to start `$__iterations instance(s) of stresstestapp with a duration of `$duration and a timeout of $timeoutStress each consuming 128MB memory" >> /root/HotAdd.log 2>&1
-        for ((i=0; i < `$__iterations; i++)); do
-          stressapptest -M `$__chunks -s `$duration &
-          sleep $timeoutStress
-        done
+        echo "Going to start `$__threads instance(s) of stresstestapp with a duration of `$duration and a timeout of `$timeout each consuming 128MB memory" >> /root/HotAdd.log 2>&1
+        echo "Other info: chunks: `$__chunks , memory: $memMB" >> /root/HotAdd.log 2>&1
+        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t `$duration --backoff `$timeout
         echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
         wait
         exit 0
@@ -420,18 +373,18 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
   return $false
 }
 
-# Check if stressapptest is installed
-"Checking if Stressapptest is installed"
+# Check if stress-ng is installed
+"Checking if stress-ng is installed"
 
-$retVal = checkStressapptest $ipv4 $sshKey
+$retVal = check_app "stress-ng"
 
 if (-not $retVal)
 {
-    "Stressapptest is not installed! Please install it before running the memory stress tests."
+    "stress-ng is not installed! Please install it before running the memory stress tests."
     return $false
 }
 
-"Stressapptest is installed! Will begin running memory stress tests shortly."
+"stress-ng is installed! Will begin running memory stress tests shortly."
 
 # Check kernel version
 $sts = check_kernel
@@ -441,7 +394,7 @@ if (-not $sts) {
   $retVal = $False
 }
 elseif ($sts -like '2.6*') {
-  "Info: 2.6.x kernel version detected. Higher timeout is used between stressapp processes."
+  "Info: 2.6.x kernel version detected. Higher timeout is used between stress-ng processes."
   $timeoutStress = 8
 }
 else {
@@ -495,8 +448,14 @@ if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
     return $False
 }
 
+# Calculate the amount of memory to be consumed on VM1 and VM2 with stresstestapp
+[int64]$vm1ConsumeMem = (Get-VMMemory -VM $vm1).Maximum
+
+# transform to MB
+$vm1ConsumeMem /= 1MB
+
 # Send Command to consume
-$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $timeoutStress) ConsumeMemory $ip $sshKey $rootDir $timeoutStress } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$timeoutStress)
+$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $timeoutStress, $vm1ConsumeMem) ConsumeMemory $ip $sshKey $rootDir $timeoutStress $vm1ConsumeMem} -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$timeoutStress,$vm1ConsumeMem)
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
@@ -505,7 +464,7 @@ if (-not $?)
 }
 
 # sleep a few seconds so all stresstestapp processes start and the memory assigned/demand gets updated
-start-sleep -s 90
+start-sleep -s 120
 # get memory stats for vm1 after stresstestapp starts
 [int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
 [int64]$vm1Demand = ($vm1.MemoryDemand/1MB)
