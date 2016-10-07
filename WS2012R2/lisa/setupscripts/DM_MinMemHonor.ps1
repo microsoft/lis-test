@@ -31,8 +31,8 @@
 
    The testParams have the format of:
 
-      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%], 
-      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100) 
+      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%],
+      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100)
 
    Only the vmName param is taken into consideration. This needs to appear at least twice for
    the test to start.
@@ -50,7 +50,7 @@
        vmName=sles11x64sp3_2;enable=yes;minMem=512MB;maxMem=25%;startupMem=25%;memWeight=0"
 
    All scripts must return a boolean to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
     Name of the VM to remove NIC from .
 
@@ -119,7 +119,7 @@ $vm2Name = $null
 [int]$tries = 0
 
 # default number of tries
-Set-Variable defaultTries -option Constant -value 3
+Set-Variable defaultTries -option Constant -value 8
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
@@ -161,7 +161,7 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
+
     switch ($fields[0].Trim())
     {
       "vmName"  { $vmNames = $vmNames + $fields[1].Trim() }
@@ -169,7 +169,7 @@ foreach ($p in $params)
       "sshKey"  { $sshKey  = $fields[1].Trim() }
       "tries"  { $tries  = $fields[1].Trim() }
     }
-    
+
 }
 
 if (-not $sshKey)
@@ -201,7 +201,7 @@ if ($vm1Name -notlike $vmName)
     $vm2Name = $vmNames[0]
 
   }
-  else 
+  else
   {
     "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml."
     return $false
@@ -242,10 +242,10 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
     {
       "Warning: Unable to start VM ${vm2Name} on attempt $i"
     }
-    else 
+    else
     {
       $i = 0
-      break   
+      break
     }
 
     Start-sleep -s 30
@@ -292,8 +292,8 @@ while ($sleepPeriod -gt 0)
   {
     "Error: $vm1Name assigned memory drops below minimum memory set, $vm1MinMem MB"
     Stop-VM -VMName $vm2name -ComputerName $hvServer -force
-    return $false 
-  } 
+    return $false
+  }
 
   $sleepPeriod-= 5
   start-sleep -s 5
@@ -314,7 +314,7 @@ if ($vm1Assigned -le 0 -or $vm1Demand -le 0 -or $vm2Assigned -le 0 -or $vm2Deman
 # get vm2 IP
 $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
-# wait for ssh to start on vm2 
+# wait for ssh to start on vm2
 $timeout = 30 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
