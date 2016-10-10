@@ -95,22 +95,18 @@ def LT_arg_parser():
 
 
 def validate_input(parsed_arguments):
-    # TODO - Add help messages for each case
-    print(parsed_arguments)
-    print(os.getcwd())
-    print(os.path.exists(parsed_arguments.xml_file_path))
-    print(os.path.exists(parsed_arguments.log_file_path))
-    if not os.path.exists(parsed_arguments.xml_file_path) or \
-            not os.path.exists(parsed_arguments.log_file_path):
-        return False
+    message = 'Invalid path to %s file'
+    if not os.path.exists(parsed_arguments.xml_file_path):
+        return False, message % 'xml'
+    elif not os.path.exists(parsed_arguments.log_file_path):
+        return False, message % 'log'
 
     if not os.path.exists(parsed_arguments.config):
-        print('this is the problem')
-        return False
+        return False, message % 'config'
 
     if parsed_arguments.perf:
         if not os.path.exists(parsed_arguments.perf):
-            return False
+            return False, message % 'perf'
 
     return True
 

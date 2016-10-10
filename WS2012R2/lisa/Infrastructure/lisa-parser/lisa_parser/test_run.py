@@ -121,9 +121,9 @@ class TestRun(object):
                 del self.vms[vm_name]
 
         if to_remove:
-            self.remove_tests(to_remove)
+            self.remove_cases(to_remove)
 
-    def remove_tests(self, test_names_list):
+    def remove_cases(self, test_names_list):
         for test_case in test_names_list:
             del self.test_cases[test_case]
 
