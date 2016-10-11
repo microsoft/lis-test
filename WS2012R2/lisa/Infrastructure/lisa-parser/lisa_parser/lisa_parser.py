@@ -20,13 +20,16 @@ permissions and limitations under the License.
 """
 
 from __future__ import print_function
-from envparse import env
-from test_run import TestRun
-from test_run import PerfTestRun
-import config
+
 import logging
-import sql_utils
 import sys
+
+from envparse import env
+
+import sql_utils
+import config
+from test_run import PerfTestRun
+from test_run import TestRun
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +50,9 @@ def main(args):
     arg_parser = config.init_arg_parser()
     parsed_arguments = arg_parser.parse_args(args)
 
-    if not config.validate_input(parsed_arguments):
-        print('Invalid command line arguments')
+    path_validation = config.validate_input(parsed_arguments)
+    if isinstance(path_validation, list):
+        print("\n%s \n" % path_validation[1])
         print(arg_parser.parse_args(['-h']))
         sys.exit(0)
 
