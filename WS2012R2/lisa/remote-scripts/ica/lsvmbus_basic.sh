@@ -26,8 +26,7 @@ ICA_TESTFAILED="TestFailed"
 
 tokens=("Operating system shutdown" "Time Synchronization" "Heartbeat"
         "Data Exchange" "Guest services" "Dynamic Memory" "mouse"
-        "keyboard" "Synthetic network adapter" "Synthetic IDE Controller"
-        "Synthetic SCSI Controller")
+        "keyboard" "Synthetic network adapter" "Synthetic SCSI Controller")
 
 LogMsg()
 {
@@ -90,6 +89,10 @@ if [ -z $lsvmbus_path ]; then
     UpdateSummary "Error: lsvmbus not found."
     UpdateTestState $ICA_TESTFAILED
     exit 1
+fi
+
+if [ "$generation" -eq "1" ]; then
+    tokens+=("Synthetic IDE Controller")
 fi
 
 $lsvmbus_path
