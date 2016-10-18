@@ -396,7 +396,24 @@ redhat_5|redhat_6)
             UpdateTestState $ICA_TESTFAILED
             exit 85
         fi
-		service ip6tables stop
+        chkconfig iptables off
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off iptables. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+    fi
+    LogMsg "Check ip6tables status on RHEL"
+    service ip6tables status
+    if [ $? -ne 3 ]; then
+        LogMsg "Disabling firewall on Redhat"
+        iptables -F
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to flush ip6tables rules. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+        service ip6tables stop
         if [ $? -ne 0 ]; then
             msg="Error: Failed to stop ip6tables"
             LogMsg "${msg}"
@@ -404,9 +421,9 @@ redhat_5|redhat_6)
             UpdateTestState $ICA_TESTFAILED
             exit 85
         fi
-        chkconfig iptables off
+        chkconfig ip6tables off
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
+            msg="Error: Failed to turn off ip6tables. Continuing"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
         fi
@@ -451,6 +468,31 @@ redhat_7)
             exit 85
         fi
         chkconfig iptables off
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off iptables. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+    fi
+
+    LogMsg "Check ip6tables status on RHEL7"
+    service ip6tables status
+    if [ $? -ne 3 ]; then
+        ip6tables -F;
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to flush ip6tables rules. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+        service ip6tables stop
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to stop ip6tables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
+        chkconfig ip6tables off
         if [ $? -ne 0 ]; then
             msg="Error: Failed to turn off iptables. Continuing"
             LogMsg "${msg}"
