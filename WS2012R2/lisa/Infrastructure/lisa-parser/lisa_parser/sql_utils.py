@@ -94,8 +94,9 @@ def insert_values(cursor, values_dict):
      inserted the function composes the sql command from a template and
      calls a pyodbc to execute the command.
     """
-    insert_command_template = Template('insert into $tableName($columns)'
-                              ' values($values)')
+    insert_command_template = Template(
+        'insert into $tableName($columns) values($values)'
+    )
     logger.debug('Line to be inserted %s', values_dict)
     values = ''
     table_name = '"' + env.str('TableName') + '"'

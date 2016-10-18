@@ -116,7 +116,7 @@ function Copy-TempFile
 if (-not $vmName -or $vmName.Length -eq 0)
 {
     "Error: No vmName was specified"
-    Return $False   
+    Return $False
 }
 
 if (-not $hvServer)
@@ -147,6 +147,33 @@ foreach ($param in $params)
         "TC_COVERED"    { $TC_COVERED       = $fields[1].Trim() }
         default         {} #unknown param - just ignore it
     }
+}
+
+if (Test-Path $rootDir)
+{
+    Set-Location -Path $rootDir
+    if (-not $?)
+    {
+        "Error: Could not change directory to $rootDir !"
+        return $false
+    }
+    "Changed working directory to $rootDir"
+}
+else
+{
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
+}
+
+# Source TCUitls.ps1 for getipv4 and other functions
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+    . .\setupScripts\TCUtils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 $summaryLog = "${vmName}_summary.log"
@@ -217,7 +244,7 @@ while ($migrateJobRunning)
     if($copyFile)
     {
         "Info: Creating a 256MB temp file"
-        $sts = Create-TempFile -FilePath "$rootDir\temp.txt" -Size 256MB 
+        $sts = Create-TempFile -FilePath "$rootDir\temp.txt" -Size 256MB
         if (-not $?)
         {
             "Error: Unable to create the temp file"
@@ -243,8 +270,18 @@ while ($migrateJobRunning)
     }
 }
 
-"Info: Pinging VM after migration"
-$pingReply = $ping.Send($ipv4)
+"Info: Pinging VM multiple times after migration"
+$counter = 0
+while ($counter -ne 10)
+{
+	$pingReply = $ping.Send($ipv4)
+	if ($pingReply.Status -eq "Success")
+	{
+		break
+	}
+	$counter++
+}
+
 if ($pingReply.Status -eq "Success")
 {
     $goodPings += 1

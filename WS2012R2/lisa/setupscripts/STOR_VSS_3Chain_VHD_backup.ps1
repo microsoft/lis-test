@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -565,8 +565,6 @@ if (-not $?)
        return $False
     }
 
-echo "after stop vm" >> $summaryLog
-
 # Add Check to make sure if the VM is shutdown then Proceed
 $timeout = 50
 $sts = WaitForVMToStop $vmName $hvServer $timeout
@@ -586,7 +584,6 @@ if (-not $sts[-1])
 }
 
 # Get Parent VHD 
-echo "after stopped vm " >> $summaryLog
 $ParentVHD = GetParentVHD $vmName -$hvServer
 if(-not $ParentVHD)
 {
@@ -595,9 +592,8 @@ if(-not $ParentVHD)
 } 
 
 Write-Output "INFO: Successfully Got Parent VHD"
-echo "get parent vhd " >> $summaryLog
 
-# Creat Child and Grand Child VHD .
+# Create Child and Grand-Child VHD
 $CreateVHD = CreateGChildVHD $ParentVHD
 if(-not $CreateVHD)
 {
@@ -605,7 +601,7 @@ if(-not $CreateVHD)
     return $False
 } 
 
-Write-Output "INFO: Successfully Created GrandChild VHD"
+Write-Output "INFO: Successfully created GrandChild VHD"
 
 # Now create New VM out of this VHD.
 # New VM is static hardcoded since we do not need it to be dynamic
@@ -614,7 +610,7 @@ $GChildVHD = $CreateVHD[-1]
 # Get-VM 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
 
-# Get the VM Network adapter so we can attach it to the new vm.
+# Get the VM Network adapter so we can attach it to the new VM
 $VMNetAdapter = Get-VMNetworkAdapter $vmName
 if (-not $?)
     {
@@ -644,8 +640,8 @@ if ($vm_gen -eq 2)
     }
 }
 
-echo "New 3 Chain VHD VM $vmName1 Created: Success" >> $summaryLog
-Write-Output "INFO: New 3 Chain VHD VM $vmName1 Created"
+echo "Successfully created new 3 Chain VHD VM $vmName1" >> $summaryLog
+Write-Output "INFO: New 3 Chain VHD VM $vmName1 created"
 
 $timeout = 500
 $sts = Start-VM -Name $vmName1 -ComputerName $hvServer 

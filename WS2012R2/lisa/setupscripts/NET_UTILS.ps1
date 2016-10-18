@@ -420,3 +420,501 @@ function NetworkToCIDR([String]$IPv4, [String] $Netmask)
 	$cidrnetmask = netmaskToCIDR $Netmask
 	return "$networkID"+"/"+"$cidrnetmask"
 }
+# CIDR to netmask
+function CIDRtoNetmask([int]$cidr){
+
+    for($i=0; $i -lt 32; $i+=1){
+        if($i -lt $cidr){
+            $ip+="1"
+        }else{
+            $ip+= "0"
+        }
+    }
+    $mask = ""
+    for($byte=0; $byte -lt $ip.Length/8; $byte+=1){
+        $decimal = 0
+        for($bit=0;$bit -lt 8; $bit+=1){
+            $poz = $byte * 8 + $bit
+            if( $ip[$poz] -eq "1"){
+                $decimal += [math]::Pow(2, 8 - $bit -1)
+            }
+        }
+        $mask +=[convert]::ToString($decimal)
+        if ( $byte -ne $ip.Length /8 -1){
+             $mask += "."
+         }
+    }
+    return $mask
+}
+
+#######################################################################
+#
+# SR-IOV NIC bonding function on test VM
+#
+#######################################################################
+function ConfigureBond([String]$conIpv4,[String]$sshKey,[String]$netmask)
+{
+    # create command to be sent to VM. This determines the interface based on the MAC Address.
+    $cmdToVM = @"
+#!/bin/bash
+        cd ~
+        # Source utils.sh
+        dos2unix utils.sh
+        . utils.sh || {
+            echo "ERROR: unable to source utils.sh!" >> SRIOV_SendFile.log
+            exit 2
+        }
+
+        # Source constants file and initialize most common variables
+        UtilsInit
+
+        # Make sure we have synthetic network adapters present
+        GetSynthNetInterfaces
+        if [ 0 -ne `$? ]; then
+            exit 2
+        fi
+
+        #
+        # Run bondvf.sh script and configure interfaces properly
+        #
+        # Run bonding script from default location - CAN BE CHANGED IN THE FUTURE
+        if is_ubuntu ; then
+            bash /usr/src/linux-headers-*/tools/hv/bondvf.sh
+
+            # Verify if bond0 was created
+            __bondCount=`$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+
+        elif is_suse ; then
+            bash /usr/src/linux-*/tools/hv/bondvf.sh
+
+            # Verify if bond0 was created
+            __bondCount=`$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+
+        elif is_fedora ; then
+            ./bondvf.sh
+
+            # Verify if bond0 was created
+            __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+        fi
+
+        __iterator=0
+        __ipIterator=1
+        # Set static IPs for each bond created
+        while [ `$__iterator -lt `$__bondCount ]; do
+            # Extract bondIP value from constants.sh
+            staticIP=`$(cat constants.sh | grep IP`$__ipIterator | tr = " " | awk '{print `$2}')
+
+            if is_ubuntu ; then
+                __file_path="/etc/network/interfaces"
+                # Change /etc/network/interfaces 
+                sed -i "s/bond`$__iterator inet dhcp/bond`$__iterator inet static/g"` `$__file_path
+                sed -i "/bond`$__iterator inet static/a address `$staticIP" `$__file_path
+                sed -i "/address `$staticIP/a netmask `$NETMASK" `$__file_path
+
+            elif is_suse ; then
+                __file_path="/etc/sysconfig/network/ifcfg-bond`$__iterator"
+                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
+                sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
+                cat <<-EOF >> `$__file_path
+                BOOTPROTO=static
+                IPADDR=`$staticIP
+                NETMASK=`$NETMASK
+EOF
+
+            elif is_fedora ; then
+                __file_path="/etc/sysconfig/network-scripts/ifcfg-bond`$__iterator"
+                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
+                sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
+                cat <<-EOF >> `$__file_path
+                BOOTPROTO=static
+                IPADDR=`$staticIP
+                NETMASK=`$NETMASK
+EOF
+            fi
+            LogMsg "Network config file path: `$__file_path"
+
+            __ipIterator=`$((`$__ipIterator + 2))
+            : `$((__iterator++))
+        done
+
+        # Get everything up & running
+        if is_ubuntu ; then
+            service networking restart
+
+        elif is_suse ; then
+            service network restart
+
+        elif is_fedora ; then
+            service network restart
+        fi     
+
+        echo CreateBond: returned `$__retVal >> /root/SR-IOV_enable.log 2>&1
+        exit `$__retVal
+"@
+
+    $filename = "CreateBond.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal)
+    {
+        return $false
+    }
+
+    # execute sent file
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+}
+
+#######################################################################
+#
+# Function that creates a file on the test VM
+#
+#######################################################################
+function CreateFileOnVM ([String]$conIpv4,[String]$sshKey,[String]$fileSize)
+{
+    # $fileSize param is in MB - for a 1 GB file, fileSize needs to be 1024
+    # create command to be sent to VM. This determines the interface based on the MAC Address.
+    $cmdToVM = @"
+#!/bin/bash
+        cd ~
+        # Source utils.sh
+        dos2unix utils.sh
+        . utils.sh || {
+            echo "ERROR: unable to source utils.sh!" >> SRIOV_SendFile.log
+            exit 2
+        }
+
+        # Source constants file and initialize most common variables
+        UtilsInit
+
+        # Get source to create the file to be sent from VM1 to VM2
+        if [ "`${ZERO_FILE:-UNDEFINED}" = "UNDEFINED" ]; then
+            file_source=/dev/urandom
+        else
+            file_source=/dev/zero
+        fi
+
+        # Create file locally with PID appended
+        output_file=large_file
+        if [ -d "`$HOME"/"`$output_file" ]; then
+            rm -rf "`$HOME"/"`$output_file"
+        fi
+
+        if [ -e "`$HOME"/"`$output_file" ]; then
+            rm -f "`$HOME"/"`$output_file"
+        fi
+
+        dd if=`$file_source of="`$HOME"/"`$output_file" bs=$fileSize count=0 seek=1M
+        if [ 0 -ne $? ]; then
+            echo "ERROR: Unable to create file `$output_file in `$HOME" >> /root/SR-IOV_CreateFile.log 2>&1
+            exit 1
+        fi
+
+        exit `$__retVal
+"@
+
+    $filename = "CreateFile.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal)
+    {
+        return $false
+    }
+
+    # execute sent file
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+}
+
+#######################################################################
+#
+# Function that sends a file through the bond interface/interfaces
+#
+#######################################################################
+function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPacketSize)
+{
+    # $fileSize param is in MB - for a 1 GB file, fileSize needs to be 1024
+    # create command to be sent to VM. This determines the interface based on the MAC Address.
+    $cmdToVM = @"
+#!/bin/bash
+
+        # Convert eol
+        dos2unix utils.sh
+
+        # Source utils.sh
+        . utils.sh || {
+            echo "ERROR: unable to source utils.sh!" >> SRIOV_SendFile.log
+            exit 2
+        }
+
+        # Source constants file and initialize most common variables
+        UtilsInit
+
+        cd /root
+
+        #
+        # Count the bonds; By doing this, we can re-use the code with multiple bonds
+        #
+        if is_ubuntu ; then
+            __bondCount=`$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+
+        elif is_suse ; then
+            __bondCount=`$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+
+        elif is_fedora ; then
+            __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+        fi
+
+        #
+        # Run file copy tests for each bond interface 
+        #
+        output_file=large_file
+        __iterator=0
+        __ipIterator1=1
+        __ipIterator2=2
+        while [ `$__iterator -lt `$__bondCount ]; do
+            # Extract bondIP value from constants.sh
+            staticIP1=`$(cat constants.sh | grep IP`$__ipIterator1 | tr = " " | awk '{print `$2}')
+            staticIP2=`$(cat constants.sh | grep IP`$__ipIterator2 | tr = " " | awk '{print `$2}')
+
+            # Send the file from VM1 to VM2 via bond0
+            scp -i "`$HOME"/.ssh/"`$sshKey" -o BindAddress=`$staticIP1 -o StrictHostKeyChecking=no "`$output_file" "`$REMOTE_USER"@"`$staticIP2":/tmp/"`$output_file"
+            if [ 0 -ne `$? ]; then
+                echo "ERROR: Unable to send the file from VM1 to VM2 using bond`$__iterator" >> SRIOV_SendFile.log
+                exit 10
+            else
+                echo "Successfully sent `$output_file to `$staticIP2" >> SRIOV_SendFile.log
+            fi
+
+            # Verify both bond0 on VM1 and VM2 to see if file was sent between them
+            txValue=`$(ifconfig bond`$__iterator | grep "TX packets" | sed 's/:/ /' |  awk '{print `$3}')
+            echo "TX Value: `$txValue" >> SRIOV_SendFile.log
+            if [ `$txValue -lt $MinimumPacketSize ]; then
+                echo "ERROR: TX packets insufficient" >> SRIOV_SendFile.log
+                exit 10
+            fi
+
+            rxValue=`$(ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$BOND_IP2" ifconfig bond`$__iterator | grep "RX packets" | sed 's/:/ /' | awk '{print `$3}')
+            echo "RX Value: `$rxValue" >> SRIOV_SendFile.log
+            if [ `$rxValue -lt $MinimumPacketSize ]; then
+                echo "ERROR: RX packets insufficient" >> SRIOV_SendFile.log
+                exit 10
+            fi
+
+            # Verify that the data was sent over the VF
+            # extract VF name that is bonded
+            if is_ubuntu ; then
+                vfInterface=`$(grep bond-primary /etc/network/interfaces | awk '{print `$2}')
+
+            elif is_suse ; then
+                vfInterface=`$(grep BONDING_SLAVE_0 /etc/sysconfig/network/ifcfg-bond`${__iterator} | sed 's/=/ /' | awk '{print `$2}')
+
+            elif is_fedora ; then
+                vfInterface=`$(grep primary /etc/sysconfig/network-scripts/ifcfg-bond`${__iterator} | awk '{print substr(`$3,9,12)}')
+            fi
+
+            txValueVF=`$(ifconfig `$vfInterface | grep "TX packets" | sed 's/:/ /' | awk '{print `$3}')
+            echo "Virtual Function TX Value: `$txValueVF" >> SRIOV_SendFile.log
+            if [ `$txValueVF -lt 7000 ]; then
+                echo "ERROR: Virtual Function TX packets insufficient. Make sure VF is up & running" >> SRIOV_SendFile.log
+                exit 10
+            fi
+
+
+            # Remove file from VM2
+            ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$staticIP2" rm -f /tmp/"`$output_file"
+
+            echo "Successfully sent file from VM1 to VM2 through bond`${__iterator}" >> SRIOV_SendFile.log
+            __ipIterator1=`$((`$__ipIterator1 + 2))
+            __ipIterator2=`$((`$__ipIterator2 + 2))
+            : `$((__iterator++))
+        done
+
+        exit `$__retVal
+"@
+
+    $filename = "SendFile.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal)
+    {
+        return $false
+    }
+
+    # execute sent file
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+}
+
+function RestartVF ([String]$conIpv4, [String]$sshKey)
+{
+    # Create command to be sent to VM. This determines the interface based on the MAC Address.
+    $cmdToVM = @"
+#!/bin/bash
+
+        # Convert eol
+        dos2unix utils.sh
+
+        # Source utils.sh
+        . utils.sh || {
+            echo "ERROR: unable to source utils.sh!" >> SRIOV_SendFile.log
+            exit 2
+        }
+
+        # Source constants file and initialize most common variables
+        UtilsInit
+
+        cd /root
+
+        #
+        # Count the bonds; By doing this, we can re-use the code with multiple bonds
+        #
+        if is_ubuntu ; then
+            # Verify if bond0 was created
+            __bondCount=`$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+
+
+        elif is_suse ; then
+            # Verify if bond0 was created
+            __bondCount=`$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+
+        elif is_fedora ; then
+            # Verify if bond0 was created
+            __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+        fi
+
+        #
+        # Restart Virtual Function(s)
+        #
+        __iterator=0
+        while [ `$__iterator -lt `$__bondCount ]; do
+            # extract VF name that is bonded
+            if is_ubuntu ; then
+                vfInterface=`$(grep bond-primary /etc/network/interfaces | awk '{print `$2}')
+
+            elif is_suse ; then
+                vfInterface=`$(grep BONDING_SLAVE_1 /etc/sysconfig/network/ifcfg-bond`${__iterator} | sed 's/=/ /' | awk '{print `$2}')
+
+            elif is_fedora ; then
+                vfInterface=`$(grep primary /etc/sysconfig/network-scripts/ifcfg-bond`${__iterator} | awk '{print substr(`$3,9,12)}')
+            fi
+
+            ifdown `$vfInterface && ifup `$vfInterface
+
+            : `$((__iterator++))
+        done
+
+        exit `$__retVal
+"@
+
+    $filename = "RestartVF.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal)
+    {
+        return $false
+    }
+
+    # execute sent file
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+}

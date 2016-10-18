@@ -614,13 +614,12 @@ if (-not $vm2nic)
 
 $scriptAddedNIC = $true
 
-"Tests VLAN trunking"
+"Tests VLAN tagging"
 
 if (-not $netmask)
 {
 	$netmask = "255.255.255.0"
 }
-
 
 if (-not $vm1StaticIP)
 {
@@ -630,7 +629,6 @@ else
 {
     $bootproto = "static"
 }
-
 
 # compute another ipv4 address for vm2
 if (-not $vm2StaticIP)
@@ -661,11 +659,9 @@ else
 "vm1 MAC = ${vm1MacAddress}"
 "vm1 static IP = ${vm1StaticIP}"
 
-
 #
 # LIS Started VM1, so start VM2
 #
-
 if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 {
 	Start-VM -VM $vm2Name -Server $hvServer
@@ -684,7 +680,6 @@ if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 }
 
 # get vm2 ipv4
-
 $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
 "vm2 Name = ${vm2Name}"
@@ -694,7 +689,7 @@ $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
 "netmask = $netmask"
 "Test vlan id = ${vlanID}"
-# wait for ssh to startg
+# wait for ssh to start
 $timeout = 120 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
@@ -761,7 +756,6 @@ if (-not $retVal)
 }
 
 # set vlan to access mode
-
 "Setting $vmName test NIC to access mode with vlanID $vlanID"
 Set-VMNICVLAN -NIC $vm1Nic -VlanID $vlanID -ErrorAction SilentlyContinue
 if (-not $?)

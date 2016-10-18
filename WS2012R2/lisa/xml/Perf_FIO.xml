@@ -22,29 +22,51 @@
         <suite>
             <suiteName>FIO</suiteName>
             <suiteTests>
-                <suiteTest>Performance_FIO</suiteTest>
+                <suiteTest>Performance_FIO-8k</suiteTest>
+                <suiteTest>Performance_FIO-1M</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
          <test> 
-            <testName>Performance_FIO</testName> 
+            <testName>Performance_FIO-8k</testName> 
             <testScript>Performance_FIO.sh</testScript>
-            <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/perf_utils.sh,tools/fio-2.1.10.tar.gz,tools/lis-ssd-test.fio</files>
+            <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/perf_utils.sh,tools/fio-2.1.10.tar.gz,tools/fio_8k.fio</files>
             <setupScript>
                 <file>setupScripts\Check_PowerPlan.ps1</file>
                 <file>setupScripts\AddHardDisk.ps1</file>
             </setupScript>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-            <timeout>18000</timeout>
+            <timeout>5400</timeout>
             <testParams>  
-                <param>TC_COVERED=FIO</param>
+                <param>TC_COVERED=FIO_8k</param>
             	<param>SCSI=0,0,Physical</param>
-                <param>TOTAL_DISKS=1</param> 
-                <param>TEST_DEVICE1=/dev/sdb</param>  
-                <param>FILE_NAME=fio-2.1.10.tar.gz</param>
-                <param>FIO_SCENARIO_FILE=lis-ssd-test.fio</param>
+                <param>LOG_FOLDER=fio_logs_8k</param> 
+                <param>FIO_SCENARIO_FILE=fio_8k.fio</param>
+            </testParams> 
+            <uploadFiles>
+                <file>fio_logs.zip</file>                
+            </uploadFiles>
+            <onError>Continue</onError> 
+            <noReboot>False</noReboot> 
+        </test>
+
+        <test> 
+            <testName>Performance_FIO-1M</testName> 
+            <testScript>Performance_FIO.sh</testScript>
+            <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/perf_utils.sh,tools/fio-2.1.10.tar.gz,tools/fio_1M.fio</files>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>setupScripts\AddHardDisk.ps1</file>
+            </setupScript>
+            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>5400</timeout>
+            <testParams>  
+                <param>TC_COVERED=FIO_1M</param>
+                <param>SCSI=0,0,Physical</param>
+                <param>LOG_FOLDER=fio_logs_1M</param> 
+                <param>FIO_SCENARIO_FILE=fio_1M.fio</param>
             </testParams> 
             <uploadFiles>
                 <file>fio_logs.zip</file>                
@@ -69,6 +91,11 @@
                <disableDiff>True</disableDiff>
                <nic>VMBus,Vm.Enterprise#1</nic>
             </hardware>
+            <testParams>
+                <param>TOTAL_DISKS=1</param>
+                <param>TEST_DEVICE1=/dev/sdb</param>
+                <param>FILE_NAME=fio-2.1.10.tar.gz</param>
+            </testParams>
             <suite>FIO</suite>
         </vm>
     </VMs>

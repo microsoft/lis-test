@@ -56,6 +56,7 @@
                 <suiteTest>Network_Hang_Vxlan</suiteTest>
                 <suiteTest>CopyFileScp</suiteTest>
                 <suiteTest>CheckKeywithEthtool</suiteTest>
+                <suiteTest>IPInjection</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
@@ -68,12 +69,10 @@
         <test>
             <testName>External</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-02</param>
-                <param>PING_SUCC=8.8.8.8</param>
-                <param>PING_FAIL=192.168.2.1</param>
-                <param>PING_FAIL2=10.10.10.5</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
@@ -85,14 +84,10 @@
         <test>
             <testName>InternalNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
             <testParams>
                 <param>NIC=NetworkAdapter,Internal,Internal,001600112200</param>
                 <param>TC_COVERED=NET-03</param>
-                <param>STATIC_IP=192.168.0.2</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>PING_SUCC=192.168.0.1</param>
-                <param>PING_FAIL=8.8.8.8</param>
-                <param>PING_FAIL2=192.168.2.2</param>
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
@@ -126,14 +121,11 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
+            <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>NIC=NetworkAdapter,External,External,001600112201</param>
                 <param>TC_COVERED=NET-05</param>
-                <!-- <param>NETMASK=255.255.255.0</param> -->
-                <param>PING_SUCC=8.8.8.8</param>
-                <param>PING_FAIL=192.168.2.1</param>
-                <param>PING_FAIL2=10.10.10.5</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
@@ -204,17 +196,18 @@
 
         <test>
             <testName>ChangeNetTypeInternal</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>SetupScripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <pretest>
+                <file>SetupScripts\InjectIPconstants.ps1</file>
+                <file>setupScripts\NET_SWITCH_NIC_MAC.ps1</file>
+            </pretest>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>SWITCH=NetworkAdapter,Internal,Internal,001600112200</param>
                 <param>TC_COVERED=NET-09</param>
-                <param>STATIC_IP=192.168.0.2</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>PING_SUCC=192.168.0.1</param>
-                <param>PING_FAIL=8.8.8.8</param>
-                <param>PING_FAIL2=10.10.10.5</param>
             </testParams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -420,6 +413,23 @@
             <timeout>800</timeout>
         </test>
 
+        <test>
+            <testName>IPInjection</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>TC_COVERED=NET_LIVEMIG-09</param>
+                <param>ipv4address=192.168.1.14</param>
+                <param>ipv4subnet=255.255.255.0</param>
+                <param>ipv4Gateway=192.168.1.1</param>
+                <param>dnsserver=192.168.1.2</param>
+            </testParams>
+            <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <timeout>600</timeout>
+        </test>
+        
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>HotAddMultiNIC</testName>
@@ -473,10 +483,10 @@
             <vmName>VMName</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>sshKey.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
                 <param>VM2NAME=vm2Name</param>
-                <param>SSH_PRIVATE_KEY=identity_file</param>
+                <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
                 <param>SnapshotName=ICABase</param>
             </testParams>
             <suite>Network</suite>

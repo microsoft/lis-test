@@ -121,11 +121,10 @@ class TestRun(object):
             for vm_name in remove_vms:
                 del self.vms[vm_name]
 
-
         if to_remove:
-            self.remove_tests(to_remove)
+            self.remove_cases(to_remove)
 
-    def remove_tests(self, test_names_list):
+    def remove_cases(self, test_names_list):
         for test_case in test_names_list:
             del self.test_cases[test_case]
 
@@ -280,16 +279,16 @@ class PerfTestRun(TestRun):
             'rand-read: latency']
         table_dict['rand_write_iops'] = float(test_case_obj.perf_dict[
                                                   'rand-write:'])
-        table_dict['rand_write_lat_usec'] = test_case_obj.perf_dict[
-            'rand-write: latency']
+        table_dict['rand_write_lat_usec'] = float(test_case_obj.perf_dict[
+            'rand-write: latency'])
         table_dict['seq_read_iops'] = float(test_case_obj.perf_dict[
                                                 'seq-read:'])
         table_dict['seq_write_iops'] = float(test_case_obj.perf_dict[
                                                  'seq-write:'])
-        table_dict['seq_write_lat_usec'] = test_case_obj.perf_dict[
-            'seq-write: latency']
-        table_dict['seq_read_lat_usec'] = test_case_obj.perf_dict[
-            'seq-read: latency']
+        table_dict['seq_write_lat_usec'] = float(test_case_obj.perf_dict[
+            'seq-write: latency'])
+        table_dict['seq_read_lat_usec'] = float(test_case_obj.perf_dict[
+            'seq-read: latency'])
         table_dict['QDepth'] = test_case_obj.perf_dict['QDepth']
         table_dict['BlockSize_KB'] = test_case_obj.perf_dict['BlockSize_KB']
 

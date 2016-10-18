@@ -263,7 +263,6 @@ class BaseLogsReader(object):
         self.log_path = self.process_log_path(log_path)
         self.headers = None
         self.log_matcher = None
-        self.log_base_path = log_path
 
     def process_log_path(self, log_path):
         """
@@ -367,15 +366,15 @@ class FIOLogsReader(BaseLogsReader):
     """
     # conversion unit dict reference for latency to 'usec'
     CUNIT = {'usec': 1,
-             'msec': 10**3,
-             'sec': 10**6}
+             'msec': 1000,
+             'sec': 1000000}
 
     def __init__(self, log_path=None):
         super(FIOLogsReader, self).__init__(log_path)
         self.headers = ['rand-read:', 'rand-read: latency',
                         'rand-write: latency', 'seq-write: latency',
                         'rand-write:', 'seq-write:', 'seq-read:',
-                        'seq-read: latency', 'QDepth', 'BlockSize_KB']
+                        'seq-read: latency', 'QDepth']
         self.log_matcher = 'FIOLog-([0-9]+)q'
 
     def collect_data(self, f_match, log_file, log_dict):
@@ -391,7 +390,7 @@ class FIOLogsReader(BaseLogsReader):
             f_lines = fl.readlines()
             for key in log_dict:
                 if not log_dict[key]:
-                    for x in xrange(0, len(f_lines)):
+                    for x in range(0, len(f_lines)):
                         if all(markers in f_lines[x] for markers in
                                [key.split(':')[0], 'pid=']):
                             if 'latency' in key:
@@ -452,7 +451,7 @@ class NTTTCPLogsReader(BaseLogsReader):
                     log_dict[key] = 0
                     with open(log_file, 'r') as fl:
                         f_lines = fl.readlines()
-                        for x in xrange(0, len(f_lines)):
+                        for x in range(0, len(f_lines)):
                             throughput = re.match('.+throughput.+:([0-9.]+)',
                                                   f_lines[x])
                             if throughput:
@@ -465,7 +464,7 @@ class NTTTCPLogsReader(BaseLogsReader):
                         .format(f_match.group(1)))
                     with open(lat_file, 'r') as fl:
                         f_lines = fl.readlines()
-                        for x in xrange(0, len(f_lines)):
+                        for x in range(0, len(f_lines)):
                             if not log_dict.get('IPVersion', None):
                                 ip_version = re.match('domain:.+(IPv[4,6])',
                                                       f_lines[x])
