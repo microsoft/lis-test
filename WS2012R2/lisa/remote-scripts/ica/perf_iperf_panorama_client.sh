@@ -169,6 +169,18 @@ if [ "${IPERF3_PROTOCOL:="UNDEFINED"}" = "UNDEFINED" ]; then
     echo "${msg}" >> ~/summary.log
 fi
 
+if [ "${IPERF3_BUFFER:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Info: no IPERF3_BUFFER was specified, assuming default TCP"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
+
+if [ "${BANDWIDTH:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Info: no BANDWIDTH was specified, assuming default TCP"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
+
 if [ "${STATIC_IP2:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the STATIC_IP2 test parameter is missing"
     LogMsg "${msg}"
@@ -732,13 +744,13 @@ do
 
     while [ $number_of_connections -gt $CONNECTIONS_PER_IPERF3 ]; do
         number_of_connections=$(($number_of_connections-$CONNECTIONS_PER_IPERF3))
-        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} -l ${BUFF} -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} ${IPERF3_BUFFER+-l ${IPERF3_BUFFER}} -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
         port=$(($port + 1))
     done
 
     if [ $number_of_connections -gt 0 ]
     then
-        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} -l ${BUFF} -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} ${IPERF3_BUFFER+-l ${IPERF3_BUFFER}} -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
     fi
 
     sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
