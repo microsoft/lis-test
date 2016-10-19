@@ -263,6 +263,7 @@ class BaseLogsReader(object):
         self.log_path = self.process_log_path(log_path)
         self.headers = None
         self.log_matcher = None
+        self.log_base_path = log_path
 
     def process_log_path(self, log_path):
         """
