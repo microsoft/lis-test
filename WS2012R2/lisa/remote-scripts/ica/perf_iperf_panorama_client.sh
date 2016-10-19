@@ -163,6 +163,12 @@ if [ "${IPERF3_SERVER_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
     exit 20
 fi
 
+if [ "${IPERF3_PROTOCOL:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Info: no IPERF3_PROTOCOL was specified, assuming default TCP"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
+
 if [ "${STATIC_IP2:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the STATIC_IP2 test parameter is missing"
     LogMsg "${msg}"
@@ -285,6 +291,7 @@ echo "iPerf package name        = ${IPERF_PACKAGE}"
 echo "iPerf client test interface ip           = ${STATIC_IP}"
 echo "iPerf server ip           = ${STATIC_IP2}"
 echo "iPerf server test interface ip        = ${IPERF3_SERVER_IP}"
+echo "iPerf protocol        = ${IPERF3_PROTOCOL-TCP}"
 echo "individual test duration (sec)    = ${INDIVIDUAL_TEST_DURATION}"
 echo "connections per iperf3        = ${CONNECTIONS_PER_IPERF3}"
 echo "user name on server       = ${SERVER_OS_USERNAME}"
@@ -587,6 +594,31 @@ cd ~
 dos2unix ~/*.sh
 chmod 755 ~/*.sh
 
+function get_tx_bytes(){
+    # RX bytes:66132495566 (66.1 GB)  TX bytes:3067606320236 (3.0 TB)
+    Tx_bytes=`ifconfig $ETH_NAME | grep "TX bytes"   | awk -F':' '{print $3}' | awk -F' ' ' {print $1}'`
+    
+    if [ "x$Tx_bytes" == "x" ]
+    then
+        #TX packets 223558709  bytes 15463202847 (14.4 GiB)
+        Tx_bytes=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $5}'`
+    fi
+    echo $Tx_bytes
+
+}
+
+function get_tx_pkts(){
+    # TX packets:543924452 errors:0 dropped:0 overruns:0 carrier:0
+    Tx_pkts=`ifconfig $ETH_NAME | grep "TX packets" | awk -F':' '{print $2}' | awk -F' ' ' {print $1}'`
+
+    if [ "x$Tx_pkts" == "x" ]
+    then
+        #TX packets 223558709  bytes 15463202847 (14.4 GiB)
+        Tx_pkts=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $3}'`        
+    fi
+    echo $Tx_pkts   
+}
+
 # set static IPs for test interfaces
 declare -i __iterator=0
 
@@ -675,6 +707,9 @@ fi
 #
 LogMsg "Starting iPerf3 in client mode"
 
+previous_tx_bytes=$(get_tx_bytes)
+previous_tx_pkts=$(get_tx_pkts)
+
 i=0
 mkdir -p ./${TEST_RUN_LOG_FOLDER}
 while [ "x${IPERF3_TEST_CONNECTION_POOL[$i]}" != "x" ]
@@ -687,7 +722,7 @@ do
     touch ${TEST_SIGNAL_FILE}
     echo ${IPERF3_TEST_CONNECTION_POOL[$i]} > ${TEST_SIGNAL_FILE}
     scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${TEST_SIGNAL_FILE} $server_username@${STATIC_IP2}:
-    sleep 7
+    sleep 15
 
     number_of_connections=${IPERF3_TEST_CONNECTION_POOL[$i]}
     bash ./perf_capturer.sh $INDIVIDUAL_TEST_DURATION ${TEST_RUN_LOG_FOLDER}/$number_of_connections &
@@ -697,26 +732,30 @@ do
 
     while [ $number_of_connections -gt $CONNECTIONS_PER_IPERF3 ]; do
         number_of_connections=$(($number_of_connections-$CONNECTIONS_PER_IPERF3))
-        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port $ipVersion -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} -l ${BUFF} -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
         port=$(($port + 1))
     done
 
     if [ $number_of_connections -gt 0 ]
     then
-        echo " \"/root/${rootDir}/src/iperf3 -c $IPERF3_SERVER_IP -p $port $ipVersion -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} -l ${BUFF} -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
     fi
 
     sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
     chmod 755 the_generated_client.sh
 
     cat ./the_generated_client.sh
-    ./the_generated_client.sh > /dev/null
-
-    i=$(($i + 1))
-
+    ./the_generated_client.sh > ${TEST_RUN_LOG_FOLDER}/${IPERF3_TEST_CONNECTION_POOL[$i]}-iperf3.log
+    i=$(($i + 1))   
+    
     echo "Clients test just finished. Sleep 10 seconds for next test..."
-    sleep 10
+    sleep 60
 done
+current_tx_bytes=$(get_tx_bytes)
+current_tx_pkts=$(get_tx_pkts)
+bytes_new=`(expr $current_tx_bytes - $previous_tx_bytes)`
+pkts_new=`(expr $current_tx_pkts - $previous_tx_pkts)`
+avg_pkt_size=$(echo "scale=2;$bytes_new/$pkts_new/1024" | bc)
 
 if [ -f iPerf3_Client_Logs.zip ]
 then
@@ -724,7 +763,9 @@ then
 fi
 # Test Finished. Collect logs, zip client side logs
 sleep 60
+
 zip -r iPerf3_Client_Logs.zip ~/${TEST_RUN_LOG_FOLDER}
+#zip -r iPerf3_Client_Logs.zip . -i ${TEST_RUN_LOG_FOLDER}/*
 
 # Get logs from server side
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'if [ -f iPerf3_Server_Logs.zip  ]; then rm -f iPerf3_Server_Logs.zip; fi' | at now"
@@ -735,6 +776,9 @@ scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVE
 
 UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"
+UpdateSummary "Test Protocol: ${IPERF3_PROTOCOL}"
+UpdateSummary "Packet size: $avg_pkt_size"
+
 
 #
 # If we made it here, everything worked
