@@ -505,10 +505,10 @@ class IPERFLogsReader(BaseLogsReader):
     XXX-top.log - avg latency
     """
     # conversion unit dict reference for throughput to from 'Bytes' to 'bits'
-    BUNIT = {'GBytes': 8.0,
-             'MBytes': 8.0/10 ** 3,
-             'KBytes': 8.0/10 ** 6,
-             'Bytes': 8.0/10 ** 9}
+    BUNIT = {'Gbits': 1.0,
+             'Mbits': 1.0/2 ** 10,
+             'Kbits': 1.0/2 ** 20,
+             'bits': 1.0/2 ** 30}
 
     def __init__(self, log_path=None):
         super(IPERFLogsReader, self).__init__(log_path)
@@ -527,7 +527,6 @@ class IPERFLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['NumberOfConnections'] = int(f_match.group(1))
-        print('#'*10 + f_match.group(1) + '#'*10)
         summary_log = [log for log in os.listdir(self.log_base_path)
                        if '_summary.log' in log][0]
         summary_path = os.path.join(self.log_base_path, summary_log)
@@ -537,6 +536,7 @@ class IPERFLogsReader(BaseLogsReader):
         log_dict['Protocol'] = 'TCP'
         log_dict['PacketSize_KBytes'] = 1.5
         log_dict['SendBufSize_KBytes'] = 8
+        print('#' * 10 + str(log_dict['NumberOfConnections']) + '#' * 10)
         with open(summary_path, 'r') as f:
             f_lines = f.readlines()
             for x in xrange(0, len(f_lines)):
@@ -569,20 +569,20 @@ class IPERFLogsReader(BaseLogsReader):
                 if log_dict['NumberOfConnections'] == 1:
                     iperf_values = re.match('\[\s*[0-9]\]\s*0[.]00-60[.]00\s*'
                                             'sec\s*([0-9.]+)\s*([A-Za-z]+)\s*'
-                                            '([0-9.]+)\s*([A-Za-z/]+)\s*'
+                                            '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
                                             '([0-9.]+)\s*([A-Za-z]+)\s*'
                                             '([0-9]+)/([0-9]+)\s*'
                                             '\(([a-z\-0-9.]+)%\)', f_lines[x])
                 else:
                     iperf_values = re.match('\[SUM\]\s*0[.]00-60[.]00\s*sec\s*'
                                             '([0-9.]+)\s*([A-Za-z]+)\s*'
-                                            '([0-9.]+)\s*([A-Za-z/]+)\s*'
+                                            '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
                                             '([0-9.]+)\s*([A-Za-z]+)\s*'
                                             '([0-9]+)/([0-9]+)\s*'
                                             '\(([a-z\-+0-9.]+)%\)', f_lines[x])
                 if iperf_values is not None:
-                    print(f_lines[x])
                     key = None
+                    print(f_lines[x])
                     if read_client:
                         key = 'TxThroughput_Gbps'
                         lost_datagrams += float(iperf_values.group(7).strip())
@@ -591,8 +591,8 @@ class IPERFLogsReader(BaseLogsReader):
                         key = 'RxThroughput_Gbps'
                     digit_3 = decimal.Decimal(10) ** -3
                     log_dict[key] += decimal.Decimal(
-                        float(iperf_values.group(1).strip()) *
-                        self.BUNIT[iperf_values.group(2).strip()] / 60
+                        float(iperf_values.group(3).strip()) *
+                        self.BUNIT[iperf_values.group(4).strip()]
                     ).quantize(digit_3)
         try:
             log_dict['DatagramLoss'] = round(
