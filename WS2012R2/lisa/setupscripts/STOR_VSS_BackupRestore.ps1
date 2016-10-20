@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -27,10 +27,10 @@
     This script will create a file on the vm, backs up the VM,
     deletes the file and restores the VM.
 
-    It uses a second partition as target. 
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     The .xml entry for this script could look like either of the
     following:
@@ -45,7 +45,7 @@
     to the following:
         <test>
         <testName>VSS_BackupRestore</testName>
-            <testScript>setupscripts\VSS_BackupRestore.ps1</testScript> 
+            <testScript>setupscripts\VSS_BackupRestore.ps1</testScript>
             <testParams>
                 <param>driveletter=F:</param>
                 <param>TC_COVERED=VSS-06,VSS-17</param>
@@ -80,9 +80,9 @@ function RunRemoteScript($remoteScript)
     $TestCompleted = "TestCompleted"
     $TestAborted   = "TestAborted"
     $TestRunning   = "TestRunning"
-    $timeout       = 6000    
+    $timeout       = 6000
 
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
+    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
 
     .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)
@@ -108,14 +108,14 @@ function RunRemoteScript($remoteScript)
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
     if (-not $?)
     {
-        Write-Output "ERROR: Unable to run dos2unix on runtest.sh" 
+        Write-Output "ERROR: Unable to run dos2unix on runtest.sh"
         return $False
     }
-    
+
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
     if (-not $?)
     {
-        Write-Output "ERROR: Unable to chmod +x ${remoteScript}" 
+        Write-Output "ERROR: Unable to chmod +x ${remoteScript}"
         return $False
     }
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
@@ -127,7 +127,7 @@ function RunRemoteScript($remoteScript)
 
     # Run the script on the vm
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
-    
+
     # Return the state file
     while ($timeout -ne 0 )
     {
@@ -141,35 +141,35 @@ function RunRemoteScript($remoteScript)
             if ($null -ne $contents)
             {
                     if ($contents -eq $TestCompleted)
-                    {                    
-                        Write-Output "Info : state file contains Testcompleted"              
+                    {
+                        Write-Output "Info : state file contains Testcompleted"
                         $retValue = $True
-                        break                                             
-                                     
+                        break
+
                     }
 
                     if ($contents -eq $TestAborted)
                     {
-                         Write-Output "Info : State file contains TestAborted failed. "                                  
+                         Write-Output "Info : State file contains TestAborted failed. "
                          break
-                          
+
                     }
                     #Start-Sleep -s 1
-                    $timeout-- 
+                    $timeout--
 
                     if ($timeout -eq 0)
-                    {                        
-                        Write-Output "Error : Timed out on Test Running , Exiting test execution."                    
-                        break                                               
-                    }                                
-                  
-            }    
+                    {
+                        Write-Output "Error : Timed out on Test Running , Exiting test execution."
+                        break
+                    }
+
+            }
             else
             {
                 Write-Output "Warn : state file is empty"
                 break
             }
-           
+
         }
         else
         {
@@ -180,15 +180,15 @@ function RunRemoteScript($remoteScript)
     else #
     {
          Write-Output "Error : pscp exit status = $sts"
-         Write-Output "Error : unable to pull state.txt from VM." 
+         Write-Output "Error : unable to pull state.txt from VM."
          break
-    }     
+    }
     }
 
     # Get the logs
     $remoteScriptLog = $remoteScript+".log"
-    
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} . 
+
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} .
     $sts = $?
     if ($sts)
     {
@@ -200,27 +200,27 @@ function RunRemoteScript($remoteScript)
                     if ($null -ne ${TestLogDir})
                     {
                         move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
-                
+
                     }
 
-                    else 
+                    else
                     {
-                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"                                
-                    }                              
-                  
-            }    
+                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
+                    }
+
+            }
             else
             {
-                Write-Output "Warn: $remoteScriptLog is empty"                
-            }           
+                Write-Output "Warn: $remoteScriptLog is empty"
+            }
         }
         else
         {
-             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"             
+             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"
         }
     }
-    
-    # Cleanup 
+
+    # Cleanup
     del state.txt -ErrorAction "SilentlyContinue"
     del runtest.sh -ErrorAction "SilentlyContinue"
 
@@ -228,13 +228,13 @@ function RunRemoteScript($remoteScript)
 }
 
 #######################################################################
-# Check boot.msg in Linux VM for Recovering journal. 
+# Check boot.msg in Linux VM for Recovering journal.
 #######################################################################
 function CheckRecoveringJ()
 {
     $retValue = $False
-       
-    .\bin\pscp -i ssh\${sshKey}  root@${ipv4}:/var/log/boot.* ./boot.msg 
+
+    .\bin\pscp -i ssh\${sshKey}  root@${ipv4}:/var/log/boot.* ./boot.msg
 
     if (-not $?)
     {
@@ -244,7 +244,7 @@ function CheckRecoveringJ()
 
     $filename = ".\boot.msg"
     $text = "recovering journal"
-    
+
     $file = Get-Content $filename
     if (-not $file)
     {
@@ -255,18 +255,18 @@ function CheckRecoveringJ()
      foreach ($line in $file)
     {
         if ($line -match $text)
-        {           
-            $retValue = $True 
-            Write-Output "$line"          
-        }             
+        {
+            $retValue = $True
+            Write-Output "$line"
+        }
     }
 
     del $filename
-    return $retValue    
+    return $retValue
 }
 
 #######################################################################
-# Create a file on the VM. 
+# Create a file on the VM.
 #######################################################################
 function CreateFile()
 {
@@ -276,12 +276,12 @@ function CreateFile()
         Write-Error -Message "ERROR: Unable to create file" -ErrorAction SilentlyContinue
         return $False
     }
-   
-    return  $True 
+
+    return  $True
 }
 
 #######################################################################
-# Delete a file on the VM. 
+# Delete a file on the VM.
 #######################################################################
 function DeleteFile()
 {
@@ -291,12 +291,12 @@ function DeleteFile()
         Write-Error -Message "ERROR: Unable to delete file" -ErrorAction SilentlyContinue
         return $False
     }
-   
-    return  $True 
+
+    return  $True
 }
 
 #######################################################################
-# Checks if test file is present or not. 
+# Checks if test file is present or not.
 #######################################################################
 function CheckFile()
 {
@@ -306,14 +306,14 @@ function CheckFile()
         Write-Error -Message "ERROR: Unable to read file" -ErrorAction SilentlyContinue
         return $False
     }
-   
-    return  $True 
+
+    return  $True
 }
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 $retVal = $false
 
@@ -338,14 +338,15 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
   $fields = $p.Split("=")
-    
+
   switch ($fields[0].Trim())
     {
     "sshKey" { $sshKey = $fields[1].Trim() }
     "ipv4" { $ipv4 = $fields[1].Trim() }
     "rootdir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
-     default  {}          
+    "secureBootVM" { $testSecureBootVM = [System.Convert]::ToBoolean($fields[1].Trim()) }
+     default  {}
     }
 }
 
@@ -381,14 +382,14 @@ cd $rootDir
 # Source the TCUtils.ps1 file
 . .\setupscripts\TCUtils.ps1
 
-# Check if the Vm VHD in not on the same drive as the backup destination 
+# Check if the Vm VHD in not on the same drive as the backup destination
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
 if (-not $vm)
 {
     "Error: VM '${vmName}' does not exist"
     return $False
 }
- 
+
 foreach ($drive in $vm.HardDrives)
 {
     if ( $drive.Path.StartsWith("${driveLetter}"))
@@ -407,7 +408,7 @@ if (-not $?)
     return $False
 }
 
-# Check to see Linux VM is running VSS backup daemon 
+# Check to see Linux VM is running VSS backup daemon
 $sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
 if (-not $sts[-1])
 {
@@ -422,6 +423,19 @@ Write-Output "VSS Daemon is running " >> $summaryLog
 Write-Output "Checking if the Windows Server Backup feature is installed..."
 try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true -Restart:$false }
 Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
+
+if ($testSecureBootVM)
+{
+    #
+    # Check if Secure boot settings are in place before the backup
+    #
+    $firmwareSettings = Get-VMFirmware -VMName $vm.Name
+    if ($firmwareSettings.SecureBoot -ne "On")
+    {
+        "Error: Secure boot settings changed"
+        return $False
+    }
+}
 
 # Create a file on the VM before backup
 $sts = CreateFile
@@ -457,9 +471,9 @@ Write-Output "Backup policy is: `n$policy"
 Write-Output "Backing to $driveletter"
 Start-WBBackup -Policy $policy
 
-# Review the results            
+# Review the results
 $BackupTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
-Write-Output "Backup duration: $BackupTime minutes"           
+Write-Output "Backup duration: $BackupTime minutes"
 "Backup duration: $BackupTime minutes" >> $summaryLog
 
 $sts=Get-WBJob -Previous 1
@@ -501,12 +515,12 @@ if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
     return $retVal
 }
 
-# Review the results  
+# Review the results
 $RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
 Write-Output "Restore duration: $RestoreTime minutes"
 "Restore duration: $RestoreTime minutes" >> $summaryLog
 
-# Make sure VM exists after VSS backup/restore operation 
+# Make sure VM exists after VSS backup/restore operation
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
     if (-not $vm)
     {
@@ -516,15 +530,15 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
 Write-Output "Restore success!"
 
 # After Backup Restore VM must be off make sure that.
-if ( $vm.state -ne "Off" )  
+if ( $vm.state -ne "Off" )
 {
-    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state 
+    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state
     return $False
 }
 
-# Now Start the VM 
+# Now Start the VM
 $timeout = 300
-$sts = Start-VM -Name $vmName -ComputerName $hvServer 
+$sts = Start-VM -Name $vmName -ComputerName $hvServer
 if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
 {
     Write-Output "ERROR: ${vmName} failed to start"
@@ -535,7 +549,7 @@ else
     Write-Output "INFO: Started VM ${vmName}"
 }
 
-# Now Check the boot logs in VM to verify if there is no Recovering journals in it . 
+# Now Check the boot logs in VM to verify if there is no Recovering journals in it .
 $sts=CheckRecoveringJ
 if ($sts[-1])
 {
@@ -543,7 +557,7 @@ if ($sts[-1])
     Write-Output "No Recovering Journal in boot logs: Failed" >> $summaryLog
     return $False
 }
-else 
+else
 {
     $sts = CheckFile
     if (-not $sts[-1])
@@ -557,8 +571,21 @@ else
     Write-Output "File present on VM After Backup/Restore: Success" >> $summaryLog
     $results = "Passed"
     $retVal = $True
-    Write-Output "INFO: VSS Back/Restore: Success"   
+    Write-Output "INFO: VSS Back/Restore: Success"
     Write-Output "No Recovering Journal in boot msg: Success" >> $summaryLog
+
+    if ( $testSecureBootVM )
+    {
+        #
+        # Check if Secure boot settings are in place before the backup
+        #
+        $firmwareSettings = Get-VMFirmware -VMName $vm.Name
+        if ($firmwareSettings.SecureBoot -ne "On")
+        {
+            "Error: Secure boot settings changed" >> $summaryLog
+            return $False
+        }
+    }
 }
 
 # Remove Created Backup
