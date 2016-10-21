@@ -501,10 +501,9 @@ class NTTTCPLogsReader(BaseLogsReader):
 class IPERFLogsReader(BaseLogsReader):
     """
     Subclass for parsing iPerf log files e.g.
-    XXX-sar.log
-    XXX-top.log - avg latency
+    XXX-iperf3.log
     """
-    # conversion unit dict reference for throughput to from 'Bytes' to 'bits'
+    # conversion unit dict reference for throughput to 'Gbits'
     BUNIT = {'Gbits': 1.0,
              'Mbits': 1.0/2 ** 10,
              'Kbits': 1.0/2 ** 20,
@@ -534,9 +533,6 @@ class IPERFLogsReader(BaseLogsReader):
         log_dict['RxThroughput_Gbps'] = 0
         log_dict['IPVersion'] = 'IPv4'
         log_dict['Protocol'] = 'TCP'
-        log_dict['PacketSize_KBytes'] = 1.5
-        log_dict['SendBufSize_KBytes'] = 8
-        print('#' * 10 + str(log_dict['NumberOfConnections']) + '#' * 10)
         with open(summary_path, 'r') as f:
             f_lines = f.readlines()
             for x in xrange(0, len(f_lines)):
@@ -560,6 +556,11 @@ class IPERFLogsReader(BaseLogsReader):
             read_client = False
             read_server = False
             for x in xrange(0, len(f_lines)):
+                if not log_dict.get('SendBufSize_KBytes', None):
+                    iperf_buffer = re.match('Process.+iperf3.+-l\s*'
+                                            '([0-9]).+started', f_lines[x])
+                    log_dict['SendBufSize_KBytes'] = int(
+                        iperf_buffer.group(1).strip())
                 if 'Connecting to host' in f_lines[x]:
                     read_client = True
                     read_server = False
@@ -582,7 +583,6 @@ class IPERFLogsReader(BaseLogsReader):
                                             '\(([a-z\-+0-9.]+)%\)', f_lines[x])
                 if iperf_values is not None:
                     key = None
-                    print(f_lines[x])
                     if read_client:
                         key = 'TxThroughput_Gbps'
                         lost_datagrams += float(iperf_values.group(7).strip())
