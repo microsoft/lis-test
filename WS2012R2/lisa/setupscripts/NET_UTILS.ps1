@@ -918,3 +918,363 @@ function RestartVF ([String]$conIpv4, [String]$sshKey)
 
     return $retVal
 }
+
+function iPerfInstall ([String]$conIpv4, [String]$sshKey)
+{
+    # Create command to be sent to VM. This determines the interface based on the MAC Address.
+    $cmdToVM = @"
+#!/bin/bash
+
+        # Convert eol
+        dos2unix utils.sh
+
+        # Source utils.sh
+        . utils.sh || {
+            echo "ERROR: unable to source utils.sh!" >> SRIOV_SendFile.log
+            exit 2
+        }
+
+        # Source constants file and initialize most common variables
+        UtilsInit
+
+        cd /root
+
+        #
+        # Install iPerf for every distro
+        #
+        if is_ubuntu ; then
+            # Disable firewall 
+            ufw disable
+
+            # Download and install dependencies first
+            apt-get install wget -y
+            wget https://iperf.fr/download/ubuntu/libiperf0_3.1.3-1_amd64.deb
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to download libiperf" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+
+            dpkg -i libiperf*
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+
+            # Download and install iPerf 3
+            wget https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to download iPerf 3" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+
+            # Install iPerf 3
+            dpkg -i iperf3*
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+
+        elif is_suse ; then
+            # Disable firewall
+            service rcSuSEfirewall2 stop
+
+            # Download and install dependencies first
+            zypper in wget -y
+            wget http://widehat.opensuse.org/repositories/network:/utilities/openSUSE_Factory/x86_64/libiperf0-3.1.3-50.3.x86_64.rpm
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to download libiperf" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+
+            rpm -i libiperf*
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+
+            # Download and install iPerf 3
+            wget http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2/x86_64/iperf-3.1.3-50.1.x86_64.rpm
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to download iPerf 3" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+
+            # Install iPerf 3
+            rpm -i iperf*
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+
+        elif is_fedora ; then
+            # Disable firewall
+            service firewalld stop
+
+            # Download iPerf 3
+            yum install wget -y
+            wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to download iPerf 3" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+
+            # Install iPerf 3
+            rpm -i iperf3*
+            if [ `$? -ne 0 ]; then
+                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
+                exit 2
+            fi
+        fi
+
+        __retvVal=`$(iperf3 -v)
+        if [ `$? -ne 0 ]; then
+            echo "ERROR: unable to start iPerf 3" >> SRIOV_iPerfInstall.log
+            exit 2
+        fi
+
+        exit `$__retVal
+"@
+
+    $filename = "iPerfInstall.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal)
+    {
+        return $false
+    }
+
+    # execute sent file
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && dos2unix iPerfInstall.sh && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal   
+}
+
+#######################################################################
+#
+# SR-IOV configure VM and bond
+#
+#######################################################################
+function ConfigureVMandBond([String]$vmName,[String]$hvServer,[String]$sshKey,[String]$bondIP,[String]$netmask)
+{
+    # Source TCUitls.ps1 for getipv4 and other functions
+    if (Test-Path ".\setupScripts\TCUtils.ps1") {
+        . .\setupScripts\TCUtils.ps1
+    }
+    else {
+        "ERROR: Could not find setupScripts\TCUtils.ps1"
+        return $false
+    }
+
+    # Verify VM2 exists
+    $vm = Get-VM -Name $vmName -ComputerName $hvServer -ERRORAction SilentlyContinue
+    if (-not $vm)
+    {
+        "ERROR: VM ${vmName} does not exist"
+        return $False
+    }
+
+    # Make sure VM2 is shutdown
+    if (Get-VM -Name $vmName -ComputerName $hvServer |  Where { $_.State -like "Running" }) {
+        Stop-VM $vmName  -ComputerName $hvServer -force
+
+        if (-not $?)
+        {
+            "ERROR: Failed to shut $vm2Name down (in order to add a new network Adapter)"
+            return $false
+        }
+
+        # wait for VM to finish shutting down
+        $timeout = 60
+        while (Get-VM -Name $vmName -ComputerName $hvServer |  Where { $_.State -notlike "Off" })
+        {
+            if ($timeout -le 0) {
+                "ERROR: Failed to shutdown $vmName"
+                return $false
+            }
+
+            start-sleep -s 5
+            $timeout = $timeout - 5
+        }
+
+    }
+
+    # Revert VM2
+    $snapshotParam = "SnapshotName = ICABase"
+    .\setupScripts\RevertSnapshot.ps1 -vmName $vmName -hvServer $hvServer -testParams $snapshotParam
+    Start-sleep -s 5
+
+    # Add SR-IOV NIC adapter
+    Add-VMNetworkAdapter -vmName $vmName -SwitchName SRIOV -IsLegacy:$false -ComputerName $hvServer
+    if ($? -ne "True") {
+        "Error: Add-VmNic to $vmName failed"
+        $retVal = $False
+    }
+    else {
+        $retVal = $True
+    }
+
+    # Enable SR-IOV
+    Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 1
+    if ($? -eq "True") {
+        $retVal = $True
+    }
+    else {
+        "ERROR: Failed to enable SR-IOV on $vmName!"
+    }
+
+    # Start VM
+    if (Get-VM -Name $vmName -ComputerName $hvServer |  Where { $_.State -notlike "Running" }) {
+        Start-VM -Name $vmName -ComputerName $hvServer
+        if (-not $?) {
+            "ERROR: Failed to start VM ${vmName}"
+            $ERROR[0].Exception
+            return $False
+        }
+    }
+    $timeout = 200 # seconds
+    if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout)) {
+        "Warning: $vmName never started KVP"
+    }
+
+    # Get IP from VM2
+    $ipv4 = GetIPv4 $vmName $hvServer
+    "$vm2Name IPADDRESS: $ipv4"
+
+    # Send utils.sh on VM
+    "Sending .\remote-scripts\ica\utils.sh to $ipv4 , authenticating with $sshKey"
+    $retVal = SendFileToVM "$ipv4" "$sshKey" ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
+
+    # Install iPerf on the VM
+    $retVal = iPerfInstall $ipv4 $sshKey $netmask
+    if (-not $retVal)
+    {
+        "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4}, Host: ${hvServer})"
+        return $false
+    }
+
+    # Create command to be sent to VM
+    $cmdToVM = @"
+#!/bin/bash
+        cd ~
+        chmod 775 utils.sh
+        # Source utils.sh
+        source utils.sh
+
+        #
+        # Run bondvf.sh script and configure interfaces properly
+        #
+        # Run bonding script from default location - CAN BE CHANGED IN THE FUTURE
+        if is_ubuntu ; then
+            bash /usr/src/linux-headers-*/tools/hv/bondvf.sh
+
+            # Verify if bond0 was created
+            __bondCount=`$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+
+            __file_path="/etc/network/interfaces"
+            # Change /etc/network/interfaces 
+            sed -i "s/bond0 inet dhcp/bond0 inet static/g"` `$__file_path
+            sed -i "/bond0 inet static/a address $bondIP" `$__file_path
+            sed -i "/address $bondIP/a netmask $netmask" `$__file_path
+
+        elif is_suse ; then
+            bash /usr/src/linux-*/tools/hv/bondvf.sh
+
+            # Verify if bond0 was created
+            __bondCount=`$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+
+            __file_path="/etc/sysconfig/network/ifcfg-bond0"
+            # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
+            sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
+            cat <<-EOF >> `$__file_path
+            BOOTPROTO=static
+            IPADDR=$bondIP
+            NETMASK=$netmask
+EOF
+
+        elif is_fedora ; then
+            bash bondvf.sh
+
+            # Verify if bond0 was created
+            __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
+            if [ 0 -eq `$__bondCount ]; then
+                exit 2
+            fi
+
+            __file_path="/etc/sysconfig/network-scripts/ifcfg-bond0"
+            # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
+            sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
+            cat <<-EOF >> `$__file_path
+            BOOTPROTO=static
+            IPADDR=$bondIP
+            NETMASK=$netmask
+EOF
+        fi
+
+        echo "Network config file path: `$__file_path" >> ConfigureVMandBond.log
+
+        # Get everything up & running
+        if is_ubuntu ; then
+            service networking restart
+
+        elif is_suse ; then
+            service network restart
+
+        elif is_fedora ; then
+            service network restart
+        fi
+
+        __retVal=0
+        echo CreateBond: returned `$__retVal >> ConfigureVMandBond.log 2>&1
+        exit `$__retVal
+"@
+
+    $filename = "CreateBond.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}") {
+        Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $ipv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0) {
+        Remove-Item ".\${filename}"
+    }
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal) {
+        return $false
+    }
+
+    # execute sent file
+    $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+}
