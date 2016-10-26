@@ -28,7 +28,7 @@
                 <to>user@company.com</to>
             </recipients>
             <sender>user@company.com</sender>
-            <subject>LISA Secure Boot Testing</subject>
+            <subject>LISA Secure Boot for Gen2 VM on WS2016 Testing</subject>
             <smtpServer>SMTP_SERVER</smtpServer>
         </email>
     </global>
@@ -36,12 +36,12 @@
     <testSuites>
         <suite>
             <suiteName>SecureBoot</suiteName>
-                <suiteTests>
+            <suiteTests>
             <suiteTest>SecureBootBasic</suiteTest>
             <suiteTest>SecureBootMigrateVM</suiteTest>
             <suiteTest>SecureBootBasicVSSBackup</suiteTest>
             <suiteTest>SecureBootUpdateKernel</suiteTest>
-        </suiteTests>
+            </suiteTests>
         </suite>
     </testSuites>
 
@@ -63,10 +63,9 @@
                 <file>setupScripts\Set-SecureBoot.ps1</file>
             </setupScript>
             <testScript>setupScripts\SecureBoot.ps1</testScript>
-            <timeout>18000</timeout>
+            <timeout>900</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>snapshotName=ICABase</param>
                 <param>TC_COVERED=SECBOOT-02</param>
             </testparams>
         </test>
@@ -77,13 +76,12 @@
                 <file>setupScripts\Set-SecureBoot.ps1</file>
             </setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore.ps1</testScript>
-            <timeout>18000</timeout>
+            <timeout>3600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>driveletter=H:</param>
                 <param>secureBootVM=True</param>
                 <param>TC_COVERED=SECBOOT-03</param>
-                <param>snapshotName=ICABase</param>
+                
             </testparams>
         </test>
         <test>
@@ -93,7 +91,7 @@
                 <file>setupScripts\Set-SecureBoot.ps1</file>
             </setupScript>
             <testScript>setupScripts\SecureBoot.ps1</testScript>
-            <timeout>18000</timeout>
+            <timeout>1800</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>updateKernel=True</param>
@@ -108,8 +106,12 @@
             <vmName>LinuxVM</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>ppk_id_rsa.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>SecureBoot</suite>
+            <testparams>
+                <param>driveletter=H:</param>
+                <param>snapshotName=ICABase</param>
+            </testparams>
         </vm>
     </VMs>
 
