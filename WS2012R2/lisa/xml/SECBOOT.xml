@@ -32,75 +32,85 @@
             <smtpServer>SMTP_SERVER</smtpServer>
         </email>
     </global>
-	
-	<testSuites>
+
+    <testSuites>
         <suite>
             <suiteName>SecureBoot</suiteName>
-            	<suiteTests>
-			<suiteTest>SecureBootBasic</suiteTest>
-			<suiteTest>SecureBootMigrateVM</suiteTest>
-			<suiteTest>SecureBootBasicVSSBackup</suiteTest>
-			<suiteTest>SecureBootUpdateKernel</suiteTest>
-		</suiteTests>
-		</suite>
-	</testSuites>
-	
-	<testCases>
+                <suiteTests>
+            <suiteTest>SecureBootBasic</suiteTest>
+            <suiteTest>SecureBootMigrateVM</suiteTest>
+            <suiteTest>SecureBootBasicVSSBackup</suiteTest>
+            <suiteTest>SecureBootUpdateKernel</suiteTest>
+        </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
         <test>
-			<testName>SecureBootBasic</testName>
-			<setupScript>setupScripts\Set-SecureBoot.ps1</setupScript>
-			<testScript>setupScripts\SecureBoot.ps1</testScript>
-			<timeout>600</timeout>
-			<onError>Continue</onError>
-			<testparams>
-				<param>TC_COVERED=SECBOOT-01</param>
-			</testparams>
+            <testName>SecureBootBasic</testName>
+            <setupScript>setupScripts\Set-SecureBoot.ps1</setupScript>
+            <testScript>setupScripts\SecureBoot.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>TC_COVERED=SECBOOT-01</param>
+            </testparams>
         </test>
-		<test>
-			<testName>SecureBootMigrateVM</testName>
-			<setupScript>setupScripts\Set-SecureBoot.ps1</setupScript>
-			<testScript>setupScripts\SecureBoot.ps1</testScript>
-			<timeout>18000</timeout>
-			<onError>Continue</onError>
-			<testparams>
-				<param>updateKernel=True</param>
-				<param>TC_COVERED=SECBOOT-03</param>
-			</testparams>
-		</test>	
-		<test>
-			<testName>SecureBootBasicVSSBackup</testName>
-			<setupScript>setupScripts\Set-SecureBoot.ps1</setupScript>
-			<testScript>setupScripts\SecureBootVSS.ps1</testScript>
-			<timeout>18000</timeout>
-			<onError>Continue</onError>
-			<testparams>
-				<param>driveletter=H:</param>
-				<param>secureBootVM=True</param>
-				<param>TC_COVERED=SECBOOT-04</param>
-			</testparams>
-		</test>
-		<test>
-			<testName>SecureBootUpdateKernel</testName>
-			<setupScript>setupScripts\Set-SecureBoot.ps1</setupScript>
-			<testScript>setupScripts\SecureBoot.ps1</testScript>
-			<timeout>18000</timeout>
-			<onError>Continue</onError>
-			<testparams>
-				<param>updateKernel=True</param>
-				<param>TC_COVERED=SECBOOT-05</param>
-			</testparams>
-		</test>	
-	</testCases>
-	
-	<VMs>
+        <test>
+            <testName>SecureBootMigrateVM</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Set-SecureBoot.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\SecureBoot.ps1</testScript>
+            <timeout>18000</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>snapshotName=ICABase</param>
+                <param>TC_COVERED=SECBOOT-02</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>SecureBootBasicVSSBackup</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Set-SecureBoot.ps1</file>
+            </setupScript>
+            <testScript>setupscripts\STOR_VSS_BackupRestore.ps1</testScript>
+            <timeout>18000</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>driveletter=H:</param>
+                <param>secureBootVM=True</param>
+                <param>TC_COVERED=SECBOOT-03</param>
+                <param>snapshotName=ICABase</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>SecureBootUpdateKernel</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Set-SecureBoot.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\SecureBoot.ps1</testScript>
+            <timeout>18000</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>updateKernel=True</param>
+                <param>TC_COVERED=SECBOOT-04</param>
+            </testparams>
+        </test>
+    </testCases>
+
+    <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>VM_NAME</vmName>
+            <vmName>LinuxVM</vmName>
             <os>Linux</os>
-            <ipv4>255.255.255.255</ipv4>
-            <sshKey>YOUR_PRIVATE_KEY.ppk</sshKey>
+            <ipv4></ipv4>
+            <sshKey>ppk_id_rsa.ppk</sshKey>
             <suite>SecureBoot</suite>
         </vm>
     </VMs>
-	
+
 </config>
