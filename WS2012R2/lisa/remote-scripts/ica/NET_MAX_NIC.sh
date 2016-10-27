@@ -147,7 +147,8 @@ function AddNIC
 		sed -i -- "s/eth0/${ifName}/g" /etc/sysconfig/network-scripts/ifcfg-${ifName}
 		sed -i -e "s/HWADDR/#HWADDR/" /etc/sysconfig/network-scripts/ifcfg-${ifName}
 		sed -i -e "s/UUID/#UUID/" /etc/sysconfig/network-scripts/ifcfg-${ifName}
-	elif [ "$os_VENDOR" == "SUSE LINUX" ]; then
+	elif [ "$os_VENDOR" == "SUSE LINUX" ] || \
+	[ "$os_VENDOR" == "SUSE" ]; then
 		LogMsg "Info : Creating ifcfg-${ifName}"
 		cp /etc/sysconfig/network/ifcfg-eth0 /etc/sysconfig/network/ifcfg-${ifName}
 		sed -i -- "s/eth0/${ifName}/g" /etc/sysconfig/network/ifcfg-${ifName}
@@ -235,13 +236,13 @@ fi
 
 let EXPECTED_INTERFACES_NO=1
 if [ -z "${SYNTHETIC_NICS+x}" ]; then
-	LogMsg "Parameter SYNTHETIC_NICS was not found"
+	LogMsg "Info : Parameter SYNTHETIC_NICS was not found"
 else
 	let EXPECTED_INTERFACES_NO=$EXPECTED_INTERFACES_NO+$SYNTHETIC_NICS
 fi
 
 if [ -z "${LEGACY_NICS+x}" ]; then
-	LogMsg "Parameter SYNTHETIC_NICS was not found"
+	LogMsg "Info : Parameter SYNTHETIC_NICS was not found"
 else
 	let EXPECTED_INTERFACES_NO=$EXPECTED_INTERFACES_NO+$LEGACY_NICS
 fi
@@ -253,8 +254,11 @@ if [ "${FOUND_PARAM}" -eq 0 ]; then
 	SetTestStateAborted
 	exit 30
 fi
+
 GetOSVersion
 DEFAULT_GATEWAY=($(route -n | grep 'UG[ \t]' | awk '{print $2}'))
+UpdateSummary "Info : OS Version for current test run - ${os_VERSION}"
+UpdateSummary "Info : Default gateway for current test run - ${DEFAULT_GATEWAY}"
 SUCCESS_PING="8.8.8.8"
 
 IFACES=($(ifconfig -s -a | awk '{print $1}'))
@@ -270,6 +274,7 @@ for i in "${!IFACES[@]}"; do
 	fi
 done
 
+UpdateSummary "Info : Array of NICs - ${IFACES}"
 #
 # Check how many interfaces are visible to the VM
 #
@@ -284,6 +289,7 @@ fi
 #
 # Bring interfaces up, using dhcp, and check connection for each one
 #
+UpdateSummary "Info : Bringing up interfaces using DHCP"
 ConfigureInterfaces
 if [ $? -ne 0 ]; then
 	SetTestStateFailed
@@ -293,9 +299,10 @@ fi
 # Check if all interfaces have a default gateway
 #
 GATEWAY_IF=($(route -n | grep 'UG[ \t]' | awk '{print $8}'))
+UpdateSummary "Info : Gateway setup for each NIC - ${GATEWAY_IF}"
 if [ ${#GATEWAY_IF[@]} -ne $EXPECTED_INTERFACES_NO ]; then
-	LogMsg "Info : Checking interfaces with missing gateway address"
 	UpdateSummary "Info : Checking interfaces with missing gateway address"
+	LogMsg "Info : Checking interfaces with missing gateway address"
 	for IFACE in ${IFACES[@]}; do
 		CheckGateway $IFACE
 		if [ $? -ne 0 ]; then
@@ -309,13 +316,13 @@ if [ ${#GATEWAY_IF[@]} -ne $EXPECTED_INTERFACES_NO ]; then
 				exit 2
 			fi
 		fi
-		
 	done
 fi
 
 #
 # Check to see if all raised interfaces work
 #
+UpdateSummary "Info : All interfaces are up - Testing connection for each of them"
 for IFACE in ${IFACES[@]}; do
 	TestConnection $SUCCESS_PING $IFACE
 	if [ $? -ne 0 ]; then
