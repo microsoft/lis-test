@@ -215,6 +215,7 @@ param([string] $cmdVerb,
       [string] $CLIlogDir,
       [string] $CLImageStorDir,
       [string] $os,
+      [switch] $help,
       [int]    $dbgLevel=0
      )
 
@@ -608,6 +609,9 @@ function RunInitShutdownScript([String] $scriptName, [String] $xmlFilename )
     .Example
         RunInitShutdownScript "C:\lisa\trunk\lisa\setupScripts\CreateVMs.ps1" ".\xml\myTests.xml"
     #>
+
+    # Assume failure
+    $retval = $false
 
     #
     # Make sure everthing that we need exists

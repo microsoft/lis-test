@@ -2023,7 +2023,8 @@ function is_suse {
         GetOSVersion
     fi
 
-    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ]
+    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ] || \
+    [ "$os_VENDOR" = "SUSE" ] 
 }
 
 #######################################################################

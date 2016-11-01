@@ -36,7 +36,10 @@ def init_arg_parser():
     arg_parser.add_argument(
         "-c", "--config",
         help="path to the config file",
-        default='config/db.config'
+        default=os.path.join(
+            os.path.split(os.path.dirname(__file__))[0],
+            'config\\db.config'
+        )
     )
     arg_parser.add_argument(
         "-l", "--loglevel",
@@ -57,6 +60,7 @@ def init_arg_parser():
     )
 
     return arg_parser
+
 
 def LT_arg_parser():
     arg_parser = argparse.ArgumentParser()
@@ -91,19 +95,21 @@ def LT_arg_parser():
 
 
 def validate_input(parsed_arguments):
-    # TODO - Add help messages for each case
-    if not os.path.exists(parsed_arguments.xml_file_path) or \
-            not os.path.exists(parsed_arguments.log_file_path):
-        return False
+    message = 'Invalid path to %s file'
+    if not os.path.exists(parsed_arguments.xml_file_path):
+        return False, message % 'xml'
+    elif not os.path.exists(parsed_arguments.log_file_path):
+        return False, message % 'log'
 
     if not os.path.exists(parsed_arguments.config):
-        return False
+        return False, message % 'config'
 
     if parsed_arguments.perf:
         if not os.path.exists(parsed_arguments.perf):
-            return False
+            return False, message % 'perf'
 
     return True
+
 
 def setup_logging(
         default_path='config/log_config.json',

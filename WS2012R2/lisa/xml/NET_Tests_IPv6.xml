@@ -331,9 +331,6 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
                 <param>TC_COVERED=NET-14</param>
-                <param>STATIC_IP=fd00::4:10</param>
-                <param>STATIC_IP2=fd00::4:100</param>
-                <param>NETMASK=64</param>
                 <param>VLAN_ID=2</param>
                 <param>TestIPV6=yes</param>
             </testParams>

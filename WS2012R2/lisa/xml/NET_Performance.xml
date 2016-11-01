@@ -43,8 +43,10 @@
             <suiteName>net_perf</suiteName>
             <suiteTests>
                 <suiteTest>iPerf3_Panorama</suiteTest>
+                <suiteTest>iPerf3_Panorama_UDP</suiteTest>
                 <suiteTest>ntttcp</suiteTest>
                 <suiteTest>iPerf3_Panorama_ipv6</suiteTest>
+                <suiteTest>iPerf3_Panorama_ipv6_UDP</suiteTest>
                 <suiteTest>ntttcp_ipv6</suiteTest>
             </suiteTests>
         </suite>
