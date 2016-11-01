@@ -32,8 +32,8 @@
 
    The testParams have the format of:
 
-      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%], 
-      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100) 
+      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%],
+      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100)
 
    Only the vmName param is taken into consideration. This needs to appear at least twice for
    the test to start.
@@ -51,7 +51,7 @@
        vmName=sles11x64sp3_2;enable=yes;minMem=512MB;maxMem=25%;startupMem=25%;memWeight=0"
 
    All scripts must return a boolean to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
     Name of the VM to remove NIC from .
 
@@ -122,7 +122,7 @@ $vm2Name = $null
 [int]$tries = 0
 
 # default number of tries
-Set-Variable defaultTries -option Constant -value 3
+Set-Variable defaultTries -option Constant -value 8
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
@@ -167,7 +167,7 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
+
     switch ($fields[0].Trim())
     {
       "vmName"  { $vmNames = $vmNames + $fields[1].Trim() }
@@ -176,7 +176,7 @@ foreach ($p in $params)
       "tries"  { $tries  = $fields[1].Trim() }
 
     }
-    
+
 }
 
 if ($tries -le 0)
@@ -201,7 +201,7 @@ if ($vm1Name -notlike $vmName)
     $vm1Name = $vmNames[1]
     $vm2Name = $vmNames[0]
   }
-  else 
+  else
   {
     "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml."
     return $false
@@ -227,7 +227,7 @@ if (-not $vm2)
 # sleep 1 minute for VM to start reporting demand
 $sleepPeriod = 60
 
-while ($sleepPeriod -gt 0) 
+while ($sleepPeriod -gt 0)
 {
   # get VM1's Memory
   [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/[int64]1048576)
@@ -274,10 +274,10 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
     {
       "Warning: Unable to start VM ${vm2Name} on attempt $i"
     }
-    else 
+    else
     {
       $i = 0
-      break   
+      break
     }
 
     Start-sleep -s 30
@@ -335,7 +335,7 @@ if ($vm1AssignedDelta -le 0)
   return $false
 }
 
-# sleep another 2 minute trying to get VM2's memory demand 
+# sleep another 2 minute trying to get VM2's memory demand
 $sleepPeriod = 120 #seconds
 # get VM2's Memory
 while ($sleepPeriod -gt 0)

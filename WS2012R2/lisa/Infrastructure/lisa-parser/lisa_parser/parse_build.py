@@ -1,12 +1,14 @@
-from envparse import env
-from urllib2 import urlopen
-import config
 import csv
+import logging
 import os
 import re
-import sql_utils
 import sys
-import logging
+from urllib2 import urlopen
+
+from envparse import env
+
+import sql_utils
+from lisa_parser import config
 
 logger = logging.getLogger(__file__.split('/')[-1])
 
@@ -73,7 +75,7 @@ class Parser:
         tests = self.suite_tests[self.suite]
         for test in tests:
             try:
-                aux = re.search(".*Test " + test +" :( )+ \w+", self.content).group(0)
+                aux = re.search(".*Test " + test + " :( )+ \w+", self.content).group(0)
                 result = re.compile("\w+").findall(aux)[-1]
                 results[test] = result
             except Exception:
@@ -111,4 +113,3 @@ class Parser:
 if __name__ == "__main__":
     parser = Parser(sys.argv[1:])
     parser.parse_build()
-

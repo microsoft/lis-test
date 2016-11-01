@@ -23,7 +23,6 @@
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTFAILED="TestFailed"
-token_changed=0
 network_counter=0
 scsi_counter=0
 
@@ -101,27 +100,26 @@ $lsvmbus_path -vvv >> lsvmbus.log
 while IFS='' read -r line || [[ -n "$line" ]]; do
     if [[ $line =~ "Synthetic network adapter" ]]; then
         token="adapter"
-        ((token_changed++))
     fi
 
     if [[ $line =~ "Synthetic SCSI Controller" ]]; then
         token="controller"
-        ((token_changed++))
     fi
 
-    if [ -n $token ] && [[ $line =~ "target_cpu" ]] && [ "$token_changed" -eq 1 ]; then
-        ((network_counter++))
-    fi
-
-    if [ -n $token ] && [[ $line =~ "target_cpu" ]] && [ "$token_changed" -eq 2 ]; then
-        ((scsi_counter++))
+    if [ -n $token ] && [[ $line =~ "target_cpu" ]]; then
+        if [[ $token == "adapter" ]]; then
+            ((network_counter++))
+        elif [[ $token == "controller" ]]; then
+            ((scsi_counter++))
+        fi
     fi
 done < "lsvmbus.log"
 
+
 if [ $network_counter != $VCPU ] && [ $scsi_counter != $VCPU/4 ]; then
-    LogMsg "Error: values are wrong. Expected for network adapter: $vcpu and actual: $network_counter;
+    LogMsg "Error: values are wrong. Expected for network adapter: $VCPU and actual: $network_counter;
     expected for scsi controller: 2, actual: $scsi_counter."
-    UpdateSummary "Error: values are wrong. Expected for network adapter: $vcpu and actual: $network_counter;
+    UpdateSummary "Error: values are wrong. Expected for network adapter: $VCPU and actual: $network_counter;
     expected for scsi controller: 2, actual: $scsi_counter."
     UpdateTestState $ICA_TESTFAILED
     exit 1

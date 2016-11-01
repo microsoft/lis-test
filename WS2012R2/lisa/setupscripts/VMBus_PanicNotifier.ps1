@@ -161,11 +161,17 @@ if (-not $vm)
 if ($vm.State -ne "Running")
 {
     "Error: The test VM '${vmName}' is not in a running state"
-    return $Falsehelp 
+    return $False
 }
 
-# If RHEL we'll stop the kdump service
-.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "service kdump stop"
+$sts = SendCommandToVM $ipv4 $sshKey "service kdump stop"
+if (-not $sts) {
+    $sts = SendCommandToVM $ipv4 $sshKey "service kdump-tools stop"
+    if (-not $sts) {
+        Write-Output "Kdump can't be stopped !" |Tee-Object -Append -file $summaryLog
+        return $False
+    }
+}
 
 Start-Sleep -S 9
 
@@ -218,7 +224,7 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
 if ($vm.State -ne "Running")
 {
     "Error: The test VM '${vmName}' is not in a running state"
-    return $Falsehelp 
+    return $False
 }
 
 #
