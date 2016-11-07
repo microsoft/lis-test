@@ -152,8 +152,9 @@ class VirtualMachine(object):
             cmd_args.append(').State')
         elif cmd_type == 'revert':
             cmd_args = [
-                'Restore-VMSnapshot', '-Name', self.checkpoint_name,
-                '-VMName', 'self.name', '-ComputerName', self.hv_server
+                'powershell', 'Restore-VMSnapshot', '-Name',
+                self.checkpoint_name, '-VMName', self.vm_name, '-ComputerName',
+                self.hv_server, '-Confirm:$false'
             ]
         elif cmd_type == 'kvp':
             query_strings = [

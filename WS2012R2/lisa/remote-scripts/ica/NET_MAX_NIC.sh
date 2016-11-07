@@ -92,15 +92,12 @@ function ConfigureInterfaces
 			return 1
 		fi
 
-		# Set filters for RHEL/CentOS
-		if [[ "$os_VENDOR" == "Red Hat" ]] || \
-		[[ "$os_VENDOR" == "CentOS" ]]; then
-			sysctl -w net.ipv4.conf.all.rp_filter=0
-			sysctl -w net.ipv4.conf.default.rp_filter=0
-			sysctl -w net.ipv4.conf.eth0.rp_filter=0
-			sysctl -w net.ipv4.conf.$IFACE.rp_filter=0
-			sleep 2
-		fi
+		# Disable reverse protocol filters
+		sysctl -w net.ipv4.conf.all.rp_filter=0
+		sysctl -w net.ipv4.conf.default.rp_filter=0
+		sysctl -w net.ipv4.conf.eth0.rp_filter=0
+		sysctl -w net.ipv4.conf.$IFACE.rp_filter=0
+		sleep 2
 
 		# Chech for gateway
 		LogMsg "Info : Checking if default gateway is set for ${IFACE}"
