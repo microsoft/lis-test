@@ -236,39 +236,33 @@ fi
 
 let EXPECTED_INTERFACES_NO=1
 if [ -z "${SYNTHETIC_NICS+x}" ]; then
-	LogMsg "Info : Parameter SYNTHETIC_NICS was not found"
+	LogMsg "Parameter SYNTHETIC_NICS was not found"
 else
 	let EXPECTED_INTERFACES_NO=$EXPECTED_INTERFACES_NO+$SYNTHETIC_NICS
 fi
 
 if [ -z "${LEGACY_NICS+x}" ]; then
-	LogMsg "Info : Parameter SYNTHETIC_NICS was not found"
+	LogMsg "Parameter LEGACY_NICS was not found"
 else
 	let EXPECTED_INTERFACES_NO=$EXPECTED_INTERFACES_NO+$LEGACY_NICS
 fi
 
-if [ "${FOUND_PARAM}" -eq 0 ]; then
-	msg="Error : Parameter TEST_TYPE was not found"
-	LogMsg "${msg}"
-	UpdateSummary "${msg}"
-	SetTestStateAborted
-	exit 30
-fi
-
 GetOSVersion
 DEFAULT_GATEWAY=($(route -n | grep 'UG[ \t]' | awk '{print $2}'))
-UpdateSummary "Info : OS Version for current test run - ${os_VERSION}"
-UpdateSummary "Info : Default gateway for current test run - ${DEFAULT_GATEWAY}"
 SUCCESS_PING="8.8.8.8"
 
 IFACES=($(ifconfig -s -a | awk '{print $1}'))
-# Delete first and last elements from the list- iface, lo
+# Delete first element from the list - iface
 IFACES=("${IFACES[@]:1}")
-unset IFACES[${#IFACES[@]}-1]
 # Check for interfaces with longer names - enp0s10f
+# Delete other interfaces - lo, virbr
 let COUNTER=0
 for i in "${!IFACES[@]}"; do
-	if [ ${IFACES[$i]} == "enp0s10f" ]; then
+	if echo "${IFACES[$i]}" | grep -q "lo\|virbr"; then
+		echo "Found"
+		unset IFACES[$i]
+	fi
+	if [[ ${IFACES[$i]} == "enp0s10f" ]]; then
 		IFACES[$i]=${IFACES[$i]}${COUNTER}
 		let COUNTER=COUNTER+1
 	fi
