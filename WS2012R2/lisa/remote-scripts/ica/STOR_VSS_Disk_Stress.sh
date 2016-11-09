@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -115,14 +115,14 @@ if [ ! ${iOzoneVers} ]; then
     exit 1
 fi
 
-# Download iOzone
+# Download iozone
 curl http://www.iozone.org/src/current/iozone$iOzoneVers.tar > iozone$iOzoneVers.tar
 sts=$?
 if [ 0 -ne ${sts} ]; then
-    LogMsg "Error: iOzone download failed ${sts}"
-    UpdateSummary "iOzone v$iOzoneVers download: Failed"
+    LogMsg "Error: iozone download failed ${sts}"
+    UpdateSummary "iozone v$iOzoneVers download: Failed"
 else
-    LogMsg "iOzone v$iOzoneVers download: Success"
+    LogMsg "iozone v$iOzoneVers download: Success"
 fi
 
 
@@ -183,7 +183,7 @@ sts=$?
 	    UpdateSummary "make linux : Failed"
 	    exit 1
 	else
-	    LogMsg "make linux : Sucsess"
+	    LogMsg "make linux : Success"
 
 	fi
 
@@ -196,8 +196,8 @@ sts=$?
             UpdateSummary " Running IoZone  : Failed"
             exit 1
         else
-            LogMsg "Running IoZone : Sucsess"
-            UpdateSummary " Running Iozone : Sucsess"
+            LogMsg "Running IoZone : Sucess"
+            UpdateSummary " Running Iozone : Success"
         fi
 
 UpdateTestState $ICA_TESTCOMPLETED
