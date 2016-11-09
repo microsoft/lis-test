@@ -196,7 +196,7 @@ sts=$?
             UpdateSummary " Running IoZone  : Failed"
             exit 1
         else
-            LogMsg "Running IoZone : Sucess"
+            LogMsg "Running IoZone : Success"
             UpdateSummary " Running Iozone : Success"
         fi
 
