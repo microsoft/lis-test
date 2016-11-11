@@ -388,7 +388,7 @@
         <test>
             <testName>PausedCritical_Heartbeat</testName>
             <testScript>SetupScripts\Core_Heartbeat_PausedCritical.ps1</testScript>
-            <timeout>600</timeout>
+            <timeout>1200</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testParams>

@@ -47,7 +47,7 @@ function GetParentVHD($vmName, $hvServer)
 {
     $ParentVHD = $null
 
-    $VmInfo = Get-VM -Name $vmName
+    $VmInfo = Get-VM -Name $vmName -ComputerName $hvServer
     if (-not $VmInfo)
         {
              Write-Error -Message "Error: Unable to collect VM settings for ${vmName}" -ErrorAction SilentlyContinue
@@ -61,7 +61,7 @@ function GetParentVHD($vmName, $hvServer)
                 {
                     if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  ))
                         {
-                            $Path = Get-VHD $VHD.Path
+                            $Path = Get-VHD $VHD.Path -ComputerName $hvServer
                             if ([string]::IsNullOrEmpty($Path.ParentPath))
                                 {
                                     $ParentVHD = $VHD.Path
@@ -81,7 +81,7 @@ function GetParentVHD($vmName, $hvServer)
                 {
                     if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  ))
                         {
-                            $Path = Get-VHD $VHD.Path
+                            $Path = Get-VHD $VHD.Path -ComputerName $hvServer
                             if ([string]::IsNullOrEmpty($Path.ParentPath))
                                 {
                                     $ParentVHD = $VHD.Path
@@ -155,7 +155,7 @@ function CreateChildVHD($ParentVHD, $defaultpath)
 function Cleanup()
 {
     # Clean up
-    $sts = Stop-VM -Name $vmName1 -TurnOff
+    $sts = Stop-VM -Name $vmName1 -ComputerName $hvServer -TurnOff
     if (-not $?)
     {
        Write-Output "Error: Unable to Shut Down VM $vmName1"
@@ -163,14 +163,14 @@ function Cleanup()
     }
 
     # Delete New VM created
-    $sts = Remove-VM -Name $vmName1 -Confirm:$false -Force
+    $sts = Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
     if (-not $?)
     {
       Write-Output "Error: Deleting New VM $vmName1"
     }
 
     # Delete partition
-    Dismount-VHD -Path $vhdpath
+    Dismount-VHD -Path $vhdpath -ComputerName $hvServer
 
     # Detele VHD
     del $vhdpath
@@ -255,7 +255,7 @@ Write-Output "This script covers test case: ${tcCovered}" | Tee-Object -Append -
 . .\setupscripts\TCUtils.ps1
 
 # Shutdown gracefully so we dont corrupt VHD.
-Stop-VM -Name $vmName
+Stop-VM -Name $vmName -ComputerName $hvServer
 if (-not $?)
 {
     Write-Output "Error: Unable to Shut Down VM" | Tee-Object -Append -file $summaryLog
@@ -263,7 +263,7 @@ if (-not $?)
 }
 
 # Get Parent VHD
-$ParentVHD = GetParentVHD $vmName -$hvServer
+$ParentVHD = GetParentVHD $vmName $hvServer
 if(-not $ParentVHD)
 {
     Write-Output "Error: Error getting Parent VHD of VM $vmName" | Tee-Object -Append -file $summaryLog
@@ -271,7 +271,7 @@ if(-not $ParentVHD)
 }
 
 # Get VHD size
-$VHDSize = (Get-VHD -Path $ParentVHD).FileSize
+$VHDSize = (Get-VHD -Path $ParentVHD -ComputerName $hvServer).FileSize
 [uint64]$newsize = [math]::round($VHDSize /1Gb, 1)
 $newsize = ($newsize * 1GB) + 1GB
 
@@ -282,7 +282,7 @@ if ( Test-Path $vhdpath )
 }
 
 # Create the new partition
-New-VHD -Path $vhdpath -Dynamic -SizeBytes $newsize | Mount-VHD -Passthru | Initialize-Disk -Passthru |
+New-VHD -Path $vhdpath -Dynamic -SizeBytes $newsize -ComputerName $hvServer | Mount-VHD -Passthru | Initialize-Disk -Passthru |
 New-Partition -DriveLetter $driveletter[0] -UseMaximumSize | Format-Volume -FileSystem NTFS -Confirm:$false -Force
 
 # Copy parent VHD to partition
@@ -296,7 +296,7 @@ if(-not $ChildVHD)
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
 
 # Get the VM Network adapter so we can attach it to the new VM
-$VMNetAdapter = Get-VMNetworkAdapter $vmName
+$VMNetAdapter = Get-VMNetworkAdapter $vmName -ComputerName $hvServer
 if (-not $?)
 {
     Write-Output "Error: Get-VMNetworkAdapter" | Tee-Object -Append -file $summaryLog
@@ -307,10 +307,10 @@ if (-not $?)
 $vm_gen = $vm.Generation
 
 # Remove old VM
-Remove-VM -Name $vmName1 -Confirm:$false -Force
+Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
 
 # Create the ChildVM
-$newVm = New-VM -Name $vmName1 -VHDPath $ChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
+$newVm = New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
 {
    Write-Output "Error: Creating New VM"
@@ -320,7 +320,7 @@ if (-not $?)
 # Disable secure boot
 if ($vm_gen -eq 2)
 {
-    Set-VMFirmware -VMName $vmName1 -EnableSecureBoot Off
+    Set-VMFirmware -VMName $vmName1 -ComputerName $hvServer -EnableSecureBoot Off
     if(-not $?)
     {
         Write-Output "Error: Unable to disable secure boot" | Tee-Object -Append -file $summaryLog
@@ -344,10 +344,10 @@ Write-Output "INFO: New VM $vmName1 started"
 $disk = Get-WmiObject Win32_LogicalDisk -ComputerName $hvServer -Filter "DeviceID='${driveletter}'" | Select-Object FreeSpace
 
 $filesize = $disk.FreeSpace - 100000
-$file_path_formatted = $driveletter + '\' + 'testfile'
+$file_path_formatted = $driveletter[0] + '$\' + 'testfile'
 
 # Fill up the partition
-$createfile = fsutil file createnew $file_path_formatted $filesize
+$createfile = fsutil file createnew \\$hvServer\$file_path_formatted $filesize
 if ($createfile -notlike "File *testfile* is created")
 {
     Write-Output "Error: Could not create the sample test file in the working directory! $file_path_formatted" | Tee-Object -Append -file $summaryLog
@@ -378,7 +378,7 @@ if ($vm1.State -ne "PausedCritical")
 Write-Output "VM $vmName1 entered in Paused-Critical how it should" | Tee-Object -Append -file $summaryLog
 
 # Create space on partition
-Remove-Item -Path $file_path_formatted -Force
+Remove-Item -Path \\$hvServer\$file_path_formatted -Force
 if (-not $?) {
     Write-Output "ERROR: Cannot remove the test file '${testfile1}'!" | Tee-Object -Append -file $summaryLog
     Cleanup
