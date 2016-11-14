@@ -34,22 +34,22 @@ function CheckResults(){
         if (test-path $stateFile){
             $contents = Get-Content $stateFile
             if ($null -ne $contents){
-                if ($contents.Contains('TestCompleted') -eq $True) {                    
+                if ($contents.Contains('TestCompleted') -eq $True) {
                     Write-Output "Info: Test ended successfully"
                     $retVal = $True
                 }
                 if ($contents.Contains('TestAborted') -eq $True) {
                     Write-Output "Info: State file contains TestAborted failed"
-                    $retVal = $False                           
+                    $retVal = $False
                 }
                 if ($contents.Contains('TestFailed') -eq $True) {
                     Write-Output "Info: State file contains TestFailed failed"
-                    $retVal = $False                           
+                    $retVal = $False
                 }
-            }    
+            }
             else {
                 Write-Output "ERROR: state file is empty!"
-                $retVal = $False    
+                $retVal = $False
             }
         }
     }
@@ -248,6 +248,7 @@ foreach ($p in $params)
     "NETMASK" { $netmask = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
     "TestLogDir" {$logdir = $fields[1].Trim()}
+    "TC_COVERED" {$tc_covered = $fields[1].Trim()}
     "NIC"
     {
         $nicArgs = $fields[1].Split(',')
@@ -284,6 +285,10 @@ foreach ($p in $params)
     default   {}  # unknown param - just ignore it
     }
 }
+
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "Covers: ${tc_covered}" | Tee-Object -Append -file $summaryLog
 
 if (-not $vm1MacAddress)
 {
@@ -422,7 +427,7 @@ $retVal= SendCommandToVM $ipv4 $sshKey "rm summary.log"
 $retVal = CreateInterfaceConfig $ipv4 $sshKey $vm1MacAddress $vm1StaticIP $netmask
 if (-not $retVal)
 {
-    "Failed to create Interface-File on vm $ipv4 for interface with mac $vm1MacAddress, by setting a static IP of $vm1StaticIP netmask $netmask"
+    "Failed to create Interface-File on vm $ipv4 for interface with mac $vm1MacAddress, by setting a static IP of $vm1StaticIP netmask $netmask" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -465,7 +470,7 @@ $retVal = SendFileToVM $vm2ipv4 $sshKey ".\remote-scripts\ica\utils.sh" "/root/u
 $retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vm2StaticIP $netmask
 if (-not $retVal)
 {
-    "Failed to create Interface-File on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $vm2StaticIP netmask $netmask"
+    "Failed to create Interface-File on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $vm2StaticIP netmask $netmask" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -487,8 +492,9 @@ $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix NET_Configure_Vxla
 $first_result = CheckResults $sshKey $ipv4
 if (-not $first_result)
 {
-    "Error: Configuration problems have occured. Test failed."
+    "Error: Results are not as expected in configuration. Test failed. Check logs for more details." | Tee-Object -Append -file $summaryLog
     bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
+    Rename-Item $logdir\summary.log "${vmname}_Vxlan_Hang.log"
     return $false
 }
 
@@ -522,7 +528,7 @@ $cmdToVM = @"
         echo "Successfuly pinged the second vm through vxlan0 after configurations, connection is good." >> summary.log
         echo "Starting to transfer files with rsync" >> summary.log
         echo "rsync -e 'ssh -o StrictHostKeyChecking=no -i /root/.ssh/rhel5_id_rsa' -avz /root/test root@242.0.0.11:/root" | at now +1 minutes
-    fi    
+    fi
 
 "@
 
@@ -549,13 +555,13 @@ $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && chmod u+x ${filename} && se
 
 # extracting the log files
 bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
-Rename-Item $logdir\summary.log first_vm_summary.log
+Rename-Item $logdir\summary.log "${vmname}_Vxlan_Hang.log"
 
 # Checking results to see if we can go further
 $check = CheckResults $sshKey $vm2ipv4
 if (-not $check)
 {
-    "Results are not as expected in configuration. Test failed. Check logs for more details."
+    "Results are not as expected in configuration. Test failed. Check logs for more details." | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -566,10 +572,10 @@ do {
     $timeout -= 5
     if ($temporar -eq 0)
     {
-        Write-Output "Error: Connection lost to the first VM. Test Failed."
+        Write-Output "Error: Connection lost to the first VM. Test Failed." | Tee-Object -Append -file $summaryLog
         Stop-VM -Name $vmName -ComputerName $hvServer -Force
         Stop-VM -Name $vm2Name -ComputerName $hvServer -Force
-        return $False   
+        return $False
     }
 } until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 
@@ -580,7 +586,7 @@ $cmdToVM = @"
 #!/bin/bash
     ping -I vxlan0 242.0.0.12 -c 3
     if [ `$? -ne 0 ]; then
-        echo "Could not ping the first VM through the vxlan interface. Lost connectivity between instances after rsync." >> summary.log 
+        echo "Could not ping the first VM through the vxlan interface. Lost connectivity between instances after rsync." >> summary.log
         echo "TestFailed" >> state.txt
         exit 1
     else
@@ -600,7 +606,7 @@ $cmdToVM = @"
             echo "Test directory was not found." >> summary.log
             echo "TestFailed" >> state.txt
             exit 3
-        fi    
+        fi
     fi
 "@
 
@@ -626,13 +632,15 @@ if (-not $retVal)
 $retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename} $STATIC_IP"
 
 bin\pscp -q -i ssh\${sshKey} root@${vm2ipv4}:summary.log $logdir
+Rename-Item $logdir\summary.log "${vm2Name}_Vxlan_Hang.log"
 
 $second_result = CheckResults $sshKey $vm2ipv4
 Stop-VM -Name $vm2Name -ComputerName $hvServer -Force
 if (-not $second_result)
 {
-    "Results are not as expected. Test failed."
+    "Results are not as expected. Test failed." | Tee-Object -Append -file $summaryLog
     return $false
 }
 
+Write-Output "Test passed. Connection is good, file was transfered" | Tee-Object -Append -file $summaryLog
 return $second_result
