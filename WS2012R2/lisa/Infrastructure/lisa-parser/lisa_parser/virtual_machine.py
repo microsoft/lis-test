@@ -29,19 +29,21 @@ logger = logging.getLogger(__name__)
 
 
 class VirtualMachine(object):
-    """ Holds specific logic for interacting with a virtual machine
+    """Holds specific logic for interacting with a virtual machine
 
     The class is used to save details regarding a vm on which a test has been
     ran and also executes methods that interact and get data from that specific
     vm.
     """
-    def __init__(self, vm_name, hv_server, os=None, host_os=None, check=True):
+
+    def __init__(self, vm_name, hv_server, os=None, host_os=None, checkpoint_name='icabase', check=True):
         self.vm_name = vm_name
         self.hv_server = hv_server
         self.os = os
         self.host_os = host_os
         self.kvp_info = dict()
         self.location = ''
+        self.checkpoint_name = checkpoint_name
         """Check if VM exists"""
         if check:
             self.check_if_exists()
@@ -56,8 +58,14 @@ class VirtualMachine(object):
             'start'
         )
 
+    def revert_snapshot(self):
+        self.invoke_ps_command(
+            'revert'
+        )
+
     def update_from_kvp(self, kvp_fields, stop_vm):
         if not self.get_status():
+            self.revert_snapshot()
             self.start()
             logger.info('Starting %s - Waiting for it to boot', self.vm_name)
             if not self.has_booted():
@@ -142,6 +150,12 @@ class VirtualMachine(object):
             cmd_args[1] = 'get-vm'
             cmd_args.insert(1, '(')
             cmd_args.append(').State')
+        elif cmd_type == 'revert':
+            cmd_args = [
+                'powershell', 'Restore-VMSnapshot', '-Name',
+                self.checkpoint_name, '-VMName', self.vm_name, '-ComputerName',
+                self.hv_server, '-Confirm:$false'
+            ]
         elif cmd_type == 'kvp':
             query_strings = [
                 '"' + "Select * From Msvm_ComputerSystem where ElementName='" +
