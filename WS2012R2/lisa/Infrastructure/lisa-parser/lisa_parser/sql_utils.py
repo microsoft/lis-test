@@ -131,3 +131,37 @@ def insert_values(cursor, values_dict):
 
         logger.info('Terminating execution')
         sys.exit(0)
+
+
+def select_row(cursor, row_dict):
+    select_cmd_template = Template('select id from $tableName where ($filters)')
+
+    filters = ''
+
+    for col_name, col_value in row_dict.iteritems():
+        if type(col_value) == str:
+            filters = ' '.join([filters, col_name, '=', "'" + col_value + "'"])
+        else:
+            filters = ' '.join([filters, '=', "'" + col_value + "'"])
+        filters = ' '.join([filters, 'AND'])
+
+    table_name = '"' + env.str('TableName') + '"'
+    return cursor.execute(
+        select_cmd_template.substitute(
+            tableName=table_name,
+            filters=filters[:-3]
+            )
+        )
+
+
+def check_insert(cursor, insertion_list):
+    for insert_dict in insertion_list:
+        result = list(select_row(cursor, insert_dict))
+        no_rows = len(result)
+        if no_rows == 0:
+            logger.error("The following line is not pressent in the database: %s" % insert_dict)
+        elif no_rows > 1:
+            logger.warning("%d identical rows were found" % no_rows)
+            logger.warning(result)
+        else:
+            logger.info("Results inserted successfully to the database")

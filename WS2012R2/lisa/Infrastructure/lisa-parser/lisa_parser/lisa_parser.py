@@ -96,5 +96,8 @@ def main(args):
     logger.info('Committing changes to the database')
     db_connection.commit()
 
+    logger.info("Checking insert validity")
+    sql_utils.check_insert(db_cursor, insert_values)
+
 if __name__ == '__main__':
     main(sys.argv[1:])
