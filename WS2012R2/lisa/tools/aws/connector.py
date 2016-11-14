@@ -283,7 +283,7 @@ def test_orion(keyid, secret, imageid, instancetype, user, localpath, region,
         current_path = os.path.dirname(os.path.realpath(__file__))
         ssh_client.put_file(os.path.join(localpath, 'orion_linux_x86-64.gz'),
                             '/tmp/orion_linux_x86-64.gz')
-        ssh_client.put_file(os.path.join(current_path, 'run_orion.sh'),
+        ssh_client.put_file(os.path.join(current_path, 'tests', 'run_orion.sh'),
                             '/tmp/run_orion.sh')
         ssh_client.run('chmod +x /tmp/run_orion.sh')
         ssh_client.run("sed -i 's/\r//' /tmp/run_orion.sh")
@@ -320,7 +320,8 @@ def test_sysbench(keyid, secret, imageid, instancetype, user, localpath,
 
     if ssh_client:
         current_path = os.path.dirname(os.path.realpath(__file__))
-        ssh_client.put_file(os.path.join(current_path, 'run_sysbench.sh'),
+        ssh_client.put_file(os.path.join(current_path, 'tests',
+                                         'run_sysbench.sh'),
                             '/tmp/run_sysbench.sh')
         ssh_client.run('chmod +x /tmp/run_sysbench.sh')
         ssh_client.run("sed -i 's/\r//' /tmp/run_sysbench.sh")
@@ -329,27 +330,3 @@ def test_sysbench(keyid, secret, imageid, instancetype, user, localpath,
                                      'sysbench' + str(time.time()) + '.zip'))
 
     aws.teardown(instance)
-
-
-def test_test(keyid, secret, imageid, instancetype, user, localpath, region,
-              zone):
-    import inspect
-    frame = inspect.currentframe()
-    args, _, _, values = inspect.getargvalues(frame)
-    print(args, values)
-    current_path = os.path.dirname(os.path.realpath(__file__))
-    print(current_path)
-    print(os.path.join(current_path, "run_orion.sh"))
-    # import paramiko
-    # ssh = paramiko.SSHClient()
-    # ssh.set_missing_host_key_policy(
-    #     paramiko.AutoAddPolicy())
-    # ssh.connect('192.168.126.145', username='test', password='opsware')
-    # _, stdout, stderr = ssh.exec_command('/tmp/test.sh', get_pty=False)
-    # read_err = stderr.read(1024)
-    # while read_err:
-    #     stderr += read_err
-    #     read_err = stderr.read(1024)
-    # print(stderr)
-    # pprint(stdout.readlines())
-    # pprint(stderr.readlines())
