@@ -39,8 +39,11 @@ function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1} >> ${LOG_FILE}
 }
 
-sudo yum upgrade
+MODES=(seqwr seqrewr seqrd rndrd rndwr rndrw)
+THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
+IOS=(4 8 16 32)
 
+sudo yum upgrade
 sudo yum install zip libaio sysstat git automake libtool -y
 
 echo "Cloning sysbench"
@@ -82,10 +85,6 @@ function fileio ()
     sudo pkill -f iostat
     sudo pkill -f vmstat
 }
-
-MODES=(seqwr seqrewr seqrd rndrd rndwr rndrw)
-THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
-IOS=(4 8 16 32)
 
 echo " Testing fileio. Writing to fileio.log."
 for mode in "${MODES[@]}"

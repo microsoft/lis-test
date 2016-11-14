@@ -43,6 +43,8 @@ part="xvdx"
 FS="ext4"
 FILE_NAME="orion_linux_x86-64.gz"
 
+TEST_MODES=(oltp dss simple normal)
+
 # TODO add RHEL
 # sudo yum install zip libaio sysstat -y
 
@@ -99,8 +101,6 @@ run_orion()
         LogMsg "$1 test failed."
     fi
 }
-
-TEST_MODES=(oltp dss simple normal)
 
 cd /tmp
 for mode in "${TEST_MODES[@]}"
