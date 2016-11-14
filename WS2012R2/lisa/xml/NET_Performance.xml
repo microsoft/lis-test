@@ -3,18 +3,15 @@
 <!--
  Linux on Hyper-V and Azure Test Code, ver. 1.0.0
  Copyright (c) Microsoft Corporation
-
  All rights reserved.
  Licensed under the Apache License, Version 2.0 (the ""License"");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
  http://www.apache.org/licenses/LICENSE-2.0
-
  THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
  OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
  ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
  PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
-
  See the Apache Version 2.0 License for specific language governing
  permissions and limitations under the License.
 -->
@@ -43,17 +40,15 @@
             <suiteName>net_perf</suiteName>
             <suiteTests>
                 <suiteTest>iPerf3_Panorama</suiteTest>
-                <suiteTest>iPerf3_Panorama_UDP</suiteTest>
                 <suiteTest>ntttcp</suiteTest>
                 <suiteTest>iPerf3_Panorama_ipv6</suiteTest>
-                <suiteTest>iPerf3_Panorama_ipv6_UDP</suiteTest>
                 <suiteTest>ntttcp_ipv6</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
-        <test>
+         <test>
             <testName>iPerf3_Panorama</testName>
             <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
@@ -87,42 +82,6 @@
             <timeout>7200</timeout>
             <OnError>Continue</OnError>
          </test>
-
-        <test>
-            <testName>iPerf3_Panorama_UDP</testName>
-            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
-            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
-            <testScript>perf_iperf_panorama_client.sh</testScript>
-            <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
-            <files>Tools/iperf-3.1.1.tar.gz</files>
-            <postTest>Infrastructure\Analyze-IperfResultsThroughputFromLinuxSar.ps1</postTest>
-            <testParams>
-                <param>TC_COVERED=iperf_upstream</param>
-                <param>IPERF_PACKAGE=iperf-3.1.1.tar.gz</param>
-                <param>STATIC_IP=10.10.10.20</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>SERVER_OS_USERNAME=root</param>
-                <param>MAC=001600112233</param>
-                <param>VM2NAME=IPERF-Server</param>
-                <param>VM2SERVER=LIS-PERF05</param>
-                <param>IPERF3_SERVER_IP=10.10.10.10</param>
-                <param>IPERF3_PROTOCOL=UDP</param>
-                <param>INDIVIDUAL_TEST_DURATION=60</param>
-                <param>CONNECTIONS_PER_IPERF3=4</param>
-                <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
-                <param>TEST_RUN_LOG_FOLDER=iperf3-test-logs</param>
-                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
-                <param>IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024 2000 3000 6000)</param>
-            </testParams>
-            <uploadFiles>
-                <file>iPerf3_Client_Logs.zip</file>
-                <file>iPerf3_Server_Logs.zip</file>
-                <file>iPerf3_Panorama_ServerSideScript.log</file>
-                <file>iPerf3_Panorama.log</file>
-            </uploadFiles>
-            <timeout>7200</timeout>
-            <OnError>Continue</OnError>
-        </test>
 
          <test>
             <testName>iPerf3_Panorama_ipv6</testName>
@@ -158,42 +117,6 @@
             <timeout>7200</timeout>
             <OnError>Continue</OnError>
          </test>
-
-        <test>
-        <testName>iPerf3_Panorama_ipv6_UDP</testName>
-        <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
-        <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
-        <testScript>perf_iperf_panorama_client.sh</testScript>
-        <files>remote-scripts/ica/perf_iperf_panorama_client.sh,remote-scripts/ica/perf_iperf_panorama_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
-        <files>Tools/iperf-3.1.1.tar.gz</files>
-        <postTest>Infrastructure\Analyze-IperfResultsThroughputFromLinuxSar.ps1</postTest>
-        <testParams>
-            <param>TC_COVERED=iperf_upstream</param>
-            <param>IPERF_PACKAGE=iperf-3.1.1.tar.gz</param>
-            <param>STATIC_IP=fd00::4:100</param>
-            <param>NETMASK=64</param>
-            <param>SERVER_OS_USERNAME=root</param>
-            <param>MAC=001600112233</param>
-            <param>VM2NAME=IPERF-Server</param>
-            <param>VM2SERVER=LIS-PERF05</param>
-            <param>IPERF3_SERVER_IP=fd00::4:10</param>
-            <param>IPERF3_PROTOCOL=UDP</param>
-            <param>INDIVIDUAL_TEST_DURATION=60</param>
-            <param>CONNECTIONS_PER_IPERF3=4</param>
-            <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
-            <param>TEST_RUN_LOG_FOLDER=iperf3-ipv6-test-logs</param>
-            <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
-            <param>IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024 2000 3000 6000)</param>
-        </testParams>
-        <uploadFiles>
-            <file>iPerf3_Client_Logs.zip</file>
-            <file>iPerf3_Server_Logs.zip</file>
-            <file>iPerf3_Panorama_ServerSideScript.log</file>
-            <file>iPerf3_Panorama.log</file>
-        </uploadFiles>
-        <timeout>7200</timeout>
-        <OnError>Continue</OnError>
-        </test>
 
          <test>
             <testName>ntttcp</testName>
