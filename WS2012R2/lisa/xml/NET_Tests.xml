@@ -374,6 +374,7 @@ permissions and limitations under the License.
             <testName>Network_Hang_Vxlan</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
+                <param>TC_COVERED=NET-24</param>
                 <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
                 <param>STATIC_IP1=10.10.10.10</param>
                 <param>STATIC_IP2=10.10.10.20</param>
