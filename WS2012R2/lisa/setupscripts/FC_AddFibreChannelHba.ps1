@@ -40,7 +40,7 @@
             <param>vSANName=fc</param>
         </testParams>
     </test>
-    
+
 .Parameter vmName
     Name of the VM to perform the test with.
 
@@ -49,7 +49,7 @@
 
 .Parameter testParams
     A semicolon separated list of test parameters.
-    
+
 .Example
     .\FC_AddFibreChannelHba.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "TC_COVERED=FC-01;$vSANName=FC_NAME"
 #>
@@ -104,6 +104,15 @@ foreach ($p in $params)
         $vSANName = $rValue
         continue
     }
+    if ($lValue -eq "WWNN") {
+    		$WWNN = $rValue.split(',')
+    		continue
+	}
+
+    if ($lValue -eq "WWPN") {
+    	$WWPN = $rValue.split(',')
+		continue
+	}
 }
 
 #
@@ -122,15 +131,39 @@ if (-not $vSANName) {
 
 # Add the FC adapter, if the command is successful there is no output
 Write-Output "Adding the Fibre Channel adapter..."
-if ((Add-VMFibreChannelHba -VmName $vmName $vSANName) -ne $null) {
+if ((Add-VMFibreChannelHba -VmName $vmName -SanName $vSANName -ComputerName $hvServer)-ne $null) {
     write-output "Error: Unable to add Fibre Channel with name $vSANName"
     return $retVal
+}
+
+# If specific port addresses are used check to see if they are available
+if (($WWNN -ne $null) -and ($WWPN -ne $null)) {
+    $FCList = Get-VMFibreChannelHba -VMName (Get-VM).name -ComputerName $hvServer
+    foreach ($fcNIC in $FCList) {
+        if ($WWPN -contains $fcNIC.WorldWidePortNameSetA) {
+    		$usedVM = $fcNIC.VMName
+    		"Error: Specified WWPN is being used on $usedVM"
+    		return $retVal
+    	}
+    }
+    if ($WWPN.Count -eq 2) {
+    	$sts = Get-VMFibreChannelHba -VMName $vmName -ComputerName $hvServer | Set-VMFibreChannelHba -NewWorldWideNodeNameSetA $WWNN[0] -NewWorldWidePortNameSetA $WWPN[0] -NewWorldWideNodeNameSetB $WWNN[1] -NewWorldWidePortNameSetB $WWPN[1]
+    } else {
+    	$sts = Get-VMFibreChannelHba -VMName $vmName -ComputerName $hvServer | Set-VMFibreChannelHba -NewWorldWideNodeNameSetA $WWNN[0] -NewWorldWidePortNameSetA $WWPN[0]
+    }
+
+    # Check if values were successfully modified
+    Write-Output "Adding the Fibre Channel adapter..."
+    if ($sts -ne $null) {
+        write-output "Error: Unable to add Fibre Channel with name $vSANName"
+        return $retVal
+    }
 }
 
 #
 # Verify the FC adapter
 #
-if ((Get-VMFibreChannelHba -VmName $vmName) -eq $null) {
+if ((Get-VMFibreChannelHba -VmName $vmName -ComputerName $hvServer) -eq $null) {
     write-Output "Error: Unable to retrieve the Fibre Channel adapter named: $vSANName"
     return $retVal
 }
