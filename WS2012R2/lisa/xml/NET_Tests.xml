@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
-    Copyright (c) Microsoft Corporation
+Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+Copyright (c) Microsoft Corporation
 
-    All rights reserved.
-    Licensed under the Apache License, Version 2.0 (the ""License"");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0
+All rights reserved.
+Licensed under the Apache License, Version 2.0 (the ""License"");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
 
-    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
-    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
-    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
-    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
 
-    See the Apache Version 2.0 License for specific language governing
-    permissions and limitations under the License.
+See the Apache Version 2.0 License for specific language governing
+permissions and limitations under the License.
 -->
 
 <config>
@@ -57,10 +57,14 @@
                 <suiteTest>CopyFileScp</suiteTest>
                 <suiteTest>CheckKeywithEthtool</suiteTest>
                 <suiteTest>IPInjection</suiteTest>
+                <suiteTest>MaxSyntheticNIC</suiteTest>
+                <suiteTest>MaxLegacyNIC</suiteTest>
+                <suiteTest>MaxNIC</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
                 <suiteTest>BootNoNicHotAddNic</suiteTest>
+                <suiteTest>HotAddRemoveMaxNIC</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -115,7 +119,7 @@
             <timeout>800</timeout>
         </test>
 
-         <test>
+        <test>
             <testName>MultipleNIC</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
@@ -267,7 +271,7 @@
 
         <test>
             <testName>OperState</testName>
-             <setupScript>
+            <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
@@ -332,12 +336,12 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-            <param>NIC=NetworkAdapter,External,External,001600112200</param>
-            <param>TC_COVERED=NET-14</param>
-            <!-- <param>STATIC_IP=10.10.10.1</param> -->
-            <!-- <param>STATIC_IP2=10.10.10.2</param> -->
-            <!-- <param>NETMASK=255.255.254.0</param> -->
-            <param>VLAN_ID=2</param>
+                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>TC_COVERED=NET-14</param>
+                <!-- <param>STATIC_IP=10.10.10.1</param> -->
+                <!-- <param>STATIC_IP2=10.10.10.2</param> -->
+                <!-- <param>NETMASK=255.255.254.0</param> -->
+                <param>VLAN_ID=2</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -388,18 +392,18 @@
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>3000</timeout>
             <testParams>
-                    <param>TC_COVERED=NET-19</param>
-                    <param>SCSI=1,0,Dynamic,512,15GB</param>
-                    <param>Type=Fixed</param>
-                    <param>SectorSize=512</param>
-                    <param>DefaultSize=25GB</param>
-                    <param>ControllerType=SCSI</param>
+                <param>TC_COVERED=NET-19</param>
+                <param>SCSI=1,0,Dynamic,512,15GB</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=25GB</param>
+                <param>ControllerType=SCSI</param>
             </testParams>
         </test>
 
         <test>
             <testName>CheckKeywithEthtool</testName>
-             <setupScript>
+            <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
@@ -429,7 +433,61 @@
             <files>remote-scripts/ica/utils.sh</files>
             <timeout>600</timeout>
         </test>
-        
+
+        <test>
+            <testName>MaxSyntheticNIC</testName>
+            <onError>Abort</onError>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_MAX_NIC.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>TC_COVERED=NET-20</param>
+                <param>TEST_TYPE=synthetic</param>
+                <param>SYNTHETIC_NICS=7</param>
+                <param>NETWORK_TYPE=external</param>
+            </testParams>
+            <testScript>setupscripts\NET_MAX_NIC.ps1</testScript>
+            <files>remote-scripts/ica/NET_MAX_NIC.sh,remote-scripts/ica/utils.sh</files>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>MaxLegacyNIC</testName>
+            <onError>Abort</onError>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_MAX_NIC.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>TC_COVERED=NET-21</param>
+                <param>TEST_TYPE=legacy</param>
+                <param>LEGACY_NICS=4</param>
+                <param>NETWORK_TYPE=external</param>
+            </testParams>
+            <testScript>setupscripts\NET_MAX_NIC.ps1</testScript>
+            <files>remote-scripts/ica/NET_MAX_NIC.sh,remote-scripts/ica/utils.sh</files>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>MaxNIC</testName>
+            <onError>Abort</onError>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_MAX_NIC.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>TC_COVERED=NET-22</param>
+                <param>TEST_TYPE=synthetic,legacy</param>
+                <param>SYNTHETIC_NICS=7</param>
+                <param>LEGACY_NICS=4</param>
+                <param>NETWORK_TYPE=external</param>
+            </testParams>
+            <testScript>setupscripts\NET_MAX_NIC.ps1</testScript>
+            <files>remote-scripts/ica/NET_MAX_NIC.sh,remote-scripts/ica/utils.sh</files>
+            <timeout>800</timeout>
+        </test>
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>HotAddMultiNIC</testName>
@@ -474,6 +532,24 @@
                 <param>TC_COVERED=NET-18</param>
                 <param>Switch_Name=External</param>
             </testparams>
+        </test>
+
+        <!-- The following test requires a Gen 2 VM -->
+        <test>
+            <testName>HotAddRemoveMaxNIC</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+            </setupScript>
+            <testScript>setupscripts\NET_HotAddRemove_Max_NIC.ps1</testScript>
+            <files>remote-scripts\ica\NET_MAX_NIC.sh, remote-scripts/ica/NET_VerifyHotAddMultiNIC.sh,remote-scripts/ica/utils.sh</files>
+            <onError>Continue</onError>
+            <timeout>1800</timeout>
+            <testParams>
+                <param>TC_Covered=NET-23</param>
+                <param>TEST_TYPE=synthetic</param>
+                <param>SYNTHETIC_NICS=7</param>
+                <param>Switch_Name=external</param>
+            </testParams>
         </test>
     </testCases>
 

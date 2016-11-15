@@ -25,10 +25,10 @@
 
 .Description
     This script will test Secure Boot features on a Generation 2 VM.
-    It also test the feature after performing a Live Migration of the VM or 
+    It also test the feature after performing a Live Migration of the VM or
     after a kernel update.
 
-    
+
     The .xml entry for this script could look like either of the
     following:
 
@@ -44,7 +44,7 @@
     to the following:
         <test>
             <testName>SecureBootBasic</testName>
-            <testScript>setupscripts\SecureBoot.ps1</testScript> 
+            <testScript>setupscripts\SecureBoot.ps1</testScript>
             <testparams>
                 <param>updateKernel=True</param>
                 <param>Migrate=True</param>
@@ -55,7 +55,7 @@
         </test>
         <test>
             <testName>SecureBootLiveMigration</testName>
-            <testScript>setupscripts\SecureBoot.ps1</testScript> 
+            <testScript>setupscripts\SecureBoot.ps1</testScript>
             <testparams>
                 <param>Migrate=True</param>
                 <param>TC_COVERED=SECBOOT-03</param>
@@ -65,7 +65,7 @@
         </test>
         <test>
             <testName>SecureBootUpdateKernel</testName>
-            <testScript>setupscripts\SecureBoot.ps1</testScript> 
+            <testScript>setupscripts\SecureBoot.ps1</testScript>
             <testparams>
                 <param>updateKernel=True</param>
                 <param>TC_COVERED=SECBOOT-05</param>
@@ -94,10 +94,10 @@ param(
     [String] $testParams
 )
 
-$sshKey 	= $null
-$ipv4 		= $null
+$sshKey     = $null
+$ipv4       = $null
 $TC_COVERED = $null
-$migrate 	= $False
+$migrate    = $False
 $updateKernel = $False
 
 #######################################################################
@@ -208,78 +208,78 @@ function MigrateVM([String] $vmName)
 
 function UpdateKernel([String]$conIpv4,[String]$sshKey)
 {
-	$cmdToVM = @"
-	
-		#!/bin/bash
-		
-		LinuxRelease()
-		{
-			DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
+    $cmdToVM = @"
 
-			case `$DISTRO in
-				*buntu*)
-					echo "UBUNTU";;
-				Fedora*)
-					echo "FEDORA";;
-				CentOS*)
-					echo "CENTOS";;
-				*SUSE*)
-					echo "SLES";;
-				Red*Hat*)
-					echo "RHEL";;
-				Debian*)
-					echo "DEBIAN";;
-				*)
-					LogMsg "Unknown Distro"
-					UpdateTestState "TestAborted"
-					UpdateSummary "Unknown Distro, test aborted"
-					exit 1
-					;; 
-			esac
-		}
-		
-		`$retVal=1
-		case `$(LinuxRelease) in
-			"SLES")
-				zypper --non-interactive install fcoe-utils
-				zypper --non-interactive install kernel-default*
-				`$retVal=$?
-			"UBUNTU")
-				
-			"RHEL")
-				yum -y update kernel
-				`$retVal=$?
-			*)
-				
-		esac
-		
-		exit `$retVal
+        #!/bin/bash
+
+        LinuxRelease()
+        {
+            DISTRO=``grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}``
+
+            case `$DISTRO in
+                *buntu*)
+                    echo "UBUNTU";;
+                Fedora*)
+                    echo "FEDORA";;
+                CentOS*)
+                    echo "CENTOS";;
+                *SUSE*)
+                    echo "SLES";;
+                *Red*Hat*)
+                    echo "RHEL";;
+                Debian*)
+                    echo "DEBIAN";;
+            esac
+        }
+
+        retVal=1
+        distro=``LinuxRelease``
+        case `$distro in
+            "SLES")
+                zypper ar -f http://download.opensuse.org/repositories/Kernel:/stable/standard/ kernel
+                zypper --gpg-auto-import-keys --non-interactive dup -r kernel
+                retVal=`$?
+            ;;
+            "UBUNTU")
+                apt-get update -y
+                apt-get dist-upgrade -y
+                retVal=`$?
+            ;;
+            "RHEL" | "CENTOS")
+                yum install -y kernel
+                retVal=`$?
+            ;;
+            *)
+            ;;
+        esac
+
+        exit `$retVal
 "@
 
-	$filename="UpdateKernel.sh"
-	
-	# check for file
-	if (Test-Path ".\${filename}")
-	{
-		Remove-Item ".\${filename}"
-	}
-	
-	Add-Content $filename "$cmdToVM"
-	
-	# send file
-	$retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-	Remove-Item ".\${filename}"
-		
-	# check the return Value of SendFileToVM
-	if (-not $retVal)
-	{
-		return $false
-	}
-	
-	# execute command
-	$retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-	
-	return $retVal
+    $filename="UpdateKernel.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+    Remove-Item ".\${filename}"
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal)
+    {
+        return $false
+    }
+
+    # execute command
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
 }
 
 ##########################################################################
@@ -323,7 +323,7 @@ foreach ($param in $params)
         "rootDIR"   { $rootDir = $fields[1].Trim() }
         "TC_COVERED"{ $TC_COVERED = $fields[1].Trim() }
         "Migrate"   { $migrate = [System.Convert]::ToBoolean($fields[1].Trim()) }
-		"updateKernel"   { $updateKernel = [System.Convert]::ToBoolean($fields[1].Trim()) }
+        "updateKernel"   { $updateKernel = [System.Convert]::ToBoolean($fields[1].Trim()) }
         default     {}  # unknown param - just ignore it
     }
 
@@ -437,83 +437,87 @@ if ($migrate)
 }
 
 if ($updateKernel)
-{	
-	$updateResult = UpdateKernel $ipv4 $sshKey
-	
-	if (-not $updateResult)
-	{
-		"Error: UpdateKernel failed"
-		return $updateResult
-	}
-	
-	$vm | Stop-VM
-	if (-not $?)
-	{
-	   Write-Output "Error: Unable to Shut Down VM" 
-	   return $False
-	}
-	
-	$timeout = 180
-	$sts = WaitForVMToStop $vm.Name $hvServer $timeout
-	if (-not $sts)
-	{
-	   Write-output "Error: WaitForVMToStop fail" 
-	   return $False
-	}
-	
-	$error.Clear()
-	Start-VM -Name $vm.Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-	if ($error.Count -gt 0)
-	{
-		"Error: unable to start the VM"
-		$error
-		return $False
-	}
-	
-	$sleepPeriod = 60 #seconds
-	Start-Sleep -s $sleepPeriod
+{
+    $updateResult = UpdateKernel $ipv4 $sshKey
 
-	#
-	# Check heartbeat
-	#
-	$heartbeat = Get-VMIntegrationService -VMName $vm.Name -Name "HeartBeat"
-	if ($heartbeat.Enabled)
-	{
-		Write-Output "$vmName heartbeat detected"
-	}
-	else
-	{
-		Write-Error "$vmName heartbeat not detected"
-		return $False
-	}
+    if (-not $updateResult)
+    {
+        "Error: UpdateKernel failed"
+        return $updateResult
+    }
+    else
+    {
+        "Success: Update kernel"
+    }
 
-	#
-	# Test network connectivity
-	#
-	$pingObject = New-Object System.Net.NetworkInformation.Ping
-	if (-not $pingObject)
-	{
-		"Error: Unable to create a ping object"
-	}
+    $vm | Stop-VM
+    if (-not $?)
+    {
+       Write-Output "Error: Unable to Shut Down VM"
+       return $False
+    }
 
-	$pingReply = $pingObject.Send($ipv4)
-	if ($pingReply.Status -ne "Success")
-	{
-		"Error: Cannot ping $vmName . Status = $($pingReply.Status)"
-		return $False
-	}
-	Write-Output "Ping reply - $($pingReply.Status)"
+    $timeout = 180
+    $sts = WaitForVMToStop $vm.Name $hvServer $timeout
+    if (-not $sts)
+    {
+       Write-output "Error: WaitForVMToStop fail"
+       return $False
+    }
 
-	#
-	# Test if SSH port is open
-	#
-	$portTest = TestPort $ipv4
-	if (-not $portTest)
-	{
-		"Error: SSH port not available"
-		return $False
-	}
-	Write-Output "SSH port opened - $portTest"
+    $error.Clear()
+    Start-VM -Name $vm.Name -ComputerName $hvServer -ErrorAction SilentlyContinue
+    if ($error.Count -gt 0)
+    {
+        "Error: unable to start the VM"
+        $error
+        return $False
+    }
+
+    $sleepPeriod = 60 #seconds
+    Start-Sleep -s $sleepPeriod
+
+    #
+    # Check heartbeat
+    #
+    $heartbeat = Get-VMIntegrationService -VMName $vm.Name -Name "HeartBeat"
+    if ($heartbeat.Enabled)
+    {
+        Write-Output "$vmName heartbeat detected"
+    }
+    else
+    {
+        Write-Error "$vmName heartbeat not detected"
+        return $False
+    }
+
+    #
+    # Test network connectivity
+    #
+    $pingObject = New-Object System.Net.NetworkInformation.Ping
+    if (-not $pingObject)
+    {
+        "Error: Unable to create a ping object"
+    }
+
+    $pingReply = $pingObject.Send($ipv4)
+    if ($pingReply.Status -ne "Success")
+    {
+        "Error: Cannot ping $vmName . Status = $($pingReply.Status)"
+        return $False
+    }
+    Write-Output "Ping reply - $($pingReply.Status)"
+
+    #
+    # Test if SSH port is open
+    #
+    $portTest = TestPort $ipv4
+    if (-not $portTest)
+    {
+        "Error: SSH port not available"
+        return $False
+    }
+    Write-Output "SSH port opened - $portTest"
 }
- 
+
 return $True

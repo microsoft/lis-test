@@ -142,7 +142,7 @@ ConfigSles()
                 LogMsg "Success: added the 'numa=off' value."
                 UpdateSummary "Success: added the 'numa=off' value."
             fi
-            grub2-mkconfig -o /boot/efi/EFI/sles12/grub.cfg
+            grub2-mkconfig -o /boot/efi/EFI/sles/grub.cfg
         else
             LogMsg "FAILED: Could not find VmGeneration variable."
             UpdateSummary "FAILED: Could not find VmGeneration variable."

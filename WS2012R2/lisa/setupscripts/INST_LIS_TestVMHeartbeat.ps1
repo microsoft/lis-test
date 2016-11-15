@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -143,7 +143,7 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
   }
 
 #
-# Test VM if its running.
+# Test if the VM is running
 #
 $vm = Get-VM $vmName -ComputerName $hvServer 
 $hvState = $vm.State
@@ -172,7 +172,7 @@ while ($heartbeatTimeout -gt 0)
 
 if ($heartbeatTimeout -eq 0)
 {
-    "Error: Test case timed out for VM to go to Running"
+    "Error: Test case timed out for VM to enter in the Running state"
     return $False
 }
 
@@ -182,7 +182,7 @@ if ($heartbeatTimeout -eq 0)
 $hb = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
 if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
 {
-    "Heartbeat detected"
+    "Info: Heartbeat detected"
 }
 else
 {
@@ -190,6 +190,7 @@ else
      Write-Output "Heartbeat not detected while the Heartbeat service is enabled" | Out-File -Append $summaryLog
      return $False
 }
+
 #
 #Disable the VMs heartbeat
 #
@@ -197,7 +198,7 @@ Disable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Hear
 $status = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
 if ($status.Enabled -eq $False -And $vm.Heartbeat -eq "Disabled")
 {
-    "Heartbeat disabled succussfully"
+    "Heartbeat disabled successfully"
 }
 else
 {
@@ -205,6 +206,7 @@ else
      Write-Output "Unable to disable the Heartbeat service" | Out-File -Append $summaryLog
      return $False
 }
+
 #
 #Check the VMs heartbeat again
 #
@@ -218,7 +220,7 @@ if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
 else
 {
     "Test Failed: VM heartbeat not detected again!"
-     Write-Output "Heartbeat not detected after re-enabling the Heartbeat service" | Out-File -Append $summaryLog
+     Write-Output "Error: Heartbeat not detected after re-enabling the Heartbeat service" | Out-File -Append $summaryLog
      $retVal = $True   
 }
 

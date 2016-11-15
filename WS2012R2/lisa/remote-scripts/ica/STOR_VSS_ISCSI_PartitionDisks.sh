@@ -239,8 +239,8 @@ do
         UpdateSummary " Partitioning disk $driveName : Failed"
         exit 1
     else
-        LogMsg "Partitioning disk $driveName : Sucsess"
-        UpdateSummary " Partitioning disk $driveName : Sucsess"
+        LogMsg "Partitioning disk $driveName : Success"
+        UpdateSummary " Partitioning disk $driveName : Success"
     fi
 
    sleep 1
@@ -254,8 +254,8 @@ do
             UpdateSummary " Creating FileSystem $filesys on disk $driveName : Failed"
             exit 1
         else
-            LogMsg "Creating FileSystem $FILESYS on disk  $driveName : Sucsess"
-            UpdateSummary " Creating FileSystem $FILESYS on disk $driveName : Sucsess"
+            LogMsg "Creating FileSystem $FILESYS on disk  $driveName : Success"
+            UpdateSummary " Creating FileSystem $FILESYS on disk $driveName : Success"
         fi
 
    sleep 1
@@ -279,8 +279,8 @@ do
        else
        LogMsg "mounting disk ${driveName}1 on ${MountName}"
        LogMsg "mounting disk ${driveName}2 on ${MountName1}"
-           UpdateSummary " Mounting disk ${driveName}1 : Sucsess"
-           UpdateSummary " Mounting disk ${driveName}2 : Sucsess"
+           UpdateSummary " Mounting disk ${driveName}1 : Success"
+           UpdateSummary " Mounting disk ${driveName}2 : Success"
        fi
 fi
 done
