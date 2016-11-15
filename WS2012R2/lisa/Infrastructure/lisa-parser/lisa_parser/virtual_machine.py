@@ -65,7 +65,10 @@ class VirtualMachine(object):
 
     def update_from_kvp(self, kvp_fields, stop_vm):
         if not self.get_status():
-            self.revert_snapshot()
+            try:
+                self.revert_snapshot()
+            except RuntimeError:
+                logger.warning("Unable to restore VM snapshot")
             self.start()
             logger.info('Starting %s - Waiting for it to boot', self.vm_name)
             if not self.has_booted():
