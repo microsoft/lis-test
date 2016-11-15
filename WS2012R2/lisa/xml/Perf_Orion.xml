@@ -42,7 +42,7 @@
                 <!--To be used PassThrough on SSD -->
                 <param>SCSI=0,0,PassThrough,3</param> 
                 <param>TOTAL_DISKS=1</param> 
-                <param>TEST_DEVICE1=/dev/sdb</param>  
+                <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>FILE_NAME=orion_linux_x86-64.gz</param>
                 <param>ORION_SCENARIO_FILE=orion_config</param>
             </testParams> 
