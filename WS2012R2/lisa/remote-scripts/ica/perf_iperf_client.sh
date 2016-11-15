@@ -23,7 +23,7 @@
 
 #######################################################################
 #
-# perf_iperf_panorama_client.sh
+# perf_iperf_client.sh
 #
 # Description:
 #     For the test to run you have to place the iperf tool package in the
@@ -41,6 +41,8 @@
 #     TEST_SIGNAL_FILE: the signal file send by client side to sync up the number of test connections
 #     TEST_RUN_LOG_FOLDER: the log folder name. sar log and top log will be saved in this folder for further analysis
 #     IPERF3_TEST_CONNECTION_POOL: the list of iperf3 connections need to be tested
+#	  BANDWIDTH: bandwith used
+#	  IPERF3_BUFFER: buffer size used for testing
 #
 #######################################################################
 
@@ -149,7 +151,7 @@ if [ "${STATIC_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
 fi
 
 if [ "${NETMASK:="UNDEFINED"}" = "UNDEFINED" ]; then
-    NETMASK="255.255.255.2"
+    NETMASK="255.255.255.0"
     msg="Error: the NETMASK test parameter is missing, default value will be used: 255.255.255.0"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
@@ -170,13 +172,13 @@ if [ "${IPERF3_PROTOCOL:="UNDEFINED"}" = "UNDEFINED" ]; then
 fi
 
 if [ "${IPERF3_BUFFER:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Info: no IPERF3_BUFFER was specified, assuming default TCP"
+    msg="Info: no IPERF3_BUFFER was specified, assuming default buffer size."
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
 fi
 
 if [ "${BANDWIDTH:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Info: no BANDWIDTH was specified, assuming default TCP"
+    msg="Info: no BANDWIDTH was specified, assuming default value."
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
 fi
@@ -655,7 +657,7 @@ done
 sleep 30
 
 LogMsg "Copy files to server: ${STATIC_IP2}"
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_panorama_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
     msg="Error: Unable to copy test scripts to target server machine: ${STATIC_IP2}. scp command failed."
     LogMsg "${msg}"
@@ -672,7 +674,7 @@ scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/utils.sh
 # Start iPerf in server mode on the Target server side
 #
 LogMsg "Starting iPerf in server mode on ${STATIC_IP2}"
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo '~/perf_iperf_panorama_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo '~/perf_iperf_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf3 server scripts on the target server machine"
     LogMsg "${msg}"
@@ -744,13 +746,13 @@ do
 
     while [ $number_of_connections -gt $CONNECTIONS_PER_IPERF3 ]; do
         number_of_connections=$(($number_of_connections-$CONNECTIONS_PER_IPERF3))
-        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} ${IPERF3_BUFFER+-l ${IPERF3_BUFFER}} -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
         port=$(($port + 1))
     done
 
     if [ $number_of_connections -gt 0 ]
     then
-        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} ${IPERF3_BUFFER+-l ${IPERF3_BUFFER}} -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 ${IPERF3_PROTOCOL+-u} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
     fi
 
     sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
@@ -776,8 +778,8 @@ fi
 # Test Finished. Collect logs, zip client side logs
 sleep 60
 
-zip -r iPerf3_Client_Logs.zip ~/${TEST_RUN_LOG_FOLDER}
-#zip -r iPerf3_Client_Logs.zip . -i ${TEST_RUN_LOG_FOLDER}/*
+#zip -r iPerf3_Client_Logs.zip ~/${TEST_RUN_LOG_FOLDER}
+zip -r iPerf3_Client_Logs.zip . -i ${TEST_RUN_LOG_FOLDER}/*
 
 # Get logs from server side
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'if [ -f iPerf3_Server_Logs.zip  ]; then rm -f iPerf3_Server_Logs.zip; fi' | at now"
@@ -790,6 +792,7 @@ UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"
 UpdateSummary "Test Protocol: ${IPERF3_PROTOCOL}"
 UpdateSummary "Packet size: $avg_pkt_size"
+UpdateSummary "IPERF3_BUFFER: ${IPERF3_BUFFER}"
 
 
 #

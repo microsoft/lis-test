@@ -23,7 +23,7 @@
 
 #######################################################################
 #
-# perf_iperf_panorama_server.sh
+# perf_iperf_server.sh
 #
 # Description:
 #     For the test to run you have to place the iperf3 tool package in the
