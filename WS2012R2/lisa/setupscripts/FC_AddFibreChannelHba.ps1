@@ -141,9 +141,15 @@ if (($WWNN -ne $null) -and ($WWPN -ne $null)) {
     $FCList = Get-VMFibreChannelHba -VMName (Get-VM).name -ComputerName $hvServer
     foreach ($fcNIC in $FCList) {
         if ($WWPN -contains $fcNIC.WorldWidePortNameSetA) {
-    		$usedVM = $fcNIC.VMName
-    		"Error: Specified WWPN is being used on $usedVM"
-    		return $retVal
+            $usedVM = $fcNIC.VMName
+			$state = (Get-VM -name $usedVM -ComputerName $hvServer).State
+
+			if ($state -ne "off") {
+				Write-Host "Error: Specified WWPN is being used on $usedVM" -foregroundcolor "red"
+ 				return $retVal
+			} else {
+				Write-Host "Warning: Specified WWPN is being used on $usedVM which is currently in an off state." -foregroundcolor "yellow"
+			}
     	}
     }
     if ($WWPN.Count -eq 2) {
