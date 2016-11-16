@@ -28,6 +28,8 @@ import csv
 import fileinput
 import zipfile
 import shutil
+import decimal
+
 
 try:
     import xml.etree.cElementTree as ElementTree
@@ -261,6 +263,7 @@ class BaseLogsReader(object):
         self.log_path = self.process_log_path(log_path)
         self.headers = None
         self.log_matcher = None
+        self.log_base_path = log_path
 
     def process_log_path(self, log_path):
         """
@@ -366,16 +369,13 @@ class FIOLogsReader(BaseLogsReader):
     CUNIT = {'usec': 1,
              'msec': 1000,
              'sec': 1000000}
-    CSIZE = {'K': 1,
-             'M': 1024,
-             'G': 1048576}
 
     def __init__(self, log_path=None):
         super(FIOLogsReader, self).__init__(log_path)
         self.headers = ['rand-read:', 'rand-read: latency',
                         'rand-write: latency', 'seq-write: latency',
                         'rand-write:', 'seq-write:', 'seq-read:',
-                        'seq-read: latency', 'QDepth', 'BlockSize_KB']
+                        'seq-read: latency', 'QDepth']
         self.log_matcher = 'FIOLog-([0-9]+)q'
 
     def collect_data(self, f_match, log_file, log_dict):
@@ -391,27 +391,19 @@ class FIOLogsReader(BaseLogsReader):
             f_lines = fl.readlines()
             for key in log_dict:
                 if not log_dict[key]:
-                    if 'BlockSize' in key:
-                        block_size = re.match(
-                            '.+rw=read, bs=\s*([0-9])([A-Z])-', f_lines[0])
-                        um = block_size.group(2).strip()
-                        log_dict[key] = \
-                            int(block_size.group(1).strip()) * self.CSIZE[um]
                     for x in range(0, len(f_lines)):
                         if all(markers in f_lines[x] for markers in
                                [key.split(':')[0], 'pid=']):
                             if 'latency' in key:
                                 lat = re.match(
-                                    '\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)',
+                                    '\s*lat\s*\(([a-z]+)\).+avg=([0-9.]+)',
                                     f_lines[x + 4])
                                 if lat:
                                     unit = lat.group(1).strip()
                                     log_dict[key] = float(
                                         lat.group(2).strip()) * self.CUNIT[unit]
-                                else:
-                                    log_dict[key] = 0
                             else:
-                                iops = re.match('.+iops=\s*([0-9. ]+)',
+                                iops = re.match('.+iops=([0-9. ]+)',
                                                 f_lines[x + 1])
                                 if iops:
                                     log_dict[key] = iops.group(1).strip()
@@ -503,4 +495,108 @@ class NTTTCPLogsReader(BaseLogsReader):
                         logger.warning('Could not find average_packet size in '
                                        'eth_report.log')
                         log_dict[key] = 0
+        return log_dict
+
+
+class IPERFLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing iPerf log files e.g.
+    XXX-iperf3.log
+    """
+    # conversion unit dict reference for throughput to 'Gbits'
+    BUNIT = {'Gbits': 1.0,
+             'Mbits': 1.0/2 ** 10,
+             'Kbits': 1.0/2 ** 20,
+             'bits': 1.0/2 ** 30}
+
+    def __init__(self, log_path=None):
+        super(IPERFLogsReader, self).__init__(log_path)
+        self.headers = ['NumberOfConnections', 'TxThroughput_Gbps',
+                        'RxThroughput_Gbps', 'DatagramLoss',
+                        'PacketSize_KBytes', 'IPVersion', 'Protocol',
+                        'SendBufSize_KBytes']
+        self.log_matcher = '([0-9]+)-iperf3.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for iPerf test case.
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['NumberOfConnections'] = int(f_match.group(1))
+        summary_log = [log for log in os.listdir(self.log_base_path)
+                       if '_summary.log' in log][0]
+        summary_path = os.path.join(self.log_base_path, summary_log)
+        log_dict['TxThroughput_Gbps'] = 0
+        log_dict['RxThroughput_Gbps'] = 0
+        log_dict['IPVersion'] = 'IPv4'
+        log_dict['Protocol'] = 'TCP'
+        with open(summary_path, 'r') as f:
+            f_lines = f.readlines()
+            for x in xrange(0, len(f_lines)):
+                ipversion = re.match('Test covers (.+)', f_lines[x])
+                if ipversion:
+                    log_dict['IPVersion'] = ipversion.group(1).strip()
+                    continue
+                protocol = re.match('Test Protocol: (.+)', f_lines[x])
+                if protocol:
+                    log_dict['Protocol'] = protocol.group(1).strip()
+                    continue
+                pkg_size = re.match('Packet size: (.+)', f_lines[x])
+                if pkg_size:
+                    log_dict['PacketSize_KBytes'] = float(
+                        pkg_size.group(1).strip())
+                    break
+        lost_datagrams = 0
+        total_datagrams = 0
+        with open(log_file, 'r') as fl:
+            f_lines = fl.readlines()
+            read_client = False
+            read_server = False
+            for x in xrange(0, len(f_lines)):
+                if not log_dict.get('SendBufSize_KBytes', None):
+                    iperf_buffer = re.match('Process.+iperf3.+-l\s*'
+                                            '([0-9]).+started', f_lines[x])
+                    log_dict['SendBufSize_KBytes'] = int(
+                        iperf_buffer.group(1).strip())
+                if 'Connecting to host' in f_lines[x]:
+                    read_client = True
+                    read_server = False
+                elif 'Server output:' in f_lines[x]:
+                    read_server = True
+                    read_client = False
+                if log_dict['NumberOfConnections'] == 1:
+                    iperf_values = re.match('\[\s*[0-9]\]\s*0[.]00-60[.]00\s*'
+                                            'sec\s*([0-9.]+)\s*([A-Za-z]+)\s*'
+                                            '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
+                                            '([0-9.]+)\s*([A-Za-z]+)\s*'
+                                            '([0-9]+)/([0-9]+)\s*'
+                                            '\(([a-z\-0-9.]+)%\)', f_lines[x])
+                else:
+                    iperf_values = re.match('\[SUM\]\s*0[.]00-60[.]00\s*sec\s*'
+                                            '([0-9.]+)\s*([A-Za-z]+)\s*'
+                                            '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
+                                            '([0-9.]+)\s*([A-Za-z]+)\s*'
+                                            '([0-9]+)/([0-9]+)\s*'
+                                            '\(([a-z\-+0-9.]+)%\)', f_lines[x])
+                if iperf_values is not None:
+                    key = None
+                    if read_client:
+                        key = 'TxThroughput_Gbps'
+                        lost_datagrams += float(iperf_values.group(7).strip())
+                        total_datagrams += float(iperf_values.group(8).strip())
+                    elif read_server:
+                        key = 'RxThroughput_Gbps'
+                    digit_3 = decimal.Decimal(10) ** -3
+                    log_dict[key] += decimal.Decimal(
+                        float(iperf_values.group(3).strip()) *
+                        self.BUNIT[iperf_values.group(4).strip()]
+                    ).quantize(digit_3)
+        try:
+            log_dict['DatagramLoss'] = round(
+                lost_datagrams / total_datagrams * 100, 2)
+        except ZeroDivisionError:
+            log_dict['DatagramLoss'] = 0
         return log_dict
