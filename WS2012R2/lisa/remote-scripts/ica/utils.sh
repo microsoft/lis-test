@@ -325,9 +325,9 @@ GetSynthNetInterfaces()
     if [ -d '/sys/devices' ]; then
             while IFS= read -d $'\0' -r path ; do
                     __SYNTH_NET_ADAPTERS_PATHS=("${__SYNTH_NET_ADAPTERS_PATHS[@]}" "$path")
-            done < <(find /sys/devices -name $check -a -path '*vmbus*' -print0)
+            done < <(find /sys/devices -name $check -a -ipath '*vmbus*' -print0)
     else
-            LogMsg "Cannot find Synthetic network interfaces. No /sys/devices directory."
+            LogMsg "Cannot find synthetic network interfaces. No /sys/devices directory."
             return 1
     fi
 
@@ -356,8 +356,6 @@ GetSynthNetInterfaces()
     # Everything OK
     return 0
 }
-
-
 
 # Function to get all legacy network interfaces
 # Sets the $LEGACY_NET_INTERFACES array elements to an interface name suitable for ifconfig/ip commands.
@@ -402,9 +400,7 @@ GetLegacyNetInterfaces()
 	return 0
 }
 
-
 # Validate that $1 is an IPv4 address
-
 CheckIP()
 {
 	if [ 1 -ne $# ]; then
@@ -431,7 +427,6 @@ CheckIP()
 
 }
 
-
 # Validate that $1 is an IPv6 address
 CheckIPV6()
 {
@@ -454,7 +449,6 @@ CheckIPV6()
 }
 
 # Check that $1 is a MAC address
-
 CheckMAC()
 {
 
