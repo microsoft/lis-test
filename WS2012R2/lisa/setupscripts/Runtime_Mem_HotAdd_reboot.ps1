@@ -188,7 +188,7 @@ if (-not $vm1){
 }
 
 # Get memory stats from vm1
-start-sleep -s 30
+start-sleep -s 60
 $sleepPeriod = 60
 
 # Get VM1 memory from host and guest

@@ -439,12 +439,12 @@ if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
 }
 
 if ( ($vm1AfterIncrease - $vm1AfterDecrease) -le 1000000){
-    "Error: Guest reports that memory value hasn't decreased enough!"
+    "Error: Guest reports that memory value hasn't increased enough!"
     "Memory stats after $vm1Name memory was changed "
     "  ${vmName}: Initial Memory - $vm1AfterDecrease KB :: After setting new value - $vm1AfterIncrease KB"
     return $false 
 }
-"Memory stats after $vmName memory was decreased by 2GB "
+"Memory stats after $vmName memory was increased by 1GB "
 "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
 
 
