@@ -90,6 +90,7 @@
 			<testName>FC_disks_multipath_detection</testName>
 			<testScript>setupscripts\FC_MultipathDetection.ps1</testScript>
 			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
             <files>remote-scripts\ica\utils.sh</files>
 			<timeout>3600</timeout>
 			<testParams>
