@@ -83,6 +83,7 @@ function ConfigureInterfaces
 		LogMsg "Info : Configuring interface ${IFACE}"
 		UpdateSummary "Info : Configuring interface ${IFACE}"
 		AddNIC $IFACE
+		sleep 5
 		if [ $? -eq 0 ]; then
 			ip_address=$(ip addr show $IFACE | grep "inet\b" | grep -v '127.0.0.1' | awk '{print $2}' | cut -d/ -f1)
 			msg="Info : Successfully set IP address - ${ip_address}"
