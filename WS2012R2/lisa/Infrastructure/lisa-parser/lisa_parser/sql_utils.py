@@ -142,7 +142,7 @@ def select_row(cursor, row_dict):
         if type(col_value) == str:
             filters = ' '.join([filters, col_name, '=', "'" + col_value + "'"])
         else:
-            filters = ' '.join([filters, '=', str(col_value)])
+            filters = ' '.join([filters, col_name, '=', str(col_value)])
         filters = ' '.join([filters, 'AND'])
 
     table_name = '"' + env.str('TableName') + '"'
