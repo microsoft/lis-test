@@ -26,7 +26,13 @@ function CheckGateway
 	# Get interfaces that have default gateway set
 	gw_interf=($(route -n | grep 'UG[ \t]' | awk '{print $8}'))
 
-	[[ ${gw_interf[*]} =~ ${1} ]]
+	for if_gw in ${gw_interf[@]}; do
+		if [[ ${if_gw} == ${1} ]]; then
+			return 0
+		fi
+	done
+
+	return 1
 }
 
 function AddGateway
