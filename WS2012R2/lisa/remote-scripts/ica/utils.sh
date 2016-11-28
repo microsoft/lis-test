@@ -300,13 +300,12 @@ GetSynthNetInterfaces()
 	case $DISTRO in
         redhat_5)
             check="net:*"
-            extract_ifname=`echo "${__SYNTH_NET_ADAPTERS_PATHS[$__index]}" | awk -F: '{print $2}'`
             ;;
         *)
             check="net"
-            extract_ifname=$(ls "${__SYNTH_NET_ADAPTERS_PATHS[$__index]}" | head -n 1)
             ;;
     esac
+
     extraction() {
         case $DISTRO in
         redhat_5)
@@ -315,7 +314,7 @@ GetSynthNetInterfaces()
         *)
              SYNTH_NET_INTERFACES[$1]=$(ls "${__SYNTH_NET_ADAPTERS_PATHS[$1]}" | head -n 1)
             ;;
-    esac
+    	esac
     }
 
 
@@ -369,7 +368,7 @@ GetLegacyNetInterfaces()
 	if [ -d '/sys/devices' ]; then
 		while IFS= read -d $'\0' -r path ; do
 			__LEGACY_NET_ADAPTERS_PATHS=("${__LEGACY_NET_ADAPTERS_PATHS[@]}" "$path")
-		done < <(find /sys/devices -name net -a ! -path '*vmbus*' -print0)
+		done < <(find /sys/devices -name net -a ! -path '*VMBUS*' -print0)
 	else
 		LogMsg "Cannot find Legacy network interfaces. No /sys/devices directory."
 		return 1
@@ -2018,7 +2017,7 @@ function is_suse {
     fi
 
     [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ] || \
-    [ "$os_VENDOR" = "SUSE" ] 
+    [ "$os_VENDOR" = "SUSE" ]
 }
 
 #######################################################################
