@@ -685,8 +685,17 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             if ( $vm.hardware.isCluster -eq "True") {
                 $clusterDir = Get-ClusterSharedVolume
                 $vhdDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
-            }else {          
-                $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            }else {
+                if($xmlData.Config.global.VhdPath){
+                    $vhdDir = $xmlData.Config.global.VhdPath
+                    if ( -not (Test-Path $vhdDir)){
+                        Write-host -f red "Error: Path $vhdDir given as parameter does not exist"
+                        return $false
+                    }
+                }
+                else{
+                    $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+                }
             }
             $dstPath = Join-Path $vhdDir "${vmName}${extension}"
             $dstDrive = $dstPath.Substring(0,1)

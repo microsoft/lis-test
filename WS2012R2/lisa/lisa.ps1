@@ -214,6 +214,7 @@ param([string] $cmdVerb,
       [switch] $examples,
       [string] $CLIlogDir,
       [string] $CLImageStorDir,
+      [string] $VhdPath,
       [string] $os,
       [switch] $help,
       [int]    $dbgLevel=0
@@ -298,22 +299,26 @@ function Usage()
 
     write-host -f Cyan "`nLISA version $lisaVersion`r`n"
     write-host "Usage: lisa cmdVerb cmdNoun [options]`r`n"
-    write-host "    cmdVerb  cmdNoun      options     Description"
-    write-host "    -------  -----------  ----------  -------------------------------------"
-    write-host "    help                              : Display this usage message"
-    write-host "                          -examples   : Display usage examples"
-    write-host "    validate xmlFilename              : Validate the .xml file"                   
-    write-host "                          -datachecks : Perform data checks on the Hyper-V server"
-    write-host "    run      xmlFilename              : Run tests on VMs defined in the xmlFilename"
-    write-host "                          -eMail      : Send an e-mail after tests complete"
-    write-host "                          -VMs        : Comma separated list of VM names to run tests"
-    write-host "                          -vmName     : Name of a user supplied VM"
-    write-host "                          -hvServer   : Name (or IP) of HyperV server hosting user supplied VM"
-    write-host "                          -ipv4       : IP address of a user supplied VM"
-    write-host "                          -sshKey     : The SSH key of a user supplied VM"
-    write-host "                          -suite      : Name of test suite to run on user supplied VM"
-    write-host "                          -testParams : Quoted string of semicolon separated parameters"
-    write-host "                                         -testParams `"a=1;b='x y';c=3`""
+    write-host "    cmdVerb  cmdNoun      options        Description"
+    write-host "    -------  -----------  ----------     -------------------------------------"
+    write-host "    help                                 : Display this usage message"
+    write-host "                          -examples      : Display usage examples"
+    write-host "    validate xmlFilename                 : Validate the .xml file"
+    write-host "                          -datachecks    : Perform data checks on the Hyper-V server"
+    write-host "    run      xmlFilename                 : Run tests on VMs defined in the xmlFilename"
+    write-host "                          -eMail         : Send an e-mail after tests complete"
+    write-host "                          -VMs           : Comma separated list of VM names to run tests"
+    write-host "                          -vmName        : Name of a user supplied VM"
+    write-host "                          -hvServer      : Name (or IP) of HyperV server hosting user supplied VM"
+    write-host "                          -ipv4          : IP address of a user supplied VM"
+    write-host "                          -sshKey        : The SSH key of a user supplied VM"
+    write-host "                          -suite         : Name of test suite to run on user supplied VM"
+    write-host "                          -testParams    : Quoted string of semicolon separated parameters"
+    write-host "                                           -testParams `"a=1;b='x y';c=3`""
+    write-host "                          -VhdPath       : Global parameter representing the path of the directory in"
+    write-host "                                           which the VHD will be copied when CreateVMs script is used"
+    write-host "                          -CLImageStorDir: Global parameter representing the directory of the VHD"
+    write-host "                                           file used to create a VM with CreateVMs"
     write-host
     write-host "  Common options"
     write-host "         -dbgLevel   : Specifies the level of debug messages"
@@ -354,6 +359,7 @@ function    DumpParams()
     LogMsg 0 "Info : examples:   $examples"
     LogMsg 0 "Info : CLIlogDir:  $CLIlogDir"
     LogMsg 0 "Info : CLImageStorDir: $CLImageStorDir"
+    LogMsg 0 "Info : VhdPath:    $VhdPath"
     LogMsg 0 "Info : os:         $os"
     LogMsg 0 "Info : dbgLevel:   $dbgLevel"
 }
