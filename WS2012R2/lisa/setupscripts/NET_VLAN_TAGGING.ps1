@@ -103,7 +103,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 Set-PSDebug -Strict
 
 # function which creates an /etc/sysconfig/network-scripts/ifcfg-ethX file for interface ethX
-function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$bootproto,[String]$MacAddr,[String]$staticIP,[String]$netmask)
+function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr,[String]$staticIP,[String]$netmask)
 {
 
     # Add delimiter if needed
@@ -145,7 +145,7 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$bootpro
         fi
 
         echo CreateIfupConfigFile: interface `$__sys_interface >> /root/NET_VLAN_TAGGING.log 2>&1
-        CreateIfupConfigFile `$__sys_interface $bootproto $staticIP $netmask >> /root/NET_VLAN_TAGGING.log 2>&1
+        CreateIfupConfigFile `$__sys_interface 'static' $staticIP $netmask >> /root/NET_VLAN_TAGGING.log 2>&1
         __retVal=`$?
         echo CreateIfupConfigFile: returned `$__retVal >> /root/NET_VLAN_TAGGING.log 2>&1
         exit `$__retVal
@@ -310,26 +310,14 @@ $sshKey = $null
 # IP Address of first VM
 $ipv4 = $null
 
-# IP Address of second VM
-$ipv4VM2 = $null
-
 # Name of second VM
 $vm2Name = $null
-
-# name of the switch to which to connect
-$netAdapterName = $null
 
 # vlan id set on packets originating from VM NIC
 $vlanId = $null
 
 # wrong vlan id used to make sure VMs in different VLANs cannot talk to each other
 $badVlanId = $null
-
-# VM1 IPv4 Address
-$vm1StaticIP = $null
-
-# VM2 IPv4 Address
-$vm2StaticIP = $null
 
 # Netmask used by both VMs
 $netmask = $null
@@ -344,19 +332,14 @@ $networkName = $null
 $snapshotParam = $null
 
 #IP assigned to test interfaces
-$tempipv4VM1 = $null
 $testipv4VM1 = $null
-$testipv6VM1 = $null
-
-$tempipv4VM2 = $null
 $testipv4VM2 = $null
+
+$testipv6VM1 = $null
 $testipv6VM2 = $null
 
 #Test IPv6
 $TestIPV6 = $null
-
-#ifcfg bootproto
-$bootproto = $null
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
@@ -440,8 +423,7 @@ foreach ($p in $params)
     "ipv4"    { $ipv4    = $fields[1].Trim() }
     "VLAN_ID" { $vlanId = $fields[1].Trim() }
     "TestIPV6" { $TestIPV6 = $fields[1].Trim() }
-    "STATIC_IP" { $vm1StaticIP = $fields[1].Trim() }
-    "STATIC_IP2" { $vm2StaticIP = $fields[1].Trim() }
+    "STATIC_IP" { $privateIP = $fields[1].Trim() }
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
@@ -663,12 +645,9 @@ $scriptAddedNIC = $true
 
 # Set the IPs that will be tested
 "Tests VLAN tagging"
-$privateIP = "10.10.10.101"
 $testipv4VM1 = GenerateIpv4 $privateIP
 $testipv4VM2 = GenerateIpv4 $privateIP $testipv4VM1
 
-$bootproto = "static"
-$NETMASK="255.255.255.0"
 if ( $TestIPV6 -eq "yes" ) {
     $testipv6VM1 = "fd00::4:10"
     $testipv6VM2 = "fd00::4:100"
@@ -729,7 +708,7 @@ if (-not $retVal)
 
 "Configuring test interface (${vm1MacAddress}) on $vmName (${ipv4}) "
 # send vlan ifcfg file to each VM
-$retVal = CreateInterfaceConfig $ipv4 $sshKey $bootproto $vm1MacAddress $testipv4VM1 $netmask
+$retVal = CreateInterfaceConfig $ipv4 $sshKey $vm1MacAddress $testipv4VM1 $netmask
 if (-not $retVal)
 {
     "Failed to create Interface-File on vm $ipv4 for interface with mac $vm1MacAddress, by setting a static IP of $testipv4VM1 netmask $netmask"
@@ -742,7 +721,7 @@ if ( $TestIPV6 -eq "yes" ) {
 "Successfully configured interface"
 
 "Configuring test interface (${vm2MacAddress}) on $vm2Name (${vm2ipv4}) "
-$retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $bootproto $vm2MacAddress $testipv4VM2 $netmask
+$retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $testipv4VM2 $netmask
 if (-not $retVal)
 {
     "Failed to create Vlan Interface on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $testipv4VM2 netmask $netmask"
