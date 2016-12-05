@@ -75,7 +75,7 @@ permissions and limitations under the License.
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-02</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
@@ -90,7 +90,7 @@ permissions and limitations under the License.
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,Internal,Internal,001600112200</param>
+                <param>NIC=NetworkAdapter,Internal,Internal</param>
                 <param>TC_COVERED=NET-03</param>
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
@@ -107,7 +107,7 @@ permissions and limitations under the License.
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-04</param>
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
@@ -127,8 +127,8 @@ permissions and limitations under the License.
             </setupScript>
             <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>NIC=NetworkAdapter,External,External,001600112201</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-05</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
@@ -146,8 +146,8 @@ permissions and limitations under the License.
                 <file>setupscripts\ChangeCPU.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>NIC=LegacyNetworkAdapter,External,External,001600112201</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>NIC=LegacyNetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-06</param>
                 <param>REMOTE_SERVER=8.8.8.8</param>
                 <param>LO_IGNORE=yes</param>
@@ -186,7 +186,7 @@ permissions and limitations under the License.
             <testScript>NET_PROMISC.sh</testScript>
             <files>remote-scripts/ica/NET_PROMISC.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-08</param>
                 <param>REMOTE_SERVER=8.8.8.8</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
@@ -209,8 +209,8 @@ permissions and limitations under the License.
                 <file>setupScripts\NET_SWITCH_NIC_MAC.ps1</file>
             </pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>SWITCH=NetworkAdapter,Internal,Internal,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>SWITCH=NetworkAdapter,Internal,Internal</param>
                 <param>TC_COVERED=NET-09</param>
             </testParams>
             <onError>Continue</onError>
@@ -228,8 +228,8 @@ permissions and limitations under the License.
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>SWITCH=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>SWITCH=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-09</param>
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
@@ -253,7 +253,7 @@ permissions and limitations under the License.
             </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testparams>
-                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-10</param>
                 <param>STATIC_IP=10.10.10.10</param>
                 <param>STATIC_IP2=10.10.10.20</param>
@@ -276,7 +276,7 @@ permissions and limitations under the License.
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,None,None,001600112200</param>
+                <param>NIC=NetworkAdapter,None,None</param>
                 <param>TC_COVERED=NET-11</param>
             </testParams>
             <testScript>NET_OPERSTATE.sh</testScript>
@@ -316,7 +316,7 @@ permissions and limitations under the License.
             </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-13</param>
                 <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
@@ -336,7 +336,7 @@ permissions and limitations under the License.
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-14</param>
                 <!-- <param>STATIC_IP=10.10.10.1</param> -->
                 <!-- <param>STATIC_IP2=10.10.10.2</param> -->
@@ -356,7 +356,7 @@ permissions and limitations under the License.
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-15</param>
                 <!-- <param>STATIC_IP=10.10.10.1</param> -->
                 <!-- <param>STATIC_IP2=10.10.10.2</param> -->
@@ -375,7 +375,7 @@ permissions and limitations under the License.
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
                 <param>TC_COVERED=NET-24</param>
-                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>STATIC_IP1=10.10.10.10</param>
                 <param>STATIC_IP2=10.10.10.20</param>
                 <param>NETMASK=255.255.255.0</param>
@@ -409,7 +409,7 @@ permissions and limitations under the License.
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,None,None,001600112200</param>
+                <param>NIC=NetworkAdapter,None,None</param>
                 <param>TC_COVERED=NET-20</param>
             </testParams>
             <testScript>NET_ETHTOOLS.sh</testScript>
