@@ -336,11 +336,8 @@ permissions and limitations under the License.
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-14</param>
-                <!-- <param>STATIC_IP=10.10.10.1</param> -->
-                <!-- <param>STATIC_IP2=10.10.10.2</param> -->
-                <!-- <param>NETMASK=255.255.254.0</param> -->
                 <param>VLAN_ID=2</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
