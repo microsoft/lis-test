@@ -25,7 +25,7 @@
 # Description:
 #     This script was created to automate the testing of a Linux
 #     Integration services. This script detects the CDROM
-#     and performs LIS installation.
+#     and performs various LIS installation methods.
 #
 ################################################################
 
@@ -63,13 +63,12 @@ else
     insmod /lib/modules/`uname -r`/kernel/drivers/ata/ata_piix.ko
     sts=$?
     if [ 0 -ne ${sts} ]; then
-        UpdateSummary "Unable to load ata_piix module"
-        UpdateTestState "TestFailed"
-        exit 1
+        UpdateSummary "Warning: Unable to load the ata_piix module!"
     else
         UpdateSummary "ata_piix module loaded inside the VM"
     fi
 fi
+
 umount /mnt
 sleep 1
 UpdateSummary "Mount the CDROM"
@@ -84,7 +83,7 @@ else
     UpdateSummary  "CDROM is mounted successfully inside the VM"
 fi
 
-UpdateSummary "Perform read operations on the CDROM"
+UpdateSummary "Info: Perform read operations on the CDROM"
 cd /mnt/
 
 if [ "$first_install" == "" ];then
@@ -117,7 +116,7 @@ if [ 0 -eq ${sts} ]; then
     exit 1
 fi
 
-#search for error
+#search for errors
 cat ~/LIS_log_scenario_$scenario.log | grep -i "Error"
 sts=$?
 if [ 0 -eq ${sts} ]; then
@@ -146,7 +145,7 @@ if [ 0 -ne ${sts} ]; then
     UpdateTestState "TestFailed"
     exit 1
 else
-    UpdateSummary  "CDROM unmounted successfully"
+    UpdateSummary  "Info: CDROM unmounted successfully"
 fi
 UpdateSummary "CDROM mount & LIS ${action} returned no errors"
 
