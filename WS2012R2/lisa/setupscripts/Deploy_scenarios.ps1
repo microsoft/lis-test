@@ -22,7 +22,7 @@
 <#
 .Synopsis
 
-    Test different scenarios for LIS CDs
+    Test different scenarios for LIS installation
    .Parameter vmName
     Name of the VM.
     .Parameter hvServer
@@ -63,7 +63,7 @@ function enable_gsi($vmName, $hvServer){
 }
 
 function get_logs(){
-    # Get LOGS
+    # Get test case log files
     GetfileFromVm $ipv4 $sshkey "/root/summary.log" $logdir
     GetfileFromVm $ipv4 $sshkey "/root/summary_scenario_$scenario.log" $logdir
     GetfileFromVm $ipv4 $sshkey "/root/LIS_log_scenario_$scenario.log" $logdir
