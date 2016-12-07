@@ -23,7 +23,7 @@
 ########################################################################
 #
 # Description:
-#       This script installs and runs Sysbench tests on a guest VM
+#       This script installs and runs Sysbench tests on a Ubuntu machine
 #
 #       Steps:
 #       1. Installs dependencies
@@ -43,50 +43,35 @@ MODES=(seqwr seqrewr seqrd rndrd rndwr rndrw)
 THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
 IOS=(4 8 16 32)
 
-sudo yum upgrade
-sudo yum install zip libaio sysstat git automake libtool -y
+if [ -e /tmp/summary.log ]; then
+    rm -rf /tmp/summary.log
+fi
 
-echo "Cloning sysbench"
+sudo apt-get update >> ${LOG_FILE}
+sudo apt-get -y install libaio1 sysstat zip sysbench >> ${LOG_FILE}
+
 cd /tmp
-rm -rf sysbench/
-git clone https://github.com/akopytov/sysbench.git
-cd /tmp/sysbench
-bash ./autogen.sh
-bash ./configure --without-mysql
-make
-sudo make install
-if [ $? -gt 0 ]; then
-    echo "Failed to installing sysbench."
-    exit 10
-fi
-
-cd ~
-mkdir -p /tmp/benchmark/sysbench
-sysbench --test=fileio cleanup
-
-# Cleanup any old summary.log files
-if [ -e ~/summary.log ]; then
-    rm -rf ~/summary.log
-fi
-echo "This script tests sysbench on VM."
+mkdir -p /tmp/sysbench_fileio
+sudo sysbench --test=fileio cleanup >> ${LOG_FILE}
+sudo sysbench --test=fileio prepare >> ${LOG_FILE}
 
 function fileio ()
 {
+    LogMsg " Testing sysbench fileio mode=$1 ios=$2"K" threads=$3."
     EXTRA="--file-total-size=134G --file-extra-flags=dsync --file-fsync-freq=0 --max-requests=0 --max-time=300"
-    iostat -x -d 1 900 2>&1 > /tmp/benchmark/sysbench/$1_$2"K"_$3_iostat.diskio.log &
-    vmstat 1 900       2>&1 > /tmp/benchmark/sysbench/$1_$2"K"_$3_vmstat.memory.cpu.log &
+    iostat -x -d 1 900 2>&1 > /tmp/sysbench_fileio/$1_$2"K"_$3_iostat.diskio.log &
+    vmstat 1 900       2>&1 > /tmp/sysbench_fileio/$1_$2"K"_$3_vmstat.memory.cpu.log &
 
-    sudo sysbench --test=fileio --file-test-mode=$1 --file-block-size=$2"K" --num-threads=$3 ${EXTRA} run > /tmp/benchmark/sysbench/$1_$2"K"_$3_sysbench.log
+    sudo sysbench --test=fileio --file-test-mode=$1 --file-block-size=$2"K" --num-threads=$3 ${EXTRA} run > /tmp/sysbench_fileio/$1_$2"K"_$3_sysbench.log
 
     if [ $? -ne 0 ]; then
-        echo "ERROR: Unable to execute sysbench fileio mode $1_$2"K"_$3. Aborting..."
+        LogMsg "ERROR: Unable to execute sysbench fileio mode $1_$2"K"_$3. Aborting..."
     fi
 
     sudo pkill -f iostat
     sudo pkill -f vmstat
 }
 
-echo " Testing fileio. Writing to fileio.log."
 for mode in "${MODES[@]}"
 do
     for io in "${IOS[@]}"
@@ -97,8 +82,16 @@ do
         done
     done
 done
-sysbench --test=fileio cleanup
+
+sudo sysbench --test=fileio cleanup
+
+LogMsg "Kernel Version : `uname -r` "
 
 cd /tmp
-zip -r sysbench.zip . -i benchmark/sysbench/*
-zip -r sysbench.zip . -i summary.log
+zip -r sysbench.zip . -i sysbench_fileio/* >> ${LOG_FILE}
+zip -r sysbench.zip . -i summary.log >> ${LOG_FILE}
+
+function finish {
+  LogMsg "Execution ended with exit code $?"
+}
+trap finish EXIT

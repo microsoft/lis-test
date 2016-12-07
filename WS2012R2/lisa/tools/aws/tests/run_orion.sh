@@ -22,7 +22,7 @@
 ########################################################################
 #######################################################################
 # Description:
-#       This script Orion tests on a guest VM
+#       This script Orion tests on a Ubuntu machine
 #
 #       Steps:
 #       1. Runs orion
@@ -38,30 +38,34 @@ function LogMsg() {
 }
 
 ORION_SCENARIO_FILE="orion"
-DISK="/dev/xvdx"
-part="xvdx"
 FS="ext4"
 FILE_NAME="orion_linux_x86-64.gz"
-
 TEST_MODES=(oltp dss simple normal)
 
-# TODO add RHEL
-# sudo yum install zip libaio sysstat -y
+if [ $# -lt 1 ]; then
+    echo -e "\nUsage:\n$0 device"
+    exit 1
+fi
+
+DISK="$1"
+ORION=${FILE_NAME}
 
 sudo apt-get update >> ${LOG_FILE}
-#sudo apt-get upgrade -y >> ${LOG_FILE}
 sudo apt-get -y install libaio1 sysstat zip >> ${LOG_FILE}
 
-# Format and mount the disk
-(echo d;echo;echo w) | sudo fdisk ${DISK}
-sleep 2
-(echo n;echo p;echo 1;echo;echo;echo w) | sudo fdisk ${DISK}
-sleep 5
-sudo mkfs.${FS} ${DISK}1 >> ${LOG_FILE}
+cd /tmp
+gunzip -f /tmp/${ORION}
+chmod 755 /tmp/orion_linux_x86-64
+echo ${DISK} > /tmp/${ORION_SCENARIO_FILE}.lun
+mkdir -p /tmp/orion
+
+format_disk()
+{
+sudo mkfs.${FS} ${DISK} >> ${LOG_FILE}
 if [ "$?" = "0" ]; then
-    LogMsg "mkfs.${FS} ${DISK}1 successful..."
+    LogMsg "mkfs.${FS} ${DISK} successful..."
     sudo mkdir /stor
-    sudo mount ${DISK}1 /stor
+    sudo mount ${DISK} /stor
     if [ "$?" = "0" ]; then
         LogMsg "Drive mounted successfully..."
     else
@@ -69,32 +73,32 @@ if [ "$?" = "0" ]; then
         exit 70
     fi
 else
-    LogMsg "mkfs.${FS} ${DISK}1 failed..."
+    LogMsg "mkfs.${FS} ${DISK} failed..."
     exit 70
 fi
+}
 
-ORION=${FILE_NAME}
-gunzip -f /tmp/${ORION}
-chmod 755 /tmp/orion_linux_x86-64
-echo ${DISK} > /tmp/${ORION_SCENARIO_FILE}.lun
-mkdir -p /tmp/benchmark/orion
+if [[ ${DISK} == *"xvd"* ]]
+then
+  format_disk
+fi
 
 run_orion()
 {
     LogMsg "Orion start running in $1 mode."
-    iostat -x -d 1 4000 ${part}  2>&1 > /tmp/benchmark/orion/$1.iostat.diskio.log &
-    vmstat       1 4000      2>&1 > /tmp/benchmark/orion/$1.vmstat.memory.cpu.log &
+    iostat -x -d 1 4000 `basename ${DISK}`  2>&1 > /tmp/orion/$1.iostat.diskio.log &
+    vmstat       1 4000      2>&1 > /tmp/orion/$1.vmstat.memory.cpu.log &
 
     sudo /tmp/orion_linux_x86-64 -run $1 -testname ${ORION_SCENARIO_FILE} $2 2>&1 | tee -a ${LOG_FILE}
     sts=$?
     sudo pkill -f iostat >> ${LOG_FILE}
     sudo pkill -f vmstat >> ${LOG_FILE}
     if [ ${sts} -eq 0 ]; then
-        sudo mv /tmp/*_iops.csv /tmp/benchmark/orion/$1_iops.csv
-        sudo mv /tmp/*_lat.csv /tmp/benchmark/orion/$1_lat.csv
-        sudo mv /tmp/*_mbps.csv /tmp/benchmark/orion/$1_mbps.csv
-        sudo mv /tmp/*_summary.txt /tmp/benchmark/orion/$1_summary.txt
-        sudo mv /tmp/*_trace.txt /tmp/benchmark/orion/$1_trace.txt
+        sudo mv /tmp/*_iops.csv /tmp/orion/$1_iops.csv
+        sudo mv /tmp/*_lat.csv /tmp/orion/$1_lat.csv
+        sudo mv /tmp/*_mbps.csv /tmp/orion/$1_mbps.csv
+        sudo mv /tmp/*_summary.txt /tmp/orion/$1_summary.txt
+        sudo mv /tmp/*_trace.txt /tmp/orion/$1_trace.txt
         LogMsg "$1 test completed. Sleep 60 seconds."
         sleep 60
     else
@@ -102,12 +106,14 @@ run_orion()
     fi
 }
 
-cd /tmp
 for mode in "${TEST_MODES[@]}"
 do
     run_orion ${mode}
 done
-LogMsg "Orion tests completed."
 
-sudo zip -r orion.zip . -i benchmark/orion/* >> ${LOG_FILE}
+LogMsg "Kernel Version : `uname -r` "
+
+cd /tmp
+sudo zip -r orion.zip . -i orion/* >> ${LOG_FILE}
 sudo zip -r orion.zip . -i summary.log >> ${LOG_FILE}
+
