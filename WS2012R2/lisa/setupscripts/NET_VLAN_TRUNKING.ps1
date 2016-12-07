@@ -484,7 +484,29 @@ else
     return $false
 }
 
-$params = $testParams.Split(";")
+$isDynamic = $false
+
+$params = $testParams.Split(';')
+foreach ($p in $params) {
+    $fields = $p.Split("=")
+    switch ($fields[0].Trim()) { 
+        "NIC"
+        {
+            $nicArgs = $fields[1].Split(',')
+            if ($nicArgs.Length -eq 3) {
+                $CurrentDir= "$pwd\"
+                $testfile = "macAddress.file" 
+                $pathToFile="$CurrentDir"+"$testfile" 
+                $isDynamic = $true
+            }
+        }
+    }
+}
+
+if ($isDynamic -eq $true) {
+    $streamReader = [System.IO.StreamReader] $pathToFile
+    $vm1MacAddress = $null
+}
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
@@ -504,7 +526,7 @@ foreach ($p in $params)
     "NIC"
     {
         $nicArgs = $fields[1].Split(',')
-        if ($nicArgs.Length -lt 4)
+        if ($nicArgs.Length -lt 3)
         {
             "Error: Incorrect number of arguments for NIC test parameter: $p"
             return $false
@@ -515,7 +537,9 @@ foreach ($p in $params)
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
         $networkName = $nicArgs[2].Trim()
-        $vm1MacAddress = $nicArgs[3].Trim()
+        if ($nicArgs.Length -eq 4) {
+            $vm1MacAddress = $nicArgs[3].Trim()
+        }
         $legacy = $false
 
 		#
@@ -547,14 +571,18 @@ foreach ($p in $params)
             return $false
         }
 
-		$retVal = isValidMAC $vm1MacAddress
-
-        if (-not $retVal)
-        {
-            "Invalid Mac Address $vm1MacAddress"
-            return $false
+        if ($isDynamic -eq $true){
+            $vm1MacAddress = $streamReader.ReadLine() 
         }
+        else {
+            $retVal = isValidMAC $vm1MacAddress
 
+            if (-not $retVal)
+            {
+                "Invalid Mac Address $vm1MacAddress"
+                return $false
+            }  
+        }
 
         #
         # Get Nic with given MAC Address
@@ -572,6 +600,11 @@ foreach ($p in $params)
     }
     default   {}  # unknown param - just ignore it
     }
+}
+
+if ($isDynamic -eq $true) 
+{
+    $streamReader.close()
 }
 
 if (-not $vm2Name)

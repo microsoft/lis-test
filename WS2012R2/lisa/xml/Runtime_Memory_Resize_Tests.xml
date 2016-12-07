@@ -83,7 +83,7 @@
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=Runtime_Mem_Resize-03</param>                                   
-                <param>startupMem=1536MB</param>
+                <param>startupMem=2048MB</param>
                 <param>chunkMem=128MB</param>
                 <param>decrease=no</param>
             </testParams>
@@ -96,7 +96,7 @@
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=Runtime_Mem_Resize-04</param>                                   
-                <param>startupMem=2560MB</param>
+                <param>startupMem=3072MB</param>
                 <param>chunkMem=128MB</param>
                 <param>decrease=yes</param>
             </testParams>
@@ -109,7 +109,7 @@
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=Runtime_Mem_Resize-05</param>                                   
-                <param>startupMem=1648MB</param>
+                <param>startupMem=2048MB</param>
                 <param>chunkMem=100MB</param>
                 <param>decrease=no</param>
             </testParams>
@@ -122,7 +122,7 @@
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=Runtime_Mem_Resize-06</param>                                   
-                <param>startupMem=2448MB</param>
+                <param>startupMem=3072MB</param>
                 <param>chunkMem=100MB</param>
                 <param>decrease=yes</param>
             </testParams>
@@ -135,7 +135,7 @@
             <testScript>setupscripts\Runtime_Mem_MultipleAddRemove.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=Runtime_Mem_Resize-07</param>                                   
-                <param>startupMem=2GB</param>
+                <param>startupMem=3GB</param>
             </testParams>
             <timeout>1200</timeout>
         </test>
@@ -157,7 +157,7 @@
             <testScript>setupscripts\Runtime_Mem_HotAdd_reboot.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=Runtime_Mem_Resize-09</param>                                   
-                <param>startupMem=4000MB</param>
+                <param>startupMem=5000MB</param>
             </testParams>
             <timeout>1200</timeout>
         </test>

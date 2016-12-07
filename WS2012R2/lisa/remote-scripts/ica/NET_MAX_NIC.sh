@@ -26,7 +26,13 @@ function CheckGateway
 	# Get interfaces that have default gateway set
 	gw_interf=($(route -n | grep 'UG[ \t]' | awk '{print $8}'))
 
-	[[ ${gw_interf[*]} =~ ${1} ]]
+	for if_gw in ${gw_interf[@]}; do
+		if [[ ${if_gw} == ${1} ]]; then
+			return 0
+		fi
+	done
+
+	return 1
 }
 
 function AddGateway
@@ -83,6 +89,7 @@ function ConfigureInterfaces
 		LogMsg "Info : Configuring interface ${IFACE}"
 		UpdateSummary "Info : Configuring interface ${IFACE}"
 		AddNIC $IFACE
+		sleep 5
 		if [ $? -eq 0 ]; then
 			ip_address=$(ip addr show $IFACE | grep "inet\b" | grep -v '127.0.0.1' | awk '{print $2}' | cut -d/ -f1)
 			msg="Info : Successfully set IP address - ${ip_address}"

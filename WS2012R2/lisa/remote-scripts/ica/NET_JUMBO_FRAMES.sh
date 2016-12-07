@@ -253,27 +253,6 @@ else
 	fi
 fi
 
-# Get the legacy netadapter interface
-GetLegacyNetInterfaces
-
-if [ 0 -ne $? ]; then
-	msg="No legacy network interfaces found. Test can continue"
-	LogMsg "$msg"
-else
-# Remove loopback interface if LO_IGNORE is set
-	LEGACY_NET_INTERFACES=(${LEGACY_NET_INTERFACES[@]/lo/})
-
-	if [ ${#LEGACY_NET_INTERFACES[@]} -ne 0 ]; then
-		IFS=,
-		msg="Legacy interfaces ${LEGACY_NET_INTERFACES[*]} are present. Test requires only synthetic network adapters."
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateAborted
-		exit 10
-	fi
-fi
-
-
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
 
