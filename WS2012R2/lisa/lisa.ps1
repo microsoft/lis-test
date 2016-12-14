@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -92,7 +92,7 @@
             <defaultSnapshot>ICABase</defaultSnapshot>
             <email>
                 <recipients>
-                    <to>myemail@mycompany.com,youremail@mycompany.com</to>        
+                    <to>myemail@mycompany.com,youremail@mycompany.com</to>
                 </recipients>
                 <sender>myemail@mycompany.com</sender>
                 <subject>LISA FTM Test Run on WS2012</subject>
@@ -118,7 +118,7 @@
                 <files>remote-scripts\ica\LIS_IC_version.sh</files>
                 <testparams>
                     <param>TC_COVERED=BVT-31</param>
-                </testparams>            
+                </testparams>
                 <timeout>600</timeout>
                 <OnError>Continue</OnError>
                 <noReboot>False</noReboot>
@@ -141,7 +141,7 @@
     The automation scripts make some assumptions about the VMs
     used to run the tests.  This requires test VMs be provisioned
     prior to running tests.
-    
+
     SSH keys are used to pass commands to Linux VMs, so the public
     ssh Key must to copied to the VM before the test is started.
 
@@ -188,8 +188,13 @@
     displayed.
 .Parameter dbglevel
     The debug level to use when running tests.  Values are 0 - 10.  The higher
-    the value, the more verbose the logging of message.  Levels above 5 are 
+    the value, the more verbose the logging of message.  Levels above 5 are
     quite chatty and are not recommended.
+.Parameter collect
+    The collect parameter is used if you want to collect a set of general information
+    from the VM (e.g kernel version, LIS version, dmesg).
+    Usage: "-collect True" if you want to get more information out, otherwise don't
+    use it.
 .Example
     .\lisa.ps1 run xml\myTests.xml
 
@@ -214,9 +219,10 @@ param([string] $cmdVerb,
       [switch] $examples,
       [string] $CLIlogDir,
       [string] $CLImageStorDir,
-      [string] $VhdPath,
+	  [string] $VhdPath,
       [string] $os,
       [switch] $help,
+      [string] $collect="False",
       [int]    $dbgLevel=0
      )
 
@@ -260,7 +266,7 @@ function LogMsg([int]$level, [string]$msg)
     {
         $now = [Datetime]::Now.ToString("MM/dd/yyyy HH:mm:ss : ")
         ($now + $msg) | out-file -encoding ASCII -append -filePath $logfile
-        
+
         $color = "white"
         if ( $msg.StartsWith("Error"))
         {
@@ -274,7 +280,7 @@ function LogMsg([int]$level, [string]$msg)
         {
             $color = "gray"
         }
-        
+
         write-host -f $color "$msg"
     }
 }
@@ -299,23 +305,23 @@ function Usage()
 
     write-host -f Cyan "`nLISA version $lisaVersion`r`n"
     write-host "Usage: lisa cmdVerb cmdNoun [options]`r`n"
-    write-host "    cmdVerb  cmdNoun      options        Description"
-    write-host "    -------  -----------  ----------     -------------------------------------"
-    write-host "    help                                 : Display this usage message"
-    write-host "                          -examples      : Display usage examples"
-    write-host "    validate xmlFilename                 : Validate the .xml file"
-    write-host "                          -datachecks    : Perform data checks on the Hyper-V server"
-    write-host "    run      xmlFilename                 : Run tests on VMs defined in the xmlFilename"
-    write-host "                          -eMail         : Send an e-mail after tests complete"
-    write-host "                          -VMs           : Comma separated list of VM names to run tests"
-    write-host "                          -vmName        : Name of a user supplied VM"
-    write-host "                          -hvServer      : Name (or IP) of HyperV server hosting user supplied VM"
-    write-host "                          -ipv4          : IP address of a user supplied VM"
-    write-host "                          -sshKey        : The SSH key of a user supplied VM"
-    write-host "                          -suite         : Name of test suite to run on user supplied VM"
-    write-host "                          -testParams    : Quoted string of semicolon separated parameters"
-    write-host "                                           -testParams `"a=1;b='x y';c=3`""
-    write-host "                          -VhdPath       : Global parameter representing the path of the directory in"
+    write-host "    cmdVerb  cmdNoun      options     Description"
+    write-host "    -------  -----------  ----------  -------------------------------------"
+    write-host "    help                              : Display this usage message"
+    write-host "                          -examples   : Display usage examples"
+    write-host "    validate xmlFilename              : Validate the .xml file"
+    write-host "                          -datachecks : Perform data checks on the Hyper-V server"
+    write-host "    run      xmlFilename              : Run tests on VMs defined in the xmlFilename"
+    write-host "                          -eMail      : Send an e-mail after tests complete"
+    write-host "                          -VMs        : Comma separated list of VM names to run tests"
+    write-host "                          -vmName     : Name of a user supplied VM"
+    write-host "                          -hvServer   : Name (or IP) of HyperV server hosting user supplied VM"
+    write-host "                          -ipv4       : IP address of a user supplied VM"
+    write-host "                          -sshKey     : The SSH key of a user supplied VM"
+    write-host "                          -suite      : Name of test suite to run on user supplied VM"
+    write-host "                          -testParams : Quoted string of semicolon separated parameters"
+    write-host "                                         -testParams `"a=1;b='x y';c=3`""
+	write-host "                          -VhdPath       : Global parameter representing the path of the directory in"
     write-host "                                           which the VHD will be copied when CreateVMs script is used"
     write-host "                          -CLImageStorDir: Global parameter representing the directory of the VHD"
     write-host "                                           file used to create a VM with CreateVMs"
@@ -323,7 +329,7 @@ function Usage()
     write-host "  Common options"
     write-host "         -dbgLevel   : Specifies the level of debug messages"
     write-host "`n"
-    
+
     if ($examples)
     {
         Write-host "`r`nExamples"
@@ -359,9 +365,10 @@ function    DumpParams()
     LogMsg 0 "Info : examples:   $examples"
     LogMsg 0 "Info : CLIlogDir:  $CLIlogDir"
     LogMsg 0 "Info : CLImageStorDir: $CLImageStorDir"
-    LogMsg 0 "Info : VhdPath:    $VhdPath"
+    LogMsg 0 "Info : VhdPath: $VhdPath"
     LogMsg 0 "Info : os:         $os"
     LogMsg 0 "Info : dbgLevel:   $dbgLevel"
+    LogMsg 0 "Info : collect:    $collect"
 }
 
 
@@ -380,7 +387,7 @@ function Test-Admin()
         has Administrator privileges
     .Example
         Test-Admin
-    #> 
+    #>
     $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
     $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
@@ -415,27 +422,27 @@ function AddUserVmToXmlTree ([string] $vmName, [string] $hvServer, [string] $ipv
         Name of the OS used when running the user supplied VM
     .Example
         AddUserVmToXmlTree "myVM" "myServer" "192.168.1.2" "openssh_id_rsa.ppk" "kvp-tests" $xmlData "Linux"
-        
+
     #>
-    
+
     #
     # Insert a new VM definition for the user supuplied VM
     #
 
     # Create a new XML element
     $newVM = $xml.CreateElement("VM")
-    
+
     #
     # Add the core child elements to the new XML element
     #
     $newName = $xml.CreateElement("vmName")
     $newName.set_InnerText($vmName)
     $newVM.AppendChild($newName)
-    
+
     $newHvServer = $xml.CreateElement("hvServer")
     $newHvServer.set_InnerText($hvServer)
     $newVM.AppendChild($newHvServer)
-    
+
     $newIpv4 = $xml.CreateElement("ipv4")
     if ($ipv4) {
         $newIpv4.set_InnerText($ipv4)
@@ -443,24 +450,24 @@ function AddUserVmToXmlTree ([string] $vmName, [string] $hvServer, [string] $ipv
         $newIpv4.set_InnerText("")
     }
     $newVM.AppendChild($newIpv4)
-    
+
     $newSshKey = $xml.CreateElement("sshKey")
     $newSshKey.set_InnerText($sshKey)
     $newVM.AppendChild($newSshKey)
-    
+
     $newTestSuite = $xml.CreateElement("suite")
     $newTestSuite.set_InnerText($testSuite)
     $newVM.AppendChild($newTestSuite)
-    
+
     $newOS = $xml.CreateElement("os")
     $newOS.set_InnerText($OS)
     $newVM.AppendChild($newOS)
-    
+
     #
     # Add the vm XML element to the XML data
     #
     $xml.config.VMs.AppendChild($newVM)
-   
+
     #
     # Now remove all the other VMs we don't care about
     #
@@ -519,9 +526,9 @@ function PruneVMsFromXmlTree ([string] $vmName, [XML] $xml)
                 if ($name -eq $($vm.vmName))
                 {
                     $found = $true
-                }   
+                }
             }
-        
+
             if (! $found)
             {
                 LogMsg 0 "Warn : Unknown VM, name = $name"
@@ -561,7 +568,7 @@ function AddTestParamsToVMs ($xmlData, $tParams)
         foreach($vm in $xmlData.config.VMs.vm)
         {
             $tp = $vm.testParams
-            
+
             #
             # Add the vm.testParams element if it does not exist
             #
@@ -570,7 +577,7 @@ function AddTestParamsToVMs ($xmlData, $tParams)
                 $newTestParams = $xmlData.CreateElement("testParams")
                 $tp = $vm.AppendChild($newTestParams)
             }
-            
+
             #
             # Add a <param> for each parameter from the command line
             #
@@ -627,7 +634,7 @@ function RunInitShutdownScript([String] $scriptName, [String] $xmlFilename )
         LogMsg 0 "Warn : RunInitShutdownScript() received a null scriptName"
         return $False
     }
-    
+
     if (-not $xmlFilename)
     {
         LogMsg 0 "Warn : RunInitShutdownScript() received a null xmlFilename"
@@ -655,11 +662,11 @@ function RunInitShutdownScript([String] $scriptName, [String] $xmlFilename )
     #
     # Force the return to be an array by using the @() operator
     # This is case someone writes a script that only outputs the
-    # true/false status, in which case the return is a single 
+    # true/false status, in which case the return is a single
     # string rather than an array of strings.
     #
     $sts = @(Invoke-Expression $cmd)
- 
+
     if ($sts[($sts.Length) - 1] -eq "True")
     {
         $retVal = $true
@@ -795,7 +802,7 @@ function RunTests ([String] $xmlFilename )
         # Run tests on a user supplied VM
         #
         if ($hvServer -and $sshKey -and $suite)
-        {   
+        {
             #
             # Add the user provided VM to the in memory copy of the xml
             # file, then remove all the other VMs from the in memory copy
@@ -811,7 +818,7 @@ function RunTests ([String] $xmlFilename )
         }
     }
     elseif ($VMs)
-    {     
+    {
         #
         # Run tests on a subset of VMs defined in the XML file.  Remove the un-used
         # VMs from the in memory copy of the XML data
@@ -873,7 +880,7 @@ function RunTests ([String] $xmlFilename )
 
     LogMsg 10 "Info : Calling RunICTests"
     . .\stateEngine.ps1
-    RunICTests $xmlConfig
+    RunICTests $xmlConfig $collect
 
     #
     # email the test results if requested
@@ -884,7 +891,7 @@ function RunTests ([String] $xmlFilename )
     }
 
     $summary = SummaryToString $xmlConfig $Script:testStartTime $xmlFilename $rootDir
-    
+
     #
     # The summary message is formatted for HTML body mail messages
     # When writing to the log file, we should emove the HTML tags
@@ -894,7 +901,7 @@ function RunTests ([String] $xmlFilename )
     $summary = $summary.Replace("</pre>", "")
 
     LogMsg 0 "$summary"
-    
+
     $lisaTestResult = $true
     foreach($vm in $xmlConfig.config.VMs.vm)
     {
@@ -955,8 +962,8 @@ switch ($cmdVerb)
 {
 "run" {
         $sts = RunTests $cmdNoun
-        
-        # RunTests() (which calls RunICTests() in stateEngine.ps1) may return an array of results. 
+
+        # RunTests() (which calls RunICTests() in stateEngine.ps1) may return an array of results.
         # we need to check the last one which is the final
         if (!$sts[-1])
         {
@@ -990,3 +997,4 @@ default    {
 
 LogMsg 0 "Test will exit with error code $lisaExitCode"
 exit $lisaExitCode
+0
