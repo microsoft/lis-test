@@ -254,8 +254,6 @@ class AWSConnector:
             ssh_client.run('/tmp/enable_sr_iov.sh')
             conn.stop_instances(instance_ids=[instance.id])
             self.wait_for_state(instance, 'state', 'stopped')
-            # instance.modify_attribute(Attribute='sriovNetSupport',
-            #                           Value='simple')
             mod_sriov = conn.modify_instance_attribute(instance.id,
                                                        'sriovNetSupport',
                                                        'simple')
@@ -345,7 +343,6 @@ class AWSConnector:
                     except Exception as e:
                         log.info(e)
                     self.wait_for_state(vol, 'status', 'available')
-                    # artificial wait
                     time.sleep(30)
                     try:
                         conn.delete_volume(ebs_vol.id)
@@ -353,38 +350,54 @@ class AWSConnector:
                         log.info(e)
 
         if self.vpc_zone:
+            for eip in self.elastic_ips:
+                self.vpc_conn.release_address(allocation_id=eip.allocation_id)
+
             subnets = self.vpc_conn.get_all_subnets(
                 filters={'vpcId': self.vpc_zone.id})
             for subnet in subnets:
                 self.vpc_conn.delete_subnet(subnet.id)
 
+            try:
+                security_group = self.vpc_conn.get_all_security_groups(
+                    filters={'vpc-id': self.vpc_zone.id})
+                for sg in security_group:
+                    if sg.name == self.group_name:
+                        self.vpc_conn.delete_security_group(group_id=sg.id)
+            except Exception as e:
+                log.info(e)
+
             route_tables = self.vpc_conn.get_all_route_tables(
                 filters={'vpc-id': self.vpc_zone.id})
             for route_table in route_tables:
+                log.info(route_table.__dict__)
+                try:
+                    self.vpc_conn.delete_route(route_table.id, '10.10.0.0/16')
+                    log.info('deleted 10.10.0.0 route from table {}'.format(
+                        route_table.id))
+                except Exception as e:
+                    log.info(e)
                 try:
                     self.vpc_conn.delete_route(route_table.id, '0.0.0.0/0')
-                    self.vpc_conn.delete_route_table(route_table.id)
+                    log.info('deleted 0.0.0.0 route from table {}'.format(
+                        route_table.id))
                 except Exception as e:
                     log.info(e)
-
-            internet_gateways = self.vpc_conn.get_all_internet_gateways(
-                filters={'vpcId': self.vpc_zone.id})
-            for internet_gateway in internet_gateways:
                 try:
-                    self.vpc_conn.delete_internet_gateway(internet_gateway.id)
+                    self.vpc_conn.delete_route_table(route_table.id)
+                    log.info('deleted route table {}'.format(route_table.id))
                 except Exception as e:
                     log.info(e)
 
-            for eip in self.elastic_ips:
-                self.vpc_conn.release_address(allocation_id=eip.allocation_id)
-
-            security_group = self.vpc_conn.get_security_group_from_name(
-                'default', vpc_id=self.vpc_zone.id)
-            if security_group:
-                self.vpc_conn.delete_security_group(group_id=security_group.id)
-
-            self.vpc_zone.dhcp_options.vpc = None
-            self.vpc_conn.delete_dhcp_options_set(self.vpc_zone.dhcp_options.id)
+            try:
+                internet_gateways = self.vpc_conn.get_all_internet_gateways(
+                    filters={'attachment.vpc-id': self.vpc_zone.id})
+                for internet_gateway in internet_gateways:
+                    self.vpc_conn.detach_internet_gateway(internet_gateway.id,
+                                                          self.vpc_zone.id)
+                    self.vpc_conn.delete_internet_gateway(internet_gateway.id)
+            except Exception as e:
+                log.info(e)
 
             self.vpc_conn.delete_vpc(vpc_id=self.vpc_zone.id)
             self.vpc_zone = None
@@ -770,3 +783,56 @@ def test_mongodb(keyid, secret, imageid, instancetype, user, localpath, region,
                                           str(time.time()) + '.zip'))
 
     aws.teardown(ebs_vol=ebs_vol)
+
+
+def test_zookeeper(keyid, secret, imageid, instancetype, user, localpath,
+                   region, zone):
+    """
+    Run ZooKeeper benchmark on a tree of server znodes using 3 server instances
+    in VPC to elevate AWS Enhanced Networking.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param imageid: AMI image id from EC2 repo
+    :param instancetype: instance flavor constituting resources
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    """
+    aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
+                       region, zone)
+    aws.vpc_connect()
+    instances = {}
+    for i in range(1, 5):
+        instances[i] = aws.aws_create_vpc_instance()
+
+    ssh_clients = {}
+    for i in range(1, 5):
+        ssh_clients[i] = aws.wait_for_ping(instances[i])
+
+    if all(client for client in ssh_clients.values()):
+        for i in range(1, 5):
+            ssh_clients[i] = aws.enable_sr_iov(instances[i], ssh_clients[i])
+
+            # enable key auth between instances
+            ssh_clients[i].put_file(os.path.join(localpath,
+                                                 aws.key_name + '.pem'),
+                                    '/home/{}/.ssh/id_rsa'.format(user))
+            ssh_clients[i].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
+
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        ssh_clients[1].put_file(os.path.join(current_path, 'tests',
+                                             'run_zookeeper.sh'),
+                                '/tmp/run_zookeeper.sh')
+        ssh_clients[1].run('chmod +x /tmp/run_zookeeper.sh')
+        ssh_clients[1].run("sed -i 's/\r//' /tmp/run_zookeeper.sh")
+        zk_servers = ' '.join([instances[i].private_ip_address
+                               for i in range(2, 5)])
+        ssh_clients[1].run('/tmp/run_zookeeper.sh {} {}'.format(user,
+                                                                zk_servers))
+        ssh_clients[1].get_file('/tmp/zookeeper.zip',
+                                os.path.join(localpath, 'zookeeper' +
+                                             str(time.time()) + '.zip'))
+
+    aws.teardown()

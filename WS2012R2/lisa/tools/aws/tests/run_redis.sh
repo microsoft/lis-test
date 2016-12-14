@@ -47,12 +47,12 @@ sudo apt-get -y install libaio1 sysstat zip redis-tools>> ${LOG_FILE}
 sudo pkill -f redis-benchmark
 mkdir -p /tmp/redis
 
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip redis-server" >> ${LOG_FILE}
-ssh -oStrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/redis"
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i 's/bind 127\.0\.0\.1/bind 0\.0\.0\.0/' /etc/redis/redis.conf" >> ${LOG_FILE}
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo service redis-server restart" >> ${LOG_FILE}
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f redis-server" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip redis-server" >> ${LOG_FILE}
+ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/redis"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i 's/bind 127\.0\.0\.1/bind 0\.0\.0\.0/' /etc/redis/redis.conf" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service redis-server restart" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f redis-server" >> ${LOG_FILE}
 
 function run_redis ()
 {
@@ -62,11 +62,11 @@ function run_redis ()
     LogMsg "Running Redis Test with pipelines: ${pipeline}"
     LogMsg "======================================"
 
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/redis/${pipeline}.sar.netio.log"
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/redis/${pipeline}.iostat.diskio.log"
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/redis/${pipeline}.vmstat.memory.cpu.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/redis/${pipeline}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/redis/${pipeline}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/redis/${pipeline}.vmstat.memory.cpu.log"
     LogMsg "Starting redis server on ${SERVER}"
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo redis-server > /dev/null"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo redis-server > /dev/null"
     sar -n DEV 1 900   2>&1 > /tmp/redis/${pipeline}.sar.netio.log &
     iostat -x -d 1 900 2>&1 > /tmp/redis/${pipeline}.iostat.netio.log &
     vmstat 1 900       2>&1 > /tmp/redis/${pipeline}.vmstat.netio.log &
@@ -74,10 +74,10 @@ function run_redis ()
     sleep 20
     redis-benchmark -h ${SERVER} -c 1000 -P ${pipeline} -t ${redis_test_suites} -d 4000 -n 10000000 > /tmp/redis/${pipeline}.redis.set.get.log
 
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f sar"
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iostat"
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f vmstat"
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f redis-server"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f sar"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iostat"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f vmstat"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f redis-server"
     sudo pkill -f sar
     sudo pkill -f iostat
     sudo pkill -f vmstat

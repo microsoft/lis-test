@@ -27,80 +27,118 @@ function LogMsg() {
 }
 
 if [ $# -lt 2 ]; then
-    echo -e "\nUsage:\n$0 user server1, server2 ..."
+    echo -e "\nUsage:\n$0 user server1, server2, server3, ..."
     exit 1
 fi
 
 USER="$1"
 declare -a SERVERS=("${@:2}")
+client_threads_collection=(1 2 4 8 12 16 20)
 watch_multiple=5
-num_zk_client=10
-znode_size=10
-znode_count=1000000
+znode_size=100
+znode_count=10000
+zk_version="zookeeper-3.4.9"
+zk_data="/zk/data"
 
 if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
 sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install libaio1 sysstat zip default-jdk wget python-dev libzookeeper-mt-dev python-pip>> ${LOG_FILE}
-sudo pip install zkpython
+sudo apt-get -y install libaio1 sysstat zip default-jdk git python-dev libzookeeper-mt-dev python-pip >> ${LOG_FILE}
+sudo -H pip install zkpython >> ${LOG_FILE}
 
 cd /tmp
-wget http://apache.spinellicreations.com/zookeeper/zookeeper-3.4.9/zookeeper-3.4.9.tar.gz
-ssh root@${SERVER} "tar -xzf ./${ZK_ARCHIVE}"
-ssh root@${SERVER} "cp zookeeper-${ZK_VERSION}/conf/zoo_sample.cfg zookeeper-${ZK_VERSION}/conf/zoo.cfg"
-ssh root@${SERVER} "zookeeper-${ZK_VERSION}/bin/zkServer.sh start"
+git clone https://github.com/phunt/zk-smoketest >> ${LOG_FILE}
+export PYTHONPATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6"
+export LD_LIBRARY_PATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6"
+
+function run_zk ()
+{
+    parallel_clients=$1
+    for (( client_id=1; client_id<=${parallel_clients}; client_id++ ))
+    do
+        LogMsg  "Running zk-latency client with: --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id}"
+        sudo python /tmp/zk-smoketest/zk-latencies.py --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id} --force & pid=$!
+        PID_LIST+=" $pid"
+    done
+
+    trap "sudo kill ${PID_LIST}" SIGINT
+    wait ${PID_LIST}
+}
 
 for server in "${SERVERS[@]}"
 do
-    sudo apt-get update >> ${LOG_FILE}
-    #sudo apt-get upgrade -y >> ${LOG_FILE}
-    sudo apt-get -y install libaio1 sysstat java >> ${LOG_FILE}
-    LogMsg "configure logging on: $server"
-    java_pid=$(ssh ${USER}@${server} pidof java)
-    LogMsg "Java pid: $java_pid"
-
-    ssh -oStrictHostKeyChecking=no ${USER}@${server} "mkdir -p /tmp/zookeeper"
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${server} "sar -n DEV 1 900   2>&1 > /tmp/zookeeper/sar.netio.log"
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${server} "iostat -x -d 1 900 2>&1 > /tmp/zookeeper/iostat.diskio.log"
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${server} "vmstat 1 900       2>&1 > /tmp/zookeeper/vmstat.memory.cpu.log"
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${server} "mpstat -P ALL 1 900 2>&1 > /tmp/zookeeper/mpstat.cpu.log"
-    #we need to  get the pid from server side before executing this ssh command,
-    #otherwise $(pidof mysql) will be evaluated on client side which returns NULL
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${server} "pidstat -h -r -u -v -p $java_pid 1 900 2>&1 > /tmp/zookeeper/pidstat.cpu.log"
+    LogMsg "Configuring zookeeper server on: ${server}"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt-get update" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt-get -y install libaio1 sysstat default-jdk" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${server} "cd /tmp;wget http://apache.spinellicreations.com/zookeeper/${zk_version}/${zk_version}.tar.gz" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${server} "cd /tmp;tar -xzf ${zk_version}.tar.gz"
+    ssh -o StrictHostKeyChecking=no ${USER}@${server} "cp /tmp/${zk_version}/conf/zoo_sample.cfg /tmp/${zk_version}/conf/zoo.cfg" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${server} "sed -i '/tickTime/c\tickTime=2000' /tmp/${zk_version}/conf/zoo.cfg" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${server} "sed -i '/dataDir/c\dataDir=${zk_data}' /tmp/${zk_version}/conf/zoo.cfg" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${server} "sed -i '/clientPort/c\clientPort=2181' /tmp/${zk_version}/conf/zoo.cfg" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${server} "sed -i '/initLimit/c\initLimit=5' /tmp/${zk_version}/conf/zoo.cfg" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${server} "sed -i '/syncLimit/c\syncLimit=2' /tmp/${zk_version}/conf/zoo.cfg" >> ${LOG_FILE}
+    for temp_server in "${SERVERS[@]}"
+    do
+        i=1
+        ssh -o StrictHostKeyChecking=no ${USER}@${server} "echo -e 'server.${i}=${temp_server}:2888:3888' >> /tmp/${zk_version}/conf/zoo.cfg" >> ${LOG_FILE}
+        if [ ${temp_server} == ${server} ]
+        then
+            ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo mkdir -p ${zk_data}" >> ${LOG_FILE}
+            ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo chown ${USER} ${zk_data}" >> ${LOG_FILE}
+            ssh -o StrictHostKeyChecking=no ${USER}@${server} "echo -e ${i} > ${zk_data}/myid" >> ${LOG_FILE}
+        fi
+        i=$(($i + 1))
+    done
     cluster_string=$cluster_string$","${server}":2181"
 done
 
-# testing
 cluster_string=$(echo ${cluster_string} | cut -b 2-)
 mkdir -p /tmp/zookeeper
-sar -n DEV 1 900   2>&1 > /tmp/zookeeper/sar.netio.log &
-iostat -x -d 1 900 2>&1 > /tmp/zookeeper/iostat.netio.log &
-vmstat 1 900       2>&1 > /tmp/zookeeper/vmstat.netio.log &
-mpstat -P ALL 1 900 2>&1 > /tmp/zookeeper/mpstat.cpu.log &
 
-for (( client_id=1; client_id<=${num_zk_client}; client_id++ ))
+for threads in "${client_threads_collection[@]}"
 do
-    LogMsg  "Run Test on ${client_id}: --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id}"
-    ./zk-smoketest/zk-latencies.py --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id} > /tmp/zookeeper/${client_id}.zookeeper.latency.log &
-done
+    for server in "${SERVERS[@]}"
+    do
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo /tmp/${zk_version}/bin/zkServer.sh start" >> ${LOG_FILE}
+        LogMsg "Waiting zookeeper to start on server ${server}"
+        sleep 20
+        java_pid=$(ssh -o StrictHostKeyChecking=no ${USER}@${server} pidof java)
+        LogMsg "Server ${server} ZK Java pid: ${java_pid}"
 
-read -p "Press [Enter] key to start tearing down the test if all threads finished ..."
+        ssh -o StrictHostKeyChecking=no ${USER}@${server} "mkdir -p /tmp/zookeeper"
+        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "sar -n DEV 1 900   2>&1 > /tmp/zookeeper/${threads}.sar.netio.log"
+        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "iostat -x -d 1 900 2>&1 > /tmp/zookeeper/${threads}.iostat.diskio.log"
+        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "vmstat 1 900       2>&1 > /tmp/zookeeper/${threads}.vmstat.memory.cpu.log"
+        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "mpstat -P ALL 1 900 2>&1 > /tmp/zookeeper/${threads}.mpstat.cpu.log"
+        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "pidstat -h -r -u -v -p ${java_pid} 1 900 2>&1 > /tmp/zookeeper/${threads}.pidstat.cpu.log"
+    done
 
-sudo pkill -f sar
-sudo pkill -f iostat
-sudo pkill -f vmstat
-sudo pkill -f mpstat
+    sar -n DEV 1 900   2>&1 > /tmp/zookeeper/${threads}.sar.netio.log &
+    iostat -x -d 1 900 2>&1 > /tmp/zookeeper/${threads}.iostat.netio.log &
+    vmstat 1 900       2>&1 > /tmp/zookeeper/${threads}.vmstat.netio.log &
+    mpstat -P ALL 1 900 2>&1 > /tmp/zookeeper/${threads}.mpstat.cpu.log &
+    LogMsg  "Running zookeeper with ${threads} parallel client(s)."
+    run_zk ${threads} > /tmp/zookeeper/${threads}.zookeeper.latency.log
+    sudo pkill -f sar
+    sudo pkill -f iostat
+    sudo pkill -f vmstat
+    sudo pkill -f mpstat
 
-for server in "${SERVERS[@]}"
-do
-    #cleanup processes
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f sar"
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f iostat"
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f vmstat"
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f mpstat"
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f pidstat"
+    for server in "${SERVERS[@]}"
+    do
+        LogMsg  "Cleaning up zookeeper server ${server} for ${threads} parallel clients."
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f sar"
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f iostat"
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f vmstat"
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f mpstat"
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f pidstat"
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo /tmp/${zk_version}/bin/zkServer.sh stop"
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo rm -rf ${zk_data}/version-2"
+    done
+    sleep 20
 done
 
 LogMsg "Kernel Version : `uname -r`"

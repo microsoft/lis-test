@@ -56,18 +56,18 @@ echo -e "recordcount=20000000\noperationcount=20000000\nreadallfields=true\nwrit
 
 mkdir -p /tmp/mongodb
 
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mongodb stop" >> ${LOG_FILE}
-ssh -oStrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/mongodb"
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R mongodb:mongodb ${db_path}"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mongodb stop" >> ${LOG_FILE}
+ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/mongodb"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R mongodb:mongodb ${db_path}"
 escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/dbpath/c\dbpath=${escaped_path}' /etc/mongodb.conf" >> ${LOG_FILE}
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind_ip/c\bind_ip = 0\.0\.0\.0' /etc/mongodb.conf" >> ${LOG_FILE}
-ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mongodb start" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/dbpath/c\dbpath=${escaped_path}' /etc/mongodb.conf" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind_ip/c\bind_ip = 0\.0\.0\.0' /etc/mongodb.conf" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mongodb start" >> ${LOG_FILE}
 
 # Wait for mongo server to create its artifacts at the new location
 sleep 60
@@ -82,18 +82,18 @@ function run_mongodb ()
     LogMsg "Running mongodb test with current threads: ${threads}"
     LogMsg "======================================"
 
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/mongodb/${threads}.sar.netio.log"
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/mongodb/${threads}.iostat.diskio.log"
-    ssh -f -oStrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/mongodb/${threads}.vmstat.memory.cpu.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/mongodb/${threads}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/mongodb/${threads}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/mongodb/${threads}.vmstat.memory.cpu.log"
     sar -n DEV 1 900   2>&1 > /tmp/mongodb/${threads}.sar.netio.log &
     iostat -x -d 1 900 2>&1 > /tmp/mongodb/${threads}.iostat.netio.log &
     vmstat 1 900       2>&1 > /tmp/mongodb/${threads}.vmstat.netio.log &
 
     ${ycsb} run mongodb-async -s -P ${workload} -p mongodb.url=mongodb://${SERVER}:27017/ycsb?w=0 -threads ${threads} > /tmp/mongodb/${threads}.ycsb.run.log
 
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f sar"
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iostat"
-    ssh -T -oStrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f vmstat"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f sar"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iostat"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f vmstat"
     sudo pkill -f sar
     sudo pkill -f iostat
     sudo pkill -f vmstat
