@@ -104,163 +104,6 @@ function CheckRecoveringJ()
     return $retValue    
 }
 
-######################################################################
-# Runs a remote script on the VM an returns the log.
-#######################################################################
-function RunRemoteScript($remoteScript)
-{
-    $retValue = $False
-    $stateFile     = "state.txt"
-    $TestCompleted = "TestCompleted"
-    $TestAborted   = "TestAborted"
-    $TestRunning   = "TestRunning"
-    $timeout       = 6000    
-
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
-
-    echo y | .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
-       return $False
-    }      
-
-    echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
-       return $False
-    }
-
-    echo y | .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on runtest.sh" 
-        return $False
-    }
-    
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x ${remoteScript}" 
-        return $False
-    }
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
-        return $False
-    }
-
-    # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh 2> /dev/null"
-    
-    # Return the state file
-    while ($timeout -ne 0 )
-    {
-    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $stateFile)
-        {
-            $contents = Get-Content -Path $stateFile
-            if ($null -ne $contents)
-            {
-                    if ($contents -eq $TestCompleted)
-                    {                    
-                        Write-Output "Info : state file contains Testcompleted"              
-                        $retValue = $True
-                        break                                             
-                                     
-                    }
-
-                    if ($contents -eq $TestAborted)
-                    {
-                         Write-Output "Info : State file contains TestAborted failed. "                                  
-                         break
-                          
-                    }
-                    #Start-Sleep -s 1
-                    $timeout-- 
-
-                    if ($timeout -eq 0)
-                    {                        
-                        Write-Output "Error : Timed out on Test Running , Exiting test execution."                    
-                        break                                               
-                    }                                
-                  
-            }    
-            else
-            {
-                Write-Output "Warn : state file is empty"
-                break
-            }
-           
-        }
-        else
-        {
-             Write-Host "Warn : ssh reported success, but state file was not copied"
-             break
-        }
-    }
-    else #
-    {
-         Write-Output "Error : pscp exit status = $sts"
-         Write-Output "Error : unable to pull state.txt from VM." 
-         break
-    }     
-    }
-
-    # Get the logs
-    $remoteScriptLog = $remoteScript+".log"
-    
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} . 
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $remoteScriptLog)
-        {
-            $contents = Get-Content -Path $remoteScriptLog
-            if ($null -ne $contents)
-            {
-                    if ($null -ne ${TestLogDir})
-                    {
-                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
-                
-                    }
-
-                    else 
-                    {
-                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"                                
-                    }                              
-                  
-            }    
-            else
-            {
-                Write-Output "Warn: $remoteScriptLog is empty"                
-            }           
-        }
-        else
-        {
-             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"             
-        }
-    }
-    
-    # Cleanup 
-    del state.txt -ErrorAction "SilentlyContinue"
-    del runtest.sh -ErrorAction "SilentlyContinue"
-
-    return $retValue
-}
-
 ####################################################################### 
 # 
 # Main script body 
@@ -449,7 +292,7 @@ if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 
 Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
-Start-Sleep -Seconds 30
+Start-Sleep -Seconds 70
 
 # Start the Restore
 Write-Output "`nNow let's do restore ...`n"
@@ -515,7 +358,7 @@ else
     $results = "Passed"
     $retVal = $True
     Write-Output "INFO: VSS Back/Restore: Success"   
-    Write-Output "No Recovering Journal in boot msg: Success" >> $summaryLog
+    Write-Output "Recovering Journal in boot msg: Success" >> $summaryLog
 }
 
 # Remove Existing Backups
