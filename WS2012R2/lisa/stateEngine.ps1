@@ -2807,6 +2807,13 @@ function DoShuttingDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
     # If vm is stopped, update its state
     #
     $v = Get-VM -Name $vm.vmName -ComputerName $vm.hvServer
+    if ($v -eq $null)
+    {
+        LogMsg 0 "Error: ShutDownVM cannot find the VM $($vm.vmName) on HyperV server $($vm.hvServer) after testing"
+        $vm.emailSummary += "VM $($vm.vmName) cannot be found in shutdown VM- no tests run on VM<br />"
+        UpdateState $vm $Disabled
+        return
+    }
     if ($($v.State) -eq "Off")
     {
         #
