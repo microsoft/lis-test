@@ -233,7 +233,7 @@ if (-not $sts[-1])
     Write-Output "ERROR: Running $remoteScript script failed on VM!"
     Write-Output "Here are the remote logs:`n`n###################"
     $logfilename = ".\$remoteScript.log"
-    Get-Content $logfilename
+    Get-Content $logfilename >> $summaryLog
     Write-Output "###################`n"
     return $False
 }
