@@ -52,6 +52,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <!-- for Ubuntu use min 384M -->
                 <param>crashkernel=256M@128M</param>
@@ -69,6 +70,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupscripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <!-- for Ubuntu use min 384M -->
                 <param>crashkernel=256M@128M</param>
@@ -86,6 +88,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupscripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <!-- for Ubuntu use min 384M -->
                 <param>crashkernel=384M</param>
@@ -104,6 +107,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <!-- Minimum RAM=2GB -->
                 <param>crashkernel=auto</param>
@@ -121,6 +125,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <!-- Minimum RAM=2GB -->
                 <param>crashkernel=256M@128M</param>
