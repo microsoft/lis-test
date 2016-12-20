@@ -154,6 +154,7 @@ function CreateChildVHD($ParentVHD, $defaultpath)
 
 function Cleanup()
 {
+    Write-Output "Starting cleanup"
     # Clean up
     $sts = Stop-VM -Name $vmName1 -ComputerName $hvServer -TurnOff
     if (-not $?)
@@ -183,7 +184,7 @@ function Cleanup()
 #
 #######################################################################
 
-ipv4vm1 = $null
+$ipv4vm1 = $null
 $retVal = $true
 
 $summaryLog  = "${vmName}_summary.log"
@@ -192,13 +193,13 @@ $vmName1 = "${vmName}_ChildVM"
 # Check input arguments
 if ($vmName -eq $null)
 {
-     "Error: VM name is null"
+    "Error: VM name is null"
     return $retVal
 }
 
 if ($hvServer -eq $null)
 {
-     "Error: hvServer is null"
+    "Error: hvServer is null"
     return $retVal
 }
 
@@ -221,26 +222,26 @@ foreach ($p in $params)
 
 if ($null -eq $sshKey)
 {
-     "ERROR: Test parameter sshKey was not specified"
+    "ERROR: Test parameter sshKey was not specified"
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-     "ERROR: Test parameter ipv4 was not specified"
+    "ERROR: Test parameter ipv4 was not specified"
     return $False
 }
 
 if ($null -eq $driveletter)
 {
-     "ERROR: Test parameter driveletter was not specified."
+    "ERROR: Test parameter driveletter was not specified."
     return $False
 }
 
 # Change the working directory to where we need to be
 if (-not (Test-Path $rootDir))
 {
-     "Error: The directory `"${rootDir}`" does not exist"
+    "Error: The directory `"${rootDir}`" does not exist"
     return $False
 }
 
@@ -269,6 +270,7 @@ if(-not $ParentVHD)
     Write-Output "Error: Error getting Parent VHD of VM $vmName" | Tee-Object -Append -file $summaryLog
     return $False
 }
+Write-Output "Success: getting Parent VHD of VM $vmName : $ParentVHD"
 
 # Get VHD size
 $VHDSize = (Get-VHD -Path $ParentVHD -ComputerName $hvServer).FileSize
@@ -284,14 +286,20 @@ if ( Test-Path $vhdpath )
 # Create the new partition
 New-VHD -Path $vhdpath -Dynamic -SizeBytes $newsize -ComputerName $hvServer | Mount-VHD -Passthru | Initialize-Disk -Passthru |
 New-Partition -DriveLetter $driveletter[0] -UseMaximumSize | Format-Volume -FileSystem NTFS -Confirm:$false -Force
+if (-not $?)
+{
+    Write-Output "Error: Failed to create the new partition $driveletter" | Tee-Object -Append -file $summaryLog
+}
+Write-Output "Success: to create the new partition $driveletter"
 
 # Copy parent VHD to partition
 $ChildVHD = CreateChildVHD $ParentVHD $driveletter
 if(-not $ChildVHD)
 {
-    Write-Output "Error: Error Creating Child VHD of VM $vmName" | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: Creating Child VHD of VM $vmName" | Tee-Object -Append -file $summaryLog
     return $False
 }
+Write-Output "Success: Creating Child VHD of $vmName"
 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
 
@@ -313,7 +321,7 @@ Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
 $newVm = New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
 {
-   Write-Output "Error: Creating New VM"
+   Write-Output "Error: Creating New VM $vmName1" | Tee-Object -Append -file $summaryLog
    return $False
 }
 
@@ -328,7 +336,7 @@ if ($vm_gen -eq 2)
     }
 }
 
-Write-Output "INFO: Child VM: $vmName1 created" | Tee-Object -Append -file $summaryLog
+Write-Output "INFO: Child VM: $vmName1 created"
 
 $timeout = 300
 $sts = Start-VM -Name $vmName1 -ComputerName $hvServer
@@ -337,8 +345,10 @@ if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout ))
     Write-Output "Error: ${vmName1} failed to start" | Tee-Object -Append -file $summaryLog
     return $False
 }
-
 Write-Output "INFO: New VM $vmName1 started"
+
+# Get the VM1 ip
+$ipv4vm1 = GetIPv4 $vmName1 $hvServer
 
 # Get partition size
 $disk = Get-WmiObject Win32_LogicalDisk -ComputerName $hvServer -Filter "DeviceID='${driveletter}'" | Select-Object FreeSpace
@@ -354,24 +364,20 @@ if ($createfile -notlike "File *testfile* is created")
     Cleanup
     return $False
 }
+Write-Output "Success: Created test file on \\$hvServer\$file_path_formatted with the size $filesize" | Tee-Object -Append -file $summaryLog
 
-# Wait for VM to start
-$timeout = 200 # seconds
-if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout))
+$retVal = SendCommandToVM $ipv4vm1 $sshKey "dd if=/dev/urandom of=/root/data2 bs=1M count=500 2>/dev/null &"
+if (-not $?)
 {
-    Write-Output "Warning: $vmName1 never started KVP" | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: Could not send command to vm $vmName1" | Tee-Object -Append -file $summaryLog
 }
-
-# Get the VM1 ip
-$ipv4vm1 = GetIPv4 $vmName1 $hvServer
-
-$retVal = SendCommandToVM $ipv4vm1 $sshKey "dd if=/dev/urandom of=/root/data2 bs=1M count=200"
-Start-Sleep 15
+Write-Output "Success: Command sent to VM $vmName1"
+Start-Sleep 20
 
 $vm1 = Get-VM -Name $vmName1 -ComputerName $hvServer
 if ($vm1.State -ne "PausedCritical")
 {
-    Write-Output "VM $vmName1 is not in Paused-Critical after we filled the disk" | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: VM $vmName1 is not in Paused-Critical after we filled the disk" | Tee-Object -Append -file $summaryLog
     Cleanup
     return $False
 }
@@ -384,9 +390,15 @@ if (-not $?) {
     Cleanup
     return $False
 }
+Write-Output "Success: Test file deleted and space is created" | Tee-Object -Append -file $summaryLog
 
 # Resume VM after we created space on the partition
 Resume-VM -Name $vmName1 -ComputerName $hvServer
+if (-not $?)
+{
+    Write-Output "Error: Failed to resume the vm $vmName1" | Tee-Object -Append -file $summaryLog
+}
+Write-Output "Success: VM $vmName1 resumed"
 
 # Check Heartbeat
 Start-Sleep 10
