@@ -1100,6 +1100,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1118,6 +1119,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1137,6 +1139,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1155,6 +1158,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1174,6 +1178,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1193,6 +1198,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1212,6 +1218,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1232,6 +1239,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1251,6 +1259,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1270,6 +1279,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>3000</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1289,6 +1299,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>3000</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1308,6 +1319,7 @@
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1345,6 +1357,7 @@
         <testName>VHDx_HotADD_Dynamic_SCSI_SMP</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
         <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
         <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
@@ -1363,6 +1376,7 @@
         <testName>VHDx_MultiDiskSCSI_Dynamic</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1378,6 +1392,7 @@
         <testName>VHDx_MultiDiskSCSI_Fixed</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1407,6 +1422,7 @@
         <testName>VHDx_HotADD_Multi_Dynamic_SCSI</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
         <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1422,6 +1438,7 @@
         <testName>VHDx_HotRemove_Multi_Dynamic_SCSI</testName>
         <testScript>STOR_hot_remove.sh</testScript>
         <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
         <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
         <timeout>18000</timeout>
@@ -1443,6 +1460,7 @@
         </setupscript>
         <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
         <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
         <timeout>18000</timeout>
         <testparams>
             <param>SCSI=0,1,Dynamic,512</param>
@@ -1458,6 +1476,7 @@
         <testName>VHDx_4k_MultiDiskSCSI_Dynamic</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1473,6 +1492,7 @@
         <testName>VHDx_4k_MultiDiskSCSI_Fixed</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1489,6 +1509,7 @@
         <testName>VHDx_4k_HotADD_Multi_Dynamic_SCSI</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
         <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1505,6 +1526,7 @@
         <testName>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</testName>
         <testScript>STOR_hot_remove.sh</testScript>
         <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
         <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
         <timeout>18000</timeout>

@@ -64,6 +64,7 @@
 		</testParams>
 		<testScript>STOR_Lis_Disk.sh</testScript>
 		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 		<cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
 		<timeout>1800</timeout>
 		<onError>Continue</onError>
@@ -73,6 +74,7 @@
 		<testName>VHDx_MultiDiskSCSI_Dynamic</testName>
 		<testScript>STOR_Lis_Disk.sh</testScript>
 		<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 		<setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
 		<cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
 		<timeout>3600</timeout>
@@ -97,6 +99,7 @@
              </testParams>
              <testScript>STOR_Lis_Disk.sh</testScript>
              <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
              <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
              <timeout>1800</timeout>
              <onError>Continue</onError>
@@ -106,6 +109,7 @@
             <testName>VHDx_MultiDiskSCSI_Fixed</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>3600</timeout>
@@ -153,6 +157,7 @@
             <testName>VHDx_HotADD_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupscripts\RemoveIsoFromDvd.ps1</setupScript>
             <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
@@ -170,6 +175,7 @@
             <testName>VHDx_HotRemove_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_hot_remove.sh</testScript>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
             <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
             <timeout>3600</timeout>
@@ -186,6 +192,7 @@
             <testName>VHDx_HotADD_Dynamic_SCSI_SMP</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>
                 <file>setupScripts\ChangeCPU.ps1</file>
                 <file>setupscripts\RemoveIsoFromDvd.ps1</file>
@@ -212,6 +219,7 @@
             </setupscript>
             <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>3600</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic,512</param>
@@ -227,6 +235,7 @@
 		<testName>VHDx_DiskHotPlugUnplug</testName>
 		<testScript>setupscripts\STOR_unPlug_Plug.ps1</testScript>
 		<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 		<setupScript>setupscripts\Add-VHDXForResize.ps1</setupScript>
 		<cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 		<testparams>
@@ -248,6 +257,7 @@
 		<testName>VHDx_DiskHotPlugUnplug_Multi_SCSI</testName>
 		<testScript>STOR_hot_remove.sh</testScript>
 		<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 		<setupScript>setupscripts\RemoveIsoFromDvd.ps1</setupScript>
 		<preTest>
 		<file>setupscripts\AddVhdxHardDisk.ps1</file>
@@ -272,6 +282,7 @@
             </testParams>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
             <onError>Continue</onError>
@@ -281,6 +292,7 @@
             <testName>VHDx_4k_MultiDiskSCSI_Dynamic</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>3600</timeout>
@@ -303,6 +315,7 @@
             </testParams>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
             <onError>Continue</onError>
@@ -312,6 +325,7 @@
             <testName>VHDx_4k_MultiDiskSCSI_Fixed</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
@@ -328,6 +342,7 @@
             <testName>VHDx_4k_HotADD_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupscripts\RemoveIsoFromDvd.ps1</setupScript>
             <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
@@ -345,6 +360,7 @@
             <testName>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_hot_remove.sh</testScript>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
             <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
             <timeout>1800</timeout>
@@ -421,6 +437,7 @@
 		<testName>VHDx_SCSI_Dynamic_Local_Copy_File</testName>
 		<testScript>STOR_Large_Disk_CopyFile.sh</testScript>
 		<files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
 		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
 		<cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 		<timeout>3600</timeout>
@@ -441,6 +458,7 @@
 		<testName>VHDx_SCSI_Dynamic_Wget_File</testName>
 		<testScript>STOR_Large_Disk_CopyFile.sh</testScript>
 		<files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
 		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
 		<cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 		<timeout>3600</timeout>
@@ -462,6 +480,7 @@
 		<testName>VHDx_SCSI_Dynamic_NFS_File</testName>
 		<testScript>STOR_Large_Disk_CopyFile.sh</testScript>
 		<files>remote-scripts/ica/STOR_Large_Disk_CopyFile.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
 		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
 		<cleanupScript>setupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 		<timeout>3600</timeout>
@@ -483,6 +502,7 @@
 		<testName>VHDx_Mount_NFS</testName>
 		<testScript>STOR_NFS_Client.sh</testScript>
 		<files>remote-scripts/ica/STOR_NFS_Client.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
 		<timeout>3600</timeout>
 		<testparams>
 			<param>TC_COVERED=STOR-46</param>

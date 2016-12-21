@@ -52,19 +52,6 @@ function UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-function CheckForError()
-{   while true; do
-        [[ -f "/var/log/syslog" ]] && logfile="/var/log/syslog" || logfile="/var/log/messages"
-        content=$(grep -i "Call Trace" $logfile)
-        if [[ -n $content ]]; then
-            LogMsg "Warning: System get Call Trace in $logfile"
-            echo "Warning: System get Call Trace in $logfile" >> ~/summary.log
-            break
-        fi
-
-    done
-}
-
  function TestNFS()
  {
    umount /mnt
@@ -144,7 +131,10 @@ function CheckForError()
  echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
 StartTst=$(date +%s.%N)
-CheckForError &
+# Check for call trace log
+dos2unix check_traces.sh
+chmod +x check_traces.sh
+./check_traces.sh &
 TestNFS
 
 EndTst=$(date +%s.%N)

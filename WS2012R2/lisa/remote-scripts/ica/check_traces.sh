@@ -22,17 +22,16 @@
 # Description:
 # This script checks if "Call Trace" message or hot add error appears in
 # the system logs and runs in the background.
+#####################################################################
 
 # Initializing variables
-isOver=false
-secondsToRun=200
-stopRun=$(( $(date +%s) + secondsToRun )) 
+summary_log=$1
 errorHasOccured=0
 callTraceHasOccured=0	
 [[ -f "/var/log/syslog" ]] && logfile="/var/log/syslog" || logfile="/var/log/messages"	
-
+[[ -n $summary_log ]] || summary_log="/root/summary.log"
 # Checking logs
-while [ $isOver == false ]; do
+while true; do
 	# Check for hot add errors in dmesg
     dmesg | grep -q "Memory hot add failed"
     if [[ $? -eq 0 ]] && \
@@ -45,17 +44,12 @@ while [ $isOver == false ]; do
 	content=$(grep -i "Call Trace" $logfile)
     if [[ -n $content ]] && \
     	[[ $callTraceHasOccured -eq 0 ]]; then
-        echo "ERROR: System shows Call Trace in $logfile" >> ~/HotAddErrors.log 2>&1
+        echo "ERROR: System shows Call Trace in $logfile" >> $summary_log 2>&1
         callTraceHasOccured=1
         break
     fi
 
-    # Check if script needs to stop
-    if  [[ $(date +%s) -gt $stopRun ]]; then
-    	isOver=true
-    fi
-
-    sleep 1
+    sleep 4
 done
 
 exit 0

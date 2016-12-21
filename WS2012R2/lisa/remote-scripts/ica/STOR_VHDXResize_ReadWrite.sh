@@ -10,19 +10,10 @@ UpdateTestState()
     echo $1 > $HOME/state.txt
 }
 
-function CheckForError()
-{   while true; do
-    a=$(grep -i "Call Trace" /var/log/messages)
-    if [[ -n $a ]]; then
-	LogMsg "Warning: System get Call Trace in /var/log/messages"
-        echo "Warning: System get Call Trace in /var/log/messages" >> ~/summary.log
-	break
-    fi
-    done
-}
-
 # Check for call trace log
-CheckForError &
+dos2unix check_traces.sh
+chmod +x check_traces.sh
+./check_traces.sh &
 
 #
 # Read/Write mount point
