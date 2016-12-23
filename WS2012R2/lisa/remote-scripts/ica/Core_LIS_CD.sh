@@ -97,12 +97,13 @@ if [ $os_VENDOR != "Ubuntu" ] && [ $os_VENDOR != "Debian" ]; then
 fi
 sleep 1
 LogMsg "Mount the CDROM"
-for drive in $(ls /dev/cdrom*)
+for drive in $(ls /dev/sr*)
 do
     blkid $drive
     if [ $? -eq 0 ]; then
         mount -o loop $drive /mnt/
         LogMsg "Mount the CDROM ${drive}"
+        break
     fi
 done    
 sts=$?
