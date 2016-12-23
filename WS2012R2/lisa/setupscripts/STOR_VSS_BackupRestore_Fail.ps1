@@ -304,7 +304,7 @@ if(-not $EventLog)
 # Event ID 10107 is what we looking here, it will be always be 10107.
 foreach ($event in $EventLog)
    {
-       Write-Output "VSS Backup Error in Event Log number is $EventLog:" >> $summaryLog
+       Write-Output "VSS Backup Error in Event Log number is $($event.ID):" >> $summaryLog
        if ($event.Id -eq 10150)
        {
            $results = "Passed"
