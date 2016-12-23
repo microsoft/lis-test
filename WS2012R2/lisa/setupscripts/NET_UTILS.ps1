@@ -989,7 +989,8 @@ function iPerfInstall ([String]$conIpv4, [String]$sshKey)
             rpm -i libiperf*
             if [ `$? -ne 0 ]; then
                 echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
-                exit 2
+                # Check will fail if the package already exists, removing the exit condition
+		# exit 2
             fi
 
             # Download and install iPerf 3
@@ -1003,7 +1004,8 @@ function iPerfInstall ([String]$conIpv4, [String]$sshKey)
             rpm -i iperf*
             if [ `$? -ne 0 ]; then
                 echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
-                exit 2
+                # Check will fail if the package already exists, removing the exit condition
+		# exit 2
             fi
 
         elif is_fedora ; then
@@ -1022,7 +1024,8 @@ function iPerfInstall ([String]$conIpv4, [String]$sshKey)
             rpm -i iperf3*
             if [ `$? -ne 0 ]; then
                 echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
-                exit 2
+                # Check will fail if the package already exists, removing the exit condition
+		# exit 2
             fi
         fi
 

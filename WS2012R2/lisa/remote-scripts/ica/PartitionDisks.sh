@@ -86,6 +86,14 @@ if [ ! ${FILESYS} ]; then
     exit 1
 fi
 
+command -v mkfs.$FILESYS >> ~/summary.log
+if [ $? -ne 0 ]; then
+    LogMsg "Error: Tools for filesystem $FILESYS are not installed."
+    UpdateTestState "TestAborted"
+    UpdateSummary "Error: Tools for filesystem $FILESYS are not installed."
+    exit 2
+fi
+
 # Count the Number of partition present in added new Disk .
 count=0
 for disk in $(cat /proc/partitions | grep sd | awk '{print $4}')
@@ -110,14 +118,14 @@ do
 
     for (( c=1 ; c<=count; count--))
         do
-            (echo d; echo $c ; echo ; echo w) |  fdisk $driveName
+            (echo d; echo $c ; echo ; echo w) |  fdisk $driveName &>~/summary.log
             sleep 5
         done
 
 # Partition Drive
-    (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) | fdisk $driveName
+    (echo n; echo p; echo 1; echo ; echo +500M; echo ; echo w) | fdisk $driveName &>~/summary.log
     sleep 5
-    (echo n; echo p; echo 2; echo ; echo; echo ; echo w) | fdisk $driveName
+    (echo n; echo p; echo 2; echo ; echo; echo ; echo w) | fdisk $driveName &>~/summary.log
     sleep 5
     sts=$?
   if [ 0 -ne ${sts} ]; then
@@ -126,14 +134,14 @@ do
       UpdateSummary " Partitioning disk $driveName : Failed"
       exit 1
   else
-      echo "Partitioning disk $driveName : Success"
+      echo "Partitioning disk $driveName : Success" >> ~/summary.log
       UpdateSummary " Partitioning disk $driveName : Success"
   fi
 
    sleep 1
 
 # Create file sytem on it .
-   echo "y" | mkfs.$FILESYS ${driveName}1  ; echo "y" | mkfs.$FILESYS ${driveName}2
+   echo "y" | mkfs.$FILESYS ${driveName}1  &>~/summary.log; echo "y" | mkfs.$FILESYS ${driveName}2 &>~/summary.log
    sts=$?
         if [ 0 -ne ${sts} ]; then
             LogMsg "Error:  creating filesystem  Failed ${sts}"
@@ -141,7 +149,7 @@ do
             UpdateSummary " Creating FileSystem $filesys on disk $driveName : Failed"
             exit 1
         else
-            LogMsg "Creating FileSystem $FILESYS on disk  $driveName : Success"
+            LogMsg "Creating FileSystem $FILESYS on disk  $driveName : Success" >> ~/summary.log
             UpdateSummary " Creating FileSystem $FILESYS on disk $driveName : Success"
         fi
 
@@ -156,7 +164,7 @@ do
    if [ ! -e ${MountName1} ]; then
      mkdir $MountName1
    fi
-   mount ${driveName}1 $MountName ; mount ${driveName}2 $MountName1
+   mount ${driveName}1 $MountName &>~/summary.log; mount ${driveName}2 $MountName1 &>~/summary.log
    sts=$?
        if [ 0 -ne ${sts} ]; then
            LogMsg "Error:  mounting disk Failed ${sts}"
@@ -164,13 +172,14 @@ do
            UpdateSummary " Mounting disk $driveName on $MountName: Failed"
            exit 1
        else
-     LogMsg "mounting disk ${driveName}1 on ${MountName}"
-     LogMsg "mounting disk ${driveName}2 on ${MountName1}"
+           LogMsg "mounting disk ${driveName}1 on ${MountName}"
+           LogMsg "mounting disk ${driveName}2 on ${MountName1}"
            UpdateSummary " Mounting disk ${driveName}1 : Success"
            UpdateSummary " Mounting disk ${driveName}2 : Success"
        fi
 fi
 done
+
 
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0

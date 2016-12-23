@@ -27,6 +27,7 @@ ICA_TESTABORTED="TestAborted"
 kdump_conf=/etc/kdump.conf
 dump_path=/var/crash
 sys_kexec_crash=/sys/kernel/kexec_crash_loaded
+kdump_sysconfig=/etc/sysconfig/kdump
 
 #
 # Functions definitions
@@ -69,6 +70,65 @@ LinuxRelease()
 
 #######################################################################
 #
+# RhelExtraSettings()
+#
+#######################################################################
+
+RhelExtraSettings(){
+
+    LogMsg "Adding extra kdump parameters(Rhel)..."
+    echo "Adding extra kdump parameters (Rhel)..." >> summary.log
+
+    to_be_updated=(
+            'core_collector makedumpfile'
+            'disk_timeout'
+            'blacklist'
+            'extra_modules'
+        )
+
+    value=(
+        '-c --message-level 1 -d 31'
+        '100'
+        'hv_vmbus hv_storvsc hv_utils hv_netvsc hid-hyperv hyperv_fb hyperv-keyboard'
+        'ata_piix sr_mod sd_mod'
+        )
+
+    for (( item=0; item<${#to_be_updated[@]-1}; item++))
+    do
+        sed -i "s/${to_be_updated[item]}.*/#${to_be_updated[item]} ${value[item]}/g" $kdump_conf
+        echo "${to_be_updated[item]} ${value[item]}" >> $kdump_conf
+    done
+
+    kdump_commandline=(
+        'irqpoll'
+        'maxcpus='
+        'reset_devices'
+        'ide_core.prefer_ms_hyperv='
+    )
+
+    value_kdump=(
+        ''
+        '1'
+        ''
+        '0'
+    )
+
+    kdump_commandline_arguments=$(grep KDUMP_COMMANDLINE_APPEND $kdump_sysconfig |  sed 's/KDUMP_COMMANDLINE_APPEND="//g' | sed 's/"//g')
+
+
+    for (( item=0; item<${#kdump_commandline[@]-1}; item++))
+    do
+        if [ $? -eq 0 ]; then
+            kdump_commandline_arguments=$(echo ${kdump_commandline_arguments} | sed "s/${kdump_commandline[item]}\S*//g")
+        fi
+        kdump_commandline_arguments="$kdump_commandline_arguments ${kdump_commandline[item]}${value_kdump[item]}"
+    done
+
+    sed -i "s/KDUMP_COMMANDLINE_APPEND.*/KDUMP_COMMANDLINE_APPEND=\"$kdump_commandline_arguments\"/g" $kdump_sysconfig
+}
+
+#######################################################################
+#
 # ConfigRhel()
 #
 #######################################################################
@@ -100,6 +160,14 @@ ConfigRhel()
         LogMsg "Success: Updated the default behaviour to reboot."
         echo "Success: Updated the default behaviour to reboot." >> summary.log
     fi 
+
+    if [[ -z "$os_RELEASE" ]]; then
+        GetOSVersion
+    fi
+
+    if [[ $os_RELEASE =~ ^5.* ]] || [[ $os_RELEASE =~ ^6.[0-2] ]] ; then
+        RhelExtraSettings
+    fi
     
     if [[ -d /boot/grub2 ]]; then
         LogMsg "Update grub"
@@ -155,6 +223,7 @@ ConfigRhel()
         echo "Success: kdump enabled." >> ~/summary.log     
     fi
 }
+
 
 #######################################################################
 #
@@ -235,7 +304,7 @@ ConfigUbuntu()
     LogMsg "Configuring kdump (Ubuntu)..."
     echo "Configuring kdump (Ubuntu)..." >> summary.log
     sed -i 's/USE_KDUMP=0/USE_KDUMP=1/g' /etc/default/kdump-tools
-	grep -q "USE_KDUMP=1" /etc/default/kdump-tools
+    grep -q "USE_KDUMP=1" /etc/default/kdump-tools
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: kdump-tools are not existent or cannot be modified."
         echo "ERROR: kdump-tools are not existent or cannot be modified." >> summary.log
@@ -283,6 +352,15 @@ if [ -e ~/summary.log ]; then
 fi
 
 touch ~/summary.log
+
+dos2unix utils.sh
+
+# Source utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
 
 #
 # Checking the negotiated VMBus version 

@@ -155,6 +155,7 @@
                 <param>TC_COVERED=VSS-11</param>
                 <param>DriveLetter=C:</param>
                 <param>snapshotName=ICABase</param>
+                <param>IsoFilename=CDTEST.iso</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>

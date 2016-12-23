@@ -243,7 +243,7 @@ New-Variable FreeBSDOS           -value "FreeBSD"             -option ReadOnly
 # RunICTests()
 #
 ########################################################################
-function RunICTests([XML] $xmlConfig)
+function RunICTests([XML] $xmlConfig, [string] $collect)
 {
     <#
     .Synopsis
@@ -261,7 +261,13 @@ function RunICTests([XML] $xmlConfig)
 
     if (-not $xmlConfig -or $xmlConfig -isnot [XML])
     {
-        LogMsg 0 "Error: RunICTests received an bad xmlConfig parameter - terminating LISA"
+        LogMsg 0 "Error: RunICTests received a bad xmlConfig parameter - terminating LISA"
+        return
+    }
+
+    if (-not $collect -or $collect -isnot [string])
+    {
+        LogMsg 0 "Error: RunICTests received a bad collect parameter - terminating LISA"
         return
     }
 
@@ -401,7 +407,7 @@ function RunICTests([XML] $xmlConfig)
     #
     # run the state engine
     #
-    DoStateMachine $xmlConfig
+    DoStateMachine $xmlConfig $collect
 
     #
     # Add LIS version to the email summary text
@@ -545,7 +551,7 @@ function ResetVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 # DoStateMachine()
 #
 ########################################################################
-function DoStateMachine([XML] $xmlConfig)
+function DoStateMachine([XML] $xmlConfig, [string] $collect)
 {
     <#
     .Synopsis
@@ -655,7 +661,7 @@ function DoStateMachine([XML] $xmlConfig)
 
             $CollectLogFiles
                 {
-                    DoCollectLogFiles $vm $xmlConfig
+                    DoCollectLogFiles $vm $xmlConfig $collect
                     $done = $false
                 }
 
@@ -869,7 +875,7 @@ function DoApplyCheckpoint([System.Xml.XmlElement] $vm, [XML] $xmlData)
         Apply checkpoint to let VM go into a know status
         if RevertDefaultSnapshot=True.
     .Description
-        Apply checkpoint if RevertDefaultSnapshot=True. Then transition 
+        Apply checkpoint if RevertDefaultSnapshot=True. Then transition
         to RunSetupScript if the currentTest defines a setup script.
         Otherwise, transition to StartSystem. If RevertDefaultSnapshot=False
         or not configured, there's no checkpoint restoring applied in VM
@@ -1036,27 +1042,27 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
     if ($vm.preStartConfig)
     {
         if ($vm.preStartConfig.File)
-	    {
-		    foreach ($preStartScript in $vm.preStartConfig.file)
-			{
-			    LogMsg 3 "Info : $($vm.vmName) running preStartConfig script '${preStartScript}' "
-				$sts = RunPSScript $vm $preStartScript $xmlData "preStartConfig"
-				if (-not $sts)
-				{
-				LogMsg 0 "Error: VM $($vm.vmName) preStartConfig script: $preStartScript failed"
-				}
-			}
-		}
-		else  # original syntax of <preStartConfig>.\setupscripts\Config-VM.ps1</preStartConfig>
-		{
-		    LogMsg 3 "Info : $($vm.vmName) - starting preStart script $($vm.preStartConfig)"
-			$sts = RunPSScript $vm $($vm.preStartConfig) $xmlData "preStartConfig"
-			if (-not $sts)
-			{
-				LogMsg 0 "Error: VM $($vm.vmName) preStartConfig script: $($vm.preStartConfig) failed"
-			}
-		}
-	}
+        {
+            foreach ($preStartScript in $vm.preStartConfig.file)
+            {
+                LogMsg 3 "Info : $($vm.vmName) running preStartConfig script '${preStartScript}' "
+                $sts = RunPSScript $vm $preStartScript $xmlData "preStartConfig"
+                if (-not $sts)
+                {
+                LogMsg 0 "Error: VM $($vm.vmName) preStartConfig script: $preStartScript failed"
+                }
+            }
+        }
+        else  # original syntax of <preStartConfig>.\setupscripts\Config-VM.ps1</preStartConfig>
+        {
+            LogMsg 3 "Info : $($vm.vmName) - starting preStart script $($vm.preStartConfig)"
+            $sts = RunPSScript $vm $($vm.preStartConfig) $xmlData "preStartConfig"
+            if (-not $sts)
+            {
+                LogMsg 0 "Error: VM $($vm.vmName) preStartConfig script: $($vm.preStartConfig) failed"
+            }
+        }
+    }
 
     if ($vm.role.ToLower().StartsWith("sut"))
     {
@@ -2276,10 +2282,53 @@ function DoTestRunning([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
 ########################################################################
 #
+# GenerateGeneralLogFile()
+#
+########################################################################
+function GenerateGeneralLogFile([System.Xml.XmlElement] $vm)
+{
+    <#
+    .Synopsis
+        Generate general info from the VM
+    .Description
+        Generate a set of general information about the VM
+        and his functionality
+    .Parameter vm
+        XML element representing the test VM
+    .Example
+        GenerateGeneralLogFile $testVM
+    #>
+
+    SendCommandToVM $vm "echo '##### VM_NAME: $($vm.vmName) #####' >> generalinfo.log"
+    SendCommandToVM $vm "echo '##### ComputerName: $($vm.hvServer) #####' >> generalinfo.log"
+    SendCommandToVM $vm "echo '##### Kernel version #####' >> generalinfo.log"
+    SendCommandToVM $vm "uname -r >> generalinfo.log"
+    SendCommandToVM $vm "echo >> generalinfo.log && echo >> generalinfo.log"
+
+    SendCommandToVM $vm "echo '##### LIS version #####'$'\n' >> generalinfo.log"
+    SendCommandToVM $vm "modinfo hv_vmbus >> generalinfo.log"
+    SendCommandToVM $vm "echo >> generalinfo.log && echo >> generalinfo.log"
+
+    SendCommandToVM $vm "echo '##### Daemons status(ps uax) #####'$'\n' >> generalinfo.log"
+    SendCommandToVM $vm "ps uax | grep hv.*daemon >> generalinfo.log"
+    SendCommandToVM $vm "ps uax | grep hyper >> generalinfo.log"
+    SendCommandToVM $vm "echo >> generalinfo.log && echo >> generalinfo.log"
+
+    SendCommandToVM $vm "echo '##### System messages(syslog or messages) #####'$'\n' >> generalinfo.log"
+    SendCommandToVM $vm "cat /var/log/messages >> generalinfo.log"
+    SendCommandToVM $vm "cat /var/log/syslog >> generalinfo.log"
+    SendCommandToVM $vm "echo >> generalinfo.log && echo >> generalinfo.log"
+
+    SendCommandToVM $vm "echo '##### DMESG Driver messages #####'$'\n' >> generalinfo.log"
+    SendCommandToVM $vm "dmesg >> generalinfo.log"
+}
+
+########################################################################
+#
 # DoCollectLogFiles()
 #
 ########################################################################
-function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
+function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData, [string] $collect)
 {
     <#
     .Synopsis
@@ -2384,6 +2433,17 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 LogMsg 0 "Warn : $($vm.vmName) cannot copy '${file}' from VM"
             }
+        }
+    }
+
+    if (($completionCode -eq "Aborted" -or $completionCode -eq "Failed") -and $collect -eq "True")
+    {
+        LogMsg 4 "Info : $($vm.vmName) generating general logfile"
+        GenerateGeneralLogFile $vm
+        $generalLog = "$($vm.vmName)_${currentTest}_logs.log"
+        if (-not (GetFileFromVM $vm "generalinfo.log" "${testDir}\${generalLog}") )
+        {
+            LogMsg 0 "Error: $($vm.vmName) DoCollectLogFiles() is unable to collect ${generalLog}"
         }
     }
 
@@ -2747,6 +2807,13 @@ function DoShuttingDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
     # If vm is stopped, update its state
     #
     $v = Get-VM -Name $vm.vmName -ComputerName $vm.hvServer
+    if ($v -eq $null)
+    {
+        LogMsg 0 "Error: ShutDownVM cannot find the VM $($vm.vmName) on HyperV server $($vm.hvServer) after testing"
+        $vm.emailSummary += "VM $($vm.vmName) cannot be found in shutdown VM- no tests run on VM<br />"
+        UpdateState $vm $Disabled
+        return
+    }
     if ($($v.State) -eq "Off")
     {
         #
@@ -3049,9 +3116,9 @@ function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData)
         # Start the PowerShell test case script
         #
         LogMsg 3 "Info : $vmName Run PowerShell test case script $testScript"
-		LogMsg 3 "Info : vmName: $vmName"
-		LogMsg 3 "Info : hvServer: $hvServer"
-		LogMsg 3 "Info : params: $params"
+        LogMsg 3 "Info : vmName: $vmName"
+        LogMsg 3 "Info : hvServer: $hvServer"
+        LogMsg 3 "Info : params: $params"
 
         $job = Start-Job -filepath $testScript -argumentList $vmName, $hvServer, $params
         if ($job)
@@ -3280,6 +3347,21 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
         }
 
+        if ($collect -eq "True" -and ($completionCode -eq "Failed" -or $completionCode -eq "Aborted") -and (Get-VM -name $vm.vmName -ComputerName $vm.hvServer).State -eq "Running")
+ 		{
+			LogMsg 4 "Info : $($vm.vmName) generating general logfile"
+			GenerateGeneralLogFile $vm
+			$generalLog = "$($vm.vmName)_${currentTest}_logs.log"
+			if (-not (GetFileFromVM $vm "generalinfo.log" "${testDir}\${generalLog}"))
+			{
+				LogMsg 0 "Error: $($vm.vmName) DoCollectLogFiles() is unable to collect ${generalLog}"
+			}
+			else
+			{
+ 				LogMsg 1 "Info: Debug file can be found at ${testDir}\${generalLog}"
+			}
+		}
+
         Remove-Job -Id $jobID
     }
 
@@ -3302,3 +3384,4 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     UpdateState $vm $DetermineReboot
 }
+0

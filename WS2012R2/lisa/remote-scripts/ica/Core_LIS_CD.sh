@@ -97,7 +97,15 @@ if [ $os_VENDOR != "Ubuntu" ] && [ $os_VENDOR != "Debian" ]; then
 fi
 sleep 1
 LogMsg "Mount the CDROM"
-mount /dev/cdrom /mnt/
+for drive in $(ls /dev/sr*)
+do
+    blkid $drive
+    if [ $? -eq 0 ]; then
+        mount -o loop $drive /mnt/
+        LogMsg "Mount the CDROM ${drive}"
+        break
+    fi
+done    
 sts=$?
 if [ 0 -ne ${sts} ]; then
     LogMsg "Unable to mount the CDROM"

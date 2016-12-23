@@ -143,13 +143,27 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 # Main script block
 #
 #######################################################################
-$procs = get-wmiobject -computername $hvServer win32_processor
-if ($procs)
+$OSInfo = get-wmiobject -computername $hvServer win32_processor
+if ($OSInfo)
 {
+    if ($OSInfo.Caption -match '.2008 R2.'){
+        $guest_max_cpus = 4
+    }else{
+        $guest_max_cpus = 64
+        if($OSInfo.Caption -match '.2016.'){
+            $generation = (Get-VM -Name $vmName -ComputerName $hvServer).Generation
+            if($generation -eq 2){
+                $guest_max_cpus = 240
+            }
+        }
+    }
     #
     # Get the total number of Logical processor 
     #
-    $maxCPUs =  ( $procs.NumberOfLogicalProcessors | Measure-Object -sum ).sum
+    $maxCPUs =  ($OSInfo.NumberOfLogicalProcessors | Measure-Object -sum).sum
+    if($maxCPUs -gt $guest_max_cpus){
+        $maxCPUs = $guest_max_cpus
+    }
 }
 
 #
