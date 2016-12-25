@@ -38,19 +38,6 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-function CheckForError()
-{   while true; do
-        [[ -f "/var/log/syslog" ]] && logfile="/var/log/syslog" || logfile="/var/log/messages"
-        content=$(grep -i "Call Trace" $logfile)
-        if [[ -n $content ]]; then
-            LogMsg "Warning: System get Call Trace in $logfile"
-            echo "Warning: System get Call Trace in $logfile" >> ~/summary.log
-            break
-        fi
-
-    done
-}
-
 #
 # Create the state.txt file so ICA knows we are running
 #
@@ -87,7 +74,10 @@ fi
 
 echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
-CheckForError &
+# Check for call trace log
+dos2unix check_traces.sh
+chmod +x check_traces.sh
+./check_traces.sh &
 
 #
 # Count the number of SCSI= and IDE= entries in constants

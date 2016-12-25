@@ -116,7 +116,7 @@ $scriptBlock = {
         rm ~/HotAddErrors.log -f
         dos2unix check_traces.sh
         chmod +x check_traces.sh
-        ./check_traces.sh &
+        ./check_traces.sh ~/HotAddErrors.log &
 
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))

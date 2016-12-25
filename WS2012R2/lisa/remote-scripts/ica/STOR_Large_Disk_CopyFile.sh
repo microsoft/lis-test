@@ -55,19 +55,6 @@ function UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-function CheckForError()
-{   while true; do
-        [[ -f "/var/log/syslog" ]] && logfile="/var/log/syslog" || logfile="/var/log/messages"
-        content=$(grep -i "Call Trace" $logfile)
-        if [[ -n $content ]]; then
-            LogMsg "Warning: System get Call Trace in $logfile"
-            echo "Warning: System get Call Trace in $logfile" >> ~/summary.log
-            break
-        fi
-
-    done
-}
-
 # test dd 5G files, dd one 5G file locally, then copy to /mnt which is mounted to disk
 function TestLocalCopyFile()
 {
@@ -264,7 +251,9 @@ fi
 echo "Covers: ${TC_COVERED}" >> ~/summary.log
 
 # Check for call trace log
-CheckForError &
+dos2unix check_traces.sh
+chmod +x check_traces.sh
+./check_traces.sh &
 
 # Count the number of SCSI= and IDE= entries in constants
 diskCount=0

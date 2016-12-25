@@ -294,6 +294,7 @@
 			</testParams> 	  
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -309,6 +310,7 @@
 			</testParams>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -324,6 +326,7 @@
 			</testParams>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -339,6 +342,7 @@
 			</testParams>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -354,6 +358,7 @@
 			</testParams>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -369,6 +374,7 @@
 			</testParams>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>10800</timeout>
 		</test>
@@ -377,6 +383,7 @@
 			<testName>MultiDiskSCSI_Dynamic</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -396,6 +403,7 @@
 			<testName>MultiDiskSCSI_Fixed</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -415,6 +423,7 @@
 			<testName>MultiDiskIDE_Dynamic</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -434,6 +443,7 @@
 			<testName>MultiDiskIDE_Fixed</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -453,6 +463,7 @@
 			<testName>HotADD_Multi_Disk_SCSI_Fixed_count2</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<preTest>setupScripts\AddHardDisk.ps1</preTest>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -472,6 +483,7 @@
 			<testName>HotRemove_Multi_Disk_SCSI_Fixed_count2</testName>
 			<testScript>STOR_hot_remove.sh</testScript>
 			<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
 			<timeout>18000</timeout>
@@ -488,6 +500,7 @@
 			<testName>HotADD_Multi_Disk_SCSI_Dynamic_count2</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<preTest>setupScripts\AddHardDisk.ps1</preTest>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -507,6 +520,7 @@
 			<testName>HotRemove_Multi_Disk_SCSI_Dynamic_count2</testName>
 			<testScript>STOR_hot_remove.sh</testScript>
 			<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
 			<timeout>18000</timeout>
@@ -523,6 +537,7 @@
 			<testName>HotADD_Multi_Disk_SCSI_Fixed_count3</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<preTest>setupScripts\AddHardDisk.ps1</preTest>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -542,6 +557,7 @@
 			<testName>HotRemove_Multi_Disk_SCSI_Fixed_count3</testName>
 			<testScript>STOR_hot_remove.sh</testScript>
 			<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
 			<timeout>18000</timeout>
@@ -558,6 +574,7 @@
 			<testName>HotADD_Multi_Disk_SCSI_Dynamic_count3</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<preTest>setupScripts\AddHardDisk.ps1</preTest>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -577,6 +594,7 @@
 			<testName>HotRemove_Multi_Disk_SCSI_Dynamic_count3</testName>
 			<testScript>STOR_hot_remove.sh</testScript>
 			<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
 			<timeout>18000</timeout>
@@ -593,6 +611,7 @@
 			<testName>HotADD_Multi_Disk_SCSI_Fixed_count4</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<preTest>setupScripts\AddHardDisk.ps1</preTest>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -612,6 +631,7 @@
 			<testName>HotRemove_Multi_Disk_SCSI_Fixed_count4</testName>
 			<testScript>STOR_hot_remove.sh</testScript>
 			<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
 			<timeout>18000</timeout>
@@ -628,6 +648,7 @@
 			<testName>HotADD_Multi_Disk_SCSI_Dynamic_count4</testName>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<preTest>setupScripts\AddHardDisk.ps1</preTest>
 			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
 			<timeout>18000</timeout>
@@ -647,6 +668,7 @@
 			<testName>HotRemove_Multi_Disk_SCSI_Dynamic_count4</testName>
 			<testScript>STOR_hot_remove.sh</testScript>
 			<files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
 			<setupScript>setupScripts\AddHardDisk.ps1</setupScript>
 			<preTest>setupScripts\RemoveHardDisk.ps1</preTest>
 			<timeout>18000</timeout>

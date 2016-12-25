@@ -43,17 +43,6 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-function CheckForError()
-{   while true; do
-    a=$(grep -i "Call Trace" /var/log/messages)
-    if [[ -n $a ]]; then
-	LogMsg "Warning: System get Call Trace in /var/log/messages"
-        echo "Warning: System get Call Trace in /var/log/messages" >> ~/summary.log
-	break
-    fi
-    done
- }
-
 IntegrityCheck(){
 targetDevice=$1
 testFile="/dev/shm/testsource"
@@ -301,7 +290,9 @@ then filesystem=(ext3)
 fi
 
 # Check for call trace log
-CheckForError &
+dos2unix check_traces.sh
+chmod +x check_traces.sh
+./check_traces.sh &
 
 for driveName in /dev/sd*[^0-9];
 do
