@@ -333,19 +333,20 @@ class AWSConnector:
             self.wait_for_state(inst, 'state', 'terminated')
 
         if ebs_vol:
-            if type(ebs_vol) is not list and not device:
-                device = ['/dev/sdx']
+            if type(ebs_vol) is not list:
                 ebs_vol = [ebs_vol]
-            for vol, dev in zip(ebs_vol, device):
+            for vol in ebs_vol:
                 for inst in self.instances:
                     try:
-                        conn.detach_volume(vol.id, inst.id, device=dev)
+                        if not device:
+                            conn.detach_volume(vol.id, inst.id,
+                                               device='/dev/sdx')
                     except Exception as e:
                         log.info(e)
                     self.wait_for_state(vol, 'status', 'available')
-                    time.sleep(30)
+                    # time.sleep(30)
                     try:
-                        conn.delete_volume(ebs_vol.id)
+                        conn.delete_volume(vol.id)
                     except Exception as e:
                         log.info(e)
 
@@ -370,7 +371,6 @@ class AWSConnector:
             route_tables = self.vpc_conn.get_all_route_tables(
                 filters={'vpc-id': self.vpc_zone.id})
             for route_table in route_tables:
-                log.info(route_table.__dict__)
                 try:
                     self.vpc_conn.delete_route(route_table.id, '10.10.0.0/16')
                     log.info('deleted 10.10.0.0 route from table {}'.format(
@@ -836,3 +836,69 @@ def test_zookeeper(keyid, secret, imageid, instancetype, user, localpath,
                                              str(time.time()) + '.zip'))
 
     aws.teardown()
+
+
+def test_terasort(keyid, secret, imageid, instancetype, user, localpath, region,
+                  zone):
+    """
+    Run Hadoop terasort benchmark on a tree of servers using 1 master and
+    3 slaves instances in VPC to elevate AWS Enhanced Networking.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param imageid: AMI image id from EC2 repo
+    :param instancetype: instance flavor constituting resources
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    """
+    aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
+                       region, zone)
+    aws.vpc_connect()
+    instances = {}
+    for i in range(1, 5):
+        instances[i] = aws.aws_create_vpc_instance()
+
+    ssh_clients = {}
+    for i in range(1, 5):
+        ssh_clients[i] = aws.wait_for_ping(instances[i])
+
+    device = '/dev/sdx'
+    ebs_vols = list()
+    ebs_vols.append(aws.attach_ebs_volume(
+        instances[1], size=250, volume_type=aws.volume_type['ssd'],
+        device=device))
+    for i in range(2, 5):
+        ebs_vols.append(aws.attach_ebs_volume(
+            instances[i], size=50, volume_type=aws.volume_type['ssd'],
+            device=device))
+
+    if all(client for client in ssh_clients.values()):
+        for i in range(1, 5):
+            ssh_clients[i] = aws.enable_sr_iov(instances[i], ssh_clients[i])
+
+            # enable key auth between instances
+            ssh_clients[i].put_file(os.path.join(localpath,
+                                                 aws.key_name + '.pem'),
+                                    '/home/{}/.ssh/id_rsa'.format(user))
+            ssh_clients[i].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
+
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        ssh_clients[1].put_file(os.path.join(current_path, 'tests',
+                                             'run_terasort.sh'),
+                                '/tmp/run_terasort.sh')
+        ssh_clients[1].run('chmod +x /tmp/run_terasort.sh')
+        ssh_clients[1].run("sed -i 's/\r//' /tmp/run_terasort.sh")
+        slaves = ' '.join([instances[i].private_ip_address
+                           for i in range(2, 5)])
+        ssh_clients[1].run('/tmp/run_terasort.sh {} {} {}'.format(
+            user, device.replace('sd', 'xvd'), slaves))
+        try:
+            ssh_clients[1].get_file('/tmp/terasort.zip',
+                                    os.path.join(localpath, 'terasort' +
+                                                 str(time.time()) + '.zip'))
+        except Exception as e:
+            log.info(e)
+
+    aws.teardown(ebs_vol=ebs_vols)
