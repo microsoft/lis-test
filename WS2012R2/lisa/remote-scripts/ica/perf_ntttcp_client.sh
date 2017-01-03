@@ -26,16 +26,19 @@
 # perf_ntttcp_client.sh
 #
 # Description:
-#     For the test to run you have to place the iperf tool package in the
-#     Tools folder under lisa.
+#     A multiple-thread based Linux network throughput benchmark tool.
+#     For the test to run you have to install ntttcp-for-linux from github: https://github.com/Microsoft/ntttcp-for-linux
 #
 # Requirements:
-#   The sar utility must be installed, package named sysstat
+#   - GCC installed
 #
-# Parameters:
-#     IPERF3_SERVER_IP: the ipv4 address of the server
-#     SERVER_OS_USERNAME: the user name used to copy test signal file to server side
+#Example run
 #
+#To measure the network performance between two multi-core serves running SLES 12, NODE1 (192.168.4.1) and NODE2 (192.168.4.2), connected via a 40 GigE connection.
+#
+#And on NODE2 (the sender), run: ./ntttcp -s192.168.4.1
+#Run ntttcp as a receiver with default setting. The default setting includes: with 16 threads created and run across all CPUs, 
+#allocating 64K receiver buffer, and run for 60 seconds.)
 #######################################################################
 
 ICA_TESTRUNNING="TestRunning"
@@ -480,7 +483,12 @@ if [ "$(which lagscope)" == "" ]; then
     fi        
 cd $HOME
 fi
-
+LogMsg "Enlarging the system limit"
+ulimit -n 20480
+if [ $? -ne 0 ]; then
+    LogMsg "Error: Unable to enlarged system limit"
+    UpdateTestState $ICA_TESTABORTED
+fi
 #
 #Install NTTTCP for network throughput
 #
@@ -617,14 +625,14 @@ do
     echo "======================================"
     
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f ntttcp"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} -P $num_threads_P -t ${TEST_DURATION} ${ipVersion}" &
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} -P $num_threads_P -t ${TEST_DURATION} ${ipVersion} -e" &
 
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f lagscope"
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "lagscope -r${SERVER_IP} ${ipVersion}" &
     
     sleep 2
     lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V ${ipVersion} > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
-    ntttcp -s${SERVER_IP} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION} ${ipVersion} > "./$log_folder/ntttcp-p${num_threads_P}X${num_threads_n}.log"
+    ntttcp -s${SERVER_IP} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION} ${ipVersion} -f > "./$log_folder/ntttcp-p${num_threads_P}X${num_threads_n}.log"
 
     current_tx_bytes=$(get_tx_bytes)
     current_tx_pkts=$(get_tx_pkts)

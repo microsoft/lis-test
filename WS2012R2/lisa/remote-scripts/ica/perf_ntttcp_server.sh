@@ -26,15 +26,17 @@
 # perf_ntttcp_server.sh
 #
 # Description:
-#     For the test to run you have to place the iperf3 tool package in the
-#     Tools folder under lisa.
+#     A multiple-thread based Linux network throughput benchmark tool.
+#     For the test to run you have to install ntttcp-for-linux from github: https://github.com/Microsoft/ntttcp-for-linux
 #
 # Requirements:
-#   The sar utility must be installed, package named sysstat
+#   - GCC installed
 #
-# Parameters:
-#     TEST_SIGNAL_FILE: the signal file send by client side to sync up the number of test connections
+#Example run
 #
+#To measure the network performance between two multi-core serves running SLES 12, NODE1 (192.168.4.1) and NODE2 (192.168.4.2), connected via a 40 GigE connection.
+#
+#On NODE1 (the receiver), run: ./ntttcp -r
 #######################################################################
 
 ICA_TESTRUNNING="TestRunning"
@@ -229,14 +231,12 @@ if [ "$(which lagscope)" == "" ]; then
 cd $HOME
 fi
 
-   git clone https://github.com/Microsoft/ntttcp-for-linux.git
-
-#
-# Get the root directory of the tarball
-#
-rootDir="ntttcp-for-linux"
-
-LogMsg "rootDir = ${rootDir}"
+LogMsg "Enlarging the system limit"
+ulimit -n 20480
+if [ $? -ne 0 ]; then
+    LogMsg "Error: Unable to enlarged system limit"
+    UpdateTestState $ICA_TESTABORTED
+fi
 
 #
 # Distro specific setup
@@ -418,6 +418,13 @@ suse_12)
     fi
     ;;
 esac
+
+git clone https://github.com/Microsoft/ntttcp-for-linux.git
+
+# Get the root directory of the tarball
+#
+rootDir="ntttcp-for-linux"
+LogMsg "rootDir = ${rootDir}"
 
 cd ${rootDir}/src
 #
