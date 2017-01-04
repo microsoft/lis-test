@@ -35,12 +35,12 @@
 # Place this script and your public and authorized keys in /root/ then
 # run the script. 
 #
-#   ./Aio.sh 
+#   ./aio.sh 
 #
 # If you run the script on RedHat or SUSE, pass the registration 
 # username and password to the script.
 #
-#   ./Aio.sh "your_username" "your_password" 
+#   ./aio.sh "your_username" "your_password" 
 #
 ########################################################################
 
@@ -316,7 +316,7 @@ function verify_install (){
 #
 ########################################################################
 function install_stressapptest(){
-	echo "Installing stressapptest..." >> summary.log
+    echo "Installing stressapptest..." >> summary.log
 
     git clone https://github.com/stressapptest/stressapptest.git
     cd stressapptest
@@ -332,8 +332,8 @@ function install_stressapptest(){
 # Install stress-ng
 #
 ########################################################################
-function install_Stress_ng(){
-    echo "Installing Stress-ng..." >> summary.log
+function install_stress_ng(){
+    echo "Installing stress-ng..." >> summary.log
 
     git clone https://github.com/ColinIanKing/stress-ng
     cd stress-ng
@@ -381,7 +381,6 @@ function configure_grub(){
 #
 ########################################################################
 function remove_udev(){
-
     echo "#!/bin/bash" >> /etc/init.d/remove_udev
     echo "rm -rf /etc/udev/rules.d/70-persistent-net.rules" >> /etc/init.d/remove_udev
     chmod 775 /etc/init.d/remove_udev
@@ -478,8 +477,9 @@ if is_fedora ; then
 	fi
 
     echo "Installing packages..." >> summary.log
-    PACK_LIST=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc selinux-policy-devel
-        libaio-devel libattr-devel keyutils-libs-devel nano kexec-tools device-mapper-multipath expect sysstat git bc numactl python3)
+    PACK_LIST=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs
+    	ntp crash bc selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel 
+	nano kexec-tools device-mapper-multipath expect sysstat git bc numactl python3 nfs-client)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... "
@@ -520,9 +520,10 @@ elif is_ubuntu ; then
     #
     sed -i -e 's/sleep 40/#sleep 40/g' /etc/init/failsafe.conf
     sed -i -e 's/sleep 59/#sleep 59/g' /etc/init/failsafe.conf
-    PACK_LIST=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 at multipath-tools expect zip libaio-dev
-        make libattr1-dev stressapptest git bridge-utils btrfs-tools libkeyutils-dev xfsprogs linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r` sysstat build-essential bc
-        numactl python3)
+    PACK_LIST=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 
+    	at multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git bridge-utils btrfs-tools 
+	libkeyutils-dev xfsprogs linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r` 
+	sysstat build-essential bc numactl python3 nfs-client)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... "
@@ -601,7 +602,7 @@ elif is_suse ; then
     make install
     cd ~
 
-    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ expect sysstat bc numactl python3)
+    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ expect sysstat bc numactl python3 nfs-client)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... " >> summary.log
@@ -629,7 +630,7 @@ elif is_suse ; then
     fi
 fi
 
-install_Stress_ng
+install_stress_ng
 verify_install $? stress-ng
 configure_grub
 rsa_keys rhel5_id_rsa
