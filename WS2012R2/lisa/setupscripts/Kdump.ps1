@@ -23,39 +23,33 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-function CheckResults(){
+function CheckResults
+{
     #
     # Checking test results
     #
+    $retVal = $False
     $stateFile = "state.txt"
+    GetFileFromVM $args[1] $args[0] $stateFile $stateFile
 
-    bin\pscp -q -i ssh\${1} root@${2}:${stateFile} .
-    $sts = $?
-
-    if ($sts) {
-        if (test-path $stateFile){
-            $contents = Get-Content $stateFile
-            if ($null -ne $contents){
-                if ($contents.Contains('TestCompleted') -eq $True) {                    
-                    Write-Output "Info: Test ended successfully"
-                    $retVal = $True
-                }
-                if ($contents.Contains('TestAborted') -eq $True) {
-                    Write-Output "Info: State file contains TestAborted failed"
-                    $retVal = $False                           
-                }
-                if ($contents.Contains('TestFailed') -eq $True) {
-                    Write-Output "Info: State file contains TestFailed failed"
-                    $retVal = $False                           
-                }
-            }    
-            else {
-                Write-Output "ERROR: state file is empty!"
-                $retVal = $False    
+    if (test-path $stateFile){
+        $contents = Get-Content $stateFile
+        if ($null -ne $contents){
+            if ($contents.Contains('TestCompleted') -eq $True) {
+                $retVal = $True
+            }
+            if ($contents.Contains('TestAborted') -eq $True) {
+                $retVal = $False
+            }
+            if ($contents.Contains('TestFailed') -eq $True) {
+                $retVal = $False
             }
         }
+        else {
+            $retVal = $False
+        }
     }
-    return $retval
+    return $retVal
 }
 
 #
@@ -83,14 +77,15 @@ $params = $testParams.Split(";")
 
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    
+
     switch ($fields[0].Trim()) {
         "rootDir"   { $rootDir = $fields[1].Trim() }
         "sshKey" { $sshKey  = $fields[1].Trim() }
         "ipv4"   { $ipv4    = $fields[1].Trim() }
         "crashkernel"   { $crashkernel    = $fields[1].Trim() }
-        "TestLogDir" {$logdir = $fields[1].Trim()}
-        "NMI" {$nmi = $fields[1].Trim()}
+        "TestLogDir" { $logdir = $fields[1].Trim() }
+        "NMI" { $nmi = $fields[1].Trim() }
+        "VM2NAME" { $vm2Name = $fields[1].Trim() }
         default  {}
     }
 }
@@ -125,6 +120,45 @@ else
     return $false
 }
 
+if ($vm2Name)
+{
+    $checkState = Get-VM -Name $vm2Name -ComputerName $hvServer
+
+    if ($checkState.State -notlike "Running")
+    {
+        "Warning: ${vm2Name} is not running, we'll try to start it"
+        Start-VM -Name $vm2Name -ComputerName $hvServer
+        if (-not $?)
+        {
+            "Error: Unable to start VM ${vm2Name}"
+            $error[0].Exception
+            return $False
+        }
+        $timeout = 240 # seconds
+        if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
+        {
+            "Warning: $vm2Name never started KVP"
+        }
+
+       sleep 10
+
+        $vm2ipv4 = GetIPv4 $vm2Name $hvServer
+
+        $timeout = 200 #seconds
+        if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
+        {
+            "Error: VM ${vm2Name} never started"
+            Stop-VM $vm2Name -ComputerName $hvServer -force | out-null
+            return $False
+        }
+
+    "Succesfully started VM ${vm2Name}"
+    }
+
+    SendFileToVM $vm2ipv4 $sshKey ".\remote-scripts\ica\Kdump_nfs_config.sh" "/root/kdump_nfs_config.sh"
+    SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix kdump_nfs_config.sh && chmod u+x kdump_nfs_config.sh && ./kdump_nfs_config.sh"
+}
+
 #
 # Copying required scripts to VM for generating kernel panic with appropriate permissions
 #
@@ -138,7 +172,7 @@ if (-not $retVal)
 }
 Write-Output "Success: send kdump_config.sh to VM."
 
-$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh && chmod u+x kdump_config.sh && ./kdump_config.sh $crashkernel"
+$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh && chmod u+x kdump_config.sh && ./kdump_config.sh $crashkernel $vm2ipv4"
 
 #
 # Rebooting the VM in order to apply the kdump settings
@@ -147,14 +181,12 @@ $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh &&
 $retVal = SendCommandToVM $ipv4 $sshKey "reboot"
 Write-Output "Rebooting the VM."
 
-
 #
 # Waiting the VM to start up
 Write-Output "Waiting the VM to have a connection..."
 do {
     sleep 5
 } until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
-
 
 #
 # Copying required scripts to VM for generating kernel panic with appropriate permissions
@@ -189,8 +221,8 @@ if ($nmi -eq 1){
 else {
     if ($vcpu -eq 4){
         "Kdump will be triggered on VCPU 3 of 4"
-        $retVal = SendCommandToVM $ipv4 $sshKey "taskset -c 2 echo c > /proc/sysrq-trigger 2>/dev/null &"    
-    } 
+        $retVal = SendCommandToVM $ipv4 $sshKey "taskset -c 2 echo c > /proc/sysrq-trigger 2>/dev/null &"
+    }
     else {
         $retVal = SendCommandToVM $ipv4 $sshKey "echo c > /proc/sysrq-trigger 2>/dev/null &"
     }
@@ -201,7 +233,7 @@ else {
 #
 Write-Output "Waiting 200 seconds to record the event..."
 Start-Sleep -S 200
-if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {                     
+if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {
     Write-Output "Error : Lost Communication to VM"
     Stop-VM -Name $vmName -ComputerName $hvServer -Force
     return $False
@@ -232,7 +264,14 @@ if (-not $retVal)
 }
 Write-Output "Success: sent kdump_results.sh to VM."
 
-$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh"
+SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh $vm2ipv4"
 
 $retVal = CheckResults $sshKey $ipv4
+
+# Stop NFS server
+if ($vm2Name)
+{
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+}
+
 return $retVal
