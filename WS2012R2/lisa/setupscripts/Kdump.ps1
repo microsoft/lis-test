@@ -23,35 +23,6 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-function CheckResults
-{
-    #
-    # Checking test results
-    #
-    $retVal = $False
-    $stateFile = "state.txt"
-    GetFileFromVM $args[1] $args[0] $stateFile $stateFile
-
-    if (test-path $stateFile){
-        $contents = Get-Content $stateFile
-        if ($null -ne $contents){
-            if ($contents.Contains('TestCompleted') -eq $True) {
-                $retVal = $True
-            }
-            if ($contents.Contains('TestAborted') -eq $True) {
-                $retVal = $False
-            }
-            if ($contents.Contains('TestFailed') -eq $True) {
-                $retVal = $False
-            }
-        }
-        else {
-            $retVal = $False
-        }
-    }
-    return $retVal
-}
-
 #
 # MAIN SCRIPT
 #
@@ -126,7 +97,6 @@ if ($vm2Name)
 
     if ($checkState.State -notlike "Running")
     {
-        "Warning: ${vm2Name} is not running, we'll try to start it"
         Start-VM -Name $vm2Name -ComputerName $hvServer
         if (-not $?)
         {
@@ -156,7 +126,12 @@ if ($vm2Name)
     }
 
     SendFileToVM $vm2ipv4 $sshKey ".\remote-scripts\ica\Kdump_nfs_config.sh" "/root/kdump_nfs_config.sh"
-    SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix kdump_nfs_config.sh && chmod u+x kdump_nfs_config.sh && ./kdump_nfs_config.sh"
+    $retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix kdump_nfs_config.sh && chmod u+x kdump_nfs_config.sh && ./kdump_nfs_config.sh"
+    if ($retVal -eq $False)
+    {
+        Write-Output "Error: Failed to configure nfs server."
+        return $false
+    }
 }
 
 #
@@ -173,7 +148,11 @@ if (-not $retVal)
 Write-Output "Success: send kdump_config.sh to VM."
 
 $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh && chmod u+x kdump_config.sh && ./kdump_config.sh $crashkernel $vm2ipv4"
-
+if ($retVal -eq $False)
+{
+    Write-Output "Error: Failed to configure kdump. Check logs for details."
+    return $false
+}
 #
 # Rebooting the VM in order to apply the kdump settings
 #
@@ -202,12 +181,10 @@ if (-not $retVal)
 Write-Output "Success: send kdump_execute.sh to VM."
 
 $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_execute.sh && chmod u+x kdump_execute.sh && ./kdump_execute.sh"
-
-bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
-$retVal = CheckResults $sshKey $ipv4
-if (-not $retVal)
+if ($retVal -eq $False)
 {
-    "ERROR: Results are not as expected(configuration problems). Test Aborted."
+    Write-Output "Error: Configuration is not correct. Check logs for details."
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
     return $false
 }
 
@@ -264,14 +241,19 @@ if (-not $retVal)
 }
 Write-Output "Success: sent kdump_results.sh to VM."
 
-SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh $vm2ipv4"
+$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh $vm2ipv4"
+if ($retVal -eq $False)
+{
+    Write-Output "Error: Results are not as expected. Check logs for details."
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
+    return $false
+}
 
-$retVal = CheckResults $sshKey $ipv4
-
+bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
 # Stop NFS server
 if ($vm2Name)
 {
     Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
 }
 
-return $retVal
+return $True

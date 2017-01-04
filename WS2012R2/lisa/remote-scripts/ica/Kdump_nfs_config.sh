@@ -22,10 +22,6 @@
 ########################################################################
 
 ICA_TESTRUNNING="TestRunning"
-ICA_TESTABORTED="TestAborted"
-
-kdump_conf=/etc/kdump.conf
-
 #
 # Functions definitions
 #
@@ -80,7 +76,7 @@ ConfigRhel()
         LogMsg "ERROR: Failed to install nfs."
         echo "ERROR: Failed to configure nfs." >> summary.log
         UpdateTestState "TestAborted"
-        exit 2
+        exit 1
     fi
 
     echo "/mnt *(rw,no_root_squash,sync)" >> /etc/exports
@@ -89,7 +85,7 @@ ConfigRhel()
         LogMsg "ERROR: Failed to restart nfs service."
         echo "ERROR: Failed to restart nfs service." >> summary.log
         UpdateTestState "TestAborted"
-        exit 2
+        exit 1
     fi
 }
 
@@ -108,7 +104,7 @@ ConfigSles()
         LogMsg "ERROR: Failed to install nfs."
         echo "ERROR: Failed to configure nfs." >> summary.log
         UpdateTestState "TestAborted"
-        exit 2
+        exit 1
     fi
 
     echo "/mnt *(rw,no_root_squash,sync)" >> /etc/exports
@@ -120,7 +116,7 @@ ConfigSles()
         LogMsg "ERROR: Failed to restart nfs service."
         echo "ERROR: Failed to restart nfs service." >> summary.log
         UpdateTestState "TestAborted"
-        exit 2
+        exit 1
     fi
 }
 
@@ -138,7 +134,7 @@ ConfigUbuntu()
         LogMsg "ERROR: Failed to install nfs."
         echo "ERROR: Failed to configure nfs." >> summary.log
         UpdateTestState "TestAborted"
-        exit 2
+        exit 1
     fi
 
     echo "/mnt *(rw,no_root_squash,sync)" >> /etc/exports
@@ -147,7 +143,7 @@ ConfigUbuntu()
         LogMsg "ERROR: Failed to restart nfs service."
         echo "ERROR: Failed to restart nfs service." >> summary.log
         UpdateTestState "TestAborted"
-        exit 2
+        exit 1
     fi
 }
 
@@ -187,4 +183,6 @@ case $distro in
         ConfigRhel
     ;;
 esac
+
+rm -rf /mnt/*
 UpdateTestState "TestCompleted"

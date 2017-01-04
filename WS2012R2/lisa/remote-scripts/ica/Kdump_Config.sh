@@ -142,7 +142,7 @@ ConfigRhel()
         LogMsg "ERROR: Failed to comment path in /etc/kdump.conf. Probably kdump is not installed."
         echo "ERROR: Failed to comment path in /etc/kdump.conf. Probably kdump is not installed." >> summary.log
         UpdateTestState "TestAborted"
-        exit 2
+        exit 1
     else
         echo path $dump_path >> $kdump_conf
         LogMsg "Success: Updated the path to /var/crash."
@@ -154,7 +154,7 @@ ConfigRhel()
         LogMsg "ERROR: Failed to comment default behaviour in /etc/kdump_conf. Probably kdump is not installed."
         echo "ERROR: Failed to comment default behaviour in /etc/kdump.conf. Probably kdump is not installed." >> summary.log
         UpdateTestState "TestAborted"
-        exit 2
+        exit 1
     else
         echo 'default reboot' >>  $kdump_conf
         LogMsg "Success: Updated the default behaviour to reboot."
@@ -182,7 +182,7 @@ ConfigRhel()
             LogMsg "FAILED: Could not set the new crashkernel value in /etc/default/grub."
             echo "FAILED: Could not set the new crashkernel value in /etc/default/grub." >> ~/summary.log
             UpdateTestState "TestAborted"
-            exit 2
+            exit 1
         else
             LogMsg "Success: updated the crashkernel value to: $crashkernel."
             echo "Success: updated the crashkernel value to: $crashkernel." >> ~/summary.log
@@ -201,7 +201,7 @@ ConfigRhel()
                 LogMsg "ERROR: Could not set the new crashkernel value."
                 echo "ERROR: Could not set the new crashkernel value." >> ~/summary.log
                 UpdateTestState "TestAborted"
-                exit 2
+                exit 1
             else
                 LogMsg "Success: updated the crashkernel value to: $crashkernel."
                 echo "Success: updated the crashkernel value to: $crashkernel." >> ~/summary.log
@@ -230,6 +230,7 @@ ConfigRhel()
                 LogMsg "ERROR: Failed to install nfs."
                 echo "ERROR: Failed to configure nfs." >> summary.log
                 UpdateTestState "TestAborted"
+                exit 1
         fi
         echo "nfs $vm2ipv4:/mnt" >> /etc/kdump.conf
     fi
@@ -258,7 +259,7 @@ ConfigSles()
             LogMsg "ERROR: Could not set the new crashkernel value in /etc/default/grub."
             echo "ERROR: Could not set the new crashkernel value in /etc/default/grub." >> ~/summary.log
             UpdateTestState "TestAborted"
-            exit 2
+            exit 1
         else
             LogMsg "Success: updated the crashkernel value to: $crashkernel."
             echo "Success: updated the crashkernel value to: $crashkernel." >> ~/summary.log
@@ -278,7 +279,7 @@ ConfigSles()
             LogMsg "ERROR: Could not configure set the new crashkernel value in /etc/default/grub."
             echo "ERROR: Could not configure set the new crashkernel value in /etc/default/grub." >> ~/summary.log
             UpdateTestState "TestAborted"
-            exit 2
+            exit 1
         else
             LogMsg "Success: updated the crashkernel value to: $crashkernel."
             echo "Success: updated the crashkernel value to: $crashkernel." >> ~/summary.log
@@ -310,6 +311,7 @@ ConfigSles()
             LogMsg "ERROR: Failed to install nfs."
             echo "ERROR: Failed to configure nfs." >> summary.log
             UpdateTestState "TestAborted"
+            exit 1
         fi
         sed -i 's\KDUMP_SAVEDIR="/var/crash"\KDUMP_SAVEDIR="nfs://'"$vm2ipv4"'/mnt"\g' /etc/sysconfig/kdump
     fi
@@ -345,7 +347,7 @@ ConfigUbuntu()
             LogMsg "ERROR: Failed to configure the new crashkernel."
             echo "ERROR: Failed to configure the new crashkernel." >> summary.log
             UpdateTestState "TestAborted"
-            exit 2
+            exit 1
         else
             update-grub
             LogMsg "Succesfully updated the crashkernel value to: $crashkernel."
@@ -364,6 +366,7 @@ ConfigUbuntu()
             LogMsg "ERROR: Failed to install nfs."
             echo "ERROR: Failed to configure nfs." >> summary.log
             UpdateTestState "TestAborted"
+            exit 1
         fi
         echo 'NFS="'"$vm2ipv4"':/mnt"' >> /etc/default/kdump-tools
     fi
@@ -392,7 +395,7 @@ dos2unix utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
     echo "TestAborted" > state.txt
-    exit 2
+    exit 1
 }
 
 #
@@ -419,7 +422,7 @@ case $distro in
             LogMsg "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y."
             echo "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y." >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
-            exit 2
+            exit 1
         else
             ConfigUbuntu
         fi
@@ -429,7 +432,7 @@ case $distro in
             LogMsg "WARNING: crashkernel=auto doesn't work for SLES. Please use this pattern: crashkernel=X@Y."
             echo "WARNING: crashkernel=auto doesn't work for SLES. Please use this pattern: crashkernel=X@Y." >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
-            exit 2
+            exit 1
         else
             ConfigSles
         fi

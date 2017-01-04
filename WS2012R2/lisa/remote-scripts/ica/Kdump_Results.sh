@@ -56,6 +56,7 @@ CheckVmcore()
         LogMsg "Test Failed. No file was found in /var/crash of size greater than 10M."
         echo "Test Failed. No file was found in /var/crash of size greater than 10M." >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
+        exit 1
     else
         LogMsg "Test Successful. Proper file was found."
         echo "Test Successful. Proper file was found." >> ~/summary.log
@@ -75,6 +76,7 @@ VerifyRemoteStatus()
         LogMsg "Test Failed. No file was found on nfs server of size greater than 10M."
         echo "Test Failed. No file was found on nfs server of size greater than 10M." >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
+        exit 1
     fi
 }
 
@@ -117,6 +119,7 @@ case $distro in
                 LogMsg "Test Failed. No file was found in /var/crash of size greater than 10M."
                 echo "Test Failed. No file was found in /var/crash of size greater than 10M." >> ~/summary.log
                 UpdateTestState $ICA_TESTFAILED
+                exit 1
             else
                 LogMsg "Test Successful. Proper file was found."
                 echo "Test Successful. Proper file was found." >> ~/summary.log
@@ -136,5 +139,6 @@ case $distro in
         LogMsg "Test Failed. Unknown DISTRO: $distro."
         echo "Test Failed. Unknown DISTRO: $distro." >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
+        exit 1
     ;;
 esac
