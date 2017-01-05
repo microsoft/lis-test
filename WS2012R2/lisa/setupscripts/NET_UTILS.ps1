@@ -454,19 +454,30 @@ function CIDRtoNetmask([int]$cidr){
 #######################################################################
 function ConfigureBond([String]$conIpv4,[String]$sshKey,[String]$netmask)
 {
+        # Send utils.sh on VM
+    "Sending .\remote-scripts\ica\utils.sh to $conIpv4, authenticating with $sshKey"
+    $retVal = SendFileToVM "$conIpv4" "$sshKey" ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
+
+    # Send SR-IOV_Utils.sh on VM
+    "Sending .\remote-scripts\ica\SR-IOV_Utils.sh to $conIpv4 , authenticating with $sshKey"
+    $retVal = SendFileToVM "$conIpv4" "$sshKey" ".\remote-scripts\ica\SR-IOV_Utils.sh" "/root/SR-IOV_Utils.sh"
+
     # create command to be sent to VM. This determines the interface based on the MAC Address.
     $cmdToVM = @"
 #!/bin/bash
         cd ~
         # Source utils.sh
         dos2unix utils.sh
-        . utils.sh || {
-            echo "ERROR: unable to source utils.sh!" >> SRIOV_SendFile.log
+        dos2unix SR-IOV_Utils.sh
+
+        # Source SR-IOV_Utils.sh
+        . SR-IOV_Utils.sh || {
+            echo "ERROR: unable to source SR-IOV_Utils.sh!" >> SRIOV_SendFile.log
             exit 2
         }
 
-        # Source constants file and initialize most common variables
-        UtilsInit
+        # Install dependencies needed for testing
+        InstallDependencies
 
         # Make sure we have synthetic network adapters present
         GetSynthNetInterfaces
@@ -497,7 +508,7 @@ function ConfigureBond([String]$conIpv4,[String]$sshKey,[String]$netmask)
             fi
 
         elif is_fedora ; then
-            ./bondvf.sh
+            bash bondvf.sh
 
             # Verify if bond0 was created
             __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
@@ -722,6 +733,7 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
         #
         # Run file copy tests for each bond interface 
         #
+        `$__retVal=0
         output_file=large_file
         __iterator=0
         __ipIterator1=1
@@ -735,6 +747,7 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
             scp -i "`$HOME"/.ssh/"`$sshKey" -o BindAddress=`$staticIP1 -o StrictHostKeyChecking=no "`$output_file" "`$REMOTE_USER"@"`$staticIP2":/tmp/"`$output_file"
             if [ 0 -ne `$? ]; then
                 echo "ERROR: Unable to send the file from VM1 to VM2 using bond`$__iterator" >> SRIOV_SendFile.log
+                `$__retVal=1
                 exit 10
             else
                 echo "Successfully sent `$output_file to `$staticIP2" >> SRIOV_SendFile.log
@@ -745,6 +758,7 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
             echo "TX Value: `$txValue" >> SRIOV_SendFile.log
             if [ `$txValue -lt $MinimumPacketSize ]; then
                 echo "ERROR: TX packets insufficient" >> SRIOV_SendFile.log
+                `$__retVal=1
                 exit 10
             fi
 
@@ -752,6 +766,7 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
             echo "RX Value: `$rxValue" >> SRIOV_SendFile.log
             if [ `$rxValue -lt $MinimumPacketSize ]; then
                 echo "ERROR: RX packets insufficient" >> SRIOV_SendFile.log
+                `$__retVal=1
                 exit 10
             fi
 
@@ -771,6 +786,7 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
             echo "Virtual Function TX Value: `$txValueVF" >> SRIOV_SendFile.log
             if [ `$txValueVF -lt 7000 ]; then
                 echo "ERROR: Virtual Function TX packets insufficient. Make sure VF is up & running" >> SRIOV_SendFile.log
+                `$__retVal=1
                 exit 10
             fi
 
@@ -884,6 +900,9 @@ function RestartVF ([String]$conIpv4, [String]$sshKey)
 
             : `$((__iterator++))
         done
+
+        ifconfig | grep `$vfInterface
+        __retVal=`$?
 
         exit `$__retVal
 "@
@@ -1151,6 +1170,7 @@ function ConfigureVMandBond([String]$vmName,[String]$hvServer,[String]$sshKey,[S
             return $False
         }
     }
+
     $timeout = 200 # seconds
     if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout)) {
         "Warning: $vmName never started KVP"
@@ -1164,21 +1184,28 @@ function ConfigureVMandBond([String]$vmName,[String]$hvServer,[String]$sshKey,[S
     "Sending .\remote-scripts\ica\utils.sh to $ipv4 , authenticating with $sshKey"
     $retVal = SendFileToVM "$ipv4" "$sshKey" ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
 
-    # Install iPerf on the VM
-    $retVal = iPerfInstall $ipv4 $sshKey $netmask
-    if (-not $retVal)
-    {
-        "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4}, Host: ${hvServer})"
-        return $false
-    }
+    # Send SR-IOV_Utils.sh on VM
+    "Sending .\remote-scripts\ica\SR-IOV_Utils.sh to $ipv4 , authenticating with $sshKey"
+    $retVal = SendFileToVM "$ipv4" "$sshKey" ".\remote-scripts\ica\SR-IOV_Utils.sh" "/root/SR-IOV_Utils.sh"
 
     # Create command to be sent to VM
     $cmdToVM = @"
 #!/bin/bash
         cd ~
-        chmod 775 utils.sh
+        touch constants.sh
+        
         # Source utils.sh
-        source utils.sh
+        dos2unix utils.sh
+        dos2unix SR-IOV_Utils.sh
+
+        # Source SR-IOV_Utils.sh
+        . SR-IOV_Utils.sh || {
+            echo "ERROR: unable to source SR-IOV_Utils.sh!" >> SRIOV_SendFile.log
+            exit 2
+        }
+
+        # Install dependencies needed for testing
+        InstallDependencies
 
         #
         # Run bondvf.sh script and configure interfaces properly
