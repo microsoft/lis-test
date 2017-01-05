@@ -181,13 +181,16 @@ function ConfigureBondSecondVM([String]$conIpv4,[String]$sshKey,[String]$netmask
         cd ~
         # Source utils.sh
         dos2unix utils.sh
-        . utils.sh || {
-            echo "ERROR: unable to source utils.sh!" >> SRIOV_SendFile.log
+        dos2unix SR-IOV_Utils.sh
+
+        # Source SR-IOV_Utils.sh
+        . SR-IOV_Utils.sh || {
+            echo "ERROR: unable to source SR-IOV_Utils.sh!" >> SRIOV_SendFile.log
             exit 2
         }
 
-        # Source constants file and initialize most common variables
-        UtilsInit
+        # Install dependencies needed for testing
+        InstallDependencies
 
         # Make sure we have synthetic network adapters present
         GetSynthNetInterfaces
@@ -218,7 +221,7 @@ function ConfigureBondSecondVM([String]$conIpv4,[String]$sshKey,[String]$netmask
             fi
 
         elif is_fedora ; then
-            ./bondvf.sh
+            bash bondvf.sh
 
             # Verify if bond0 was created
             __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
@@ -393,10 +396,12 @@ else
     return $false
 }
 
-$nicIterator=0
-$bondIterator=0
+$maxNICs = "no"
+$networkName = $null
+$remoteServer = $null
+$nicIterator = 0
 $vmBondIP = @()
-$bondIterator=0
+$bondIterator = 0
 $nicValues = @()
 $leaveTrail = "no"
 $params = $testParams.Split(';')
@@ -427,10 +432,12 @@ foreach ($p in $params)
         $bondIterator++ }
     "STATIC_IP1" { $vmStaticIP1 = $fields[1].Trim() }
     "STATIC_IP2" { $vmStaticIP2 = $fields[1].Trim() }
+    "MAX_NICS" { $maxNICs = $fields[1].Trim() }
     "Test_IPv6" { $Test_IPv6 = $fields[1].Trim() }
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
+    "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
     "NIC"
     {
         $temp = $p.Trim().Split('=')
@@ -516,6 +523,12 @@ foreach ($p in $params)
     }
 }
 
+if ($maxNICs -eq "yes") {
+    $nicIterator = 7
+    $bondIterator = 14
+    $networkName = "SRIOV"
+}
+
 if (-not $vm2Name)
 {
     "ERROR: test parameter vm2Name was not specified"
@@ -535,12 +548,18 @@ if (-not $networkName)
     return $False
 }
 
+# Check if VM2 is on another host
+# If VM2 is on the same host, $remoteServer will be same as $hvServer
+if (-not $remoteServer) {
+    $remoteServer = $hvServer
+}
+
 #
 # Attach SR-IOV to both VMs and start VM2
 #
 
 # Verify VM2 exists
-$vm2 = Get-VM -Name $vm2Name -ComputerName $hvServer -ERRORAction SilentlyContinue
+$vm2 = Get-VM -Name $vm2Name -ComputerName $remoteServer -ERRORAction SilentlyContinue
 if (-not $vm2)
 {
     "ERROR: VM ${vm2Name} does not exist"
@@ -548,9 +567,9 @@ if (-not $vm2)
 }
 
 # Make sure VM2 is shutdown
-if (Get-VM -Name $vm2Name |  Where { $_.State -like "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like "Running" })
 {
-    Stop-VM $vm2Name -force
+    Stop-VM $vm2Name  -ComputerName $remoteServer -force
 
     if (-not $?)
     {
@@ -560,7 +579,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -like "Running" })
 
     # wait for VM to finish shutting down
     $timeout = 60
-    while (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Off" })
+    while (Get-VM -Name $vm2Name -ComputerName $remoteServer|  Where { $_.State -notlike "Off" })
     {
         if ($timeout -le 0)
         {
@@ -576,7 +595,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -like "Running" })
 
 # Revert VM2
 $snapshotParam = "SnapshotName = ${SnapshotName}"
-.\setupScripts\RevertSnapshot.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $snapshotParam
+.\setupScripts\RevertSnapshot.ps1 -vmName $vm2Name -hvServer $remoteServer -testParams $snapshotParam
 Start-sleep -s 5
 
 # Add NICs to both VMs
@@ -587,31 +606,49 @@ for ($i=0; $i -lt $nicIterator; $i++){
     # $nicValues[$i*5+4] means $legacy
 
     # Changing MAC on VM1 to avoid conflicts
-    $macAddress = $nicValues[$i*5+3]
-    $macSubstring=[convert]::ToInt32($macAddress.Substring(9))
-    $macSubstring = $macSubstring + 10
-    $macAddress = $macAddress -replace $macAddress.Substring(9), "$macSubstring"
-    
-    Add-VMNetworkAdapter -VMName $vmName -SwitchName $nicValues[$i*5+2] -StaticMacAddress $macAddress -IsLegacy:$nicValues[$i*5+4] -ComputerName $hvServer
-    if ($? -ne "True")
-    {
-        "Error: Add-VmNic to $vmName failed"
-        $retVal = $False
-    }
-    else
-    {
-        $retVal = $True
-    }
+    if ($maxNICs -ne "yes" ) {
+        $macAddress = $nicValues[$i*5+3]
+        $macSubstring=[convert]::ToInt32($macAddress.Substring(9))
+        $macSubstring = $macSubstring + 10
+        $macAddress = $macAddress -replace $macAddress.Substring(9), "$macSubstring"
+        
+        Add-VMNetworkAdapter -VMName $vmName -SwitchName $nicValues[$i*5+2] -StaticMacAddress $macAddress -IsLegacy:$nicValues[$i*5+4] -ComputerName $hvServer
+        if ($? -ne "True") {
+            "Error: Add-VmNic to $vmName failed"
+            $retVal = $False
+        }
+        else {
+            $retVal = $True
+        }
 
-    Add-VMNetworkAdapter -VMName $vm2Name -SwitchName $nicValues[$i*5+2] -StaticMacAddress $nicValues[$i*5+3] -IsLegacy:$nicValues[$i*5+4] -ComputerName $hvServer 
-    if ($? -ne "True")
-    {
-        "Error: Add-VmNic to $vm2Name failed"
-        $retVal = $False
+        Add-VMNetworkAdapter -VMName $vm2Name -SwitchName $nicValues[$i*5+2] -StaticMacAddress $nicValues[$i*5+3] -IsLegacy:$nicValues[$i*5+4] -ComputerName $remoteServer 
+        if ($? -ne "True") {
+            "Error: Add-VmNic to $vm2Name failed"
+            $retVal = $False
+        }
+        else {
+            $retVal = $True
+        }
     }
-    else
-    {
-        $retVal = $True
+    else {
+        Add-VMNetworkAdapter -VMName $vmName -SwitchName "SRIOV" -IsLegacy:$false -ComputerName $hvServer
+        if ($? -ne "True") {
+            "Error: Add-VmNic to $vmName failed"
+            $retVal = $False
+        }
+        else {
+            $retVal = $True
+        }
+
+        Add-VMNetworkAdapter -VMName $vm2Name -SwitchName "SRIOV" -IsLegacy:$false -ComputerName $remoteServer 
+        if ($? -ne "True") {
+            "Error: Add-VmNic to $vm2Name failed"
+            $retVal = $False
+        }
+        else {
+            $retVal = $True
+        }
+
     }
 }
 
@@ -626,7 +663,7 @@ else
     "ERROR: Failed to enable SR-IOV on $vmName!"
 }
 
-Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IovWeight 1
+Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer -IovWeight 1
 if ($? -eq "True")
 {
     $retVal = $True
@@ -637,9 +674,9 @@ else
 }
 
 # Start VM2
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -notlike "Running" })
 {
-    Start-VM -Name $vm2Name -ComputerName $hvServer
+    Start-VM -Name $vm2Name -ComputerName $remoteServer
     if (-not $?)
     {
         "ERROR: Failed to start VM ${vm2Name}"
@@ -650,7 +687,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 
 
 $timeout = 200 # seconds
-if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
+if (-not (WaitForVMToStartKVP $vm2Name $remoteServer $timeout))
 {
     "Warning: $vm2Name never started KVP"
 }
@@ -660,7 +697,7 @@ if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 #
 
 # Get IP from VM2
-$vm2ipv4 = GetIPv4 $vm2Name $hvServer
+$vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "$vm2Name IPADDRESS: $vm2ipv4"
 
 # wait for ssh to start
@@ -668,7 +705,7 @@ $timeout = 200 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "ERROR: VM ${vm2Name} never started"
-    Stop-VM $vm2Name -ComputerName $hvServer -force | out-null
+    Stop-VM -Name $vm2Name -ComputerName $remoteServer -force | out-null
     return $False
 }
 
@@ -689,11 +726,33 @@ if (-not $retVal)
 }
 "Successfully sent utils.sh"
 
+"Sending .\remote-scripts\ica\SR-IOV_Utils.sh to $vm2ipv4 , authenticating with $sshKey"
+$retVal = SendFileToVM "$vm2ipv4" "$sshKey" ".\remote-scripts\ica\SR-IOV_Utils.sh" "/root/SR-IOV_Utils.sh"
+
+if (-not $retVal)
+{
+    "Failed sending file to VM!"
+    return $False
+}
+"Successfully sent SR-IOV_Utils.sh"
+
+if ($maxNICs -eq "yes") {
+    $nicIterator = 1
+}
+
 # create constants.sh file on vm2
 for ($i=0; $i -lt $bondIterator; $i++){
     # get ip from array
-    $ipToSend = $vmBondIP[$i]
-    $j=$i+1
+    $j = $i + 1
+    if ($maxNICs -eq "yes") {
+        $ipToSend = "10.1${nicIterator}.12.${j}"
+        if ($j % 2 -eq 0) {
+            $nicIterator++  
+        }
+    }
+    else {
+        $ipToSend = $vmBondIP[$i]
+    }
     # construct command to be sent on vm2
     $commandToSend = "echo -e BOND_IP$j=$ipToSend >> constants.sh"
 
@@ -706,6 +765,10 @@ for ($i=0; $i -lt $bondIterator; $i++){
     "Successfully appended $ipToSend to constants.sh"   
 }
 
+if ($maxNICs -eq "yes") {
+    $nicIterator = 0
+}
+
 # Configure ifcfg-ethX
 for ($i=0; $i -lt $nicIterator; $i++){
     # Add Nic with given MAC Address
@@ -714,7 +777,7 @@ for ($i=0; $i -lt $nicIterator; $i++){
     # $nicValues[$i*5+4] means $legacy
 
     # Get MAC from VM2
-    $vm2mac = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer | Where-Object {$_.SwitchName -like $nicValues[$i*5+2]}
+    $vm2mac = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer | Where-Object {$_.SwitchName -like $nicValues[$i*5+2]}
     $vm2mac=$vm2mac.MacAddress
     $vm2mac
 
