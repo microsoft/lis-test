@@ -60,6 +60,7 @@ permissions and limitations under the License.
                 <suiteTest>MaxSyntheticNIC</suiteTest>
                 <suiteTest>MaxLegacyNIC</suiteTest>
                 <suiteTest>MaxNIC</suiteTest>
+                <suiteTest>TCP_Corruption</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
@@ -488,6 +489,25 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_MAX_NIC.sh,remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
         </test>
+
+        <test>
+            <testName>TCP_Corruption</testName>
+            <onError>Continue</onError>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>SetupScripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testParams>
+                <param>TC_COVERED=NET-24</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>CORRUPTION=3%</param>
+                <param>FILE_SIZE=256M</param>
+            </testParams>
+            <testScript>setupscripts\NET_Corruption.ps1</testScript>
+            <files>remote-scripts/ica/NET_Corruption.sh,remote-scripts/ica/utils.sh</files>
+            <timeout>800</timeout>
+        </test>
+
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>HotAddMultiNIC</testName>
