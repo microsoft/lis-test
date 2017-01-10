@@ -57,9 +57,20 @@ ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/datadir/c\da
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind-address/c\bind-address = 0\.0\.0\.0' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/max_connections/c\max_connections = 1024' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
 
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
+if [[ ${EBS_VOL} == *"xvd"* ]]
+then
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
+elif [[ ${EBS_VOL} == *"md"* ]]
+then
+    ${db_path}="/raid/maria/db"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
+else
+    LogMsg "Failed to identify disk type for ${EBS_VOL}."
+    exit 70
+fi
+
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo cp -rf /var/lib/mysql/* ${db_path}" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chmod 700 -R ${db_path}"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R mysql:adm ${db_path}"

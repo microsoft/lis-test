@@ -420,8 +420,13 @@ def test_orion(keyid, secret, imageid, instancetype, user, localpath, region,
 
     aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
                        region, zone)
-    aws.ec2_connect()
-    instance = aws.aws_create_instance()
+
+    if 'p2.8x' in instancetype:
+        aws.vpc_connect()
+        instance = aws.aws_create_vpc_instance()
+    else:
+        aws.ec2_connect()
+        instance = aws.aws_create_instance()
 
     ssh_client = aws.wait_for_ping(instance)
     device = '/dev/sdx'
@@ -444,7 +449,7 @@ def test_orion(keyid, secret, imageid, instancetype, user, localpath, region,
                             os.path.join(localpath,
                                          'orion' + str(time.time()) + '.zip'))
 
-    aws.teardown(instance=instance, ebs_vol=ebs_vol)
+    aws.teardown(ebs_vol=ebs_vol)
 
 
 def test_orion_raid(keyid, secret, imageid, instancetype, user, localpath,
@@ -465,8 +470,12 @@ def test_orion_raid(keyid, secret, imageid, instancetype, user, localpath,
 
     aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
                        region, zone)
-    aws.ec2_connect()
-    instance = aws.aws_create_instance()
+    if 'p2.8x' in instancetype:
+        aws.vpc_connect()
+        instance = aws.aws_create_vpc_instance()
+    else:
+        aws.ec2_connect()
+        instance = aws.aws_create_instance()
 
     ssh_client = aws.wait_for_ping(instance)
     ebs_vols = []
@@ -474,7 +483,7 @@ def test_orion_raid(keyid, secret, imageid, instancetype, user, localpath,
     for i in xrange(12):
         device = '/dev/sd{}'.format(chr(120 - i))
         ebs_vols.append(aws.attach_ebs_volume(
-            instance, size=10, volume_type=aws.volume_type['ssd'],
+            instance, size=1, volume_type=aws.volume_type['ssd'],
             device=device))
         devices.append(device.replace('sd', 'xvd'))
         time.sleep(3)
@@ -499,7 +508,7 @@ def test_orion_raid(keyid, secret, imageid, instancetype, user, localpath,
                             os.path.join(localpath,
                                          'orion' + str(time.time()) + '.zip'))
 
-    aws.teardown(instance=instance, ebs_vol=ebs_vols, device=devices)
+    aws.teardown(ebs_vol=ebs_vols)
 
 
 def test_sysbench(keyid, secret, imageid, instancetype, user, localpath,
@@ -522,6 +531,10 @@ def test_sysbench(keyid, secret, imageid, instancetype, user, localpath,
     instance = aws.aws_create_instance()
 
     ssh_client = aws.wait_for_ping(instance)
+    device = '/dev/sdx'
+    ebs_vol = aws.attach_ebs_volume(instance, size=240,
+                                    volume_type=aws.volume_type['ssd'],
+                                    device=device)
 
     if ssh_client:
         current_path = os.path.dirname(os.path.realpath(__file__))
@@ -530,12 +543,64 @@ def test_sysbench(keyid, secret, imageid, instancetype, user, localpath,
                             '/tmp/run_sysbench.sh')
         ssh_client.run('chmod +x /tmp/run_sysbench.sh')
         ssh_client.run("sed -i 's/\r//' /tmp/run_sysbench.sh")
-        ssh_client.run('/tmp/run_sysbench.sh')
+        ssh_client.run('/tmp/run_sysbench.sh {}'.format(
+            device.replace('sd', 'xvd')))
         ssh_client.get_file('/tmp/sysbench.zip',
                             os.path.join(localpath, 'sysbench' +
                                          str(time.time()) + '.zip'))
 
-    aws.teardown()
+    aws.teardown(ebs_vol=ebs_vol)
+
+
+def test_sysbench_raid(keyid, secret, imageid, instancetype, user, localpath,
+                       region, zone):
+    """
+    Run Sysbench test on an EC2 Instance with a 12 x SSD RAID0 volume.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param imageid: AMI image id from EC2 repo
+    :param instancetype: instance flavor constituting resources
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    """
+    aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
+                       region, zone)
+    aws.ec2_connect()
+    instance = aws.aws_create_instance()
+
+    ssh_client = aws.wait_for_ping(instance)
+    ebs_vols = []
+    devices = []
+    for i in xrange(12):
+        device = '/dev/sd{}'.format(chr(120 - i))
+        ebs_vols.append(aws.attach_ebs_volume(
+            instance, size=20, volume_type=aws.volume_type['ssd'],
+            device=device))
+        devices.append(device.replace('sd', 'xvd'))
+        time.sleep(3)
+
+    if ssh_client:
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        ssh_client.put_file(os.path.join(current_path, 'tests', 'raid.sh'),
+                            '/tmp/raid.sh')
+        ssh_client.run('chmod +x /tmp/raid.sh')
+        ssh_client.run("sed -i 's/\r//' /tmp/raid.sh")
+        ssh_client.run('/tmp/raid.sh 0 12 {}'.format(' '.join(devices)))
+        ssh_client.put_file(os.path.join(current_path, 'tests',
+                                         'run_sysbench.sh'),
+                            '/tmp/run_sysbench.sh')
+        ssh_client.run('chmod +x /tmp/run_sysbench.sh')
+        ssh_client.run("sed -i 's/\r//' /tmp/run_sysbench.sh")
+        raid = '/dev/md0'
+        ssh_client.run('/tmp/run_sysbench.sh {}'.format(raid))
+        ssh_client.get_file('/tmp/sysbench.zip',
+                            os.path.join(localpath, 'sysbench' +
+                                         str(time.time()) + '.zip'))
+
+    aws.teardown(ebs_vol=ebs_vols)
 
 
 def test_memcached(keyid, secret, imageid, instancetype, user, localpath,
@@ -732,6 +797,70 @@ def test_mariadb(keyid, secret, imageid, instancetype, user, localpath, region,
     aws.teardown(ebs_vol=ebs_vol)
 
 
+def test_mariadb_raid(keyid, secret, imageid, instancetype, user, localpath,
+                      region, zone):
+    """
+    Run MariaDB test on 2 instances in VPC to elevate AWS Enhanced Networking.
+    DB is installed on a 12 x SSD RAID0 volume.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param imageid: AMI image id from EC2 repo
+    :param instancetype: instance flavor constituting resources
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    """
+    aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
+                       region, zone)
+    aws.vpc_connect()
+    instance1 = aws.aws_create_vpc_instance()
+    instance2 = aws.aws_create_vpc_instance()
+
+    ssh_client1 = aws.wait_for_ping(instance1)
+    ssh_client2 = aws.wait_for_ping(instance2)
+
+    ebs_vols = []
+    devices = []
+    for i in xrange(12):
+        device = '/dev/sd{}'.format(chr(120 - i))
+        ebs_vols.append(aws.attach_ebs_volume(
+            instance2, size=10, volume_type=aws.volume_type['ssd'],
+            device=device))
+        devices.append(device.replace('sd', 'xvd'))
+        time.sleep(3)
+
+    if ssh_client1 and ssh_client2:
+        ssh_client1 = aws.enable_sr_iov(instance1, ssh_client1)
+        aws.enable_sr_iov(instance2, ssh_client2)
+
+        # enable key auth between instances
+        ssh_client1.put_file(os.path.join(localpath, aws.key_name + '.pem'),
+                             '/home/{}/.ssh/id_rsa'.format(user))
+        ssh_client1.run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
+
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        ssh_client2.put_file(os.path.join(current_path, 'tests', 'raid.sh'),
+                             '/tmp/raid.sh')
+        ssh_client2.run('chmod +x /tmp/raid.sh')
+        ssh_client2.run("sed -i 's/\r//' /tmp/raid.sh")
+        ssh_client2.run('/tmp/raid.sh 0 12 {}'.format(' '.join(devices)))
+        ssh_client1.put_file(os.path.join(current_path, 'tests',
+                                          'run_mariadb.sh'),
+                             '/tmp/run_mariadb.sh')
+        ssh_client1.run('chmod +x /tmp/run_mariadb.sh')
+        ssh_client1.run("sed -i 's/\r//' /tmp/run_mariadb.sh")
+        raid = '/dev/md0'
+        ssh_client1.run('/tmp/run_mariadb.sh {} {} {}'.format(
+            instance2.private_ip_address, user, raid))
+        ssh_client1.get_file('/tmp/mariadb.zip',
+                             os.path.join(localpath, 'mariadb' +
+                                          str(time.time()) + '.zip'))
+
+    aws.teardown(ebs_vol=ebs_vols)
+
+
 def test_mongodb(keyid, secret, imageid, instancetype, user, localpath, region,
                  zone):
     """
@@ -785,10 +914,74 @@ def test_mongodb(keyid, secret, imageid, instancetype, user, localpath, region,
     aws.teardown(ebs_vol=ebs_vol)
 
 
+def test_mongodb_raid(keyid, secret, imageid, instancetype, user, localpath,
+                      region, zone):
+    """
+    Run MongoDB YCBS benchmark test on 2 instances in VPC to elevate AWS
+    Enhanced Networking. DB is installed on a 12 x SSD RAID0 volume.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param imageid: AMI image id from EC2 repo
+    :param instancetype: instance flavor constituting resources
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    """
+    aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
+                       region, zone)
+    aws.vpc_connect()
+    instance1 = aws.aws_create_vpc_instance()
+    instance2 = aws.aws_create_vpc_instance()
+
+    ssh_client1 = aws.wait_for_ping(instance1)
+    ssh_client2 = aws.wait_for_ping(instance2)
+
+    ebs_vols = []
+    devices = []
+    for i in xrange(12):
+        device = '/dev/sd{}'.format(chr(120 - i))
+        ebs_vols.append(aws.attach_ebs_volume(
+            instance2, size=10, volume_type=aws.volume_type['ssd'],
+            device=device))
+        devices.append(device.replace('sd', 'xvd'))
+        time.sleep(3)
+
+    if ssh_client1 and ssh_client2:
+        ssh_client1 = aws.enable_sr_iov(instance1, ssh_client1)
+        aws.enable_sr_iov(instance2, ssh_client2)
+
+        # enable key auth between instances
+        ssh_client1.put_file(os.path.join(localpath, aws.key_name + '.pem'),
+                             '/home/{}/.ssh/id_rsa'.format(user))
+        ssh_client1.run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
+
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        ssh_client2.put_file(os.path.join(current_path, 'tests', 'raid.sh'),
+                             '/tmp/raid.sh')
+        ssh_client2.run('chmod +x /tmp/raid.sh')
+        ssh_client2.run("sed -i 's/\r//' /tmp/raid.sh")
+        ssh_client2.run('/tmp/raid.sh 0 12 {}'.format(' '.join(devices)))
+        ssh_client1.put_file(os.path.join(current_path, 'tests',
+                                          'run_mongodb.sh'),
+                             '/tmp/run_mongodb.sh')
+        ssh_client1.run('chmod +x /tmp/run_mongodb.sh')
+        ssh_client1.run("sed -i 's/\r//' /tmp/run_mongodb.sh")
+        raid = '/dev/md0'
+        ssh_client1.run('/tmp/run_mongodb.sh {} {} {}'.format(
+            instance2.private_ip_address, user, raid))
+        ssh_client1.get_file('/tmp/mongodb.zip',
+                             os.path.join(localpath, 'mongodb' +
+                                          str(time.time()) + '.zip'))
+
+    aws.teardown(ebs_vol=ebs_vols)
+
+
 def test_zookeeper(keyid, secret, imageid, instancetype, user, localpath,
                    region, zone):
     """
-    Run ZooKeeper benchmark on a tree of server znodes using 3 server instances
+    Run ZooKeeper benchmark on a tree of 5 znodes and 1 client,
     in VPC to elevate AWS Enhanced Networking.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
@@ -804,15 +997,15 @@ def test_zookeeper(keyid, secret, imageid, instancetype, user, localpath,
                        region, zone)
     aws.vpc_connect()
     instances = {}
-    for i in range(1, 5):
+    for i in range(1, 7):
         instances[i] = aws.aws_create_vpc_instance()
 
     ssh_clients = {}
-    for i in range(1, 5):
+    for i in range(1, 7):
         ssh_clients[i] = aws.wait_for_ping(instances[i])
 
     if all(client for client in ssh_clients.values()):
-        for i in range(1, 5):
+        for i in range(1, 7):
             ssh_clients[i] = aws.enable_sr_iov(instances[i], ssh_clients[i])
 
             # enable key auth between instances
@@ -828,7 +1021,7 @@ def test_zookeeper(keyid, secret, imageid, instancetype, user, localpath,
         ssh_clients[1].run('chmod +x /tmp/run_zookeeper.sh')
         ssh_clients[1].run("sed -i 's/\r//' /tmp/run_zookeeper.sh")
         zk_servers = ' '.join([instances[i].private_ip_address
-                               for i in range(2, 5)])
+                               for i in range(2, 7)])
         ssh_clients[1].run('/tmp/run_zookeeper.sh {} {}'.format(user,
                                                                 zk_servers))
         ssh_clients[1].get_file('/tmp/zookeeper.zip',
@@ -842,7 +1035,7 @@ def test_terasort(keyid, secret, imageid, instancetype, user, localpath, region,
                   zone):
     """
     Run Hadoop terasort benchmark on a tree of servers using 1 master and
-    3 slaves instances in VPC to elevate AWS Enhanced Networking.
+    5 slaves instances in VPC to elevate AWS Enhanced Networking.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
     :param imageid: AMI image id from EC2 repo
@@ -857,11 +1050,11 @@ def test_terasort(keyid, secret, imageid, instancetype, user, localpath, region,
                        region, zone)
     aws.vpc_connect()
     instances = {}
-    for i in range(1, 5):
+    for i in range(1, 7):
         instances[i] = aws.aws_create_vpc_instance()
 
     ssh_clients = {}
-    for i in range(1, 5):
+    for i in range(1, 7):
         ssh_clients[i] = aws.wait_for_ping(instances[i])
 
     device = '/dev/sdx'
@@ -869,13 +1062,13 @@ def test_terasort(keyid, secret, imageid, instancetype, user, localpath, region,
     ebs_vols.append(aws.attach_ebs_volume(
         instances[1], size=250, volume_type=aws.volume_type['ssd'],
         device=device))
-    for i in range(2, 5):
+    for i in range(2, 7):
         ebs_vols.append(aws.attach_ebs_volume(
             instances[i], size=50, volume_type=aws.volume_type['ssd'],
             device=device))
 
     if all(client for client in ssh_clients.values()):
-        for i in range(1, 5):
+        for i in range(1, 7):
             ssh_clients[i] = aws.enable_sr_iov(instances[i], ssh_clients[i])
 
             # enable key auth between instances
@@ -891,7 +1084,7 @@ def test_terasort(keyid, secret, imageid, instancetype, user, localpath, region,
         ssh_clients[1].run('chmod +x /tmp/run_terasort.sh')
         ssh_clients[1].run("sed -i 's/\r//' /tmp/run_terasort.sh")
         slaves = ' '.join([instances[i].private_ip_address
-                           for i in range(2, 5)])
+                           for i in range(2, 7)])
         ssh_clients[1].run('/tmp/run_terasort.sh {} {} {}'.format(
             user, device.replace('sd', 'xvd'), slaves))
         try:

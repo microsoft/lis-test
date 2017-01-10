@@ -60,9 +60,21 @@ ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mongodb stop" >> ${LOG_FILE}
 ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/mongodb"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
+
+if [[ ${EBS_VOL} == *"xvd"* ]]
+then
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
+elif [[ ${EBS_VOL} == *"md"* ]]
+then
+    ${db_path}="/raid/mongo/db"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
+else
+    LogMsg "Failed to identify disk type for ${EBS_VOL}."
+    exit 70
+fi
+
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R mongodb:mongodb ${db_path}"
 escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/dbpath/c\dbpath=${escaped_path}' /etc/mongodb.conf" >> ${LOG_FILE}
