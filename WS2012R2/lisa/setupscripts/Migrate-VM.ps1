@@ -34,7 +34,49 @@
 .Example
     .\Migrate-Vm.ps1 -vmName VM_Name -hvServer HYPERV_SERVER -MigrationType Live -StopClusterNode $True
 #>
-param([string] $vmName, [string] $hvServer, [string] $migrationType, [bool] $stopClusterNode)
+param([string] $vmName, [string] $hvServer, [string] $migrationType, [bool] $stopClusterNode, [string] $VMMemory)
+
+########################################################################
+#
+# ConvertStringToDecimal()
+#
+########################################################################
+function ConvertStringToDecimal([string] $str)
+{
+    $uint64Size = $null
+
+    #
+    # Make sure we received a string to convert
+    #
+    if (-not $str)
+    {
+        Write-Error -Message "ConvertStringToDecimal() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    if ($str.EndsWith("MB"))
+    {
+        $num = $str.Replace("MB","")
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1MB
+    }
+    elseif ($str.EndsWith("GB"))
+    {
+        $num = $str.Replace("GB","")
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1GB
+    }
+    elseif ($str.EndsWith("TB"))
+    {
+        $num = $str.Replace("TB","")
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1TB
+    }
+    else
+    {
+        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    return $uint64Size
+}
 
 #
 # Check input arguments
@@ -115,6 +157,20 @@ if (-not $destinationNode)
 {
     "Error: Unable to set destination node"
     return $False
+}
+
+# Check resources on destination node
+if ($VMMemory)
+{
+    $startupMemory = ConvertStringToDecimal $VMMemory
+    $availableMemory = [string](Get-Counter -Counter "\Memory\Available MBytes" -ComputerName $destinationNode).CounterSamples[0].CookedValue + "MB"
+    $availableMemory = ConvertStringToDecimal $availableMemory
+
+    if ($startupMemory -gt $availableMemory)
+    {
+        "Error: Not enough available memory on the destination node. startupMemory: $startupMemory, free space: $availableMemory"
+        return $False
+    }
 }
 
 "Info : Migrating VM $vmName from $currentNode to $destinationNode"
