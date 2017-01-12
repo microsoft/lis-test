@@ -57,6 +57,7 @@ $goodPings      = 0
 $badPings       = 0
 $firstPing      = $False
 $lastPing       = $False
+$VMMemory       = $null
 
 ########################################################################
 #
@@ -66,11 +67,11 @@ $lastPing       = $False
 function Create-TempFile
 {
     param(
-		[Parameter(mandatory=$True)]
-		[String]$FilePath,
-		[Parameter(mandatory=$True)]
-		[double]$Size
-		)
+        [Parameter(mandatory=$True)]
+        [String]$FilePath,
+        [Parameter(mandatory=$True)]
+        [double]$Size
+        )
 
     $file = [System.IO.File]::Create($FilePath)
     $file.SetLength($Size)
@@ -87,15 +88,15 @@ function Create-TempFile
 function Copy-TempFile
 {
     param(
-		[Parameter(mandatory=$True)]
-		[String]$FilePath,
-		[Parameter(mandatory=$True)]
-		[String]$sshKey,
-		[Parameter(mandatory=$True)]
-		[String]$Ip,
-		[Parameter(mandatory=$True)]
-		[String]$ScpDir
-		)
+        [Parameter(mandatory=$True)]
+        [String]$FilePath,
+        [Parameter(mandatory=$True)]
+        [String]$sshKey,
+        [Parameter(mandatory=$True)]
+        [String]$Ip,
+        [Parameter(mandatory=$True)]
+        [String]$ScpDir
+        )
 
     & "$ScpDir\pscp.exe" -i $sshKey $FilePath root@${Ip}:
     if(-not $?)
@@ -145,6 +146,7 @@ foreach ($param in $params)
         "copyFile"      { $copyFile         = $fields[1].Trim() }
         "stopClusterNode"{ $stopClusterNode = $True }
         "TC_COVERED"    { $TC_COVERED       = $fields[1].Trim() }
+        "VMMemory"      { $VMMemory    = $fields[1].Trim() }
         default         {} #unknown param - just ignore it
     }
 }
@@ -205,7 +207,7 @@ $goodPings += 1
 # Start the VM migration, and make sure it is running
 #
 "Info: Starting migration job"
-$job = Start-Job -FilePath $rootDir\setupScripts\Migrate-VM.ps1 -ArgumentList $vmName, $hvServer, $migrationType, $stopClusterNode
+$job = Start-Job -FilePath $rootDir\setupScripts\Migrate-VM.ps1 -ArgumentList $vmName, $hvServer, $migrationType, $stopClusterNode, $VMMemory
 
 if (-not $job)
 {

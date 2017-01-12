@@ -82,7 +82,9 @@ function ConvertStringToDecimal([string] $str)
     return $uint64Size
 }
 
-$retVal = $False
+$retVal        = $False
+$VMMemory      = $null
+$startupMemory = $null
 
 if (-not $vmName -or $vmName.Length -eq 0)
 {
@@ -102,9 +104,6 @@ if (-not $testParams)
     return $False
 }
 
-$VMMemory      = $null
-$startupMemory = $null
-
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($param in $params)
 {
@@ -118,6 +117,14 @@ foreach ($param in $params)
 }
 
 $startupMemory = ConvertStringToDecimal $VMMemory
+$availableMemory = [string](Get-Counter -Counter "\Memory\Available MBytes" -ComputerName $hvServer).CounterSamples[0].CookedValue + "MB"
+$availableMemory = ConvertStringToDecimal $availableMemory
+
+if ($startupMemory -gt $availableMemory)
+{
+    "Error: Not enough available memory on the system. startupMemory: $startupMemory, free space: $availableMemory"
+    return $False
+}
 
 $vm = Get-VM -VMName $vmName -ComputerName $hvServer
 

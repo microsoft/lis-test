@@ -48,9 +48,11 @@
                 <suiteTest>SetMemory2048_QuickMig</suiteTest>
                 <suiteTest>SetMemory5120_LiveMig</suiteTest>
                 <suiteTest>SetMemory5120_QuickMig</suiteTest>
+                <suiteTest>SetMemory16384_LiveMig</suiteTest>
                 <suiteTest>MultiCPU2_LiveMig</suiteTest>
                 <suiteTest>MultiCPU3_LiveMig</suiteTest>
                 <suiteTest>MultiCPU4_LiveMig</suiteTest>
+                <suiteTest>MultiCPU16_LiveMig</suiteTest>
                 <suiteTest>MultiCPU2_QuickMig</suiteTest>
                 <suiteTest>MultiCPU3_QuickMig</suiteTest>
                 <suiteTest>MultiCPU4_QuickMig</suiteTest>
@@ -162,6 +164,22 @@
             </testparams>
         </test>
         <test>
+            <testName>SetMemory16384_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=16GB</param>
+                <param>VCPU=4</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-022c</param>
+            </testparams>
+        </test>
+        <test>
             <testName>SetMemory5120_QuickMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
@@ -207,6 +225,22 @@
                 <param>VCPU=6</param>
                 <param>MigrationType=Live</param>
                 <param>TC_COVERED=NET_LIVEMIG-07b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU16_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=2GB</param>
+                <param>VCPU=16</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-022c</param>
             </testparams>
         </test>
         <test>
