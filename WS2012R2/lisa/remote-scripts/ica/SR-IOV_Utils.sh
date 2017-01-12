@@ -214,8 +214,14 @@ Check_SRIOV_Parameters()
 #
 Create1Gfile()
 {
-	# Create file locally with PID appended
 	output_file=large_file
+	
+	if [ "${ZERO_FILE:-UNDEFINED}" = "UNDEFINED" ]; then
+	    file_source=/dev/urandom
+	else
+	    file_source=/dev/zero
+	fi
+
 	if [ -d "$HOME"/"$output_file" ]; then
 	    rm -rf "$HOME"/"$output_file"
 	fi
