@@ -42,13 +42,13 @@
                 <suiteTest>QuickMigrate</suiteTest>
                 <suiteTest>CopyFileDuringMigration</suiteTest>
                 <suiteTest>Failover</suiteTest>
-                <suiteTest>SetMemory512_LiveMig</suiteTest>
-                <suiteTest>SetMemory512_QuickMig</suiteTest>
-                <suiteTest>SetMemory2048_LiveMig</suiteTest>
-                <suiteTest>SetMemory2048_QuickMig</suiteTest>
-                <suiteTest>SetMemory5120_LiveMig</suiteTest>
-                <suiteTest>SetMemory5120_QuickMig</suiteTest>
-                <suiteTest>SetMemory16384_LiveMig</suiteTest>
+                <suiteTest>SetMemory512MB_LiveMig</suiteTest>
+                <suiteTest>SetMemory512MB_QuickMig</suiteTest>
+                <suiteTest>SetMemory2GB_LiveMig</suiteTest>
+                <suiteTest>SetMemory2GB_QuickMig</suiteTest>
+                <suiteTest>SetMemory5GB_LiveMig</suiteTest>
+                <suiteTest>SetMemory5GB_QuickMig</suiteTest>
+                <suiteTest>SetMemory16GB_LiveMig</suiteTest>
                 <suiteTest>MultiCPU2_LiveMig</suiteTest>
                 <suiteTest>MultiCPU3_LiveMig</suiteTest>
                 <suiteTest>MultiCPU4_LiveMig</suiteTest>
@@ -104,7 +104,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory512_LiveMig</testName>
+            <testName>SetMemory512MB_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -116,7 +116,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory512_QuickMig</testName>
+            <testName>SetMemory512MB_QuickMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -128,7 +128,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory2048_LiveMig</testName>
+            <testName>SetMemory2GB_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -140,7 +140,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory2048_QuickMig</testName>
+            <testName>SetMemory2GB_QuickMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -152,7 +152,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory5120_LiveMig</testName>
+            <testName>SetMemory5GB_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -164,7 +164,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory16384_LiveMig</testName>
+            <testName>SetMemory16GB_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>
                 <file>setupscripts\ChangeCPU.ps1</file>
@@ -180,7 +180,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory5120_QuickMig</testName>
+            <testName>SetMemory5GB_QuickMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>

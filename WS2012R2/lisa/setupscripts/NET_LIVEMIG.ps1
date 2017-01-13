@@ -207,7 +207,7 @@ $goodPings += 1
 # Start the VM migration, and make sure it is running
 #
 "Info: Starting migration job"
-$job = Start-Job -FilePath $rootDir\setupScripts\Migrate-VM.ps1 -ArgumentList $vmName, $hvServer, $migrationType, $stopClusterNode, $VMMemory
+$job = Start-Job -FilePath $rootDir\setupScripts\Migrate-VM.ps1 -ArgumentList $vmName, $hvServer, $migrationType, $stopClusterNode, $VMMemory, $testParams
 
 if (-not $job)
 {
@@ -276,12 +276,12 @@ while ($migrateJobRunning)
 $counter = 0
 while ($counter -ne 10)
 {
-	$pingReply = $ping.Send($ipv4)
-	if ($pingReply.Status -eq "Success")
-	{
-		break
-	}
-	$counter++
+    $pingReply = $ping.Send($ipv4)
+    if ($pingReply.Status -eq "Success")
+    {
+        break
+    }
+    $counter++
 }
 
 if ($pingReply.Status -eq "Success")

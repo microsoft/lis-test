@@ -34,49 +34,7 @@
 .Example
     .\Migrate-Vm.ps1 -vmName VM_Name -hvServer HYPERV_SERVER -MigrationType Live -StopClusterNode $True
 #>
-param([string] $vmName, [string] $hvServer, [string] $migrationType, [bool] $stopClusterNode, [string] $VMMemory)
-
-########################################################################
-#
-# ConvertStringToDecimal()
-#
-########################################################################
-function ConvertStringToDecimal([string] $str)
-{
-    $uint64Size = $null
-
-    #
-    # Make sure we received a string to convert
-    #
-    if (-not $str)
-    {
-        Write-Error -Message "ConvertStringToDecimal() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    if ($str.EndsWith("MB"))
-    {
-        $num = $str.Replace("MB","")
-        $uint64Size = ([Convert]::ToDecimal($num)) * 1MB
-    }
-    elseif ($str.EndsWith("GB"))
-    {
-        $num = $str.Replace("GB","")
-        $uint64Size = ([Convert]::ToDecimal($num)) * 1GB
-    }
-    elseif ($str.EndsWith("TB"))
-    {
-        $num = $str.Replace("TB","")
-        $uint64Size = ([Convert]::ToDecimal($num)) * 1TB
-    }
-    else
-    {
-        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    return $uint64Size
-}
+param([string] $vmName, [string] $hvServer, [string] $migrationType, [bool] $stopClusterNode, [string] $VMMemory, [string] $testParams)
 
 #
 # Check input arguments
@@ -97,6 +55,41 @@ if (-not $migrationType -or $migrationType.Length -eq 0)
 {
     "Error: migrationType is null or invalid"
     return $False
+}
+
+if (-not $testParams) {
+    "Error: No testParams provided!"
+    "This script requires the test case ID and VM details as the test parameters."
+    return $retVal
+}
+
+$testParams -match "RootDir=([^;]+)"
+if (-not $?){
+  "Mandatory param RootDir=Path; not found!"
+  return $false
+}
+$rootDir = $Matches[1]
+
+if (Test-Path $rootDir){
+  Set-Location -Path $rootDir
+  if (-not $?){
+    "Error: Could not change directory to $rootDir !"
+    return $false
+  }
+  "Changed working directory to $rootDir"
+}
+else{
+  "Error: RootDir = $rootDir is not a valid path"
+  return $false
+}
+
+# Source TCUtils.ps1 for getipv4 and other functions
+if (Test-Path ".\setupScripts\TCUtils.ps1"){
+  . .\setupScripts\TCUtils.ps1
+}
+else{
+  "Error: Could not find setupScripts\TCUtils.ps1"
+  return $false
 }
 
 #
