@@ -36,7 +36,6 @@ USER="$2"
 EBS_VOL="$3"
 TEST_THREADS=(1 2 4 8 16 32 64 128 256)
 client_ip=`ip route get ${SERVER} | awk '{print $NF; exit}'`
-db_path="/maria/db"
 
 if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
@@ -46,6 +45,20 @@ sudo apt-get update >> ${LOG_FILE}
 sudo apt-get -y install libaio1 sysstat zip sysbench mysql-client* >> ${LOG_FILE}
 
 mkdir -p /tmp/mariadb
+if [[ ${EBS_VOL} == *"xvd"* ]]
+then
+    db_path="/maria/db"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
+elif [[ ${EBS_VOL} == *"md"* ]]
+then
+    db_path="/raid/maria/db"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
+else
+    LogMsg "Failed to identify disk type for ${EBS_VOL}."
+    exit 70
+fi
 
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mariadb-server" >> ${LOG_FILE}
@@ -56,20 +69,6 @@ escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/datadir/c\datadir = ${escaped_path}' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind-address/c\bind-address = 0\.0\.0\.0' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/max_connections/c\max_connections = 1024' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
-
-if [[ ${EBS_VOL} == *"xvd"* ]]
-then
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
-elif [[ ${EBS_VOL} == *"md"* ]]
-then
-    ${db_path}="/raid/maria/db"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
-else
-    LogMsg "Failed to identify disk type for ${EBS_VOL}."
-    exit 70
-fi
 
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo cp -rf /var/lib/mysql/* ${db_path}" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chmod 700 -R ${db_path}"

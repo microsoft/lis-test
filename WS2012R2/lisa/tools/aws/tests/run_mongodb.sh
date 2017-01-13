@@ -35,7 +35,6 @@ SERVER="$1"
 USER="$2"
 EBS_VOL="$3"
 TEST_THREADS=(1 2 4 8 16 32 64 128)
-db_path="/mongo/db"
 workload="/tmp/LISworkload"
 ycsb="/tmp/ycsb-0.11.0/bin/ycsb"
 
@@ -55,25 +54,25 @@ sudo pkill -f ycsb
 echo -e "recordcount=20000000\noperationcount=20000000\nreadallfields=true\nwriteallfields=false\nworkload=com.yahoo.ycsb.workloads.CoreWorkload\nreadproportion=0.5\nupdateproportion=0.5\nrequestdistribution=zipfian\nthreadcount=8\nmaxexecutiontime=900" >> ${workload}
 
 mkdir -p /tmp/mongodb
-
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mongodb stop" >> ${LOG_FILE}
-ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/mongodb"
-
 if [[ ${EBS_VOL} == *"xvd"* ]]
 then
+    db_path="/mongo/db"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
 elif [[ ${EBS_VOL} == *"md"* ]]
 then
-    ${db_path}="/raid/mongo/db"
+    db_path="/raid/mongo/db"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
 else
     LogMsg "Failed to identify disk type for ${EBS_VOL}."
     exit 70
 fi
+
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mongodb stop" >> ${LOG_FILE}
+ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/mongodb"
 
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R mongodb:mongodb ${db_path}"
 escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')

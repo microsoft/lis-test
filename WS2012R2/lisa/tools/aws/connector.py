@@ -420,13 +420,8 @@ def test_orion(keyid, secret, imageid, instancetype, user, localpath, region,
 
     aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
                        region, zone)
-
-    if 'p2.8x' in instancetype:
-        aws.vpc_connect()
-        instance = aws.aws_create_vpc_instance()
-    else:
-        aws.ec2_connect()
-        instance = aws.aws_create_instance()
+    aws.ec2_connect()
+    instance = aws.aws_create_instance()
 
     ssh_client = aws.wait_for_ping(instance)
     device = '/dev/sdx'
@@ -527,8 +522,12 @@ def test_sysbench(keyid, secret, imageid, instancetype, user, localpath,
     """
     aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
                        region, zone)
-    aws.ec2_connect()
-    instance = aws.aws_create_instance()
+    if 'p2.8x' in instancetype:
+        aws.vpc_connect()
+        instance = aws.aws_create_vpc_instance()
+    else:
+        aws.ec2_connect()
+        instance = aws.aws_create_instance()
 
     ssh_client = aws.wait_for_ping(instance)
     device = '/dev/sdx'
@@ -568,8 +567,12 @@ def test_sysbench_raid(keyid, secret, imageid, instancetype, user, localpath,
     """
     aws = AWSConnector(keyid, secret, imageid, instancetype, user, localpath,
                        region, zone)
-    aws.ec2_connect()
-    instance = aws.aws_create_instance()
+    if 'p2.8x' in instancetype:
+        aws.vpc_connect()
+        instance = aws.aws_create_vpc_instance()
+    else:
+        aws.ec2_connect()
+        instance = aws.aws_create_instance()
 
     ssh_client = aws.wait_for_ping(instance)
     ebs_vols = []
@@ -833,7 +836,7 @@ def test_mariadb_raid(keyid, secret, imageid, instancetype, user, localpath,
 
     if ssh_client1 and ssh_client2:
         ssh_client1 = aws.enable_sr_iov(instance1, ssh_client1)
-        aws.enable_sr_iov(instance2, ssh_client2)
+        ssh_client2 = aws.enable_sr_iov(instance2, ssh_client2)
 
         # enable key auth between instances
         ssh_client1.put_file(os.path.join(localpath, aws.key_name + '.pem'),
@@ -950,7 +953,7 @@ def test_mongodb_raid(keyid, secret, imageid, instancetype, user, localpath,
 
     if ssh_client1 and ssh_client2:
         ssh_client1 = aws.enable_sr_iov(instance1, ssh_client1)
-        aws.enable_sr_iov(instance2, ssh_client2)
+        ssh_client2 = aws.enable_sr_iov(instance2, ssh_client2)
 
         # enable key auth between instances
         ssh_client1.put_file(os.path.join(localpath, aws.key_name + '.pem'),
