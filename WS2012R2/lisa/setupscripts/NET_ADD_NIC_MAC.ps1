@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
- Add NIC with the specific MAC address.
+ Add NIC with a specified or automatically generated MAC address.
 
  Description:
    Add NIC with the specific MAC address.
@@ -60,9 +60,8 @@
 	Test data for this test case.
 
 	.Example
-	setupScripts\NET_ADD_NIC_MAC -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Internal,InternalNet,001600112200"
+	setupScripts\NET_ADD_NIC_MAC -vmName vmName -hvServer localhost -testParams "NIC=NetworkAdapter,Internal,InternalNet,001600112200"
 #>
-
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
@@ -200,7 +199,7 @@ foreach ($p in $params)
               return $false
           }
           $macAddress = getRandUnusedMAC $hvServer 
-          "GENERATED MAC ADDRESS: $macAddress"
+          "Info: Generated MAC address: $macAddress"
 
           $streamWrite.WriteLine($macAddress)
         }
@@ -229,7 +228,7 @@ foreach ($p in $params)
         }
 
     #
-    # Add Nic with given MAC Address
+    # Add NIC with given MAC Address
     #
 		if ($networkType -notlike "None")
 		{
@@ -249,8 +248,6 @@ foreach ($p in $params)
 		{
 			$retVal = $True
 		}
-		
-		
     }
 }
 
