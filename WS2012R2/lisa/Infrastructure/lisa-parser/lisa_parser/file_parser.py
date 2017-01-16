@@ -354,60 +354,29 @@ class BaseLogsReader(object):
             f_match = re.match(self.log_matcher, os.path.basename(log_file))
             if not f_match:
                 continue
+            if not f_match:
+                continue
             log_dict = dict.fromkeys(self.headers, '')
-            list_log_dict.append(self.collect_data(f_match, log_file, log_dict))
+            collected_data = self.collect_data(f_match, log_file, log_dict)
+            try:
+                if any(d for d in list_log_dict if
+                       (d.get('BlockSize_KB', None)
+                        and d['BlockSize_KB'] == collected_data['BlockSize_KB']
+                        and d['QDepth'] == collected_data['QDepth'])):
+                    for d in list_log_dict:
+                        if d['BlockSize_KB'] == collected_data['BlockSize_KB'] \
+                                and d['QDepth'] == collected_data['QDepth']:
+                            for key, value in collected_data.items():
+                                if value and not d[key]:
+                                    d[key] = value
+                else:
+                    list_log_dict.append(collected_data)
+
+            except Exception as e:
+                print(e)
+                pass
         self.teardown()
         return list_log_dict
-
-
-class FIOLogsReader(BaseLogsReader):
-    """
-    Subclass for parsing FIO log files e.g.
-    FIOLog-XXXq.log
-    """
-    # conversion unit dict reference for latency to 'usec'
-    CUNIT = {'usec': 1,
-             'msec': 1000,
-             'sec': 1000000}
-
-    def __init__(self, log_path=None):
-        super(FIOLogsReader, self).__init__(log_path)
-        self.headers = ['rand-read:', 'rand-read: latency',
-                        'rand-write: latency', 'seq-write: latency',
-                        'rand-write:', 'seq-write:', 'seq-read:',
-                        'seq-read: latency', 'QDepth']
-        self.log_matcher = 'FIOLog-([0-9]+)q'
-
-    def collect_data(self, f_match, log_file, log_dict):
-        """
-        Customized data collect for FIO test case.
-        :param f_match: regex file matcher
-        :param log_file: full path log file name
-        :param log_dict: dict constructed from the defined headers
-        :return: <dict> {'head1': 'val1', ...}
-        """
-        log_dict['QDepth'] = int(f_match.group(1))
-        with open(log_file, 'r') as fl:
-            f_lines = fl.readlines()
-            for key in log_dict:
-                if not log_dict[key]:
-                    for x in range(0, len(f_lines)):
-                        if all(markers in f_lines[x] for markers in
-                               [key.split(':')[0], 'pid=']):
-                            if 'latency' in key:
-                                lat = re.match(
-                                    '\s*lat\s*\(([a-z]+)\).+avg=([0-9.]+)',
-                                    f_lines[x + 4])
-                                if lat:
-                                    unit = lat.group(1).strip()
-                                    log_dict[key] = float(
-                                        lat.group(2).strip()) * self.CUNIT[unit]
-                            else:
-                                iops = re.match('.+iops=([0-9. ]+)',
-                                                f_lines[x + 1])
-                                if iops:
-                                    log_dict[key] = iops.group(1).strip()
-        return log_dict
 
 
 class NTTTCPLogsReader(BaseLogsReader):
@@ -498,6 +467,181 @@ class NTTTCPLogsReader(BaseLogsReader):
         return log_dict
 
 
+class FIOLogsReaderManual(BaseLogsReader):
+    """
+    Subclass for parsing FIO log files e.g.
+    FIOLog-XXXq.log
+    """
+    # conversion unit dict reference for latency to 'usec'
+    CUNIT = {'usec': 1,
+             'msec': 1000,
+             'sec': 1000000}
+    CSIZE = {'K': 1,
+             'M': 1024,
+             'G': 1048576}
+
+    def __init__(self, log_path=None):
+        super(FIOLogsReaderManual, self).__init__(log_path)
+        self.headers = ['rand-read:', 'rand-read: latency',
+                        'rand-write: latency', 'seq-write: latency',
+                        'rand-write:', 'seq-write:', 'seq-read:',
+                        'seq-read: latency', 'QDepth', 'BlockSize_KB']
+        self.log_matcher = 'FIOLog-([0-9]+)q'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for FIO test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['QDepth'] = int(f_match.group(1))
+        with open(log_file, 'r') as fl:
+            f_lines = fl.readlines()
+            for key in log_dict:
+                if not log_dict[key]:
+                    if 'BlockSize' in key:
+                        block_size = re.match(
+                            '.+rw=read, bs=\s*([0-9])([A-Z])-', f_lines[0])
+                        um = block_size.group(2).strip()
+                        log_dict[key] = \
+                            int(block_size.group(1).strip()) * self.CSIZE[um]
+                    for x in range(0, len(f_lines)):
+                        if all(markers in f_lines[x] for markers in
+                               [key.split(':')[0], 'pid=']):
+                            if 'latency' in key:
+                                lat = re.match(
+                                    '\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)',
+                                    f_lines[x + 4])
+                                if lat:
+                                    unit = lat.group(1).strip()
+                                    log_dict[key] = float(
+                                        lat.group(2).strip()) * self.CUNIT[unit]
+                                else:
+                                    log_dict[key] = 0
+                            else:
+                                iops = re.match('.+iops=\s*([0-9. ]+)',
+                                                f_lines[x + 1])
+                                if iops:
+                                    log_dict[key] = iops.group(1).strip()
+        return log_dict
+
+
+class FIOLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing FIO log files e.g.
+    FIOLog-XXXq.log
+    """
+    # conversion unit dict reference for latency to 'usec'
+    CUNIT = {'usec': 1,
+             'msec': 1000,
+             'sec': 1000000}
+    CSIZE = {'K': 1,
+             'M': 1024,
+             'G': 1048576}
+
+    def __init__(self, log_path=None):
+        super(FIOLogsReader, self).__init__(log_path)
+        self.headers = ['rand-read:', 'rand-read: latency',
+                        'rand-write: latency', 'seq-write: latency',
+                        'rand-write:', 'seq-write:', 'seq-read:',
+                        'seq-read: latency', 'QDepth', 'BlockSize_KB']
+        self.log_matcher = 'FIOLog-([0-9]+)q'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for FIO test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['QDepth'] = int(f_match.group(1))
+        with open(log_file, 'r') as fl:
+            f_lines = fl.readlines()
+            for key in log_dict:
+                if not log_dict[key]:
+                    if 'BlockSize' in key:
+                        block_size = re.match(
+                            '.+rw=read, bs=\s*([0-9])([A-Z])-', f_lines[0])
+                        um = block_size.group(2).strip()
+                        log_dict[key] = \
+                            int(block_size.group(1).strip()) * self.CSIZE[um]
+                    for x in range(0, len(f_lines)):
+                        if all(markers in f_lines[x] for markers in
+                               [key.split(':')[0], 'pid=']):
+                            if 'latency' in key:
+                                lat = re.match(
+                                    '\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)',
+                                    f_lines[x + 4])
+                                if lat:
+                                    unit = lat.group(1).strip()
+                                    log_dict[key] = float(
+                                        lat.group(2).strip()) * self.CUNIT[unit]
+                            else:
+                                iops = re.match('.+iops=([0-9. ]+)',
+                                                f_lines[x + 1])
+                                if iops:
+                                    log_dict[key] = iops.group(1).strip()
+        return log_dict
+
+
+class FIOLogsReaderRaid(BaseLogsReader):
+    """
+    Subclass for parsing FIO log files e.g.
+    FIOLog-XXXq.log
+    """
+    # conversion unit dict reference for latency to 'usec'
+    CUNIT = {'usec': 1,
+             'msec': 1000,
+             'sec': 1000000}
+    CSIZE = {'K': 1,
+             'M': 1024,
+             'G': 1048576}
+
+    def __init__(self, log_path=None):
+        super(FIOLogsReaderRaid, self).__init__(log_path)
+        self.headers = ['rand-read:', 'rand-read: latency',
+                        'rand-write: latency', 'seq-write: latency',
+                        'rand-write:', 'seq-write:', 'seq-read:',
+                        'seq-read: latency', 'QDepth', 'BlockSize_KB']
+        self.log_matcher = '([0-9]+)([A-Z])-([0-9]+)-([a-z]+).fio.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for FIO test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['BlockSize_KB'] = \
+            int(f_match.group(1)) * self.CSIZE[f_match.group(2).strip()]
+        log_dict['QDepth'] = int(f_match.group(3))
+        mode = f_match.group(4)
+        with open(log_file, 'r') as fl:
+            f_lines = fl.readlines()
+            for key in log_dict:
+                if not log_dict[key] and mode == key.split(':')[0].replace(
+                        '-', '').replace('seq', ''):
+                    for x in range(0, len(f_lines)):
+                            if 'latency' in key:
+                                lat = re.match(
+                                    '\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)',
+                                    f_lines[x])
+                                if lat:
+                                    unit = lat.group(1).strip()
+                                    log_dict[key] = float(
+                                        lat.group(2).strip()) * self.CUNIT[unit]
+                            else:
+                                iops = re.match('.+iops=([0-9. ]+)',
+                                                f_lines[x])
+                                if iops:
+                                    log_dict[key] = iops.group(1).strip()
+        return log_dict
+
+
 class IPERFLogsReader(BaseLogsReader):
     """
     Subclass for parsing iPerf log files e.g.
@@ -526,29 +670,10 @@ class IPERFLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['NumberOfConnections'] = int(f_match.group(1))
-        summary_log = [log for log in os.listdir(self.log_base_path)
-                       if '_summary.log' in log][0]
-        summary_path = os.path.join(self.log_base_path, summary_log)
         log_dict['TxThroughput_Gbps'] = 0
         log_dict['RxThroughput_Gbps'] = 0
         log_dict['IPVersion'] = 'IPv4'
         log_dict['Protocol'] = 'TCP'
-        with open(summary_path, 'r') as f:
-            f_lines = f.readlines()
-            for x in xrange(0, len(f_lines)):
-                ipversion = re.match('Test covers (.+)', f_lines[x])
-                if ipversion:
-                    log_dict['IPVersion'] = ipversion.group(1).strip()
-                    continue
-                protocol = re.match('Test Protocol: (.+)', f_lines[x])
-                if protocol:
-                    log_dict['Protocol'] = protocol.group(1).strip()
-                    continue
-                pkg_size = re.match('Packet size: (.+)', f_lines[x])
-                if pkg_size:
-                    log_dict['PacketSize_KBytes'] = float(
-                        pkg_size.group(1).strip())
-                    break
         lost_datagrams = 0
         total_datagrams = 0
         with open(log_file, 'r') as fl:
@@ -557,10 +682,16 @@ class IPERFLogsReader(BaseLogsReader):
             read_server = False
             for x in xrange(0, len(f_lines)):
                 if not log_dict.get('SendBufSize_KBytes', None):
-                    iperf_buffer = re.match('Process.+iperf3.+-l\s*'
-                                            '([0-9]).+started', f_lines[x])
+                    iperf_opt = re.match('Process.+iperf3.+?(-u\s*[A-Z]{3})*'
+                                         '.+?-(4|6).+\s*-l\s*([0-9]+)([a-z]+)'
+                                         '.+started', f_lines[x])
+                    if iperf_opt.group(1):
+                        log_dict['Protocol'] = iperf_opt.group(1).split(
+                            '-u')[1].strip()
+                    if iperf_opt.group(2):
+                        log_dict['IPVersion'] = 'IPv' + iperf_opt.group(2).strip()
                     log_dict['SendBufSize_KBytes'] = int(
-                        iperf_buffer.group(1).strip())
+                        iperf_opt.group(3).strip())
                 if 'Connecting to host' in f_lines[x]:
                     read_client = True
                     read_server = False
@@ -599,4 +730,21 @@ class IPERFLogsReader(BaseLogsReader):
                 lost_datagrams / total_datagrams * 100, 2)
         except ZeroDivisionError:
             log_dict['DatagramLoss'] = 0
+
+        if not log_dict.get('PacketSize_KBytes', None):
+            ica_log = os.path.join(self.log_base_path, 'ica.log')
+            with open(ica_log, 'r') as f2:
+                lines = f2.readlines()
+                for i in xrange(0, len(lines)):
+                    ica_mark = re.match(
+                        '\s*Test\s*iperf3-{}-{}k\s*:\s*Success'.format(
+                            log_dict['Protocol'],
+                            log_dict['SendBufSize_KBytes']),
+                        lines[i])
+                    if ica_mark:
+                        pkg_size = re.match('\s*Packet size: (.+)',
+                                            lines[i + 5])
+                        if pkg_size:
+                            log_dict['PacketSize_KBytes'] = float(
+                                pkg_size.group(1).strip())
         return log_dict
