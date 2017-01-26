@@ -62,6 +62,7 @@ permissions and limitations under the License.
                 <suiteTest>MaxLegacyNIC</suiteTest>
                 <suiteTest>MaxNIC</suiteTest>
                 <suiteTest>TCP_Corruption</suiteTest>
+                <suiteTest>Multicast</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
@@ -531,6 +532,23 @@ permissions and limitations under the License.
             <timeout>800</timeout>
         </test>
 
+        <test>
+            <testName>Multicast</testName>
+            <testScript>NET_Multicast.sh</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/NET_set_static_ip.sh,
+                remote-scripts/ica/NET_Multicast.sh</files>
+            <testparams>
+                <param>NIC=NetworkAdapter,Private,Private</param>
+                <param>TC_COVERED=NET-25</param>
+                <param>STATIC_IP=10.10.10.30</param>
+                <param>STATIC_IP2=10.10.10.40</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>MAC=001600112233</param>
+                <param>REMOTE_USER=root</param>
+            </testparams>
+            <timeout>800</timeout>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+        </test>
 
         <!-- The following test requires a Gen 2 VM -->
         <test>
@@ -595,6 +613,7 @@ permissions and limitations under the License.
                 <param>Switch_Name=external</param>
             </testParams>
         </test>
+
     </testCases>
 
     <VMs>
