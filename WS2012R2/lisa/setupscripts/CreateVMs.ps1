@@ -167,8 +167,9 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     Get-Command "Get-ClusterResource" -ErrorAction SilentlyContinue
     if ($?){
         $group = Get-ClusterGroup -ErrorAction SilentlyContinue
-        if ( $group.name -contains $vmName) {
-            Remove-ClusterGroup -Name $vmName -RemoveResources -Force
+        $vm_matches = $group -match $vmName
+        foreach( $vm_match in $vm_matches){
+            Remove-ClusterGroup -Name $vm_match.name -RemoveResources -Force
         }
     }
 
