@@ -51,6 +51,7 @@ permissions and limitations under the License.
                 <suiteTest>OperState</suiteTest>
                 <suiteTest>CopyLargeFile</suiteTest>
                 <suiteTest>CopyFileDifferentMTU</suiteTest>
+                <suiteTest>CopyBothWays</suiteTest>
                 <suiteTest>VlanTagging</suiteTest>
                 <suiteTest>VlanTrunking</suiteTest>
                 <suiteTest>Network_Hang_Vxlan</suiteTest>
@@ -510,13 +511,29 @@ permissions and limitations under the License.
         </test>
 
         <test>
-            <testName>Multicast</testName>
+            <testName>CopyBothWays</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>TC_COVERED=NET-25</param>
+                <param>MAC=001600112233</param>
+                <param>ZERO_FILE=yes</param>
+                <param>FILE_SIZE_GB=10</param>
+                <param>REMOTE_USER=root</param>
+            </testParams>
+            <testScript>NET_Copy_Both_Ways.sh</testScript>
+            <files>remote-scripts/ica/NET_Copy_Both_Ways.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>Multicast</testName>
             <testScript>NET_Multicast.sh</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/NET_set_static_ip.sh,
                 remote-scripts/ica/NET_Multicast.sh</files>
@@ -532,7 +549,7 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
         </test>
-        
+
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>HotAddMultiNIC</testName>
