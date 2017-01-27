@@ -1,12 +1,13 @@
 ############################################################################
 #
-# Test50TimesReboot.ps1
+# MultipleReboot.ps1
 #
 # Description:
 #     This is a PowerShell test case script that runs on the on
 #     the ICA host rather than the VM.
 #
-#     This script will reboot a VM 50 times and check that the VM reboots successfully.
+#     This script will reboot a VM as many times as specified in the count parameter
+#     and check that the VM reboots successfully.
 #
 #     The ICA scripts will always pass the vmName, hvServer, and a
 #     string of testParams to the PowerShell test case script. For
@@ -143,6 +144,11 @@ foreach ($p in $params)
     {
         $sshKey = $tokens[1].Trim()
     }
+    
+    if ($tokens[0].Trim() -eq "count")
+    {
+        $count = $tokens[1].Trim()
+    }
 }
 
 if ($rootDir -eq $null)
@@ -178,38 +184,20 @@ if ($($vm.State) -ne "Running")
     return $False
 }
 
-#
-# Set the count and reboot the machine 50 times.
-#
-$count = 50
-$bootcount = 0
+Write-Output "Trying to reboot once using ctrl-alt-del from VM's keyboard."
 
-Write-Output "setting the count to 50 for rebooting the VM" | Out-File  ${rootDir}\Test50TimesReboot.log
+$VMKB = gwmi -namespace "root\virtualization\v2" -class "Msvm_Keyboard" -ComputerName $hvServer -Filter "SystemName='$($vm.Id)'"
+$VMKB.TypeCtrlAltDel()
 
-while ($count -gt 0)
-{
-While ( -not (TestPort $vmIPAddr) )
-{
-   Start-Sleep 5
-}
-Restart-VM -VMName $vmName -ComputerName $hvServer -Force
 if($? -eq "True")
 {
-   Write-Output "VM goes in to text mode"
+   Write-Output "VM received the ctrl-alt-del signal successfully."
 }
 else
 {
-   Write-Output "VM remains in GUI mode"
+   Write-Output "VM did not receive the ctrl-alt-del signal successfully."
    return $False
 }
-
-Start-Sleep 5
-
-$VMKB = gwmi -namespace "root\virtualization\v2" -class "Msvm_Keyboard" -ComputerName $hvServer -Filter "SystemName='$($vm.Id)'"
-
-$Boot = $VMKB.TypeCtrlAltDel()
-
-# Set the test case time out.
 
 $testCaseTimeout = 120
 
@@ -223,15 +211,6 @@ while ($testCaseTimeout -gt 0)
 	$testCaseTimeout -= 2
 }
 
-if ($testCaseTimeout -eq 0)
-{
-	"Error: Test case timed out waiting for VM to reboot" | Out-File -Append $summaryLog
-	return $False
-}
-
-#
-# During reboot wait till the TCP port 22 to be available on the VM
-#
 while ($testCaseTimeout -gt 0)
 {
 	if ( (TestPort $vmIPAddr) )
@@ -244,20 +223,75 @@ while ($testCaseTimeout -gt 0)
 
 if ($testCaseTimeout -eq 0)
 {
-	"Error: Test case timed out for VM to go to Running" | Out-File -Append $summaryLog
+	write-output "Error: Test case timed out waiting for the VM to reach Running state after rebooting with ctrl-alt-del."
 	return $False
 }
 
-Start-Sleep -seconds 10
+#
+# Set the $bootcount variable and reboot the machine $count times.
+#
+Write-Output "setting the boot count to 0 for rebooting the VM" | Out-File  ${rootDir}\MultipleReboot.log
+$bootcount = 0
 
-$count -= 1
-$bootcount += 1
-Write-Output "Boot count:"$bootcount
-Write-Output "Boot count:"$bootcount | Out-File -Append ${rootDir}\Test50TimesReboot.log
+while ($count -gt 0)
+{
+    While ( -not (TestPort $vmIPAddr) )
+    {
+       Start-Sleep 5
+    }
+    Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+
+    Start-Sleep 5
+
+    # Set the test case time out.
+
+    $testCaseTimeout = 120
+
+    while ($testCaseTimeout -gt 0)
+    {
+        if ( (CheckCurrentStateFor $vmName ( "Running" )))
+        {
+            break
+        }
+        Start-Sleep -seconds 2
+        $testCaseTimeout -= 2
+    }
+
+    if ($testCaseTimeout -eq 0)
+    {
+        write-output "Error: Test case timed out waiting for VM to reboot"
+        return $False
+    }
+
+    #
+    # During reboot wait till the TCP port 22 to be available on the VM
+    #
+    while ($testCaseTimeout -gt 0)
+    {
+        if ( (TestPort $vmIPAddr) )
+        {
+            break
+        }
+        Start-Sleep -seconds 2
+        $testCaseTimeout -= 2
+    }
+
+    if ($testCaseTimeout -eq 0)
+    {
+        write-output "Error: Test case timed out for VM to go to Running"
+        return $False
+    }
+
+    Start-Sleep -seconds 10
+
+    $count -= 1
+    $bootcount += 1
+    Write-Output "Boot count:"$bootcount
+    Write-Output "Boot count:"$bootcount | Out-File -Append ${rootDir}\MultipleReboot.log
 }
 
 #
-# If we got here, the VM was rebooted 50 times successfully
+# If we got here, the VM was rebooted successfully $bootcount times
 #
 While( -not (TestPort $vmIPAddr) )
 {
@@ -265,5 +299,5 @@ While( -not (TestPort $vmIPAddr) )
 }
 
 $retVal = $true
-Write-Output "VM rebooted 50 times successfully" | Out-File -Append $summaryLog
+Write-Output "VM rebooted $bootcount times successfully" | Out-File -Append $summaryLog
 return $retVal
