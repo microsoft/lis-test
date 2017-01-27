@@ -46,6 +46,21 @@
 
 declare os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
 
+stressapptest_githubLink=https://github.com/stressapptest/stressapptest.git
+
+stressng_githubLink=https://github.com/ColinIanKing/stress-ng
+stressng_version=V0.07.16
+
+bzip2_version=bzip2-1.0.3
+bzip2_archive=$bzip2_version.tar.gz
+bzip2_downloadLink=bzip.org/1.0.3/$bzip2_archive
+
+keyutils_version=keyutils-1.5.9
+keyutils_archive=$keyutils_version.tar.bz2
+keyutils_downloadLink=https://build.opensuse.org/source/security/keyutils/$keyutils_archive
+
+work_directory=/tmp/lisa
+
 ########################################################################
 #
 # Determine what OS is running
@@ -317,9 +332,13 @@ function verify_install (){
 ########################################################################
 function install_stressapptest(){
     echo "Installing stressapptest..." >> summary.log
-
-    git clone https://github.com/stressapptest/stressapptest.git
-    cd stressapptest
+    
+    if [ ! -d $work_directory ] ; then
+        mkdir $work_directory
+    fi
+    
+    git clone $stressapptest_githubLink $work_directory/stressapptest
+    cd $work_directory/stressapptest
     ./configure
     make
     make install
@@ -335,9 +354,13 @@ function install_stressapptest(){
 function install_stress_ng(){
     echo "Installing stress-ng..." >> summary.log
 
-    git clone https://github.com/ColinIanKing/stress-ng
-    cd stress-ng
-    git checkout tags/V0.06.17
+    if [ ! -d $work_directory ] ; then
+        mkdir $work_directory
+    fi
+    
+    git clone $stressng_githubLink $work_directory/stress-ng
+    cd $work_directory/stress-ng
+    git checkout tags/$stressng_version
     make
     make install
     verify_install $? Stress
@@ -391,6 +414,18 @@ function remove_udev(){
         fi
     else
         ln -s /etc/init.d/remove_udev /etc/rc0.d/S00remove_udev
+    fi
+}
+
+########################################################################
+#Check if commands execute correctly
+########################################################################
+function check_exec(){
+    $1 --help > /dev/null 2>&1
+    if [ $? -eq 0 ] ; then
+        echo $?
+    else
+        echo "Could not execute command"
     fi
 }
 
@@ -478,8 +513,8 @@ if is_fedora ; then
 
     echo "Installing packages..." >> summary.log
     PACK_LIST=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs
-    	ntp crash bc selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel 
-	nano kexec-tools device-mapper-multipath expect sysstat git bc numactl python3 nfs-client)
+    	ntp crash bc selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake 
+	nano kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-client)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... "
@@ -490,9 +525,13 @@ if is_fedora ; then
     yum groups mark convert "Development Tools"
     yum groupinstall "Development Tools"
     verify_install $? "Development Tools"
-    wget bzip.org/1.0.3/bzip2-1.0.3.tar.gz
-    tar zxvf bzip2-1.0.3.tar.gz
-    cd bzip2-1.0.3
+    
+    if [ ! -d $work_directory ] ; then
+        mkdir $work_directory
+    fi
+    wget -O $work_directory/$bzip2_archive $bzip2_downloadLink
+    tar zxvf $work_directory/$bzip2_archive -C $work_directory/
+    cd $work_directory/$bzip2_version
     make install
     cd ~
     install_stressapptest
@@ -521,7 +560,7 @@ elif is_ubuntu ; then
     sed -i -e 's/sleep 40/#sleep 40/g' /etc/init/failsafe.conf
     sed -i -e 's/sleep 59/#sleep 59/g' /etc/init/failsafe.conf
     PACK_LIST=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 
-    	at multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git bridge-utils btrfs-tools 
+    	at multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm bridge-utils btrfs-tools 
 	libkeyutils-dev xfsprogs linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r` 
 	sysstat build-essential bc numactl python3 nfs-client)
     for item in ${PACK_LIST[*]}
@@ -544,6 +583,7 @@ elif is_ubuntu ; then
             mv /boot/efi/EFI/boot/grubx64.efi /boot/efi/EFI/boot/bootx64.efi
         fi
     fi
+    
 elif is_suse ; then
 
     #
@@ -595,14 +635,14 @@ elif is_suse ; then
     # Installing dependencies for stress-ng to work
     # First one needed is keyutils
     #
-    wget https://build.opensuse.org/source/security/keyutils/keyutils-1.5.9.tar.bz2
-    tar -xjvf keyutils-1.5.9.tar.bz2
-    cd keyutils-1.5.9/
+    wget -O $work_directory/$keyutils_archive $keyutils_downloadLink
+    tar -xjvf $work_directory/$keyutils_archive -C $work_directory/
+    cd $work_directory/$keyutils_version/
     make
     make install
     cd ~
 
-    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ expect sysstat bc numactl python3 nfs-client)
+    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3 nfs-client)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... " >> summary.log
@@ -626,7 +666,6 @@ elif is_suse ; then
             mv /boot/efi/EFI/BOOT/elilo.efi /boot/efi/EFI/boot/bootx64.efi
        
         fi
-
     fi
 fi
 
@@ -636,3 +675,8 @@ configure_grub
 rsa_keys rhel5_id_rsa
 configure_ssh
 remove_udev
+
+#remove files from /tmp after install is complete
+if [[ $(check_exec stressapptest) -eq 0 && $(check_exec stress-ng) -eq 0 && $(check_exec bzip2) -eq 0 ]] ; then
+        rm -rf $work_directory/
+fi
