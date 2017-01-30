@@ -486,9 +486,8 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
                 }
             "Physical"
                 {
-                    Write-Output "Searching physical drive..."
-                    $findVhd = Get-Disk | Where-Object OperationalStatus -eq Offline
-                    $newVhd = $findVhd.Number
+                    Write-Output "Searching for physical drive..."
+                    $newVhd = (Get-Disk | Where-Object {($_.OperationalStatus -eq "Offline") -and ($_.Number -eq "$PhyNumber")}).Number                    
                     Write-Output "Physical drive found: $newVhd"
                 }
             "Diff"
@@ -604,6 +603,12 @@ foreach ($p in $params)
     if ($temp.Length -ne 2)
     {
         "Warn : test parameter '$p' is being ignored because it appears to be malformed"
+        continue
+    }
+
+    if ($temp[0] -eq "PHYSICAL_NUMBER")
+    {
+        $PhyNumber = $temp[1]     
         continue
     }
 

@@ -30,7 +30,7 @@
 #     Tools folder under lisa.
 #
 # Parameters:
-#     TOTAL_DISKS: Number of disks attached
+#     DISKS: Number of disks attached
 #     TEST_DEVICE1 = /dev/sdb
 #     FILE_NAME=fio-2.1.10.tar.gz
 #     FIO_SCENARIO_FILE=lis-ssd-test.fio
@@ -115,12 +115,19 @@ fi
 #
 # Check if variable is defined in the constants file
 #
-if [ ! ${TOTAL_DISKS} ]; then
-    LogMsg "The TOTAL_DISKS variable is not defined."
-    echo "The TOTAL_DISKS variable is not defined." >> ~/summary.log
+if [ ! ${DISKS} ]; then
+    LogMsg "The DISKS variable is not defined."
+    echo "The DISKS variable is not defined." >> ~/summary.log
     LogMsg "aborting the test."
     UpdateTestState $ICA_TESTABORTED
     exit 30
+fi
+#Check for raid partition 
+FIND_RAID=$(cat /proc/mdstat | grep md | awk -F:  '{ print $1 }')
+if [ -n ${FIND_RAID} ]; then
+    LogMsg "Raid partition found. Will delete it."
+    mdadm --stop ${FIND_RAID}
+    mdadm --remove ${FIND_RAID}
 fi
 
 echo " Kernel version: $(uname -r)" >> ~/summary.log
@@ -129,7 +136,7 @@ fdisk -l
 sleep 2
 NEW_DISK=$(fdisk -l | grep "Disk /dev/sd*" | wc -l)
 NEW_DISK=$((NEW_DISK-1))
-if [ "$NEW_DISK" = "$TOTAL_DISKS" ] ; then
+if [ "$NEW_DISK" = "$DISKS" ] ; then
     LogMsg "Result : New disk is present inside guest VM "
     LogMsg " fdisk -l is : "
     fdisk -l    
@@ -148,6 +155,7 @@ case $(LinuxRelease) in
         LogMsg "Run test on Ubuntu. Install dependencies..."
         apt-get -y install make
         apt-get -y install gcc
+        apt-get -y install mdadm
         apt-get -y install libaio-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then
@@ -168,7 +176,7 @@ case $(LinuxRelease) in
     ;;
     "RHEL"|"CENTOS")
         LogMsg "Run test on RHEL. Install libaio-devel..."
-        yum -y install libaio-devel
+        yum -y install libaio-devel mdadm
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the libaio-dev library!" >> ~/summary.log
@@ -179,7 +187,7 @@ case $(LinuxRelease) in
     ;;
     "SLES")
         LogMsg "Run test on SLES. Install libaio-devel..."
-        zypper --non-interactive install libaio-devel
+        zypper --non-interactive install libaio-devel mdadm
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the libaio-devel library!" >> ~/summary.log
@@ -193,8 +201,9 @@ case $(LinuxRelease) in
     ;; 
 esac
 
+
 i=1
-while [ $i -le $TOTAL_DISKS ]
+while [ $i -le $DISKS ]
 do
     j=TEST_DEVICE$i
     if [ ${!j:-UNDEFINED} = "UNDEFINED" ]; then
@@ -206,13 +215,13 @@ do
     LogMsg "TEST_DEVICE = ${!j}"
     echo "Target device = ${!j}" >> ~/summary.log
     DISK=`echo ${!j} | cut -c 6-8`
-
+    
 # Format and mount the disk
     (echo d;echo;echo w)|fdisk /dev/$DISK
     sleep 2
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk /dev/$DISK
     sleep 5
-    mkfs.${FS} /dev/${DISK}1
+    yes | mkfs.${FS} /dev/${DISK}1
     if [ "$?" = "0" ]; then
         LogMsg "mkfs.$FS /dev/${DISK}1 successful..."
         mount /dev/${DISK}1 /mnt
@@ -309,7 +318,7 @@ sed --in-place=.orig -e s:"iodepth=2":"iodepth=4": /root/${FIO_SCENARIO_FILE}
 sed --in-place=.orig -e s:"iodepth=4":"iodepth=8": /root/${FIO_SCENARIO_FILE}
 /root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-8q.log
 
-Run FIO with block size 8k and iodepth 16
+#Run FIO with block size 8k and iodepth 16
 sed --in-place=.orig -e s:"iodepth=8":"iodepth=16": /root/${FIO_SCENARIO_FILE}
 /root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-16q.log
 
