@@ -29,7 +29,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LISA Core Tests Run on WS2012R2</subject>
+            <subject>LISA Core Tests Run</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -264,8 +264,6 @@
                 <param>VCPU=4</param>
                 <param>NumaNodes=1</param>
                 <param>Sockets=1</param>
-		<param>staticMem=2048MB</param>
-		<param>memWeight=0</param>
                 <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>600</timeout>
@@ -319,7 +317,6 @@
            <noReboot>False</noReboot>
            <testparams>
                <param>TC_COVERED=CORE-25</param>
-               <param>publicKey=id_rsa.pub</param>
                <param>enableDM=no</param>
                <param>startupMem=4096MB</param>
                <param>memWeight=20</param>
@@ -407,6 +404,9 @@
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>Core</suite>
+            <testParams>
+		   <param>publicKey=linux_id_rsa.pub</param>
+            </testParams>
         </vm>
     </VMs>
 </config>
