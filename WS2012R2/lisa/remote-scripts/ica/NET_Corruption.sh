@@ -21,19 +21,13 @@
 #
 ########################################################################
 
-function InstallNC
+function InstallNetcat
 {
-    #
-    # Bring the new NIC online
-    #
     LogMsg "Installing netcat"
     SetTestStateRunning
     if [[ "$os_VENDOR" == "Red Hat" ]] || \
     [[ "$os_VENDOR" == "CentOS" ]]; then
         yum install nc -y
-        # Disable iptables
-        iptables -F
-        iptables -X
     elif [ "$os_VENDOR" == "SUSE LINUX" ]; then
         continue
     elif [ "$os_VENDOR" == "Ubuntu" ]; then
@@ -192,10 +186,12 @@ fi
 
 GetOSVersion
 ConfigInterface
+
+# Disable iptables
 iptables -F
 iptables -X
 
-InstallNC
+InstallNetcat
 if [ 0 -ne $? ]; then
     msg="Unable to install netcat"
     LogMsg "$msg"
@@ -204,7 +200,7 @@ if [ 0 -ne $? ]; then
     exit 10
 fi
 
-tc qdisc add dev eth0 root netem corrupt ${CORRUPTION}
+tc qdisc add dev eth1 root netem corrupt ${CORRUPTION}
 if [ 0 -ne $? ]; then
     msg="Unable to set corruption to ${CORRUPTION}"
     LogMsg "$msg"
