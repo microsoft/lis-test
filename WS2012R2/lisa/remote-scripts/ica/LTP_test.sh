@@ -105,9 +105,6 @@ LinuxRelease() {
 # Installs SLES LTP dependencies
 #######################################################################
 InstallSLESDependencies() {
-	
-	zypper --non-interactive in autoconf
-	zypper --non-interactive in automake
 	zypper --non-interactive in m4
 	zypper --non-interactive in libaio-devel
 	zypper --non-interactive in libattr1
@@ -140,8 +137,6 @@ InstallUbuntuDependencies() {
 	apt-get -y install libberkeleydb-perl
 	apt-get -y install flex
 	apt-get -y install make
-	apt-get -y install automake
-	apt-get -y install autoconf
 	apt-get -y install gcc
 	apt-get -y install git
 	apt-get -y install expect
@@ -163,8 +158,6 @@ InstallRHELDependencies() {
 	yum install -y libberkeleydb-perl
 	yum install -y flex
 	yum install -y make
-	yum install -y automake
-	yum install -y autoconf
 	yum install -y gcc
 }
 
