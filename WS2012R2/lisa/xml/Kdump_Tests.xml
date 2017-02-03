@@ -165,7 +165,7 @@
             <testParams>
                 <param>crashkernel=384M</param>
                 <param>TC_COVERED=KDUMP-06</param>
-                <param>VM2NAME=VM2NAME</param>
+                <param>use_nfs=yes</param>
                 <param>VCPU=1</param>
                 <param>VMMemory=4GB</param>
             </testParams>
@@ -179,10 +179,11 @@
             <vmName>vmName</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>pki_id_rsa.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
                 <param>ssh_key=key_id_rsa</param>
                 <param>SnapshotName=ICABase</param>
+				<param>VM2NAME=VM2NAME</param>
             </testParams>
             <suite>KDUMP</suite>
         </vm>

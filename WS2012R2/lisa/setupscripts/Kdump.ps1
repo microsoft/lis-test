@@ -19,17 +19,14 @@
 #
 #####################################################################
 
-
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#
-# MAIN SCRIPT
-#
 $retVal = $false
 $sshKey = $null
 $ipv4 = $null
 $nmi = $null
+# variable to define if a NFS location should be used for the crash files
+$use_nfs = $null
 
 #
 # Check input arguments
@@ -57,6 +54,7 @@ foreach ($p in $params) {
         "TestLogDir" { $logdir = $fields[1].Trim() }
         "NMI" { $nmi = $fields[1].Trim() }
         "VM2NAME" { $vm2Name = $fields[1].Trim() }
+		"use_nfs" { $use_nfs = $fields[1].Trim() }
         default  {}
     }
 }
@@ -91,7 +89,7 @@ else
     return $false
 }
 
-if ($vm2Name)
+if ($vm2Name -And $use_nfs -eq "yes")
 {
     $checkState = Get-VM -Name $vm2Name -ComputerName $hvServer
 
@@ -122,14 +120,14 @@ if ($vm2Name)
             return $False
         }
 
-    "Succesfully started VM ${vm2Name}"
+    "Info: Succesfully started dependency VM ${vm2Name}"
     }
 
     SendFileToVM $vm2ipv4 $sshKey ".\remote-scripts\ica\Kdump_nfs_config.sh" "/root/kdump_nfs_config.sh"
     $retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix kdump_nfs_config.sh && chmod u+x kdump_nfs_config.sh && ./kdump_nfs_config.sh"
     if ($retVal -eq $False)
     {
-        Write-Output "Error: Failed to configure nfs server."
+        Write-Output "Error: Failed to configure the NFS server!"
         return $false
     }
 }
@@ -253,7 +251,7 @@ bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
 # Stop NFS server
 if ($vm2Name)
 {
-    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -Force
 }
 
 return $True
