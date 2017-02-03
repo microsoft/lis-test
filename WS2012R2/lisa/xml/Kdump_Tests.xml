@@ -40,7 +40,7 @@
                 <suiteTest>Crash_differentVCPU</suiteTest>
                 <suiteTest>Crash_16cores</suiteTest>
                 <suiteTest>Crash_nfs</suiteTest>
-                <!-- Only for REDHAT. Test with crashkernel=auto -->
+                <!-- Only for RedHat. Test with crashkernel=auto -->
                 <suiteTest>Crash_Auto_size</suiteTest>
             </suiteTests>
         </suite>
@@ -181,9 +181,9 @@
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
-                <param>ssh_key=key_id_rsa</param>
+                <param>ssh_key=linux_id_rsa</param>
                 <param>SnapshotName=ICABase</param>
-				<param>VM2NAME=VM2NAME</param>
+                <param>VM2NAME=VM2NAME</param>
             </testParams>
             <suite>KDUMP</suite>
         </vm>
