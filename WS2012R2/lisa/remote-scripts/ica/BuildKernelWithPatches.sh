@@ -187,10 +187,6 @@ ApplyPatchesAndCompile() {
 		echo "CONFIG_HYPERV_SOCK=m" >> ${CONFIG_FILE}
 	fi
 	UpdateSummary "make oldconfig: Success"
-
-	# This patch causes ACPI to fail upon VM boot
-	#UpdateSummary "Revert commit 'ACPI: add in a bad_madt_entry() function to eventually replace the macro'"
-	#git revert 7494b07ebaae2117629024369365f7be7adc16c3 --no-edit
 	
 	#
 	# Try apply patches under /root/
@@ -200,15 +196,14 @@ ApplyPatchesAndCompile() {
 		patch -f -p1 < $patchfile
 		
 		if [ $? != 0 ]; then
-			dbgprint 0 "Failed to apply a patch."
-			dbgprint 0 "Aborting the test."
+			dbgprint 0 "Error: Failed to apply a patch file!"
 			UpdateTestState "TestAborted"
 			exit 20
 		fi
 	done
 	
 	dbgprint 1 "*************************"
-	dbgprint 1 "Building the kernel."
+	dbgprint 1 "Info: Building the kernel..."
     
 	if [ $proc_count -eq 1 ]; then
 		(time make) >/root/Perf_BuildKernel_make.log 2>&1
@@ -222,10 +217,6 @@ ApplyPatchesAndCompile() {
 # we are running
 #
 UpdateTestState "TestRunning"
-if [ -e ~/state.txt ]; then
-    dbgprint 0 "State.txt file is created "
-    dbgprint 0 "Content of state is : " ; echo `cat state.txt`
-fi
 
 #
 # Write some useful info to the log file
@@ -289,8 +280,7 @@ else
     # Make sure we were given the linux-next git location
     #
     if [ ! ${LINUX_KERNEL_LOCATION} ]; then
-        dbgprint 0 "The LINUX_KERNEL_LOCATION variable is not defined."
-        dbgprint 0 "Aborting the test."
+        dbgprint 0 "Error: The LINUX_KERNEL_LOCATION variable is not defined."
         UpdateTestState "TestAborted"
         exit 20
     fi

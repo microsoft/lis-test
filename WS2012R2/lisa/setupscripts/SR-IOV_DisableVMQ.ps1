@@ -21,15 +21,18 @@
 
 <#
 .Synopsis
-    SR-IOV Save/Pause tests
+    Tear down VMQ and fallback to synthetic NIC
 
 .Description
-    1. Transfer a 1GB file between 2 VMs to verify SR-IOV functionality
-    2. Pause/Save one VM for at least one minute
-    3. Resume the VM
-    4. Transfer again an 1GB file
-    Acceptance: In both cases, the network traffic goes through bond0
-    
+    Description:  
+    While transferring data through a SR-IOV device, tear down the VMQ configuration 
+    and verify the configuration falls back to the synthetic NIC.
+    Steps:
+        1.  Configure a Linux VM with SR-IOV, and a second VM with SR-IOV (Windows or Linux).
+        2.  Start iPerf in server mode on the second VM.
+        3.  On the Linux VM, start iPerf in client mode for about a 10 minute run.
+        4.  Using the Hyper-V Manager, or PowerShell cmdlets, tear down the VMQ configuration.
+  
 .Parameter vmName
     Name of the test VM.
 
@@ -42,9 +45,9 @@
 
 .Example
     <test>
-        <testName>Single_SaveVM</testName>
-        <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
-        <files>remote-scripts/ica/utils.sh</files> 
+        <testName>Disable_VMQ</testName>
+        <testScript>setupscripts\SR-IOV_DisableVMQ.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -52,13 +55,11 @@
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
-            <param>TC_COVERED=??</param>                                   
+            <param>TC_COVERED=SRIOV-11</param>
             <param>BOND_IP1=10.11.12.31</param>
             <param>BOND_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
-            <param>REMOTE_USER=root</param>
-            <!-- VM_STATE has to be 'pause' or 'save' -->
-            <param>VM_STATE=save</param>
+            <param>REMOTE_SERVER=remoteHostName</param>
         </testParams>
         <timeout>1800</timeout>
     </test>
@@ -72,6 +73,7 @@ param ([String] $vmName, [String] $hvServer, [string] $testParams)
 #
 #############################################################
 $retVal = $False
+$leaveTrail = "no"
 
 #
 # Check the required input args are present
@@ -151,18 +153,20 @@ foreach ($p in $params)
         "ipv4" { $ipv4 = $fields[1].Trim() }   
         "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
         "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
-        "BOND_IP3" { $vmBondIP3 = $fields[1].Trim() }
-        "BOND_IP4" { $vmBondIP4 = $fields[1].Trim() }
-        "NETMASK"  { $netmask = $fields[1].Trim() }
-        "REMOTE_USER" { $remoteUser = $fields[1].Trim() }
-        "VM2NAME"  { $vm2Name = $fields[1].Trim() }
-        "VM_STATE" { $vmState = $fields[1].Trim()}
+        "NETMASK" { $netmask = $fields[1].Trim() }
+        "VM2NAME" { $vm2Name = $fields[1].Trim() }
+        "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     }
 }
+
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+
+# Get VM2 ipv4
+$vm2ipv4 = GetIPv4 $vm2Name $remoteServer
+"${vm2Name} IPADDRESS: ${vm2ipv4}"
 
 #
 # Configure the bond on test VM
@@ -170,101 +174,81 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 $retVal = ConfigureBond $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask" | Tee-Object -Append -file $summaryLog
+    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
     return $false
 }
 
 #
-# Create an 1 GB file on test VM
+# Install iPerf3 on VM1
 #
-Start-Sleep -s 3
-$retVal = CreateFileOnVM $ipv4 $sshKey 1024
+"Installing iPerf3 on ${vmName}"
+$retval = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "dos2unix SR-IOV_Utils.sh && source SR-IOV_Utils.sh && InstallDependencies"
 if (-not $retVal)
 {
-    "ERROR: Failed to create a file on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask" | Tee-Object -Append -file $summaryLog
+    "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4})"
     return $false
 }
 
 #
-# Send the file from the test VM to the dependency VM
+# Run iPerf3 with SR-IOV enabled
 #
-Start-Sleep -s 3
-$retVal = SRIOV_SendFile $ipv4 $sshKey 7000
-if (-not $retVal)
-{
-    "ERROR: Failed to send the file from vm $vmName to $vm2Name" | Tee-Object -Append -file $summaryLog
+# Start the client side
+"Start Client"
+.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "iperf3 -s > client.out &"
+
+"Start Server"
+# Start iPerf3 testing
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 200 -c `$BOND_IP2 --logfile PerfResults.log &' > runIperf.sh"
+Start-Sleep -s 5
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
+
+# Wait 30 seconds and read the throughput
+"Get Logs"
+Start-Sleep -s 30
+[decimal]$vfBeforeThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+if (-not $vfBeforeThroughput){
+    "ERROR: No result was logged! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
-#
-# Pause/Save the test VM for 2 minutes
-#
-Start-Sleep -s 3
-if ( $vmState -eq "pause" )
-{
-    Suspend-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
-    if ($? -ne "True")
-    {
-        "ERROR: VM $vmName failed to enter paused state" | Tee-Object -Append -file $summaryLog
-        return $false
-    }
+"The throughput before disabling VMQ is $vfBeforeThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
+Start-Sleep -s 10
 
-    Start-Sleep -s 60
-
-    Resume-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
-    if ($? -ne "True")
-    {
-        "ERROR: VM $vmName failed to resume" | Tee-Object -Append -file $summaryLog
-        return $false
-    }
+#
+# Disable VMQ on both VMs
+#
+"Disabling VMQ on VM1"
+Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -VmqWeight 0
+if (-not $?) {
+    "ERROR: Failed to disable VMQ on $vmName!" | Tee-Object -Append -file $summaryLog
+    return $false 
 }
 
-elseif ( $vmState -eq "save" )
-{
-    Save-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
-    if ($? -ne "True")
-    {
-        "ERROR: VM $vmName failed to enter saved state" | Tee-Object -Append -file $summaryLog
-        return $false
-    }
-
-    Start-Sleep -s 60
-
-    Start-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
-    if ($? -ne "True")
-    {
-      "ERROR: VM $vmName failed to restart" | Tee-Object -Append -file $summaryLog
-      return $false
-    }    
+"Disabling VMQ on VM2"
+Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer -VmqWeight 0
+if (-not $?) {
+    "ERROR: Failed to disable VMQ on $vm2Name!" | Tee-Object -Append -file $summaryLog
+    return $false 
 }
 
-else {
-    "ERROR: Check the parameters! It should have VM_STATE=pause or VM_STATE=save" | Tee-Object -Append -file $summaryLog
+# Check if bond is still up & running
+Start-Sleep -s 10
+$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep bond0" 
+if (-not $status) {
+    "ERROR: The bond is down after disabling VMQ!" | Tee-Object -Append -file $summaryLog
     return $false    
 }
 
-#
-# Restart network on test VM
-#
-Start-Sleep -s 30
-$retVal = RestartVF $ipv4 $sshKey
-if (-not $retVal)
-{
-    "ERROR: Failed to restart VF on $vmName" | Tee-Object -Append -file $summaryLog
-    return $false
+# Read the throughput with VMQ disabled
+Start-Sleep -s 60
+[decimal]$vfBeforeThroughput = $vfBeforeThroughput - 2
+[decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+
+"The throughput after disabling VMQ is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
+if ($vfBeforeThroughput -ge $vfFinalThroughput ) {
+    "ERROR: After disabling VMQ, the throughput is significantly lower
+    Please check if the VF is still running" | Tee-Object -Append -file $summaryLog
+    return $false 
 }
 
-#
-# Send the file from the test VM to the dependency VM
-#
-Start-Sleep -s 20
-$retVal = SRIOV_SendFile $ipv4 $sshKey 14000
-if (-not $retVal)
-{
-    "ERROR: Failed to send the file from vm $vmName to $vm2Name after changing state" | Tee-Object -Append -file $summaryLog
-    return $false
-}
-
-Start-Sleep -s 10
- "File was successfully sent from VM1 to VM2 after resuming VM" | Tee-Object -Append -file $summaryLog
-return $retVal
+return $true

@@ -22,16 +22,17 @@
 ########################################################################
 
 # Description:
-#   Ping using VM with multiple NICs bound to SR-IOV.
+#   Basic SR-IOV test that checks if VF can send and receive multicast packets
 #
-#   Steps:
-#   1. Boot VMs with 2 or more SR-IOV NICs
-#   2. Verify/install pciutils package
-#   3. Using the lspci command, examine the NIC with SR-IOV support
-#   4. Run bondvf.sh
-#   5. Check network capability for all bonds
-#
-#############################################################################################################
+# Steps:
+#   Use Omping (yum install omping -y)
+#   On the 2nd VM: omping $BOND_IP1 $BOND_IP2 -m 239.255.254.24 -c 11 > out.client &
+#   On the TEST VM: omping $BOND_IP1 $BOND_IP2 -m 239.255.254.24 -c 11 > out.client
+#   Check results:
+#   On the TEST VM: cat out.client | grep multicast | grep /0%
+#   On the 2nd VM: cat out.client | grep multicast | grep /0%
+#   If both have 0% packet loss, test passed
+################################################################################
 
 # Convert eol
 dos2unix SR-IOV_Utils.sh
@@ -84,30 +85,59 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-#
-# Run ping tests for each bond interface 
-#
-__iterator=0
-__ipIterator=2
-while [ $__iterator -lt $bondCount ]; do
-    staticIP=$(cat constants.sh | grep IP$__ipIterator | tr = " " | awk '{print $2}')
+# Install dependencies needed for testing
+InstallDependencies
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not install dependencies!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
 
-    # Ping the remote host
-    ping -I "bond$__iterator" -c 10 "$staticIP" >/dev/null 2>&1
-    if [ 0 -eq $? ]; then
-        msg="Successfully pinged $staticIP through bond$__iterator"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-    else
-        msg="ERROR: Unable to ping $staticIP through bond$__iterator"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi
-    __ipIterator=$(($__ipIterator + 2))
-    : $((__iterator++))
-done
+LogMsg "INFO: All configuration completed successfully. Will proceed with the testing"
 
-LogMsg "Updating test case state to completed"
+# Multicast testing
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "omping $BOND_IP1 $BOND_IP2 -m 239.255.254.24 -c 11 > out.client &"
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not start omping on VM2 (BOND_IP: ${BOND_IP2})"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
+omping $BOND_IP1 $BOND_IP2 -m 239.255.254.24 -c 11 > out.client
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not start omping on VM1 (BOND_IP: ${BOND_IP1})"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
+LogMsg "INFO: Omping was started on both VMs. Results will be checked in a few seconds"
+sleep 5
+ 
+# Check results - Summary must show a 0% loss of packets
+multicastSummary=$(cat out.client | grep multicast | grep /0%)
+if [ $? -ne 0 ]; then
+    msg="ERROR: VM1 shows that packets were lost!"
+    LogMsg "$msg"
+    LogMsg "${multicastSummary}"
+    UpdateSummary "$msg"
+    UpdateSummary "${multicastSummary}"
+    SetTestStateFailed
+fi
+LogMsg "Multicast summary"
+LogMsg "${multicastSummary}"
+
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "cat out.client | grep multicast | grep /0%"
+if [ $? -ne 0 ]; then
+    msg="ERROR: VM2 shows that packets were lost!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
+msg="Multicast packets were successfully sent, 0% loss"
+LogMsg $msg
+UpdateSummary "$msg"
 SetTestStateCompleted
-exit 0

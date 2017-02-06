@@ -28,6 +28,8 @@
 #   RHEL-6.x and 7.x are supported, and both generation 1 and 2
 #   are supported as well.
 #
+#   Support for SLES11 ELILO bootloader must be added
+#
 ################################################################
 
 # Convert eol
@@ -142,7 +144,7 @@ ConfigSles()
                 LogMsg "Success: added the 'numa=off' value."
                 UpdateSummary "Success: added the 'numa=off' value."
             fi
-            grub2-mkconfig -o /boot/efi/EFI/sles/grub.cfg
+            grub2-mkconfig -o /boot/efi/EFI/sles12/grub.cfg
         else
             LogMsg "FAILED: Could not find VmGeneration variable."
             UpdateSummary "FAILED: Could not find VmGeneration variable."
@@ -250,6 +252,6 @@ case $DISTRO in
     ;;
 esac
 
-LogMsg "NUMA off setup Completed Successfully"
-UpdateSummary "NUMA off setup Completed Successfully"
+LogMsg "Info: NUMA off setup completed successfully"
+UpdateSummary "Info: NUMA off setup completed successfully"
 SetTestStateCompleted

@@ -18,7 +18,7 @@
         <suite>
             <suiteName>Stress</suiteName>
             <suiteTests>
-                <suiteTest>Test50TimesReboot</suiteTest>
+                <suiteTest>MultipleReboot</suiteTest>
                 <suiteTest>Stress_IOzone</suiteTest>
                 <suiteTest>Sysbench</suiteTest>
                 <!-- Obsolete test cases
@@ -31,11 +31,12 @@
 
     <testCases>
         <test>
-            <testName>Test50TimesReboot</testName>
-            <testScript>setupScripts\Test50TimesReboot.ps1</testScript>
+            <testName>MultipleReboot</testName>
+            <testScript>setupScripts\MultipleReboot.ps1</testScript>
             <timeout>3600</timeout>
             <testParams>
                 <param>TC_COVERED=Stress-01</param>
+                <param>count=50</param>
             </testParams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>

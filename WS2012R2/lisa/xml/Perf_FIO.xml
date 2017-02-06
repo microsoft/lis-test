@@ -41,12 +41,14 @@
             <timeout>5400</timeout>
             <testParams>  
                 <param>TC_COVERED=FIO_8k</param>
+                <!-- Modify with physical disk  number -->
+                <param>PHYSICAL_NUMBER=3</param>
             	<param>SCSI=0,0,Physical</param>
                 <param>LOG_FOLDER=fio_logs_8k</param> 
                 <param>FIO_SCENARIO_FILE=fio_8k.fio</param>
             </testParams> 
             <uploadFiles>
-                <file>fio_logs.zip</file>                
+                <file>fio_logs_8k.zip</file>                
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
@@ -64,12 +66,14 @@
             <timeout>5400</timeout>
             <testParams>  
                 <param>TC_COVERED=FIO_1M</param>
+                <!-- Modify with physical disk  number -->
+                <param>PHYSICAL_NUMBER=3</param>
                 <param>SCSI=0,0,Physical</param>
                 <param>LOG_FOLDER=fio_logs_1M</param> 
                 <param>FIO_SCENARIO_FILE=fio_1M.fio</param>
             </testParams> 
             <uploadFiles>
-                <file>fio_logs.zip</file>                
+                <file>fio_logs_1M.zip</file>                
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
@@ -92,7 +96,7 @@
                <nic>VMBus,Vm.Enterprise#1</nic>
             </hardware>
             <testParams>
-                <param>TOTAL_DISKS=1</param>
+                <param>DISKS=1</param>
                 <param>TEST_DEVICE1=/dev/sdb</param>
                 <param>FILE_NAME=fio-2.1.10.tar.gz</param>
             </testParams>

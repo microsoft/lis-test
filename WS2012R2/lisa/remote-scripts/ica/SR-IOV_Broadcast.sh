@@ -22,16 +22,14 @@
 ########################################################################
 
 # Description:
-#   Ping using VM with multiple NICs bound to SR-IOV.
-#
-#   Steps:
-#   1. Boot VMs with 2 or more SR-IOV NICs
-#   2. Verify/install pciutils package
-#   3. Using the lspci command, examine the NIC with SR-IOV support
-#   4. Run bondvf.sh
-#   5. Check network capability for all bonds
-#
-#############################################################################################################
+#   Basic SR-IOV test that checks if VF can send and receive broadcast packets
+# Steps:
+#    Use ping for testing & tcpdump to check if the packets were received
+#    On the 2nd VM – tcpdump -i bond0 -c 10 ip proto \\icmp > out.client
+#    On the TEST VM – ping -b $broadcastAddress -c 13 &
+#    On the 2nd VM – cat out.client | grep $broadcastAddress
+#    If $?=0 test passed!
+##############################################################################
 
 # Convert eol
 dos2unix SR-IOV_Utils.sh
@@ -61,7 +59,6 @@ if [ $? -ne 0 ]; then
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
-UpdateSummary "VF is present on VM!"
 
 # Run the bonding script. Make sure you have this already on the system
 # Note: The location of the bonding script may change in the future
@@ -72,8 +69,10 @@ if [ $bondCount -eq 99 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+
+else
+    LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"   
 fi
-LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"
 
 # Set static IP to the bond
 ConfigureBond
@@ -84,30 +83,50 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-#
-# Run ping tests for each bond interface 
-#
-__iterator=0
-__ipIterator=2
-while [ $__iterator -lt $bondCount ]; do
-    staticIP=$(cat constants.sh | grep IP$__ipIterator | tr = " " | awk '{print $2}')
+# Install dependencies needed for testing
+InstallDependencies
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not install dependencies!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
 
-    # Ping the remote host
-    ping -I "bond$__iterator" -c 10 "$staticIP" >/dev/null 2>&1
-    if [ 0 -eq $? ]; then
-        msg="Successfully pinged $staticIP through bond$__iterator"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-    else
-        msg="ERROR: Unable to ping $staticIP through bond$__iterator"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi
-    __ipIterator=$(($__ipIterator + 2))
-    : $((__iterator++))
-done
+else
+    LogMsg "INFO: All configuration completed successfully. Will proceed with the testing"   
+fi
 
-LogMsg "Updating test case state to completed"
-SetTestStateCompleted
-exit 0
+# Broadcast testing
+broadcastAddress=$(ip a s dev bond0 | awk '/inet / {print $4}')
+ping -b $broadcastAddress -c 13 &
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not ping to broadcast address on VM1 (BOND_IP: ${BOND_IP1})"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" 'tcpdump -i bond0 -c 10 ip proto \\icmp > out.client'
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not start tcpdump on VM2 (BOND_IP: ${BOND_IP2})"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+else
+    LogMsg "INFO: Ping on VM1 and tcpdump on VM2 were successfully started"
+    sleep 20
+fi
+
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" cat out.client | grep $broadcastAddress
+if [ $? -ne 0 ]; then
+    msg="ERROR: VM2 didn't receive any packets from the broadcast address"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+
+else
+    sleep 10
+    msg="VM2 successfully received the packets sent to the broadcast address"
+    LogMsg $msg
+    UpdateSummary "$msg"
+    SetTestStateCompleted   
+fi

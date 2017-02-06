@@ -22,19 +22,36 @@
 ########################################################################
 
 # Description:
-#   Ping using VM with multiple NICs bound to SR-IOV.
+#   Limit test – one VM with max NICs, max SR-IOV devices - 7
 #
-#   Steps:
-#   1. Boot VMs with 2 or more SR-IOV NICs
-#   2. Verify/install pciutils package
-#   3. Using the lspci command, examine the NIC with SR-IOV support
-#   4. Run bondvf.sh
-#   5. Check network capability for all bonds
-#
-#############################################################################################################
+# Steps:
+#   Create a Linux VM and configure it with the MAX number of synthetic NICs (7 NICs).
+#   Configure SR-IOV on each NIC.
+#   Verify network connectivity over each SR-IOV device.
+# Acceptance Criteria:
+#   The max number of SR-IOV devices can be created.
+#   Each SR-IOV device has network connectivity.
+################################################################################
 
 # Convert eol
 dos2unix SR-IOV_Utils.sh
+
+# Adding IPs for all bonds (VM1 and VM2) in constants.sh
+maxBondIterator=14
+__iterator=0
+__ipIterator1=1
+__ipIterator2=1
+while [ $__iterator -lt $maxBondIterator ]; do
+    echo -e "BOND_IP${__ipIterator2}=10.1${__ipIterator1}.12.${__ipIterator2}" >> constants.sh
+
+    if [ $((__iterator%2)) -eq 1 ]; then
+        __ipIterator1=$(($__ipIterator1 + 1))    
+    fi
+
+    __ipIterator2=$(($__ipIterator2 + 1))
+    : $((__iterator++))   
+done
+sleep 5
 
 # Source SR-IOV_Utils.sh. This is the script that contains all the 
 # SR-IOV basic functions (checking drivers, making de bonds, assigning IPs)
@@ -61,7 +78,6 @@ if [ $? -ne 0 ]; then
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
-UpdateSummary "VF is present on VM!"
 
 # Run the bonding script. Make sure you have this already on the system
 # Note: The location of the bonding script may change in the future
@@ -72,10 +88,12 @@ if [ $bondCount -eq 99 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
-fi
-LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"
 
-# Set static IP to the bond
+else
+    LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"   
+fi
+
+# Set static IPs to the bond
 ConfigureBond
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not set a static IP to the bond!"
@@ -84,9 +102,7 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-#
-# Run ping tests for each bond interface 
-#
+# Pinging
 __iterator=0
 __ipIterator=2
 while [ $__iterator -lt $bondCount ]; do
@@ -102,12 +118,14 @@ while [ $__iterator -lt $bondCount ]; do
         msg="ERROR: Unable to ping $staticIP through bond$__iterator"
         LogMsg "$msg"
         UpdateSummary "$msg"
-        SetTestStateFailed
     fi
     __ipIterator=$(($__ipIterator + 2))
     : $((__iterator++))
 done
 
-LogMsg "Updating test case state to completed"
+msg="Pinging was successful through all bonds"
+LogMsg $msg
+UpdateSummary "$msg"
+sleep 5
+
 SetTestStateCompleted
-exit 0
