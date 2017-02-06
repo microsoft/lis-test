@@ -78,7 +78,7 @@ chmod 755 /tmp/orion_linux_x86-64
 mkdir -p /tmp/orion
 echo ${DISK} > /tmp/${ORION_SCENARIO_FILE}.lun
 
-if [[ ${DISK} == *"xvd"* ]]
+if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then
     sudo mkfs.ext4 ${DISK}
     sudo mkdir /stor

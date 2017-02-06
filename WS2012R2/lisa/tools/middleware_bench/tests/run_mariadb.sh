@@ -33,7 +33,7 @@ fi
 
 SERVER="$1"
 USER="$2"
-EBS_VOL="$3"
+DISK="$3"
 TEST_THREADS=(1 2 4 8 16 32 64 128 256)
 client_ip=`ip route get ${SERVER} | awk '{print $NF; exit}'`
 
@@ -45,18 +45,18 @@ sudo apt-get update >> ${LOG_FILE}
 sudo apt-get -y install libaio1 sysstat zip sysbench mysql-client* >> ${LOG_FILE}
 
 mkdir -p /tmp/mariadb
-if [[ ${EBS_VOL} == *"xvd"* ]]
+if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then
     db_path="/maria/db"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
-elif [[ ${EBS_VOL} == *"md"* ]]
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${DISK}" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${DISK} ${db_path}" >> ${LOG_FILE}
+elif [[ ${DISK} == *"md"* ]]
 then
     db_path="/raid/maria/db"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
 else
-    LogMsg "Failed to identify disk type for ${EBS_VOL}."
+    LogMsg "Failed to identify disk type for ${DISK}."
     exit 70
 fi
 

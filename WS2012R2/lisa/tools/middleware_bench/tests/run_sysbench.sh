@@ -73,7 +73,7 @@ function fileio ()
 
 mkdir -p /tmp/sysbench_fileio
 
-if [[ ${DISK} == *"xvd"* ]]
+if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then
     sudo mkfs.ext4 ${DISK}
     sudo mkdir /stor

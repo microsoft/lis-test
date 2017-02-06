@@ -33,7 +33,7 @@ fi
 
 SERVER="$1"
 USER="$2"
-EBS_VOL="$3"
+DISK="$3"
 TEST_THREADS=(1 2 4 8 16 32 64 128)
 workload="/tmp/LISworkload"
 ycsb="/tmp/ycsb-0.11.0/bin/ycsb"
@@ -54,18 +54,18 @@ sudo pkill -f ycsb
 echo -e "recordcount=20000000\noperationcount=20000000\nreadallfields=true\nwriteallfields=false\nworkload=com.yahoo.ycsb.workloads.CoreWorkload\nreadproportion=0.5\nupdateproportion=0.5\nrequestdistribution=zipfian\nthreadcount=8\nmaxexecutiontime=900" >> ${workload}
 
 mkdir -p /tmp/mongodb
-if [[ ${EBS_VOL} == *"xvd"* ]]
+if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then
     db_path="/mongo/db"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
-elif [[ ${EBS_VOL} == *"md"* ]]
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${DISK}" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${DISK} ${db_path}" >> ${LOG_FILE}
+elif [[ ${DISK} == *"md"* ]]
 then
     db_path="/raid/mongo/db"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
 else
-    LogMsg "Failed to identify disk type for ${EBS_VOL}."
+    LogMsg "Failed to identify disk type for ${DISK}."
     exit 70
 fi
 

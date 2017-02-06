@@ -32,21 +32,51 @@ class TestAction(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
-class AWSKeyIdAction(argparse.Action):
+class ProviderAction(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
-            raise ValueError('AWSKeyIdAction nargs not allowed.')
-        super(AWSKeyIdAction, self).__init__(option_strings, dest, **kwargs)
+            raise ValueError('ProviderAction nargs not allowed.')
+        super(ProviderAction, self).__init__(option_strings, dest, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, values)
 
 
-class AWSSecretAction(argparse.Action):
+class KeyIdAction(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
-            raise ValueError('AWSSecretAction nargs not allowed.')
-        super(AWSSecretAction, self).__init__(option_strings, dest, **kwargs)
+            raise ValueError('KeyIdAction nargs not allowed.')
+        super(KeyIdAction, self).__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values)
+
+
+class SecretAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError('SecretAction nargs not allowed.')
+        super(SecretAction, self).__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values)
+
+
+class SubscriptionAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError('SubscriptionAction nargs not allowed.')
+        super(SubscriptionAction, self).__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values)
+
+
+class TenantAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError('TenantAction nargs not allowed.')
+        super(TenantAction, self).__init__(option_strings, dest, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, values)
