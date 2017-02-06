@@ -33,10 +33,9 @@ fi
 
 SERVER="$1"
 USER="$2"
-EBS_VOL="$3"
+DISK="$3"
 TEST_THREADS=(1 2 4 8 16 32 64 128 256)
 client_ip=`ip route get ${SERVER} | awk '{print $NF; exit}'`
-db_path="/maria/db"
 
 if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
@@ -46,6 +45,20 @@ sudo apt-get update >> ${LOG_FILE}
 sudo apt-get -y install libaio1 sysstat zip sysbench mysql-client* >> ${LOG_FILE}
 
 mkdir -p /tmp/mariadb
+if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
+then
+    db_path="/maria/db"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${DISK}" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${DISK} ${db_path}" >> ${LOG_FILE}
+elif [[ ${DISK} == *"md"* ]]
+then
+    db_path="/raid/maria/db"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
+else
+    LogMsg "Failed to identify disk type for ${DISK}."
+    exit 70
+fi
 
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mariadb-server" >> ${LOG_FILE}
@@ -57,9 +70,6 @@ ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/datadir/c\da
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind-address/c\bind-address = 0\.0\.0\.0' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/max_connections/c\max_connections = 1024' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
 
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkdir -p ${db_path}"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mkfs.ext4 ${EBS_VOL}" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mount ${EBS_VOL} ${db_path}" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo cp -rf /var/lib/mysql/* ${db_path}" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chmod 700 -R ${db_path}"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R mysql:adm ${db_path}"

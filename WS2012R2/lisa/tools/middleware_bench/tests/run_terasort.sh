@@ -53,6 +53,9 @@ sudo rm -rf ${hadoop_store}
 sudo apt-get update >> ${LOG_FILE}
 sudo apt-get install -y zip maven libssl-dev build-essential rsync pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk bc >> ${LOG_FILE}
 
+LogMsg "Upgrading procps - Azure issue."
+sudo apt-get upgrade -y procps >> ${LOG_FILE}
+
 LogMsg "Setting up hadoop."
 cd /tmp
 wget http://apache.javapipe.com/hadoop/common/${hadoop_version}/${hadoop_version}.tar.gz
@@ -150,7 +153,6 @@ echo -e > /home/${USER}/.ssh/known_hosts
 ssh -o StrictHostKeyChecking=no ${USER}@${hostname} "ls"
 ssh -o StrictHostKeyChecking=no ${USER}@0.0.0.0 "ls"
 
-
 for slave in "${SLAVES[@]}"
 do
     LogMsg "Performing cleanup on: ${slave}"
@@ -162,6 +164,7 @@ do
     LogMsg "Configuring hadoop on: ${slave}"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get update" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get install -y maven libssl-dev rsync build-essential pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk bc" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get upgrade -y procps" >> ${LOG_FILE}
     scp -o StrictHostKeyChecking=no /tmp/${hadoop_version}.tar.gz ${USER}@${slave}:/tmp >> ${LOG_FILE}
     ssh -o StrictHostKeyChecking=no ${USER}@${slave} "cd /tmp;tar -xzf ${hadoop_version}.tar.gz" >> ${LOG_FILE}
     ssh -o StrictHostKeyChecking=no ${USER}@${slave} "echo -e '${hadoop_exports}' >> ~/.bashrc" >> ${LOG_FILE}
@@ -193,7 +196,7 @@ LogMsg "Info : Starting Yarn"
 /tmp/${hadoop_version}/sbin/start-yarn.sh >> ${LOG_FILE}
 sleep 10
 LogMsg "Info : Run TeraGen to create test data"
-/tmp/${hadoop_version}/bin/hadoop jar /tmp/${hadoop_version}/share/hadoop/mapreduce/hadoop-*examples*.jar teragen ${teragen_records} ${hadoop_store}/genout >> /tmp/terasort/teragen.log
+/tmp/${hadoop_version}/bin/hadoop jar /tmp/${hadoop_version}/share/hadoop/mapreduce/hadoop-*examples*.jar teragen ${teragen_records} ${hadoop_store}/genout
 LogMsg "Info : Running TeraSort to sort test data"
 sleep 10
 # Number of Reduces = ( 1.75 * num-of-nodes * num-of-containers-per-node )

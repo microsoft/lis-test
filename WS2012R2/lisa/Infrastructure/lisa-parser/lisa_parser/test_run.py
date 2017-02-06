@@ -23,6 +23,7 @@ from __future__ import print_function
 from file_parser import ParseXML
 from file_parser import parse_ica_log
 from file_parser import FIOLogsReader
+from file_parser import FIOLogsReaderRaid
 from file_parser import NTTTCPLogsReader
 from file_parser import IPERFLogsReader
 from virtual_machine import VirtualMachine
@@ -210,8 +211,10 @@ class PerfTestRun(TestRun):
     def update_from_ica(self, log_path):
         super(PerfTestRun, self).update_from_ica(log_path)
         parsed_perf_log = None
-        if self.suite.lower() == 'fio':
+        if self.suite.lower() == 'fio-singledisk':
             parsed_perf_log = FIOLogsReader(self.perf_path).process_logs()
+        if self.suite.lower() == 'fio-raid0-4disks':
+            parsed_perf_log = FIOLogsReaderRaid(self.perf_path).process_logs()
         elif self.suite.lower() == 'ntttcp':
             parsed_perf_log = NTTTCPLogsReader(self.perf_path).process_logs()
         elif self.suite.lower() == 'iperf':
@@ -249,7 +252,7 @@ class PerfTestRun(TestRun):
             table_dict['GuestSize'] = '8VP8G40G'
 
             test_case_obj = self.test_cases[table_dict['TestCaseName']]
-            if self.suite.lower() == 'fio':
+            if self.suite.lower() in ['fio-singledisk', 'fio-raid0-4disks']:
                 self.prep_for_fio(table_dict, test_case_obj)
             elif self.suite.lower() == 'ntttcp':
                 self.prep_for_ntttcp(table_dict, test_case_obj)
@@ -259,9 +262,9 @@ class PerfTestRun(TestRun):
             table_dict['TestCaseName'] = re.findall(
                 "[a-zA-z]+", table_dict['TestCaseName'])[0]
 
-        if self.suite.lower() == 'fio':
+        if self.suite.lower() in ['fio-singledisk', 'fio-raid0-4disks']:
             insertion_list = sorted(insertion_list, key=lambda column: (
-                column['QDepth']))
+                column['QDepth'], column['BlockSize_KB']))
         elif self.suite.lower() == 'ntttcp':
             insertion_list = sorted(insertion_list, key=lambda column: (
                 column['ProtocolType'], column['NumberOfConnections']))

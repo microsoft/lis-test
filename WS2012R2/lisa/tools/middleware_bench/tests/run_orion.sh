@@ -28,8 +28,6 @@
 #       1. Runs orion
 #       4. Prepares results
 #
-#       No optional parameters needed
-#
 #######################################################################
 
 LOG_FILE=/tmp/summary.log
@@ -37,51 +35,19 @@ function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1} >> ${LOG_FILE}
 }
 
-ORION_SCENARIO_FILE="orion"
-FS="ext4"
-FILE_NAME="orion_linux_x86-64.gz"
-TEST_MODES=(oltp dss simple normal)
-
 if [ $# -lt 1 ]; then
     echo -e "\nUsage:\n$0 device"
     exit 1
 fi
 
 DISK="$1"
+ORION_SCENARIO_FILE="orion"
+FILE_NAME="orion_linux_x86-64.gz"
+TEST_MODES=(oltp dss simple normal)
 ORION=${FILE_NAME}
 
 sudo apt-get update >> ${LOG_FILE}
 sudo apt-get -y install libaio1 sysstat zip >> ${LOG_FILE}
-
-cd /tmp
-gunzip -f /tmp/${ORION}
-chmod 755 /tmp/orion_linux_x86-64
-echo ${DISK} > /tmp/${ORION_SCENARIO_FILE}.lun
-mkdir -p /tmp/orion
-
-format_disk()
-{
-sudo mkfs.${FS} ${DISK} >> ${LOG_FILE}
-if [ "$?" = "0" ]; then
-    LogMsg "mkfs.${FS} ${DISK} successful..."
-    sudo mkdir /stor
-    sudo mount ${DISK} /stor
-    if [ "$?" = "0" ]; then
-        LogMsg "Drive mounted successfully..."
-    else
-        LogMsg "Error in mounting drive..."
-        exit 70
-    fi
-else
-    LogMsg "mkfs.${FS} ${DISK} failed..."
-    exit 70
-fi
-}
-
-if [[ ${DISK} == *"xvd"* ]]
-then
-  format_disk
-fi
 
 run_orion()
 {
@@ -106,6 +72,25 @@ run_orion()
     fi
 }
 
+cd /tmp
+gunzip -f /tmp/${ORION}
+chmod 755 /tmp/orion_linux_x86-64
+mkdir -p /tmp/orion
+echo ${DISK} > /tmp/${ORION_SCENARIO_FILE}.lun
+
+if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
+then
+    sudo mkfs.ext4 ${DISK}
+    sudo mkdir /stor
+    sudo mount ${DISK} /stor
+elif [[ ${DISK} == *"md"* ]]
+then
+    LogMsg "Using ${DISK} as RAID0."
+else
+    LogMsg "Failed to identify disk type for ${DISK}."
+    exit 70
+fi
+
 for mode in "${TEST_MODES[@]}"
 do
     run_orion ${mode}
@@ -116,4 +101,3 @@ LogMsg "Kernel Version : `uname -r` "
 cd /tmp
 sudo zip -r orion.zip . -i orion/* >> ${LOG_FILE}
 sudo zip -r orion.zip . -i summary.log >> ${LOG_FILE}
-

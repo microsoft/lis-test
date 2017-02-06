@@ -1,0 +1,4 @@
+boto<=2.43.0
+paramiko<=2.0
+azure<=2.0.0rc6
+haikunator<=2.1.0
