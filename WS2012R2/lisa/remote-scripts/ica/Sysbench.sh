@@ -116,6 +116,7 @@ if [ $? -gt 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 10
 fi
+
 pushd "$ROOT_DIR/sysbench"
 # Create the state.txt file so LISA knows we are running
 UpdateTestState $ICA_TESTRUNNING
@@ -134,6 +135,19 @@ if is_fedora ; then
     #wget ftp://mirror.switch.ch/pool/4/mirror/mysql/Downloads/MySQL-5.6/MySQL-devel-5.6.24-1.el7.x86_64.rpm
     #rpm -iv MySQL-devel-5.6.24-1.el7.x86_64.rpm
 
+    pushd $ROOT_DIR
+    mkdir autoconf
+    cd autoconf
+    wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
+    tar xvfvz autoconf-2.69.tar.gz
+    cd autoconf-2.69
+    ./configure
+    make
+    make install
+
+    yum install devtoolset-2-binutils -y
+
+    pushd "$ROOT_DIR/sysbench"
     bash ./autogen.sh
     bash ./configure --without-mysql
     make
@@ -147,7 +161,16 @@ if is_fedora ; then
 
  elif is_ubuntu ; then
      # Installing sysbench on ubuntu
-    apt-get install -y sysbench
+    apt-get install automake -y
+    apt-get install libtool -y
+    apt-get install pkg-config -y
+
+    pushd "$ROOT_DIR/sysbench"
+    bash ./autogen.sh
+    bash ./configure --without-mysql
+    make
+    make install
+    sysbench --help
     if [ $? -ne 0 ]; then
              LogMsg "ERROR: Unable to install sysbench. Aborting..."
              UpdateTestState $ICA_TESTABORTED
@@ -205,13 +228,14 @@ cputest
 
 function fileio ()
  {
+    sysbench --test=fileio --num-threads=1 --file-test-mode=$1 prepare
     sysbench --test=fileio --num-threads=1 --file-test-mode=$1 run > /root/$1.log
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Unable to execute sysbench fileio mode $1. Aborting..."
         UpdateTestState $ICA_TESTFAILED
     fi
 
-    PASS_VALUE_FILEIO=`cat /root/$1.log |awk '/approx./ {print $2;}'`
+    PASS_VALUE_FILEIO=`cat /root/$1.log |awk '/95th/ {print $2;}'`
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Cannot find $1.log."
         UpdateTestState $ICA_TESTFAILED
@@ -224,6 +248,8 @@ function fileio ()
         UpdateSummary "Fileio Test -$1- passed with approx. $RESULT_VALUE_FILEIO percentils."
 
     fi
+
+    sysbench --test=fileio --num-threads=1 --file-test-mode=$1 cleanup
 
     LogMsg "`cat /root/$1.log`"
     cat /root/$1.log >> /root/fileio.log
