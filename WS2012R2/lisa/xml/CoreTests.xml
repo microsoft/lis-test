@@ -195,7 +195,7 @@
             <testName>StressReloadModules</testName>
             <setupscript>setupscripts\CORE_EnableIntegrationServices.ps1</setupscript>
             <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
-            <timeout>10600</timeout>
+            <timeout>3600</timeout>
             <testParams>
                 <param>TC_COVERED=CORE-18</param>
             </testParams>
@@ -224,7 +224,6 @@
             <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testparams>
-                <param>IsoFilename=CDTEST.iso</param>
                 <param>TC_COVERED=CORE-20</param>
             </testparams>
             <timeout>600</timeout>
@@ -405,7 +404,9 @@
             <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>Core</suite>
             <testParams>
-		   <param>publicKey=linux_id_rsa.pub</param>
+		<param>publicKey=linux_id_rsa.pub</param>
+		<!-- Required for CDmount -->
+		<param>IsoFilename=CDTEST.iso</param>
             </testParams>
         </vm>
     </VMs>
