@@ -308,25 +308,25 @@ ConfigSles()
             echo "Error: Unable to copy compiled hv_fcopy_daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    echo "Info: Compiled LIS daemons copied." >> ~/summary.log
+    	echo "Info: Compiled LIS daemons copied." >> ~/summary.log
 	
 	# Upstream hv tools use /usr/libexec/hypervkvpd/ as the new kvp files path
 	mkdir -p /usr/libexec/hypervkvpd/
 	cp /root/linux-next/tools/hv/hv_get_dhcp_info.sh /usr/libexec/hypervkvpd//hv_get_dhcp_info
-	if [ $? -ne 0 ]; then
-		echo "Error: Unable to copy hv_get_dhcp_info to /usr/sbin." >> ~/summary.log
-		UpdateTestState $ICA_TESTABORTED
-	fi
-    cp /root/linux-next/tools/hv/hv_get_dns_info.sh /usr/libexec/hypervkvpd//hv_get_dns_info
-	if [ $? -ne 0 ]; then
-		echo "Error: Unable to copy hv_get_dns_info to /usr/sbin." >> ~/summary.log
-		UpdateTestState $ICA_TESTABORTED
-	fi
+		if [ $? -ne 0 ]; then
+			echo "Error: Unable to copy hv_get_dhcp_info to /usr/libexec/hypervkvpd/." >> ~/summary.log
+			UpdateTestState $ICA_TESTABORTED
+		fi
+	cp /root/linux-next/tools/hv/hv_get_dns_info.sh /usr/libexec/hypervkvpd//hv_get_dns_info
+		if [ $? -ne 0 ]; then
+			echo "Error: Unable to copy hv_get_dns_info to /usr/libexec/hypervkvpd/." >> ~/summary.log
+			UpdateTestState $ICA_TESTABORTED
+		fi
 	cp /root/linux-next/tools/hv/hv_set_ifconfig.sh /usr/libexec/hypervkvpd//hv_set_ifconfig
-	if [ $? -ne 0 ]; then
-		echo "Error: Unable to copy hv_get_dns_info to /usr/sbin." >> ~/summary.log
-		UpdateTestState $ICA_TESTABORTED
-	fi
+		if [ $? -ne 0 ]; then
+			echo "Error: Unable to copy hv_set_ifconfig to /usr/libexec/hypervkvpd/." >> ~/summary.log
+			UpdateTestState $ICA_TESTABORTED
+		fi
 
     chmod 755 /usr/libexec/hypervkvpd/hv*
 	
