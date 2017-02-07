@@ -373,29 +373,29 @@ function install_stress_ng(){
 #
 ########################################################################
 function configure_grub(){
-	echo "Configuring GRUB..." >> summary.log
-	if is_ubuntu ; then
-		sed -i -e 's/DEFAULT=""/DEFAULT="console=tty0 console=ttyS1 crashkernel=256M@128M"/g' /etc/default/grub
+    echo "Configuring GRUB..." >> summary.log
+    if is_ubuntu ; then
+        sed -i -e 's/DEFAULT=""/DEFAULT="console=tty0 console=ttyS1 crashkernel=256M@128M"/g' /etc/default/grub
         update-grub
-	elif is_fedora ; then
-		if [ $os_RELEASE -eq 7 ] ; then
-			sed -i -e 's/crashkernel=auto/crashkernel=256M@128M console=tty0 console=ttyS1/g' /etc/default/grub
-			perl -pi -e "s/quiet//g" /etc/default/grub
+    elif is_fedora ; then
+        if [ $os_RELEASE -eq 7 ] ; then
+            sed -i -e 's/crashkernel=auto/crashkernel=256M@128M console=tty0 console=ttyS1/g' /etc/default/grub
+            perl -pi -e "s/quiet//g" /etc/default/grub
             grub2-mkconfig -o /etc/grub2.cfg
-		elif [ $os_RELEASE -eq 6 ] ; then
-			sed -i -e 's/crashkernel=auto/crashkernel=256M@128M console=tty0 console=ttyS1/g' /boot/grub/grub.conf
-		    perl -pi -e "s/quiet//g" /boot/grub/grub.conf
+        elif [ $os_RELEASE -eq 6 ] ; then
+            sed -i -e 's/crashkernel=auto/crashkernel=256M@128M console=tty0 console=ttyS1/g' /boot/grub/grub.conf
+            perl -pi -e "s/quiet//g" /boot/grub/grub.conf
         fi
-	elif is_suse ; then
-		if [ $os_RELEASE -eq 12 ] ; then
-			sed -i -e 's/218M-:109M/256M@128M console=tty0 console=ttyS1/g' /etc/default/grub
-			perl -pi -e "s/quiet//g" /etc/default/grub
+    elif is_suse ; then
+        if [ $os_RELEASE -eq 12 ] ; then
+            sed -i -e 's/218M-:109M/256M@128M console=tty0 console=ttyS1/g' /etc/default/grub
+            perl -pi -e "s/quiet//g" /etc/default/grub
             grub2-mkconfig -o /etc/grub2.cfg
-		elif [ $os_RELEASE -eq 11 ]	; then
-			sed -i -e 's/256M-:128M/256M@128M console=tty0 console=ttyS1/g' /boot/grub/menu.lst
+        elif [ $os_RELEASE -eq 11 ] ; then
+            sed -i -e 's/256M-:128M/256M@128M console=tty0 console=ttyS1/g' /boot/grub/menu.lst
             perl -pi -e "s/splash=silent//g" /boot/grub/menu.lst
-		fi
-	fi
+        fi
+    fi
 }
 
 ########################################################################
@@ -462,9 +462,9 @@ if is_fedora ; then
     echo "Registering the system..." >> summary.log
 
     if [ $# -ne 2 ]; then
-    	echo "ERRROR: Incorrect number of arguments!" >> summary.log
-    	echo "Usage: ./AIO.sh username password" >> summary.log
-	fi
+        echo "ERRROR: Incorrect number of arguments!" >> summary.log
+        echo "Usage: ./AIO.sh username password" >> summary.log
+    fi
     username=$1
     password=$2
 
@@ -499,22 +499,22 @@ if is_fedora ; then
 
     echo "Shutting down Network Manager on RHEL 6.x/7.x"
     if [ $os_RELEASE -eq 7 ] || [ $os_RELEASE -eq 6 ]; then
-	    service NetworkManager stop
-	    if [ $? -ne 0 ]; then
-	    	echo "ERROR: Network Manager service didn't stop" >> summary.log
-	    fi
-	    chkconfig NetworkManager off
-	    service network start
-	    if [ $? -ne 0 ]; then
-	    	echo "ERROR: Network service didn't start" >> summary.log
-	    fi
-	    chkconfig network on
-	fi
+        service NetworkManager stop
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Network Manager service didn't stop" >> summary.log
+        fi
+        chkconfig NetworkManager off
+        service network start
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Network service didn't start" >> summary.log
+        fi
+        chkconfig network on
+    fi
 
     echo "Installing packages..." >> summary.log
     PACK_LIST=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs
-    	ntp crash bc selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake 
-	nano kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-client)
+        ntp crash bc selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake 
+    nano kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-client)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... "
@@ -560,9 +560,9 @@ elif is_ubuntu ; then
     sed -i -e 's/sleep 40/#sleep 40/g' /etc/init/failsafe.conf
     sed -i -e 's/sleep 59/#sleep 59/g' /etc/init/failsafe.conf
     PACK_LIST=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 
-    	at multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm bridge-utils btrfs-tools 
-	libkeyutils-dev xfsprogs linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r` 
-	sysstat build-essential bc numactl python3 nfs-client)
+        at multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm automake libtool pkg-config bridge-utils btrfs-tools 
+    libkeyutils-dev xfsprogs linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r` 
+    sysstat build-essential bc numactl python3 nfs-client)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... "
@@ -587,7 +587,7 @@ elif is_ubuntu ; then
 elif is_suse ; then
 
     #
-	# SLES ISO must be mounted for BETA releases
+    # SLES ISO must be mounted for BETA releases
     #
     chkconfig atd on
     service atd start
@@ -616,7 +616,7 @@ elif is_suse ; then
         zypper --no-gpg-checks refresh
 
     elif [ $os_RELEASE -eq 11 ]; then
-    	echo "Registering SLES 11" >> summary.log
+        echo "Registering SLES 11" >> summary.log
         suse_register -a regcode-sles=$password -a email=$username -L /root/.suse_register.log
 
         #
@@ -626,7 +626,7 @@ elif is_suse ; then
         zypper --no-gpg-checks refresh
 
     else
-    	echo "ERROR: Unsupported version of SLES!" >> summary.log
+        echo "ERROR: Unsupported version of SLES!" >> summary.log
     fi
 
     echo "Installing dependencies for SLES 12" >> summary.log
