@@ -129,6 +129,7 @@ ConfigUbuntu()
 {
     LogMsg "Configuring kdump (Ubuntu)..."
     echo "Configuring kdump (Ubuntu)..." >> summary.log
+    apt-get update
     apt-get install -y nfs-kernel-server
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to install nfs."
