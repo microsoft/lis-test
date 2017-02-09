@@ -58,7 +58,7 @@
         Global
             The global section defines settings used to specify where
             the log files are to be written, who to send email to,
-            which email server to use, OS version dependency, etc.
+            which email server to use, OS version dependency,etc.
 
         TestSuites
             This section defines a test suite and lists all the test

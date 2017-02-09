@@ -1838,7 +1838,7 @@ function checkHostVersion([XML] $xmlData)
 {
     <#
     .Synopsis
-        Check dependencies defined in the hostVersion tag.
+        Check version dependency defined in the hostVersion tag.
 
     .Description
         Check if the host version dependency is met.

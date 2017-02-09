@@ -38,7 +38,7 @@
         <suite>
         <suiteName>File_Copy</suiteName>
         <suiteTests>
-			<suiteTest>FCOPY_basic</suiteTest>
+            <suiteTest>FCOPY_basic</suiteTest>
 			<suiteTest>FCOPY_file_exists</suiteTest>
 			<suiteTest>FCOPY_overwrite</suiteTest>
 			<suiteTest>FCOPY_large_file</suiteTest>
