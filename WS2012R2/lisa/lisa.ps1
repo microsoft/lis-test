@@ -58,7 +58,7 @@
         Global
             The global section defines settings used to specify where
             the log files are to be written, who to send email to,
-            which email server to use, etc.
+            which email server to use, platform dependencies, etc.
 
         TestSuites
             This section defines a test suite and lists all the test
@@ -90,6 +90,9 @@
         <global>
             <logfileRootDir>D:\public\TestResults</logfileRootDir>
             <defaultSnapshot>ICABase</defaultSnapshot>
+            <dependency>
+                <hostVersion>6.3.9600</hostVersion>
+            </dependency>
             <email>
                 <recipients>
                     <to>myemail@mycompany.com,youremail@mycompany.com</to>
@@ -219,7 +222,7 @@ param([string] $cmdVerb,
       [switch] $examples,
       [string] $CLIlogDir,
       [string] $CLImageStorDir,
-	  [string] $VhdPath,
+      [string] $VhdPath,
       [string] $os,
       [switch] $help,
       [string] $collect="False",
@@ -838,6 +841,22 @@ function RunTests ([String] $xmlFilename )
     if ($testParams)
     {
         AddTestParamsToVMs $xmlConfig $testParams
+    }
+
+    LogMsg 10 "Info : Checking suite dependencies."
+    if ($xmlConfig.Config.Global.Dependency)
+    {
+        if ($xmlConfig.Config.Global.Dependency.hostVersion)
+        {
+            # check version
+            . .\utilFunctions.ps1
+            $dependency = checkHostVersion $xmlConfig
+            if ($dependency -eq $False)
+            {
+                LogMsg 0 "Error: Dependency check failed. Exiting."
+                return $false
+            }
+        }
     }
 
     #

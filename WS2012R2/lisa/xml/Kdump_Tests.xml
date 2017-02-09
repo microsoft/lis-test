@@ -20,6 +20,9 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <dependency>
+            <hostVersion>6.2.9200</hostVersion>
+        </dependency>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>

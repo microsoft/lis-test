@@ -1828,3 +1828,69 @@ function VerifyTestResourcesExist([System.Xml.XmlElement] $vm, [System.Xml.XmlEl
 
     return $retVal
 }
+
+#####################################################################
+#
+# checkHostVersion
+#
+#####################################################################
+function checkHostVersion([XML] $xmlData)
+{
+    <#
+    .Synopsis
+        Check dependencies defined in the hostVersion tag.
+
+    .Description
+        Check if the host version dependency is met.
+
+    .Parameter $xmlData
+        The parsed XML from the test xml file
+        Type : [System.Xml]
+
+    .ReturnValue
+        Bool
+
+    .Example
+        checkHostVersion $xmlConfig
+    #>
+    $retVal = $True
+    $hostVersionDependency =  $xmlConfig.config.global.dependency.hostVersion
+    $match = $hostVersionDependency -match '^\s*?([0-9]{1,2}?)\.([0-9]{1,2}?)\.([0-9]{3,}?)[0-9.]+?$'
+    if ($match -eq $True)
+    {
+        $dependencyVersion = @{major=[int]$Matches[1];minor=[int]$Matches[2];build=[int]$Matches[3]}
+    }
+    else
+    {
+        LogMsg 0 "Error: Could not parse hostVersion dependency tag: '${hostVersionDependency}'."
+        return $False
+    }
+
+    foreach( $vm in $xmlData.config.VMs.vm )
+    {
+        $hostVersion = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $($vm.hvServer)).Version
+        $match = $hostVersion -match '^\s*?([0-9]{1,2}?)\.([0-9]{1,2}?)\.([0-9]{3,}?)[0-9.]+?$'
+        if ($match -eq $True)
+        {
+            $currentVersion = @{major=[int]$Matches[1];minor=[int]$Matches[2];build=[int]$Matches[3]}
+        }
+        else
+        {
+            LogMsg 0 "Error: Could not parse host '$($vm.hvServer)' version: '${hostVersion}'."
+            return $False
+        }
+        if ($currentVersion.major -ge $dependencyVersion.major)
+        {
+            if ($currentVersion.minor -ge $dependencyVersion.minor)
+            {
+                if ($currentVersion.build -ge $dependencyVersion.build)
+                {
+                    continue
+                }
+            }
+        }
+        LogMsg 0 "Error: $($vm.hvServer) version '$hostVersion' is lower than dependency '$hostVersionDependency'"
+        $retVal = $False
+    }
+    return $retVal
+}
