@@ -21,6 +21,7 @@
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
         <dependency>
+            <!-- Only Windows Server 2012 supports this suite -->
             <hostVersion>6.2.9200</hostVersion>
         </dependency>
         <email>
@@ -181,7 +182,7 @@
             <hvServer>HyperVhost</hvServer>
             <vmName>vmName</vmName>
             <os>Linux</os>
-            <ipv4> </ipv4>
+            <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
                 <param>ssh_key=linux_id_rsa</param>
