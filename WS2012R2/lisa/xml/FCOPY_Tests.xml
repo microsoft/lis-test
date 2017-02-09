@@ -38,13 +38,13 @@
         <suite>
         <suiteName>File_Copy</suiteName>
         <suiteTests>
-			<suiteTest>FCOPY_basic</suiteTest>
-			<suiteTest>FCOPY_file_exists</suiteTest>
-			<suiteTest>FCOPY_overwrite</suiteTest>
-			<suiteTest>FCOPY_large_file</suiteTest>
-			<suiteTest>FCOPY_non_ascii</suiteTest>
-			<suiteTest>FCOPY_repeat</suiteTest>
-		</suiteTests>
+            <suiteTest>FCOPY_basic</suiteTest>
+            <suiteTest>FCOPY_file_exists</suiteTest>
+            <suiteTest>FCOPY_overwrite</suiteTest>
+            <suiteTest>FCOPY_large_file</suiteTest>
+            <suiteTest>FCOPY_non_ascii</suiteTest>
+            <suiteTest>FCOPY_repeat</suiteTest>
+        </suiteTests>
         </suite>
     </testSuites>
 
