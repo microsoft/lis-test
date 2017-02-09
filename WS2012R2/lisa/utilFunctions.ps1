@@ -1848,7 +1848,7 @@ function checkHostVersion([XML] $xmlData)
         Type : [System.Xml]
 
     .ReturnValue
-        Bool
+        [Boolean]
 
     .Example
         checkHostVersion $xmlConfig

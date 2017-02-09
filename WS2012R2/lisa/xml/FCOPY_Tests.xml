@@ -36,7 +36,7 @@
 
     <testSuites>
         <suite>
-		<suiteName>File_Copy</suiteName>
+        <suiteName>File_Copy</suiteName>
 		<suiteTests>
 			<suiteTest>FCOPY_basic</suiteTest>
 			<suiteTest>FCOPY_file_exists</suiteTest>
