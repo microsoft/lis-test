@@ -91,6 +91,7 @@
             <logfileRootDir>D:\public\TestResults</logfileRootDir>
             <defaultSnapshot>ICABase</defaultSnapshot>
             <dependency>
+                <!-- Only Windows Server 2012 R2 supports this suite -->
                 <hostVersion>6.3.9600</hostVersion>
             </dependency>
             <email>

@@ -1855,21 +1855,21 @@ function checkHostVersion([XML] $xmlData)
     #>
     $retVal = $True
     $hostVersionDependency =  $xmlConfig.config.global.dependency.hostVersion
-    $match = $hostVersionDependency -match '^\s*?([0-9]{1,2}?)\.([0-9]{1,2}?)\.([0-9]{3,}?)[0-9.]+?$'
+    $match = $hostVersionDependency -match '^\s*([0-9]{1,2})\.([0-9]{1,2})\.([0-9]{3,})[0-9.]*$'
     if ($match -eq $True)
     {
         $dependencyVersion = @{major=[int]$Matches[1];minor=[int]$Matches[2];build=[int]$Matches[3]}
     }
     else
     {
-        LogMsg 0 "Error: Could not parse hostVersion dependency tag: '${hostVersionDependency}'."
+        LogMsg 0 "Error: Could not parse provided dependency hostVersion: '${hostVersionDependency}'."
         return $False
     }
 
     foreach( $vm in $xmlData.config.VMs.vm )
     {
         $hostVersion = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $($vm.hvServer)).Version
-        $match = $hostVersion -match '^\s*?([0-9]{1,2}?)\.([0-9]{1,2}?)\.([0-9]{3,}?)[0-9.]+?$'
+        $match = $hostVersion -match '^\s*([0-9]{1,2})\.([0-9]{1,2})\.([0-9]{3,})[0-9.]*$'
         if ($match -eq $True)
         {
             $currentVersion = @{major=[int]$Matches[1];minor=[int]$Matches[2];build=[int]$Matches[3]}
