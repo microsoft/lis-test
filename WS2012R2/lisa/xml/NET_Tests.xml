@@ -262,7 +262,6 @@ permissions and limitations under the License.
                 <param>STATIC_IP2=10.10.10.20</param>
                 <param>NETMASK=255.255.255.0</param>
                 <param>MAC=001600112233</param>
-                <param>REMOTE_USER=root</param>
             </testparams>
             <testScript>NET_JUMBO_FRAMES.sh</testScript>
             <files>remote-scripts/ica/NET_JUMBO_FRAMES.sh,remote-scripts/ica/utils.sh</files>
@@ -302,7 +301,6 @@ permissions and limitations under the License.
                 <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=2</param>
-                <param>REMOTE_USER=root</param>
             </testParams>
             <testScript>NET_COPY_LARGE.sh</testScript>
             <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
@@ -324,7 +322,6 @@ permissions and limitations under the License.
                 <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=1</param>
-                <param>REMOTE_USER=root</param>
             </testParams>
             <testScript>NET_Copy_Different_MTU.sh</testScript>
             <files>remote-scripts/ica/NET_Copy_Different_MTU.sh,remote-scripts/ica/utils.sh</files>
@@ -524,7 +521,6 @@ permissions and limitations under the License.
                 <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=10</param>
-                <param>REMOTE_USER=root</param>
             </testParams>
             <testScript>NET_Copy_Both_Ways.sh</testScript>
             <files>remote-scripts/ica/NET_Copy_Both_Ways.sh,remote-scripts/ica/utils.sh</files>
@@ -537,6 +533,7 @@ permissions and limitations under the License.
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
             </setupScript>
             <testScript>NET_Multicast.sh</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/NET_set_static_ip.sh,
@@ -547,8 +544,6 @@ permissions and limitations under the License.
                 <param>STATIC_IP=10.10.10.30</param>
                 <param>STATIC_IP2=10.10.10.40</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>MAC=001600112233</param>
-                <param>REMOTE_USER=root</param>
             </testparams>
             <timeout>800</timeout>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
@@ -631,6 +626,8 @@ permissions and limitations under the License.
                 <param>VM2NAME=vm2Name</param>
                 <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
                 <param>SnapshotName=ICABase</param>
+                <!-- user to use to connect with the private key to the dependency VM -->
+                <param>REMOTE_USER=root</param>
             </testParams>
             <suite>Network</suite>
         </vm>
