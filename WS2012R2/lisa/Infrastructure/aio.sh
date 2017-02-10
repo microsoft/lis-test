@@ -35,12 +35,12 @@
 # Place this script and your public and authorized keys in /root/ then
 # run the script. 
 #
-#   ./aio.sh 
+#   ./aio.sh
 #
 # If you run the script on RedHat or SUSE, pass the registration 
 # username and password to the script.
 #
-#   ./aio.sh "your_username" "your_password" 
+#   ./aio.sh "your_username" "your_password"
 #
 ########################################################################
 
@@ -512,9 +512,9 @@ if is_fedora ; then
     fi
 
     echo "Installing packages..." >> summary.log
-    PACK_LIST=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs
-        ntp crash bc selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake 
-    nano kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-client)
+    PACK_LIST=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc 
+    selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake 
+    nano kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-utils)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... "
