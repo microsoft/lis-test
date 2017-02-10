@@ -87,8 +87,16 @@ else
     exit 1
 fi
 
-# add new disk partition with "n" and showing the sectors units format
-(echo n; echo p; echo 1; echo ; echo ; echo w) |  fdisk $driveName
+#Check if parted is installed. If yes, create partition.
+parted --help > /dev/null 2>&1
+if [ $? -eq 0 ] ; then
+    parted $driveName mklabel msdos
+    parted $driveName mkpart primary 0% 100% 
+else
+    UpdateSummary "ERROR: Parted was not found."
+    UpdateTestState "TestAborted"
+    exit 1
+fi
 
 startSector=`fdisk -lu $driveName | tail -1 | awk '{print $2}'`
 logicalSectorSize=`fdisk -lu $driveName | grep -i 'Sector size' | grep -oP '\d+' | head -1`
