@@ -350,38 +350,13 @@ debian*|ubuntu*)
     ;;
 redhat_5|redhat_6|centos_6)
     if [ "$DISTRO" == "redhat_6" ] || ["$DISTRO" == "centos_6" ]; then
-        # Import CERN's GPG key
-        rpm --import http://ftp.scientificlinux.org/linux/scientific/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to import CERN's GPG key."
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 1
-        fi
-
-        # Save repository information
-        wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to save repository information."
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 1
-        fi
-
-        # The below will also install all the required dependencies
-        yum install -y devtoolset-2-gcc-c++
+        upgrade_gcc
         if [ $? -ne 0 ]; then
             msg="Error: Failed to install the new version of gcc."
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
-            exit 1
-        fi
-        echo "source /opt/rh/devtoolset-2/enable" >> /root/.bashrc
-        source /root/.bashrc
-
+        fi    
         LogMsg "Disabling firewall on Redhat 6.x."
         echo "Disabling firewall on Redhat 6.x." >> ~/summary.log
         iptables -X; iptables -F
@@ -468,58 +443,28 @@ suse_12)
     ;;
 esac
 
-#
-#Install LAGSCOPE tool for latency
-#
-echo "Installing LAGSCOPE" 
-if [ "$(which lagscope)" == "" ]; then
-    rm -rf lagscope
-    git clone https://github.com/Microsoft/lagscope
-    if [ $? -eq 0 ]; then
-        cd lagscope/src
-        make && make install
-        echo "LAGSCOPE installed.." >> ~/summary.log
-        LogMsg "LAGSCOPE installed."
-    fi        
-cd $HOME
-fi
 LogMsg "Enlarging the system limit"
 ulimit -n 20480
 if [ $? -ne 0 ]; then
     LogMsg "Error: Unable to enlarged system limit"
     UpdateTestState $ICA_TESTABORTED
 fi
-#
+
+#Install LAGSCOPE tool for latency
+setup_lagscope
+if [ $? -ne 0 ]; then
+    echo "Unable to compile lagscope."
+    LogMsg "Unable to compile lagscope."
+    UpdateTestState $ICA_TESTABORTED
+fi
+
 #Install NTTTCP for network throughput
-#
-
-if [ "$(which ntttcp)" == "" ]; then
-    rm -rf ntttcp-for-linux
-    git clone https://github.com/Microsoft/ntttcp-for-linux.git
-    cd ntttcp-for-linux/src
-#    
-########## Build ntttcp
-#
-    rm -f /usr/bin/ntttcp
-    make
-    if [ $? -ne 0 ]; then
-        msg="Error: Unable to build ntttcp"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 100
-    fi
-
-    make install
-    if [ $? -ne 0 ]; then
-        msg="Error: Unable to install ntttcp"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 110
-    fi
-    cd $HOME
-fi 
+setup_ntttcp
+if [ $? -ne 0 ]; then
+    echo "Unable to compile ntttcp-for-linux."
+    LogMsg "Unable to compile ntttcp-for-linux."
+    UpdateTestState $ICA_TESTABORTED
+fi
 dos2unix ~/*.sh
 chmod 755 ~/*.sh
 
@@ -606,7 +551,7 @@ fi
 #Starting test
 previous_tx_bytes=$(get_tx_bytes)
 previous_tx_pkts=$(get_tx_pkts)
-
+ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "mkdir /root/$log_folder"
 i=0
 while [ "x${TEST_THREADS[$i]}" != "x" ]
 do
@@ -625,14 +570,14 @@ do
     echo "======================================"
     
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f ntttcp"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} -P $num_threads_P -t ${TEST_DURATION} ${ipVersion} -e" &
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} -P $num_threads_P -t ${TEST_DURATION} ${ipVersion} -e > ./$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log" &
 
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f lagscope"
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "lagscope -r${SERVER_IP} ${ipVersion}" &
     
     sleep 2
     lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V ${ipVersion} > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
-    ntttcp -s${SERVER_IP} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION} ${ipVersion} -f > "./$log_folder/ntttcp-p${num_threads_P}X${num_threads_n}.log"
+    ntttcp -s${SERVER_IP} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION} ${ipVersion} > "./$log_folder/ntttcp-sender-p${num_threads_P}X${num_threads_n}.log"
 
     current_tx_bytes=$(get_tx_bytes)
     current_tx_pkts=$(get_tx_pkts)
@@ -656,7 +601,8 @@ if [ $sts -eq 0 ]; then
     LogMsg "Ntttcp succeeded with all connections."
     echo "Ntttcp succeeded with all connections." >> ~/summary.log
     cd $HOME
-    zip -r $log_folder.zip . -i $log_folder/*
+    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP}:/root/$log_folder/* /root/$log_folder
+    zip -r $log_folder.zip . -i $log_folder/*     
     sleep 20
     UpdateTestState $ICA_TESTCOMPLETED
 else 
