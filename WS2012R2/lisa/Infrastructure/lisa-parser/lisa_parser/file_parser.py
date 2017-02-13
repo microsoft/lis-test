@@ -383,12 +383,17 @@ class NTTTCPLogsReader(BaseLogsReader):
     ntttcp-pXXX.log
     tcping-ntttcp-pXXX.log - avg latency
     """
+    # conversion units
+    CUNIT = {'us': 10**-3,
+             'ms': 1,
+             's': 10**3}
+
     def __init__(self, log_path=None):
         super(NTTTCPLogsReader, self).__init__(log_path)
-        self.headers = ['#test_connections', 'throughput_gbps',
-                        'average_tcp_latency', 'average_packet_size',
-                        'IPVersion', 'Protocol']
-        self.log_matcher = 'ntttcp-p([0-9X]+)'
+        self.headers = ['NumberOfConnections', 'Throughput_Gbps',
+                        'AverageLatency_ms', 'PacketSize_KBytes', 'SenderCyclesPerByte',
+                        'ReceiverCyclesPerByte', 'IPVersion', 'Protocol']
+        self.log_matcher = 'ntttcp-sender-p([0-9X]+).log'
         self.eth_log_csv = dict()
         self.__get_eth_log_csv()
 
@@ -412,56 +417,53 @@ class NTTTCPLogsReader(BaseLogsReader):
         # compute the number of connections from the log name
         n_conn = reduce(lambda x1, x2: int(x1) * int(x2),
                         f_match.group(1).split('X'))
-        log_dict['#test_connections'] = n_conn
-        for key in log_dict:
-            if not log_dict[key]:
-                if 'throughput' in key:
-                    log_dict[key] = 0
-                    with open(log_file, 'r') as fl:
-                        f_lines = fl.readlines()
-                        for x in range(0, len(f_lines)):
-                            throughput = re.match('.+throughput.+:([0-9.]+)',
-                                                  f_lines[x])
-                            if throughput:
-                                log_dict[key] = throughput.group(1).strip()
-                                break
-                elif 'latency' in key:
-                    log_dict[key] = 0
-                    lat_file = os.path.join(os.path.dirname(os.path.abspath(
-                        log_file)), 'lagscope-ntttcp-p{}.log'
-                        .format(f_match.group(1)))
-                    with open(lat_file, 'r') as fl:
-                        f_lines = fl.readlines()
-                        for x in range(0, len(f_lines)):
-                            if not log_dict.get('IPVersion', None):
-                                ip_version = re.match('domain:.+(IPv[4,6])',
-                                                      f_lines[x])
-                                if ip_version:
-                                    log_dict['IPVersion'] = ip_version.group(
-                                        1).strip()
-                            if not log_dict.get('Protocol', None):
-                                ip_proto = re.match('protocol:.+([A-Z]{3})',
-                                                    f_lines[x])
-                                if ip_proto:
-                                    log_dict['Protocol'] = ip_proto.group(
-                                        1).strip()
-                            latency = re.match('.+Average = ([0-9.]+)',
-                                               f_lines[x])
-                            if latency:
-                                log_dict[key] = latency.group(1).strip()
-                elif 'packet_size' in key:
-                    avg_pkg_size = [elem[key]
-                                    for elem in self.eth_log_csv[
-                                        os.path.dirname(os.path.abspath(
-                                            log_file))]
-                                    if (int(elem[self.headers[0]]) ==
-                                        log_dict[self.headers[0]])]
-                    try:
-                        log_dict[key] = avg_pkg_size[0].strip()
-                    except IndexError:
-                        logger.warning('Could not find average_packet size in '
-                                       'eth_report.log')
-                        log_dict[key] = 0
+        log_dict['NumberOfConnections'] = n_conn
+        with open(log_file, 'r') as fl:
+            f_lines = fl.readlines()
+            for x in range(0, len(f_lines)):
+                if not log_dict.get('Throughput_Gbps', None):
+                    throughput = re.match('.+throughput.+:([0-9.]+)', f_lines[x])
+                    if throughput:
+                        log_dict['Throughput_Gbps'] = throughput.group(1).strip()
+                if not log_dict.get('SenderCyclesPerByte', None):
+                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', f_lines[x])
+                    if cycle:
+                        log_dict['SenderCyclesPerByte'] = cycle.group(1).strip()
+        receiver_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
+                                     'ntttcp-receiver-p{}.log'.format(f_match.group(1)))
+        with open(receiver_file, 'r') as fl:
+            f_lines = fl.readlines()
+            for x in range(0, len(f_lines)):
+                if not log_dict.get('ReceiverCyclesPerByte', None):
+                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', f_lines[x])
+                    if cycle:
+                        log_dict['ReceiverCyclesPerByte'] = cycle.group(1).strip()
+        lat_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
+                                'lagscope-ntttcp-p{}.log'.format(f_match.group(1)))
+        with open(lat_file, 'r') as fl:
+            f_lines = fl.readlines()
+            for x in range(0, len(f_lines)):
+                if not log_dict.get('IPVersion', None):
+                    ip_version = re.match('domain:.+(IPv[4,6])', f_lines[x])
+                    if ip_version:
+                        log_dict['IPVersion'] = ip_version.group(1).strip()
+                if not log_dict.get('Protocol', None):
+                    ip_proto = re.match('protocol:.+([A-Z]{3})', f_lines[x])
+                    if ip_proto:
+                        log_dict['Protocol'] = ip_proto.group(1).strip()
+                latency = re.match('.+Average = ([0-9.]+)([a-z]+)', f_lines[x])
+                if latency:
+                    unit = latency.group(2).strip()
+                    log_dict['AverageLatency_ms'] = \
+                        float(latency.group(1).strip()) * self.CUNIT[unit]
+        avg_pkg_size = [elem['average_packet_size'] for elem in self.eth_log_csv[os.path.dirname(
+                os.path.abspath(log_file))]
+                        if (int(elem['#test_connections']) == log_dict['NumberOfConnections'])]
+        try:
+            log_dict['PacketSize_KBytes'] = avg_pkg_size[0].strip()
+        except IndexError:
+            logger.warning('Could not find average_packet size in eth_report.log')
+            log_dict['PacketSize_KBytes'] = 0
         return log_dict
 
 
