@@ -61,7 +61,7 @@ function Execute ([string] $command)
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} $command
     return $?
 }
-    
+
 #
 # Check input arguments
 #
@@ -180,7 +180,7 @@ if($switchs){
 }
 
 if($AddressFamily -eq "IPv4"){
-    $externalIP = "8.8.8.8"
+    $externalIP = "8.8.4.4"
     $privateIP = "10.10.10.5"
 }else{
     $externalIP = "2001:4860:4860::8888"
@@ -188,10 +188,10 @@ if($AddressFamily -eq "IPv4"){
 }
 
 $interfaces = (Get-NetIPAddress -AddressFamily $AddressFamily)
-foreach($interface in $interfaces){ 
+foreach($interface in $interfaces){
     if($interface.InterfaceAlias -like "*(Internal)*"){
         break
-    } 
+    }
 }
 $internalIP = $interface.IPAddress.split("%")[0]
 
@@ -203,7 +203,7 @@ switch ($testType)
                     $PING_FAIL2=$privateIP
                     $STATIC_IP= GenerateIpv4 $PING_SUCC
                     $NETMASK = CIDRtoNetmask $interface.PrefixLength
-                    
+
                 }
     "External"  {   $PING_SUCC=$externalIP
                     $PING_FAIL=$internalIP
@@ -212,7 +212,7 @@ switch ($testType)
     "Private"   {   $PING_SUCC=$privateIP
                     $PING_FAIL=$externalIP
                     $PING_FAIL2=$internalIP
-                    
+
                     if($AddressFamily -eq "IPv4"){
                         $STATIC_IP= GenerateIpv4 $PING_SUCC
                         $STATIC_IP2= GenerateIpv4 $PING_SUCC $STATIC_IP
@@ -222,17 +222,17 @@ switch ($testType)
                         $STATIC_IP2="fd00::4:100"
                         $NETMASK=64
                     }
-                    
+
                 }
-    {($_ -eq "Internal") -or ($_ -eq "Private")} 
+    {($_ -eq "Internal") -or ($_ -eq "Private")}
                 {
                     $cmd+="echo `"STATIC_IP=$($STATIC_IP)`" >> ~/constants.sh;";
                     $cmd+="echo `"STATIC_IP2=$($STATIC_IP2)`" >> ~/constants.sh;";
                     $cmd+="echo `"NETMASK=$($NETMASK)`" >> ~/constants.sh;";
-                }  
+                }
     default         {}  # unknown param - just ignore it
     }
-    
+
 $cmd+="echo `"PING_SUCC=$($PING_SUCC)`" >> ~/constants.sh;";
 $cmd+="echo `"PING_FAIL=$($PING_FAIL)`" >> ~/constants.sh;";
 $cmd+="echo `"PING_FAIL2=$($PING_FAIL2)`" >> ~/constants.sh;";

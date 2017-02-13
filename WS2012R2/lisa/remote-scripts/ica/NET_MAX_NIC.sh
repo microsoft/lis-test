@@ -253,7 +253,7 @@ fi
 
 GetOSVersion
 DEFAULT_GATEWAY=($(route -n | grep 'UG[ \t]' | awk '{print $2}'))
-SUCCESS_PING="8.8.8.8"
+SUCCESS_PING="8.8.4.4"
 
 IFACES=($(ifconfig -s -a | awk '{print $1}'))
 # Delete first element from the list - iface

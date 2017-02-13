@@ -78,7 +78,7 @@
             <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
             <!-- The test case below requires a 64bit virtual machine -->
             <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
-            
+
             <suiteTest>NMI_Send_Interrupt</suiteTest>
             <suiteTest>NMI_Verify_Interrupt</suiteTest>
             <suiteTest>NMI_different_vmStates</suiteTest>
@@ -442,7 +442,7 @@
                 <param>TC_COVERED=SQM-01</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>KVP_Basic</testName>
             <testScript>SetupScripts\KVP_Basic.ps1</testScript>
@@ -517,7 +517,7 @@
                 <param>sshKey=rhel5_id_rsa.ppk</param>
             </testparams>
         </test>
-		
+
     	<test>
     		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
     		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
@@ -530,8 +530,8 @@
     			<param>Value=000</param>
     			<param>Pool=0</param>
     		</testparams>
-    	</test>	
-    		
+    	</test>
+
     	<test>
     		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
     		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
@@ -626,7 +626,7 @@
         </testParams>
         <timeout>600</timeout>
     </test>
-    
+
     <test>
         <testName>Crash_SMP</testName>
         <setupScript>
@@ -678,7 +678,7 @@
         </testParams>
         <timeout>600</timeout>
     </test>
-        
+
      <!-- NET_Tests -->
 
     <test>
@@ -690,7 +690,7 @@
             <param>STATIC_IP=169.254.159.9</param>
             <param>NETMASK=255.255.0.0</param>
             <param>PING_SUCC=169.254.159.8</param>
-            <param>PING_FAIL=8.8.8.8</param>
+            <param>PING_FAIL=8.8.4.4</param>
             <param>PING_FAIL2=192.168.2.2</param>
         </testParams>
         <testScript>NET_TEST_NETWORK.sh</testScript>
@@ -705,7 +705,7 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,External,001600112200</param>
             <param>TC_COVERED=NET-05</param>
-            <param>PING_SUCC=8.8.8.8</param>
+            <param>PING_SUCC=8.8.4.4</param>
             <param>PING_FAIL=192.168.2.1</param>
             <param>PING_FAIL2=10.10.10.5</param>
         </testParams>
@@ -746,7 +746,7 @@
             <param>NIC=NetworkAdapter,External,External,001600112201</param>
             <param>TC_COVERED=NET-07</param>
             <!-- <param>NETMASK=255.255.255.0</param> -->
-            <param>PING_SUCC=8.8.8.8</param>
+            <param>PING_SUCC=8.8.4.4</param>
             <param>PING_FAIL=192.168.0.1</param>
             <param>PING_FAIL2=192.168.0.254</param>
             <!-- <param>GATEWAY=192.168.0.1</param> -->
@@ -764,7 +764,7 @@
             <param>NIC=NetworkAdapter,External,External,001600112233</param>
             <param>TC_COVERED=NET-09</param>
             <param>MAC=00:16:00:11:22:33</param>
-            <param>REMOTE_SERVER=8.8.8.8</param>
+            <param>REMOTE_SERVER=8.8.4.4</param>
             <param>LO_IGNORE=yes</param>
         </testParams>
         <testScript>NET_STATIC_MAC.sh</testScript>
@@ -786,7 +786,7 @@
             <param>STATIC_IP=169.254.159.9</param>
             <param>NETMASK=255.255.0.0</param>
             <param>PING_SUCC=169.254.159.8</param>
-            <param>PING_FAIL=8.8.8.8</param>
+            <param>PING_FAIL=8.8.4.4</param>
             <param>PING_FAIL2=10.10.10.5</param>
         </testParams>
         <onError>Continue</onError>
@@ -810,7 +810,7 @@
             <param>STATIC_IP=10.10.10.10</param>
             <param>STATIC_IP2=10.10.10.20</param>
             <param>NETMASK=255.255.0.0</param>
-            <param>PING_FAIL=8.8.8.8</param>
+            <param>PING_FAIL=8.8.4.4</param>
             <param>PING_FAIL2=192.168.0.1</param>
         </testParams>
         <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
@@ -833,7 +833,7 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,External,001600112200</param>
             <param>TC_COVERED=NET-12</param>
-            <param>REMOTE_SERVER=8.8.8.8</param>
+            <param>REMOTE_SERVER=8.8.4.4</param>
             <param>SnapshotName=ICABase</param>
         </testParams>
         <noReboot>False</noReboot>
@@ -1191,7 +1191,7 @@
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeToSmaller4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -1211,7 +1211,7 @@
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeGrowShrink</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
@@ -1232,7 +1232,7 @@
                 <param>TC_COVERED=STOR-VHDx-03</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeGrowFilesystem512</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
@@ -1252,7 +1252,7 @@
                 <param>TC_COVERED=STOR-VHDx-04a</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeGrowFilesystem4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
@@ -1272,7 +1272,7 @@
                 <param>TC_COVERED=STOR-VHDx-04b</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeOver2TB</testName>
             <testScript>SetupScripts\STOR_VHDXResize_DiskOver2TB.ps1</testScript>
@@ -1292,7 +1292,7 @@
                 <param>TC_COVERED=STOR-VHDx-05</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>VHDxResizeOver2TB_IDE</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
@@ -1332,7 +1332,7 @@
                 <param>TC_COVERED=STOR-VHDx-06</param>
             </testparams>
         </test>
-        
+
     <!-- StorVHDX -->
 
     <test>
@@ -1823,7 +1823,7 @@
             <param>updateKernel=True</param>
             <param>TC_COVERED=SECBOOT-03</param>
         </testparams>
-    </test> 
+    </test>
     <test>
         <testName>SecureBootBasicVSSBackup</testName>
         <setupScript>setupScripts\Set-SecureBoot.ps1</setupScript>
@@ -1846,7 +1846,7 @@
             <param>updateKernel=True</param>
             <param>TC_COVERED=SECBOOT-05</param>
         </testparams>
-    </test> 
+    </test>
 
     <!-- DM tests -->
     <test>
@@ -2187,7 +2187,7 @@
 
 	<test>
 		<testName>FCOPY_repeat</testName>
-		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
+		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
 		<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
 		<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 		<timeout>1200</timeout>
