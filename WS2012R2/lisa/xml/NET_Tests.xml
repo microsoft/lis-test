@@ -152,7 +152,7 @@ permissions and limitations under the License.
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>NIC=LegacyNetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-06</param>
-                <param>REMOTE_SERVER=8.8.8.8</param>
+                <param>REMOTE_SERVER=8.8.4.4</param>
                 <param>LO_IGNORE=yes</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
                 <param>VCPU=1</param>
@@ -170,7 +170,7 @@ permissions and limitations under the License.
                 <param>NIC=NetworkAdapter,External,External,001600112233</param>
                 <param>TC_COVERED=NET-07</param>
                 <param>MAC=00:16:00:11:22:33</param>
-                <param>REMOTE_SERVER=8.8.8.8</param>
+                <param>REMOTE_SERVER=8.8.4.4</param>
                 <param>LO_IGNORE=yes</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
@@ -191,7 +191,7 @@ permissions and limitations under the License.
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-08</param>
-                <param>REMOTE_SERVER=8.8.8.8</param>
+                <param>REMOTE_SERVER=8.8.4.4</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
@@ -237,7 +237,7 @@ permissions and limitations under the License.
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>PING_FAIL=8.8.8.8</param>
+                <param>PING_FAIL=8.8.4.4</param>
                 <param>PING_FAIL2=192.168.0.1</param>
             </testParams>
             <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>

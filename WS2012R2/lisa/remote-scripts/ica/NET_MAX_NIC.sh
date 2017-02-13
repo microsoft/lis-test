@@ -49,7 +49,7 @@ function AddGateway
 		ip_status=$?
 		if [ $? -ne 0 ]; then
 			LogMsg "Error: Unable to add default gateway"
-			if [ $counter -eq $max_attempts ]; then
+			if [ $counter -eq $max_attempts ]; thenf
 				UpdateSummary "Error: Cannot add default gateway - ${DEFAULT_GATEWAY} for ${ifName} after ${max_attempts}"
 				SetTestStateFailed
 				return 0
@@ -253,7 +253,7 @@ fi
 
 GetOSVersion
 DEFAULT_GATEWAY=($(route -n | grep 'UG[ \t]' | awk '{print $2}'))
-SUCCESS_PING="8.8.8.8"
+SUCCESS_PING="8.8.4.4"
 
 IFACES=($(ifconfig -s -a | awk '{print $1}'))
 # Delete first element from the list - iface
