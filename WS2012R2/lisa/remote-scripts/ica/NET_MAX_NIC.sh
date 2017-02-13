@@ -49,7 +49,7 @@ function AddGateway
 		ip_status=$?
 		if [ $? -ne 0 ]; then
 			LogMsg "Error: Unable to add default gateway"
-			if [ $counter -eq $max_attempts ]; thenf
+			if [ $counter -eq $max_attempts ]; then
 				UpdateSummary "Error: Cannot add default gateway - ${DEFAULT_GATEWAY} for ${ifName} after ${max_attempts}"
 				SetTestStateFailed
 				return 0
