@@ -297,13 +297,28 @@ Start-Sleep -s $sleepTime
 #
 "Info : Check if the guest sees the new space"
 # Older kernels might require a few requests to refresh the disks info
-.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l > /dev/null"
-.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
-if (-not $?)
+$cmdStatus = $False
+$maxChecks = 0
+
+while (-not $cmdStatus -and $maxChecks -lt 3)
 {
-    "Error: Failed to force $controllerType device rescan"
-    return $False
+  .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
+  if (-not $?)
+  {
+    $maxChecks = $maxChecks + 1
+    Start-Sleep -s $sleepTime
+  }
+  else
+  {
+    $cmdStatus = $True
+  }
 }
+
+if (-not $cmdStatus)
+{
+    "Warning: Failed to force $controllerType device rescan"
+}
+
 
 $growDiskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
 if (-not $?)
@@ -388,12 +403,27 @@ if ( $controllerType -eq "IDE" -or $offline -eq "True" )
 #
 "Info : Check if the guest sees the new size"
 # Older kernels might require a few requests to refresh the disks info
-.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l > /dev/null"
-.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
-if (-not $?)
+
+$cmdStatus = $False
+$maxChecks = 0
+
+while (-not $cmdStatus -and $maxChecks -lt 3)
 {
-    "Error: Failed to force $controllerType device rescan"
-    return $False
+  .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
+  if (-not $?)
+  {
+    $maxChecks = $maxChecks + 1
+    Start-Sleep -s $sleepTime
+  }
+  else
+  {
+    $cmdStatus = $True
+  }
+}
+
+if (-not $cmdStatus)
+{
+    "Warning: Failed to force $controllerType device rescan"
 }
 
 $shrinkDiskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
