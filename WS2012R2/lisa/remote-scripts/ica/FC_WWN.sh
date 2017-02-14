@@ -31,6 +31,8 @@
 #	a file named constants.sh. This file contains one or more
 #	variable definition.
 #
+#	The vFC HBA WWN feature is not supported on RedHat 5.x and 6.x
+#
 ################################################################
 
 ICA_TESTRUNNING="TestRunning"      # The test is running
@@ -79,9 +81,9 @@ UtilsInit
 GetDistro
 
 case "$DISTRO" in
-redhat_5|centos_5)
-	echo "Info: RedHat/CentOS release 5 does not support the WWN feature! Test will now exit."
-	UpdateTestState $ICA_TESTFAILED
+redhat_5|centos_5|redhat_6|centos_6)
+	echo "Info: RedHat/CentOS releases 5.x and 6.x don't support the FC WWN feature! Test will now exit."
+	UpdateTestState $ICA_TESTABORTED
 	exit 30
     ;;
 esac
