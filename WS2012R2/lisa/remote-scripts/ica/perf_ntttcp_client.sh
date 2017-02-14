@@ -601,7 +601,11 @@ if [ $sts -eq 0 ]; then
     LogMsg "Ntttcp succeeded with all connections."
     echo "Ntttcp succeeded with all connections." >> ~/summary.log
     cd $HOME
-    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP}:/root/$log_folder/* /root/$log_folder
+    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2}:/root/$log_folder/* /root/$log_folder
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Unable to trnsfer server side logs."
+        UpdateTestState $ICA_TESTFAILED
+    fi
     zip -r $log_folder.zip . -i $log_folder/*     
     sleep 20
     UpdateTestState $ICA_TESTCOMPLETED
