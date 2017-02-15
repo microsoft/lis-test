@@ -107,7 +107,7 @@ else
     $controllerNumber=0
 }
 
-$dvdcount = $(Get-VMDvdDrive -VMName $vmName).ControllerLocation.count 
+$dvdcount = $(Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer).ControllerLocation.count 
 for ($i=0; $i -le $dvdcount; $i++)
 {
     $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerNumber -ControllerLocation $i
