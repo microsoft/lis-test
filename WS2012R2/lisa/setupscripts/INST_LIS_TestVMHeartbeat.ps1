@@ -108,7 +108,7 @@ foreach ($p in $params)
 
         if ($tokens[0].Trim() -eq "TC_COVERED")
     {
-        $tcCovered = $tokens[1].Trim()
+        $TC_COVERED = $tokens[1].Trim()
     }
 }
 
