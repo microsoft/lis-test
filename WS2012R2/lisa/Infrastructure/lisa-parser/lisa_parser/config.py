@@ -58,6 +58,11 @@ def init_arg_parser():
         help="flag that indicates if a performance test is being processed and the"
              "path to the report file"
     )
+    arg_parser.add_argument(
+        "-s", "--snapshot",
+        default=False,
+        help="snapshot name of the virtual machine that was tested"
+    )
 
     return arg_parser
 
@@ -163,3 +168,4 @@ def setup_logging(
         logging.config.dictConfig(config)
     else:
         logging.basicConfig(level=level)
+0

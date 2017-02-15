@@ -59,9 +59,14 @@ class VirtualMachine(object):
         )
 
     def revert_snapshot(self):
-        self.invoke_ps_command(
-            'revert'
-        )
+        if self.checkpoint_name:
+            self.invoke_ps_command(
+                'revert'
+            )
+        else:
+            logger.warning(
+                "Checkpoint name was not set for %s. No revert will be performed" % self.vm_name
+            )
 
     def update_from_kvp(self, kvp_fields, stop_vm):
         if not self.get_status():
@@ -212,3 +217,4 @@ class VirtualMachine(object):
             )
         else:
             return stdout_data
+0
