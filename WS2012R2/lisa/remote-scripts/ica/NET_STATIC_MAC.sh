@@ -476,6 +476,15 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" != "UNDEFINED" ]; then
 		UpdateSummary "Trying to ping $REMOTE_SERVER"
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`static`null`mac`null`
 		"$pingVersion" -I ${__MAC_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d00737461746963006d616300" "$REMOTE_SERVER"
+
+		sleepTime=530
+		if [ 0 -ne $? ] && [[${pingVersion} -eq "ping6" ]]; then
+			LogMsg "Waiting ${sleepTime} seconds for routing to refresh"
+			UpdateSummary "Waiting ${sleepTime} seconds for routing to refresh"
+			sleep $sleepTime
+			"$pingVersion" -I ${__MAC_NET_INTERFACES[$__iterator]} -c 10 -p "cafed00d00737461746963006d616300" "$REMOTE_SERVER"
+		fi
+
 		if [ 0 -ne $? ]; then
 			msg="Unable to ping $REMOTE_SERVER through interface ${__MAC_NET_INTERFACES[$__iterator]}"
 			LogMsg "$msg"
