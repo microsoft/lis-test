@@ -86,6 +86,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -100,6 +101,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -120,6 +122,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -139,6 +142,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -161,6 +165,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -178,6 +183,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_STATIC_MAC.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -197,6 +203,7 @@ permissions and limitations under the License.
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <noReboot>False</noReboot>
             <timeout>600</timeout>
+            <onError>Continue</onError>
         </test>
 
         <!-- The following two tests are actually one single TC -->
@@ -211,16 +218,16 @@ permissions and limitations under the License.
                 <file>SetupScripts\InjectIPconstants.ps1</file>
                 <file>setupScripts\NET_SWITCH_NIC_MAC.ps1</file>
             </pretest>
+            <testScript>NET_TEST_NETWORK.sh</testScript>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>SWITCH=NetworkAdapter,Internal,Internal</param>
                 <param>TC_COVERED=NET-09</param>
             </testParams>
+            <timeout>800</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
-            <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
-            <timeout>800</timeout>
         </test>
 
         <test>
@@ -230,6 +237,9 @@ permissions and limitations under the License.
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
+            <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>
+            <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>SWITCH=NetworkAdapter,Private,Private</param>
@@ -240,11 +250,9 @@ permissions and limitations under the License.
                 <param>PING_FAIL=8.8.4.4</param>
                 <param>PING_FAIL2=192.168.0.1</param>
             </testParams>
-            <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>
-            <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -285,6 +293,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_OPERSTATE.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -306,6 +315,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>8000</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -327,6 +337,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_Copy_Different_MTU.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>1800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -346,6 +357,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>1000</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -354,6 +366,8 @@ permissions and limitations under the License.
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
+            <testScript>SetupScripts\NET_VLAN_TRUNKING.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-15</param>
@@ -363,15 +377,16 @@ permissions and limitations under the License.
                 <param>VM_VLAN_ID=2</param>
                 <param>NATIVE_VLAN_ID=10</param>
             </testParams>
-            <testScript>SetupScripts\NET_VLAN_TRUNKING.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
             <testName>Network_Hang_Vxlan</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testScript>setupscripts\NET_Hang_Vxlan.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=NET-24</param>
                 <param>NIC=NetworkAdapter,Private,Private</param>
@@ -379,9 +394,8 @@ permissions and limitations under the License.
                 <param>STATIC_IP2=10.10.10.20</param>
                 <param>NETMASK=255.255.255.0</param>
             </testParams>
-            <testScript>setupscripts\NET_Hang_Vxlan.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -389,8 +403,6 @@ permissions and limitations under the License.
             <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
             <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
             <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-            <timeout>3000</timeout>
             <testParams>
                 <param>TC_COVERED=NET-19</param>
                 <param>SCSI=1,0,Dynamic,512,15GB</param>
@@ -399,6 +411,9 @@ permissions and limitations under the License.
                 <param>DefaultSize=25GB</param>
                 <param>ControllerType=SCSI</param>
             </testParams>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>3000</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -407,14 +422,15 @@ permissions and limitations under the License.
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
+            <testScript>NET_ETHTOOLS.sh</testScript>
+            <files>remote-scripts/ica/NET_ETHTOOLS.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>NIC=NetworkAdapter,None,None</param>
                 <param>TC_COVERED=NET-20</param>
             </testParams>
-            <testScript>NET_ETHTOOLS.sh</testScript>
-            <files>remote-scripts/ica/NET_ETHTOOLS.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -432,6 +448,7 @@ permissions and limitations under the License.
             <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <timeout>600</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -450,11 +467,11 @@ permissions and limitations under the License.
             <testScript>setupscripts\NET_MAX_NIC.ps1</testScript>
             <files>remote-scripts/ica/NET_MAX_NIC.sh,remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
             <testName>MaxLegacyNIC</testName>
-            <onError>Abort</onError>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_MAX_NIC.ps1</file>
@@ -468,11 +485,11 @@ permissions and limitations under the License.
             <testScript>setupscripts\NET_MAX_NIC.ps1</testScript>
             <files>remote-scripts/ica/NET_MAX_NIC.sh,remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
             <testName>MaxNIC</testName>
-            <onError>Abort</onError>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_MAX_NIC.ps1</file>
@@ -487,11 +504,11 @@ permissions and limitations under the License.
             <testScript>setupscripts\NET_MAX_NIC.ps1</testScript>
             <files>remote-scripts/ica/NET_MAX_NIC.sh,remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
             <testName>TCP_Corruption</testName>
-            <onError>Continue</onError>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>SetupScripts\NET_ADD_NIC_MAC.ps1</file>
@@ -505,6 +522,7 @@ permissions and limitations under the License.
             <testScript>setupscripts\NET_Corruption.ps1</testScript>
             <files>remote-scripts/ica/NET_Corruption.sh,remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -526,6 +544,7 @@ permissions and limitations under the License.
             <files>remote-scripts/ica/NET_Copy_Both_Ways.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+            <onError>Continue</onError>
         </test>
 
         <test>
@@ -546,6 +565,7 @@ permissions and limitations under the License.
                 <param>NETMASK=255.255.255.0</param>
             </testparams>
             <timeout>800</timeout>
+            <onError>Continue</onError>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
         </test>
 
