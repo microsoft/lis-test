@@ -23,10 +23,11 @@ $ python lisa_parser.py path_to_xml_file  path_to_ica_log_file
 
 ```
 -c | --config      Path to config file that holds values for the database connection - config/db.config default
--l | --loglevel Logging level for the script - 2 default 
+-l | --loglevel Logging level for the script - 2 default
                 Levels: 1 - Warning, 2 - Info, 3 - Debug
 -k | --skipkvp  Flag that indicates if the script searches for DistroVersion and KernelVersion from the VM - default True
 -p | --perf     Attribute that indicates if a performance test is being run and the path to the test report log
+-s | --snapshot Virtual Machine snapshot name - default False
 ```
 
 ### Specify config file
