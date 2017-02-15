@@ -32,7 +32,9 @@
 #   1. setup_sysctl - setting and applying sysctl parameters
 #   2. setup_io_scheduler - setting noop i/o scheduler on all disk type devices
 # (this is not a permanent change - on reboot it needs to be reapplied)
-#
+#   3. setup_ntttcp - downlload and install ntttcp-for-linux
+#   4. setup_lagscope - download an install lagscope to monitoring latency
+# 
 ########################################################################
 
 declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
@@ -70,6 +72,77 @@ function setup_io_scheduler {
     done
     # allow current I/O ops to be executed before the new scheduler is applied
     sleep 5
+}
+
+#Install ntttcp-for-linux
+function setup_ntttcp {
+    if [ "$(which ntttcp)" == "" ]; then
+      rm -rf ntttcp-for-linux
+      git clone https://github.com/Microsoft/ntttcp-for-linux
+      status=$?
+      if [ $status -eq 0 ]; then
+        echo "ntttcp-for-linux successfully downloaded."
+        cd ntttcp-for-linux/src
+      else 
+        echo "ERROR: Unable to download ntttcp-for-linux"
+        exit 1
+      fi
+      make && make install
+      if [[ $? -ne 0 ]]
+      then
+        echo "ERROR: Unable to compile ntttcp-for-linux."
+        exit 1
+      fi
+      cd /root/
+    fi
+}
+
+#Install lagscope
+function setup_lagscope {
+    if [ "$(which lagscope)" == "" ]; then
+      rm -rf lagscope
+      git clone https://github.com/Microsoft/lagscope
+      status=$?
+      if [ $status -eq 0 ]; then
+        echo "Lagscope successfully downloaded."
+        cd lagscope/src
+      else
+        echo "ERROR: Unable to download lagscope."
+        exit 1
+      fi
+      make && make install
+      if [[ $? -ne 0 ]]
+      then
+        echo "ERROR: Unable to compile ntttcp-for-linux."
+        exit 1
+      fi
+      cd /root/
+    fi        
+}
+
+#Upgrade gcc to 4.8.1
+function upgrade_gcc {
+# Import CERN's GPG key
+    rpm --import http://ftp.scientificlinux.org/linux/scientific/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to import CERN's GPG key."
+        exit 1
+    fi
+# Save repository information
+    wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to save repository information."
+        exit 1
+    fi
+
+# The below will also install all the required dependencies
+    yum install -y devtoolset-2-gcc-c++
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to install the new version of gcc."
+        exit 1
+    fi
+    echo "source /opt/rh/devtoolset-2/enable" >> /root/.bashrc
+    source /root/.bashrc
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

@@ -218,17 +218,19 @@ else
     ipVersion=$null
 fi
 
-echo "Installing LAGSCOPE ..." >> ~/summary.log
-if [ "$(which lagscope)" == "" ]; then
-    rm -rf lagscope
-    git clone https://github.com/Microsoft/lagscope
-    if [ $? -eq 0 ]; then
-        cd lagscope/src
-        make && make install
-        echo "LAGSCOPE installed.." >> ~/summary.log
-        LogMsg "LAGSCOPE instaled.."
-    fi        
-cd $HOME
+setup_lagscope
+if [ $? -ne 0 ]; then
+    echo "Unable to compile lagscope."
+    LogMsg "Unable to compile lagscope."
+    UpdateTestState $ICA_TESTABORTED
+fi
+
+#Install NTTTCP for network throughput
+setup_ntttcp
+if [ $? -ne 0 ]; then
+    echo "Unable to compile ntttcp-for-linux."
+    LogMsg "Unable to compile ntttcp-for-linux."
+    UpdateTestState $ICA_TESTABORTED
 fi
 
 LogMsg "Enlarging the system limit"
@@ -277,45 +279,20 @@ debian*|ubuntu*)
     ;;
 redhat_5|redhat_6|centos_6)
     if [ "$DISTRO" == "redhat_6" ] || ["$DISTRO" == "centos_6" ]; then
-        # Import CERN's GPG key
-        rpm --import http://ftp.scientificlinux.org/linux/scientific/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to import CERN's GPG key."
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 1
-        fi
-
-        # Save repository information
-        wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to save repository information."
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 1
-        fi
-
-        # The below will also install all the required dependencies
-        yum install -y devtoolset-2-gcc-c++
+        upgrade_gcc
         if [ $? -ne 0 ]; then
             msg="Error: Failed to install the new version of gcc."
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
-            exit 1
+        fi    
+        LogMsg "Check iptables status on RHEL"
+        service iptables status
+         if [ $? -ne 3 ]; then
+            LogMsg "Disabling firewall on Redhat"
+            iptables -X
+            iptables -F
         fi
-
-        echo "source /opt/rh/devtoolset-2/enable" >> /root/.bashrc
-        source /root/.bashrc
-    fi
-    LogMsg "Check iptables status on RHEL"
-    service iptables status
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Redhat"
-        iptables -X
-        iptables -F
         if [ $? -ne 0 ]; then
             msg="Error: Failed to flush iptables rules. Continuing"
             LogMsg "${msg}"
@@ -419,37 +396,6 @@ suse_12)
     ;;
 esac
 
-git clone https://github.com/Microsoft/ntttcp-for-linux.git
-
-# Get the root directory of the tarball
-#
-rootDir="ntttcp-for-linux"
-LogMsg "rootDir = ${rootDir}"
-
-cd ${rootDir}/src
-#
-# Build ntttcp
-#
-rm -f /usr/bin/ntttcp
-
-make
-if [ $? -ne 0 ]; then
-    msg="Error: Unable to build ntttcp"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 100
-fi
-
-make install
-if [ $? -ne 0 ]; then
-    msg="Error: Unable to install ntttcp"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 110
-fi
-
 if [ $DISTRO -eq "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
@@ -458,9 +404,6 @@ if [ $DISTRO -eq "suse_12" ]; then
         echo "${msg}" >> ~/summary.log
     fi
 fi
-
-# go back to test root folder
-cd ~
 
 # set static ips for test interfaces
 declare -i __iterator=0
@@ -478,12 +421,9 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
     fi
 
     : $((__iterator++))
-
 done
 
-#
 # Start ntttcp server instances
-#
 sleep 3
 LogMsg "Ntttcp is ready to start in server mode."
 

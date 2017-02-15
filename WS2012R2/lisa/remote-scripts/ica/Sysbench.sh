@@ -116,6 +116,7 @@ if [ $? -gt 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 10
 fi
+
 pushd "$ROOT_DIR/sysbench"
 # Create the state.txt file so LISA knows we are running
 UpdateTestState $ICA_TESTRUNNING
@@ -134,6 +135,22 @@ if is_fedora ; then
     #wget ftp://mirror.switch.ch/pool/4/mirror/mysql/Downloads/MySQL-5.6/MySQL-devel-5.6.24-1.el7.x86_64.rpm
     #rpm -iv MySQL-devel-5.6.24-1.el7.x86_64.rpm
 
+    pushd $ROOT_DIR
+    mkdir autoconf
+    cd autoconf
+    wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
+    tar xvfvz autoconf-2.69.tar.gz
+    cd autoconf-2.69
+    ./configure
+    make
+    make install
+
+    yum install devtoolset-2-binutils -y
+    yum install automake -y
+    yum install libtool -y
+    yum install vim -y
+
+    pushd "$ROOT_DIR/sysbench"
     bash ./autogen.sh
     bash ./configure --without-mysql
     make
@@ -147,7 +164,16 @@ if is_fedora ; then
 
  elif is_ubuntu ; then
      # Installing sysbench on ubuntu
-    apt-get install -y sysbench
+    apt-get install automake -y
+    apt-get install libtool -y
+    apt-get install pkg-config -y
+
+    pushd "$ROOT_DIR/sysbench"
+    bash ./autogen.sh
+    bash ./configure --without-mysql
+    make
+    make install
+    sysbench --help
     if [ $? -ne 0 ]; then
              LogMsg "ERROR: Unable to install sysbench. Aborting..."
              UpdateTestState $ICA_TESTABORTED
@@ -172,31 +198,32 @@ if is_fedora ; then
   #   UpdateTestState $ICA_TESTABORTED
   #   exit 10
 # fi
+
  FILEIO_PASS=-1
  CPU_PASS=-1
 
 function cputest ()
 {
-    LogMsg "Creating cpu.log."
-    sysbench --test=cpu --num-threads=1 run > /root/cpu.log
+    LogMsg "Creating cpu.log and starting test."
+    sysbench cpu --num-threads=1 run > /root/cpu.log
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Unable to exectute sysbench CPU. Aborting..."
         UpdateTestState $ICA_TESTABORTED
     fi
 
-    PASS_VALUE_CPU=`cat /root/cpu.log |awk '/approx./ {print $2;}'`
+    PASS_VALUE_CPU=`cat /root/cpu.log |awk '/total time: / {print $3;}'`
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Cannot find cpu.log."
         UpdateTestState $ICA_TESTABORTED
     fi
 
-    RESULT_VALUE=$((PASS_VALUE_CPU+0))
-    if  [ $RESULT_VALUE -gt 80 ]; then
+    RESULT_VALUE=$(echo ${PASS_VALUE_CPU} | head -c2)
+    if  [ $RESULT_VALUE -lt 15 ]; then
         CPU_PASS=0
         LogMsg "CPU Test passed. "
         UpdateSummary "CPU Test passed."
-
     fi
+
     LogMsg "`cat /root/cpu.log`"
     return "$CPU_PASS"
 }
@@ -205,25 +232,32 @@ cputest
 
 function fileio ()
  {
-    sysbench --test=fileio --num-threads=1 --file-test-mode=$1 run > /root/$1.log
+    sysbench fileio --num-threads=1 --file-test-mode=$1 prepare > /dev/null 2>&1
+    LogMsg "Preparing files to test $1..."
+    sysbench fileio --num-threads=1 --file-test-mode=$1 run > /root/$1.log
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Unable to execute sysbench fileio mode $1. Aborting..."
         UpdateTestState $ICA_TESTFAILED
+    else
+        LogMsg "Running $1 tests..."
     fi
 
-    PASS_VALUE_FILEIO=`cat /root/$1.log |awk '/approx./ {print $2;}'`
+    PASS_VALUE_FILEIO=`cat /root/$1.log |awk '/sum/ {print $2;}' | cut -d. -f1`
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Cannot find $1.log."
         UpdateTestState $ICA_TESTFAILED
     fi
 
-    RESULT_VALUE_FILEIO=$((PASS_VALUE_FILEIO+0))
-    if  [ $RESULT_VALUE_FILEIO -gt 80 ]; then
+    if  [ $PASS_VALUE_FILEIO -lt 12000 ]; then
         FILEIO_PASS=0
-        LogMsg "Fileio Test -$1- passed with approx. $RESULT_VALUE_FILEIO percentils."
-        UpdateSummary "Fileio Test -$1- passed with approx. $RESULT_VALUE_FILEIO percentils."
-
+        LogMsg "Fileio Test -$1- passed with latency sum: $PASS_VALUE_FILEIO."
+        UpdateSummary "Fileio Test -$1- passed with latency sum: $PASS_VALUE_FILEIO."
+    else
+        LogMsg "ERROR: Latency sum value is $PASS_VALUE_FILEIO. Test failed."
     fi
+
+    sysbench fileio --num-threads=1 --file-test-mode=$1 cleanup
+    LogMsg "Cleaning up $1 test files."
 
     LogMsg "`cat /root/$1.log`"
     cat /root/$1.log >> /root/fileio.log
@@ -231,7 +265,7 @@ function fileio ()
     return "$FILEIO_PASS"
  }
 
-LogMsg " Testing fileio. Writing to fileio.log."
+LogMsg "Testing fileio. Writing to fileio.log."
 for test_item in ${TEST_FILE[*]}
 do
     fileio $test_item

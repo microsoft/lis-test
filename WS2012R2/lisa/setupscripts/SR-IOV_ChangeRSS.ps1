@@ -239,7 +239,7 @@ if (-not $status) {
 
 # Read the throughput with RSS profile changed
 Start-Sleep -s 60
-[decimal]$vfBeforeThroughput = $vfBeforeThroughput - 2
+[decimal]$vfBeforeThroughput = $vfBeforeThroughput / 2
 [decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 
 "The throughput after changing RSS profile is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog

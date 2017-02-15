@@ -20,6 +20,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <dependency>
+            <!-- Only Windows Server 2012 supports this suite -->
+            <hostVersion>6.2.9200</hostVersion>
+        </dependency>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>

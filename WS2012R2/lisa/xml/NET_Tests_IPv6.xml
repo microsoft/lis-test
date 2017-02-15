@@ -86,7 +86,7 @@
                 <param>STATIC_IP=192.168.0.2</param>
                 <param>NETMASK=255.255.255.0</param>
                 <param>PING_SUCC=192.168.0.1</param>
-                <param>PING_FAIL=8.8.8.8</param>
+                <param>PING_FAIL=8.8.4.4</param>
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
@@ -201,7 +201,7 @@
                 <param>STATIC_IP=192.168.0.2</param>
                 <param>NETMASK=255.255.255.0</param>
                 <param>PING_SUCC=192.168.0.1</param>
-                <param>PING_FAIL=8.8.8.8</param>
+                <param>PING_FAIL=8.8.4.4</param>
                 <param>PING_FAIL2=10.10.10.5</param>
             </testParams>
             <onError>Continue</onError>
@@ -225,7 +225,7 @@
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>PING_FAIL=8.8.8.8</param>
+                <param>PING_FAIL=8.8.4.4</param>
                 <param>PING_FAIL2=192.168.0.1</param>
             </testParams>
             <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>

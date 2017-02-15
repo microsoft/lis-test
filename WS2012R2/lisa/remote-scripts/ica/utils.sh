@@ -2004,7 +2004,7 @@ function is_rhel7 {
 
     [ "$os_VENDOR" = "Red Hat" ] || \
         [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ] && \
-        [[ $os_RELEASE =~ 7.* ]]
+        [[ $os_RELEASE =~ 7.* ]] && [[ $os_RELEASE != 6.7 ]]
 }
 
 #######################################################################

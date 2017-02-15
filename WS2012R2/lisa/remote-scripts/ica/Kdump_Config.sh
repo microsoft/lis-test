@@ -187,7 +187,12 @@ ConfigRhel()
             LogMsg "Success: updated the crashkernel value to: $crashkernel."
             echo "Success: updated the crashkernel value to: $crashkernel." >> ~/summary.log
         fi
-        grub2-mkconfig -o /boot/grub2/grub.cfg
+
+        if [[ -d /sys/firmware/efi ]]; then
+            grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
+        else
+            grub2-mkconfig -o /boot/grub2/grub.cfg
+        fi
     else
         if [ -x "/sbin/grubby" ]; then
             if grep -iq "crashkernel=" /boot/grub/grub.conf

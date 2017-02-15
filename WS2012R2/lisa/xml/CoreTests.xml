@@ -271,7 +271,6 @@
                 <param>VCPU=4</param>
                 <param>NumaNodes=1</param>
                 <param>Sockets=1</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>600</timeout>
         </test>
@@ -409,17 +408,18 @@
 
     <VMs>
 	   <vm>
-            <hvServer>localhost</hvServer>
-            <vmName>LinuxVM</vmName>
-            <os>Linux</os>
-            <ipv4></ipv4>
-            <sshKey>linux_id_rsa.ppk</sshKey>
-            <suite>Core</suite>
-            <testParams>
-				<param>publicKey=linux_id_rsa.pub</param>
-				<!-- Required for CDmount -->
-				<param>IsoFilename=CDTEST.iso</param>
-            </testParams>
+      <hvServer>localhost</hvServer>
+      <vmName>LinuxVM</vmName>
+      <os>Linux</os>
+      <ipv4></ipv4>
+      <sshKey>linux_id_rsa.ppk</sshKey>
+      <suite>Core</suite>
+      <testParams>
+        <param>publicKey=linux_id_rsa.pub</param>
+        <param>snapshotName=ICABase</param>
+        <!-- Required for CDmount -->
+        <param>IsoFilename=CDTEST.iso</param>
+      </testParams>
         </vm>
     </VMs>
 </config>
