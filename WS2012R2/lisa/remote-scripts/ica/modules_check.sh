@@ -21,7 +21,6 @@
 #
 ########################################################################
 
-
 #
 # Functions definitions
 #
@@ -50,23 +49,21 @@ CopyImage()
 
     img_type=`file boot.img`
     LogMsg "The image type is: $img_type"
-    echo "The image type is: $img_type" >> /root/summary.log
 }
 
 SearchModules()
 {
     LogMsg "Searching for modules..."
-    echo "Searching for modules..." >> /root/summary.log
-
     [[ -d "/root/initr/usr/lib/modules" ]] && abs_path="/root/initr/usr/lib/modules/" || abs_path="/root/initr/lib/modules/"
     for module in "${hv_modules[@]}"; do
-        grep -i $module $abs_path*/modules.dep >> /root/summary.log
+        grep -i $module $abs_path*/modules.dep
         if [ $? -eq 0 ]; then 
-            LogMsg "Success: Module $module was found."
-            echo "Success: Module $module was found." >> /root/summary.log
+            LogMsg "Info: Module $module was found in initrd."
+            echo "Info: Module $module was found in initrd." >> /root/summary.log
         else
             LogMsg "ERROR: Module $module was NOT found."
             echo "ERROR: Module $module was NOT found." >> /root/summary.log
+			grep -i $module $abs_path*/modules.dep >> /root/summary.log
             UpdateTestState "TestFailed"
             exit 1
         fi
@@ -74,7 +71,9 @@ SearchModules()
 }
 
 ######################################################################
-# MAIN SCRIPT
+#
+# Main script
+#
 ######################################################################
 
 LogMsg "Updating test case state to running"
@@ -108,6 +107,13 @@ if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
     exit 30
 fi
 
+if [ ! ${TC_COVERED} ]; then
+    LogMsg "The TC_COVERED variable is not defined!"
+  echo "The TC_COVERED variable is not defined!" >> ~/summary.log
+fi
+
+echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
+
 if [ -f /boot/initramfs-0-rescue* ]; then
     img=/boot/initramfs-0-rescue*
 else
@@ -117,45 +123,39 @@ fi
 echo "The initrd test image is: $img" >> summary.log
 
 CopyImage $img
+
+LogMsg "Info: Unpacking the image..."
+
 case $img_type in
     *ASCII*cpio*)
-        LogMsg "Unpacking the image"
-        echo "Unpacking the image" >> /root/summary.log
         /usr/lib/dracut/skipcpio boot.img |zcat| cpio -id --no-absolute-filenames
         if [ $? -eq 0 ]; then
-            LogMsg "Successfully unpacked the image."
-            echo "Successfully unpacked the image." >> /root/summary.log
+            LogMsg "Info: Successfully unpacked the image."
         else
-            LogMsg "Failed to unpack the initramfs image."
-            echo "Failed to unpack the initramfs image." >> /root/summary.log
+            LogMsg "Error: Failed to unpack the initramfs image."
+            echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
             UpdateTestState "TestFailed"
             exit 1
         fi
     ;;
     *gzip*)
-        LogMsg "Unpacking the image"
-        echo "Unpacking the image" >> /root/summary.log
         gunzip -c boot.img | cpio -i -d -H newc --no-absolute-filenames
         if [ $? -eq 0 ]; then
-            LogMsg "Successfully unpacked the image."
-            echo "Successfully unpacked the image." >> /root/summary.log
+            LogMsg "Info: Successfully unpacked the image."
         else
-            LogMsg "Failed to unpack the initramfs image with gunzip."
-            echo "Failed to unpack the initramfs image." >> /root/summary.log
+            LogMsg "Error: Failed to unpack the initramfs image with gunzip."
+            echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
             UpdateTestState "TestFailed"
             exit 1
         fi
     ;;
     *XZ*)
-        LogMsg "Unpacking the image"
-        echo "Unpacking the image" >> /root/summary.log
         xzcat boot.img | cpio -i -d -H newc --no-absolute-filenames
         if [ $? -eq 0 ]; then
-            LogMsg "Successfully unpacked the image."
-            echo "Successfully unpacked the image." >> /root/summary.log
+            LogMsg "Info: Successfully unpacked the image."
         else
-            LogMsg "Failed to unpack the initramfs image with gunzip."
-            echo "Failed to unpack the initramfs image." >> /root/summary.log
+            LogMsg "Error: Failed to unpack the initramfs image with gunzip."
+            echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
             UpdateTestState "TestFailed"
             exit 1
         fi
