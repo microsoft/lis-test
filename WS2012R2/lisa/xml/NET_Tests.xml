@@ -453,7 +453,6 @@ permissions and limitations under the License.
 
         <test>
             <testName>MaxSyntheticNIC</testName>
-            <onError>Abort</onError>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_MAX_NIC.ps1</file>
