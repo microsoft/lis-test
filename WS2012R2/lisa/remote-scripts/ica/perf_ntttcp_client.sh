@@ -81,14 +81,14 @@ dos2unix perf_utils.sh
 
 # Source utils.sh
 . utils.sh || {
-    echo "Error: unable to source utils.sh!"
+    echo "ERROR: unable to source utils.sh!"
     echo "TestAborted" > state.txt
     exit 2
 }
 
 # Source perf_utils.sh
 . perf_utils.sh || {
-    echo "Error: unable to source perf_utils.sh!"
+    echo "ERROR: unable to source perf_utils.sh!"
     echo "TestAborted" > state.txt
     exit 2
 }
@@ -104,7 +104,7 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTABORTED
 fi
 
-# In case of error
+# In case of ERROR
 case $? in
     0)
         #do nothing, init succeeded
@@ -125,44 +125,19 @@ case $? in
         exit 4
         ;;
     3)
-        LogMsg "Error: unable to source constants file. Aborting..."
-        UpdateSummary "Error: unable to source constants file"
+        LogMsg "ERROR: unable to source constants file. Aborting..."
+        UpdateSummary "ERROR: unable to source constants file"
         SetTestStateAborted
         exit 5
         ;;
     *)
         # should not happen
-        LogMsg "UtilsInit returned an unknown error. Aborting..."
-        UpdateSummary "UtilsInit returned an unknown error. Aborting..."
+        LogMsg "UtilsInit returned an unknown ERROR. Aborting..."
+        UpdateSummary "UtilsInit returned an unknown ERROR. Aborting..."
         SetTestStateAborted
         exit 6
         ;;
 esac
-
-function get_tx_bytes(){
-    # RX bytes:66132495566 (66.1 GB)  TX bytes:3067606320236 (3.0 TB)
-    Tx_bytes=`ifconfig $ETH_NAME | grep "TX bytes"   | awk -F':' '{print $3}' | awk -F' ' ' {print $1}'`
-    
-    if [ "x$Tx_bytes" == "x" ]
-    then
-        #TX packets 223558709  bytes 15463202847 (14.4 GiB)
-        Tx_bytes=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $5}'`
-    fi
-    echo $Tx_bytes
-
-}
-
-function get_tx_pkts(){
-    # TX packets:543924452 errors:0 dropped:0 overruns:0 carrier:0
-    Tx_pkts=`ifconfig $ETH_NAME | grep "TX packets" | awk -F':' '{print $2}' | awk -F' ' ' {print $1}'`
-
-    if [ "x$Tx_pkts" == "x" ]
-    then
-        #TX packets 223558709  bytes 15463202847 (14.4 GiB)
-        Tx_pkts=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $3}'`        
-    fi
-    echo $Tx_pkts   
-}
 
 #Create log folder
 if [ -d  $log_folder ]; then
@@ -172,15 +147,14 @@ if [ -d  $log_folder ]; then
 else    
     mkdir $log_folder
 fi
+
 eth_log="$HOME/$log_folder/eth_report.log"
 echo "#test_connections    throughput_gbps    average_packet_size" > $eth_log 
 
 #
 # Make sure the required test parameters are defined
-#
-
 if [ "${STATIC_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the STATIC_IP test parameter is missing"
+    msg="ERROR: the STATIC_IP test parameter is missing"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -189,13 +163,13 @@ fi
 
 if [ "${NETMASK:="UNDEFINED"}" = "UNDEFINED" ]; then
     NETMASK="255.255.255.0"
-    msg="Error: the NETMASK test parameter is missing, default value will be used: 255.255.255.0"
+    msg="ERROR: the NETMASK test parameter is missing, default value will be used: 255.255.255.0"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
 fi
 
 if [ "${SERVER_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the SERVER_IP test parameter is missing"
+    msg="ERROR: the SERVER_IP test parameter is missing"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -203,7 +177,7 @@ if [ "${SERVER_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
 fi
 
 if [ "${STATIC_IP2:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="Error: the STATIC_IP2 test parameter is missing"
+    msg="ERROR: the STATIC_IP2 test parameter is missing"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -230,9 +204,7 @@ if [ "${ipv4:-UNDEFINED}" = "UNDEFINED" ]; then
     SetTestStateAborted
     exit 30
 else
-
     CheckIP "$ipv4"
-
     if [ 0 -ne $? ]; then
         msg="Test parameter ipv4 = $ipv4 is not a valid IP Address"
         LogMsg "$msg"
@@ -247,7 +219,6 @@ fi
 
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
-
 if [ 0 -ne $? ]; then
     msg="No synthetic network interfaces found"
     LogMsg "$msg"
@@ -258,7 +229,6 @@ fi
 
 # Remove interface if present
 SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
-
 if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
     msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
     LogMsg "$msg"
@@ -281,7 +251,6 @@ for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
         exit 20
     fi
 done
-
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
 echo "Ntttcp client test interface ip           = ${STATIC_IP}"
@@ -295,14 +264,13 @@ echo "Test Interface       = ${ETH_NAME}"
 
 #
 # Check for internet protocol version
-#
 CheckIPV6 "$STATIC_IP"
 if [[ $? -eq 0 ]]; then
     CheckIPV6 "$SERVER_IP"
     if [[ $? -eq 0 ]]; then
         ipVersion="-6"
     else
-        msg="Error: Not both test IPs are IPV6"
+        msg="ERROR: Not both test IPs are IPV6"
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
@@ -318,10 +286,18 @@ fi
 GetDistro
 case "$DISTRO" in
 debian*|ubuntu*)
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
     LogMsg "Installing sar on Ubuntu"
     apt-get install sysstat -y
     if [ $? -ne 0 ]; then
-        msg="Error: sysstat failed to install"
+        msg="ERROR: sysstat failed to install"
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
@@ -329,57 +305,29 @@ debian*|ubuntu*)
     fi
     apt-get install build-essential git -y
     if [ $? -ne 0 ]; then
-        msg="Error: Build essential failed to install"
+        msg="ERROR: Build essential failed to install"
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
         exit 85
-    fi
-    service ufw status
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Ubuntu"
-        service ufw stop
-        if [ $? -ne 0 ]; then
-                msg="Error: Failed to stop ufw"
-                LogMsg "${msg}"
-                echo "${msg}" >> ~/summary.log
-                UpdateTestState $ICA_TESTFAILED
-                exit 85
-        fi
     fi
     ;;
 redhat_5|redhat_6|centos_6)
     if [ "$DISTRO" == "redhat_6" ] || ["$DISTRO" == "centos_6" ]; then
         upgrade_gcc
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to install the new version of gcc."
+            msg="ERROR: Failed to install the new version of gcc."
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi    
-        LogMsg "Disabling firewall on Redhat 6.x."
-        echo "Disabling firewall on Redhat 6.x." >> ~/summary.log
-        iptables -X; iptables -F
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service iptables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables and ip6tables."
+        disable_firewall
+        if [[ $? -ne 0 ]]; then
+            msg="ERROR: Unable to disable firewall.Exiting"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        service ip6tables stop
-         if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop ip6tables and ip6tables."
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
+            exit 1
         fi
     else
         LogMsg "Iptables and ip6tables are disabled."
@@ -392,28 +340,19 @@ redhat_7)
         LogMsg "Disabling firewall on Redhat 7.x"
         systemctl stop firewalld && systemctl disable firewalld
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off firewalld. Continuing"
+            msg="ERROR: Failed to turn off firewalld. Continuing"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
         fi
     fi
-    LogMsg "Disable iptables on RHEL 7.x"
-    service iptables stop
-    if [ $? -ne 0 ]; then
-        msg="Error: Failed to stop iptables and ip6tables."
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 85
-    fi
-    service ip6tables stop
-    if [ $? -ne 0 ]; then
-        msg="Error: Failed to stop ip6tables and ip6tables."
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 85
-    fi    
+    disable_firewall
+        if [[ $? -ne 0 ]]; then
+            msg="ERROR: Unable to disable firewall.Exiting"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
     ;;
 suse_12)
     LogMsg "Check iptables status on SLES 12"
@@ -421,13 +360,13 @@ suse_12)
     if [ $? -ne 3 ]; then
         iptables -F;
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
+            msg="ERROR: Failed to flush iptables rules. Continuing"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
         fi
         service SuSEfirewall2 stop
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
+            msg="ERROR: Failed to stop iptables"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
@@ -435,7 +374,7 @@ suse_12)
         fi
         chkconfig SuSEfirewall2 off
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
+            msg="ERROR: Failed to turn off iptables. Continuing"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
         fi
@@ -446,51 +385,38 @@ esac
 LogMsg "Enlarging the system limit"
 ulimit -n 20480
 if [ $? -ne 0 ]; then
-    LogMsg "Error: Unable to enlarged system limit"
+    LogMsg "ERROR: Unable to enlarged system limit"
     UpdateTestState $ICA_TESTABORTED
 fi
 
 #Install LAGSCOPE tool for latency
 setup_lagscope
 if [ $? -ne 0 ]; then
-    echo "Unable to compile lagscope."
-    LogMsg "Unable to compile lagscope."
+    echo "ERROR: Unable to compile lagscope."
+    LogMsg "ERROR: Unable to compile lagscope."
     UpdateTestState $ICA_TESTABORTED
 fi
 
 #Install NTTTCP for network throughput
 setup_ntttcp
 if [ $? -ne 0 ]; then
-    echo "Unable to compile ntttcp-for-linux."
-    LogMsg "Unable to compile ntttcp-for-linux."
+    echo "ERROR: Unable to compile ntttcp-for-linux."
+    LogMsg "ERROR: Unable to compile ntttcp-for-linux."
     UpdateTestState $ICA_TESTABORTED
 fi
 dos2unix ~/*.sh
 chmod 755 ~/*.sh
-
-# set static IPs for test interfaces
-declare -i __iterator=0
-
-while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
-
-    LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-    CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $STATIC_IP $NETMASK
-
-    if [ 0 -ne $? ]; then
-        msg="Unable to set address for ${SYNTH_NET_INTERFACES[$__iterator]} through static"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 10
-    fi
-
-    : $((__iterator++))
-done
-
+#Config static ip on the client side.
+config_staticip ${STATIC_IP} ${NETMASK}
+if [ $? -ne 0 ]; then
+    echo "ERROR: Function config_staticip failed."
+    LogMsg "ERROR: Function config_staticip failed."
+    UpdateTestState $ICA_TESTABORTED
+fi
 LogMsg "Copy files to server: ${STATIC_IP2}"
 scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/perf_ntttcp_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to copy test scripts to target server machine: ${STATIC_IP2}. scp command failed."
+    msg="ERROR: Unable to copy test scripts to target server machine: ${STATIC_IP2}. scp command failed."
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -500,21 +426,18 @@ scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/constants.sh
 scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/perf_utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 
-
-#
 # Start ntttcp in server mode on the Target server side
 #
 LogMsg "Starting ntttcp in server mode on ${STATIC_IP2}"
 ssh -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo '~/perf_ntttcp_server.sh > ntttcp_ServerSideScript.log' | at now"
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to start ntttcp server scripts on the target server machine"
+    msg="ERROR: Unable to start ntttcp server scripts on the target server machine"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
     exit 130
 fi
 
-#
 # Wait for server to be ready
 #
 wait_for_server=600
@@ -539,7 +462,7 @@ done
 
 if [ $wait_for_server -eq 0 ] ;
 then
-    msg="Error: ntttcp server script has been triggered but are not in running state within ${wait_for_server} seconds."
+    msg="ERROR: ntttcp server script has been triggered but are not in running state within ${wait_for_server} seconds."
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
@@ -549,8 +472,8 @@ else
 fi
 
 #Starting test
-previous_tx_bytes=$(get_tx_bytes)
-previous_tx_pkts=$(get_tx_pkts)
+previous_tx_bytes=$(get_tx_bytes $ETH_NAME)
+previous_tx_pkts=$(get_tx_pkts $ETH_NAME)
 ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "mkdir /root/$log_folder"
 i=0
 while [ "x${TEST_THREADS[$i]}" != "x" ]
@@ -570,17 +493,17 @@ do
     echo "======================================"
     
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f ntttcp"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} -P $num_threads_P -t ${TEST_DURATION} ${ipVersion} -e > ./$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log" &
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} ${ipVersion} -P $num_threads_P -t ${TEST_DURATION} -e > ./$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log" &
 
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f lagscope"
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "lagscope -r${SERVER_IP} ${ipVersion}" &
     
     sleep 2
     lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V ${ipVersion} > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
-    ntttcp -s${SERVER_IP} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION} ${ipVersion} > "./$log_folder/ntttcp-sender-p${num_threads_P}X${num_threads_n}.log"
+    ntttcp -s${SERVER_IP} ${ipVersion} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION}  > "./$log_folder/ntttcp-sender-p${num_threads_P}X${num_threads_n}.log"
 
-    current_tx_bytes=$(get_tx_bytes)
-    current_tx_pkts=$(get_tx_pkts)
+    current_tx_bytes=$(get_tx_bytes $ETH_NAME)
+    current_tx_pkts=$(get_tx_pkts $ETH_NAME)
     bytes_new=`(expr $current_tx_bytes - $previous_tx_bytes)`
     pkts_new=`(expr $current_tx_pkts - $previous_tx_pkts)`
     avg_pkt_size=$(echo "scale=2;$bytes_new/$pkts_new/1024" | bc)

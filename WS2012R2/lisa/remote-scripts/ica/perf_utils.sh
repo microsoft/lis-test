@@ -74,6 +74,24 @@ function setup_io_scheduler {
     sleep 5
 }
 
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    echo "###Setting sysctl params###"
+    setup_sysctl
+    if [[ $? -ne 0 ]]
+    then
+        echo "ERROR: Unable to set sysctl params"
+        exit 1
+    fi
+    echo "###Setting elevator to noop###"
+    setup_io_scheduler
+    if [[ $? -ne 0 ]]
+    then
+        echo "ERROR: Unable to set elevator to noop."
+        exit 1
+    fi
+    echo "Done."
+fi
+
 #Install ntttcp-for-linux
 function setup_ntttcp {
     if [ "$(which ntttcp)" == "" ]; then
@@ -99,7 +117,7 @@ function setup_ntttcp {
 
 #Install lagscope
 function setup_lagscope {
-    if [ "$(which lagscope)" == "" ]; then
+    if [[ "$(which lagscope)" == "" ]]; then
       rm -rf lagscope
       git clone https://github.com/Microsoft/lagscope
       status=$?
@@ -137,7 +155,7 @@ function upgrade_gcc {
 
 # The below will also install all the required dependencies
     yum install -y devtoolset-2-gcc-c++
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         echo "Error: Failed to install the new version of gcc."
         exit 1
     fi
@@ -145,21 +163,71 @@ function upgrade_gcc {
     source /root/.bashrc
 }
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    echo "###Setting sysctl params###"
-    setup_sysctl
-    if [[ $? -ne 0 ]]
+#Function for TX Bytes
+function get_tx_bytes(){
+    # RX bytes:66132495566 (66.1 GB)  TX bytes:3067606320236 (3.0 TB)
+    Tx_bytes=`ifconfig $1 | grep "TX bytes"   | awk -F':' '{print $3}' | awk -F' ' ' {print $1}'`
+    
+    if [ "x$Tx_bytes" == "x" ]
     then
-        echo "ERROR: Unable to set sysctl params"
-        exit 1
+        #TX packets 223558709  bytes 15463202847 (14.4 GiB)
+        Tx_bytes=`ifconfig $1| grep "TX packets"| awk '{print $5}'`
     fi
-    echo "###Setting elevator to noop###"
-    setup_io_scheduler
-    if [[ $? -ne 0 ]]
-    then
-        echo "ERROR: Unable to set elevator to noop."
-        exit 1
-    fi
-    echo "Done."
-fi
+    echo $Tx_bytes
 
+}
+
+#Function for TX packets
+function get_tx_pkts(){
+    # TX packets:543924452 errors:0 dropped:0 overruns:0 carrier:0
+    Tx_pkts=`ifconfig $1 | grep "TX packets" | awk -F':' '{print $2}' | awk -F' ' ' {print $1}'`
+
+    if [ "x$Tx_pkts" == "x" ]
+    then
+        #TX packets 223558709  bytes 15463202847 (14.4 GiB)
+        Tx_pkts=`ifconfig $1 | grep "TX packets"| awk '{print $3}'`        
+    fi
+    echo $Tx_pkts   
+}
+
+#Firewall and iptables for Ubuntu/CentOS6.x/RHEL6.x
+function disable_firewall {
+    service ufw status | grep inactive
+    if [[ $? -ne 0 ]]; then 
+      echo "WARN: Service firewall active. Will disable it ..."
+      service ufw stop
+    else
+      echo "Firewall is disabled."
+    fi
+    service iptables status | grep inactive
+    if [[ $? -ne 0 ]]; then 
+      echo "WARN: Service iptables active. Will disable it ..."
+      service iptables stop
+    else
+      echo "Iptables is disabled."
+    fi
+    service ip6tables status | grep inactive
+    if [[ $? -ne 0 ]]; then 
+      echo "WARN: Service ip6tables active. Will disable it ..."
+      service ip6tables stop
+    else
+      echo "Ip6tables is disabled."
+    fi
+    echo "Iptables and ip6tables disabled."
+}
+
+# Set static IPs for test interfaces
+function config_staticip {  
+    declare -i __iterator=0
+    while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
+        LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
+        CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $1 $2
+        if [ 0 -ne $? ]; then
+            msg="ERROR: Unable to set address for ${SYNTH_NET_INTERFACES[$__iterator]} through static"
+            LogMsg "$msg"
+            UpdateSummary "$msg"            
+            exit 10
+        fi
+        : $((__iterator++))
+    done
+}

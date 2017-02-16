@@ -247,6 +247,14 @@ GetDistro
 
 case "$DISTRO" in
 debian*|ubuntu*)
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
     LogMsg "Installing sar on Ubuntu"
     apt-get install sysstat -y
     if [ $? -ne 0 ]; then
@@ -264,18 +272,6 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 85
     fi
-    service ufw status
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Ubuntu"
-        service ufw stop
-        if [ $? -ne 0 ]; then
-                msg="Error: Failed to stop ufw"
-                LogMsg "${msg}"
-                echo "${msg}" >> ~/summary.log
-                UpdateTestState $ICA_TESTFAILED
-                exit 85
-        fi
-    fi
     ;;
 redhat_5|redhat_6|centos_6)
     if [ "$DISTRO" == "redhat_6" ] || ["$DISTRO" == "centos_6" ]; then
@@ -286,39 +282,13 @@ redhat_5|redhat_6|centos_6)
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi    
-        LogMsg "Check iptables status on RHEL"
-        service iptables status
-         if [ $? -ne 3 ]; then
-            LogMsg "Disabling firewall on Redhat"
-            iptables -X
-            iptables -F
-        fi
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service iptables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
+        disable_firewall
+        if [[ $? -ne 0 ]]; then
+            msg="ERROR: Unable to disable firewall.Exiting"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        service ip6tables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop ip6tables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        chkconfig iptables off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
+            exit 1
         fi
     fi
     ;;
@@ -342,30 +312,13 @@ redhat_7)
             echo "${msg}" >> ~/summary.log
         fi
     fi
-
-    LogMsg "Check iptables status on RHEL 7"
-    service iptables status
-    if [ $? -ne 3 ]; then
-        iptables -F;
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service iptables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        chkconfig iptables off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
     fi
     ;;
 suse_12)
@@ -406,26 +359,14 @@ if [ $DISTRO -eq "suse_12" ]; then
 fi
 
 # set static ips for test interfaces
-declare -i __iterator=0
-
-while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
-    LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-    CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $SERVER_IP $NETMASK
-
-    if [ 0 -ne $? ]; then
-        msg="Unable to set address for ${SYNTH_NET_INTERFACES[$__iterator]} through static"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 120
-    fi
-
-    : $((__iterator++))
-done
+ config_staticip ${SERVER_IP} ${NETMASK}
+if [ $? -ne 0 ]; then
+    echo "ERROR: Function config_staticip failed."
+    LogMsg "ERROR: Function config_staticip failed."
+    UpdateTestState $ICA_TESTABORTED
+fi
 
 # Start ntttcp server instances
 sleep 3
-LogMsg "Ntttcp is ready to start in server mode."
-
 UpdateTestState $ICA_NTTTCPRUNNING
 LogMsg "Ntttcp server instances are now ready to run"
