@@ -90,7 +90,7 @@
     to indicate if the script completed successfully or not.
 
    .Parameter vmName
-    Name of the first VM implicated in vlan trunking test .
+    Name of the first VM implicated in vlan trunking test.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -99,7 +99,7 @@
     Test data for this test case
 
     .Example
-    NET_VLAN_TRUNKING -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM_VLAN_ID=2;NATIVE_VLAN_ID=10;VM2NAME=second_sles11sp3x64;"
+    NET_VLAN_TRUNKING -vmName VM -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM_VLAN_ID=2;NATIVE_VLAN_ID=10;VM2NAME=second_VM;"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -369,8 +369,6 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 #
 #######################################################################
 
-#StopVMViaSSH $vmName $hvServer $sshKey 300
-
 #
 # Check input arguments
 #
@@ -513,6 +511,7 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
+	"TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "VM2NAME" { $vm2Name = $fields[1].Trim() }
     "SshKey"  { $sshKey  = $fields[1].Trim() }
     "ipv4"    { $ipv4    = $fields[1].Trim() }
@@ -631,6 +630,13 @@ if (-not $ipv4)
     "Error: test parameter ipv4 was not specified"
     return $False
 }
+
+#
+# Delete any previous summary.log file, then create a new one
+#
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #set the parameter for the snapshot
 $snapshotParam = "SnapshotName = ${SnapshotName}"
@@ -1181,7 +1187,7 @@ if (-not $retVal)
 
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
-
+	
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
 
     Stop-VM -VMName $vm2name -ComputerName $hvServer -force
