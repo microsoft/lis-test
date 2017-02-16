@@ -91,6 +91,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                 vms[i].update()
                 vm_ips[i] = vms[i].private_ip_address
 
+            device = constants.DEVICE_AWS.replace('sd', 'xvd')
             if test_type == constants.VM_DISK:
                 if raid:
                     device = []
@@ -105,7 +106,6 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                     connector.attach_ebs_volume(vms[1], size=disk_size,
                                                 volume_type=connector.volume_type['ssd'],
                                                 device=constants.DEVICE_AWS)
-                    device = constants.DEVICE_AWS.replace('sd', 'xvd')
             elif test_type == constants.DB_DISK:
                 if raid:
                     device = []
@@ -120,16 +120,14 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                     connector.attach_ebs_volume(vms[2], size=disk_size,
                                                 volume_type=connector.volume_type['ssd'],
                                                 device=constants.DEVICE_AWS)
-                    device = constants.DEVICE_AWS.replace('sd', 'xvd')
             elif test_type == constants.CLUSTER_DISK:
-                device = constants.DEVICE_AWS
                 connector.attach_ebs_volume(
                         vms[1], size=disk_size + 200, volume_type=connector.volume_type['ssd'],
-                        device=device)
+                        device=constants.DEVICE_AWS)
                 for i in xrange(2, vm_count + 1):
                     connector.attach_ebs_volume(vms[i], size=disk_size,
                                                 volume_type=connector.volume_type['ssd'],
-                                                device=device)
+                                                device=constants.DEVICE_AWS)
                     time.sleep(3)
         elif provider == constants.AZURE:
             connector = AzureConnector(clientid=keyid, secret=secret, subscriptionid=subscriptionid,
@@ -139,6 +137,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
             connector.azure_connect()
             for i in xrange(1, vm_count + 1):
                 vms[i] = connector.azure_create_vm()
+            device = constants.DEVICE_AZURE
             if test_type == constants.VM_DISK:
                 if raid:
                     device = []
@@ -148,7 +147,6 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                         device.append('/dev/sd{}'.format(chr(99 + i)))
                 else:
                     connector.attach_disk(vms[1], disk_size)
-                    device = constants.DEVICE_AZURE
             elif test_type == constants.DB_DISK:
                 if raid:
                     device = []
@@ -158,7 +156,6 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                         device.append('/dev/sd{}'.format(chr(99 + i)))
                 else:
                     connector.attach_disk(vms[2], disk_size)
-                    device = constants.DEVICE_AZURE
             elif test_type == constants.CLUSTER_DISK:
                 log.info('Created disk: {}'.format(connector.attach_disk(vms[1], disk_size + 200)))
                 for i in xrange(2, vm_count + 1):
@@ -349,8 +346,8 @@ def test_sysbench_raid(provider, keyid, secret, imageid, subscription, tenant, i
     :param zone: EC2 zone where other resources should be available
     """
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
-                                                      test_type=constants.VM_DISK, disk_size=240,
-                                                      raid=False, keyid=keyid, secret=secret,
+                                                      test_type=constants.VM_DISK, disk_size=20,
+                                                      raid=True, keyid=keyid, secret=secret,
                                                       subscriptionid=subscription, tenantid=tenant,
                                                       imageid=imageid, instancetype=instancetype,
                                                       user=user, localpath=localpath, region=region,
