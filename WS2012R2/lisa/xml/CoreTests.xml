@@ -48,6 +48,7 @@
 		<suiteTest>TimeSync_SavedVM</suiteTest>
 		<suiteTest>TimeSync_PausedVM</suiteTest>
 		<suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
+		<suiteTest>FloppyDisk</suiteTest>
 
 		<suiteTest>StressReloadModules</suiteTest>
 		<suiteTest>LISShutdownVM</suiteTest>
@@ -56,7 +57,6 @@
 		<suiteTest>VCPU_verify_online</suiteTest>
 		<suiteTest>VerifyIntegratedShutdownService</suiteTest>
 		<suiteTest>RebootDifferentMemSettings</suiteTest>
-		<suiteTest>FloppyDisk</suiteTest>
 		<suiteTest>CDmount</suiteTest>
 		<suiteTest>CheckNuma</suiteTest>
 		<suiteTest>CheckNuma_Maximum</suiteTest>
@@ -213,16 +213,16 @@
 
 	<test>
             <testName>FloppyDisk</testName>
+            <PreTest>setupscripts\AddFloppyDisk.ps1</PreTest>
             <testScript>Core_Floppy_Disk.sh</testScript>
             <files>remote-scripts\ica\Core_Floppy_Disk.sh</files>
-            <setupScript>setupscripts\AddFloppyDisk.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=CORE-19</param>
             </testParams>
             <timeout>600</timeout>
             <onError>Continue</onError>
-            <noReboot>False</noReboot>
+            <noReboot>True</noReboot>
         </test>
 
         <test>
