@@ -86,7 +86,7 @@
     to indicate if the script completed successfully or not.
 
    .Parameter vmName
-    Name of the first VM implicated in vlan trunking test .
+    Name of the first VM part of the test.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -95,7 +95,7 @@
     Test data for this test case
 
     .Example
-    NET_VLAN_TAGGING -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VLAN_ID=2;VM2NAME=second_sles11sp3x64"
+    NET_VLAN_TAGGING -vmName VM -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VLAN_ID=2;VM2NAME=second_VM"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -418,6 +418,7 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
+	"TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "VM2NAME" { $vm2Name = $fields[1].Trim() }
     "SshKey"  { $sshKey  = $fields[1].Trim() }
     "ipv4"    { $ipv4    = $fields[1].Trim() }
@@ -534,6 +535,13 @@ if (-not $ipv4)
     "Error: test parameter ipv4 was not specified"
     return $False
 }
+
+#
+# Delete any previous summary.log file, then create a new one
+#
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #set the parameter for the snapshot
 $snapshotParam = "SnapshotName = ${SnapshotName}"
@@ -766,17 +774,17 @@ if (-not $?)
     return $false
 }
 
-"Successfully configured $vm1Nic"
+"Info: Successfully configured $vm1Nic"
 
 "Setting $vm2Name test NIC to access mode with vlanID $vlanID"
-Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2NIC  -Access -VlanID $vlanID
+Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2NIC -Access -VlanID $vlanID
 if (-not $?)
 {
     "Failed to set $vm2Nic to Access Mode with an VlanID of $vlanID"
     return $false
 }
 
-"Successfully configured $vm2Nic"
+"Info: Successfully configured $vm2Nic"
 
 Start-sleep 10
 
@@ -869,7 +877,7 @@ if ( $TestIPV6 -eq "yes" )
     }
 }
 
-"Failed to ping (as expected)"
+"Info: Could not ping (as expected)"
 
 "Stopping $vm2Name"
 Stop-VM -Name $vm2Name -ComputerName $hvServer -force
@@ -880,5 +888,4 @@ if (-not $?)
 }
 
 "Test successful!"
-
 return $true
