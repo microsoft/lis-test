@@ -7,7 +7,7 @@ from lisa_parser.test_run import TestRun
 
 class TestTestRun(TestCase):
     def setUp(self):
-        self.test_run = TestRun(skip_vm_check=True)
+        self.test_run = TestRun(skip_vm_check=True, checkpoint_name=False)
         self.xml_file = path.join(path.dirname(__file__), 'test.xml')
         self.log_file = path.join(path.dirname(__file__), 'test.log')
         create_files.create_xml_file(self.xml_file)

@@ -156,12 +156,15 @@ def select_row(cursor, row_dict):
 
 def check_insert(cursor, insertion_list):
     for insert_dict in insertion_list:
-        result = list(select_row(cursor, insert_dict))
-        no_rows = len(result)
-        if no_rows == 0:
-            logger.error("The following line is not pressent in the database: %s" % insert_dict)
-        elif no_rows > 1:
-            logger.warning("%d identical rows were found" % no_rows)
-            logger.warning(result)
-        else:
-            logger.info("Results inserted successfully to the database")
+        try:
+            result = list(select_row(cursor, insert_dict))
+            no_rows = len(result)
+            if no_rows == 0:
+                logger.error("The following line is not pressent in the database: %s" % insert_dict)
+            elif no_rows > 1:
+                logger.warning("%d identical rows were found" % no_rows)
+                logger.warning(result)
+            else:
+                logger.info("Results inserted successfully to the database")
+        except pyodbc.ProgrammingError as pyodbc_error:
+            logger.warning("Error while attempting to select row - %s" % pyodbc_error[1])
