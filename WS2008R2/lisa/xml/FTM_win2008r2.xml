@@ -109,6 +109,7 @@
                 <suiteTest>KVP_Push_Key_Values</suiteTest>
                 <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
                 <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+                <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
             </suiteTests>
         </suite>
 
@@ -246,6 +247,21 @@
                 <param>Key=AAA</param>
                 <param>Value=000</param>
                 <param>Pool=0</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_VerifyHostInjectedItems</testName>
+            <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-10</param>
+                <param>Pool=3</param>
+                <param>Items=11</param>
             </testparams>
         </test>
 
