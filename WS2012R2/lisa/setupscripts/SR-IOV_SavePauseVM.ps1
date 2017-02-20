@@ -175,6 +175,25 @@ if (-not $retVal)
 }
 
 #
+# Run Ping with SR-IOV enabled
+#
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 20 -I bond0 `$BOND_IP2 > PingResults.log &' > runPing.sh"
+Start-Sleep -s 5
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
+
+# Wait 60 seconds and read the RTT
+"Get Logs"
+Start-Sleep -s 10
+[decimal]$beforeRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
+if (-not $beforeRTT){
+    "ERROR: No result was logged! Check if Ping was executed!" | Tee-Object -Append -file $summaryLog
+    return $false
+}
+
+"The RTT before saving/pausing VM is $beforeRTT ms" | Tee-Object -Append -file $summaryLog
+Start-Sleep -s 10
+
+#
 # Create an 1 GB file on test VM
 #
 Start-Sleep -s 3
@@ -243,15 +262,20 @@ else {
     return $false    
 }
 
-#
-# Restart network on test VM
-#
-Start-Sleep -s 30
-$retVal = RestartVF $ipv4 $sshKey
-if (-not $retVal)
-{
-    "ERROR: Failed to restart VF on $vmName" | Tee-Object -Append -file $summaryLog
-    return $false
+# Read the RTT again, it should be lower than before
+# We should see a significant imporvement, we'll check for at least 0.1 ms improvement
+Start-Sleep -s 10
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
+Start-Sleep -s 5
+
+[decimal]$beforeRTT = $beforeRTT + 0.04
+[decimal]$afterRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
+
+"The RTT after re-enabling SR-IOV is $afterRTT ms" | Tee-Object -Append -file $summaryLog
+if ($afterRTT -ge $beforeRTT ) {
+    "ERROR: After resuming VM, the RTT value has not lowered enough
+    Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
+    return $false 
 }
 
 #
@@ -267,4 +291,4 @@ if (-not $retVal)
 
 Start-Sleep -s 10
  "File was successfully sent from VM1 to VM2 after resuming VM" | Tee-Object -Append -file $summaryLog
-return $retVal
+return $true
