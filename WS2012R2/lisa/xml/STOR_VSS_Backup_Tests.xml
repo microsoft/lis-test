@@ -5,11 +5,11 @@
     Copyright (c) Microsoft Corporation
 
 
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
 
 
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
@@ -31,7 +31,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LIS_STOR_VSS_Backup_tests_WS2012R2</subject>
+            <subject>LIS STOR VSS Backup tests</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -64,8 +64,6 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-17,VSS-06</param>
-                <param>DriveLetter=C:</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -80,11 +78,9 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-01</param>
-                <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext3</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -99,11 +95,9 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-02</param>
-                <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext4</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -118,11 +112,9 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-03</param>
-                <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=reiserfs</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -137,11 +129,9 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-05</param>
-                <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,Dynamic</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext4</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -153,8 +143,6 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-11</param>
-                <param>DriveLetter=C:</param>
-                <param>snapshotName=ICABase</param>
                 <param>IsoFilename=CDTEST.iso</param>
             </testParams>
             <timeout>2400</timeout>
@@ -167,8 +155,6 @@
             <testScript>setupscripts\STOR_VSS_3Chain_VHD_backup.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-12</param>
-                <param>DriveLetter=C:</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -180,11 +166,9 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_ISCSI.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-13</param>
-                <param>DriveLetter=C:</param>
                 <param>TargetIP=10.7.1.10</param>
                 <param>IQN=iqn.2000-01.com:test-iqn</param>
                 <param>FILESYS=ext4</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -196,9 +180,7 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_DiskStress.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-14</param>
-                <param>DriveLetter=C:</param>
                 <param>iOzoneVers=3_424</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -210,9 +192,7 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-15</param>
-                <param>DriveLetter=C:</param>
                 <param>vmState=Off</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -224,9 +204,7 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-15</param>
-                <param>DriveLetter=C:</param>
                 <param>vmState=Paused</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -241,10 +219,8 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-16</param>
-                <param>DriveLetter=C:</param>
                 <param>SCSI=0,1,PassThrough</param>
                 <param>FILESYS=ext3</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -259,10 +235,8 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_Fail.ps1</testScript> 
             <testParams>
                 <param>TC_COVERED=VSS-18</param>
-                <param>DriveLetter=C:</param>
-                    <param>IDE=0,1,Dynamic</param>
+                <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext3</param>
-                <param>snapshotName=ICABase</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
@@ -275,8 +249,15 @@
             <vmName>VM_NAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>PKI_id_rsa.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>STOR_VSS</suite>
+            <testParams>
+                <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
+                <param>snapshotName=ICABase</param>
+				<!-- The below param represents the backup location
+				Usually this is a separate disk not holding any VM data -->
+				<param>DriveLetter=V:</param>
+            </testParams>
         </vm>
     </VMs>
 </config>
