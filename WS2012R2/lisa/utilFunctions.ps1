@@ -1879,17 +1879,21 @@ function checkHostVersion([XML] $xmlData)
             LogMsg 0 "Error: Could not parse host '$($vm.hvServer)' version: '${hostVersion}'."
             return $False
         }
-        if ($currentVersion.major -ge $dependencyVersion.major)
+        if ($currentVersion.build -ge $dependencyVersion.build)
         {
-            if ($currentVersion.minor -ge $dependencyVersion.minor)
+            if ($currentVersion.major -eq $dependencyVersion.major)
             {
-                if ($currentVersion.build -ge $dependencyVersion.build)
+                if ($currentVersion.minor -ge $dependencyVersion.minor)
                 {
                     continue
                 }
             }
+            elseif ($currentVersion.major -gt $dependencyVersion.major)
+            {
+                continue
+            }
         }
-        LogMsg 0 "Error: $($vm.hvServer) version '$hostVersion' is lower than dependency '$hostVersionDependency'"
+        LogMsg 0 "Error: $($vm.hvServer) build or version '$hostVersion' is lower than dependency '$hostVersionDependency'"
         $retVal = $False
     }
     return $retVal
