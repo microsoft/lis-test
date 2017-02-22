@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -64,6 +64,11 @@
 #
 #######################################################################
 
+DEBUG_LEVEL=3
+CONFIG_FILE=.config
+LINUX_VERSION=$(uname -r)
+START_DIR=$(pwd)
+
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
@@ -71,37 +76,27 @@ function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1}
 }
 
-DEBUG_LEVEL=3
-CONFIG_FILE=.config
-LINUX_VERSION=$(uname -r)
-START_DIR=$(pwd)
-cd ~
-
 #
 # Source the constants.sh file so we know what files to operate on.
 #
-
+cd ~
 source ./constants.sh
 
-dbgprint()
-{
+dbgprint() {
     if [ $1 -le $DEBUG_LEVEL ]; then
         echo "$2"
     fi
 }
 
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
 
-UpdateSummary()
-{
+UpdateSummary() {
     echo $1 >> ~/summary.log
 }
 
-ApplyPatchesAndCompile()
-{
+ApplyPatchesAndCompile() {
 	#
 	# Create the .config file
 	#
@@ -145,8 +140,8 @@ ApplyPatchesAndCompile()
 		dbgprint 3 "Enabling HyperV support in the ${CONFIG_FILE}"
 		# On this first 'sed' command use --in-place=.orig to make a backup
 		# of the original .config file created with 'defconfig'
-		sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=y\nCONFIG_HYPERV_UTILS=y\nCONFIG_HYPERV_BALLOON=y\nCONFIG_HYPERV_STORAGE=y\nCONFIG_HYPERV_NET=y\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=y\nCONFIG_HID_HYPERV_MOUSE=y": ${CONFIG_FILE}
-		sed --in-place -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=y\nCONFIG_HYPERV=y\nCONFIG_HYPERV_UTILS=y\nCONFIG_HYPERV_BALLOON=y\nCONFIG_HYPERV_STORAGE=y\nCONFIG_HYPERV_NET=y\nCONFIG_HYPERV_KEYBOARD=y\nCONFIG_FB_HYPERV=y\nCONFIG_HID_HYPERV_MOUSE=y": ${CONFIG_FILE}
+		sed --in-place=.orig -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=m\nCONFIG_HYPERV=m\nCONFIG_HYPERV_UTILS=m\nCONFIG_HYPERV_BALLOON=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_KEYBOARD=m\nCONFIG_FB_HYPERV=m\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
+		sed --in-place -e s:"# CONFIG_HYPERVISOR_GUEST is not set":"CONFIG_HYPERVISOR_GUEST=m\nCONFIG_HYPERV=m\nCONFIG_HYPERV_UTILS=m\nCONFIG_HYPERV_BALLOON=m\nCONFIG_HYPERV_STORAGE=m\nCONFIG_HYPERV_NET=m\nCONFIG_HYPERV_KEYBOARD=m\nCONFIG_FB_HYPERV=m\nCONFIG_HID_HYPERV_MOUSE=m": ${CONFIG_FILE}
 
 		# Disable kernel preempt support , because of this lot of stack trace is coming and some time kernel does not boot at all.
 		#
@@ -161,10 +156,16 @@ ApplyPatchesAndCompile()
 		sed --in-place -e s:"# CONFIG_REISERFS_FS is not set":"CONFIG_REISERFS_FS=y\nCONFIG_REISERFS_PROC_INFO=y\nCONFIG_REISERFS_FS_XATTR=y\nCONFIG_REISERFS_FS_POSIX_ACL=y\nCONFIG_REISERFS_FS_SECURITY=y": ${CONFIG_FILE}
 
 		#
-		# Enable Tulip network driver support.  This is needed for the "legacy"
+		# Enable Tulip network driver support. This is needed for the "legacy"
 		# network adapter provided by Hyper-V
 		#
 		sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=y\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
+		
+		#
+		# Enable Hyper-V PCI passthrough. This is needed for the SR-IOV and
+		# other PCI passthrough features.
+		#
+		sed --in-place -e s:"# CONFIG_PCI_HYPERV is not set":"CONFIG_PCI_HYPERV=m": ${CONFIG_FILE}
 		
 		# Disable staging
 		sed --in-place -e s:"CONFIG_STAGING=y":"# CONFIG_STAGING is not set": ${CONFIG_FILE}
@@ -316,7 +317,7 @@ if is_fedora ; then
         #UpdateTestState $TestAborted
     fi
 elif is_ubuntu ; then
-    apt-get -y install nfs-common libssl-dev
+    apt-get -y install nfs-common libssl-dev bc
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Unable to install libssl-devel. Aborting..."
         UpdateTestState $TestAborted
@@ -408,7 +409,7 @@ cd ~
 dbgprint 3 "Saving version number of current kernel in oldKernelVersion.txt"
 uname -r > ~/oldKernelVersion.txt
 
-# Grub Modification
+# Grub modification
 grubversion=1
 if [ -e /boot/grub/grub.conf ]; then
         grubfile="/boot/grub/grub.conf"
@@ -449,5 +450,4 @@ fi
 #
 dbgprint 1 "Exiting with state: TestCompleted."
 UpdateTestState "TestCompleted"
-
 exit 0

@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 ########################################################################
@@ -75,7 +74,15 @@ ConfigDebian()
         echo "Unable to install device-mapper-multipath package."
         UpdateTestState $ICA_TESTABORTED
     fi
-
+    
+    rm /etc/multipath.conf
+    touch /etc/multipath.conf
+    service multipath-tools restart
+    sleep 6
+    if [[ $? -ne 0 ]]; then
+        echo "Unable to restart multipath-tools"
+        UpdateTestState $ICA_TESTABORTED
+    fi
 }
 
 ConfigSuse()
@@ -116,7 +123,7 @@ ConfigureMultipath()
             ConfigSuse
         ;;
         *)
-        echo "Platform not supported yet!"
+        echo "Linux distribution is not supported yet!"
         UpdateTestState $ICA_TESTFAILED
         exit 3
         ;;
@@ -139,9 +146,7 @@ fi
 
 #Check for Testcase covered
 if [ ! ${TC_COVERED} ]; then
-    echo "Error: The TC_COVERED variable is not defined."
-    UpdateTestState "TestAborted"
-    exit 1
+    echo "Warning: The TC_COVERED variable is not defined."
 fi
 
 echo "Covers : ${TC_COVERED}"
@@ -152,10 +157,7 @@ echo "Covers : ${TC_COVERED}"
 dos2unix utils.sh
 . utils.sh
 
-multipath > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-    ConfigureMultipath
-fi
+ConfigureMultipath
 
 fcDiskCount=`multipath -ll | grep "sd" | wc -l`
 if [ $? -ne 0 ]; then

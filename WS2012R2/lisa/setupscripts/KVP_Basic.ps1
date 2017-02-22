@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -18,10 +18,9 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-
 <#
 .Synopsis
-    Verify the basic KVP read opeartions work.
+    Verify the basic KVP read operations work.
 .Description
     Ensure the Data Exchange service is enabled for the VM and then
     verify basic KVP read operations can be performed by reading
@@ -32,7 +31,7 @@
     similar to the following:
         <test>
             <testName>KVP_Basic</testName>
-            <testScript>SetupScripts\KvpBasic.ps1</testScript>
+            <testScript>SetupScripts\Kvp_Basic.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
@@ -53,14 +52,7 @@
     None.
 #>
 
-
-param( [String] $vmName,
-       [String] $hvServer,
-       [String] $testParams
-)
-
-
-
+param([String] $vmName, [String] $hvServer, [String] $testParams)
 #######################################################################
 #
 # KvpToDict
@@ -107,13 +99,11 @@ function KvpToDict($rawData)
     return $dict
 }
 
-
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 #
 # Make sure the required arguments were passed
 #
@@ -134,7 +124,6 @@ if (-not $testParams)
     "Error: No test parameters specified"
     return $False
 }
-
 #
 # Debug - display the test parameters so they are captured in the log file
 #
@@ -142,7 +131,6 @@ Write-Output "TestParams : '${testParams}'"
 
 $summaryLog  = "${vmName}_summary.log"
 Del $summaryLog -ErrorAction SilentlyContinue
-
 #
 # Parse the test parameters
 #
@@ -172,7 +160,6 @@ else
 }
 
 echo "Covers : ${tcCovered}" >> $summaryLog
-
 #
 # Verify the Data Exchange Service is enabled for this VM
 #
@@ -198,18 +185,17 @@ if (-not $serviceEnabled)
     "Error: The Data Exchange Service is not enabled for VM '${vmName}'"
     return $False
 }
-
 #
 # Create a data exchange object and collect KVP data from the VM
 #
-$Vm = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
+$Vm = Get-WmiObject -ComputerName $hvServer -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
 if (-not $Vm)
 {
     "Error: Unable to the VM '${VMName}' on the local host"
     return $False
 }
 
-$Kvp = Get-WmiObject -Namespace root\virtualization\v2 -ComputerName $hvServer -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
+$Kvp = Get-WmiObject -ComputerName $hvServer -Namespace root\virtualization\v2 -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
 if (-not $Kvp)
 {
     "Error: Unable to retrieve KVP Exchange object for VM '${vmName}'"
@@ -228,46 +214,33 @@ else
 }
 
 $dict = KvpToDict $kvpData
-
 #
-# write out the kvp data so it appears in the log file
+# Write out the kvp data so it appears in the log file
 #
 foreach ($key in $dict.Keys)
 {
     $value = $dict[$key]
     Write-Output ("  {0,-27} : {1}" -f $key, $value)
 }
-#
-#
+
 if ($Intrinsic)
 {
-	$osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
-	if (-not $osInfo)
-	{
-		"Error: Unable to collect Operating System information"
-		return $Flase
-	}
-	#
-	#Create an array of key names specific to a build of Windows.
-	#Hopefully, These will not change in future builds of Windows Server.
-	#
-	$osSpecificKeyNames = $null
-	switch ($osInfo.BuildNumber)
-	{
-		"9200" { $osSpecificKeyNames = @("OSBuildNumber", "OSVendor", "OSSignature") }
-		"9600" { $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId") }
-		default { $osSpecificKeyNames = $null }
-	}
-	$testPassed = $True
-	foreach ($key in $osSpecificKeyNames)
-	{
-		if (-not $dict.ContainsKey($key))
-		{
-			"Error: The key '${key}' does not exist"
-			$testPassed = $False
-			break
-		}
-	}
+    #
+    #Create an array of key names
+    #
+    $keyName = @("OSVersion", "OSName", "ProcessorArchitecture",
+     "IntegrationServicesVersion", "FullyQualifiedDomainName", "NetworkAddressIPv4",
+      "NetworkAddressIPv6")
+    $testPassed = $True
+    foreach ($key in $keyName)
+    {
+        if (-not $dict.ContainsKey($key))
+        {
+            "Error: The key '${key}' does not exist"
+            $testPassed = $False
+            break
+        }
+    }
 }
 else #Non-Intrinsic
 {

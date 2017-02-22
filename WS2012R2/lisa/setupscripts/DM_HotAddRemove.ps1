@@ -158,6 +158,11 @@ $scriptBlock = {
           echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/HotAddRemove.log 2>&1
           exit 100
         fi
+
+        dos2unix Check_traces.sh
+        chmod +x Check_traces.sh
+        ./Check_traces.sh
+        
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
         echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAddRemove.log 2>&1
@@ -372,7 +377,7 @@ if (-not $vm2)
 # LIS Started VM1, so start VM2
 #
 
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
 
   [int]$i = 0
@@ -403,7 +408,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 }
 
 # just to make sure vm2 started
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
   "Error: $vm2Names never started."
   return $false
@@ -448,7 +453,7 @@ while ($sleepPeriod -gt 0)
 if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm2BeforeAssigned -le 0 -or $vm2BeforeDemand -le 0)
 {
   "Error: vm1 or vm2 reported 0 memory (assigned or demand)."
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $False
 }
 
@@ -464,7 +469,7 @@ $timeout = 30 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "Error: VM ${vm2Name} never started ssh"
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
     return $False
 }
 
@@ -473,7 +478,7 @@ $job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir) ConsumeMemory $ip
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $false
 }
 
@@ -492,14 +497,14 @@ start-sleep -s 90
 if ($vm1Demand -le $vm1BeforeDemand -or $vm1Assigned -le $vm1BeforeAssigned)
 {
   "Error: Memory Demand or Assignation on $vm1Name did not increase after starting stresstestapp"
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $false
 }
 
 if ($vm2Assigned -ge $vm2BeforeAssigned)
 {
   "Error: Memory Demand on $vm2Name did not decrease after starting stresstestapp"
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $false
 }
 
@@ -546,7 +551,7 @@ start-sleep -s 20
 
 
 # stop vm2
-Stop-VM -VMName $vm2name -force
+Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
 # Everything ok
 "Success!"

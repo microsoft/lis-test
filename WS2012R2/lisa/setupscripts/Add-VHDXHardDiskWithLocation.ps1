@@ -275,8 +275,8 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     {
 
         $newVHDSize = ConvertStringToUInt64 $newSize
-        if (! $location.EndsWith("\\")) 
-        { 
+        if (! $location.EndsWith("\\"))
+        {
             $location += "\";
         }
         $vhdName = $location + $vmName + "-" + $controllerType + "-" + $controllerID + "-" + $lun + "-" + $vhdType + ".vhdx"
@@ -375,7 +375,7 @@ foreach ($p in $params)
 
     $diskArgs = $temp[1].Trim().Split(',')
 
-    if ($diskArgs.Length -ne 6)
+    if ($diskArgs.Length -lt 5)
     {
         "Error: Incorrect number of arguments: $p"
         $retVal = $false
@@ -387,7 +387,6 @@ foreach ($p in $params)
     $vhdType = $diskArgs[2].Trim()
 
     $sectorSize = 512
-    $VHDxSize = $global:MinDiskSize
     $sectorSize = $diskArgs[3].Trim()
     if ($sectorSize -ne "4096" -and $sectorSize -ne "512")
     {
@@ -395,7 +394,25 @@ foreach ($p in $params)
         return $False
     }
     $VHDxSize = $diskArgs[4].Trim()
-    $location = $diskArgs[5].Trim()
+    # Added default location support if location param not set
+    $hostInfo = Get-VMHost -ComputerName $hvServer
+    if (-not $hostInfo)
+    {
+        "Error: Unable to collect Hyper-V settings for ${hvServer}"
+        return $false
+    }
+    else
+    {
+        $location = $hostInfo.VirtualHardDiskPath
+        if (-not $location.EndsWith("\"))
+        {
+            $location += "\"
+        }
+    }
+    if ($diskArgs.Length -eq 6)
+    {
+        $location = $diskArgs[5].Trim()
+    }
 
     if (@("Fixed", "Dynamic", "PassThrough") -notcontains $vhdType)
     {

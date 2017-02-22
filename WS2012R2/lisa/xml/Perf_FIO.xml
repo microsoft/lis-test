@@ -4,6 +4,9 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
         <email>
             <recipients>
                 <to>myself@mycompany.com</to>
@@ -12,6 +15,7 @@
             <subject>LIS Performance Test Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
+        <imageStoreDir>path/to/vhdx</imageStoreDir>
     </global>
 
     <testSuites>
@@ -27,17 +31,21 @@
          <test> 
             <testName>Performance_FIO</testName> 
             <testScript>Performance_FIO.sh</testScript>
-            <files>remote-scripts/ica/Performance_FIO.sh,Tools/fio-2.1.10.tar.gz,tools/lis-ssd-test.fio</files>
+            <files>remote-scripts/ica/Performance_FIO.sh,tools/fio-2.1.10.tar.gz,tools/lis-ssd-test.fio</files>
+            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
-            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript> 
-            <timeout>18000</timeout> 
+             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
+             <postTest>Infrastructure\Analyze-FIOResults.ps1</postTest>
+<!--             <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
+ -->            <timeout>18000</timeout>
             <testParams>  
                 <param>SCSI=0,0,Fixed,60GB</param> 
                 <param>TOTAL_DISKS=1</param> 
                 <param>TEST_DEVICE1=/dev/sdb</param>  
                 <param>FILE_NAME=fio-2.1.10.tar.gz</param>
-                <param>SnapshotName=ICABase</param> 
-                <param>FIO_SCENARIO_FILE=lis-ssd-test.fio</param>
+<!--                 <param>SnapshotName=ICABase</param> -->
+               <param>FIO_SCENARIO_FILE=lis-ssd-test.fio</param>
+               <param>TestLogDir=/path/to/log/dir/</param>
             </testParams> 
             <uploadFiles>
                 <file>FIOLog-4k.log</file>
@@ -53,14 +61,21 @@
         </test>
     </testCases>
     
-    
     <VMs>
         <vm>
-            <hvServer>localhost</hvServer>
+            <hvServer>hostname</hvServer>
             <vmName>VM-Under-Test</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <hardware>
+               <generation>1</generation>
+               <create>true</create>
+               <numCPUs>12</numCPUs>
+               <memSize>8192</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,Vm.Enterprise#1</nic>
+            </hardware>
             <suite>FIO</suite>
         </vm>
     </VMs>

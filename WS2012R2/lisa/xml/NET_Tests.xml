@@ -54,8 +54,10 @@
                 <suiteTest>VlanTagging</suiteTest>
                 <suiteTest>VlanTrunking</suiteTest>
                 <suiteTest>Network_Hang_Vxlan</suiteTest>
+                <suiteTest>CopyFileScp</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
+                <suiteTest>HotAddRemoveNic</suiteTest>
                 <suiteTest>BootNoNicHotAddNic</suiteTest>
             </suiteTests>
         </suite>
@@ -384,16 +386,50 @@
             <timeout>800</timeout>
         </test>
 
+        <test>
+            <testName>CopyFileScp</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
+            <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>3000</timeout>
+            <testParams>
+                <param>TC_COVERED=NET-19</param>
+                <param>SCSI=1,0,Dynamic,512,15GB</param>
+                    <param>Type=Fixed</param>
+                    <param>SectorSize=512</param>
+                    <param>DefaultSize=20GB</param>
+            </testParams>
+        </test>
+
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>HotAddMultiNIC</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+            </setupScript>
             <testScript>SetupScripts\NET_HotAddMultiNIC.ps1</testScript>
-            <files>remote-scripts\ica\NET_VerifyHotAddMultiNIC.sh</files>
+            <files>remote-scripts\ica\NET_VerifyHotAddMultiNIC.sh,remote-scripts\ica\utils.sh</files>
             <timeout>1800</timeout>
             <onError>Continue</onError>
-            <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=NET-16</param>
+                <param>Switch_Name=External</param>
+            </testparams>
+        </test>
+
+        <!-- The following test requires a Gen 2 VM -->
+        <test>
+            <testName>HotAddRemoveNIC</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+            </setupScript>
+            <testScript>SetupScripts\NET_HotAddRemoveNIC.ps1</testScript>
+            <files>remote-scripts\ica\NET_VerifyHotAddMultiNIC.sh,remote-scripts\ica\utils.sh</files>
+            <timeout>1800</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>TC_COVERED=NET-17</param>
                 <param>Switch_Name=External</param>
             </testparams>
         </test>
@@ -407,7 +443,7 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
-                <param>TC_COVERED=NET-17</param>
+                <param>TC_COVERED=NET-18</param>
                 <param>Switch_Name=External</param>
             </testparams>
         </test>

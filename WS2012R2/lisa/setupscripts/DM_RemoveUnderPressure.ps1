@@ -161,6 +161,11 @@ $scriptBlock = {
           echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/RemoveUnderPressure.log 2>&1
           exit 100
         fi
+
+        dos2unix Check_traces.sh
+        chmod +x Check_traces.sh
+        ./Check_traces.sh
+        
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
         echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/RemoveUnderPressure.log 2>&1
@@ -449,7 +454,7 @@ if ($vm3MemWeight -lt $vm2MemWeight)
 # LIS Started VM1, so start VM2
 #
 
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
 
   [int]$i = 0
@@ -480,7 +485,7 @@ if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
 }
 
 # just to make sure vm2 started
-if (Get-VM -Name $vm2Name |  Where { $_.State -notlike "Running" })
+if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
   "Error: $vm2Names never started."
   return $false
@@ -528,7 +533,7 @@ while ($sleepPeriod -gt 0)
 if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0)
 {
   "Error: vm1 or vm2 reported 0 memory (assigned or demand)."
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $False
 }
 
@@ -555,7 +560,7 @@ $timeout = 30 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
     "Error: VM ${vm2Name} never started ssh"
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
     return $False
 }
 
@@ -582,7 +587,7 @@ $job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $memMB, $memChunk
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $false
 }
 
@@ -590,7 +595,7 @@ $job2 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $memMB, $memChunk
 if (-not $?)
 {
   "Error: Unable to start job for creating pressure on $vm1Name"
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $false
 }
 
@@ -614,14 +619,14 @@ for ($i=0; $i -lt $tries; $i++)
   if ($job1.State -like "Completed")
   {
     "Error: VM1 $vm1Name finished the memory stresstest before VM3 started"
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
     return $false
   }
 
   if ($job2.State -like "Completed")
   {
     "Error: VM2 $vm2Name finished the memory stresstest before VM3 started"
-    Stop-VM -VMName $vm2name -force
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
     return $false
   }
 
@@ -642,7 +647,7 @@ for ($i=0; $i -lt $tries; $i++)
 if ($i -ge $tries)
 {
   "Error: Unable to start VM3 after $tries attempts"
-  Stop-VM -VMName $vm2name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
   return $false
 }
 
@@ -673,8 +678,8 @@ while ($true)
     if (-not $retVal[-1])
     {
       "Error: Consume Memory script returned false on VM1 $vm1Name"
-      Stop-VM -VMName $vm2name -force
-      Stop-VM -VMName $vm3name -force
+      Stop-VM -VMName $vm2name -ComputerName $hvServer -force
+      Stop-VM -VMName $vm3name -ComputerName $hvServer -force
       return $false
     }
 
@@ -688,8 +693,8 @@ while ($true)
     if (-not $retVal[-1])
     {
       "Error: Consume Memory script returned false on VM2 $vm2Name"
-      Stop-VM -VMName $vm2name -force
-      Stop-VM -VMName $vm3name -force
+      Stop-VM -VMName $vm2name -ComputerName $hvServer -force
+      Stop-VM -VMName $vm3name -ComputerName $hvServer -force
       return $false
     }
     $diff = $totalTimeout - $timeout
@@ -724,8 +729,8 @@ while ($true)
 if ($vm1DeltaAssigned -le 0 -and $vm2DeltaAssigned -le 0)
 {
   "Error: Neither $vm1Name, nor $vm2Name didn't lower their assigned memory in response to $vm3Name starting"
-  Stop-VM -VMName $vm2name -force
-  Stop-VM -VMName $vm3name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
+  Stop-VM -VMName $vm3name -ComputerName $hvServer -force
   return $false
 }
 
@@ -755,14 +760,14 @@ while ($sleepPeriod -gt 0)
 if ($vm1EndAssigned -le 0 -or $vm1EndDemand -le 0 -or $vm2EndAssigned -le 0 -or $vm2EndDemand -le 0 -or $vm3EndAssigned -le 0 -or $vm3EndDemand -le 0)
 {
   "Error: One of the VMs reports 0 memory (assigned or demand) after vm3 $vm3Name started"
-  Stop-VM -VMName $vm2name -force
-  Stop-VM -VMName $vm3name -force
+  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
+  Stop-VM -VMName $vm3name -ComputerName $hvServer -force
   return $false
 }
 
 # stop vm2 and vm3
-Stop-VM -VMName $vm2name -force
-Stop-VM -VMName $vm3name -force
+Stop-VM -VMName $vm2name -ComputerName $hvServer -force
+Stop-VM -VMName $vm3name -ComputerName $hvServer -force
 
 # Everything ok
 "Success!"

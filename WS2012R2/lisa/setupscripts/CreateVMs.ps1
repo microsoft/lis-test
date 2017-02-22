@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -21,6 +21,7 @@
 
 <#
 .Synopsis
+    Automation to create a VM based on a set of parameters.
     
 .Description
     For a VM to be created, the VM definition in the .xml file must
@@ -30,7 +31,7 @@
    and set to the value "true".  The remaining tags are optional.
 
    Before creating the VM, the script will check to make sure all
-   required tags are present.  It will also check the values of the
+   required tags are present. It will also check the values of the
    settings.  If the exceen the HyperV's resources, a warning message
    will be displayed, and default values will override the specified
    values.
@@ -62,6 +63,11 @@
 
        <disableDiff> When set to true, use parentVhd as the boot disk.
                      Otherwise, a differencing disk is used instead.
+
+       <isCluster>   When set to true, the vm will be created on the cluster
+                     storage. The vhd will also be copied in the cluster
+                     storage. Finally, the vm will be configured for 
+                     high availability
 
        <nic>         Defines a NIC to add to the VM. The VM must have
                      at least one <nic> tag, but multiple <nic> are
@@ -98,7 +104,7 @@
            <create>true</create>
            <numCPUs>2</numCPUs>
            <memSize>1024</memSize>
-           <parentVhd>D:\HyperV\ParentVHDs\Fedora13.vhd</parentVhd>
+           <parentVhd>D:\HyperV\ParentVHDs\distro.vhd</parentVhd>
            <nic>Legacy,InternalNet</nic>
            <nic>VMBus,ExternalNet</nic>
            <generation>1</generation>
@@ -156,6 +162,14 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     # Delete the VM - make sure it does exist
     #
     $vm = Get-VM $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
+
+    # Delete from cluster if it is already present
+    if ( $vm.hardware.isCluster -eq "True") {
+        $group = Get-ClusterGroup
+        if ( $group.name -contains $vmName) {
+            Remove-ClusterGroup -VMId $vm.VMId -RemoveResources -Force
+        }
+    }
 
     if ($vm)
     {
@@ -217,13 +231,25 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
 
     #
     # If the VM already exists, delete it
+    # If isCluster tag is set to true, make sure that a cluster is available on the server
     #
-    $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+    if ( $vm.hardware.isCluster -eq "True") {
+        Get-Cluster 
+        if ($? -eq $False){
+            "Error: Server $hvServer doesn't have a cluster set up"
+            return $False  
+        }
+        $clusterDir = Get-ClusterSharedVolume
+        $vhdDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
+    } 
+    else {
+        $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+    }
+
     $vhdName = "${vmName}.vhdx"
     $vhdFilename = Join-Path $vhdDir $vhdName
-
     DeleteVmAndVhd $vmName $hvServer $vhdFilename 
- 
+
     #
     # Make sure the future boot disk .vhd file does not already exist
     #
@@ -551,11 +577,41 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         Write-host "Required parameters check done, creating VM..."
         
         $vmGeneration = 1
-        if ($vm.hardware.generation) { $vmGeneration = [int16]$vm.hardware.generation }
+        if ($vm.hardware.generation) {
+            $vmGeneration = [int16]$vm.hardware.generation
+        }
 
-        $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
-        if ($null -eq $newVm)
-        {
+        if ( $vm.hardware.isCluster -eq "True") {
+            $clusterDir = Get-ClusterSharedVolume
+            $vmDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
+        }
+
+        # WS 2012, 2008 R2 do not support generation 2 VMs
+        $OSInfo = get-wmiobject Win32_OperatingSystem -computerName $vm.hvServer
+        if ( ($OSInfo.Caption -match '.2008 R2.') -or 
+             ($OSInfo.Caption -match '.2012 [^R2].')
+             )
+            {
+                if ( $vm.hardware.isCluster -eq "True") {
+                    $newVm = New-VM -Name $vmName -ComputerName $hvServer -Path $vmDir
+                }
+                else {
+                    $newVm = New-VM -Name $vmName -ComputerName $hvServer
+                }
+            }
+        else
+            {
+                if ( $vm.hardware.isCluster -eq "True") {
+                    $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration -Path $vmDir
+                }
+                else {
+                    $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
+                }
+                # Enable Guest integration services - not enabled by default
+                Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
+            }
+            
+        if ($null -eq $newVm) {
             Write-Error "Error: Unable to create the VM named $($vm.vmName)."
             return $false
         }
@@ -563,8 +619,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # Disable secure boot on VM unless explicitly told to enable it on Gen2 VMs
         #
-        if (($newVM.Generation -eq 2))
-        {
+        if (($newVM.Generation -eq 2)) {
             if ($vm.hardware.secureBoot -eq "true")
             {
                 Set-VMFirmware -VM $newVm -EnableSecureBoot On
@@ -626,8 +681,12 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if ($uriPath.IsUnc)
         {
             $extension = (Get-Item "${parentVhd}").Extension
-
-            $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            if ( $vm.hardware.isCluster -eq "True") {
+                $clusterDir = Get-ClusterSharedVolume
+                $vhdDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
+            }else {          
+                $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            }
             $dstPath = Join-Path $vhdDir "${vmName}${extension}"
             $dstDrive = $dstPath.Substring(0,1)
             $dstlocalPath = $dstPath.Substring(3)
@@ -781,6 +840,19 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 DeleteVmAndVhd $vmName $hvServer $vhdFilename
                 return $False
             } 
+        }
+        
+        #
+        # Configure VM for High Availability
+        #
+        if( $vm.hardware.isCluster -eq "True"){
+            Add-ClusterVirtualMachineRole -VirtualMachine $vmName
+            if ($? -eq $False)
+            {
+                Write-Error "Error: High Availability configure for ${vmName} failed. The VM was not created"
+                DeleteVmAndVhd $vmName $hvServer $vhdFilename
+                return $False
+            }
         }
         
         Write-Host "Info: VM created successfully"

@@ -43,6 +43,17 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
+function CheckForError()
+{   while true; do
+    a=$(grep -i "Call Trace" /var/log/messages)
+    if [[ -n $a ]]; then
+	LogMsg "Warning: System get Call Trace in /var/log/messages"
+        echo "Warning: System get Call Trace in /var/log/messages" >> ~/summary.log
+	break
+    fi
+    done
+ }
+
 IntegrityCheck(){
 targetDevice=$1
 testFile="/dev/shm/testsource"
@@ -57,8 +68,8 @@ if [ "$targetSize" -gt "$_gb" ] ; then
  fi
 
 blocks=$((blocks-1))
- mount $targetDevice /mnt/
- targetDevice="/mnt/1"
+mount $targetDevice /mnt/
+targetDevice="/mnt/1"
 LogMsg "Creating test data file $testfile with size $blockSize"
 echo "We will fill the device $targetDevice (of size $targetSize) with this data (in $blocks) and then will check if the data is not corrupted."
 echo "This will erase all data in $targetDevice"
@@ -91,6 +102,94 @@ echo "Data integrity test on ${blocks} blocks on drive $1 : success " >> ~/summa
 umount /mnt/
 rm -f $testFile
 }
+
+
+function TestFileSystem()
+{
+    driveName=$1
+    fs=$2
+
+    LogMsg "Start testing filesystem: $fs"
+    fdisk -l $driveName > fdisk.dat 2> /dev/null
+    # Format the Disk and Create a file system , Mount and create file on it .
+    (echo d;echo;echo w)|fdisk  $driveName
+    (echo n;echo p;echo 1;echo;echo;echo w)|fdisk  $driveName
+    if [ "$?" = "0" ]; then
+        sleep 5
+       # IntegrityCheck $driveName
+        mkfs.$fs  ${driveName}1 -f
+        if [ "$?" = "0" ]; then
+            LogMsg "mkfs.$fs   ${driveName}1 successful..."
+            mount   ${driveName}1 /mnt
+                    if [ "$?" = "0" ]; then
+                        LogMsg "Drive mounted successfully..."
+                        mkdir /mnt/Example
+                        dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
+                        if [ "$?" = "0" ]; then
+                            LogMsg "Successful created directory /mnt/Example"
+                            LogMsg "Listing directory: ls /mnt/Example"
+                            ls /mnt/Example
+                            rm -f /mnt/Example/data
+                            df -h
+                            umount /mnt
+                                if [ "$?" = "0" ]; then
+                                    LogMsg "Drive unmounted successfully..."
+                                fi
+                        LogMsg "Disk test's completed for ${driveName}1 with filesystem ${fs}"
+                        echo "Disk test's is completed for ${driveName}1 with filesystem ${fs}" >> ~/summary.log
+                    else
+                        LogMsg "Error in creating directory /mnt/Example..."
+                        echo "Error in creating directory /mnt/Example" >> ~/summary.log
+                        UpdateTestState $ICA_TESTFAILED
+                        exit 60
+                    fi
+                else
+                    LogMsg "Error in mounting drive..."
+                    echo "Drive mount : Failed" >> ~/summary.log
+                    UpdateTestState $ICA_TESTFAILED
+                    exit 70
+                fi
+           else
+                LogMsg "Error in creating file system.."
+                echo "Creating Filesystem : Failed" >> ~/summary.log
+                UpdateTestState $ICA_TESTFAILED
+                exit 80
+        fi
+        else
+            LogMsg "Error in executing fdisk  ${driveName}1"
+            echo "Error in executing fdisk  ${driveName}1" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 90
+    fi
+
+
+    # Perform Data integrity test
+
+    IntegrityCheck ${driveName}1
+
+    # The fdisk output appears as one word on each line of the file
+    # The 6th element (index 5) is the disk size in bytes
+    #
+    elementCount=0
+    for word in $(cat fdisk.dat)
+    do
+        elementCount=$((elementCount+1))
+        if [ $elementCount == 5 ];
+        then
+            if [ $word -ne $FixedDiskSize -a $word -ne $DynamicDiskSize -a $word -ne $Disk4KSize ];
+            then
+                echo "Error: $driveName has an unknown disk size: $word"
+		echo "Error: $driveName has an unknown disk size: $word" >> ~/summary.log
+		UpdateTestState $ICA_TESTABORTED
+                exit 1
+            fi
+         fi
+    done
+
+
+
+}
+
 
 # Source the constants file
 if [ -e ~/${CONSTANTS_FILE} ]; then
@@ -187,10 +286,17 @@ fi
 # For each drive, run fdisk -l and extract the drive
 # size in bytes.  The setup script will add Fixed
 #.vhd of size 1GB, and Dynamic .vhd of 137GB
+# If does not define file system type, use ext3 as default.
 #
 FixedDiskSize=1073741824
 Disk4KSize=4096
 DynamicDiskSize=136365211648
+if  [ ! ${filesystem} ];
+then filesystem=(ext3)
+fi
+
+# Check for call trace log
+CheckForError &
 
 for driveName in /dev/sd*[^0-9];
 do
@@ -200,84 +306,22 @@ do
     if [ ${driveName} = "/dev/sda" ]; then
         continue
     fi
+  for fs in "${fileSystems[@]}"; do
+        LogMsg "Start testing filesystem: $fs"
+        StartTst=$(date +%s.%N)
+        command -v mkfs.$fs
+        if [ $? -ne 0 ]; then
+            echo "File-system tools for $fs not present. Skipping filesystem $fs.">> ~/summary.log
+            LogMsg "File-system tools for $fs not present. Skipping filesystem $fs."
 
-    fdisk -l $driveName > fdisk.dat 2> /dev/null
-    # Format the Disk and Create a file system , Mount and create file on it .
-    (echo d;echo;echo w)|fdisk  $driveName
-    (echo n;echo p;echo 1;echo;echo;echo w)|fdisk  $driveName
-    if [ "$?" = "0" ]; then
-    sleep 5
-
-   # IntegrityCheck $driveName
-    mkfs.ext3  ${driveName}1
-    if [ "$?" = "0" ]; then
-        LogMsg "mkfs.ext3   ${driveName}1 successful..."
-        mount   ${driveName}1 /mnt
-                if [ "$?" = "0" ]; then
-                LogMsg "Drive mounted successfully..."
-                mkdir /mnt/Example
-                dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
-                if [ "$?" = "0" ]; then
-                    LogMsg "Successful created directory /mnt/Example"
-                    LogMsg "Listing directory: ls /mnt/Example"
-                    ls /mnt/Example
-                    rm -f /mnt/Example/data
-                    df -h
-                    umount /mnt
-                    if [ "$?" = "0" ]; then
-                        LogMsg "Drive unmounted successfully..."
-                 fi
-                    LogMsg "Disk test's completed for ${driveName}1"
-                    echo "Disk test's is completed for ${driveName}1" >> ~/summary.log
-                else
-                    LogMsg "Error in creating directory /mnt/Example..."
-                    echo "Error in creating directory /mnt/Example" >> ~/summary.log
-                    UpdateTestState $ICA_TESTFAILED
-                    exit 60
-                fi
-            else
-                LogMsg "Error in mounting drive..."
-                echo "Drive mount : Failed" >> ~/summary.log
-                UpdateTestState $ICA_TESTFAILED
-                exit 70
-            fi
         else
-            LogMsg "Error in creating file system.."
-            echo "Creating Filesystem : Failed" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 80
+            TestFileSystem $driveName $fs
+            EndTst=$(date +%s.%N)
+            DiffTst=$(echo "$EndTst - $StartTst" | bc)
+            LogMsg "End testing filesystem: $fs; Test duration: $DiffTst seconds."
         fi
-    else
-        LogMsg "Error in executing fdisk  ${driveName}1"
-        echo "Error in executing fdisk  ${driveName}1" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 90
-    fi
 
-    # Perform Data integrity test
-
-    IntegrityCheck ${driveName}1
-
-    # The fdisk output appears as one word on each line of the file
-    # The 6th element (index 5) is the disk size in bytes
-    #
-    elementCount=0
-    for word in $(cat fdisk.dat)
-    do
-        elementCount=$((elementCount+1))
-        if [ $elementCount == 5 ];
-        then
-            if [ $word -ne $FixedDiskSize -a $word -ne $DynamicDiskSize -a $word -ne $Disk4KSize ];
-            then
-                echo "Error: $driveName has an unknown disk size: $word"
-		echo "Error: $driveName has an unknown disk size: $word" >> ~/summary.log
-		UpdateTestState $ICA_TESTABORTED
-                exit 1
-            fi
-         fi
-    done
+  done
 done
-
 UpdateTestState $ICA_TESTCOMPLETED
-
 exit 0

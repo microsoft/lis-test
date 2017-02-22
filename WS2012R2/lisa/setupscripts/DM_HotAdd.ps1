@@ -157,6 +157,11 @@ $scriptBlock = {
           echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/HotAdd.log 2>&1
           exit 100
         fi
+
+        dos2unix Check_traces.sh
+        chmod +x Check_traces.sh
+        ./Check_traces.sh
+        
         __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
         __totalMem=`$((__totalMem/1024))
         echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1

@@ -194,8 +194,6 @@ if [ "${TC_COVERED:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter TC_COVERED is not defined in ${CONSTANTS_FILE}"
     echo $msg
     echo $msg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-   exit 30
 fi
 
 #
@@ -207,7 +205,7 @@ LogMsg "Installing dependencies"
 case $(LinuxRelease) in
 	"SLES")
 		InstallSLESDependencies;;
-	"UBUNTU")
+	"UBUNTU" | "DEBIAN")
 		InstallUbuntuDependencies;;
 	"RHEL")
 		InstallRHELDependencies;;
@@ -268,5 +266,4 @@ LogMsg "Updating summary log"
 grep -A 5 "Total Tests" $LTP_RESULTS >> ~/summary.log
 
 UpdateTestState $ICA_TESTCOMPLETED
-
 exit 0

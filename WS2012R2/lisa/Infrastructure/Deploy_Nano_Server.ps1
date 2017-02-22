@@ -58,10 +58,6 @@
     .\deployNano.ps1 -computerName "Server01" -computerNameNew "Nano-Server" -adminPassword "somepassword" -domainName "domain1" -isoFolder "\\path\to\isoFolder" -users "user01 user02 user03" "-workspacePath "C:\workspace"
 #>
 
-
-
-#
-
 param([string] $computerName, [string] $computerNameNew, [string] $adminPassword, [string] $domainName, [string] $isoFolder, [string] $users, [string] $workspacePath)
 
 if (-not $isoFolder)
@@ -93,9 +89,8 @@ if (-not $workspacePath)
 Write-Host "$workspacePath is the workspace path"
 Write-Host "The path of the ISO file is $isoPath"
 
-
 ###############################################################################
-##Copying ISO to workspace path
+## Copying ISO to workspace path
 ###############################################################################
 Write-Host "Copying ISO to workspace directory $workspacePath"
 Copy-Item -Path $isoPath -Destination $workspacePath -Force
@@ -162,7 +157,7 @@ if (-not $credentials)
 }
 
 ###############################################################################
-##Add the remote server on which Nano will be deployed to the trusted hosts
+## Add the remote server on which Nano will be deployed to the trusted hosts
 ###############################################################################
 Set-Item WSMan:\localhost\Client\TrustedHosts $computerName -Force
 if (-not $?)
@@ -180,9 +175,8 @@ if (-not $session)
     return $false
 }
 
-
 ###############################################################################
-##Select the default drive. The image with the Nano Server will be coped here
+## Select the default drive. The image with the Nano Server will be copied here
 ###############################################################################
 
 $defaultVhdPath = Invoke-Command -Session $session -ScriptBlock {
@@ -200,7 +194,7 @@ $defaultDrive = $defaultVhdPath.Substring(0,2)
 
 
 ###############################################################################
-##Mount ISO and import Nano Server Image Generator module
+## Mount ISO and import Nano Server Image Generator module
 ###############################################################################
 
 Write-Host "Mounting ISO"
@@ -216,7 +210,8 @@ $driveLetter = Get-DiskImage -ImagePath $isoPath | Get-Volume
 $driveLetter = $driveLetter.DriveLetter
 $driveLetter = $driveLetter + ":"
 
-Import-Module $driveLetter\NanoServer\NanoServerImageGenerator.psm1
+#Import-Module $driveLetter\NanoServer\NanoServerImageGenerator.psm1
+Import-Module $driveLetter\NanoServer\NanoServerImageGenerator\NanoServerImageGenerator.psm1
 if (-not $?)
 {
     Write-Host  "Could not import the NanoServerImageGenerator module"
@@ -224,24 +219,24 @@ if (-not $?)
 }
 Write-Host "Successfully imported NanoServerImageGenerator module"
 
-
 ###############################################################################
-##If set, try to join the new server to a domain
+## If set, try to join the new server to a domain
 ###############################################################################
 
 $domainParam = $null
 
-if (&domainName)
+if ($domainName)
 {
     Write-Host "Provisioning $computerNameNew in the domain"
-    djoin  /provision /domain &domainName /machine $computerNameNew /savefile $workspacePath\odjblob /REUSE
+    djoin  /provision /domain $domainName /machine $computerNameNew /savefile $workspacePath\odjblob /REUSE
     if (-not $?)
     {
         Write-Host  "Could not provision $computerNameNew to the domain"
         return $false
     }
 
-    $domainParam = "-DomainBlobPath $workspacePath\odjblob"
+    $domainFile = "${workspacePath}\odjblob"
+    $domainParam = @{DomainBlobPath=$domainFile}
     Write-Host "Successfully provisioned $computerNameNew in the $domainName domain"
 }
 
@@ -253,7 +248,7 @@ $vhdName = "nanoVHD" + $buildInfo +".vhdx"
 ###############################################################################
 
 Write-Host "Creating the Nano Server VHD"
-New-NanoServerImage -MediaPath $driveLetter -BasePath $workspacePath\Base -TargetPath $workspacePath\NanoServer\$vhdName -AdministratorPassword $securePassword $domainParam -OEMDrivers -Compute -Clustering -EnableRemoteManagementPort
+New-NanoServerImage -DeploymentType host -Edition Datacenter -MediaPath $driveLetter -BasePath $workspacePath\Base -TargetPath $workspacePath\NanoServer\$vhdName -AdministratorPassword $securePassword @domainParam -OEMDrivers -Compute -Clustering -EnableRemoteManagementPort
 if (-not $?)
 {
     Write-Host  "Could not create the new VHD with the Nano server"
@@ -263,7 +258,7 @@ Write-Host "VHD successfully created"
 
 
 ###############################################################################
-##Copy the newly created vhdx to the secified existing server
+## Copy the newly created vhdx to the secified existing server
 ###############################################################################
 
 net use z:
@@ -301,7 +296,7 @@ if (-not $?)
 
 
 ###############################################################################
-##Set Nano vhdx as the default boot device
+## Set Nano vhdx as the default boot device
 ###############################################################################
 
 $defaultLocalDrive = $defaultDrive.Replace('$',':')
@@ -346,7 +341,7 @@ if (-not $?)
     return $false
 }
 
-Write-Host "Successfully added $computerName to the TrustedHosts"
+Write-Host "Successfully added $computerNameNew to the TrustedHosts"
 
 $session = New-PSSession -credential $credentials -ComputerName $computerNameNew
 if (-not $session)
@@ -355,9 +350,8 @@ if (-not $session)
     return $false
 }
 
-
 ###############################################################################
-##Add users to the administrator list
+# #Add users to the administrator list
 ###############################################################################
 
 if ($users)
@@ -378,5 +372,4 @@ if (-not $?)
 }
 
 Write-Host "Successfully deployed Nano Server $buildInfo. Server Name is: $computerNameNew"
-
 return $true

@@ -35,7 +35,7 @@ UpdateTestState()
 
 function ConfigureVxlan ()
 {
-    ip link add vxlan0 type vxlan id 999 local $3 remote $4 dev $1
+    ip link add vxlan0 type vxlan id 999 local $3 group $4 dev $1
     if [ 0 -ne $? ]; then
         msg="Failed to add vxlan0."
         LogMsg "$msg"
@@ -93,9 +93,10 @@ function CreateTestFolder ()
 #####################################################################################
 # MAIN SCRIPT
 #####################################################################################
+interface="eth1"
 ip_local=$1
-ip_remote=$2
-vm=$3
+vm=$2
+ip_group=`ip maddress show $interface | grep inet | head -n1 | awk '{print $2}'`
 
 # Convert eol
 dos2unix utils.sh
@@ -134,9 +135,8 @@ esac
 
 
 # configure vxlan
-interface="eth1"
 
-ConfigureVxlan $interface $vm $ip_local $ip_remote
+ConfigureVxlan $interface $vm $ip_local $ip_group
 
 if [ $vm == "local" ]; then
     CreateTestFolder

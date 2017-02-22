@@ -32,7 +32,7 @@
 	<test>
             <testName>LTPBasic</testName>
             <testScript>LTP_test.sh</testScript>
-            <files>remote-scripts/ica/LTP_test.sh</files>
+            <files>remote-scripts/ica/LTP_test.sh,remote-scripts\ica\utils.sh</files>
             <timeout>7200</timeout>
             <onError>Continue</onError>
             <testparams>

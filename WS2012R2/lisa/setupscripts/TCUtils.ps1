@@ -1,4 +1,4 @@
-﻿########################################################################
+########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
@@ -27,7 +27,6 @@
     Test Case Utility functions.  This is a collection of function
     commonly used by PowerShell test case scripts and setup scripts.
 #>
-
 
 #####################################################################
 #
@@ -97,10 +96,10 @@ function GetFileFromVM([String] $ipv4, [String] $sshKey, [string] $remoteFile, [
     return $retVal
 }
 
-
 #######################################################################
 #
 # GetIPv4()
+#
 #######################################################################
 function GetIPv4([String] $vmName, [String] $server)
 {
@@ -138,7 +137,6 @@ function GetIPv4([String] $vmName, [String] $server)
 
     return $addr
 }
-
 
 #######################################################################
 #
@@ -211,7 +209,6 @@ function GetIPv4ViaHyperV([String] $vmName, [String] $server)
     Write-Error -Message "GetIPv4ViaHyperV: No IPv4 address found on any NICs for VM ${vmName}" -Category ObjectNotFound -ErrorAction SilentlyContinue
     return $null
 }
-
 
 #######################################################################
 #
@@ -314,7 +311,6 @@ function GetIPv4ViaICASerial( [String] $vmName, [String] $server)
     return $ipv4
 }
 
-
 #######################################################################
 #
 # GetIPv4ViaKVP()
@@ -400,9 +396,7 @@ function GetIPv4ViaKVP( [String] $vmName, [String] $server)
 # GenerateIpv4()
 #
 #######################################################################
-
-
-function GenerateIpv4($tempipv4)
+function GenerateIpv4($tempipv4, $oldipv4)
 {
     <#
     .Synopsis
@@ -412,11 +406,18 @@ function GenerateIpv4($tempipv4)
     .Parameter tempipv4
         The ipv4 address on which the new ipv4 will be based and generated in the same subnet
     .Example
-        GenerateIpv4 $testIPv4Address
+        GenerateIpv4 $testIPv4Address $oldipv4
     #>
     [int]$i= $null
     [int]$check = $null
-    [int]$octet = 102
+    if ($oldipv4 -eq $null){
+        [int]$octet = 102   
+    }
+    else {
+        $oldIpPart = $oldipv4.Split(".")
+        [int]$octet  = $oldIpPart[3]
+    }
+
     $ipPart = $tempipv4.Split(".")
     $newAddress = ($ipPart[0]+"."+$ipPart[1]+"."+$ipPart[2])
 
@@ -431,7 +432,6 @@ function GenerateIpv4($tempipv4)
 
     return $splitip.ToString()
 }
-
 
 #######################################################################
 #
@@ -506,7 +506,6 @@ function GetKVPEntry( [String] $vmName, [String] $server, [String] $kvpEntryName
     return $null
 }
 
-
 #######################################################################
 #
 # GetRemoteFileInfo()
@@ -552,7 +551,6 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
 
     return $fileInfo
 }
-
 
 #####################################################################
 #
@@ -614,7 +612,6 @@ function SendCommandToVM([String] $ipv4, [String] $sshKey, [string] $command)
 
     return $retVal
 }
-
 
 #####################################################################
 #
@@ -694,7 +691,6 @@ function SendFileToVM([String] $ipv4, [String] $sshkey, [string] $localFile, [st
 
     return $retVal
 }
-
 
 #######################################################################
 #
@@ -782,7 +778,6 @@ function StopVMViaSSH ([String] $vmName, [String] $server="localhost", [int] $ti
     return $False
 }
 
-
 #####################################################################
 #
 # TestPort
@@ -843,7 +838,6 @@ function TestPort ([String] $ipv4addr, [Int] $portNumber=22, [Int] $timeout=5)
     return $retVal
 }
 
-
 #######################################################################
 #
 # WaiForVMToReportDemand()
@@ -893,7 +887,6 @@ function WaitForVMToReportDemand([String] $vmName, [String] $server, [int] $time
     return $retVal
 }
 
-
 #######################################################################
 #
 # WaiForVMToStartKVP()
@@ -936,7 +929,6 @@ function WaitForVMToStartKVP([String] $vmName, [String] $server, [int] $timeout)
     Write-Error -Message "WaitForVMToStartKVP: VM ${vmName} did not start KVP within timeout period ($timeout)" -Category OperationTimeout -ErrorAction SilentlyContinue
     return $retVal
 }
-
 
 #######################################################################
 #
@@ -983,8 +975,6 @@ function WaitForVMToStartSSH([String] $ipv4addr, [int] $timeout)
     return $retVal
 }
 
-
-
 #######################################################################
 #
 # WaiForVMToStop()
@@ -1030,7 +1020,9 @@ function  WaitForVMToStop ([string] $vmName ,[string]  $hvServer, [int] $timeout
 }
 
 #######################################################################
-# Runs a remote script on the VM an returns the log.
+#
+# Runs a remote script on the VM and returns the log.
+#
 #######################################################################
 function RunRemoteScript($remoteScript)
 {
@@ -1038,6 +1030,7 @@ function RunRemoteScript($remoteScript)
     $stateFile     = "state.txt"
     $TestCompleted = "TestCompleted"
     $TestAborted   = "TestAborted"
+    $TestFailed   = "TestFailed"
     $TestRunning   = "TestRunning"
     $timeout       = 6000
 
@@ -1101,19 +1094,21 @@ function RunRemoteScript($remoteScript)
             {
                     if ($contents -eq $TestCompleted)
                     {
-                        Write-Output "Info : state file contains Testcompleted"
+                        Write-Output "Info : state file contains Testcompleted."
                         $retValue = $True
                         break
-
                     }
 
                     if ($contents -eq $TestAborted)
                     {
-                         Write-Output "Info : State file contains TestAborted failed. "
+                         Write-Output "Info : State file contains TestAborted message."
                          break
-
                     }
-                    #Start-Sleep -s 1
+                    if ($contents -eq $TestFailed)
+                    {
+                        Write-Output "Info : State file contains TestFailed message."
+                        break
+                    }
                     $timeout--
 
                     if ($timeout -eq 0)
@@ -1136,7 +1131,7 @@ function RunRemoteScript($remoteScript)
              break
         }
     }
-    else #
+    else
     {
          Write-Output "Error : pscp exit status = $sts"
          Write-Output "Error : unable to pull state.txt from VM."
@@ -1159,7 +1154,6 @@ function RunRemoteScript($remoteScript)
                     if ($null -ne ${TestLogDir})
                     {
                         move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
-
                     }
 
                     else

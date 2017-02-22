@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -18,7 +18,6 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-
 <#
 .Synopsis
     Linux VM creates a KVP item, then verify from the host.
@@ -60,10 +59,7 @@
     None.
 #>
 
-
 param( [String] $vmName, [String] $hvServer, [String] $testParams )
-
-
 #######################################################################
 #
 # KvpToDict
@@ -113,13 +109,11 @@ function KvpToDict($rawData)
     return $dict
 }
 
-
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 #
 # Make sure the required arguments were passed
 #
@@ -267,19 +261,40 @@ if (-not $ipv4)
 # copy the file to the test VM.  Set the x bit on the kvp_client
 # image, then run kvp_client to add a non-intrinsic kvp item 
 #
-"Info : chmod 755 kvp_client"
-$cmd = "chmod 755 ./kvp_client"
+"Info: Trying to detect OS architecture"
+$cmd = "uname -a | grep x86_64"
+$kvp_client = $null
+if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}"))
+{
+    $cmd = "uname -a | grep i686"
+    if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}")){
+        "Error: Could not determine OS architecture"
+        return $False
+    }
+    else {
+        "Info : 32 bit architecture detected"
+        $kvp_client = "kvp_client32"
+    }
+} 
+else 
+{
+    "Info : 64 bit architecture detected"
+    $kvp_client = "kvp_client64"
+}  
+
+"Info : chmod 755 $kvp_client"
+$cmd = "chmod 755 ./${kvp_client}"
 if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}" ))
 {
-    "Error: Unable to set the x bit on kvp_client"
+    "Error: Unable to set the x bit on $kvp_client"
     return $False
 }
 
-"Info : kvp_client append 1 ${key} ${value}"
-$cmd = "./kvp_client append 1 ${key} ${value}"
+"Info : $kvp_client append 1 ${key} ${value}"
+$cmd = "./${kvp_client} append 1 ${key} ${value}"
 if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}"))
 {
-    "Error: Unable to run kvp_client on VM '${vmName}'"
+    "Error: Unable to run $kvp_client on VM '${vmName}'"
     return $False
 }
 
@@ -287,14 +302,14 @@ if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}"))
 # Create a data exchange object and collect non-intrinsic KVP data from the VM
 #
 "Info : Collecting nonintrinsic KVP data from guest"
-$Vm = Get-WmiObject -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
+$Vm = Get-WmiObject -ComputerName $hvServer -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
 if (-not $Vm)
 {
     "Error: Unable to the VM '${VMName}' on the local host"
     return $False
 }
 
-$Kvp = Get-WmiObject -Namespace root\virtualization\v2 -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
+$Kvp = Get-WmiObject -ComputerName $hvServer -Namespace root\virtualization\v2 -Query "Associators of {$Vm} Where AssocClass=Msvm_SystemDevice ResultClass=Msvm_KvpExchangeComponent"
 if (-not $Kvp)
 {
     "Error: Unable to retrieve KVP Exchange object for VM '${vmName}'"
@@ -339,5 +354,4 @@ if ( $data -ne $value)
 #
 # If we made it here, everything worked
 #
-"Info : test passed"
 return $True

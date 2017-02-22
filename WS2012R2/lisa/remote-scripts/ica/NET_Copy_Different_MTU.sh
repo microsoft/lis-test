@@ -41,7 +41,7 @@
 #       NETMASK
 #       GATEWAY
 #
-#   Parameter explanation:
+#   Parameters explanation:
 #   STATIC_IP2 is the address of the second VM.
 #   The script assumes that the SSH_PRIVATE_KEY is located in $HOME/.ssh/$SSH_PRIVATE_KEY
 #   TC_COVERED is the test id from LIS testing
@@ -103,7 +103,6 @@ case $? in
 esac
 
 # Parameters to check in constants file
-
 if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="ERROR: The test parameter STATIC_IP2 is not defined in ${LIS_CONSTANTS_FILE}"
     LogMsg "$msg"
@@ -160,7 +159,7 @@ if [ $? -ne 0 ]; then
                 exit 10
             fi
             ;;
-        ubuntu*)
+        ubuntu*|debian*)
             apt-get install expect -y
             if [ $? -ne 0 ]; then
                 msg="ERROR: Failed to install expect"
@@ -170,7 +169,7 @@ if [ $? -ne 0 ]; then
                 exit 10
             fi
             ;;
-        redhat*)
+        redhat*|centos*)
             yum install expect -y
             if [ $? -ne 0 ]; then
                 msg="ERROR: Failed to install expect"
@@ -189,7 +188,6 @@ if [ $? -ne 0 ]; then
             ;;
     esac
 fi
-
 
 IFS=',' read -a networkType <<< "$NIC"
 
@@ -266,7 +264,6 @@ else
     fi
 fi
 
-
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
 
@@ -288,7 +285,6 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
     SetTestStateAborted
     exit 10
 fi
-
 
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
@@ -596,63 +592,39 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 
 done
 
-# Hyper-V does not support multiple MTUs per endpoint, so we need to set the max MTU on all interfaces,
-# including the interface ignored because it's used by the LIS framework.
-# This can fail (e.g. the LIS connection uses a legacy adapter), but the test will continue
-# and only issue a warning
-if [ -n "$__iface_ignore" ]; then
-    ip link set dev "$__iface_ignore" mtu "$__max_mtu"
-    # Make sure mtu was set. otherwise, issue a warning
-    __actual_mtu=$(ip -o link show "$__iface_ignore" | cut -d ' ' -f5)
-
-    if [ x"$__actual_mtu" != x"$__max_mtu" ]; then
-        msg="Set mtu on interface $__iface_ignore (which is used by the LIS Framework) to $__max_mtu but ip reports mtu to be $__actual_mtu"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-    fi
-fi
-
 # Reset iterator
 __iterator=0
 
 # If SSH_PRIVATE_KEY was specified, ssh into the STATIC_IP2 and set the MTU of all interfaces to $__max_mtu
 # If not, assume that it was already set.
-
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
     LogMsg "Setting all interfaces on $STATIC_IP2 mtu to $__max_mtu"
     ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "
-        __remote_interface=\$(ip -o addr show | grep \"$STATIC_IP2\" | cut -d ' ' -f2)
-        if [ x\"\$__remote_interface\" = x ]; then
-            exit 1
-        fi
+		__remote_interface=\$(ip -o addr show | grep \"$STATIC_IP2\" | cut -d ' ' -f2)
+		if [ x\"\$__remote_interface\" = x ]; then
+			exit 1
+		fi
 
-        # make sure no legacy interfaces are present
-        __legacy_interface_no=\$(find /sys/devices -name net -a ! -path '*vmbus*' -a ! -path '*virtual*' -a ! -path '*lo*' | wc -l)
+		# make sure no legacy interfaces are present
+		__legacy_interface_no=\$(find /sys/devices -name net -a ! -path '*vmbus*' -a ! -path '*virtual*' -a ! -path '*lo*' | wc -l)
 
-        if [ 0 -ne \"\$__legacy_interface_no\" ]; then
-            exit 2
-        fi
+		if [ 0 -ne \"\$__legacy_interface_no\" ]; then
+			exit 2
+		fi
 
-        # set mtu to max_mtu for all interfaces
-        __all_interfaces=\$(ip -o link show | grep -vi 'link/loopback' | cut -d':' -f2 | sed -e 's/^ *//g' -e 's/ *$//g')
+		ip link set dev \$__remote_interface mtu \"$__max_mtu\"
+		if [ 0 -ne \$? ]; then
+			exit 2
+		fi
 
-        for __interface in \$__all_interfaces; do
-            ip link set dev \$__interface mtu \"$__max_mtu\"
+		__remote_actual_mtu=\$(ip -o link show \"\$__remote_interface\" | cut -d ' ' -f5)
 
-            if [ 0 -ne \$? ]; then
-                exit 2
-            fi
+		if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
+			exit 3
+		fi
 
-        done
-
-        __remote_actual_mtu=\$(ip -o link show \"\$__remote_interface\" | cut -d ' ' -f5)
-
-            if [ x\"\$__remote_actual_mtu\" !=  x\"$__max_mtu\" ]; then
-                exit 3
-            fi
-
-        exit 0
-        "
+		exit 0
+		"
 
     if [ 0 -ne $? ]; then
         msg="ERROR: Unable to set $STATIC_IP2 mtu to $__max_mtu"

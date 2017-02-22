@@ -71,23 +71,28 @@ echo "Covers: ${TC_COVERED}" >> ~/summary.log
 #
 # Check if the CDROM module is loaded
 #
-CD=`lsmod | grep 'ata_piix\|isofs'`
-if [[ $CD != "" ]] ; then
-    module=`echo $CD | cut -d ' ' -f1`
-    LogMsg "${module} module is present."
-else
-    LogMsg "ata_piix module is not present in VM"
-    LogMsg "Loading ata_piix module "
-    insmod /lib/modules/`uname -r`/kernel/drivers/ata/ata_piix.ko
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        LogMsg "Unable to load ata_piix module"
-        LogMsg "Aborting test."
-        UpdateSummary "ata_piix load : Failed"
-        UpdateTestState "TestFailed"
-        exit 1
+if [[ -x $(which lsb_release 2>/dev/null) ]]; then 
+    os_VENDOR=$(lsb_release -i -s)
+fi
+if [ $os_VENDOR != "Ubuntu" ] && [ $os_VENDOR != "Debian" ]; then
+    CD=`lsmod | grep 'ata_piix\|isofs'`
+    if [[ $CD != "" ]] ; then
+        module=`echo $CD | cut -d ' ' -f1`
+        LogMsg "${module} module is present."
     else
-        LogMsg "ata_piix module loaded inside the VM"
+        LogMsg "ata_piix module is not present in VM"
+        LogMsg "Loading ata_piix module "
+        insmod /lib/modules/`uname -r`/kernel/drivers/ata/ata_piix.ko
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            LogMsg "Unable to load ata_piix module"
+            LogMsg "Aborting test."
+            UpdateSummary "ata_piix load : Failed"
+            UpdateTestState "TestFailed"
+            exit 1
+        else
+            LogMsg "ata_piix module loaded inside the VM"
+        fi
     fi
 fi
 sleep 1

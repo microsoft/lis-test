@@ -482,7 +482,7 @@ if (-not $retVal)
 }
 
 $vm="local"
-$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix NET_Configure_Vxlan.sh && chmod u+x NET_Configure_Vxlan.sh && ./NET_Configure_Vxlan.sh $vm1StaticIP $vm2StaticIP $vm"
+$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix NET_Configure_Vxlan.sh && chmod u+x NET_Configure_Vxlan.sh && ./NET_Configure_Vxlan.sh $vm1StaticIP $vm"
 
 $first_result = CheckResults $sshKey $ipv4
 if (-not $first_result)
@@ -502,7 +502,7 @@ if (-not $retVal)
 }
 
 $vm="remote"
-$retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix NET_Configure_Vxlan.sh && chmod u+x NET_Configure_Vxlan.sh && ./NET_Configure_Vxlan.sh $vm2StaticIP $vm1StaticIP $vm"
+$retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix NET_Configure_Vxlan.sh && chmod u+x NET_Configure_Vxlan.sh && ./NET_Configure_Vxlan.sh $vm2StaticIP $vm"
 
 #
 # Wait to second vm to configure the vxlan interface
@@ -555,11 +555,11 @@ Rename-Item $logdir\summary.log first_vm_summary.log
 $check = CheckResults $sshKey $vm2ipv4
 if (-not $check)
 {
-    "Results are not as expected. Test failed."
+    "Results are not as expected in configuration. Test failed. Check logs for more details."
     return $false
 }
 
-Start-Sleep -S 350
+Start-Sleep -S 450
 $timeout=200
 do {
     sleep 5
@@ -580,15 +580,15 @@ $cmdToVM = @"
 #!/bin/bash
     ping -I vxlan0 242.0.0.12 -c 3
     if [ `$? -ne 0 ]; then
-        echo "Could not ping the first VM through the vxlan interface. Lost connectivity between instances." >> summary.log 
+        echo "Could not ping the first VM through the vxlan interface. Lost connectivity between instances after rsync." >> summary.log 
         echo "TestFailed" >> state.txt
         exit 1
     else
         echo "Ping to first vm succeded, that means the connection is good. Checking if the directory was transfered corectly." >> summary.log
         if [ -d "/root/test" ]; then
             echo "Test directory was found." >> summary.log
-            du -h /root/test | grep 10G
-            if [ `$? -eq 0 ]; then
+            size=``du -h /root/test | awk '{print `$1;}'``
+            if [ `$size == "10G" ] || [ `$size == "11G" ]; then
                 echo "Test directory has the proper size. Test ended successfuly." >> summary.log
                 echo "TestCompleted" >> state.txt
             else

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<config>
+    <global>
+        <logfileRootDir>TestLogDir</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS Performance Test Results</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+        <imageStoreDir>path\to\image</imageStoreDir>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>Orion</suiteName>
+            <suiteTests>
+                <suiteTest>Performance_Orion</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test> 
+            <testName>Performance_Orion</testName> 
+            <testScript>Performance_Orion.sh</testScript>
+            <files>remote-scripts/ica/Performance_Orion.sh,tools/orion_linux_x86-64.gz</files>
+            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
+            <testScript>STOR_Lis_Disk.sh</testScript>
+            <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
+            <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>18000</timeout>
+            <testParams> 
+                <!--To be used PassThrough on SSD -->
+                <param>SCSI=0,0,PassThrough,3</param> 
+                <param>TOTAL_DISKS=1</param> 
+                <param>TEST_DEVICE1=/dev/sdb</param>  
+                <param>FILE_NAME=orion_linux_x86-64.gz</param>
+                <param>ORION_SCENARIO_FILE=orion_config</param>
+            </testParams> 
+            <uploadFiles>
+                <file>oltp_iops.csv</file>
+                <file>oltp_lat.csv</file>
+                <file>dss_iops.csv</file>
+                <file>dss_lat.csv</file>
+                <file>simple_lat.csv</file>
+                <file>simple_iops.csv</file>
+                <file>simple_mbps.csv</file>
+                <file>normal_iops.csv</file>
+                <file>normal_lat.csv</file>
+            </uploadFiles>
+            <onError>Continue</onError> 
+            <noReboot>False</noReboot> 
+        </test>
+    </testCases>
+    
+    <VMs>
+        <vm>
+            <hvServer>LIS-PERF06</hvServer>
+            <vmName>VMName</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>sshkey.ppk</sshKey>
+            <hardware>
+               <generation>1</generation>
+               <create>true</create>
+               <numCPUs>8</numCPUs>
+               <memSize>8192</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,Vm.Enterprise#1</nic>
+            </hardware>
+            <suite>Orion</suite>
+        </vm>
+    </VMs>
+</config>

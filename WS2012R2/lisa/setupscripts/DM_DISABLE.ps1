@@ -19,33 +19,32 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
- Disable Dynamic Memory for given Virtual Machines.
+ Disable Dynamic Memory for given Virtual Machine.
 
  Description:
    Disable Dynamic Memory parameters for a set of Virtual Machines.
    The testParams have the format of:
 
-      vmName=Name of a VM, enable=[yes|no], staticMem=(decimal) [MB|GB|%]
+      vmName=Name of a VM, enableDM=[yes|no], staticMem=(decimal) [MB|GB|%],memWeight=(0-100)
 
-    vmName is the name of a existing Virtual Machines.
+    vmName is the name of an existing Virtual Machine.
 
     staticMem is the minimum amount of memory assigned to the specified virtual machine(s)
     the amount of memory can be specified as a decimal followed by a qualifier
     valid qualifiers are: MB, GB and % . %(percent) means percentage of free Memory on the host
-    this value will be set as minimum, maximum and startup Memory
+    this value will be set as minimum, maximum and startup Memory.
 
-    The following is an example of a testParam for configuring Dynamic Memory
-
-       "vmName=sles11x64sp3;staticMem=512MB"
+   memWeight is the priority a given VM has when assigning Dynamic Memory
+    the memory weight is a decimal between 0 and 100, 0 meaning lowest priority and 100 highest.
+    The default value should be 50.
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
    
    .Parameter vmName
-    Name of the VM to remove NIC from .
+    Name of the VM to configure.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -54,8 +53,9 @@
     Test data for this test case
 
     .Example
-    setupScripts\DM_DISABLE -vmName sles11sp3x64 -hvServer localhost -testParams "vmName=sles11x64sp3;staticMem=512MB"
+    setupScripts\DM_DISABLE.ps1 -vmName vm -hvServer localhost -testParams "vmName=vm;enableDM=no;staticMem=512MB;memWeight=50"
 #>
+
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 Set-PSDebug -Strict
@@ -107,10 +107,8 @@ else
 }
 
 # call DM_CONFIGURE_MEMORY.ps1
-
 if (Test-Path ".\setupScripts\DM_CONFIGURE_MEMORY.ps1")
 {
-
     #nothing to do 
 }
 else
@@ -121,6 +119,7 @@ else
 
 [string]$tPvmName = ""
 [string]$tPMem = ""
+[string]$tPmemWeight = ""
 [string]$dmTestParam = ""
 #
 # Parse the testParams string, then process each parameter
@@ -154,7 +153,6 @@ foreach ($p in $params)
     }
     elseif($temp[0].Trim() -eq "staticMem")
     {
-
       $tpMem = $temp[1].Trim()
 
       if (-not $tpMem)
@@ -164,20 +162,37 @@ foreach ($p in $params)
       }
 
     }
-
-    if ($tPvmName -and $tpMem)
+	
+	elseif($temp[0].Trim() -eq "memWeight")
     {
-        "Got vmName: $tpvmName and memory: $tpMem"
-        $dmTestParam += "vmName=$tPvmName;enable=no;minMem=$tpMem;maxMem=$tpMem;startupMem=$tpMem;memWeight=0;"
+      $tPmemWeight = $temp[1].Trim()
+
+      if (-not $tPmemWeight)
+      {
+        "Error: no memory weight value received."
+        return $false
+      }
+
+    }
+    if (-not $tPvmName)
+    {
+        $tPvmName = $vmName
+    }
+
+    if ($tPvmName -and $tpMem -and $tPmemWeight)
+    {
+        "Got params vmName: $tpvmName and memory: $tpMem with memory weight: $tPmemWeight"
+        $dmTestParam += "vmName=$tPvmName;enableDM=no;startupMem=$tpMem;memWeight=$tPmemWeight;"
 
         [string]$tPvmName = ""
         [string]$tPMem = ""
+        [string]$tPmemWeight = ""
     }
 }
 
 if (-not $dmTestParam)
 {
-    "Error: no parameters received"
+    "Error: not enough parameters received!"
     return $false
 }
 
@@ -185,7 +200,7 @@ $res = .\setupScripts\DM_CONFIGURE_MEMORY.ps1 -vmName $vmName -hvServer $hvServe
 
 if (-not $res[-1])
 {
-    "Error: Unable to configure dynamic memory"
+    "Error: Unable to configure dynamic memory!"
     return $false
 }
 

@@ -29,7 +29,7 @@
                 <to>myboss@mail.com</to>
             </recipients>
             <sender>myself@mail.com</sender>
-            <subject>LISA Live Migration on WS2012R2</subject>
+            <subject>LISA Live Migration tests on WS2012R2</subject>
             <smtpServer>smtp.your.company.com</smtpServer>
         </email>
     </global>
@@ -253,6 +253,7 @@
             </setupScript>
             <testParams>
                 <param>TC_COVERED=NET_LIVEMIG-09</param>
+                <param>SnapshotName=ICABase</param>
             </testParams>
             <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>

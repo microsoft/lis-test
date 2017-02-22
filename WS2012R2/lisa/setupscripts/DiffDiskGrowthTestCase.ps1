@@ -538,7 +538,6 @@ Write-Output "Here are the remote logs:`n`n###################"
 $logfilename = ".\$remoteScript.log"
 Get-Content $logfilename
 Write-Output "###################`n"
-Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
 Remove-Item $logfilename
 
 # return $true

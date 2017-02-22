@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -30,7 +30,7 @@
             <test>
             <testName>Multi_Cpu_Test</testName>
             <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>  
-            <timeout>1600</timeout>
+            <timeout>800</timeout>
             <noReboot>False</noReboot>
             <testParams>
                 <param>TC_COVERED=CORE-11</param>
@@ -52,14 +52,8 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-#
-# Main script block
-#
-#######################################################################
-
 $retVal = $false
-$timeout = 300
+$timeout = 200
 $maxCPUs = 2
 $Vcpu = 0
 $sshKey = $null
@@ -144,6 +138,11 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 #
 . .\setupscripts\TCUtils.ps1
 
+#######################################################################
+#
+# Main script block
+#
+#######################################################################
 $procs = get-wmiobject -computername $hvServer win32_processor
 if ($procs)
 {
@@ -159,14 +158,14 @@ if ($procs)
 Stop-VM -Name $vmName -ComputerName $hvServer
 if (-not $?)
 {
-    "Error: Unable to Shut Down VM" 
+    "Error: Unable to Shut Down VM!" 
     return $False
 }
 
 $sts = WaitForVMToStop $vmName $hvServer $timeout
 if (-not $sts)
 {
-    "Error: Unable to Shut Down VM"
+    "Error: Unable to Shut Down VM!"
     return $False
 }
 
@@ -182,11 +181,11 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
     $cpu = Set-VM -Name $vmName -ComputerName $hvServer -ProcessorCount $numCPUs
     if ($? -eq "True")
     {
-       Write-output "CPU count updated to $numCPUs" | Tee-Object -Append -file $summaryLog
+       "CPU count updated to $numCPUs"
     }
     else
     {
-        "Error: Unable to update CPU count"
+        "Error: Unable to update CPU count to $numCPUs !"
         return $False
     }   
   
@@ -204,7 +203,7 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
 
 	if ($timeout -eq 0)
 	{
-		"Error: Test case timed out for VM returned to Running"
+		"Error: Test case timed out for VM to be running again!"
 		return $False
 	}
 
@@ -213,13 +212,12 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
     if($Vcpu -eq $numCPUs)
     {
         "CPU count inside VM is $numCPUs"
-        echo "CPU count inside VM is : $numCPUs" >> $summaryLog
         $retVal=$true
 
         Stop-VM -Name $vmName -ComputerName $hvServer
         if (-not $?)
         {
-            "Error: Unable to Shut Down VM" 
+            "Error: Unable to Shut Down VM!" 
             return $False
         }
 
@@ -229,7 +227,7 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;$numCPUs = $numCPUs /2 )
         $sts = WaitForVMToStop $vmName $hvServer $timeout
         if (-not $sts)
         {
-            "Error: Unable to Shut Down VM"
+            "Error: Unable to Shut Down VM!"
             return $False
         }
     }

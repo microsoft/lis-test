@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<!-- THIS TEST SUITE IS THRESHOLD ONLY -->
+<config>
+    <global>
+        <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS_Manual_Memory_tests_run_on_2012R2</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+       <testSuites>
+        <suite>
+            <suiteName>ManualMemory</suiteName>
+            <suiteTests>
+                <suiteTest>ManualMem_HotAdd</suiteTest>      
+                <suiteTest>ManualMem_HotRemove</suiteTest> 
+                <suiteTest>ManualMem_SmallIncrease128</suiteTest>  
+                <suiteTest>ManualMem_SmallDecrease128</suiteTest> 
+                <suiteTest>ManualMem_SmallIncrease100</suiteTest>  
+                <suiteTest>ManualMem_SmallDecrease100</suiteTest>
+                <suiteTest>ManualMem_MultipleAddRemove</suiteTest>
+                <suiteTest>ManualMem_StressHotRemove</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>ManualMem_HotAdd</testName>
+            <setupScript>setupscripts\ManualMem_Configure.ps1</setupScript>
+            <testScript>setupscripts\ManualMem_HotAdd.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=MemHotAdd-01</param>                                   
+                <param>startupMem=2GB</param>
+                <param>testMem=4GB</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>ManualMem_HotRemove</testName>
+            <setupScript>setupscripts\ManualMem_Configure.ps1</setupScript>
+            <testScript>setupscripts\ManualMem_HotAdd.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=MemHotAdd-02</param>                                   
+                <param>startupMem=4GB</param>
+                <param>testMem=2GB</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>ManualMem_SmallIncrease128</testName>
+            <setupScript>setupscripts\ManualMem_Configure.ps1</setupScript>
+            <testScript>setupscripts\ManualMem_HotAdd_Chunks.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=MemHotAdd-03</param>                                   
+                <param>startupMem=1536MB</param>
+                <param>chunkMem=128MB</param>
+                <param>decrease=no</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>ManualMem_SmallDecrease128</testName>
+            <setupScript>setupscripts\ManualMem_Configure.ps1</setupScript>
+            <testScript>setupscripts\ManualMem_HotAdd_Chunks.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=MemHotAdd-04</param>                                   
+                <param>startupMem=2560MB</param>
+                <param>chunkMem=128MB</param>
+                <param>decrease=yes</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>ManualMem_SmallIncrease100</testName>
+            <setupScript>setupscripts\ManualMem_Configure.ps1</setupScript>
+            <testScript>setupscripts\ManualMem_HotAdd_Chunks.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=MemHotAdd-05</param>                                   
+                <param>startupMem=1648MB</param>
+                <param>chunkMem=100MB</param>
+                <param>decrease=no</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>ManualMem_SmallDecrease100</testName>
+            <setupScript>setupscripts\ManualMem_Configure.ps1</setupScript>
+            <testScript>setupscripts\ManualMem_HotAdd_Chunks.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=MemHotAdd-06</param>                                   
+                <param>startupMem=2448MB</param>
+                <param>chunkMem=100MB</param>
+                <param>decrease=yes</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>ManualMem_MultipleAddRemove</testName>
+            <setupScript>setupscripts\ManualMem_Configure.ps1</setupScript>
+            <testScript>setupscripts\ManualMem_MultipleAddRemove.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=MemHotAdd-07</param>                                   
+                <param>startupMem=2GB</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>ManualMem_StressHotRemove</testName>
+            <setupScript>setupscripts\ManualMem_Configure.ps1</setupScript>
+            <testScript>setupscripts\ManualMem_StressHotRemove.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=MemHotAdd-08</param>                                   
+                <param>startupMem=4GB</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>VM</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>KEY.ppk</sshKey>
+            <suite>ManualMemory</suite>
+        </vm>
+    </VMs>
+</config>

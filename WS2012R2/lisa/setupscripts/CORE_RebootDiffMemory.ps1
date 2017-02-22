@@ -19,14 +19,12 @@
 #
 ########################################################################
 
-
-
 <#
 .Synopsis
-    Test LIS and shutdown with different ram settings
+    Test LIS and shutdown with different RAM sizes.
 
 .Description
-    Test LIS and shutdown with different ram settings
+    Test LIS and shutdown with different RAM settings
     The XML test case definition for this test would
     look similar to the following:
         <test>
@@ -52,9 +50,47 @@
 
 #>
 
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$sshKey = $null
+$ipv4 = $null
+$rootDir = $null
+$TC_COVERED = "Undefined"
+$memArgs = $null
+
+######################################################################
+#
+# Get IP from VM
+#
+######################################################################
+function get_vmip()
+{
+    $timeout = 180
+    while ($timeout -gt 0)
+    {
+        #
+        # Check if the VM is in the Hyper-v Running state
+        #
+        $ipv4 = GetIPv4 $vmName $hvServer
+        if ($ipv4)
+        {
+            break
+        }
+        start-sleep -seconds 1
+        $timeout -= 1
+    }
+
+    if($timeout -le 0)
+    {
+        Write-output "VM timeout at GetIPv4 operation with memory size $memory" | Tee-Object -Append -file $summaryLog
+        return $False
+    }
+    else
+    {
+        # Write-output "VM started with $memory" | Tee-Object -Append -file $summaryLog
+        return $True
+    }
+}
 
 #######################################################################
 #
@@ -62,7 +98,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 #
 #######################################################################
 
-$retVal = $false
+$retVal = $False
 
 #
 # Check input arguments
@@ -70,20 +106,14 @@ $retVal = $false
 if ($vmName -eq $null)
 {
     "Error: VM name is null"
-    return $retVal
+    return $False
 }
 
 if ($hvServer -eq $null)
 {
     "Error: hvServer is null"
-    return $retVal
+    return $False
 }
-
-$sshKey = $null
-$ipv4 = $null
-$rootDir = $null
-$TC_COVERED = "Undefined"
-$memArgs = $null
 
 $params = $testParams.Split(";")
 
@@ -108,18 +138,24 @@ foreach ($p in $params)
 }
 
 #
+# Delete any summary.log from a previous test run, then create a new file
+#
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+
+#
 # Make sure the required test params are provided
 #
 if ($null -eq $sshKey)
 {
     Write-output "Error: Test parameter sshKey was not specified" | Tee-Object -Append -file $summaryLog
-    return $False
+    $retVal = $False
 }
 
 if ($null -eq $ipv4)
 {
     Write-output "Error: Test parameter ipv4 was not specified" | Tee-Object -Append -file $summaryLog
-    return $False
+    $retVal = $False
 }
 
 if (-not $rootDir)
@@ -145,11 +181,6 @@ if (-not (Test-Path $rootDir))
 
 cd $rootDir
 
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
 Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
@@ -157,22 +188,23 @@ Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 #
 . .\setupscripts\TCUtils.ps1
 
-$success = $True
+# Save current memory
+$currentMemory = (Get-VMMemory -VMName $vmName -ComputerName $hvServer).startup / 1GB
 
 ForEach ($memory in $memArgs)
 {
-    $retVal = $False
     #
     # Shutdown VM.
     #
     $vm = Get-VM -Name $vmName -ComputerName $hvServer
     if($vm.State -ne "Off")
     {
-        $vm | Stop-VM
+        Stop-VM -Name $vmName -ComputerName $hvServer -Force
         if (-not $?)
         {
            Write-output "Error: Unable to Shut Down VM" | Tee-Object -Append -file $summaryLog
-           return $False
+           $retVal = $False
+           break
         }
 
         $timeout = 180
@@ -180,55 +212,79 @@ ForEach ($memory in $memArgs)
         if (-not $sts)
         {
            Write-output "Error: WaitForVMToStop fail" | Tee-Object -Append -file $summaryLog
-           return $False
+           $retVal = $False
+           break
         }
     }
+    
     $memoryParam = "VMMemory = ${memory}"
-    .\setupScripts\SetVMMemory.ps1 -vmName $vmName -hvServer $hvServer -testParams $memoryParam
-    if ($? -eq "True")
+    $sts = .\setupScripts\SetVMMemory.ps1 -vmName $vmName -hvServer $hvServer -testParams $memoryParam
+    if ($sts[-1] -eq "True")
     {
-        Write-output "VM Memory count updated to $memory" | Tee-Object -Append -file $summaryLog
+        Write-output "VM memory count updated to $memory" | Tee-Object -Append -file $summaryLog
     }
     else
     {
-        Write-output "Error: Unable to update VM memory" | Tee-Object -Append -file $summaryLog
-        return $False
+        Write-output "Error: Unable to update VM memory to $memory. Consider changing the value." | Tee-Object -Append -file $summaryLog
+        $retVal = $False
+        break
     }
 
     $Error.Clear()
     Start-VM -Name $vmName -ComputerName $hvServer  -ErrorAction SilentlyContinue
     if ( $Error[0] -and $Error[0].Exception.Message.Contains("Not enough memory") )
     {
-        Write-output "Error: Not enough memory ($memory) to start VM." | Tee-Object -Append -file $summaryLog
-        continue
+        Write-output "Error: Not enough memory ($memory) to start VM. Consider changing the value." | Tee-Object -Append -file $summaryLog
+        $retVal = $False
+        break
     }
     $Error.Clear()
-
-    $timeout = 120
-    while ($timeout -gt 0)
-    {
-        #
-        # Check if the VM is in the Hyper-v Running state
-        #
-        $ipv4 = GetIPv4 $vmName $hvServer
-        if ( $ipv4)
-        {
-            break
-        }
-        start-sleep -seconds 1
-        $timeout -= 1
-    }
-
-    if($timeout -le 0)
-    {
-        Write-output "VM timeout at GetIPv4 operation with memory size $memory" | Tee-Object -Append -file $summaryLog
-        $success = $False
+    $sts = get_vmip
+    if (-not $sts[-1]) {
+        Write-output "Error: VM timeout at GetIPv4 operation with memory size $memory" | Tee-Object -Append -file $summaryLog
+        $retVal = $False
+        break
     }
     else
     {
         Write-output "VM started with $memory" | Tee-Object -Append -file $summaryLog
-        $retVal = $True
     }
+
+    #
+    # Wait for VM to start ssh
+    #
+    $sts = WaitForVMToStartSSH $ipv4 20
+    if(-not $sts[-1]){
+        Write-Output "ERROR: Port 22 not open" | Tee-Object -Append -file $summaryLog
+        $retVal = $False
+        break
+    }
+
+    #
+    # Reboot VM
+    #
+    $sts = SendCommandToVM $ipv4 $sshKey "reboot now"
+
+    # If the VM has no IP it means it rebooted
+    $sts = GetIPv4 $vmName $hvServer
+    if (-not $sts[-1]) {
+		Write-Output "ERROR: Failed to reboot VM" | Tee-Object -Append -file $summaryLog
+		$retVal = $False
+        break
+    }
+
+    $sts = get_vmip
+    if (-not $sts[-1]) {
+        Write-output "Error: VM timeout at GetIPv4 operation after rebooting" | Tee-Object -Append -file $summaryLog
+        $retVal = $False
+        break
+    }
+
+    $retVal = $True
 }
 
-return $retVal -and $success
+# Reset VM memory
+Stop-VM -Name $vmName -ComputerName $hvServer
+$sts = .\setupScripts\SetVMMemory.ps1 -vmName $vmName -hvServer $hvServer -testParams "VMMemory = ${currentMemory}GB"
+
+return $retVal

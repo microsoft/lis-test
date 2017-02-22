@@ -19,7 +19,6 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
  Configure Dynamic Memory for given Virtual Machines.
@@ -53,7 +52,7 @@
 
    The following is an example of a testParam for configuring Dynamic Memory
 
-       "vmName=sles11x64sp3;enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
+       "vmName=vm;enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
@@ -68,11 +67,10 @@
     Test data for this test case
 
     .Example
-    setupScripts\DM_CONFIGURE_MEMORY -vmName sles11sp3x64 -hvServer localhost -testParams "vmName=sles11x64sp3;enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
+    setupScripts\DM_CONFIGURE_MEMORY -vmName sles11sp3x64 -hvServer localhost -testParams "vmName=vm;enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
 
 # Convert a string to int64 for use with the Set-VMMemory cmdlet
 function ConvertToMemSize([String] $memString, [String]$hvServer)
@@ -114,7 +112,6 @@ function ConvertToMemSize([String] $memString, [String]$hvServer)
     return $memSize
 }
 
-
 #
 # Check input arguments
 #
@@ -142,7 +139,6 @@ $tpEnabled = $null
 [int64]$tPmaxMem = 0
 [int64]$tPstartupMem = 0
 [int64]$tPmemWeight = -1
-
 
 #
 # Parse the testParams string, then process each parameter
@@ -246,20 +242,17 @@ foreach ($p in $params)
       }
 
       "memWeight: $tPmemWeight"
-
-    }
-
+ }
 
     # check if we have all variables set
-    if ($tPvmName -and ($tpEnabled -eq $false -or $tpEnabled -eq $true) -and $tPminMem -and $tPmaxMem -and $tPstartupMem -and ([int64]$tPmemWeight -ge [int64]0))
+    if ( $tPvmName -and ($tpEnabled -eq $false -or $tpEnabled -eq $true) -and $tPstartupMem -and ([int64]$tPmemWeight -ge [int64]0) )
     {
-
       # make sure VM is off
       if (Get-VM -Name $tPvmName -ComputerName $hvServer |  Where { $_.State -like "Running" })
       {
 
         "Stopping VM $tPvmName"
-        Stop-VM $tPvmName -force
+        Stop-VM -Name $tPvmName -ComputerName $hvServer -force
 
         if (-not $?)
         {
@@ -268,7 +261,7 @@ foreach ($p in $params)
         }
 
         # wait for VM to finish shutting down
-        $timeout = 60
+        $timeout = 30
         while (Get-VM -Name $tPvmName -ComputerName $hvServer |  Where { $_.State -notlike "Off" })
         {
           if ($timeout -le 0)
@@ -285,7 +278,6 @@ foreach ($p in $params)
 
       if ($tpEnabled)
       {
-
         Set-VMMemory -vmName $tPvmName -ComputerName $hvServer -DynamicMemoryEnabled $tpEnabled `
                       -MinimumBytes $tPminMem -MaximumBytes $tPmaxMem -StartupBytes $tPstartupMem `
                       -Priority $tPmemWeight
@@ -293,8 +285,9 @@ foreach ($p in $params)
       else
       {
           Set-VMMemory -vmName $tPvmName -ComputerName $hvServer -DynamicMemoryEnabled $tpEnabled `
-                    -StartupBytes $tPstartupMem
+                    -StartupBytes $tPstartupMem -Priority $tPmemWeight
       }
+      
       if (-not $?)
       {
         "Error: Unable to set VM Memory for $tPvmName."
@@ -313,10 +306,8 @@ foreach ($p in $params)
       [int64]$tPmaxMem = 0
       [int64]$tPstartupMem = 0
       [int64]$tPmemWeight = -1
-
     }
-
 }
 
-Write-Output $true
+# Write-Output $true
 return $true

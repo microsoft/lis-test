@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -67,28 +67,28 @@
 #            <param>publicKey=demo_id_rsa.pub</param>
 #        </testparams>
 #    </test>
-#	
+#
 #
 ########################################################################
 
 
-ICA_TESTRUNNING="TestRunning"      # The test is running 
-ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully 
-ICA_TESTABORTED="TestAborted"      # Error during setup of test 
-ICA_TESTFAILED="TestFailed"        # Error while performing the test 
+ICA_TESTRUNNING="TestRunning"      # The test is running
+ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
+ICA_TESTABORTED="TestAborted"      # Error during setup of test
+ICA_TESTFAILED="TestFailed"        # Error while performing the test
 
-CONSTANTS_FILE="constants.sh" 
+CONSTANTS_FILE="constants.sh"
 
-LogMsg() 
-{ 
-    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file 
-} 
+LogMsg()
+{
+    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
+}
 
- 
-UpdateTestState() 
-{ 
-    echo $1 > $HOME/state.txt 
-} 
+
+UpdateTestState()
+{
+    echo $1 > $HOME/state.txt
+}
 
 
 #######################################################################
@@ -96,39 +96,43 @@ UpdateTestState()
 #
 #
 #######################################################################
-LogMsg() 
-{ 
-    echo `date "+%a %b %d %T %Y"` ": ${1}" 
-    echo "${1}" >> ~/provisionLinux.log 
-} 
+LogMsg()
+{
+    echo `date "+%a %b %d %T %Y"` ": ${1}"
+    echo "${1}" >> ~/provisionLinux.log
+}
 
 
 #######################################################################
-# 
-# LinuxRelease() 
-# 
-####################################################################### 
-LinuxRelease() 
-{ 
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux\|Oracle" /etc/{issue,*release,*version}` 
+#
+# LinuxRelease()
+#
+#######################################################################
+LinuxRelease()
+{
+    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux\|Oracle" /etc/{issue,*release,*version}`
 
-    case $DISTRO in 
-        *buntu*) 
-            echo "UBUNTU";; 
-        Fedora*) 
-            echo "FEDORA";; 
-        CentOS*) 
-            echo "CENTOS";; 
-        *SUSE*) 
-            echo "SLES";; 
-        *Red*Hat*) 
-            echo "RHEL";; 
-        Debian*) 
-            echo "DEBIAN";; 
+    case $DISTRO in
+        *buntu*)
+            echo "UBUNTU";;
+        Fedora*)
+            echo "FEDORA";;
+        *CentOS*6.*)
+            echo "CENTOS6";;
+        *CentOS*7*)
+            echo "CENTOS7";;
+        *SUSE*)
+            echo "SLES";;
+        *Red*6.*)
+            echo "RHEL6";;
+        *Red*7*)
+            echo "RHEL7";;
+        Debian*)
+            echo "DEBIAN";;
 		Oracle*)
 		    echo "ORACLE";;
-    esac 
-} 
+    esac
+}
 
 
 #######################################################################
@@ -144,7 +148,7 @@ LinuxRelease()
 #	    LogMsg "Error: The public SSH key '~/${public_ssh_key}' does not exist"
 #		exit 1
 #	fi
-#	
+#
 #	if [ ! -e ~/.ssh ]; then
 #	    mkdir ~/.ssh
 #		if [ $? -ne 0 ]; then
@@ -153,19 +157,19 @@ LinuxRelease()
 #			exit 1
 #		fi
 #	fi
-#	
+#
 #	mv ~/${public_ssh_key} ~/.ssh
 #	if [ $? -ne 0 ]; then
 #	    LogMsg "Error: Unable to copy ~/${public_ssh_key} to the ~/.ssh directory"
 #		UpdateTestState $ICA_TESTFAILED
 #		exit 1
 #	fi
-#	
+#
 #	chmod 600 ~/.ssh/${public_ssh_key}
 #	if [ $? -ne 0 ]; then
 #	    LogMsg "Error: Unable to chmod 600 ~/.ssh/${public_ssh_key}"
 #	fi
-#	
+#
 	#
 	# Add, or append, the public key to the authorized_keys file
 	#
@@ -177,7 +181,7 @@ LinuxRelease()
 #	    LogMsg "Info : Append public key to authorized_keys"
 #	    cat ~/.ssh/${public_ssh_key} >> ~/.ssh/authorized_keys
 #	fi
-#	
+#
 	#
 	# If a private key was provided, copy it to the .ssh directory
 	# If the default id_rsa or id_dsa key does not exist, create
@@ -185,13 +189,13 @@ LinuxRelease()
 	#
 #	if [ -e ~/${private_ssh_key} ]; then
 #	    mv ~/${private_ssh_key} ~/.ssh/
-#		
+#
 #		if [[ "${private_ssh_key}"  == *id_rsa ]]; then
 #		    if [ ! -e ~/.ssh/id_rsa ]; then
 #		        cp ~/.ssh/${private_ssh_key} ~/.ssh/id_rsa
 #			fi
 #		fi
-#		
+#
 #		if [[ "${private_ssh_key}"  == *id_dsa ]]; then
 #		    if [ ! -e ~/.ssh/id_dsa ]; then
 #		        cp ~/.ssh/${private_ssh_key} ~/.ssh/id_dsa
@@ -223,7 +227,7 @@ function OracleTasks
 {
     LogMsg "Info : Support for Oracle Linux is not yet implemented"
 	#exit 1
-	
+
 	#
 	# Create a list of packages to install, then ensure they are all installed
 	#
@@ -242,7 +246,7 @@ function OracleTasks
 			fi
 		fi
 	done
-	
+
 	#
 	# Development tools are a group install
 	#
@@ -255,7 +259,7 @@ function OracleTasks
 			installError=1
 		fi
 	fi
-		
+
 	if [ $installError -eq 1 ]; then
 	    LogMsg "Error: Not all packages successfully installed - terminating"
 		UpdateTestState $ICA_TESTFAILED
@@ -276,24 +280,34 @@ function RhelTasks
 	# Disable the firewall
 	#
 	LogMsg "Info : Disabling the firewall"
-	
-	service iptables stop
-	chkconfig iptables off
-	
-	service ip6tables stop
-	chkconfig ip6tables off
-	
+    if [ $1 -eq 7 ]; then
+        systemctl stop firewalld
+        systemctl disable firewalld
+    fi
+    if [ $1 -eq 6 ]; then
+        service iptables stop
+    	chkconfig iptables off
+
+    	service ip6tables stop
+    	chkconfig ip6tables off
+    fi
+
 	#
 	# Disable SELinux
 	#
 	LogMsg "Info : Disabling SELinux"
     sed -i '/^SELINUX=/cSELINUX=disabled' /etc/selinux/config
-	
+
 	#
 	# Create a list of packages to install, then ensure they are installed
 	#
 	installError=0
-    packagesToInstall=(at bridge-utils btrfs-progs crash dos2unix dosfstools e2fsprogs e2fsprogs-libs util-linux gpm dump system-config-kdump libaio-devel nano ntp ntpdate parted wget xfsprogs iscsi-initiator-utils bc make)
+    if [ $1 -eq 7 ]; then
+	    packagesToInstall=(at bridge-utils btrfs-progs crash dos2unix dosfstools e2fsprogs e2fsprogs-libs util-linux gpm dump system-config-kdump libaio-devel nano ntp ntpdate parted wget xfsprogs iscsi-initiator-utils bc)
+    fi
+    if [ $1 -eq 6 ]; then
+	    packagesToInstall=(at bridge-utils btrfs-progs crash dos2unix dosfstools e2fsprogs e2fsprogs-libs util-linux gpm dump system-config-kdump libaio-devel nano ntp ntpdate parted wget iscsi-initiator-utils bc)
+    fi
 	for p in "${packagesToInstall[@]}"
 	do
 	    LogMsg "Info : Processing package '${p}'"
@@ -307,7 +321,7 @@ function RhelTasks
 			fi
 		fi
 	done
-	
+
 	#
 	# Group Install the Development tools
 	#
@@ -315,15 +329,15 @@ function RhelTasks
 	yum -y groupinstall "Development Tools"
 	if [ $? -ne 0 ]; then
 	    LogMsg "Error: Unable to groupinstall 'Development Tools'"
-		installErrors=1
+		installError=1
 	fi
-	
+
 	if [ $installError -eq 1 ]; then
 	    LogMsg "Error: Not all packages successfully installed - terminating"
 		UpdateTestState $ICA_TESTFAILED
 		exit 1
 	fi
-	
+
 	#
 	# reiserfs support is in a separate repository
 	#
@@ -334,15 +348,21 @@ function RhelTasks
 		UpdateTestState $ICA_TESTFAILED
 		exit 1
 	fi
-	
-	LogMsg "Info : Adding the elrepo rpm"
-	rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-2.el7.elrepo.noarch.rpm
+
+    if [ $1 -eq 7 ]; then
+        LogMsg "Info : Adding the elrepo-7 rpm"
+        rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-2.el7.elrepo.noarch.rpm
+    fi
+    if [ $1 -eq 6 ]; then
+        LogMsg "Info : Adding the elrepo-6 rpm"
+	    rpm -Uvh http://www.elrepo.org/elrepo-release-6-6.el6.elrepo.noarch.rpm
+    fi
 	if [ $? -ne 0 ]; then
 	    LogMsg "Error: Unable to install elrepo rpm"
 		UpdateTestState $ICA_TESTFAILED
 		exit 1
 	fi
-	
+
 	LogMsg "Info : Installing the reiserfs-utils from the elrepo repository"
 	yum -y install reiserfs-utils
 	if [ $? -ne 0 ]; then
@@ -369,13 +389,13 @@ function SlesTasks
 		UpdateTestState $ICA_TESTFAILED
 		exit 1
 	fi
-	
+
 	#
 	# Disable SELinux
 	#
 	# SLES does not use SELinux by default - nothing to do
 	#
-	
+
 	#
 	# Create a list of packages to install, then ensure they are installed
     #
@@ -411,7 +431,7 @@ function SlesTasks
 function UbuntuTasks
 {
     LogMsg "Info : Performing Ubuntu specific tasks"
-	
+
 	#
 	# Disable the firewall
 	#
@@ -422,13 +442,13 @@ function UbuntuTasks
 		UpdateTestState $ICA_TESTFAILED
 		exit 1
 	fi
-	
+
 	#
 	# Disable SELinus - Ubuntu uses AppArmor rather than SELinux
 	#
 	LogMsg "Info : Disabling AppArmor"
 	/etc/init.d/apparmor stop &> ~/apparmor.log
-    
+
 	#
 	# Create a list of packages to install, then ensure they are all installed
 	#
@@ -449,7 +469,7 @@ function UbuntuTasks
 			packagesToInstall+=(linux-tools-$KernelRelease linux-cloud-tools-$KernelRelease linux-cloud-tools-common)
 			;;
 	esac
-	
+
     for p in "${packagesToInstall[@]}"
 	do
 	    LogMsg "Info : Processing package '${p}'"
@@ -462,15 +482,15 @@ function UbuntuTasks
 				installError=1
 			fi
 		fi
-		
+
 	done
-	
+
 	if [ $installError -eq 1 ]; then
 	    LogMsg "Error: Not all packages successfully installed - terminating"
 		UpdateTestState $ICA_TESTFAILED
 		exit 1
 	fi
-	
+
 	# If Ubuntu version 12.04 or 13.04 then we need to rename the Hyper-V daemon
 	if [[ $UbuntuVersion =~ 12.*|13.* ]]; then
 		LogMsg "Info : Copying /usr/sbin/hv_kvp_daemon_${KernelRelease} to /usr/sbin/hv_kvp_daemon"
@@ -485,23 +505,23 @@ function UbuntuTasks
 #
 #######################################################################
 
-LogMsg "Updating test case state to running" 
-UpdateTestState $ICA_TESTRUNNING 
+LogMsg "Updating test case state to running"
+UpdateTestState $ICA_TESTRUNNING
 
 #
 # Cleanup any summary log files left behind by a separate test case
 #
-if [ -e ~/summary.log ]; then 
-    LogMsg "Cleaning up previous copies of summary.log" 
-    rm -rf ~/summary.log 
-fi 
+if [ -e ~/summary.log ]; then
+    LogMsg "Cleaning up previous copies of summary.log"
+    rm -rf ~/summary.log
+fi
 
 #
-# Source the constants file 
+# Source the constants file
 #
-if [ -e ~/${CONSTANTS_FILE} ]; then 
-    source ~/${CONSTANTS_FILE} 
-fi 
+if [ -e ~/${CONSTANTS_FILE} ]; then
+    source ~/${CONSTANTS_FILE}
+fi
 
 #
 # Display contents of constants.sh so it is captured in the log file
@@ -514,8 +534,11 @@ cat ~/${CONSTANTS_FILE}
 #
 distro=`LinuxRelease`
 case $distro in
-    "CENTOS" | "RHEL")
-	    RhelTasks
+    "CENTOS6" | "RHEL6")
+	    RhelTasks 6
+	;;
+    "CENTOS7" | "RHEL7")
+	    RhelTasks 7
 	;;
 	"UBUNTU")
 	    UbuntuTasks
@@ -546,4 +569,3 @@ esac
 UpdateTestState $ICA_TESTCOMPLETED
 
 exit 0
-

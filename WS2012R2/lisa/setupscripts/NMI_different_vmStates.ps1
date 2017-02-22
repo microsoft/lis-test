@@ -111,7 +111,7 @@ function SavedState()
 	}
 	do { 
 		Start-Sleep -Seconds 5 } 
-	until ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK")
+	until ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK")
 	
 	try {
 		Save-VM -Name $vmName -ComputerName $hvServer

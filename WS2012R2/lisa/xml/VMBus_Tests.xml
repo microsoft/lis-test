@@ -43,6 +43,7 @@
 			<suiteTest>VMBus_protocol_version</suiteTest>
 			<suiteTest>VMBus_verify_interrupts</suiteTest>
 			<suiteTest>VMBus_PanicNotifier</suiteTest>
+			<suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
 		</suiteTests>
 		</suite>
 	</testSuites>
@@ -77,11 +78,26 @@
         <test>
 		<testName>VMBus_PanicNotifier</testName>
 		<testScript>SetupScripts\VMBus_PanicNotifier.ps1</testScript>
+		<setupScript>setupScripts\SetVMMemory.ps1</setupScript>
 		<timeout>800</timeout>
 		<onError>Continue</onError>
 		<noReboot>False</noReboot>
 		<testParams>
 			<param>TC_COVERED=VMBus-03</param>
+            		<param>VMMemory=2GB</param>
+		</testParams>
+        </test>
+
+        <test>
+		<testName>VMBus_PanicNotifier_onKdump</testName>
+		<testScript>SetupScripts\VMBus_PanicNotifier_onKdump.ps1</testScript>
+		<setupScript>setupScripts\SetVMMemory.ps1</setupScript>
+		<timeout>800</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+			<param>TC_COVERED=VMBus-04</param>
+			<param>VMMemory=2GB</param>
 		</testParams>
         </test>
     </testCases>

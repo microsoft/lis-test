@@ -161,6 +161,10 @@ $scriptBlock = {
   MemTotal=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
   MemTotal=`$((MemTotal / mega))
   timeOut=20
+  
+  dos2unix Check_traces.sh
+  chmod +x Check_traces.sh
+  ./Check_traces.sh
 
   while [ `$MemTotal -gt `$Memory ] ; do
        stressapptest -s `$timeOut -M `$Memory & >/dev/null 2>&1

@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <!--
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
@@ -23,6 +22,9 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>
@@ -32,7 +34,7 @@
             <subject>LIS Performance Test Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
-
+        <imageStoreDir>path/to/image/store/dir/</imageStoreDir>
         <!-- Optional testParams go here -->
     </global>
 
@@ -42,63 +44,96 @@
             <suiteTests>
                 <suiteTest>Ping_IPv4</suiteTest>
                 <suiteTest>Ping_IPv6</suiteTest>
+
             </suiteTests>
         </suite>
     </testSuites>
-
     <testCases>
         <test>
             <testName>Ping_IPv4</testName>
-            <testScript>perf_ping.sh</testScript>
-            <files>remote-scripts\ica\perf_ping.sh</files>
-            <timeout>1200</timeout>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>
-            <testparams>
-                <param>TC_COVERED=PERF-Ping-01</param>
-                <param>TARGET_IP=192.168.1.100</param>
+            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+            <testScript>ping_client.sh</testScript>
+            <files>remote-scripts/ica/ping_client.sh,remote-scripts/ica/ping_server.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=PERF-PING-IPv4</param>
+                <param>STATIC_IP=10.10.10.20</param>
+                <param>NETMASK=255.255.255.0</param>
                 <param>PING_COUNT=1000</param>
-            </testparams>
+                <param>SERVER_OS_USERNAME=root</param>
+                <param>MAC=001600112233</param>
+                <param>VM2NAME=PING-Server</param>
+                <param>VM2SERVER=LIS-PERF05</param>
+                <param>VM2TEST_IP=10.10.10.10</param>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+            </testParams>
             <uploadFiles>
-                <file>ping.log</file>
+                <file>ping_logs.log</file>
             </uploadFiles>
-        </test>
-        <test>
+            <timeout>7200</timeout>
+            <OnError>Continue</OnError>
+         </test>
+
+         <test>
             <testName>Ping_IPv6</testName>
-            <testScript>perf_ping.sh</testScript>
-            <files>remote-scripts\ica\perf_ping.sh</files>
-            <timeout>1200</timeout>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>
-            <testparams>
-                <param>TC_COVERED=PERF-Ping-02</param>
-                <param>PING_TOOL=ping6</param>
-                <param>TARGET_IP=fd00::1:100</param>
+            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+            <testScript>ping_client.sh</testScript>
+            <files>remote-scripts/ica/ping_client.sh,remote-scripts/ica/ping_server.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=PERF-PING-IPv6</param>
+                <param>STATIC_IP=fd00::4:100</param>
+                <param>NETMASK=64</param>
                 <param>PING_COUNT=1000</param>
-            </testparams>
+                <param>SERVER_OS_USERNAME=root</param>
+                <param>MAC=001600112233</param>
+                <param>VM2NAME=PING-Server</param>
+                <param>VM2SERVER=LIS-PERF05</param>
+                <param>VM2TEST_IP=fd00::4:10</param>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+            </testParams>
             <uploadFiles>
-                <file>ping.log</file>
+                <file>ping_logs.log</file>
             </uploadFiles>
-        </test>
+            <timeout>7200</timeout>
+            <OnError>Continue</OnError>
+         </test>
     </testCases>
 
-    <VMs>        
+    <VMs>
         <vm>
             <role>SUT1</role>
-            <hvServer>LIS-HOST01</hvServer>
-            <vmName>VM-Ping-Client</vmName>
+            <hvServer>LIS-PERF06</hvServer>
+            <vmName>PING-Client</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>Ping</suite>
+            <hardware>
+               <create>true</create>
+               <numCPUs>8</numCPUs>
+               <memSize>8192</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,Vm.Enterprise#1</nic>
+               <nic>VMBus,Vm.Private40G#1,001600112200</nic>
+            </hardware>
         </vm>
+
         <vm>
             <role>NonSUT1</role>
-            <hvServer>LIS-HOST02</hvServer>
-            <vmName>VM-Ping-Server</vmName>
+            <hvServer>LIS-PERF05</hvServer>
+            <vmName>PING-Server</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <hardware>
+               <create>true</create>
+               <numCPUs>8</numCPUs>
+               <memSize>8192</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,Vm.Enterprise#1,001600112233</nic>
+               <nic>VMBus,Vm.Private40G#1,001600112201</nic>
+            </hardware>
         </vm>    
     </VMs>
 </config>

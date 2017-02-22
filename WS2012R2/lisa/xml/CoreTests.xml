@@ -42,22 +42,30 @@
             <suiteTest>TimeSync</suiteTest>
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
+            <suiteTest>TimeSync_PausedVM</suiteTest>
             <suiteTest>LISShutdownVM</suiteTest>
             <suiteTest>LISShutDownVMAndResetCpuCount</suiteTest>
             <suiteTest>VerifyLisModules</suiteTest>
             <suiteTest>Multi_Cpu_Test</suiteTest>
             <suiteTest>Verify_LISModules_Version</suiteTest>
-            <suiteTest>VerifyItegratedShutdownService</suiteTest>
+            <suiteTest>VerifyIntegratedShutdownService</suiteTest>
+            <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
             <suiteTest>StressReloadModules</suiteTest>
             <suiteTest>FloppyDisk</suiteTest>
             <suiteTest>CDmount</suiteTest>
+            <suiteTest>VCPU_verify_online</suiteTest>
+            <suiteTest>CheckNuma</suiteTest>
+            <suiteTest>CheckNuma_Maximum</suiteTest>
+            <suiteTest>initrd_modules_check</suiteTest>
+            <suiteTest>check_clocksource</suiteTest>
+            <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
-    <test>
+    	<test>
             <testName>VMHeartBeat</testName>
             <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
             <timeout>600</timeout>
@@ -67,18 +75,7 @@
             </testParams>
         </test>
 
-    <test>
-        <testName>TimeSync_NTP</testName>
-        <testScript>CORE_TimeSync_NTP.sh</testScript>
-        <files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
-        <timeout>2000</timeout>
-        <onError>Continue</onError>
-        <testParams>
-            <param>TC_COVERED=CORE-04</param>
-        </testParams>
-    </test>
-
-    <test>
+	<test>
             <testName>TimeSync</testName>
             <testScript>SetupScripts\INST_LIS_TimeSync.ps1</testScript>
             <timeout>600</timeout>
@@ -91,7 +88,18 @@
             </testParams>
         </test>
 
-    <test>
+	<test>
+	        <testName>TimeSync_NTP</testName>
+	        <testScript>CORE_TimeSync_NTP.sh</testScript>
+	        <files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
+	        <timeout>2000</timeout>
+	        <onError>Continue</onError>
+	        <testParams>
+	            <param>TC_COVERED=CORE-04</param>
+	        </testParams>
+	</test>
+
+	<test>
             <testName>TimeSync_SavedVM</testName>
             <testScript>SetupScripts\INST_timesync_savedVM.ps1</testScript>
             <timeout>800</timeout>
@@ -102,7 +110,7 @@
             </testparams>
         </test>
 
-    <test>
+	<test>
             <testName>LISShutdownVM</testName>
             <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
             <timeout>600</timeout>
@@ -112,7 +120,7 @@
             </testParams>
         </test>
 
-    <test>
+	<test>
             <testName>LISShutDownVMAndResetCpuCount</testName>
             <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
             <cleanupScript>setupScripts\ResetCPU.ps1</cleanupScript>
@@ -136,7 +144,7 @@
             </testParams>
         </test>
 
-    <test>
+	<test>
             <testName>Multi_Cpu_Test</testName>
             <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
             <timeout>1600</timeout>
@@ -146,7 +154,7 @@
             </testParams>
         </test>
 
-    <test>
+	<test>
             <testName>Verify_LISModules_Version</testName>
             <testScript>CORE_LISmodules_version.sh</testScript>
             <files>remote-scripts/ica/CORE_LISmodules_version.sh</files>
@@ -155,12 +163,12 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=CORE-15</param>
-        <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
+        	<param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
             </testparams>
         </test>
 
-    <test>
-            <testName>VerifyItegratedShutdownService</testName>
+	<test>
+            <testName>VerifyIntegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <timeout>600</timeout>
             <testParams>
@@ -172,7 +180,7 @@
             <testName>RebootDifferentMemSettings</testName>
             <testParams>
                 <param>TC_COVERED=CORE-17</param>
-                <param>MemSize=6GB,3.5GB,4GB</param>
+                <param>MemSize=6GB,1GB,4GB</param>
             </testParams>
             <testScript>SetupScripts\CORE_RebootDiffMemory.ps1</testScript>
             <timeout>600</timeout>
@@ -191,7 +199,7 @@
             <noReboot>False</noReboot>
         </test>
 
-		<test>
+	<test>
             <testName>FloppyDisk</testName>
             <testScript>Core_Floppy_Disk.sh</testScript>
             <files>remote-scripts\ica\Core_Floppy_Disk.sh</files>
@@ -201,10 +209,10 @@
             <testParams>
                 <param>TC_COVERED=CORE-19</param>
             </testParams>
-			<onError>Continue</onError>
+		<onError>Continue</onError>
             <timeout>600</timeout>
         </test>
-		
+
         <test>
             <testName>CDmount</testName>
             <testScript>Core_LIS_CD.sh</testScript>
@@ -220,10 +228,139 @@
             <noReboot>False</noReboot>
         </test>
 
+        <test>
+		<testName>VCPU_verify_online</testName>
+		<testScript>vcpu_verify_online.sh</testScript>
+		<setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+		<files>remote-scripts/ica/vcpu_verify_online.sh</files>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+            		<param>TC_COVERED=CORE-21</param>
+			<param>vCPU=4</param>
+            	</testParams>
+        </test>
+
+        <test>
+            <testName>CheckNuma</testName>
+            <setupScript>
+                <file>SetupScripts\DM_DISABLE.ps1</file>
+                <file>setupScripts\ChangeCPU.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\NUMA.ps1</testScript>
+            <files>remote-scripts\ica\utils.sh</files>
+            <onError>Continue</onError>
+            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
+            <testParams>
+                <param>TC_COVERED=CORE-22</param>
+                <param>enableDM=no</param>
+                <param>staticMem=2048MB</param>
+                <param>memWeight=0</param>
+                <param>VCPU=4</param>
+                <param>NumaNodes=1</param>
+                <param>Sockets=1</param>
+		<param>staticMem=2048MB</param>
+		<param>memWeight=0</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>CheckNuma_Maximum</testName>
+            <setupScript>
+            	<file>setupScripts\DM_DISABLE.ps1</file>
+            	<file>setupScripts\ChangeCPU.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\NUMA.ps1</testScript>
+            <files>remote-scripts\ica\utils.sh</files>
+            <onError>Continue</onError>
+            <testParams>
+                <param>TC_COVERED=CORE-23</param>
+                <param>VCPU=8</param>
+                <param>NumaNodes=4</param>
+                <param>Sockets=2</param>
+                <param>MemSize=1024MB</param>
+		<param>staticMem=2048MB</param>
+		<param>memWeight=0</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>initrd_modules_check</testName>
+            <testScript>modules_check.sh</testScript>
+            <files>remote-scripts/ica/modules_check.sh</files>
+            <testparams>
+                <param>TC_COVERED=CORE-24</param>
+                <param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
+            </testparams>
+		    <onError>Continue</onError>
+            <timeout>600</timeout>
+        </test>
+        
+        <test>
+           <testName>Disable_NUMA_By_Kernel</testName>
+           <setupScript>
+             <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+             <file>setupScripts\ChangeCPU.ps1</file>
+           </setupScript>
+           <testScript>setupScripts\NUMA_Off_Kernel.ps1</testScript>
+           <files>remote-scripts\ica\NUMA_off_kernel.sh</files>
+           <files>remote-scripts\ica\NUMA_check.sh</files>
+           <files>remote-scripts\ica\utils.sh</files>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <noReboot>False</noReboot>
+           <testparams>
+               <param>TC_COVERED=CORE-25</param>
+               <param>publicKey=id_rsa.pub</param>
+               <param>enableDM=no</param>
+               <param>startupMem=4096MB</param>
+               <param>memWeight=20</param>
+               <param>VCPU=4</param>
+               <param>NumaNodes=1</param>
+               <param>Sockets=1</param>
+               <param>MemSize=1024MB</param>
+           </testparams>
+       </test>
+
+        <test>
+		<testName>check_clocksource</testName>
+		<testScript>check_clocksource.sh</testScript>
+		<files>remote-scripts/ica/check_clocksource.sh</files>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+            		<param>TC_COVERED=CORE-26</param>
+		</testParams>
+        </test>
+
+	    <test>
+            <testName>TimeSync_PausedVM</testName>
+            <testScript>SetupScripts\INST_timesync_pausedVM.ps1</testScript>
+            <timeout>1000</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=CORE-27</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>VerifyIntegratedTimeSyncService</testName>
+            <testScript>setupscripts\INST_LIS_TimeSyncServiceDisableEnable.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=CORE-29</param>
+                <param>MaxTimeDiff=5</param>
+            </testParams>
+        </test>
     </testCases>
 
     <VMs>
-		<vm>
+	<vm>
             <hvServer>localhost</hvServer>
             <vmName>LinuxVM</vmName>
             <os>Linux</os>

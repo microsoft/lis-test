@@ -199,6 +199,14 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
     $cmdToVM = @"
 #!/bin/bash
 
+                cd /root
+                if [ -f utils.sh ]; then
+                    sed -i 's/\r//' utils.sh
+                    . utils.sh
+                else
+                    exit 1
+                fi
+
                 # get interface with given MAC
                 __sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address)
                 if [ 0 -ne `$? ]; then
@@ -209,22 +217,19 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
                     exit 2
                 fi
 
-                echo PingVMs: pinging $pingTargetIpv4 using interface `$__sys_interface >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                # ping the remote host using an easily distinguishable pattern
-                ping -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e0074616700" $pingTargetIpv4 >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                __retVal=`$?
-
-                 if [ "$Test_IPv6" != false ] && [ "$Test_IPv6" = "external" ] ; then
-                    echo "Trying to get IPv6 associated with $pingTargetIpv4" >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                    full_ipv6=``ssh -i .ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no root@$pingTargetIpv4 "ip addr show | grep -A 2 $pingTargetIpv4 | grep "link"" | awk '{print `$2}'``
-                    IPv6=`${full_ipv6:0:`${#full_ipv6}-3}
-                    "Trying to ping `$IPv6 on interface `$__sys_interface" >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                    # ping the right address
-                    ping6 -I `$__sys_interface -c $noPackets "`$IPv6" >> /root/NET_PRIVATE_NETWORK.log 2>&1
-                    __retVal=`$(( __retVal && _rVal ))
+                CheckIPV6 $pingTargetIpv4
+                if [[ `$? -eq 0 ]]; then
+                    pingVersion="ping6"
+                else
+                    pingVersion="ping"
                 fi
 
-                echo PingVMs: ping returned `$__retVal >> /root/NET_PRIVATE_NETWORK.log 2>&1
+                echo PingVMs: `$pingVersion $pingTargetIpv4 using interface `$__sys_interface >> /root/NET_VLAN_TAGGING.log 2>&1
+                # ping the remote host using an easily distinguishable pattern 0xcafed00d`null`vlan`null`tag`null`
+                `$pingVersion -I `$__sys_interface -c $noPackets -p "cafed00d00766c616e0074616700" $pingTargetIpv4 >> /root/NET_VLAN_TAGGING.log 2>&1
+                __retVal=`$?
+
+                echo PingVMs: ping returned `$__retVal >> /root/NET_VLAN_TAGGING.log 2>&1
                 exit `$__retVal
 "@
 
@@ -342,9 +347,6 @@ $failIP2 = $null
 #Connection type to switch to
 $switch_nic = $null
 
-#Test IPv6
-$Test_IPv6 = $null
-
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
@@ -407,7 +409,6 @@ foreach ($p in $params)
     "PING_FAIL" { $failIP1 = $fields[1].Trim() }
     "PING_FAIL2" { $failIP2 = $fields[1].Trim() }
     "SWITCH" { $switch_nic = $fields[1].Trim() }
-    "Test_IPv6" { $Test_IPv6 = $fields[1].Trim() }
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
@@ -643,14 +644,30 @@ if (-not $vm2StaticIP)
 }
 else
 {
-    # make sure $vm2StaticIP is in the same subnet as $vm1StaticIP
-    $retVal = containsAddress $vm1StaticIP $netmask $vm2StaticIP
+    $ipVersion = isValidIP $vm2StaticIP
 
-    if (-not $retVal)
+    switch ($ipVersion)
     {
-        "$vm2StaticIP is not in the same subnet as $vm1StaticIP / $netmask"
-        return $false
+        InterNetwork {
+            # make sure $vm2StaticIP is in the same subnet as $vm1StaticIP
+            $retVal = containsAddress $vm1StaticIP $netmask $vm2StaticIP
+
+            if (-not $retVal)
+            {
+                "$vm2StaticIP is not in the same subnet as $vm1StaticIP / $netmask"
+                return $false
+            }
+            break
+        }
+        InterNetworkV6 {
+            break
+        }
+        $false {
+            "$vm2StaticIP is not a valid ip address"
+            return $false
+        }
     }
+
 }
 
 

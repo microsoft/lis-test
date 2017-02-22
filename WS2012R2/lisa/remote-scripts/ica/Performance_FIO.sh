@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -103,7 +103,7 @@ if [ ! ${TOTAL_DISKS} ]; then
     exit 30
 fi
 
-echo "Number of disk attached : $TOTAL_DISKS" >> ~/summary.log
+echo " Kernel version: $(uname -r)" >> ~/summary.log
 
 fdisk -l
 sleep 2
@@ -128,7 +128,7 @@ case $(LinuxRelease) in
         LogMsg "Run test on Ubuntu. Install dependencies..."
         apt-get -y install make
         apt-get -y install gcc
-        apt-get install libaio-dev
+        apt-get -y install libaio-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the libaio-dev library!" >> ~/summary.log
@@ -136,6 +136,15 @@ case $(LinuxRelease) in
             exit 41
         fi
         FS="ext4"
+        
+        # Disable multipath so that it doesn't lock the disks
+         if [ -e /etc/multipath.conf ]; then
+            rm /etc/multipath.conf
+        fi
+        echo -e "blacklist {\n\tdevnode \"^sd[a-z]\"\n}" >> /etc/multipath.conf
+        service multipath-tools reload
+        service multipath-tools restart 
+
     ;;
     "RHEL"|"CENTOS")
         LogMsg "Run test on RHEL. Install libaio-devel..."
