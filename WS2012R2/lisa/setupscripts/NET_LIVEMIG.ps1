@@ -57,6 +57,7 @@ $goodPings      = 0
 $badPings       = 0
 $firstPing      = $False
 $lastPing       = $False
+$VMMemory       = $null
 
 ########################################################################
 #
@@ -66,11 +67,11 @@ $lastPing       = $False
 function Create-TempFile
 {
     param(
-		[Parameter(mandatory=$True)]
-		[String]$FilePath,
-		[Parameter(mandatory=$True)]
-		[double]$Size
-		)
+        [Parameter(mandatory=$True)]
+        [String]$FilePath,
+        [Parameter(mandatory=$True)]
+        [double]$Size
+        )
 
     $file = [System.IO.File]::Create($FilePath)
     $file.SetLength($Size)
@@ -87,15 +88,15 @@ function Create-TempFile
 function Copy-TempFile
 {
     param(
-		[Parameter(mandatory=$True)]
-		[String]$FilePath,
-		[Parameter(mandatory=$True)]
-		[String]$sshKey,
-		[Parameter(mandatory=$True)]
-		[String]$Ip,
-		[Parameter(mandatory=$True)]
-		[String]$ScpDir
-		)
+        [Parameter(mandatory=$True)]
+        [String]$FilePath,
+        [Parameter(mandatory=$True)]
+        [String]$sshKey,
+        [Parameter(mandatory=$True)]
+        [String]$Ip,
+        [Parameter(mandatory=$True)]
+        [String]$ScpDir
+        )
 
     & "$ScpDir\pscp.exe" -i $sshKey $FilePath root@${Ip}:
     if(-not $?)
@@ -116,7 +117,7 @@ function Copy-TempFile
 if (-not $vmName -or $vmName.Length -eq 0)
 {
     "Error: No vmName was specified"
-    Return $False   
+    Return $False
 }
 
 if (-not $hvServer)
@@ -145,8 +146,36 @@ foreach ($param in $params)
         "copyFile"      { $copyFile         = $fields[1].Trim() }
         "stopClusterNode"{ $stopClusterNode = $True }
         "TC_COVERED"    { $TC_COVERED       = $fields[1].Trim() }
+        "VMMemory"      { $VMMemory    = $fields[1].Trim() }
         default         {} #unknown param - just ignore it
     }
+}
+
+if (Test-Path $rootDir)
+{
+    Set-Location -Path $rootDir
+    if (-not $?)
+    {
+        "Error: Could not change directory to $rootDir !"
+        return $false
+    }
+    "Changed working directory to $rootDir"
+}
+else
+{
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
+}
+
+# Source TCUitls.ps1 for getipv4 and other functions
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+    . .\setupScripts\TCUtils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 $summaryLog = "${vmName}_summary.log"
@@ -178,7 +207,7 @@ $goodPings += 1
 # Start the VM migration, and make sure it is running
 #
 "Info: Starting migration job"
-$job = Start-Job -FilePath $rootDir\setupScripts\Migrate-VM.ps1 -ArgumentList $vmName, $hvServer, $migrationType, $stopClusterNode
+$job = Start-Job -FilePath $rootDir\setupScripts\Migrate-VM.ps1 -ArgumentList $vmName, $hvServer, $migrationType, $stopClusterNode, $VMMemory, $testParams
 
 if (-not $job)
 {
@@ -217,7 +246,7 @@ while ($migrateJobRunning)
     if($copyFile)
     {
         "Info: Creating a 256MB temp file"
-        $sts = Create-TempFile -FilePath "$rootDir\temp.txt" -Size 256MB 
+        $sts = Create-TempFile -FilePath "$rootDir\temp.txt" -Size 256MB
         if (-not $?)
         {
             "Error: Unable to create the temp file"
@@ -243,8 +272,18 @@ while ($migrateJobRunning)
     }
 }
 
-"Info: Pinging VM after migration"
-$pingReply = $ping.Send($ipv4)
+"Info: Pinging VM multiple times after migration"
+$counter = 0
+while ($counter -ne 10)
+{
+    $pingReply = $ping.Send($ipv4)
+    if ($pingReply.Status -eq "Success")
+    {
+        break
+    }
+    $counter++
+}
+
 if ($pingReply.Status -eq "Success")
 {
     $goodPings += 1

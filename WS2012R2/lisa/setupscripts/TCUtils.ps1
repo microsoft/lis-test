@@ -411,7 +411,7 @@ function GenerateIpv4($tempipv4, $oldipv4)
     [int]$i= $null
     [int]$check = $null
     if ($oldipv4 -eq $null){
-        [int]$octet = 102   
+        [int]$octet = 102
     }
     else {
         $oldIpPart = $oldipv4.Split(".")
@@ -980,7 +980,7 @@ function WaitForVMToStartSSH([String] $ipv4addr, [int] $timeout)
 # WaiForVMToStop()
 #
 #######################################################################
-function  WaitForVMToStop ([string] $vmName ,[string]  $hvServer, [int] $timeout)
+function  WaitForVMToStop ([string] $vmName, [string] $hvServer, [int] $timeout)
 {
     <#
     .Synopsis
@@ -1178,4 +1178,80 @@ function RunRemoteScript($remoteScript)
     del runtest.sh -ErrorAction "SilentlyContinue"
 
     return $retValue
+}
+
+#######################################################################
+#
+# Checks kernel version on VM
+#
+#######################################################################
+function check_kernel
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "uname -r"
+    if (-not $?) {
+        Write-Output "ERROR: Unable check kernel version" -ErrorAction SilentlyContinue
+        return $False
+    }
+}
+
+#######################################################################
+#
+# Check for application on VM
+#
+#######################################################################
+function check_app([string]$app_name, [string]$custom_ip)
+{
+    IF([string]::IsNullOrWhiteSpace($custom_ip)) {
+        $target_ip = $ipv4
+    }
+    else {
+        $target_ip = $custom_ip
+    }
+    .\bin\plink -i ssh\${sshKey} root@${target_ip} "command -v ${app_name}"
+    if (-not $?) {
+        Write-Output "ERROR: ${app_name} is not installed on the VM" -ErrorAction SilentlyContinue
+        return $False
+    }
+}
+
+########################################################################
+#
+# ConvertStringToDecimal()
+#
+########################################################################
+function ConvertStringToDecimal([string] $str)
+{
+    $uint64Size = $null
+
+    #
+    # Make sure we received a string to convert
+    #
+    if (-not $str)
+    {
+        Write-Error -Message "ConvertStringToDecimal() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    if ($str.EndsWith("MB"))
+    {
+        $num = $str.Replace("MB","")
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1MB
+    }
+    elseif ($str.EndsWith("GB"))
+    {
+        $num = $str.Replace("GB","")
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1GB
+    }
+    elseif ($str.EndsWith("TB"))
+    {
+        $num = $str.Replace("TB","")
+        $uint64Size = ([Convert]::ToDecimal($num)) * 1TB
+    }
+    else
+    {
+        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+    return $uint64Size
 }

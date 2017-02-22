@@ -110,7 +110,10 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $global:MinDiskSize = 1GB
 $global:DefaultDynamicSize = 127GB
-
+$SCSICount = 0
+$IDECount = 0
+$diskCount=$null
+$lun=$null
 
 #######################################################################
 #
@@ -285,7 +288,24 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     $fileInfo = GetRemoteFileInfo -filename $vhdName -server $server
     if (-not $fileInfo)
     {
-        $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Dynamic:($vhdType -eq "Dynamic") -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
+      $nv = $null
+      switch ($vhdType)
+      {
+          "Dynamic"
+              {
+                  $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Dynamic -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
+              }
+          "Fixed"
+              {
+                  $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Fixed -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
+              }
+
+          default
+              {
+                  Write-Output "Error: unknow vhd type of ${vhdType}"
+                  return $False
+              }
+       }
         if ($nv -eq $null)
         {
             "Error: New-VHD failed to create the new .vhd file: $($vhdName)"
@@ -309,15 +329,13 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     return $retVal
 }
 
-
-
 ############################################################################
 #
 # Main entry point for script
 #
 ############################################################################
-
 $retVal = $true
+$vmGeneration=$null
 
 #
 # Check input arguments
@@ -341,10 +359,49 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $False
 }
 
-#
-# Parse the testParams string
-#
-$params = $testParams.Split(';')
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq $False)
+{
+   $vmGeneration = 1
+}
+$params = $testParams.TrimEnd(";").Split(";")
+foreach ($p in $params)
+{
+    $fields = $p.Split("=")
+
+    switch ($fields[0].Trim())
+    {
+    "SSHKey"    { $sshKey  = $fields[1].Trim() }
+    "ipv4"      { $ipv4    = $fields[1].Trim() }
+    "rootDIR"   { $rootDir = $fields[1].Trim() }
+    "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
+    "TestLogDir" { $TestLogDir = $fields[1].Trim() }
+    "TestName"   { $TestName = $fields[1].Trim() }
+    "diskCount"   { $diskCount = $fields[1].Trim() }
+    "SCSI"  { $SCSICount = $SCSICount +1 }
+    "IDE"  { $IDECount = $IDECount +1 }
+    default     {}  # unknown param - just ignore it
+    }
+}
+
+# if define diskCount number, only support one SCSI parameter
+if ($diskCount -ne $null)
+{
+  if ($SCSICount -gt 1 -or $IDECount -gt 0)
+  {
+    "Error: Invalid SCSI/IDE arguments, only support to define one SCSI disk"
+    return $False
+  }
+
+  # We will limit SCSI disk number <= 64
+  if ($diskCount -lt 0 -or $diskCount -gt 64)
+  {
+      write-output "Error - only support less than 64 SCSI disks"
+      return $false
+  }
+
+}
+
 foreach ($p in $params)
 {
     if ($p.Trim().Length -eq 0)
@@ -383,7 +440,14 @@ foreach ($p in $params)
     }
 
     $controllerID = $diskArgs[0].Trim()
-    $lun = $diskArgs[1].Trim()
+    if ($vmGeneration -eq 1)
+    {
+        $lun = [int]($diskArgs[1].Trim())
+    }
+    else
+    {
+        $lun = [int]($diskArgs[1].Trim()) +1
+    }
     $vhdType = $diskArgs[2].Trim()
 
     $sectorSize = 512
@@ -404,14 +468,36 @@ foreach ($p in $params)
         continue
     }
 
-    "CreateHardDrive $vmName $hvServer $scsi $controllerID $Lun $vhdType $sectorSize"
-    $sts = CreateHardDrive -vmName $vmName -server $hvServer -SCSI:$SCSI -ControllerID $controllerID -Lun $Lun -vhdType $vhdType -sectorSize $sectorSize
-    if (-not $sts[$sts.Length-1])
+    # here only test scsi when use diskCount
+    if ($diskCount -ne $null -and $SCSI -eq $true)
     {
-        write-output "Failed to create hard drive"
-        $sts
-        $retVal = $false
-        continue
+        if ($vmGeneration -eq 1)
+        {
+            $startLun = 0
+            $endLun = $diskCount-1
+        }
+        else
+        {
+            $startLun = 1
+            $endLun = $diskCount-2
+        }
+    }
+    else
+    {
+      $startLun = $lun
+      $endLun = $lun
+    }
+    for ($lun=$startLun; $lun -le $endLun; $lun++)
+    {
+         "CreateHardDrive $vmName $hvServer $scsi $controllerID $Lun $vhdType $sectorSize"
+         $sts = CreateHardDrive -vmName $vmName -server $hvServer -SCSI:$SCSI -ControllerID $controllerID -Lun $Lun -vhdType $vhdType -sectorSize $sectorSize
+         if (-not $sts[$sts.Length-1])
+         {
+            write-output "Failed to create hard drive"
+            $sts
+            $retVal = $false
+            continue
+         }
     }
 
 }

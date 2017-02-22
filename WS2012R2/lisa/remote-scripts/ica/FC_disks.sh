@@ -86,9 +86,7 @@ fi
 #
 if [ ! ${TC_COVERED} ]; then
     LogMsg "The TC_COVERED variable is not defined!"
-	echo "The TC_COVERED variable is not defined!" >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
+    echo "The TC_COVERED variable is not defined!" >> ~/summary.log
 fi
 
 #

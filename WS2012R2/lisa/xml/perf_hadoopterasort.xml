@@ -1,8 +1,11 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <config>
   <global>
     <logfileRootDir>TestResults</logfileRootDir>
     <defaultSnapshot>ICABase</defaultSnapshot>
+    <LisaInitScript>
+        <file>.\setupScripts\CreateVMs.ps1</file>
+    </LisaInitScript>
     <email>
       <recipients>
         <to>myboss@mycompany.com</to>
@@ -12,12 +15,7 @@
       <subject>LIS Performance Test Results</subject>
       <smtpServer>mysmtphost.mycompany.com</smtpServer>
     </email>
-    <!-- Optional testParams go here -->
-    <testParams>
-      <param>vmCpuNumber=4</param>
-      <param>vmMemory=18GB</param>
-      <!-- <param>ISO_OPTIONS=.\TestData\DistroISO\SLEs-12-Server-DVD-x86_64-GM-DVD1.iso,BOOT_IDE_FIRST</param> -->
-    </testParams>
+    <imageStoreDir>\\image\path</imageStoreDir>
   </global>
   <testSuites>
     <suite>
@@ -30,23 +28,23 @@
   <testCases>
     <test>
       <testName>Perf_TeraSort</testName>
+      <PreTest>setupScripts\HadoopConfig.ps1</PreTest>
       <testScript>perf_hadoopterasort.sh</testScript>
-      <files>remote-scripts/ica/perf_hadoopterasort.sh,testdata/perf_hadoopterasort.xml/hadoop-2.7.1.tar.gz</files>
+      <files>remote-scripts/ica/perf_hadoopterasort.sh</files>
       <timeout>18000</timeout>
       <onError>Continue</onError>
       <noReboot>False</noReboot>
       <testparams>
         <param>TC_COVERED=PERF-TeraSort</param>
-        <param>HADOOP_MASTER_HOSTNAME=SLES12-ClientVM</param>
-        <param>RESOURCE_MANAGER_HOSTNAME=SLES12-ClientVM</param>
-        <param>SLAVE_HOSTNAMES=SLES12-ServerVM</param>
-        <param>TERAGEN_RECORDS=50000000</param>
-        <param>sshKey=/root/.ssh/id_rsa</param>
+        <param>HADOOP_MASTER_HOSTNAME=hadoopm</param>
+        <param>RESOURCE_MANAGER_HOSTNAME=hadoopm</param>
+        <param>SLAVE_HOSTNAMES=(slave1 slave2 slave3)</param>
+        <param>TERAGEN_RECORDS=500000000</param>
+        <param>VM2SERVER=LIS-PERF05</param>
+        <param>sshKey=/root/.ssh/ppk_id_rsa</param>
         <!-- Modify HADOOP_VERSION accordingly to file uploaded -->
         <!-- Supports multiple versions; e.g. 2.4.0, 2.7.1.  -->
-        <param>HADOOP_VERSION=2.7.1</param>
-        <!-- Optional parameter -->
-        <!-- <param>IsoFilename=.\wily-server-amd64.iso</param> -->
+        <param>HADOOP_VERSION=2.5.2</param>
       </testparams>
       <uploadFiles>
         <file>hadoop.log</file>
@@ -56,32 +54,68 @@
   </testCases>
   <VMs>
     <vm>
-      <vmName>SLES12-Client</vmName>
-      <hvServer>LIS-PERF32</hvServer>
+      <vmName>hadoopm</vmName>
+      <hvServer>LIS-PERF06</hvServer>
       <os>Linux</os>
       <ipv4>
       </ipv4>
-      <sshKey>id_rsa.ppk</sshKey>
+      <sshKey>ppk_id_rsa.ppk</sshKey>
       <suite>PerfTeraSort</suite>
-      <preStartConfig>
-         <file>.\setupscripts\Config-VM.ps1</file>
-         <!-- Optional parameter -->
-         <!-- <file>.\setupscripts\InsertIsoInDvd.ps1</file> -->
-      </preStartConfig>
+      <hardware>
+          <create>true</create>
+          <numCPUs>4</numCPUs>
+          <memSize>18432</memSize>
+          <disableDiff>True</disableDiff>
+          <nic>VMBus,Vm.Enterprise#1</nic>
+      </hardware>
+    </vm>
+     <vm>
+      <role>NonSUT</role>
+      <hvServer>LIS-PERF05</hvServer>
+      <vmName>slave1</vmName>
+      <os>Linux</os>
+      <ipv4>
+      </ipv4>
+      <sshKey>ppk_id_rsa.ppk</sshKey>
+      <hardware>
+          <create>true</create>
+          <numCPUs>4</numCPUs>
+          <memSize>18432</memSize>
+          <disableDiff>True</disableDiff>
+          <nic>VMBus,Vm.Enterprise#1,001600112233</nic>
+      </hardware>
     </vm>
     <vm>
       <role>NonSUT</role>
-      <hvServer>LIS-PERF30</hvServer>
-      <vmName>SLES12-Server</vmName>
+      <hvServer>LIS-PERF05</hvServer>
+      <vmName>slave2</vmName>
       <os>Linux</os>
       <ipv4>
       </ipv4>
-      <sshKey>id_rsa.ppk</sshKey>
-      <preStartConfig>
-         <file>.\setupscripts\Config-VM.ps1</file>
-         <!-- Optional parameter -->
-         <!-- <file>.\setupscripts\InsertIsoInDvd.ps1</file> -->
-      </preStartConfig>
+      <sshKey>ppk_id_rsa.ppk</sshKey>
+      <hardware>
+          <create>true</create>
+          <numCPUs>4</numCPUs>
+          <memSize>18432</memSize>
+          <disableDiff>True</disableDiff>
+          <nic>VMBus,Vm.Enterprise#1,001600112234</nic>
+      </hardware>
+    </vm>
+    <vm>
+      <role>NonSUT</role>
+      <hvServer>LIS-PERF05</hvServer>
+      <vmName>slave3</vmName>
+      <os>Linux</os>
+      <ipv4>
+      </ipv4>
+      <sshKey>ppk_id_rsa.ppk</sshKey>
+      <hardware>
+          <create>true</create>
+          <numCPUs>4</numCPUs>
+          <memSize>18432</memSize>
+          <disableDiff>True</disableDiff>
+          <nic>VMBus,Vm.Enterprise#1,001600112235</nic>
+      </hardware>
     </vm>
   </VMs>
 </config>

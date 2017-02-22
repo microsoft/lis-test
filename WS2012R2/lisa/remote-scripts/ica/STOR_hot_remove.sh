@@ -21,7 +21,6 @@
 #
 ########################################################################
 
-
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
@@ -75,26 +74,33 @@ fi
 
 echo "Covers : ${TC_COVERED}" >> ~/summary.log
 
+# Check for call trace log
+dos2unix check_traces.sh
+chmod +x check_traces.sh
+./check_traces.sh &
+
 #
 # Count the number of SCSI= and IDE= entries in constants
 #
-diskCount=0
-for entry in $(cat ./constants.sh)
-do
+if [ -z $diskCount ];  then
+    diskCount=0
+    for entry in $(cat ./constants.sh)
+    do
     # Convert to lower case
-    lowStr="$(tr '[A-Z]' '[a-z' <<<"$entry")"
+        lowStr="$(tr '[A-Z]' '[a-z' <<<"$entry")"
 
     # does it start wtih ide or scsi
-    if [[ $lowStr == ide* ]];
-    then
-        diskCount=$((diskCount+1))
-    fi
+        if [[ $lowStr == ide* ]];
+        then
+            diskCount=$((diskCount+1))
+        fi
 
-    if [[ $lowStr == scsi* ]];
-    then
-        diskCount=$((diskCount+1))
-    fi
-done
+        if [[ $lowStr == scsi* ]];
+        then
+            diskCount=$((diskCount+1))
+        fi
+      done
+fi
 
 LogMsg "constants disk count = $diskCount"
 
@@ -110,7 +116,6 @@ fdisk -l > /dev/null
 sdCount=0
 sdCount=`fdisk -l | grep "Disk /dev/sd*" | wc -l`
 
-
 #
 # Subtract the boot disk from the sdCount, then make
 # sure the two disk counts match
@@ -125,12 +130,10 @@ if [ $sdCount == $diskCount ]; then
     exit 30
 else
     if [ "$sdCount" == "0" ]; then
-	    LogMsg "Hot remove of Disk was successful"
-	    echo "Hot remove Disk was successful" >> ~/summary.log
+	    LogMsg "Info: Hot remove of Disk was successful"
 	else
-	    LogMsg "Disk count mismatch, count is $sdCount"
-		echo "Disk count mismatch, count is $sdCount" >> ~/summary.log
-		UpdateTestState $ICA_TESTFAILED
+	    LogMsg "Info: Disk count mismatch, count is $sdCount"
+	    UpdateTestState $ICA_TESTFAILED
         exit 40
     fi
 fi

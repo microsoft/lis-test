@@ -271,9 +271,7 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
 # Main script body
 #
 ############################################################################
-
 $retVal = $False
-
 $remoteScript = "PartitionDisks.sh"
 
 #
@@ -305,6 +303,7 @@ $ipv4 = $null
 $TC_COVERED = $null
 $vhdFormat = $null
 
+$vmGeneration = $null 
 #
 # Parse the testParams string and make sure all
 # required test parameters have been specified.
@@ -467,6 +466,20 @@ if (-not $defaultVhdPath.EndsWith("\"))
     $defaultVhdPath += "\"
 }
 
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq $False)
+{
+   $vmGeneration = 1
+}
+
+if ($vmGeneration -eq 1)
+{
+    $lun = [int]($diskArgs[1].Trim())
+}
+else
+{
+    $lun = [int]($diskArgs[1].Trim()) +1
+}
 if ($vhdFormat -eq "vhd")
 {
     $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"
@@ -533,25 +546,17 @@ if (-not $sts[-1])
     Write-Output "###################`n"
     return $False
 }
-Write-Output "$remoteScript execution on VM: Success"
+
+# Write-Output "$remoteScript execution on VM: Success"
 Write-Output "Here are the remote logs:`n`n###################"
 $logfilename = ".\$remoteScript.log"
 Get-Content $logfilename
 Write-Output "###################`n"
 Remove-Item $logfilename
 
-# return $true
 #
 # Tell the guest OS on the VM to mount the differencing disk
 #
-
-# $sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mount /dev/sdb1 /mnt" | out-null
-# if (-not $?)
-# {
-#     "Error: Unable to send mount request to VM"
-#     return $False
-# }
-
 $sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir -p /mnt/2/DiffDiskGrowthTestCase" | out-null
 if (-not $?)
 {
@@ -562,14 +567,12 @@ if (-not $?)
 #
 # Tell the guest OS to write a few MB to the differencing disk
 #
-$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dd if=/dev/sda1 of=/mnt/2/DiffDiskGrowthTestCase/test.dat count=2048 > /dev/null 2>&1" | out-null
+$sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dd if=/dev/sdb1 of=/mnt/2/DiffDiskGrowthTestCase/test.dat count=2048 > /dev/null 2>&1" | out-null
 if (-not $?)
 {
-    "Error: Unable to send cp command to VM to grow the .vhd"
+    "Error: Unable to send command to VM to grow the .vhd"
     return $False
 }
-
-# return $true
 
 #
 # Tell the guest OS on the VM to unmount the differencing disk

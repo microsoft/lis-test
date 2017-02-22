@@ -23,10 +23,12 @@
             <vmName>Test_VM_Name</vmName>
             <os>Linux</os>
             <ipv4>192.168.1.100</ipv4>
-            <sshKey>demo_id_rsa.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>Core</suite>
             <testparams>
                 <param>RootDir=C:\lis-test\WS2008R2\lisa</param>
+                <!-- Same IP as above, this is required for the Networking tests -->
+                <param>ipv4=192.168.1.100</param>
             </testparams>
         </vm>
     </VMs>
@@ -80,7 +82,6 @@
         <suite>
             <suiteName>Network</suiteName>
             <suiteTests>
-                <suiteTest>ConfigureNetwork</suiteTest>
                 <suiteTest>External</suiteTest>
                 <suiteTest>InternalNetwork</suiteTest>
                 <suiteTest>GuestOnlyNetwork</suiteTest>
@@ -108,6 +109,7 @@
                 <suiteTest>KVP_Push_Key_Values</suiteTest>
                 <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
                 <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+                <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
             </suiteTests>
         </suite>
 
@@ -245,6 +247,21 @@
                 <param>Key=AAA</param>
                 <param>Value=000</param>
                 <param>Pool=0</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_VerifyHostInjectedItems</testName>
+            <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-10</param>
+                <param>Pool=3</param>
+                <param>Items=11</param>
             </testparams>
         </test>
 
@@ -949,20 +966,18 @@
 
 <!-- NETWORK -->
         <test>
-            <testName>ConfigureNetwork</testName>
+            <testName>External</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>TC_COVERED=NET-01</param>
-                <!-- As possible, please try to set a static IP not used by the DHCP Server -->
-                <!-- Alternatively, find out which IP is leased by the dhcp server to us and set it to the IP -->
-                <!-- <param>STATIC_IP=192.168.0.2</param> -->
-                <!-- <param>NETMASK=255.255.255.0</param> -->
-                <param>REMOTE_SERVER=8.8.8.8</param>
+                <param>TC_COVERED=NET-05</param>
+                <param>PING_SUCC=8.8.8.8</param>
+                <param>PING_FAIL=192.168.0.1</param>
+                <param>PING_FAIL2=10.10.10.5</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
-            <testScript>NET_CONFIGURE_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_CONFIGURE_NETWORK.sh,remote-scripts/ica/utils.sh</files>
+            <testScript>NET_TEST_NETWORK.sh</testScript>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
         </test>
@@ -978,23 +993,6 @@
                 <param>PING_SUCC=10.10.10.1</param>
                 <param>PING_FAIL=8.8.8.8</param>
                 <param>PING_FAIL2=192.168.0.2</param>
-            </testParams>
-            <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>800</timeout>
-        </test>
-
-        <test>
-            <testName>External</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>TC_COVERED=NET-05</param>
-                <param>PING_SUCC=8.8.8.8</param>
-                <param>PING_FAIL=192.168.0.1</param>
-                <param>PING_FAIL2=10.10.10.5</param>
-                <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>

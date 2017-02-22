@@ -20,6 +20,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <dependency>
+            <!-- Only Windows Server 2012 supports this suite -->
+            <hostVersion>6.2.9200</hostVersion>
+        </dependency>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>
@@ -37,7 +41,10 @@
                 <suiteTest>Crash_single_core</suiteTest>
                 <suiteTest>Crash_SMP</suiteTest>
                 <suiteTest>Crash_NMI</suiteTest>
-                <!-- Only for REDHAT. Test with crashkernel=auto -->
+                <suiteTest>Crash_differentVCPU</suiteTest>
+                <suiteTest>Crash_16cores</suiteTest>
+                <suiteTest>Crash_nfs</suiteTest>
+                <!-- Only for RedHat. Test with crashkernel=auto -->
                 <suiteTest>Crash_Auto_size</suiteTest>
             </suiteTests>
         </suite>
@@ -51,16 +58,16 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
-                <!-- for Ubuntu use min 384M -->
-                <param>crashkernel=256M@128M</param>
+                <param>crashkernel=384M</param>
                 <param>TC_COVERED=KDUMP-01</param>
                 <param>VCPU=1</param>
                 <param>VMMemory=4GB</param>
             </testParams>
             <timeout>600</timeout>
         </test>
-        
+
         <test>
             <testName>Crash_SMP</testName>
             <setupScript>
@@ -68,9 +75,9 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupscripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
-                <!-- for Ubuntu use min 384M -->
-                <param>crashkernel=256M@128M</param>
+                <param>crashkernel=384M</param>
                 <param>TC_COVERED=KDUMP-02</param>
                 <param>VCPU=2</param>
                 <param>VMMemory=2GB</param>
@@ -85,8 +92,8 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupscripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
-                <!-- for Ubuntu use min 384M -->
                 <param>crashkernel=384M</param>
                 <param>TC_COVERED=KDUMP-03</param>
                 <param>VCPU=3</param>
@@ -103,6 +110,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <!-- Minimum RAM=2GB -->
                 <param>crashkernel=auto</param>
@@ -112,6 +120,61 @@
             </testParams>
             <timeout>600</timeout>
         </test>
+
+        <test>
+            <testName>Crash_DifferentVCPU</testName>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <!-- Minimum RAM=2GB -->
+                <param>crashkernel=384M</param>
+                <param>TC_COVERED=KDUMP-05</param>
+                <param>VCPU=4</param>
+                <param>VMMemory=2GB</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>Crash_16cores</testName>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <!-- Minimum RAM=2GB -->
+                <param>crashkernel=512M</param>
+                <param>TC_COVERED=KDUMP-07</param>
+                <param>VCPU=16</param>
+                <param>VMMemory=4GB</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>Crash_nfs</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\kdump.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>crashkernel=384M</param>
+                <param>TC_COVERED=KDUMP-06</param>
+                <param>use_nfs=yes</param>
+                <param>VCPU=1</param>
+                <param>VMMemory=4GB</param>
+            </testParams>
+            <timeout>700</timeout>
+        </test>
     </testCases>
 
     <VMs>
@@ -120,7 +183,12 @@
             <vmName>vmName</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>pki_id_rsa.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <testParams>
+                <param>ssh_key=linux_id_rsa</param>
+                <param>SnapshotName=ICABase</param>
+                <param>VM2NAME=VM2NAME</param>
+            </testParams>
             <suite>KDUMP</suite>
         </vm>
     </VMs>

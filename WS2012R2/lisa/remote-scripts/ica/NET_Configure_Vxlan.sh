@@ -19,6 +19,8 @@
 #
 #####################################################################
 
+interface="eth1"
+
 #
 # Functions definitions
 #
@@ -91,9 +93,10 @@ function CreateTestFolder ()
 
 
 #####################################################################################
-# MAIN SCRIPT
+#
+# Main script
+#
 #####################################################################################
-interface="eth1"
 ip_local=$1
 vm=$2
 ip_group=`ip maddress show $interface | grep inet | head -n1 | awk '{print $2}'`
@@ -120,12 +123,12 @@ case "$DISTRO" in
         ;;
     ubuntu*)
         ;;
-    redhat*)
+    redhat* | centos*)
         iptables -F
         iptables -X
         ;;
         *)
-            msg="ERROR: OS Version not supported"
+            msg="ERROR: OS Version not supported!"
             LogMsg "$msg"
             UpdateSummary "$msg"
             SetTestStateFailed
@@ -133,9 +136,7 @@ case "$DISTRO" in
         ;;
 esac
 
-
 # configure vxlan
-
 ConfigureVxlan $interface $vm $ip_local $ip_group
 
 if [ $vm == "local" ]; then

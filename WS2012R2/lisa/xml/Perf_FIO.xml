@@ -22,39 +22,58 @@
         <suite>
             <suiteName>FIO</suiteName>
             <suiteTests>
-                <suiteTest>Performance_FIO</suiteTest>
+                <suiteTest>Performance_FIO-8k</suiteTest>
+                <suiteTest>Performance_FIO-1M</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
          <test> 
-            <testName>Performance_FIO</testName> 
+            <testName>Performance_FIO-8k</testName> 
             <testScript>Performance_FIO.sh</testScript>
-            <files>remote-scripts/ica/Performance_FIO.sh,tools/fio-2.1.10.tar.gz,tools/lis-ssd-test.fio</files>
-            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
-            <setupScript>setupScripts\AddHardDisk.ps1</setupScript> 
-             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
-             <postTest>Infrastructure\Analyze-FIOResults.ps1</postTest>
-<!--             <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
- -->            <timeout>18000</timeout>
+            <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/perf_utils.sh,tools/fio-2.1.10.tar.gz,tools/fio_8k.fio</files>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>setupScripts\AddHardDisk.ps1</file>
+            </setupScript>
+            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>5400</timeout>
             <testParams>  
-                <param>SCSI=0,0,Fixed,60GB</param> 
-                <param>TOTAL_DISKS=1</param> 
-                <param>TEST_DEVICE1=/dev/sdb</param>  
-                <param>FILE_NAME=fio-2.1.10.tar.gz</param>
-<!--                 <param>SnapshotName=ICABase</param> -->
-               <param>FIO_SCENARIO_FILE=lis-ssd-test.fio</param>
-               <param>TestLogDir=/path/to/log/dir/</param>
+                <param>TC_COVERED=FIO_8k</param>
+                <!-- Modify with physical disk  number -->
+                <param>PHYSICAL_NUMBER=3</param>
+            	<param>SCSI=0,0,Physical</param>
+                <param>LOG_FOLDER=fio_logs_8k</param> 
+                <param>FIO_SCENARIO_FILE=fio_8k.fio</param>
             </testParams> 
             <uploadFiles>
-                <file>FIOLog-4k.log</file>
-                <file>FIOLog-8k.log</file>
-                <file>FIOLog-16k.log</file>
-                <file>FIOLog-32k.log</file>
-                <file>FIOLog-64k.log</file>
-                <file>FIOLog-128k.log</file>
-                <file>FIOLog-256k.log</file>
+                <file>fio_logs_8k.zip</file>                
+            </uploadFiles>
+            <onError>Continue</onError> 
+            <noReboot>False</noReboot> 
+        </test>
+
+        <test> 
+            <testName>Performance_FIO-1M</testName> 
+            <testScript>Performance_FIO.sh</testScript>
+            <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/perf_utils.sh,tools/fio-2.1.10.tar.gz,tools/fio_1M.fio</files>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>setupScripts\AddHardDisk.ps1</file>
+            </setupScript>
+            <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
+            <timeout>5400</timeout>
+            <testParams>  
+                <param>TC_COVERED=FIO_1M</param>
+                <!-- Modify with physical disk  number -->
+                <param>PHYSICAL_NUMBER=3</param>
+                <param>SCSI=0,0,Physical</param>
+                <param>LOG_FOLDER=fio_logs_1M</param> 
+                <param>FIO_SCENARIO_FILE=fio_1M.fio</param>
+            </testParams> 
+            <uploadFiles>
+                <file>fio_logs_1M.zip</file>                
             </uploadFiles>
             <onError>Continue</onError> 
             <noReboot>False</noReboot> 
@@ -71,11 +90,16 @@
             <hardware>
                <generation>1</generation>
                <create>true</create>
-               <numCPUs>12</numCPUs>
+               <numCPUs>8</numCPUs>
                <memSize>8192</memSize>
                <disableDiff>True</disableDiff>
                <nic>VMBus,Vm.Enterprise#1</nic>
             </hardware>
+            <testParams>
+                <param>DISKS=1</param>
+                <param>TEST_DEVICE1=/dev/sdb</param>
+                <param>FILE_NAME=fio-2.1.10.tar.gz</param>
+            </testParams>
             <suite>FIO</suite>
         </vm>
     </VMs>

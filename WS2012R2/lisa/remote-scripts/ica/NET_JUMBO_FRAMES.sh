@@ -21,6 +21,8 @@
 #
 #####################################################################
 
+#############################################################################################################
+#
 # Description:
 #	This script tries to set the mtu of each synthetic network adapter to 65536 or whatever the maximum it accepts
 #	and ping a second VM with large packet sizes. All synthetic interfaces need to have the same max MTU.
@@ -60,9 +62,9 @@
 #	GATEWAY is the IP Address of the default gateway
 #	TC_COVERED is the LIS testcase number
 #
-#
 #############################################################################################################
 
+pingVersion="ping"
 
 # Convert eol
 dos2unix utils.sh
@@ -112,7 +114,6 @@ case $? in
 		;;
 esac
 
-pingVersion="ping"
 # Parameter provided in constants file
 declare -a STATIC_IPS=()
 
@@ -163,7 +164,6 @@ if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
 	SetTestStateAborted
 	exit 30
 fi
-
 
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter SSH_PRIVATE_KEY is not defined in ${LIS_CONSTANTS_FILE}"
@@ -253,27 +253,6 @@ else
 	fi
 fi
 
-# Get the legacy netadapter interface
-GetLegacyNetInterfaces
-
-if [ 0 -ne $? ]; then
-	msg="No legacy network interfaces found. Test can continue"
-	LogMsg "$msg"
-else
-# Remove loopback interface if LO_IGNORE is set
-	LEGACY_NET_INTERFACES=(${LEGACY_NET_INTERFACES[@]/lo/})
-
-	if [ ${#LEGACY_NET_INTERFACES[@]} -ne 0 ]; then
-		IFS=,
-		msg="Legacy interfaces ${LEGACY_NET_INTERFACES[*]} are present. Test requires only synthetic network adapters."
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateAborted
-		exit 10
-	fi
-fi
-
-
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
 
@@ -298,7 +277,6 @@ fi
 
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
-
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
 	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
@@ -310,8 +288,6 @@ for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
 		exit 20
 	fi
 done
-
-
 
 if [ ${#SYNTH_NET_INTERFACES[@]} -gt ${#STATIC_IPS[@]} ]; then
 	LogMsg "No. of synthetic interfaces is greater than number of static IPs specified in constants file. Will use dhcp for ${SYNTH_NET_INTERFACES[@]:${#STATIC_IPS[@]}}"
@@ -499,7 +475,6 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		__hex_ping_value=$(echo -n "${__packet_size[$__packet_iterator]}" | od -A n -t x1 | sed 's/ //g' | cut -c1-10)
 
 		LogMsg "Trying to ping $STATIC_IP2 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
-		UpdateSummary "Trying to ping $STATIC_IP2 from interface ${SYNTH_NET_INTERFACES[$__iterator]} with packet-size ${__packet_size[$__packet_iterator]}"
 
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`jumb`null`packet_size`null`
 		"$pingVersion" -I "${SYNTH_NET_INTERFACES[$__iterator]}" -c 20 -p "cafed00d006a756d6200${__hex_ping_value}00" -s "${__packet_size[$__packet_iterator]}" "$STATIC_IP2"
@@ -513,7 +488,6 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		fi
 
 		LogMsg "Successfully pinged!"
-		UpdateSummary "Successfully pinged!"
 	done
 
 done

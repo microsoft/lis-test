@@ -172,8 +172,6 @@ else
     exit 10
 fi
 
-echo "Covers: ${TC_COVERED}" >> ~/summary.log
-
 # Create the state.txt file so ICA knows we are running
 UpdateTestState $ICA_TESTRUNNING
 
@@ -192,14 +190,12 @@ then
 fi
 
 #Check for Testcase count
-if [ ! ${TC_COVERED} ]; then
-    LogMsg "Error: The TC_COVERED variable is not defined."
-    echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
-    UpdateTestState "TestAborted"
-    exit 1
+if [ ! ${TC_COUNT} ]; then
+    LogMsg "Error: The TC_COUNT variable is not defined."
+    echo "Error: The TC_COUNT variable is not defined." >> ~/summary.log
 fi
 
-echo "Covers: ${TC_COVERED}" >> ~/summary.log
+echo "Covers: ${TC_COUNT}" >> ~/summary.log
 
 # Count the number of SCSI= and IDE= entries in constants
 diskCount=0
@@ -267,5 +263,4 @@ do
 done
 
 UpdateTestState $ICA_TESTCOMPLETED
-
 exit 0

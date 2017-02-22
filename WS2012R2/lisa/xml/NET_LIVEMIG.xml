@@ -33,7 +33,7 @@
             <smtpServer>smtp.your.company.com</smtpServer>
         </email>
     </global>
-    
+
 	<testSuites>
         <suite>
             <suiteName>LiveMigration</suiteName>
@@ -42,23 +42,24 @@
                 <suiteTest>QuickMigrate</suiteTest>
                 <suiteTest>CopyFileDuringMigration</suiteTest>
                 <suiteTest>Failover</suiteTest>
-                <suiteTest>SetMemory512_LiveMig</suiteTest>
-                <suiteTest>SetMemory512_QuickMig</suiteTest>
-                <suiteTest>SetMemory2048_LiveMig</suiteTest>
-                <suiteTest>SetMemory2048_QuickMig</suiteTest>
-                <suiteTest>SetMemory5120_LiveMig</suiteTest>
-                <suiteTest>SetMemory5120_QuickMig</suiteTest>
+                <suiteTest>SetMemory512MB_LiveMig</suiteTest>
+                <suiteTest>SetMemory512MB_QuickMig</suiteTest>
+                <suiteTest>SetMemory2GB_LiveMig</suiteTest>
+                <suiteTest>SetMemory2GB_QuickMig</suiteTest>
+                <suiteTest>SetMemory5GB_LiveMig</suiteTest>
+                <suiteTest>SetMemory5GB_QuickMig</suiteTest>
+                <suiteTest>SetMemory16GB_LiveMig</suiteTest>
                 <suiteTest>MultiCPU2_LiveMig</suiteTest>
                 <suiteTest>MultiCPU3_LiveMig</suiteTest>
                 <suiteTest>MultiCPU4_LiveMig</suiteTest>
+                <suiteTest>MultiCPU16_LiveMig</suiteTest>
                 <suiteTest>MultiCPU2_QuickMig</suiteTest>
                 <suiteTest>MultiCPU3_QuickMig</suiteTest>
                 <suiteTest>MultiCPU4_QuickMig</suiteTest>
-                <suiteTest>IPInjection</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
-	
+
 	<testCases>
         <test>
             <testName>LiveMigrate</testName>
@@ -91,10 +92,10 @@
                 <param>TC_COVERED=NET_LIVEMIG-03</param>
             </testparams>
         </test>
-		<test>
+	<test>
             <testName>Failover</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
-            <timeout>3600</timeout>
+            <timeout>1800</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>stopClusterNode=True</param>
@@ -103,7 +104,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory512_LiveMig</testName>
+            <testName>SetMemory512MB_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -115,7 +116,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory512_QuickMig</testName>
+            <testName>SetMemory512MB_QuickMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -127,7 +128,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory2048_LiveMig</testName>
+            <testName>SetMemory2GB_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -139,7 +140,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory2048_QuickMig</testName>
+            <testName>SetMemory2GB_QuickMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -151,7 +152,7 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory5120_LiveMig</testName>
+            <testName>SetMemory5GB_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -163,7 +164,23 @@
             </testparams>
         </test>
         <test>
-            <testName>SetMemory5120_QuickMig</testName>
+            <testName>SetMemory16GB_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=16GB</param>
+                <param>VCPU=4</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-022c</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>SetMemory5GB_QuickMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
@@ -211,6 +228,22 @@
             </testparams>
         </test>
         <test>
+            <testName>MultiCPU16_LiveMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+                <file>setupScripts\SetVMMemory.ps1</file>
+            </setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VMMemory=2GB</param>
+                <param>VCPU=16</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-022c</param>
+            </testparams>
+        </test>
+        <test>
             <testName>MultiCPU2_QuickMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
@@ -246,29 +279,17 @@
                 <param>TC_COVERED=NET_LIVEMIG-08c</param>
             </testparams>
         </test>
-	<test>
-            <testName>IPInjection</testName>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-            </setupScript>
-            <testParams>
-                <param>TC_COVERED=NET_LIVEMIG-09</param>
-                <param>SnapshotName=ICABase</param>
-            </testParams>
-            <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files>
-            <timeout>600</timeout>
-        </test>
+
     </testCases>
     <VMs>
         <vm>
-            <hvServer>HYPERV_SERVER</hvServer>
+            <hvServer>localhost</hvServer>
             <vmName>VM_NAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>YOUR_KEY.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>LiveMigration</suite>
         </vm>
     </VMs>
-	
+
 </config>

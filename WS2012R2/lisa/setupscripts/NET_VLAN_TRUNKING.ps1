@@ -90,7 +90,7 @@
     to indicate if the script completed successfully or not.
 
    .Parameter vmName
-    Name of the first VM implicated in vlan trunking test .
+    Name of the first VM implicated in vlan trunking test.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -99,7 +99,7 @@
     Test data for this test case
 
     .Example
-    NET_VLAN_TRUNKING -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM_VLAN_ID=2;NATIVE_VLAN_ID=10;VM2NAME=second_sles11sp3x64;"
+    NET_VLAN_TRUNKING -vmName VM -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VM_VLAN_ID=2;NATIVE_VLAN_ID=10;VM2NAME=second_VM;"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -369,8 +369,6 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
 #
 #######################################################################
 
-#StopVMViaSSH $vmName $hvServer $sshKey 300
-
 #
 # Check input arguments
 #
@@ -484,13 +482,36 @@ else
     return $false
 }
 
-$params = $testParams.Split(";")
+$isDynamic = $false
+
+$params = $testParams.Split(';')
+foreach ($p in $params) {
+    $fields = $p.Split("=")
+    switch ($fields[0].Trim()) { 
+        "NIC"
+        {
+            $nicArgs = $fields[1].Split(',')
+            if ($nicArgs.Length -eq 3) {
+                $CurrentDir= "$pwd\"
+                $testfile = "macAddress.file" 
+                $pathToFile="$CurrentDir"+"$testfile" 
+                $isDynamic = $true
+            }
+        }
+    }
+}
+
+if ($isDynamic -eq $true) {
+    $streamReader = [System.IO.StreamReader] $pathToFile
+    $vm1MacAddress = $null
+}
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
 
     switch ($fields[0].Trim())
     {
+	"TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "VM2NAME" { $vm2Name = $fields[1].Trim() }
     "SshKey"  { $sshKey  = $fields[1].Trim() }
     "ipv4"    { $ipv4    = $fields[1].Trim() }
@@ -504,7 +525,7 @@ foreach ($p in $params)
     "NIC"
     {
         $nicArgs = $fields[1].Split(',')
-        if ($nicArgs.Length -lt 4)
+        if ($nicArgs.Length -lt 3)
         {
             "Error: Incorrect number of arguments for NIC test parameter: $p"
             return $false
@@ -515,7 +536,9 @@ foreach ($p in $params)
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
         $networkName = $nicArgs[2].Trim()
-        $vm1MacAddress = $nicArgs[3].Trim()
+        if ($nicArgs.Length -eq 4) {
+            $vm1MacAddress = $nicArgs[3].Trim()
+        }
         $legacy = $false
 
 		#
@@ -532,7 +555,7 @@ foreach ($p in $params)
         #
         if (@("External", "Internal", "Private") -notcontains $networkType)
         {
-            "Error: Invalid netowrk type: $networkType .  Network type must be either: External, Internal, Private"
+            "Error: Invalid network type: $networkType . Network type must be either: External, Internal or Private"
             return $false
         }
 
@@ -547,14 +570,18 @@ foreach ($p in $params)
             return $false
         }
 
-		$retVal = isValidMAC $vm1MacAddress
-
-        if (-not $retVal)
-        {
-            "Invalid Mac Address $vm1MacAddress"
-            return $false
+        if ($isDynamic -eq $true){
+            $vm1MacAddress = $streamReader.ReadLine() 
         }
+        else {
+            $retVal = isValidMAC $vm1MacAddress
 
+            if (-not $retVal)
+            {
+                "Invalid Mac Address $vm1MacAddress"
+                return $false
+            }  
+        }
 
         #
         # Get Nic with given MAC Address
@@ -572,6 +599,11 @@ foreach ($p in $params)
     }
     default   {}  # unknown param - just ignore it
     }
+}
+
+if ($isDynamic -eq $true) 
+{
+    $streamReader.close()
 }
 
 if (-not $vm2Name)
@@ -598,6 +630,13 @@ if (-not $ipv4)
     "Error: test parameter ipv4 was not specified"
     return $False
 }
+
+#
+# Delete any previous summary.log file, then create a new one
+#
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #set the parameter for the snapshot
 $snapshotParam = "SnapshotName = ${SnapshotName}"
@@ -1148,7 +1187,7 @@ if (-not $retVal)
 
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
-
+	
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
 
     Stop-VM -VMName $vm2name -ComputerName $hvServer -force
@@ -1370,5 +1409,4 @@ if ($scriptAddedNIC)
 }
 
 "Test successful!"
-
 return $true

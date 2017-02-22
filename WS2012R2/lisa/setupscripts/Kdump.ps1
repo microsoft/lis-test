@@ -19,52 +19,14 @@
 #
 #####################################################################
 
-
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-function CheckResults(){
-    #
-    # Checking test results
-    #
-    $stateFile = "state.txt"
-
-    bin\pscp -q -i ssh\${1} root@${2}:${stateFile} .
-    $sts = $?
-
-    if ($sts) {
-        if (test-path $stateFile){
-            $contents = Get-Content $stateFile
-            if ($null -ne $contents){
-                if ($contents.Contains('TestCompleted') -eq $True) {                    
-                    Write-Output "Info: Test ended successfully"
-                    $retVal = $True
-                }
-                if ($contents.Contains('TestAborted') -eq $True) {
-                    Write-Output "Info: State file contains TestAborted failed"
-                    $retVal = $False                           
-                }
-                if ($contents.Contains('TestFailed') -eq $True) {
-                    Write-Output "Info: State file contains TestFailed failed"
-                    $retVal = $False                           
-                }
-            }    
-            else {
-                Write-Output "ERROR: state file is empty!"
-                $retVal = $False    
-            }
-        }
-    }
-    return $retval
-}
-
-#
-# MAIN SCRIPT
-#
 $retVal = $false
 $sshKey = $null
 $ipv4 = $null
 $nmi = $null
+# variable to define if a NFS location should be used for the crash files
+$use_nfs = $null
 
 #
 # Check input arguments
@@ -83,14 +45,16 @@ $params = $testParams.Split(";")
 
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    
+
     switch ($fields[0].Trim()) {
         "rootDir"   { $rootDir = $fields[1].Trim() }
         "sshKey" { $sshKey  = $fields[1].Trim() }
         "ipv4"   { $ipv4    = $fields[1].Trim() }
         "crashkernel"   { $crashkernel    = $fields[1].Trim() }
-        "TestLogDir" {$logdir = $fields[1].Trim()}
-        "NMI" {$nmi = $fields[1].Trim()}
+        "TestLogDir" { $logdir = $fields[1].Trim() }
+        "NMI" { $nmi = $fields[1].Trim() }
+        "VM2NAME" { $vm2Name = $fields[1].Trim() }
+		"use_nfs" { $use_nfs = $fields[1].Trim() }
         default  {}
     }
 }
@@ -125,6 +89,49 @@ else
     return $false
 }
 
+if ($vm2Name -And $use_nfs -eq "yes")
+{
+    $checkState = Get-VM -Name $vm2Name -ComputerName $hvServer
+
+    if ($checkState.State -notlike "Running")
+    {
+        Start-VM -Name $vm2Name -ComputerName $hvServer
+        if (-not $?)
+        {
+            "Error: Unable to start VM ${vm2Name}"
+            $error[0].Exception
+            return $False
+        }
+        $timeout = 240 # seconds
+        if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
+        {
+            "Warning: $vm2Name never started KVP"
+        }
+
+       sleep 10
+
+        $vm2ipv4 = GetIPv4 $vm2Name $hvServer
+
+        $timeout = 200 #seconds
+        if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
+        {
+            "Error: VM ${vm2Name} never started"
+            Stop-VM $vm2Name -ComputerName $hvServer -force | out-null
+            return $False
+        }
+
+    "Info: Succesfully started dependency VM ${vm2Name}"
+    }
+
+    SendFileToVM $vm2ipv4 $sshKey ".\remote-scripts\ica\Kdump_nfs_config.sh" "/root/kdump_nfs_config.sh"
+    $retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix kdump_nfs_config.sh && chmod u+x kdump_nfs_config.sh && ./kdump_nfs_config.sh"
+    if ($retVal -eq $False)
+    {
+        Write-Output "Error: Failed to configure the NFS server!"
+        return $false
+    }
+}
+
 #
 # Copying required scripts to VM for generating kernel panic with appropriate permissions
 #
@@ -138,8 +145,12 @@ if (-not $retVal)
 }
 Write-Output "Success: send kdump_config.sh to VM."
 
-$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh && chmod u+x kdump_config.sh && ./kdump_config.sh $crashkernel"
-
+$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh && chmod u+x kdump_config.sh && ./kdump_config.sh $crashkernel $vm2ipv4"
+if ($retVal -eq $False)
+{
+    Write-Output "Error: Failed to configure kdump. Check logs for details."
+    return $false
+}
 #
 # Rebooting the VM in order to apply the kdump settings
 #
@@ -147,14 +158,12 @@ $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh &&
 $retVal = SendCommandToVM $ipv4 $sshKey "reboot"
 Write-Output "Rebooting the VM."
 
-
 #
 # Waiting the VM to start up
 Write-Output "Waiting the VM to have a connection..."
 do {
     sleep 5
 } until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
-
 
 #
 # Copying required scripts to VM for generating kernel panic with appropriate permissions
@@ -170,12 +179,10 @@ if (-not $retVal)
 Write-Output "Success: send kdump_execute.sh to VM."
 
 $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_execute.sh && chmod u+x kdump_execute.sh && ./kdump_execute.sh"
-
-bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
-$retVal = CheckResults $sshKey $ipv4
-if (-not $retVal)
+if ($retVal -eq $False)
 {
-    "ERROR: Results are not as expected(configuration problems). Test Aborted."
+    Write-Output "Error: Configuration is not correct. Check logs for details."
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
     return $false
 }
 
@@ -187,7 +194,13 @@ if ($nmi -eq 1){
     Debug-VM -Name $vmName -InjectNonMaskableInterrupt -ComputerName $hvServer -Force
 }
 else {
-    $retVal = SendCommandToVM $ipv4 $sshKey "echo 'echo c > /proc/sysrq-trigger' | at now + 1 minutes"
+    if ($vcpu -eq 4){
+        "Kdump will be triggered on VCPU 3 of 4"
+        $retVal = SendCommandToVM $ipv4 $sshKey "taskset -c 2 echo c > /proc/sysrq-trigger 2>/dev/null &"
+    }
+    else {
+        $retVal = SendCommandToVM $ipv4 $sshKey "echo c > /proc/sysrq-trigger 2>/dev/null &"
+    }
 }
 
 #
@@ -195,45 +208,50 @@ else {
 #
 Write-Output "Waiting 200 seconds to record the event..."
 Start-Sleep -S 200
-if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {                     
+if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {
     Write-Output "Error : Lost Communication to VM"
     Stop-VM -Name $vmName -ComputerName $hvServer -Force
     return $False
 }
 
 Write-Output "VM Heartbeat is OK."
-#
+
 # Waiting the VM to have a connection
 Write-Output "Checking the VM connection after kernel panic..."
-$temporar = 60
-do {
-    sleep 5
-    $temporar -= 5
-    if ($temporar -eq 0)
-    {
-        Write-Output "Error: Cannont connect to VM in time, maybe kernel panic occured again after reboot. Check summary.log for configuration problems."
-        Stop-VM -Name $vmName -ComputerName $hvServer -Force
-        return $False   
-    } 
-} until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
+
+$sts = WaitForVMToStartSSH $ipv4 100
+if (-not $sts[-1]){
+    Write-Output "Error: $vmName didn't restart after triggering the crash"
+    return $false
+}
 
 #
 # Verifying if the kernel panic process creates a vmcore file of size 10M+
 #
 Write-Output "Connection to VM is good. Checking the results..."
-if ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "Running") {
-    $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\kdump_results.sh" "/root/kdump_results.sh"
+$retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\kdump_results.sh" "/root/kdump_results.sh"
 
-    # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
-        Write-Output "Error: Failed to send kdump_results.sh to VM."
-        return $false
-    }
-    Write-Output "Success: send kdump_results.sh to VM."
+# check the return Value of SendFileToVM
+if (-not $retVal)
+{
+    Write-Output "Error: Failed to send kdump_results.sh to VM."
+    return $false
+}
+Write-Output "Success: sent kdump_results.sh to VM."
 
-    $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh"
+$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh $vm2ipv4"
+if ($retVal -eq $False)
+{
+    Write-Output "Error: Results are not as expected. Check logs for details."
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
+    return $false
 }
 
-$retVal = CheckResults $sshKey $ipv4
-return $retVal
+bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
+# Stop NFS server
+if ($vm2Name)
+{
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -Force
+}
+
+return $True

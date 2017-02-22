@@ -43,17 +43,6 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-function CheckForError()
-{   while true; do
-    a=$(grep -i "Call Trace" /var/log/messages)
-    if [[ -n $a ]]; then
-	LogMsg "Warning: System get Call Trace in /var/log/messages"
-        echo "Warning: System get Call Trace in /var/log/messages" >> ~/summary.log
-	break
-    fi
-    done
- }
-
 IntegrityCheck(){
 targetDevice=$1
 testFile="/dev/shm/testsource"
@@ -116,8 +105,13 @@ function TestFileSystem()
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk  $driveName
     if [ "$?" = "0" ]; then
         sleep 5
-       # IntegrityCheck $driveName
-        mkfs.$fs  ${driveName}1 -f
+      # IntegrityCheck $driveName
+      # for xfs, if overwrite original file system, need to use -f
+        if [ $fs = "xfs" ]; then
+          mkfs.$fs  ${driveName}1 -f
+        else
+          mkfs.$fs  ${driveName}1
+        fi
         if [ "$?" = "0" ]; then
             LogMsg "mkfs.$fs   ${driveName}1 successful..."
             mount   ${driveName}1 /mnt
@@ -296,7 +290,9 @@ then filesystem=(ext3)
 fi
 
 # Check for call trace log
-CheckForError &
+dos2unix check_traces.sh
+chmod +x check_traces.sh
+./check_traces.sh &
 
 for driveName in /dev/sd*[^0-9];
 do

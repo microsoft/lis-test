@@ -278,6 +278,10 @@ Catch { Write-Output "Windows Server Backup feature is already installed, no act
 try { Remove-WBPolicy -all -force }
 Catch { Write-Output "No existing backup policy to remove"}
 
+Write-Output "Removing old backups"
+try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
+Catch { Write-Output "No existing backup's to remove"}
+
 # Set up a new Backup Policy
 $policy = New-WBPolicy
 
@@ -315,7 +319,7 @@ if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 
 Write-Output "`nBackup success!`n"
 # Let's wait a few Seconds
-Start-Sleep -Seconds 30
+Start-Sleep -Seconds 70
 
 # Start the Restore
 Write-Output "`nNow let's do restore ...`n"
@@ -361,6 +365,7 @@ else
     Write-Output "INFO: Started VM ${vmName}"
 }
 
+start-sleep -s 120
 # Now Check the boot logs in VM to verify if there is no Recovering journals in it . 
 $sts=CheckRecoveringJ
 if ($sts[-1])
@@ -374,7 +379,7 @@ else
     $results = "Passed"
     $retVal = $True
     Write-Output "INFO: VSS Back/Restore: Success"   
-    Write-Output "No Recovering Journal in boot msg: Success" >> $summaryLog
+    Write-Output "Recovering Journal in boot msg: Success" >> $summaryLog
 }
 
 # Remove Created Backup

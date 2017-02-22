@@ -31,7 +31,7 @@
      specified hard drive.
 
      The .xml entry to specify this startup script would be:
-         <setupScript>SetupScripts\Add-VHDXForResize.ps1.ps1</setupScript>
+         <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
 
     The  scripts will always pass the vmName, hvServer, and a string of
     testParams from the test definition separated by semicolons. The testParams
@@ -52,6 +52,7 @@
         <param>Type=Dynamic</param>
         <param>sectorSize=512</param>
         <param>defaultSize=5GB</param>
+        <param>ControllerType=IDE</param>
     <testParams>
 
 .Parameter vmName
@@ -96,7 +97,7 @@ function CheckCreateSCSIController([string] $vmName, [string] $hvServer)
         Add-VMScsiController -VMName $vmName -ComputerName $hvServer
         if ($error.Count -gt 0)
         {
-            "    Error: Add-VMScsiController failed to add 'SCSI Controller"
+            "Error: Add-VMScsiController failed to add 'SCSI Controller"
             $error[0].Exception
             $retVal = $False
             return $retVal
@@ -109,6 +110,9 @@ function CheckCreateSCSIController([string] $vmName, [string] $hvServer)
     return $retVal
 }
 
+
+
+
 ################################################################################
 # CreateAttachVHDxDiskDrive
 #
@@ -116,8 +120,8 @@ function CheckCreateSCSIController([string] $vmName, [string] $hvServer)
 #   Creates and attach a new test VHDx hard-disk
 ################################################################################
 function CreateAttachVHDxDiskDrive( [string] $vmName, [string] $hvServer,
-                        [string] $vhdxType, [string]$sectorSize,
-                        [string] $defaultSize, [string] $vhdPath)
+                        [string] $vhdxType, [string] $sectorSize,
+                        [string] $defaultSize, [string] $vhdPath, [string] $controllerType)
 {
     $vmDrive = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
     $lastSlash = $vmDrive[0].Path.LastIndexOf("\")
@@ -171,12 +175,12 @@ function CreateAttachVHDxDiskDrive( [string] $vmName, [string] $hvServer,
     $error.Clear()
     Add-VMHardDiskDrive -VMName $vmName `
                         -Path $vhdxName `
-                        -ControllerType SCSI `
+                        -ControllerType $controllerType `
                         -ComputerName $hvServer
 
     if ($error.Count -gt 0)
     {
-        "Error: Add-VMHardDiskDrive failed to add drive on SCSI controller"
+        "Error: Add-VMHardDiskDrive failed to add drive on $controllerType controller"
         $error[0].Exception
         return $False
     }
@@ -210,7 +214,14 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $False
 }
 
+
+
+
 $params = $testParams.TrimEnd(";").Split(";")
+
+
+
+
 [int]$max = 0
 $setIndex = $null
 foreach($p in $params){
@@ -221,13 +232,17 @@ foreach($p in $params){
     "Type?"          { $setIndex = $value.substring(4) }
     "SectorSize?"    { $setIndex = $value.substring(10) }
     "DefaultSize?"   { $setIndex = $value.substring(11) }
+    "rootDIR"   { $rootDir = $fields[1].Trim()  }
     default     {}  # unknown param - just ignore it
     }
-    
+
     if ([int]$setIndex -gt $max -and $setIndex -ne $null){
         $max = [int]$setIndex
     }
 }
+
+
+
 $type = $null
 $sectorSize = $null
 $defaultSize = $null
@@ -245,10 +260,20 @@ for ($pair=0; $pair -le $max; $pair++) {
           "Type"         { $type    = $value }
           "SectorSize"    { $sectorSize   = $value }
           "DefaultSize"   { $defaultSize = $value }
+          "ControllerType"   { $controllerType = $value }
+
           default     {}  # unknown param - just ignore it
         }
     }
 
+    if (-not $rootDir)
+    {
+        "Warn : no rootdir was specified"
+    }
+    else
+    {
+        cd $rootDir
+    }
     # Source STOR_VHDXResize_Utils.ps1
     if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
     {
@@ -261,25 +286,38 @@ for ($pair=0; $pair -le $max; $pair++) {
     }
 
     # Check and create SCSI controller
-    $sts = CheckCreateSCSIController $vmName $hvServer
-    if (-not $sts[$sts.Length-1])
+    if ( $controllerType -eq "SCSI" )
     {
-            "Error: Unable to create the SCSI controller"
+      $sts = CheckCreateSCSIController $vmName $hvServer
+      if (-not $sts[$sts.Length-1])
+        {
+          "Error: Unable to create the SCSI controller"
             return $retVal
+        }
+    }
+    # Check IDE controller
+    elseif ( $controllerType -eq "IDE" )
+    {
+         Write-Output "ControllerType is IDE"
+    }
+    else
+    {
+         Write-Output "Error: Invalid controller type"
+         return $retVal
     }
 
     if ($type -and $sectorSize -and $defaultSize) {
         # Create and attach a new VHDx hard-disk
         "Creating new vhd: $type $sectorSize $defaultSize"
         $sts = CreateAttachVHDxDiskDrive $vmName $hvServer $type $sectorSize `
-                                         $defaultSize $vhdPath
+                                         $defaultSize $vhdPath $controllerType
 
         if (-not $sts[$sts.Length-1])
         {
             Write-Output "Error: Failed to create the VHDx file or attach it"
             return $retVal
         }
-    } 
+    }
 }
 
 $retVal = $True

@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS_SR-IOV_tests_run_on_2012R2</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+        <imageStoreDir>\\vhd\path</imageStoreDir>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>SR-IOV</suiteName>
+            <suiteTests>
+                <suiteTest>MainVM_Checkpoint</suiteTest>
+                <suiteTest>DependencyVM_Checkpoint</suiteTest>
+                <!--Live Migration tests with Single/Multiple NICs--> 
+                <suiteTest>LM_Single_VF</suiteTest>
+                <suiteTest>LM_Single_FailoverVF</suiteTest>
+                <suiteTest>LM_Multiple_VF</suiteTest>
+                <suiteTest>LM_Multiple_FailoverVF</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>MainVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
+               <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>DependencyVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
+               <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=dependency</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>LM_Single_VF</testName>
+            <testScript>setupScripts\SR-IOV_LiveMigration.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
+                <param>TC_COVERED=SRIOV-33</param>                                   
+                <param>BOND_IP1=10.11.12.51</param>
+                <param>BOND_IP2=10.11.12.52</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>MigrationType=Quick</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>LM_Single_FailoverVF</testName>
+            <testScript>setupScripts\SR-IOV_LiveMigration.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
+                <param>TC_COVERED=SRIOV-34</param>                                   
+                <param>BOND_IP1=10.11.12.51</param>
+                <param>BOND_IP2=10.11.12.52</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>FAILOVER=yes</param>
+                <param>MigrationType=Quick</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>LM_Multiple_VF</testName>
+            <testScript>setupScripts\SR-IOV_LiveMigration.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112201</param>
+                <param>TC_COVERED=SRIOV-35</param>                                   
+                <param>BOND_IP1=10.11.12.51</param>
+                <param>BOND_IP2=10.11.12.52</param>
+                <param>BOND_IP3=10.11.12.53</param>
+                <param>BOND_IP4=10.11.12.54</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>MigrationType=Quick</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>LM_Multiple_FailoverVF</testName>
+            <testScript>setupScripts\SR-IOV_LiveMigration.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112201</param>
+                <param>TC_COVERED=SRIOV-36</param>                                   
+                <param>BOND_IP1=10.11.12.51</param>
+                <param>BOND_IP2=10.11.12.52</param>
+                <param>BOND_IP3=10.11.12.53</param>
+                <param>BOND_IP4=10.11.12.54</param>
+                <param>NETMASK=255.255.255.0</param>
+                <param>FAILOVER=yes</param>
+                <param>MigrationType=Quick</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>SR_IOV_LM</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <suite>SR-IOV</suite>
+            <hardware>
+               <create>false</create>
+               <isCluster>true</isCluster>
+               <numCPUs>2</numCPUs>
+               <memSize>1024</memSize>
+               <disableDiff>True</disableDiff>
+               <nic>VMBus,External</nic>
+            </hardware>
+            <testParams>
+                <param>VM2NAME=SR_IOV_LM_Dependency</param>
+                <param>sshKey=ssh_key</param>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+        </vm>
+
+       <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>SR_IOV_LM_Dependency</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <hardware>
+               <create>false</create>
+               <isCluster>true</isCluster>
+               <numCPUs>2</numCPUs>
+               <memSize>1024</memSize>
+               <disableDiff>True</disableDiff>
+               <parentVhd>\\dependency\vhd\path</parentVhd>
+               <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+    </VMs>
+</config>

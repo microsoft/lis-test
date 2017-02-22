@@ -83,7 +83,7 @@ foreach ($p in $params) {
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
-    
+
     if ($fields[0].Trim() -eq "ipv4") {
         $IPv4 = $fields[1].Trim()
     }
@@ -131,6 +131,15 @@ $retVal = $True
     return $false
   }
 
+$kernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
+if( $? -eq $false){
+    write-output "WARNING: Could not get kernel version of $vmName" | Tee-Object -Append -file $summaryLog
+}
+if( $kernel.StartsWith("2.6") -or $kernel.EndsWith(".i686")){
+     write-output "NUMA not suported for kernel $kernel"  | Tee-Object -Append -file $summaryLog
+    return $false
+}
+
 #
 # Extracting the node and port name values for the VM attached HBA
 #
@@ -163,7 +172,7 @@ if (-not $sts[-1]) {
     return $False
 }
 else {
-    Write-Output "Matching values for NumaNodes: $NumaNodes has been found on the VM! " | Tee-Object -Append -file $summaryLog
+    Write-Output "Matching values for NumaNodes: $vcpuOnNode has been found on the VM! " | Tee-Object -Append -file $summaryLog
 }
 
 return $retVal

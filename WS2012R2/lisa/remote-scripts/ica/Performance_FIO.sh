@@ -26,12 +26,16 @@
 # Performance_FIO.sh
 #
 # Description:
-#     For the test to run you have to place the fio-2.1.10.tar.gz archive in the
+#     For the test to run you have to place the fio-2.1.10.tar.gz  archive and lis-ssd-test.fio in the
 #     Tools folder under lisa.
 #
 # Parameters:
-#     TOTAL_DISKS: Number of disks attached
+#     DISKS: Number of disks attached
 #     TEST_DEVICE1 = /dev/sdb
+#     FILE_NAME=fio-2.1.10.tar.gz
+#     FIO_SCENARIO_FILE=lis-ssd-test.fio
+#     TestLogDir=/path/to/log/dir/
+#     
 #
 ############################################################################
 
@@ -41,7 +45,6 @@ ICA_TESTABORTED="TestAborted"      # Error during setup of test
 ICA_TESTFAILED="TestFailed"        # Error during test
 
 CONSTANTS_FILE="constants.sh"
-
 LogMsg()
 {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the time-stamp to the log file
@@ -92,15 +95,39 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
+# Convert eol
+dos2unix perf_utils.sh
+
+# Source perf_utils.sh
+. perf_utils.sh || {
+    echo "Error: unable to source perf_utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+#Apling performance parameters
+setup_io_scheduler
+if [ $? -ne 0 ]; then
+    echo "Unable to add performance parameters."
+    LogMsg "Unable to add performance parameters."
+    UpdateTestState $ICA_TESTABORTED
+fi
+
 #
 # Check if variable is defined in the constants file
 #
-if [ ! ${TOTAL_DISKS} ]; then
-    LogMsg "The TOTAL_DISKS variable is not defined."
-    echo "The TOTAL_DISKS variable is not defined." >> ~/summary.log
+if [ ! ${DISKS} ]; then
+    LogMsg "The DISKS variable is not defined."
+    echo "The DISKS variable is not defined." >> ~/summary.log
     LogMsg "aborting the test."
     UpdateTestState $ICA_TESTABORTED
     exit 30
+fi
+#Check for raid partition 
+FIND_RAID=$(cat /proc/mdstat | grep md | awk -F:  '{ print $1 }')
+if [ -n ${FIND_RAID} ]; then
+    LogMsg "Raid partition found. Will delete it."
+    mdadm --stop ${FIND_RAID}
+    mdadm --remove ${FIND_RAID}
 fi
 
 echo " Kernel version: $(uname -r)" >> ~/summary.log
@@ -109,7 +136,7 @@ fdisk -l
 sleep 2
 NEW_DISK=$(fdisk -l | grep "Disk /dev/sd*" | wc -l)
 NEW_DISK=$((NEW_DISK-1))
-if [ "$NEW_DISK" = "$TOTAL_DISKS" ] ; then
+if [ "$NEW_DISK" = "$DISKS" ] ; then
     LogMsg "Result : New disk is present inside guest VM "
     LogMsg " fdisk -l is : "
     fdisk -l    
@@ -128,6 +155,7 @@ case $(LinuxRelease) in
         LogMsg "Run test on Ubuntu. Install dependencies..."
         apt-get -y install make
         apt-get -y install gcc
+        apt-get -y install mdadm
         apt-get -y install libaio-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then
@@ -148,7 +176,7 @@ case $(LinuxRelease) in
     ;;
     "RHEL"|"CENTOS")
         LogMsg "Run test on RHEL. Install libaio-devel..."
-        yum -y install libaio-devel
+        yum -y install libaio-devel mdadm
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the libaio-dev library!" >> ~/summary.log
@@ -159,7 +187,7 @@ case $(LinuxRelease) in
     ;;
     "SLES")
         LogMsg "Run test on SLES. Install libaio-devel..."
-        zypper --non-interactive install libaio-devel
+        zypper --non-interactive install libaio-devel mdadm
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the libaio-devel library!" >> ~/summary.log
@@ -173,8 +201,9 @@ case $(LinuxRelease) in
     ;; 
 esac
 
+
 i=1
-while [ $i -le $TOTAL_DISKS ]
+while [ $i -le $DISKS ]
 do
     j=TEST_DEVICE$i
     if [ ${!j:-UNDEFINED} = "UNDEFINED" ]; then
@@ -186,13 +215,13 @@ do
     LogMsg "TEST_DEVICE = ${!j}"
     echo "Target device = ${!j}" >> ~/summary.log
     DISK=`echo ${!j} | cut -c 6-8`
-
+    
 # Format and mount the disk
     (echo d;echo;echo w)|fdisk /dev/$DISK
     sleep 2
     (echo n;echo p;echo 1;echo;echo;echo w)|fdisk /dev/$DISK
     sleep 5
-    mkfs.${FS} /dev/${DISK}1
+    yes | mkfs.${FS} /dev/${DISK}1
     if [ "$?" = "0" ]; then
         LogMsg "mkfs.$FS /dev/${DISK}1 successful..."
         mount /dev/${DISK}1 /mnt
@@ -272,36 +301,53 @@ if [ 0 -ne ${sts} ]; then
 else
     echo "make: Success"
 fi
-
+mkdir /root/${LOG_FOLDER}
 LogMsg "FIO was installed successfully!"
+# Run FIO with block size 8k and iodepth 1
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1q.log
 
-# Run FIO with block size 4k
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-4k.log
+# Run FIO with block size 8k and iodepth 2
+sed --in-place=.orig -e s:"iodepth=1":"iodepth=2": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-2q.log
 
-# Run FIO with block size 8k
-sed --in-place=.orig -e s:"bs=4k":"bs=8k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-8k.log
+# Run FIO with block size 8k and iodepth 4
+sed --in-place=.orig -e s:"iodepth=2":"iodepth=4": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-4q.log
 
-# Run FIO with block size 16k
-sed --in-place=.orig -e s:"bs=8k":"bs=16k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-16k.log
+# Run FIO with block size 8k and iodepth 8
+sed --in-place=.orig -e s:"iodepth=4":"iodepth=8": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-8q.log
 
-# Run FIO with block size 32k
-sed --in-place=.orig -e s:"bs=16k":"bs=32k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-32k.log
+#Run FIO with block size 8k and iodepth 16
+sed --in-place=.orig -e s:"iodepth=8":"iodepth=16": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-16q.log
 
-# Run FIO with block size 64k
-sed --in-place=.orig -e s:"bs=32k":"bs=64k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-64k.log
+# Run FIO with block size 8k and iodepth 32
+sed --in-place=.orig -e s:"iodepth=16":"iodepth=32": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-32q.log
 
-# Run FIO with block size 128k
-sed --in-place=.orig -e s:"bs=64k":"bs=128k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-128k.log
+# Run FIO with block size 8k and iodepth 64
+sed --in-place=.orig -e s:"iodepth=32":"iodepth=64": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-64q.log
 
-# Run FIO with block size 256k
-sed --in-place=.orig -e s:"bs=128k":"bs=256k": /root/${FIO_SCENARIO_FILE}
-/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/FIOLog-256k.log
+# Run FIO with block size 8k and iodepth 128
+sed --in-place=.orig -e s:"iodepth=64":"iodepth=128": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-128q.log
 
+# Run FIO with block size 8k and iodepth 256
+sed --in-place=.orig -e s:"iodepth=128":"iodepth=256": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-256q.log
+
+# Run FIO with block size 8k and iodepth 512
+sed --in-place=.orig -e s:"iodepth=256":"iodepth=512": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-512q.log
+
+# Run FIO with block size 8k and iodepth 1024
+sed --in-place=.orig -e s:"iodepth=512":"iodepth=1024": /root/${FIO_SCENARIO_FILE}
+/root/${ROOTDIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1024q.log
+
+cd /root
+zip -r ${LOG_FOLDER}.zip . -i ${LOG_FOLDER}/*
 #
 # Check if the SCSI disk is still connected
 #
@@ -314,7 +360,6 @@ dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
         exit 60
     fi
 sleep 1
-
 LogMsg "=FIO test completed successfully"
 echo "FIO test completed successfully" >> ~/summary.log
 

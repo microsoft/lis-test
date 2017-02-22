@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -70,6 +70,8 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$TC_COVERED = $null
+$rootDir = $null
 $retVal = $false
 
 #
@@ -97,9 +99,6 @@ if (-not $testParams)
 #
 # Checking the mandatory testParams
 #
-$TC_COVERED = $null
-$rootDir = $null
-
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -174,12 +173,12 @@ if ($($vm.State) -ne [Microsoft.HyperV.PowerShell.VMState]::Running )
 Debug-VM -Name $vmName -InjectNonMaskableInterrupt -ComputerName $hvServer -Confirm:$False -Force
 if($?)
 {
-    Write-output "Successfully sent a NMI to VM $vmName" | Tee-Object -Append -file $summaryLog
+    Write-output "Info: Successfully sent a NMI to VM $vmName" | Tee-Object -Append -file $summaryLog
     $retVal = $true
 }
 else
 {
-    Write-output "NMI could not be sent to VM $vmName" | Tee-Object -Append -file $summaryLog
+    Write-output "Error: NMI could not be sent to VM $vmName" | Tee-Object -Append -file $summaryLog
     $retVal = $false
 }
 

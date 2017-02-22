@@ -34,7 +34,7 @@
 .Example
     .\Migrate-Vm.ps1 -vmName VM_Name -hvServer HYPERV_SERVER -MigrationType Live -StopClusterNode $True
 #>
-param([string] $vmName, [string] $hvServer, [string] $migrationType, [bool] $stopClusterNode)
+param([string] $vmName, [string] $hvServer, [string] $migrationType, [bool] $stopClusterNode, [string] $VMMemory, [string] $testParams)
 
 #
 # Check input arguments
@@ -55,6 +55,41 @@ if (-not $migrationType -or $migrationType.Length -eq 0)
 {
     "Error: migrationType is null or invalid"
     return $False
+}
+
+if (-not $testParams) {
+    "Error: No testParams provided!"
+    "This script requires the test case ID and VM details as the test parameters."
+    return $retVal
+}
+
+$testParams -match "RootDir=([^;]+)"
+if (-not $?){
+  "Mandatory param RootDir=Path; not found!"
+  return $false
+}
+$rootDir = $Matches[1]
+
+if (Test-Path $rootDir){
+  Set-Location -Path $rootDir
+  if (-not $?){
+    "Error: Could not change directory to $rootDir !"
+    return $false
+  }
+  "Changed working directory to $rootDir"
+}
+else{
+  "Error: RootDir = $rootDir is not a valid path"
+  return $false
+}
+
+# Source TCUtils.ps1 for getipv4 and other functions
+if (Test-Path ".\setupScripts\TCUtils.ps1"){
+  . .\setupScripts\TCUtils.ps1
+}
+else{
+  "Error: Could not find setupScripts\TCUtils.ps1"
+  return $false
 }
 
 #
@@ -115,6 +150,20 @@ if (-not $destinationNode)
 {
     "Error: Unable to set destination node"
     return $False
+}
+
+# Check resources on destination node
+if ($VMMemory)
+{
+    $startupMemory = ConvertStringToDecimal $VMMemory
+    $availableMemory = [string](Get-Counter -Counter "\Memory\Available MBytes" -ComputerName $destinationNode).CounterSamples[0].CookedValue + "MB"
+    $availableMemory = ConvertStringToDecimal $availableMemory
+
+    if ($startupMemory -gt $availableMemory)
+    {
+        "Error: Not enough available memory on the destination node. startupMemory: $startupMemory, free space: $availableMemory"
+        return $False
+    }
 }
 
 "Info : Migrating VM $vmName from $currentNode to $destinationNode"

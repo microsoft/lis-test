@@ -44,7 +44,7 @@
 # A typical XML test definition for this test case would look
 # similar to the following:
 #          <test>
-#             <testName>TimeBuildKernel</testName>     
+#             <testName>BuildKernel</testName>     
 #             <testScript>Perf_BuildKernel.sh</testScript>
 #             <files>remote-scripts/ica/Perf_BuildKernel.sh</files>
 #             <files>Tools/linux-3.14.tar.xz</files>
@@ -68,12 +68,21 @@ DEBUG_LEVEL=3
 CONFIG_FILE=.config
 LINUX_VERSION=$(uname -r)
 START_DIR=$(pwd)
+proc_count=$(cat /proc/cpuinfo | grep --count processor)
 
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
 function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1}
+}
+
+UpdateTestState() {
+    echo $1 > ~/state.txt
+}
+
+UpdateSummary() {
+    echo $1 >> ~/summary.log
 }
 
 #
@@ -86,14 +95,6 @@ dbgprint() {
     if [ $1 -le $DEBUG_LEVEL ]; then
         echo "$2"
     fi
-}
-
-UpdateTestState() {
-    echo $1 > ~/state.txt
-}
-
-UpdateSummary() {
-    echo $1 >> ~/summary.log
 }
 
 ApplyPatchesAndCompile() {
@@ -186,10 +187,6 @@ ApplyPatchesAndCompile() {
 		echo "CONFIG_HYPERV_SOCK=m" >> ${CONFIG_FILE}
 	fi
 	UpdateSummary "make oldconfig: Success"
-
-	# This patch causes ACPI to fail upon VM boot
-	#UpdateSummary "Revert commit 'ACPI: add in a bad_madt_entry() function to eventually replace the macro'"
-	#git revert 7494b07ebaae2117629024369365f7be7adc16c3 --no-edit
 	
 	#
 	# Try apply patches under /root/
@@ -199,17 +196,14 @@ ApplyPatchesAndCompile() {
 		patch -f -p1 < $patchfile
 		
 		if [ $? != 0 ]; then
-			dbgprint 0 "Failed to apply a patch."
-			dbgprint 0 "Aborting the test."
+			dbgprint 0 "Error: Failed to apply a patch file!"
 			UpdateTestState "TestAborted"
 			exit 20
 		fi
 	done
 	
-	proc_count=$(cat /proc/cpuinfo | grep --count processor)
-	
 	dbgprint 1 "*************************"
-	dbgprint 1 "Building the kernel."
+	dbgprint 1 "Info: Building the kernel..."
     
 	if [ $proc_count -eq 1 ]; then
 		(time make) >/root/Perf_BuildKernel_make.log 2>&1
@@ -223,10 +217,6 @@ ApplyPatchesAndCompile() {
 # we are running
 #
 UpdateTestState "TestRunning"
-if [ -e ~/state.txt ]; then
-    dbgprint 0 "State.txt file is created "
-    dbgprint 0 "Content of state is : " ; echo `cat state.txt`
-fi
 
 #
 # Write some useful info to the log file
@@ -290,8 +280,7 @@ else
     # Make sure we were given the linux-next git location
     #
     if [ ! ${LINUX_KERNEL_LOCATION} ]; then
-        dbgprint 0 "The LINUX_KERNEL_LOCATION variable is not defined."
-        dbgprint 0 "Aborting the test."
+        dbgprint 0 "Error: The LINUX_KERNEL_LOCATION variable is not defined."
         UpdateTestState "TestAborted"
         exit 20
     fi
@@ -415,7 +404,7 @@ if [ -e /boot/grub/grub.conf ]; then
         grubfile="/boot/grub/grub.conf"
 elif [ -e /boot/grub/menu.lst ]; then
         grubfile="/boot/grub/menu.lst"
-elif [ -e /boot/grub2/grub.cfg ]; then
+elif [ -e /boot/grub2/grub.cfg ] || [ -e /boot/efi/EFI/redhat/grub.cfg ] ; then
         grubversion=2
         grub2-mkconfig -o /boot/grub2/grub.cfg
         grub2-set-default 0

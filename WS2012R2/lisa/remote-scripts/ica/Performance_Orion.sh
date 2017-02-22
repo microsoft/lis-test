@@ -127,22 +127,14 @@ fi
 case $(LinuxRelease) in
     "UBUNTU")
         LogMsg "Run test on Ubuntu. Install dependencies..."
-        apt-get -y install make
-        apt-get -y install gcc
-        apt-get -y install libaio-dev
+        apt-get -y install make gcc libaio-dev sysstat
         sts=$?
         if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the libaio-dev library!" >> ~/summary.log
+            echo "Failed to install the dependency packages!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
-        apt-get -y install sysstat
-        sts=$?
-        if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the sysstat!" >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-            exit 41
-        fi
+
         FS="ext4"
         
         # Disable multipath so that it doesn't lock the disks
@@ -156,20 +148,14 @@ case $(LinuxRelease) in
     ;;
     "RHEL"|"CENTOS")
         LogMsg "Run test on RHEL. Install libaio-devel..."
-        yum -y install libaio-devel
+        yum -y install libaio-devel sysstat
         sts=$?
         if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the libaio-dev library!" >> ~/summary.log
+            echo "Failed to install the dependency packages!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
-        yum -y install sysstat
-        sts=$?
-        if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the sysstat!" >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-            exit 41
-        fi
+
         FS="ext4"
     ;;
     "SLES")
@@ -177,7 +163,7 @@ case $(LinuxRelease) in
         zypper --non-interactive install libaio-devel
         sts=$?
         if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the libaio-devel library!" >> ~/summary.log
+            echo "Failed to install the dependency packages!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
@@ -263,51 +249,99 @@ if [ ${sts} -ne 0 ]; then
     UpdateTestState $ICA_TESTABORTED
 fi
 
-#all read
-TEST_SUITE_COLLECTION=("oltp" "dss" "simple" "normal" "normal" "normal")
+run_oltp()
+{
+    LogMsg "Orion start running in OLTP mode. Test will take approximately 22 minutes."
+    DATE=`date +%Y%m%d_%H%M`
+    iostat -x -d 1 4000 sdb  2>&1 > /root/benchmark/orion/oltp.iostat.diskio.log  &
+    vmstat       1 4000      2>&1 > /root/benchmark/orion/oltp.vmstat.memory.cpu.log &
 
-t=0
-for currenttest in ${TEST_SUITE_COLLECTION[*]}
-do
-        echo "$currenttest"
-        # DSS test runs longest time, which is 65 minutes. 4000 = 65 * 60 + 100buffer
-        iostat -x -d 1 4000 sdb  2>&1 > /root/benchmark/orion/$t.$currenttest.iostat.diskio.log  &
-        vmstat       1 4000      2>&1 > /root/benchmark/orion/$t.$currenttest.vmstat.memory.cpu.log  &
-
-        ./orion_linux_x86-64 -run $currenttest -testname $ORION_SCENARIO_FILE
-        sts=$?
-        if [ 0 -eq ${sts} ]; then
-            #Rename the log
-            if [ $currenttest == "oltp" ]; then
-                mv $ORION_SCENARIO_FILE_*iops.csv oltp_iops.csv
-                mv $ORION_SCENARIO_FILE_*lat.csv oltp_lat.csv
-            fi
-
-            if [ $currenttest == "dss" ]; then
-                mv $ORION_SCENARIO_FILE_*mbps.csv dss_iops.csv
-                mv $ORION_SCENARIO_FILE_*lat.csv dss_lat.csv
-            fi
-
-            if [ $currenttest == "simple" ]; then
-                mv $ORION_SCENARIO_FILE_*lat.csv simple_lat.csv
-                mv $ORION_SCENARIO_FILE_*iops.csv simple_iops.csv
-            fi
-
-            if [ $currenttest == "normal" ]; then
-                mv $ORION_SCENARIO_FILE_*mbps.csv $t.normal_iops.csv
-                mv $ORION_SCENARIO_FILE_*lat.csv $t.normal_lat.csv
-            fi
-        fi
+    ./orion_linux_x86-64 -run oltp -testname /root/$ORION_SCENARIO_FILE
+    sts=$?
+    if [ $sts -eq 0 ]; then
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_iops.csv /root/oltp_iops.csv
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_lat.csv /root/oltp_lat.csv
+        echo "OTLP test completed. Sleep 60 seconds." >> ~/summary.log
         pkill -f iostat
-        pkill -f vmstat
-
-        echo "$currenttest test completed. Sleep 60 seconds..." >> ~/summary.log
-        LogMsg "$currenttest test completed. Sleep 60 seconds..."
+    	pkill -f vmstat
         sleep 60
-        t=$(($t + 1))
-done
-if [ $? -eq 0 ]; then
-    echo "All test passed." >> ~/summary.log
-    LogMsg "All test passed."
+    else
+        echo "OLTP test failed." >> ~/summary.log
+        return 1
+    fi    
+}
+
+run_dss()
+{
+    LogMsg "Orion start running in DSS mode. Test will take approximately 65 minutes."
+    DATE=`date +%Y%m%d_%H%M`
+    iostat -x -d 1 4000 sdb  2>&1 > /root/benchmark/orion/dss.iostat.diskio.log  &
+    vmstat       1 4000      2>&1 > /root/benchmark/orion/dss.vmstat.memory.cpu.log &
+
+    ./orion_linux_x86-64 -run dss -testname /root/$ORION_SCENARIO_FILE
+    sts=$?
+    if [ $sts -eq 0 ]; then
+        DSS_STS="yes"
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_mbps.csv /root/dss_mbps.csv
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_lat.csv /root/dss_lat.csv
+        echo "DSS test completed. Sleep 60 seconds." >> ~/summary.log
+        pkill -f iostat
+    	pkill -f vmstat
+        sleep 60
+    else
+        echo "DSS test failed." >> ~/summary.log
+        return 1
+    fi
+}
+
+run_simple()
+{
+    LogMsg "Orion start running in SIMPLE mode. Test will take approximately 9 minutes."
+    DATE=`date +%Y%m%d_%H%M`
+    iostat -x -d 1 4000 sdb  2>&1 > /root/benchmark/orion/simple.iostat.diskio.log  &
+    vmstat       1 4000      2>&1 > /root/benchmark/orion/simple.vmstat.memory.cpu.log &
+
+    ./orion_linux_x86-64 -run simple -testname /root/$ORION_SCENARIO_FILE
+    sts=$?
+    if [ $sts -eq 0 ]; then
+        SIMPLE_STS="yes"
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_iops.csv /root/simple_iops.csv
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_lat.csv /root/simple_lat.csv
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_mbps.csv /root/simple_mbps.csv
+        echo "Simple test completed. Sleep 60 seconds." >> ~/summary.log
+        pkill -f iostat
+    	pkill -f vmstat
+        sleep 60
+    else
+        echo "Simple test failed." >> ~/summary.log
+        return 1
+    fi
+}
+
+run_normal()
+{
+    LogMsg "Orion start running in NORMAL mode. Test will take approximately 19 minutes."
+    DATE=`date +%Y%m%d_%H%M`
+    iostat -x -d 1 4000 sdb  2>&1 > /root/benchmark/orion/normal.iostat.diskio.log  &
+    vmstat       1 4000      2>&1 > /root/benchmark/orion/normal.vmstat.memory.cpu.log &
+
+    ./orion_linux_x86-64 -run normal -testname /root/$ORION_SCENARIO_FILE
+    sts=$?
+    if [ $sts -eq 0 ]; then
+        NORMAL_STS="yes"
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_iops.csv /root/normal_iops.csv
+        cp /root/${ORION_SCENARIO_FILE}_${DATE}_lat.csv /root/normal_lat.csv
+        echo "Normal test completed. Sleep 60 seconds." >> ~/summary.log
+        pkill -f iostat
+    	pkill -f vmstat
+        sleep 60
+    else
+        echo "Normal test failed." >> ~/summary.log
+        return 1
+    fi    
+}
+
+if  run_oltp && run_dss && run_simple && run_normal -eq 0 ; then
+    echo "Orion tests completed." >> ~/summary.log
     UpdateTestState $ICA_TESTCOMPLETED
 fi

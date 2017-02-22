@@ -20,10 +20,23 @@
 # permissions and limitations under the License.
 #
 ########################################################################
+
+########################################################################
+#
+# This script is preparing, compiling and installing the LIS daemons and
+# the dependencies from the upstream kernel code (tools/hv).
+# Linux distribution vendors must adapt this code to the environment
+# specific setup.
+#
+# For SUSE 12 the upstream code is no longer compatible out-of-the-box
+# with the system's configuration and file paths.
+#
+########################################################################
+
 set -e
 set -x
 
-ICA_TESTRUNNING="TestRunning"         # The test is running
+ICA_TESTRUNNING="TestRunning"       # The test is running
 ICA_TESTCOMPLETED="TestCompleted"   # The test completed successfully
 ICA_TESTABORTED="TestAborted"       # Error during setup of test
 ICA_TESTFAILED="TestFailed"         # Error during execution of test
@@ -90,16 +103,16 @@ LinuxRelease()
     esac
 }
 
-ConfigRhel()
+prestage_daemons()
 {
     cd linux-next/tools/hv/
         if [ $? -ne 0 ]; then
-			echo "Error: Hv folder does not exist!"  >> ~/summary.log
+            echo "Error: Hv folder is not present."  >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
         fi
     mkdir -p /usr/include/uapi/linux/
          if [ $? -ne 0 ]; then
-			echo "Error: Unable to create linux folder."
+            echo "Error: Unable to create linux folder."
          fi
     cp /root/linux-next/include/linux/hyperv.h /usr/include/linux
         if [ $? -ne 0 ]; then
@@ -111,9 +124,27 @@ ConfigRhel()
             echo "Error: Unable to copy hyperv.h to /usr/include/uapi/linux." >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
         fi
+    cp /root/linux-next/include/linux/hyperv.h /usr/include/linux
+        if [ $? -ne 0 ]; then
+            echo "Error: Unable to copy hyper.h to /usr/include/linux." >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+        fi
+
+    cp /root/linux-next/tools/hv/hv_get_dhcp_info.sh /usr/sbin/hv_get_dhcp_info
+        if [ $? -ne 0 ]; then
+            echo "Error: Unable to copy hv_get_dhcp_info to /usr/sbin." >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+        fi
+    cp /root/linux-next/tools/hv/hv_get_dns_info.sh /usr/sbin/hv_get_dns_info
+        if [ $? -ne 0 ]; then
+            echo "Error: Unable to copy hv_get_dns_info to /usr/sbin." >> ~/summary.log
+            UpdateTestState $ICA_TESTABORTED
+        fi
+
+    chmod 755 /usr/sbin/hv_get_*_info
     sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_kvp_daemon.c
         if [ $? -ne 0 ]; then
-			echo "Error: Unable to add hyperv.h in hv-kvp-daemon." >> ~/summary.log
+            echo "Error: Unable to add hyperv.h in hv-kvp-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
         fi
     sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_vss_daemon.c
@@ -126,17 +157,19 @@ ConfigRhel()
             echo "Error: Unable to add hyperv.h in hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
         fi
-
-    echo "Info: Compiling daemons..." >> ~/summary.log
+    echo "Info: Compiling LIS daemons." >> ~/summary.log
     make
         if [ $? -ne 0 ]; then
-            echo "Error: Unable to compiling daemons." >> ~/summary.log
+            echo "Error: Unable to compile the LIS daemons." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
     sleep 5
-    echo "Info: Daemons successfully compiled." >> ~/summary.log
+return 0
+}
 
-    kill `ps -ef | grep hyperv | grep -v grep | awk '{print $2}'` 
+ConfigRhel()
+{
+    kill `ps -ef | grep hyperv | grep -v grep | awk '{print $2}'`
         if [ $? -ne 0 ]; then
   			echo "Error: Unable to kill daemons." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
@@ -146,7 +179,7 @@ ConfigRhel()
             systemctl stop hypervkvpd.service 
             if [ $? -ne 0 ]; then
                     echo "Error: Unable to stop hypervkvpd." >> ~/summary.log
-                    UpdateTestState $ICA_TESTFAILED                    
+                    UpdateTestState $ICA_TESTFAILED
             fi
             systemctl stop hypervvssd.service 
             if [ $? -ne 0 ]; then
@@ -160,7 +193,7 @@ ConfigRhel()
             fi
         echo "Running daemons stopped." >> ~/summary.log
     fi
-    echo "Backing up default daemons." >> ~/summary.log
+    echo "Info: Backing up default daemons." >> ~/summary.log
 
     yes | cp /usr/sbin/hypervkvpd /usr/sbin/hypervkvpd.old
         if [ $? -ne 0 ]; then
@@ -177,8 +210,8 @@ ConfigRhel()
             echo "Error: Unable to copy hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    echo "Default daemons back up." >> ~/summary.log
-    echo "Copying compiled daemons." >> ~/summary.log
+    echo "Info: Default daemons backed-up." >> ~/summary.log
+    echo "Info: Copying compiled daemons." >> ~/summary.log
     yes | mv hv_kvp_daemon /usr/sbin/hypervkvpd
         if [ $? -ne 0 ]; then
             echo "Error: Unable to copy hv-kvp-daemon compiled." >> ~/summary.log
@@ -231,76 +264,34 @@ ConfigRhel()
             echo "Error: Unable to start hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    echo "Daemons started." >> ~/summary.log
 
+    echo "Info: LIS daemons started." >> ~/summary.log
     echo "Result : Test Completed Successfully" >> ~/summary.log
-    echo "Exiting with state: TestCompleted."
     UpdateTestState $ICA_TESTCOMPLETED
 }
 
 ConfigSles()
 {
-    cd linux-next/tools/hv/
-    mkdir -p /usr/include/uapi/linux/
-        if [ $? -ne 0 ]; then
-            echo "Error: unable to create  /usr/include/uapi/linux/ folder." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    cp /root/linux-next/include/linux/hyperv.h /usr/include/linux
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to copy hyper.h to /usr/include/linux." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    cp /root/linux-next/include/uapi/linux/hyperv.h /usr/include/uapi/linux/
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to copy hyperv.h to /usr/include/uapi/linux." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_vss_daemon.c
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to add library in hv_vss_daemon." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_kvp_daemon.c
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to add library hv_kvp_daemon." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_fcopy_daemon.c
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to add library hv_fcopy_daemon." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    echo "Compiling daemons." >> ~/summary.log
-    make
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to compile daemons." >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-        fi
-    sleep 5
-    echo "Daemons compiled." >> ~/summary.log
-
     kill `ps -ef | grep hv | grep daemon | awk '{print $2}'`
 
-    echo "Backing up default daemons." >> ~/summary.log
+    echo "Info: Backing up default daemons." >> ~/summary.log
     yes | cp /usr/lib/hyper-v/bin/hv_kvp_daemon /usr/lib/hyper-v/bin/hv_kvp_daemon.old
         if [ $? -ne 0 ]; then
-            echo "Error: Unable to back up hv_kvp_daemon." >> ~/summary.log
+            echo "Error: Unable to back-up hv_kvp_daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
     yes | cp /usr/lib/hyper-v/bin/hv_vss_daemon /usr/lib/hyper-v/bin/hv_vss_daemon.old
         if [ $? -ne 0 ]; then
-            echo "Error: Unable to back up hv_vss_daemon." >> ~/summary.log
+            echo "Error: Unable to back-up hv_vss_daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
     yes | cp /usr/lib/hyper-v/bin/hv_fcopy_daemon /usr/lib/hyper-v/bin/hv_fcopy_daemon.old
         if [ $? -ne 0 ]; then
-            echo "Error: Unable to back up hv_fcopy_daemon." >> ~/summary.log
+            echo "Error: Unable to back-up hv_fcopy_daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    echo "Default daemons back up." >> ~/summary.log
-    echo "Copying compiled daemons." >> ~/summary.log
-
+    echo "Info: Default daemons backed-up." >> ~/summary.log
+    echo "Info: Copying compiled daemons." >> ~/summary.log
 
     yes | cp hv_kvp_daemon  /usr/lib/hyper-v/bin/hv_kvp_daemon
         if [ $? -ne 0 ]; then
@@ -317,17 +308,36 @@ ConfigSles()
             echo "Error: Unable to copy compiled hv_fcopy_daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    echo "Compiled daemons copied." >> ~/summary.log
+    	echo "Info: Compiled LIS daemons copied." >> ~/summary.log
+	
+	# Upstream hv tools use /usr/libexec/hypervkvpd/ as the new kvp files path
+	mkdir -p /usr/libexec/hypervkvpd/
+	cp /root/linux-next/tools/hv/hv_get_dhcp_info.sh /usr/libexec/hypervkvpd//hv_get_dhcp_info
+		if [ $? -ne 0 ]; then
+			echo "Error: Unable to copy hv_get_dhcp_info to /usr/libexec/hypervkvpd/." >> ~/summary.log
+			UpdateTestState $ICA_TESTABORTED
+		fi
+	cp /root/linux-next/tools/hv/hv_get_dns_info.sh /usr/libexec/hypervkvpd//hv_get_dns_info
+		if [ $? -ne 0 ]; then
+			echo "Error: Unable to copy hv_get_dns_info to /usr/libexec/hypervkvpd/." >> ~/summary.log
+			UpdateTestState $ICA_TESTABORTED
+		fi
+	cp /root/linux-next/tools/hv/hv_set_ifconfig.sh /usr/libexec/hypervkvpd//hv_set_ifconfig
+		if [ $? -ne 0 ]; then
+			echo "Error: Unable to copy hv_set_ifconfig to /usr/libexec/hypervkvpd/." >> ~/summary.log
+			UpdateTestState $ICA_TESTABORTED
+		fi
+
+    chmod 755 /usr/libexec/hypervkvpd/hv*
+	
     systemctl daemon-reload
         if [ $? -ne 0 ]; then
             echo "Error: Unable to reload daemons." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
     if [ -d /run/hv_kvp_daemon ]; then
-        echo "Directory exists."
         rm -rf /run/hv_kvp_daemon
             if [ $? -eq 0 ]; then
-                echo "Directory erased."
                 systemctl start hv_kvp_daemon.service
                     if [ $? -ne 0 ]; then
                         echo "Error: Unable to start hv-kvp-daemon." >> ~/summary.log
@@ -337,10 +347,8 @@ ConfigSles()
     fi
 
     if [ -d /run/hv_vss_daemon ]; then
-        echo "Directory exists."
         rm -rf /run/hv_vss_daemon
             if [ $? -eq 0 ]; then
-                echo "Directory erased."
                 systemctl start hv_vss_daemon.service
                     if [ $? -ne 0 ]; then
                         echo "Error: Unable to start hv-kvp-daemon." >> ~/summary.log
@@ -350,71 +358,23 @@ ConfigSles()
     fi
 
     if [ -d /run/hv_fcopy_daemon ]; then
-        echo "Directory exists."
         rm -rf /run/hv_fcopy_daemon
             if [ $? -eq 0 ]; then
-                echo "Directory erased."
                 systemctl start hv_fcopy_daemon.service
                     if [ $? -ne 0 ]; then
                         echo "Error: Unable to start hv-kvp-daemon." >> ~/summary.log
                         UpdateTestState $ICA_TESTFAILED
                     fi
             fi
-                                    else
-                                        echo "Folder doesn't exist."
     fi
 
-    echo "Info: Daemons started." >> ~/summary.log
-    echo "Result : Test Completed Successfully" >> ~/summary.log
-    echo "Exiting with state: TestCompleted."
+    echo "Info: LIS daemons started." >> ~/summary.log
+    echo "Result: Test Completed Successfully" >> ~/summary.log
     UpdateTestState $ICA_TESTCOMPLETED
 }
 
 ConfigCentos()
 {
-    cd linux-next/tools/hv/
-        if [ $? -ne 0 ]; then
-            echo "Error: Hv folder is not present."  >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    mkdir -p /usr/include/uapi/linux/
-         if [ $? -ne 0 ]; then
-            echo "Error: Unable to create linux folder."
-         fi
-    cp /root/linux-next/include/linux/hyperv.h /usr/include/linux
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to copy hyper.h to /usr/include/linux." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    cp /root/linux-next/include/uapi/linux/hyperv.h /usr/include/uapi/linux/
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to copy hyperv.h to /usr/include/uapi/linux." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_kvp_daemon.c
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to add hyperv.h in hv-kvp-daemon." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_vss_daemon.c
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to add hyperv.h in hv-vss-daemon." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_fcopy_daemon.c
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to add hyperv.h in hv-fcopy-daemon." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    echo "Compiling daemons." >> ~/summary.log
-    make
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to compile the LIS daemons." >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-        fi
-    sleep 5
-    echo "Daemons compiled." >> ~/summary.log
-
     kill `ps -ef | grep daemon | grep -v grep | awk '{print $2}'`
         if [ $? -ne 0 ]; then
             echo "Error: Unable to kill daemons." >> ~/summary.log
@@ -437,9 +397,9 @@ ConfigCentos()
                     echo "Error: Unable to stop hypervfcopyd." >> ~/summary.log
                     UpdateTestState $ICA_TESTFAILED
             fi
-        echo "Running daemons stopped." >> ~/summary.log
+        echo "Info: Running LIS daemons stopped." >> ~/summary.log
     fi
-    echo "Backing up default daemons." >> ~/summary.log
+    echo "Info: Backing up default daemons." >> ~/summary.log
 
     yes | cp /usr/sbin/hv_kvp_daemon /usr/sbin/hv_kvp_daemon.old
         if [ $? -ne 0 ]; then
@@ -456,8 +416,8 @@ ConfigCentos()
             echo "Error: Unable to copy hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    echo "Default daemons back up." >> ~/summary.log
-    echo "Copying compiled daemons." >> ~/summary.log
+    echo "Info: Default daemons backed-up." >> ~/summary.log
+    echo "Info: Copying compiled daemons." >> ~/summary.log
     yes | mv hv_kvp_daemon /usr/sbin/
         if [ $? -ne 0 ]; then
             echo "Error: Unable to copy hv-kvp-daemon compiled." >> ~/summary.log
@@ -475,7 +435,7 @@ ConfigCentos()
         fi
     echo "Compiled daemons copied." >> ~/summary.log
 
-    service hypervkvpd start 
+    service hypervkvpd start
         if [ $? -ne 0 ]; then
             echo "Error: Unable to start hv-kvp-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
@@ -485,62 +445,19 @@ ConfigCentos()
             echo "Error: Unable to start hv-vss-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    service hypervfcopyd start 
+    service hypervfcopyd start
         if [ $? -ne 0 ]; then
             echo "Error: Unable to start hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    echo "Daemons started." >> ~/summary.log
 
-    echo "Result : Test Completed successfully" >> ~/summary.log
+    echo "Info: LIS daemons started." >> ~/summary.log
+    echo "Result: Test Completed successfully" >> ~/summary.log
     UpdateTestState $ICA_TESTCOMPLETED
 }
 
 ConfigUbuntu()
 {
-    cd linux-next/tools/hv/
-        if [ $? -ne 0 ]; then
-            echo "Error: Hv folder is not created." >> ~/summary.log
-        fi
-    mkdir -p /usr/include/uapi/linux/
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to create linux directory." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    cp /root/linux-next/include/linux/hyperv.h /usr/include/linux
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to copy hyper.v to /usr/include/linux." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    cp /root/linux-next/include/uapi/linux/hyperv.h /usr/include/uapi/linux/
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to copy hyperv.h to /usr/include/uapi/linux." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_kvp_daemon.c
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to add hyperv.h library." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_vss_daemon.c
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to add hyperv.h library." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    sed -i 's,#include <linux/hyperv.h>,#include <uapi/linux/hyperv.h>,' hv_fcopy_daemon.c
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to add hyperv.h library." >> ~/summary.log
-            UpdateTestState $ICA_TESTABORTED
-        fi
-    echo "Compiling daemons." >> ~/summary.log
-    make
-         if [ $? -ne 0 ]; then
-            echo "Error: Unable to compile the LIS daemons!" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-        fi
-    sleep 5
-    echo "Info: Daemons compiled." >> ~/summary.log
-
     echo "Backing up default daemons." >> ~/summary.log
     yes | cp /usr/sbin/hv_kvp_daemon /usr/sbin/hv_kvp_daemon.old
         if [ $? -ne 0 ]; then
@@ -557,8 +474,8 @@ ConfigUbuntu()
             echo "Error: Unable to back up hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
         fi
-    echo "Default daemons backed up." >> ~/summary.log
-    echo "Copying compiled daemons." >> ~/summary.log
+    echo "Info: Default daemons backed up." >> ~/summary.log
+    echo "Info: Copying compiled daemons." >> ~/summary.log
 
     yes | cp hv_kvp_daemon  /usr/sbin/hv_kvp_daemon
         if [ $? -ne 0 ]; then
@@ -597,14 +514,19 @@ ConfigUbuntu()
             echo "Error: Unable to start hv-fcopy-daemon." >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-    echo "Info: LIS daemons started." >> ~/summary.log
 
-    echo "Result : Test Completed successfully" >> ~/summary.log
+    echo "Info: LIS daemons started." >> ~/summary.log
+    echo "Result: Test Completed successfully" >> ~/summary.log
     UpdateTestState $ICA_TESTCOMPLETED
 }
 
 if [ -d "/root/net-next" ]; then
 	ln -s /root/net-next/ /root/linux-next
+fi
+
+prestage_daemons
+if [ $? -ne 0 ]; then
+	echo "Error: LIS daemons pre-stage steps failed!" >> ~/summary.log
 fi
 
 case $(LinuxRelease) in
@@ -625,9 +547,9 @@ case $(LinuxRelease) in
     ;;
 
     *)
-       echo "Error: Distro '${distro}' not supported." >> ~/summary.log
+       echo "Error: Distro '${distro}' is not supported." >> ~/summary.log
        UpdateTestState "TestAborted"
-       UpdateSummary "Error: Distro '${distro}' not supported."
+       UpdateSummary "Error: Distro '${distro}' is not supported!"
        exit 1
     ;;
 esac

@@ -56,7 +56,6 @@
 			<timeout>3600</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-01,FC-02</param>
-				<param>vSANName=FC_NAME</param>
 			</testParams>
 		</test>
 
@@ -70,7 +69,6 @@
             <timeout>7200</timeout>
             <testParams>
                 <param>TC_COVERED=FC-04</param>
-                <param>vSANName=FC_NAME</param>
                 <param>FILE_NAME=iozone3_420.tar</param>
             </testParams>
         </test>
@@ -85,7 +83,6 @@
 			<timeout>7200</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-07</param>
-				<param>vSANName=FC_NAME</param>
 			</testParams>
 		</test>
 
@@ -93,14 +90,14 @@
 			<testName>FC_disks_multipath_detection</testName>
 			<testScript>setupscripts\FC_MultipathDetection.ps1</testScript>
 			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
             <files>remote-scripts\ica\utils.sh</files>
 			<timeout>3600</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-08</param>
-				<param>vSANName=FC_NAME</param>
 			</testParams>
 		</test>
-		
+
 		<test>
 			<testName>FC_WWN_basic</testName>
 			<testScript>setupScripts\FC_WWN.ps1</testScript>
@@ -110,7 +107,6 @@
 			<timeout>800</timeout>
 			<testParams>
 				<param>TC_COVERED=FC-09</param>
-				<param>vSANName=FC_NAME</param>
 			</testParams>
 		</test>
 	</testCases>
@@ -123,6 +119,11 @@
             <ipv4></ipv4>
             <sshKey>PKI_id_rsa.ppk</sshKey>
             <suite>FC</suite>
+            <testParams>
+				<!-- <param>WWNN=portA,portB</param> -->
+                <!-- <param>WWPN=portA,portB</param> -->
+                <param>vSANName=FC_NAME</param>
+            </testParams>
         </vm>
     </VMs>
 </config>

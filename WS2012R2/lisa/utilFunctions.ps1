@@ -368,7 +368,7 @@ function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
 # SummaryToString
 #
 #####################################################################
-function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename)
+function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename, [string] $logDir)
 {
     <#
     .Synopsis
@@ -389,6 +389,10 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
 
     .Parameter xmlFilename
         The name of the xml file for the current test run.
+        Type : [String]
+
+    .Parameter logDir
+        The path of the folder containing the log files
         Type : [String]
 
     .ReturnValue
@@ -414,12 +418,20 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
 
     $fname = [System.IO.Path]::GetFilenameWithoutExtension($xmlFilename)
 
-    $hostname = hostname
+    #
+    # Check to see if the provided log path is absolute
+    #
+    if ([System.IO.Path]::IsPathRooted($logDir)) 
+    {
+        $logPath = $logDir
+    }
+    else
+    {
+        $logPath = (Get-Item -Path ".\" -Verbose).FullName + "\" + $logDir    
+    }
 
-    $str += "Logs can be found at \\$($hostname)\LisaTestResults\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
-
+    $str += "Logs can be found at " + $logPath + "\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
     $str += "</pre><br />"
-
     return $str
 }
 
@@ -428,7 +440,7 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
 # SendEmail
 #
 #####################################################################
-function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename)
+function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilename, [string] $logDir)
 {
     <#
     .Synopsis
@@ -442,6 +454,10 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
     .Parameter xmlConfig
         The parsed XML from the test xml file
         Type : [System.Xml]
+
+    .Parameter logDir
+        The path of the folder containing the log files
+        Type : [String]
 
     .ReturnValue
         none
@@ -464,10 +480,20 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
     $body = SummaryToString $xmlConfig $startTime $fname
     $body = $body.Replace("Aborted", '<em style="background:Aqua; color:Red">Aborted</em>')
     $body = $body.Replace("Failed", '<em style="background:Yellow; color:Red">Failed</em>')
+    
+    #
+    # Check to see if the provided log path is absolute
+    #
+    if ([System.IO.Path]::IsPathRooted($logDir)) 
+    {
+        $logPath = $logDir
+    }
+    else
+    {
+        $logPath = (Get-Item -Path ".\" -Verbose).FullName + "\" + $logDir    
+    }
 
-    # TODO: remove hard coded log file directory
-    $hostname = hostname
-    $str += "Logs can be found at \\$($hostname)\Public\LisaTestResults\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
+    $str += "Logs can be found at " + $logPath + "\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
 
     Send-mailMessage -to $to -from $from -subject $subject -body $body -BodyAsHtml -smtpserver $smtpServer
 }
@@ -545,7 +571,6 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     #>
 
     $retVal = $False
-
     $scriptMode = "unknown"
 
     #
@@ -1801,5 +1826,75 @@ function VerifyTestResourcesExist([System.Xml.XmlElement] $vm, [System.Xml.XmlEl
         }
     }
 
+    return $retVal
+}
+
+#####################################################################
+#
+# checkHostVersion
+#
+#####################################################################
+function checkHostVersion([XML] $xmlData)
+{
+    <#
+    .Synopsis
+        Check OS version dependency defined in the hostVersion tag.
+
+    .Description
+        Check if the host version dependency is met.
+
+    .Parameter $xmlData
+        The parsed XML from the test xml file
+        Type : [System.Xml]
+
+    .ReturnValue
+        [Boolean]
+
+    .Example
+        checkHostVersion $xmlConfig
+    #>
+    $retVal = $True
+    $hostVersionDependency =  $xmlConfig.config.global.dependency.hostVersion
+    $match = $hostVersionDependency -match '^\s*([0-9]{1,2})\.([0-9]{1,2})\.([0-9]{3,})[0-9.]*$'
+    if ($match -eq $True)
+    {
+        $dependencyVersion = @{major=[int]$Matches[1];minor=[int]$Matches[2];build=[int]$Matches[3]}
+    }
+    else
+    {
+        LogMsg 0 "Error: Could not parse provided dependency hostVersion: '${hostVersionDependency}'."
+        return $False
+    }
+
+    foreach( $vm in $xmlData.config.VMs.vm )
+    {
+        $hostVersion = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $($vm.hvServer)).Version
+        $match = $hostVersion -match '^\s*([0-9]{1,2})\.([0-9]{1,2})\.([0-9]{3,})[0-9.]*$'
+        if ($match -eq $True)
+        {
+            $currentVersion = @{major=[int]$Matches[1];minor=[int]$Matches[2];build=[int]$Matches[3]}
+        }
+        else
+        {
+            LogMsg 0 "Error: Could not parse host '$($vm.hvServer)' version: '${hostVersion}'."
+            return $False
+        }
+        if ($currentVersion.build -ge $dependencyVersion.build)
+        {
+            if ($currentVersion.major -eq $dependencyVersion.major)
+            {
+                if ($currentVersion.minor -ge $dependencyVersion.minor)
+                {
+                    continue
+                }
+            }
+            elseif ($currentVersion.major -gt $dependencyVersion.major)
+            {
+                continue
+            }
+        }
+        LogMsg 0 "Error: $($vm.hvServer) build or version '$hostVersion' is lower than dependency '$hostVersionDependency'"
+        $retVal = $False
+    }
     return $retVal
 }

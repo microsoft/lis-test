@@ -26,19 +26,21 @@
 # perf_ntttcp_server.sh
 #
 # Description:
-#     For the test to run you have to place the iperf3 tool package in the
-#     Tools folder under lisa.
+#     A multiple-thread based Linux network throughput benchmark tool.
+#     For the test to run you have to install ntttcp-for-linux from github: https://github.com/Microsoft/ntttcp-for-linux
 #
 # Requirements:
-#   The sar utility must be installed, package named sysstat
+#   - GCC installed
 #
-# Parameters:
-#     TEST_SIGNAL_FILE: the signal file send by client side to sync up the number of test connections
+#Example run
 #
+#To measure the network performance between two multi-core serves running SLES 12, NODE1 (192.168.4.1) and NODE2 (192.168.4.2), connected via a 40 GigE connection.
+#
+#On NODE1 (the receiver), run: ./ntttcp -r
 #######################################################################
 
 ICA_TESTRUNNING="TestRunning"
-ICA_IPERF3RUNNING="iPerf3Running"
+ICA_NTTTCPRUNNING="NtttcpRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
@@ -72,6 +74,7 @@ touch ~/summary.log
 
 # Convert eol
 dos2unix utils.sh
+dos2unix perf_utils.sh
 
 # Source utils.sh
 . utils.sh || {
@@ -80,8 +83,23 @@ dos2unix utils.sh
     exit 2
 }
 
+# Source perf_utils.sh
+. perf_utils.sh || {
+    echo "Error: unable to source perf_utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
 # Source constants file and initialize most common variables
 UtilsInit
+
+#Apling performance parameters
+setup_sysctl
+if [ $? -ne 0 ]; then
+    echo "Unable to add performance parameters."
+    LogMsg "Unable to add performance parameters."
+    UpdateTestState $ICA_TESTABORTED
+fi
 
 # In case of error
 case $? in
@@ -193,22 +211,34 @@ LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_IN
 #
 # Check for internet protocol version
 #
-CheckIPV6 "$IPERF3_SERVER_IP"
+CheckIPV6 "$SERVER_IP"
 if [[ $? -eq 0 ]]; then
     ipVersion="-6"
 else
     ipVersion=$null
 fi
 
-git clone https://github.com/Microsoft/ntttcp-for-linux.git
+setup_lagscope
+if [ $? -ne 0 ]; then
+    echo "Unable to compile lagscope."
+    LogMsg "Unable to compile lagscope."
+    UpdateTestState $ICA_TESTABORTED
+fi
 
-#
-# Get the root directory of the tarball
-#
-rootDir="ntttcp-for-linux"
+#Install NTTTCP for network throughput
+setup_ntttcp
+if [ $? -ne 0 ]; then
+    echo "Unable to compile ntttcp-for-linux."
+    LogMsg "Unable to compile ntttcp-for-linux."
+    UpdateTestState $ICA_TESTABORTED
+fi
 
-LogMsg "rootDir = ${rootDir}"
-cd ${rootDir}/src
+LogMsg "Enlarging the system limit"
+ulimit -n 20480
+if [ $? -ne 0 ]; then
+    LogMsg "Error: Unable to enlarged system limit"
+    UpdateTestState $ICA_TESTABORTED
+fi
 
 #
 # Distro specific setup
@@ -217,6 +247,14 @@ GetDistro
 
 case "$DISTRO" in
 debian*|ubuntu*)
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
     LogMsg "Installing sar on Ubuntu"
     apt-get install sysstat -y
     if [ $? -ne 0 ]; then
@@ -234,51 +272,23 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 85
     fi
-    service ufw status
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Ubuntu"
-        service ufw stop
-        if [ $? -ne 0 ]; then
-                msg="Error: Failed to stop ufw"
-                LogMsg "${msg}"
-                echo "${msg}" >> ~/summary.log
-                UpdateTestState $ICA_TESTFAILED
-                exit 85
-        fi
-    fi
     ;;
-redhat_5|redhat_6)
-    LogMsg "Check iptables status on RHEL"
-    service iptables status
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Redhat"
-        iptables -F
+redhat_5|redhat_6|centos_6)
+    if [ "$DISTRO" == "redhat_6" ] || ["$DISTRO" == "centos_6" ]; then
+        upgrade_gcc
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service iptables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
+            msg="Error: Failed to install the new version of gcc."
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-		service ip6tables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop ip6tables"
+        fi    
+        disable_firewall
+        if [[ $? -ne 0 ]]; then
+            msg="ERROR: Unable to disable firewall.Exiting"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        chkconfig iptables off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
+            exit 1
         fi
     fi
     ;;
@@ -302,30 +312,13 @@ redhat_7)
             echo "${msg}" >> ~/summary.log
         fi
     fi
-
-    LogMsg "Check iptables status on RHEL 7"
-    service iptables status
-    if [ $? -ne 3 ]; then
-        iptables -F;
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service iptables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        chkconfig iptables off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
     fi
     ;;
 suse_12)
@@ -356,34 +349,6 @@ suse_12)
     ;;
 esac
 
-#
-# Install gcc which is required to build ntttcp
-#
-zypper --non-interactive install gcc
-
-#
-# Build ntttcp
-#
-rm -f /usr/bin/ntttcp
-
-make
-if [ $? -ne 0 ]; then
-    msg="Error: Unable to build ntttcp"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 100
-fi
-
-make install
-if [ $? -ne 0 ]; then
-    msg="Error: Unable to install ntttcp"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 110
-fi
-
 if [ $DISTRO -eq "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
@@ -393,42 +358,15 @@ if [ $DISTRO -eq "suse_12" ]; then
     fi
 fi
 
-# go back to test root folder
-cd ~
-
 # set static ips for test interfaces
-declare -i __iterator=0
-
-while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
-    LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-    CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $IPERF3_SERVER_IP $NETMASK
-
-    if [ 0 -ne $? ]; then
-        msg="Unable to set address for ${SYNTH_NET_INTERFACES[$__iterator]} through static"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 120
-    fi
-
-    : $((__iterator++))
-
-done
-
-#
-# Start ntttcp server instances
-#
-sleep 3
-LogMsg "Starting ntttcp in server mode"
-
-UpdateTestState $ICA_IPERF3RUNNING
-LogMsg "ntttcp server instances are now ready to run"
-
-ntttcp -r${IPERF3_SERVER_IP} ${ipVersion}
+ config_staticip ${SERVER_IP} ${NETMASK}
 if [ $? -ne 0 ]; then
-    msg="Error: Unable to start ntttcp server scripts on the target server machine"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 130
+    echo "ERROR: Function config_staticip failed."
+    LogMsg "ERROR: Function config_staticip failed."
+    UpdateTestState $ICA_TESTABORTED
 fi
+
+# Start ntttcp server instances
+sleep 3
+UpdateTestState $ICA_NTTTCPRUNNING
+LogMsg "Ntttcp server instances are now ready to run"

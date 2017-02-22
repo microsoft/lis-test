@@ -32,7 +32,7 @@
     A semicolon separated list of test parameters.
 
 .Example
-    .\InjectIP.ps1 "testVM" "localhost" "rootDir=D:\Lisa;IPv4Address=192.168.1.100; IPv4Subnet=255.255.255.0; IPv4Gateway=192.168.1.1; DnsServer=192.168.1.2;DHCPEnabled=False;ProtocolIFType=4096"
+    .\NET_ipinjection.ps1 "testVM" "localhost" "rootDir=D:\Lisa;IPv4Address=192.168.1.100; IPv4Subnet=255.255.255.0; IPv4Gateway=192.168.1.1; DnsServer=192.168.1.2;DHCPEnabled=False;ProtocolIFType=4096"
 #>
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams, [String] $IPv4Address)
@@ -45,11 +45,26 @@ function ReportError($Message)
 }
 
 #
+# Checks if hv_set_ifconfig is present in the VM
+#
+function check_hv_set_ifconfig()
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "find /usr/|grep hv_set_ifconfig"
+    if (-not $?) {
+        Write-Error -Message "ERROR: hv_set_ifconfig is not present or verification failed" -ErrorAction SilentlyContinue
+        Write-Output "ERROR: hv_set_ifconfig is not present or verification failed"
+        break
+    }
+    Write-Host "Info: hv_set_ifconfig is present in the VM"
+
+}
+
+#
 # Print VM Info related to replication
 #
 function PrintVMInfo()
 {
-    [System.Management.ManagementObject[]]$vmobjects = Get-WmiObject -Namespace $NamespaceV2 -Query "Select * From Msvm_ComputerSystem where Caption='Virtual Machine'"  -computername $hvServer
+    [System.Management.ManagementObject[]]$vmobjects = Get-WmiObject -Namespace $NamespaceV2 -Query "Select * From Msvm_ComputerSystem where Caption='Virtual Machine'" -computername $hvServer
     CheckNullAndExit $vmobjects "Failed to find VM objects"
     Write-Host "Available Virtual Machines" -BackgroundColor Yellow -ForegroundColor Black
     foreach ($objItem in $vmobjects) {
@@ -72,25 +87,21 @@ function MonitorJob($opresult)
 {
     if ($opresult.ReturnValue -eq 0)
     {
-        Write-Host("$TestName success.")
+        Write-Host("$tcCovered success.")
         return
     }
     elseif ($opresult.ReturnValue -ne 4096)
     {
-        Write-Host "$TestName failed. Error code " @(PrintJobErrorCode($opresult.ReturnValue)) -ForegroundColor Red
+        Write-Host "$tcCovered failed. Error code " @(PrintJobErrorCode($opresult.ReturnValue)) -ForegroundColor Red
         return
     }
     else
     {
         # Find the job to monitor status
         $jobid = $opresult.Job.Split('=')[1]
-        $concreteJob = Get-WmiObject -Query "select * from CIM_ConcreteJob where InstanceId=$jobid"  -namespace $NamespaceV2 -ComputerName $hvServer
-
-		$top = [Console]::CursorTop
-		$left = [Console]::CursorLeft
-
-	# This line returns an error, requires further data type parsing correction
-    # PrintJobInformation $concreteJob
+        $concreteJob = Get-WmiObject -Query "select * from CIM_ConcreteJob where InstanceId=$jobid" -namespace $NamespaceV2 -ComputerName $hvServer
+	$top = [Console]::CursorTop
+	$left = [Console]::CursorLeft
 
         #Loop till job not complete
         if ($concreteJob -ne $null -AND
@@ -136,7 +147,7 @@ function CheckSingleObject([System.Object[]] $objects, [string] $message)
 #
 function GetVirtualMachine([string] $vmName)
 {
-    $objects = Get-WmiObject -Namespace $NamespaceV2 -Query "Select * From Msvm_ComputerSystem Where ElementName = '$vmName' OR Name = '$vmName'"  -computername $hvServer
+    $objects = Get-WmiObject -Namespace $NamespaceV2 -Query "Select * From Msvm_ComputerSystem Where ElementName = '$vmName' OR Name = '$vmName'" -computername $hvServer
     if ($objects -eq $null)
     {
      Write-Host "Virtual Machines Not Found , Please check the VM name"
@@ -162,7 +173,7 @@ function GetVirtualMachine([string] $vmName)
 #
 function GetVmServiceObject()
 {
-    $objects = Get-WmiObject -Namespace $NamespaceV2  -Query "Select * From Msvm_VirtualSystemManagementService"  -computername $hvServer
+    $objects = Get-WmiObject -Namespace $NamespaceV2  -Query "Select * From Msvm_VirtualSystemManagementService" -computername $hvServer
     CheckNullAndExit $objects "Failed to find VM service object"
     CheckSingleObject $objects "Multiple VM Service objects found"
 
@@ -209,17 +220,16 @@ function PrintNetworkAdapterSettingData($nasd)
         "Subnets: " = $objItem.Subnets ;
         "DefaultGateways: " = $objItem.DefaultGateways ;
         "DNSServers: " = $objItem.DNSServers ;}
-
     }
 }
 
-function injectIpOnVm($ipAddr)
+function injectIpOnVm($IPv4Address)
 {
-    $colItems = get-wmiobject -class "Win32_NetworkAdapterConfiguration"  -namespace "root\CIMV2" -computername localhost
+    $colItems = get-wmiobject -class "Win32_NetworkAdapterConfiguration" -namespace "root\CIMV2" -ComputerName $hvServer
 
     foreach ($objItem in $colItems) {
         if ($objItem.DNSHostName -ne $NULL) {
-            $netAdp = get-wmiobject -class "Win32_NetworkAdapter"  -Filter "GUID=`'$($objItem.SettingID)`'" -namespace "root\CIMV2" -computername localhost
+            $netAdp = get-wmiobject -class "Win32_NetworkAdapter" -Filter "GUID=`'$($objItem.SettingID)`'" -namespace "root\CIMV2" -ComputerName $hvServer
             if ($netAdp.NetConnectionID -like '*External*'){
                 $IPv4subnet = $objItem.IPSubnet[0]
                 $IPv4Gateway = $objItem.DefaultIPGateway[0]
@@ -227,50 +237,6 @@ function injectIpOnVm($ipAddr)
             }
         }
     }
-
-    #
-    # Parse the testParams
-    #
-    $tcCovered = "Unknown"
-    $rootDir = $null
-    $DHCPEnabled = $False
-    $ProtocolIFType = 4096
-
-    "$IPv4Address will be injected in place of $testIPv4Address"
-
-    $params = $testParams.TrimEnd(";").Split(";")
-    foreach ($p in $params)
-    {
-        $fields = $p.Split("=")
-        $value = $fields[1].Trim()
-
-        switch ($fields[0].Trim())
-        {
-        "dhcpenabled"    { $DHCPEnabled    = $fields[1].Trim() }
-        "ipv4address"    { $IPv4Address    = $fields[1].Trim() }
-        "ipv4subnet"     { $IPv4subnet     = $fields[1].Trim() }
-        "dnsserver"      { $DnsServer      = $fields[1].Trim() }
-        "ipv4Gateway"    { $IPv4Gateway    = $fields[1].Trim() }
-        "protocoliftype" { $ProtocolIFType = $fields[1].Trim() }
-        "rootdir"        { $rootDir   = $fields[1].Trim() }
-        "TC_COVERED"     { $tcCovered = $fields[1].Trim() }
-        default          {}  # unknown param - just ignore it
-        }
-    }
-
-    #
-    # Change the working directory to where LISA is located
-    #
-    if (-not $rootDir)
-    {
-        "Warn : no rootDir test parameter was specified"
-    }
-
-    cd $rootDir
-
-    $summaryLog  = "${vmName}_summary.log"
-    del $summaryLog -ErrorAction SilentlyContinue
-    echo "Covers : ${tcCovered}" > $summarylog
 
     #
     # Get the VMs IP addresses before injecting, then make sure the
@@ -291,6 +257,7 @@ function injectIpOnVm($ipAddr)
         exit 1
     }
 
+   "IP $IPv4Address will be injected in place of $testIPv4Address"
     #
     # Collect WMI objects for the virtual machine we are interested in
     # so we can inject some IP setting into the VM.
@@ -326,6 +293,49 @@ function injectIpOnVm($ipAddr)
 # Main script body
 #
 ##############################################################################
+
+#
+# Parse the testParams
+#
+$tcCovered = "Unknown"
+$rootDir = $null
+$DHCPEnabled = $False
+$ProtocolIFType = 4096
+
+$params = $testParams.TrimEnd(";").Split(";")
+foreach ($p in $params)
+{
+    $fields = $p.Split("=")
+    $value = $fields[1].Trim()
+
+    switch ($fields[0].Trim())
+    {
+    "dhcpenabled"    { $DHCPEnabled    = $fields[1].Trim() }
+    "ipv4address"    { $IPv4Address    = $fields[1].Trim() }
+    "ipv4subnet"     { $IPv4subnet     = $fields[1].Trim() }
+    "dnsserver"      { $DnsServer      = $fields[1].Trim() }
+    "ipv4Gateway"    { $IPv4Gateway    = $fields[1].Trim() }
+    "protocoliftype" { $ProtocolIFType = $fields[1].Trim() }
+    "rootdir"        { $rootDir   = $fields[1].Trim() }
+    "TC_COVERED"     { $tcCovered = $fields[1].Trim() }
+    default          {}  # unknown param - just ignore it
+    }
+}
+
+#
+# Change the working directory to where LISA is located
+#
+if (-not $rootDir)
+{
+    "Warn : no rootDir test parameter was specified"
+}
+
+cd $rootDir
+
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+echo "Covers : ${tcCovered}" > $summarylog
+
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
@@ -394,13 +404,40 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $retVal
 }
 
+$params = $testParams.Split(";")
+foreach ($p in $params) {
+    $fields = $p.Split("=")
+
+    if ($fields[0].Trim() -eq "TC_COVERED") {
+        $TC_COVERED = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "rootDir") {
+        $rootDir = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "ipv4") {
+        $IPv4 = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "sshkey") {
+        $sshkey = $fields[1].Trim()
+    }
+}
+
+#
+# Check if hv_set_ifconfig is on the VM
+#
+check_hv_set_ifconfig
+
 $oldIpAddress = $null
 $isPassed= $false
+
 $testIPv4Address = GetIPv4 $vmName $hvServer
 
 for ($i=0; $i -le 2; $i++)
 {
-    $IPv4Address = GenerateIpv4 $testIPv4Address $oldIpAddress
+  if ($IPv4Address -eq $null -or $IPv4Address -eq "" )
+  {
+     $IPv4Address = GenerateIpv4 $testIPv4Address $oldIpAddress
+  }
     injectIpOnVm $IPv4Address
     #
     # Now collect the IP addresses assigned to the VM and make
@@ -420,7 +457,7 @@ for ($i=0; $i -le 2; $i++)
     if ($ipAddrs -notcontains $IPv4Address) {
         "Info: The address '${IPv4Address}' was not injected into the VM. `n"
         $oldIpAddress = $IPv4Address
-    }  
+    }
     else{
         "Info: The address '${IPv4Address}' was successfully injected into the VM. `n"
         $isPassed = $true

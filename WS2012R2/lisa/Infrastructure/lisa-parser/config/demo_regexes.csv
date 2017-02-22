@@ -1,0 +1,8 @@
+# This file is a demo file. Please edit it with your own values
+# The first value of the csv will be the column name in the database
+# in which will be stored the value from the regex search
+# The second value will be the regex used to find the first value
+
+Numbers,[1234]+
+FirstEvenNumbers,[0246]+
+Words,\w+ \w+

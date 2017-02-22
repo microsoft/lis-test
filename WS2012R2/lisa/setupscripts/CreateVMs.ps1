@@ -163,11 +163,13 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     #
     $vm = Get-VM $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
-    # Delete from cluster if it is already present
-    if ( $vm.hardware.isCluster -eq "True") {
-        $group = Get-ClusterGroup
-        if ( $group.name -contains $vmName) {
-            Remove-ClusterGroup -VMId $vm.VMId -RemoveResources -Force
+    # Delete Role from cluster if it is already present
+    Get-Command "Get-ClusterResource" -ErrorAction SilentlyContinue
+    if ($?){
+        $group = Get-ClusterGroup -ErrorAction SilentlyContinue
+        $vm_matches = $group -match $vmName
+        foreach( $vm_match in $vm_matches){
+            Remove-ClusterGroup -Name $vm_match.name -RemoveResources -Force
         }
     }
 
@@ -684,8 +686,17 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             if ( $vm.hardware.isCluster -eq "True") {
                 $clusterDir = Get-ClusterSharedVolume
                 $vhdDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
-            }else {          
-                $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+            }else {
+                if($xmlData.Config.global.VhdPath){
+                    $vhdDir = $xmlData.Config.global.VhdPath
+                    if ( -not (Test-Path $vhdDir)){
+                        Write-host -f red "Error: Path $vhdDir given as parameter does not exist"
+                        return $false
+                    }
+                }
+                else{
+                    $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
+                }
             }
             $dstPath = Join-Path $vhdDir "${vmName}${extension}"
             $dstDrive = $dstPath.Substring(0,1)

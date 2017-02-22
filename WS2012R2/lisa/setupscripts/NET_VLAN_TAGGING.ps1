@@ -86,7 +86,7 @@
     to indicate if the script completed successfully or not.
 
    .Parameter vmName
-    Name of the first VM implicated in vlan trunking test .
+    Name of the first VM part of the test.
 
     .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -95,7 +95,7 @@
     Test data for this test case
 
     .Example
-    NET_VLAN_TAGGING -vmName sles11sp3x64 -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VLAN_ID=2;VM2NAME=second_sles11sp3x64"
+    NET_VLAN_TAGGING -vmName VM -hvServer localhost -testParams "NIC=NetworkAdapter,Private,Private,001600112200;VLAN_ID=2;VM2NAME=second_VM"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -103,7 +103,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 Set-PSDebug -Strict
 
 # function which creates an /etc/sysconfig/network-scripts/ifcfg-ethX file for interface ethX
-function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$bootproto,[String]$MacAddr,[String]$staticIP,[String]$netmask)
+function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr,[String]$staticIP,[String]$netmask)
 {
 
     # Add delimiter if needed
@@ -145,7 +145,7 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$bootpro
         fi
 
         echo CreateIfupConfigFile: interface `$__sys_interface >> /root/NET_VLAN_TAGGING.log 2>&1
-        CreateIfupConfigFile `$__sys_interface $bootproto $staticIP $netmask >> /root/NET_VLAN_TAGGING.log 2>&1
+        CreateIfupConfigFile `$__sys_interface 'static' $staticIP $netmask >> /root/NET_VLAN_TAGGING.log 2>&1
         __retVal=`$?
         echo CreateIfupConfigFile: returned `$__retVal >> /root/NET_VLAN_TAGGING.log 2>&1
         exit `$__retVal
@@ -310,26 +310,14 @@ $sshKey = $null
 # IP Address of first VM
 $ipv4 = $null
 
-# IP Address of second VM
-$ipv4VM2 = $null
-
 # Name of second VM
 $vm2Name = $null
-
-# name of the switch to which to connect
-$netAdapterName = $null
 
 # vlan id set on packets originating from VM NIC
 $vlanId = $null
 
 # wrong vlan id used to make sure VMs in different VLANs cannot talk to each other
 $badVlanId = $null
-
-# VM1 IPv4 Address
-$vm1StaticIP = $null
-
-# VM2 IPv4 Address
-$vm2StaticIP = $null
 
 # Netmask used by both VMs
 $netmask = $null
@@ -344,19 +332,14 @@ $networkName = $null
 $snapshotParam = $null
 
 #IP assigned to test interfaces
-$tempipv4VM1 = $null
 $testipv4VM1 = $null
-$testipv6VM1 = $null
-
-$tempipv4VM2 = $null
 $testipv4VM2 = $null
+
+$testipv6VM1 = $null
 $testipv6VM2 = $null
 
 #Test IPv6
 $TestIPV6 = $null
-
-#ifcfg bootproto
-$bootproto = $null
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
@@ -404,39 +387,63 @@ else
     "Error: Could not find setupScripts\NET_Utils.ps1"
     return $false
 }
+$AddressFamily = "IPv4"
+$isDynamic = $false
 
-$params = $testParams.Split(";")
+$params = $testParams.Split(';')
+foreach ($p in $params) {
+    $fields = $p.Split("=")
+    switch ($fields[0].Trim()) { 
+        "NIC"
+        {
+            $nicArgs = $fields[1].Split(',')
+            if ($nicArgs.Length -eq 3) {
+                $CurrentDir= "$pwd\"
+                $testfile = "macAddress.file" 
+                $pathToFile="$CurrentDir"+"$testfile" 
+                $isDynamic = $true
+            }
+        }
+    }
+}
+
+if ($isDynamic -eq $true) {
+    $streamReader = [System.IO.StreamReader] $pathToFile
+    $vm1MacAddress = $null
+}
+
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
 
     switch ($fields[0].Trim())
     {
+	"TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "VM2NAME" { $vm2Name = $fields[1].Trim() }
     "SshKey"  { $sshKey  = $fields[1].Trim() }
     "ipv4"    { $ipv4    = $fields[1].Trim() }
     "VLAN_ID" { $vlanId = $fields[1].Trim() }
     "TestIPV6" { $TestIPV6 = $fields[1].Trim() }
-    "STATIC_IP" { $vm1StaticIP = $fields[1].Trim() }
-    "STATIC_IP2" { $vm2StaticIP = $fields[1].Trim() }
+    "STATIC_IP" { $privateIP = $fields[1].Trim() }
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
     "NIC"
     {
         $nicArgs = $fields[1].Split(',')
-        if ($nicArgs.Length -lt 4)
+        if ($nicArgs.Length -lt 3)
         {
             "Error: Incorrect number of arguments for NIC test parameter: $p"
             return $false
 
         }
 
-
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
         $networkName = $nicArgs[2].Trim()
-        $vm1MacAddress = $nicArgs[3].Trim()
+        if ($nicArgs.Length -eq 4) {
+            $vm1MacAddress = $nicArgs[3].Trim()
+        }
         $legacy = $false
 
         #
@@ -468,12 +475,17 @@ foreach ($p in $params)
             return $false
         }
 
-        $retVal = isValidMAC $vm1MacAddress
+        if ($isDynamic -eq $true){
+            $vm1MacAddress = $streamReader.ReadLine() 
+        }
+        else {
+            $retVal = isValidMAC $vm1MacAddress
 
-        if (-not $retVal)
-        {
-            "Invalid Mac Address $vm1MacAddress"
-            return $false
+            if (-not $retVal)
+            {
+                "Invalid Mac Address $vm1MacAddress"
+                return $false
+            }  
         }
 
         #
@@ -492,6 +504,11 @@ foreach ($p in $params)
     }
     default   {}  # unknown param - just ignore it
     }
+}
+
+if ($isDynamic -eq $true) 
+{
+    $streamReader.close()
 }
 
 if (-not $vm2Name)
@@ -518,6 +535,13 @@ if (-not $ipv4)
     "Error: test parameter ipv4 was not specified"
     return $False
 }
+
+#
+# Delete any previous summary.log file, then create a new one
+#
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #set the parameter for the snapshot
 $snapshotParam = "SnapshotName = ${SnapshotName}"
@@ -627,52 +651,18 @@ if (-not $vm2nic)
 
 $scriptAddedNIC = $true
 
+# Set the IPs that will be tested
+"Tests VLAN tagging"
+$testipv4VM1 = GenerateIpv4 $privateIP
+$testipv4VM2 = GenerateIpv4 $privateIP $testipv4VM1
 
-"Tests VLAN trunking"
-
-if (-not $netmask)
-{
-    $netmask = 255.255.255.0
+if ( $TestIPV6 -eq "yes" ) {
+    $testipv6VM1 = "fd00::4:10"
+    $testipv6VM2 = "fd00::4:100"
 }
-
-
-if (-not $vm1StaticIP)
-{
-    $bootproto = "dhcp"
-}
-else
-{
-    $bootproto = "static"
-}
-
-# compute another ipv4 address for vm2
-if (-not $vm2StaticIP)
-{
-    [int]$nth = 2
-    do
-    {
-        $vm2StaticIP = getAddress $vm1StaticIP $netmask $nth
-        $nth += 1
-    } while ($vm2StaticIP -like $vm1StaticIP)
-
-}
-else
-{
-    # make sure $vm2StaticIP is in the same subnet as $vm1StaticIP
-    $retVal = containsAddress $vm1StaticIP $netmask $vm2StaticIP
-
-    if (-not $retVal)
-    {
-        "$vm2StaticIP is not in the same subnet as $vm1StaticIP / $netmask"
-        return $false
-    }
-}
-
-
 #
 # LIS Started VM1, so start VM2
 #
-
 if (Get-VM -Name $vm2Name -ComputerName $hvServer|  Where { $_.State -notlike "Running" })
 {
     Start-VM -Name $vm2Name -ComputerName $hvServer
@@ -692,13 +682,12 @@ if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 }
 
 # get vm2 ipv4
-
 $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
 "netmask = $netmask"
 "Test vlan id = ${vlanID}"
 
-# wait for ssh to startg
+# wait for ssh to start
 $timeout = 120 #seconds
 if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
 {
@@ -727,49 +716,32 @@ if (-not $retVal)
 
 "Configuring test interface (${vm1MacAddress}) on $vmName (${ipv4}) "
 # send vlan ifcfg file to each VM
-$retVal = CreateInterfaceConfig $ipv4 $sshKey $bootproto $vm1MacAddress $vm1StaticIP $netmask
+$retVal = CreateInterfaceConfig $ipv4 $sshKey $vm1MacAddress $testipv4VM1 $netmask
 if (-not $retVal)
 {
-    "Failed to create Interface-File on vm $ipv4 for interface with mac $vm1MacAddress, by setting a static IP of $vm1StaticIP netmask $netmask"
+    "Failed to create Interface-File on vm $ipv4 for interface with mac $vm1MacAddress, by setting a static IP of $testipv4VM1 netmask $netmask"
     return $false
+}
+if ( $TestIPV6 -eq "yes" ) {
+    SendCommandToVM $ipv4 $sshKey "ifconfig eth1 inet6 add $testipv6VM1/64"
 }
 
 "Successfully configured interface"
 
 "Configuring test interface (${vm2MacAddress}) on $vm2Name (${vm2ipv4}) "
-$retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $bootproto $vm2MacAddress $vm2StaticIP $netmask
+$retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $testipv4VM2 $netmask
 if (-not $retVal)
 {
-    "Failed to create Vlan Interface on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $vm2StaticIP netmask $netmask"
+    "Failed to create Vlan Interface on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $testipv4VM2 netmask $netmask"
     return $false
 }
-
-#get the ipv4 of the test adapter allocated by DHCP
-
-start-sleep 20
-
-$tempipv4VM1 = Get-VMNetworkAdapter  -VMName $vmName -ComputerName $hvServer | Where-object {$_.MacAddress -like "$vm1MacAddress"} | Select -Expand IPAddresses
-$testipv4VM1 = $tempipv4VM1[0]
-$testipv6VM1 = $tempipv4VM1[1]
-
-"sshKey   = ${sshKey}"
-"vm1 Name = ${vmName}"
-"vm1 ipv4 = ${ipv4}"
-"vm1 MAC = ${vm1MacAddress}"
-"vm1 test IP = ${testipv4VM1}"
-
-$tempipv4VM2 = Get-VMNetworkAdapter  -VMName $vm2Name -ComputerName $hvServer | Where-object {$_.MacAddress -like "$vm2MacAddress"} | Select -Expand IPAddresses
-$testipv4VM2 = $tempipv4VM2[0]
-$testipv6VM2 = $tempipv4VM2[1]
-
-"vm2 Name = ${vm2Name}"
-"vm2 ipv4 = ${vm2ipv4}"
-"vm2 MAC = ${vm2MacAddress}"
-"vm2 test IP = ${testipv4VM2}"
-
+if ( $TestIPV6 -eq "yes" ) {
+    SendCommandToVM $vm2ipv4 $sshKey "ifconfig eth1 inet6 add $testipv6VM2/64"
+}
 
 # Try to ping with the interfaces in untagged mode
-"Trying to ping from vm1 with mac $vm1MacAddress to $testipv4VM2 "
+start-sleep 20
+"Trying to ping from VM1 with mac $vm1MacAddress to VM2 $testipv4VM2 "
 # try to ping
 $retVal = pingVMs $ipv4 $testipv4VM2 $sshKey 10 $vm1MacAddress
 
@@ -781,7 +753,7 @@ if (-not $retVal)
 
 "Successfully pinged"
 
-"Trying to ping from vm2 with mac $vm2MacAddress to $testipv4VM1 "
+"Trying to ping from VM2 with mac $vm2MacAddress to VM1 $testipv4VM1 "
 $retVal = pingVMs $vm2ipv4 $testipv4VM1 $sshKey 10 $vm2MacAddress
 
 if (-not $retVal)
@@ -802,21 +774,21 @@ if (-not $?)
     return $false
 }
 
-"Successfully configured $vm1Nic"
+"Info: Successfully configured $vm1Nic"
 
 "Setting $vm2Name test NIC to access mode with vlanID $vlanID"
-Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2NIC  -Access -VlanID $vlanID
+Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2NIC -Access -VlanID $vlanID
 if (-not $?)
 {
     "Failed to set $vm2Nic to Access Mode with an VlanID of $vlanID"
     return $false
 }
 
-"Successfully configured $vm2Nic"
+"Info: Successfully configured $vm2Nic"
 
 Start-sleep 10
 
-"Trying to ping from vm1 with mac $vm1MacAddress to $testipv4VM2 "
+"Trying to ping from VM1 with mac $vm1MacAddress to VM2 $testipv4VM2 "
 # try to ping
 $retVal = pingVMs $ipv4 $testipv4VM2 $sshKey 30 $vm1MacAddress
 
@@ -827,7 +799,7 @@ if (-not $retVal)
 }
 "Successfully pinged"
 
-"Trying to ping from vm2 with mac $vm2MacAddress to $testipv4VM1 "
+"Trying to ping from VM2 with mac $vm2MacAddress to VM1 $testipv4VM1 "
 $retVal = pingVMs $vm2ipv4 $testipv4VM1 $sshKey 30 $vm2MacAddress
 
 if (-not $retVal)
@@ -905,7 +877,7 @@ if ( $TestIPV6 -eq "yes" )
     }
 }
 
-"Failed to ping (as expected)"
+"Info: Could not ping (as expected)"
 
 "Stopping $vm2Name"
 Stop-VM -Name $vm2Name -ComputerName $hvServer -force
@@ -916,5 +888,4 @@ if (-not $?)
 }
 
 "Test successful!"
-
 return $true

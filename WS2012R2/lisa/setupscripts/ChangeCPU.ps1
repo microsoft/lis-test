@@ -23,7 +23,7 @@
 .Synopsis
     Modify the number of CPUs a VM has.
 
-.Descriptioin
+.Description
     Modify the number of CPUs the VM has.
 
 .Parameter vmName
@@ -174,7 +174,7 @@ $cpu = Set-VM -Name $vmName -ComputerName $hvServer -ProcessorCount $numCPUs
 
 if ($? -eq "True")
 {
-    Write-output "CPU count updated to $numCPUs"
+    Write-output "Info: CPU count updated to $numCPUs"
     $retVal = $true
 }
 else
@@ -186,25 +186,25 @@ else
 Set-VMProcessor -VMName $vmName -ComputerName $hvServer -MaximumCountPerNumaNode $numaNodes -MaximumCountPerNumaSocket $sockets
 if ($? -eq "True")
 {
-    Write-output "Numa Nodes updated"
+    Write-output "Info: NUMA Nodes updated"
     $retVal = $true
 }
 else
 {
     $retVal = $false
-    write-host "Error: Unable to update Numa Nodes"
+    write-host "Error: Unable to update NUMA nodes!"
 }
 if ($mem -ne $null)
 {
-    Set-VMMemory $vmName -MaximumAmountPerNumaNodeBytes $staticMemory
+    Set-VMMemory $vmName -ComputerName $hvServer -MaximumAmountPerNumaNodeBytes $staticMemory
     if ($? -eq "True")
     {
-        Write-output "Numa memory updated"
+        Write-output "Info: NUMA memory updated"
         $retVal = $true
     }
     else
     {
-        Write-output "Error: Unable to update Numa memory $mem"
+        Write-output "Error: Unable to update NUMA memory $mem"
         $retVal = $false
     }
 }

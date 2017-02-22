@@ -84,6 +84,9 @@ modify_grub() {
 	# we must slightly change the kernel version and parse it further
 	#
 	version=$(echo $candidate_kernel | awk  '{print $2}' |cut -c 1-9 | sed 's/\.\([^.]*\)$/-\1/')
+    if [[ $version == *- ]]; then
+        version=${version::-1}
+    fi
 
 	# Grub will boot the installed kernel as a permanent change
 	sed -i.bak 's/GRUB_DEFAULT=.*/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux '$version'-generic"/g' /etc/default/grub

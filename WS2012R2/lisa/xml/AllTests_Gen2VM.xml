@@ -60,7 +60,8 @@
             <suiteTest>VHDxResizeGrowFilesystem512</suiteTest>
             <suiteTest>VHDxResizeGrowFilesystem4096</suiteTest>
             <suiteTest>VHDxResizeOver2TB</suiteTest>
-            <suiteTest>VHDxResizeLiveMigration</suiteTest>
+            <!-- Requires clustered VM
+            <suiteTest>VHDxResizeLiveMigration</suiteTest>-->
 
             <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
             <suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest>
@@ -77,7 +78,7 @@
             <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
             <!-- The test case below requires a 64bit virtual machine -->
             <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
-            
+
             <suiteTest>NMI_Send_Interrupt</suiteTest>
             <suiteTest>NMI_Verify_Interrupt</suiteTest>
             <suiteTest>NMI_different_vmStates</suiteTest>
@@ -431,130 +432,134 @@
 
     <!-- KVP_Tests -->
 
-    <test>
-        <testName>SQM_Basic</testName>
-        <testScript>SetupScripts\SQM_Basic.ps1</testScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-        <testparams>
-            <param>TC_COVERED=SQM-01</param>
-        </testparams>
-    </test>
+        <test>
+            <testName>SQM_Basic</testName>
+            <testScript>SetupScripts\SQM_Basic.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=SQM-01</param>
+            </testparams>
+        </test>
 
-    <test>
-        <testName>KVP_Basic</testName>
-        <testScript>SetupScripts\KVP_Basic.ps1</testScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>
-        <testparams>
-            <param>TC_COVERED=KVP-01</param>
-        </testparams>
-    </test>
+        <test>
+            <testName>KVP_Basic</testName>
+            <testScript>SetupScripts\KVP_Basic.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-01</param>
+                <param>DE_change=no</param>
+            </testparams>
+        </test>
 
-    <test>
-        <testName>KVP_Add_Key_Values</testName>
-        <testScript>KVP_VerifyKeyValue.sh</testScript>
-        <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,tools/KVP/kvp_client</files>
-        <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>
-        <testparams>
-            <param>TC_COVERED=KVP-02</param>
-            <param>Key=EEE</param>
-            <param>Value=555</param>
-            <param>Pool=0</param>
-        </testparams>
-    </test>
+        <test>
+            <testName>KVP_Add_Key_Values</testName>
+            <testScript>KVP_VerifyKeyValue.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-02</param>
+                <param>Key=EEE</param>
+                <param>Value=555</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
 
-    <test>
-        <testName>KVP_Modify_Key_Values</testName>
-        <testScript>KVP_VerifyKeyValue.sh</testScript>
-        <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,tools/KVP/kvp_client</files>
-        <preTest>setupscripts\ModifyKeyValue.ps1</preTest>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>
-        <testparams>
-            <param>TC_COVERED=KVP-03</param>
-            <param>Key=EEE</param>
-            <param>Value=999</param>
-            <param>Pool=0</param>
-        </testparams>
-    </test>
+        <test>
+            <testName>KVP_Modify_Key_Values</testName>
+            <testScript>KVP_VerifyKeyValue.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <preTest>setupscripts\ModifyKeyValue.ps1</preTest>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-03</param>
+                <param>Key=EEE</param>
+                <param>Value=999</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
 
-    <test>
-        <testName>KVP_Remove_Key_Values</testName>
-        <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>
-        <testparams>
-            <param>TC_COVERED=KVP-04</param>
-            <param>Key=EEE</param>
-            <param>Value=999</param>
-            <param>Pool=0</param>
-        </testparams>
-    </test>
+        <test>
+            <testName>KVP_Remove_Key_Values</testName>
+            <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-04</param>
+                <param>Key=EEE</param>
+                <param>Value=999</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
 
-    <test>
-        <testName>KVP_Push_Key_Values</testName>
-        <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
-        <files>tools/KVP/kvp_client</files>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>
-        <testparams>
-            <param>TC_COVERED=KVP-05</param>
-            <param>Key=BBB</param>
-            <param>Value=111</param>
-            <param>sshKey=rhel5_id_rsa.ppk</param>
-        </testparams>
-    </test>
+        <test>
+            <testName>KVP_Push_Key_Values</testName>
+            <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
+            <files>tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-05</param>
+                <param>Key=BBB</param>
+                <param>Value=111</param>
+                <param>sshKey=rhel5_id_rsa.ppk</param>
+            </testparams>
+        </test>
 
-    <test>
-        <testName>KVP_DeleteNonExistKVPOnGuest</testName>
-        <testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <noReboot>True</noReboot>
-        <testparams>
-            <param>TC_COVERED=KVP-06</param>
-            <param>Key=AAA</param>
-            <param>Value=000</param>
-            <param>Pool=0</param>
-        </testparams>
-    </test>
+    	<test>
+    		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
+    		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+    		<timeout>600</timeout>
+    		<onError>Abort</onError>
+    		<noReboot>True</noReboot>
+    		<testparams>
+    			<param>TC_COVERED=KVP-06</param>
+    			<param>Key=AAA</param>
+    			<param>Value=000</param>
+    			<param>Pool=0</param>
+    		</testparams>
+    	</test>
 
-    <test>
-        <testName>KVP_ModifyNonExistKVPOnGuest</testName>
-        <testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <testparams>
-            <param>TC_COVERED=KVP-07</param>
-            <param>Key=AAA</param>
-            <param>Value=000</param>
-            <param>Pool=0</param>
-        </testparams>
-    </test>
+    	<test>
+    		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
+    		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+    		<timeout>600</timeout>
+    		<onError>Abort</onError>
+    		<noReboot>True</noReboot>
+    		<testparams>
+    			<param>TC_COVERED=KVP-07</param>
+    			<param>Key=AAA</param>
+    			<param>Value=000</param>
+    			<param>Pool=0</param>
+    		</testparams>
+    	</test>
 
-    <test>
-        <testName>KVP_VerifyHostInjectedItems</testName>
-        <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
-        <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,
-            tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
-        <timeout>600</timeout>
-        <onError>Abort</onError>
-        <noReboot>True</noReboot>
-        <testparams>
-            <param>TC_COVERED=KVP-10</param>
-            <param>Pool=3</param>
-            <param>Items=11</param>
-        </testparams>
-    </test>
+        <test>
+            <testName>KVP_VerifyHostInjectedItems</testName>
+            <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-10</param>
+                <param>Pool=3</param>
+                <param>Items=11</param>
+            </testparams>
+        </test>
 
     <!-- Stress Tests -->
     <test>
@@ -621,7 +626,7 @@
         </testParams>
         <timeout>600</timeout>
     </test>
-    
+
     <test>
         <testName>Crash_SMP</testName>
         <setupScript>
@@ -673,7 +678,7 @@
         </testParams>
         <timeout>600</timeout>
     </test>
-        
+
      <!-- NET_Tests -->
 
     <test>
@@ -685,7 +690,7 @@
             <param>STATIC_IP=169.254.159.9</param>
             <param>NETMASK=255.255.0.0</param>
             <param>PING_SUCC=169.254.159.8</param>
-            <param>PING_FAIL=8.8.8.8</param>
+            <param>PING_FAIL=8.8.4.4</param>
             <param>PING_FAIL2=192.168.2.2</param>
         </testParams>
         <testScript>NET_TEST_NETWORK.sh</testScript>
@@ -700,7 +705,7 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,External,001600112200</param>
             <param>TC_COVERED=NET-05</param>
-            <param>PING_SUCC=8.8.8.8</param>
+            <param>PING_SUCC=8.8.4.4</param>
             <param>PING_FAIL=192.168.2.1</param>
             <param>PING_FAIL2=10.10.10.5</param>
         </testParams>
@@ -741,7 +746,7 @@
             <param>NIC=NetworkAdapter,External,External,001600112201</param>
             <param>TC_COVERED=NET-07</param>
             <!-- <param>NETMASK=255.255.255.0</param> -->
-            <param>PING_SUCC=8.8.8.8</param>
+            <param>PING_SUCC=8.8.4.4</param>
             <param>PING_FAIL=192.168.0.1</param>
             <param>PING_FAIL2=192.168.0.254</param>
             <!-- <param>GATEWAY=192.168.0.1</param> -->
@@ -759,7 +764,7 @@
             <param>NIC=NetworkAdapter,External,External,001600112233</param>
             <param>TC_COVERED=NET-09</param>
             <param>MAC=00:16:00:11:22:33</param>
-            <param>REMOTE_SERVER=8.8.8.8</param>
+            <param>REMOTE_SERVER=8.8.4.4</param>
             <param>LO_IGNORE=yes</param>
         </testParams>
         <testScript>NET_STATIC_MAC.sh</testScript>
@@ -781,7 +786,7 @@
             <param>STATIC_IP=169.254.159.9</param>
             <param>NETMASK=255.255.0.0</param>
             <param>PING_SUCC=169.254.159.8</param>
-            <param>PING_FAIL=8.8.8.8</param>
+            <param>PING_FAIL=8.8.4.4</param>
             <param>PING_FAIL2=10.10.10.5</param>
         </testParams>
         <onError>Continue</onError>
@@ -805,7 +810,7 @@
             <param>STATIC_IP=10.10.10.10</param>
             <param>STATIC_IP2=10.10.10.20</param>
             <param>NETMASK=255.255.0.0</param>
-            <param>PING_FAIL=8.8.8.8</param>
+            <param>PING_FAIL=8.8.4.4</param>
             <param>PING_FAIL2=192.168.0.1</param>
         </testParams>
         <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
@@ -828,7 +833,7 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,External,001600112200</param>
             <param>TC_COVERED=NET-12</param>
-            <param>REMOTE_SERVER=8.8.8.8</param>
+            <param>REMOTE_SERVER=8.8.4.4</param>
             <param>SnapshotName=ICABase</param>
         </testParams>
         <noReboot>False</noReboot>
@@ -903,21 +908,22 @@
         <timeout>1800</timeout>
     </test>
 
-    <test>
-        <testName>CopyFileScp</testName>
-        <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
-        <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
-        <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
-        <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-        <timeout>3000</timeout>
-        <testParams>
-            <param>TC_COVERED=NET-19</param>
-            <param>SCSI=1,0,Dynamic,512,15GB</param>
-                <param>Type=Fixed</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=20GB</param>
-        </testParams>
-    </test>
+        <test>
+            <testName>CopyFileScp</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
+            <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>3000</timeout>
+            <testParams>
+                    <param>TC_COVERED=NET-19</param>
+                    <param>SCSI=1,0,Dynamic,512,15GB</param>
+                    <param>Type=Fixed</param>
+                    <param>SectorSize=512</param>
+                    <param>DefaultSize=25GB</param>
+                    <param>ControllerType=SCSI</param>
+            </testParams>
+        </test>
 
     <test>
         <testName>Network_Hang_Vxlan</testName>
@@ -1088,27 +1094,32 @@
 
     <!-- STOR_VHDXResize -->
 
-     <test>
-        <testName>VHDxResizeToBigger512</testName>
-        <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-        <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
-        <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-        <timeout>600</timeout>
-        <onError>Continue</onError>
-        <testparams>
-            <param>Type=Dynamic</param>
-            <param>SectorSize=512</param>
-            <param>DefaultSize=3GB</param>
-            <param>NewSize=4GB</param>
-            <param>TC_COVERED=STOR-VHDx-01a</param>
-        </testparams>
+        <test>
+            <testName>VHDxResizeToBigger512</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
+                <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
+                <param>TC_COVERED=STOR-VHDx-01a</param>
+            </testparams>
         </test>
-
         <test>
             <testName>VHDxResizeToBigger4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1116,15 +1127,58 @@
                 <param>SectorSize=4096</param>
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-01b</param>
             </testparams>
         </test>
+
+        <test>
+            <testName>VHDxResizeToBigger512_Fixed_IDE</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=1GB</param>
+                <param>NewSize=2GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=IDE</param>
+                <param>TC_COVERED=STOR-VHDx-105</param>
+             </testparams>
+       </test>
+       <test>
+            <testName>VHDxResizeToBigger512_Dynamic_IDE</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=1GB</param>
+                <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=IDE</param>
+                <param>TC_COVERED=STOR-VHDx-106</param>
+            </testparams>
+       </test>
 
         <test>
             <testName>VHDxResizeToSmaller512</testName>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1132,6 +1186,8 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
@@ -1141,6 +1197,8 @@
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1148,6 +1206,8 @@
                 <param>SectorSize=4096</param>
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
@@ -1157,6 +1217,8 @@
             <testScript>SetupScripts\STOR_VHDXResize_GrowShrink.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1165,6 +1227,8 @@
                 <param>DefaultSize=3GB</param>
                 <param>growSize=4GB</param>
                 <param>shrinkSize=3GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-03</param>
             </testparams>
         </test>
@@ -1174,6 +1238,8 @@
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1181,14 +1247,19 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-04a</param>
             </testparams>
         </test>
+
         <test>
             <testName>VHDxResizeGrowFilesystem4096</testName>
             <testScript>SetupScripts\STOR_VHDXResize_GrowFS.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1196,14 +1267,19 @@
                 <param>SectorSize=4096</param>
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-04b</param>
             </testparams>
         </test>
+
         <test>
             <testName>VHDxResizeOver2TB</testName>
             <testScript>SetupScripts\STOR_VHDXResize_DiskOver2TB.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>3000</timeout>
             <onError>Continue</onError>
             <testparams>
@@ -1211,27 +1287,52 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=127GB</param>
                 <param>NewSize=2304GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-05</param>
             </testparams>
         </test>
+
+        <test>
+            <testName>VHDxResizeOver2TB_IDE</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+            <timeout>3000</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=127GB</param>
+                <param>NewSize=2304GB</param>
+                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>TC_COVERED=STOR-VHDx-107</param>
+                 <param>ControllerType=IDE</param>
+            </testparams>
+        </test>
+
         <test>
             <testName>VHDxResizeLiveMigration</testName>
             <testScript>SetupScripts\STOR_VHDXResize_BasicLM.ps1</testScript>
             <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>Type=Dynamic</param>
                 <param>SectorSize=512</param>
-                <param>SCSI=0,1,Fixed,512</param>
                 <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-06</param>
             </testparams>
         </test>
+
     <!-- StorVHDX -->
 
     <test>
@@ -1256,6 +1357,7 @@
         <testName>VHDx_HotADD_Dynamic_SCSI_SMP</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
         <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
         <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
@@ -1274,6 +1376,7 @@
         <testName>VHDx_MultiDiskSCSI_Dynamic</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1289,6 +1392,7 @@
         <testName>VHDx_MultiDiskSCSI_Fixed</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1318,6 +1422,7 @@
         <testName>VHDx_HotADD_Multi_Dynamic_SCSI</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
         <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1333,6 +1438,7 @@
         <testName>VHDx_HotRemove_Multi_Dynamic_SCSI</testName>
         <testScript>STOR_hot_remove.sh</testScript>
         <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
         <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
         <timeout>18000</timeout>
@@ -1354,6 +1460,7 @@
         </setupscript>
         <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
         <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
         <timeout>18000</timeout>
         <testparams>
             <param>SCSI=0,1,Dynamic,512</param>
@@ -1369,6 +1476,7 @@
         <testName>VHDx_4k_MultiDiskSCSI_Dynamic</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1384,6 +1492,7 @@
         <testName>VHDx_4k_MultiDiskSCSI_Fixed</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1400,6 +1509,7 @@
         <testName>VHDx_4k_HotADD_Multi_Dynamic_SCSI</testName>
         <testScript>STOR_Lis_Disk.sh</testScript>
         <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+        <files>remote-scripts/ica/check_traces.sh</files>
         <preTest>setupscripts\AddVhdxHardDisk.ps1</preTest>
         <cleanupScript>setupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
         <timeout>18000</timeout>
@@ -1416,6 +1526,7 @@
         <testName>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</testName>
         <testScript>STOR_hot_remove.sh</testScript>
         <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
         <setupScript>setupScripts\AddVhdxHardDisk.ps1</setupScript>
         <preTest>setupScripts\RemoveVhdxHardDisk.ps1</preTest>
         <timeout>18000</timeout>
@@ -1712,7 +1823,7 @@
             <param>updateKernel=True</param>
             <param>TC_COVERED=SECBOOT-03</param>
         </testparams>
-    </test> 
+    </test>
     <test>
         <testName>SecureBootBasicVSSBackup</testName>
         <setupScript>setupScripts\Set-SecureBoot.ps1</setupScript>
@@ -1735,7 +1846,7 @@
             <param>updateKernel=True</param>
             <param>TC_COVERED=SECBOOT-05</param>
         </testparams>
-    </test> 
+    </test>
 
     <!-- DM tests -->
     <test>
@@ -2076,7 +2187,7 @@
 
 	<test>
 		<testName>FCOPY_repeat</testName>
-		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
+		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
 		<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
 		<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 		<timeout>1200</timeout>

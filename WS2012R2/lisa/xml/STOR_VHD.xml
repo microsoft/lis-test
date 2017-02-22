@@ -63,6 +63,7 @@
             <testName>VHD_HotADD_Dynamic_SCSI_SMP</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <preTest>setupscripts\AddHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
@@ -85,6 +86,7 @@
             </setupscript>
             <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,Dynamic</param>
@@ -126,6 +128,7 @@
             <testName>VHD_HotADD_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <preTest>setupscripts\AddHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
@@ -142,6 +145,7 @@
             <testName>VHD_HotRemove_Multi_Dynamic_SCSI</testName>
             <testScript>STOR_hot_remove.sh</testScript>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
             <timeout>1800</timeout>
@@ -158,6 +162,7 @@
             <testName>HotRemove_Multi_PassThrough_SCSI</testName>
             <testScript>STOR_hot_remove.sh</testScript>
             <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <preTest>setupScripts\RemoveHardDisk.ps1</preTest>
             <timeout>1800</timeout>
@@ -174,6 +179,7 @@
             <testName>HotADD_Multi_PassThrough_SCSI</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <preTest>setupscripts\AddHardDisk.ps1</preTest>
             <cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
@@ -191,6 +197,7 @@
             <snapshotname>ICABase</snapshotname>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
             <testParams>
@@ -207,6 +214,7 @@
             <snapshotname>ICABase</snapshotname>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
             <testParams>
@@ -253,6 +261,7 @@
             <testName>VHD_MultiDisk_SCSI_Dynamic</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
@@ -269,6 +278,7 @@
             <testName>VHD_MultiDisk_SCSI_Fixed</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
@@ -284,6 +294,7 @@
             <testName>VHD_IDE_0_1_Fixed</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
@@ -299,6 +310,7 @@
             <testName>VHD_IDE_0_1_DYNAMIC</testName>
             <testScript>STOR_Lis_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
             <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
             <cleanupScript>setupscripts\RemoveHardDisk.ps1</cleanupScript>
             <testParams>

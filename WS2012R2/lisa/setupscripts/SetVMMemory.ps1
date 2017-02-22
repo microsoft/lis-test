@@ -40,49 +40,10 @@ param(
       [string] $hvServer,
       [string] $testParams
       )
-########################################################################
-#
-# ConvertStringToDecimal()
-#
-########################################################################
-function ConvertStringToDecimal([string] $str)
-{
-    $uint64Size = $null
 
-    #
-    # Make sure we received a string to convert
-    #
-    if (-not $str)
-    {
-        Write-Error -Message "ConvertStringToDecimal() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    if ($str.EndsWith("MB"))
-    {
-        $num = $str.Replace("MB","")
-        $uint64Size = ([Convert]::ToDecimal($num)) * 1MB
-    }
-    elseif ($str.EndsWith("GB"))
-    {
-        $num = $str.Replace("GB","")
-        $uint64Size = ([Convert]::ToDecimal($num)) * 1GB
-    }
-    elseif ($str.EndsWith("TB"))
-    {
-        $num = $str.Replace("TB","")
-        $uint64Size = ([Convert]::ToDecimal($num)) * 1TB
-    }
-    else
-    {
-        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    return $uint64Size
-}
-
-$retVal = $False
+$retVal        = $False
+$VMMemory      = $null
+$startupMemory = $null
 
 if (-not $vmName -or $vmName.Length -eq 0)
 {
@@ -96,14 +57,20 @@ if (-not $hvServer -or $hvServer.Length -eq 0)
     return $False
 }
 
+if (Test-Path ".\setupScripts\TCUtils.ps1"){
+  . .\setupScripts\TCUtils.ps1
+}
+else
+{
+  "Error: Could not find setupScripts\TCUtils.ps1"
+  return $false
+}
+
 if (-not $testParams)
 {
     "Error: testParams is null"
     return $False
 }
-
-$VMMemory      = $null
-$startupMemory = $null
 
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($param in $params)
@@ -118,6 +85,14 @@ foreach ($param in $params)
 }
 
 $startupMemory = ConvertStringToDecimal $VMMemory
+$availableMemory = [string](Get-Counter -Counter "\Memory\Available MBytes" -ComputerName $hvServer).CounterSamples[0].CookedValue + "MB"
+$availableMemory = ConvertStringToDecimal $availableMemory
+
+if ($startupMemory -gt $availableMemory)
+{
+    "Error: Not enough available memory on the system. startupMemory: $startupMemory, free space: $availableMemory"
+    return $False
+}
 
 $vm = Get-VM -VMName $vmName -ComputerName $hvServer
 

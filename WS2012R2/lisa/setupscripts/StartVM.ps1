@@ -211,9 +211,6 @@ $ipv4VM2 = $null
 # Name of second VM
 $vm2Name = $null
 
-# name of the switch to which to connect
-$netAdapterName = $null
-
 # VM1 IPv4 Address
 $vm1StaticIP = $null
 
@@ -231,13 +228,6 @@ $networkName = $null
 
 #Snapshot name
 $snapshotParam = $null
-
-#IP assigned to test interfaces
-$tempipv4VM1 = $null
-$testipv4VM1 = $null
-
-$tempipv4VM2 = $null
-$testipv4VM2 = $null
 
 #Test IPv6
 $Test_IPv6 = $null
@@ -295,7 +285,29 @@ else
     return $false
 }
 
-$params = $testParams.Split(";")
+$isDynamic = $false
+
+$params = $testParams.Split(';')
+foreach ($p in $params) {
+    $fields = $p.Split("=")
+    switch ($fields[0].Trim()) { 
+        "NIC"
+        {
+            $nicArgs = $fields[1].Split(',')
+            if ($nicArgs.Length -eq 3) {
+                $CurrentDir= "$pwd\"
+                $testfile = "macAddress.file" 
+                $pathToFile="$CurrentDir"+"$testfile" 
+                $isDynamic = $true
+            }
+        }
+    }
+}
+
+if ($isDynamic -eq $true) {
+    $streamReader = [System.IO.StreamReader] $pathToFile
+    $vm1MacAddress = $null
+}
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
@@ -315,18 +327,19 @@ foreach ($p in $params)
     "NIC"
     {
         $nicArgs = $fields[1].Split(',')
-        if ($nicArgs.Length -lt 4)
+        if ($nicArgs.Length -lt 3)
         {
             "Error: Incorrect number of arguments for NIC test parameter: $p"
             return $false
 
         }
 
-
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
         $networkName = $nicArgs[2].Trim()
-        $vm1MacAddress = $nicArgs[3].Trim()
+        if ($nicArgs.Length -eq 4) {
+            $vm1MacAddress = $nicArgs[3].Trim()
+        }  
         $legacy = $false
 
         #
@@ -346,8 +359,6 @@ foreach ($p in $params)
             "Error: Invalid netowrk type: $networkType .  Network type must be either: External, Internal, Private"
             return $false
         }
-
-        #
         #
         # Make sure the network exists
         #
@@ -358,12 +369,17 @@ foreach ($p in $params)
             return $false
         }
 
-        $retVal = isValidMAC $vm1MacAddress
+        if ($isDynamic -eq $true){
+            $vm1MacAddress = $streamReader.ReadLine() 
+        }
+        else {
+            $retVal = isValidMAC $vm1MacAddress
 
-        if (-not $retVal)
-        {
-            "Invalid Mac Address $vm1MacAddress"
-            return $false
+            if (-not $retVal)
+            {
+                "Invalid Mac Address $vm1MacAddress"
+                return $false
+            }  
         }
 
         #
@@ -382,6 +398,11 @@ foreach ($p in $params)
     }
     default   {}  # unknown param - just ignore it
     }
+}
+
+if ($isDynamic -eq $true) 
+{
+    $streamReader.close()
 }
 
 if (-not $vm2Name)
@@ -427,7 +448,6 @@ Start-sleep -s 5
 #
 # Verify the VMs exists
 #
-
 $vm2 = Get-VM -Name $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $vm2)
 {
@@ -521,11 +541,9 @@ if (-not $vm2nic)
 
 $scriptAddedNIC = $true
 
-
 #
 # Start VM2
 #
-
 if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
 {
     Start-VM -Name $vm2Name -ComputerName $hvServer
@@ -538,7 +556,7 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
 }
 
 
-$timeout = 200 # seconds
+$timeout = 400 # seconds
 if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
 {
     "Warning: $vm2Name never started KVP"

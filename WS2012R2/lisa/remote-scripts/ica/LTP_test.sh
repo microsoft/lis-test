@@ -105,9 +105,6 @@ LinuxRelease() {
 # Installs SLES LTP dependencies
 #######################################################################
 InstallSLESDependencies() {
-	
-	zypper --non-interactive in autoconf
-	zypper --non-interactive in automake
 	zypper --non-interactive in m4
 	zypper --non-interactive in libaio-devel
 	zypper --non-interactive in libattr1
@@ -140,8 +137,6 @@ InstallUbuntuDependencies() {
 	apt-get -y install libberkeleydb-perl
 	apt-get -y install flex
 	apt-get -y install make
-	apt-get -y install automake
-	apt-get -y install autoconf
 	apt-get -y install gcc
 	apt-get -y install git
 	apt-get -y install expect
@@ -163,8 +158,6 @@ InstallRHELDependencies() {
 	yum install -y libberkeleydb-perl
 	yum install -y flex
 	yum install -y make
-	yum install -y automake
-	yum install -y autoconf
 	yum install -y gcc
 }
 
@@ -192,7 +185,6 @@ fi
 #
 if [ "${TC_COVERED:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter TC_COVERED is not defined in ${CONSTANTS_FILE}"
-    echo $msg
     echo $msg >> ~/summary.log
 fi
 
@@ -224,10 +216,10 @@ test -d "$TOP_SRCDIR" || mkdir -p "$TOP_SRCDIR"
 cd $TOP_SRCDIR
 
 LogMsg "Cloning LTP"
-git clone https://github.com/linux-test-project/ltp.git
+git clone --depth 1 https://github.com/linux-test-project/ltp.git
 TOP_SRCDIR="$HOME/src/ltp"
 
-LogMsg "Configuring LTP"
+LogMsg "Configuring LTP..."
 cd $TOP_SRCDIR
 make autotools
 
@@ -264,6 +256,10 @@ LogMsg "Running LTP..."
 
 LogMsg "Updating summary log"
 grep -A 5 "Total Tests" $LTP_RESULTS >> ~/summary.log
-
+if grep FAIL $LTP_OUTPUT
+then
+	echo "Failed Tests:" >> ~/summary.log
+	grep FAIL $LTP_OUTPUT | cut -d':' -f 2- >> ~/summary.log
+fi
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0

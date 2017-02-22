@@ -221,7 +221,7 @@ elif [ $distro == "sles" ]; then
         if [ $willInstall == "no" ]; then
             echo "  linuxefi uefi/PXE/linux install=http://10.10.10.10/PXE inst.stage2=http://10.10.10.10/PXE" >> /var/lib/tftpboot/uefi/grub.cfg
         else
-            echo "  linuxefi uefi/PXE/linux install=http://10.10.10.10/PXE inst.stage2=http://10.10.10.10/PXE autoyast=http:/10.10.10.10/PXE/autoinstGen2.xml" >> /var/lib/tftpboot/uefi/grub.cfg
+            echo "  linuxefi uefi/PXE/linux install=http://10.10.10.10/PXE inst.stage2=http://10.10.10.10/PXE autoyast=http://10.10.10.10/PXE/autoinstGen2.xml" >> /var/lib/tftpboot/uefi/grub.cfg
         fi
         echo "  initrdefi uefi/PXE/initrd" >> /var/lib/tftpboot/uefi/grub.cfg
         echo "  }" >> /var/lib/tftpboot/uefi/grub.cfg

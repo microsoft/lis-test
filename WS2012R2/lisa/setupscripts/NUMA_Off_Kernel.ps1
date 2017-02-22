@@ -136,26 +136,39 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 $retVal = $True
 
 # Source TCUtils.ps1 for test related functions
-  if (Test-Path ".\setupScripts\TCUtils.ps1")
-  {
-    . .\setupScripts\TCUtils.ps1
-  }
-  else
-  {
-    LogMsg 0 "Error: Could not find setupScripts\TCUtils.ps1"
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+. .\setupScripts\TCUtils.ps1
+}
+else
+{
+LogMsg 0 "Error: Could not find setupScripts\TCUtils.ps1"
+return $false
+}
+
+$kernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
+if( $? -eq $false){
+    write-output "WARNING: Could not get kernel version of $vmName" | Tee-Object -Append -file $summaryLog
+}
+if( $kernel.StartsWith("2.6") -or $kernel.EndsWith(".i686")){
+    write-output "NUMA not suported for kernel $kernel"  | Tee-Object -Append -file $summaryLog
     return $false
-  }
+}
 
 #
 # Collecting the VM generation info
 #
-$VmGeneration = Get-VM $vmName | select -ExpandProperty Generation
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq $False) {
+   $vmGeneration = 1
+}
+
 LogMsg 9 "Info: The VM you are working on is a generation $VmGeneration VM."
 
 #
 # Extracting the node and port name values for the VM attached HBA
 #
-$NumaNodes = Get-VM $vmName | select -ExpandProperty NumaNodesCount
+$NumaNodes = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty NumaNodesCount
 
 #
 # Send the Numa Nodes value to the guest if it matches with the number of CPUs
@@ -171,7 +184,7 @@ else {
 $cmd_numanodes="(echo expected_number=$NumaNodes; echo MaxMemSizeEachNode=$MaxMemSizeEachNode; echo VmGeneration=$VmGeneration) >> ~/constants.sh";
 $result = Execute($cmd_numanodes)
 if (-not $result) {
-    LogMsg 0 -Message "Error: Unable to submit command ${cmd} to VM!" -ErrorAction SilentlyContinue
+    LogMsg 0 "Error: Unable to submit command ${cmd} to VM!"
     return $False
 }
 
@@ -211,7 +224,7 @@ else {
 # Have to stop and start. Restart-VM will loss unsaved data.
 #
 Stop-VM -Name $vmName -ComputerName $hvServer
-LogMsg 9 "Info: VM is shutting down."
+
 Write-Output "VM $vmName is shutting down." | Tee-Object -Append -file $summaryLog
 if (-not $?)
 {
@@ -227,7 +240,6 @@ if (-not $sts)
 }
 
 Start-VM -Name $vmName -ComputerName $hvServer
-LogMsg 9 "Info: VM is starting to make NUMA-off work."
 Write-Output "VM $vmName is starting to make NUMA-off work." | Tee-Object -Append -file $summaryLog
 $timeout = 120
 while ($timeout -gt 0)
@@ -251,7 +263,6 @@ if ($timeout -eq 0)
 # Check the kernel parameter working or not
 #
 $NumaNodesHost = Get-VM $vmName | select -ExpandProperty NumaNodesCount
-LogMsg 9 "Debug: VM $vmName is configured with $NumaNodesHost nodes."
 Write-Output "VM $vmName is configured with $NumaNodesHost nodes." | Tee-Object -Append -file $summaryLog
 
 $NumaNodesGuest = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "numactl -H | grep cpu | wc -l"

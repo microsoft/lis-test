@@ -3,11 +3,11 @@
 <!--
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
-    All rights reserved. 
+    All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-        http://www.apache.org/licenses/LICENSE-2.0  
+        http://www.apache.org/licenses/LICENSE-2.0
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
     ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
@@ -20,6 +20,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <dependency>
+            <!-- Only Windows Server 2012 R2 and newer supports this feature -->
+            <hostVersion>6.3.9600</hostVersion>
+        </dependency>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>
@@ -33,19 +37,19 @@
 
     <testSuites>
         <suite>
-		<suiteName>File_Copy</suiteName>
-		<suiteTests>
-			<suiteTest>FCOPY_basic</suiteTest>
-			<suiteTest>FCOPY_file_exists</suiteTest> 
-			<suiteTest>FCOPY_overwrite</suiteTest>
-			<suiteTest>FCOPY_large_file</suiteTest>
-			<suiteTest>FCOPY_non_ascii</suiteTest>
-			<suiteTest>FCOPY_repeat</suiteTest>
-		</suiteTests>
+        <suiteName>File_Copy</suiteName>
+        <suiteTests>
+            <suiteTest>FCOPY_basic</suiteTest>
+            <suiteTest>FCOPY_file_exists</suiteTest>
+            <suiteTest>FCOPY_overwrite</suiteTest>
+            <suiteTest>FCOPY_large_file</suiteTest>
+            <suiteTest>FCOPY_non_ascii</suiteTest>
+            <suiteTest>FCOPY_repeat</suiteTest>
+        </suiteTests>
         </suite>
     </testSuites>
 
-	<testCases>			
+	<testCases>
 		<test>
 			<testName>FCOPY_basic</testName>
 			<testScript>setupscripts\FCOPY_basic.ps1</testScript>
@@ -65,7 +69,7 @@
 			</testParams>
 			<noReboot>True</noReboot>
 		</test>
-		
+
 		<test>
 			<testName>FCOPY_overwrite</testName>
 			<testScript>setupscripts\FCOPY_overwrite.ps1</testScript>
@@ -74,20 +78,20 @@
 				<param>TC_COVERED=FCopy-03</param>
 			</testParams>
 			<noReboot>False</noReboot>
-		</test>		
-		
+		</test>
+
 		<test>
 			<testName>FCOPY_large_file</testName>
-			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
+			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
 			<testScript>setupscripts\FCOPY_large_file.ps1</testScript>
 			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 			<timeout>1200</timeout>
 			<testParams>
 				<param>TC_COVERED=FCopy-04</param>
-                		<param>Type=Fixed</param>
-                		<param>SectorSize=512</param>
-                		<param>DefaultSize=15GB</param>
-				<param>SCSI=1,0,Dynamic,512,15GB</param>
+        <param>Type=Fixed</param>
+        <param>SectorSize=512</param>
+        <param>DefaultSize=15GB</param>
+				<param>ControllerType=SCSI</param>
 			</testParams>
 			<noReboot>False</noReboot>
 		</test>
@@ -104,16 +108,17 @@
 
 		<test>
 			<testName>FCOPY_repeat</testName>
-			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
+			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
 			<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
 			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 			<timeout>1200</timeout>
 			<testParams>
 				<param>TC_COVERED=FCopy-06</param>
-		                <param>Type=Fixed</param>
-		                <param>SectorSize=512</param>
-		                <param>DefaultSize=3GB</param>
-		                <!--Make sure DefaultSize is equal or bigger than FileSize-->
+		    <param>Type=Fixed</param>
+		    <param>SectorSize=512</param>
+		    <param>DefaultSize=3GB</param>
+        <param>ControllerType=SCSI</param>
+		    <!--Make sure DefaultSize is equal or bigger than FileSize-->
 				<param>FileSize=2GB</param>
 			</testParams>
 			<noReboot>False</noReboot>
@@ -130,5 +135,5 @@
 			<suite>File_Copy</suite>
 		</vm>
 	</VMs>
-	
+
 </config>
