@@ -4,6 +4,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <dependency>
+            <!-- Only Windows Server 2012 and newer supports this feature -->
+            <hostVersion>6.2.9200</hostVersion>
+        </dependency>
         <email>
             <recipients>
                 <to>myself@mycompany.com</to>

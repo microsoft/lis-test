@@ -26,6 +26,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <dependency>
+            <!-- Only Windows Server 2012 R2 and newer supports this feature -->
+            <hostVersion>6.3.9600</hostVersion>
+        </dependency>
         <email>
             <recipients>
                 <to>myself@mycompany.com</to>
