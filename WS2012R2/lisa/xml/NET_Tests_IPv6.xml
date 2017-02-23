@@ -29,7 +29,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LIS Network tests</subject>
+            <subject>LIS IPv6 Network tests</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -330,8 +330,8 @@
                 <param>TC_COVERED=NET-14</param>
                 <param>VLAN_ID=2</param>
                 <param>TestIPV6=yes</param>
-				<param>STATIC_IP=10.11.12.100</param>
-				<param>NETMASK=255.255.255.0</param>
+                <param>STATIC_IP=10.11.12.100</param>
+                <param>NETMASK=255.255.255.0</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
