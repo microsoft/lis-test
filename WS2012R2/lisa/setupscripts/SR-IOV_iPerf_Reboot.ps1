@@ -31,7 +31,9 @@
         2.  Start iPerf in server mode on the second VM.
         3.  On the Linux VM, start iPerf in client mode for about a 10 minute run.
         4.  While the iPerf client is transferring data, reboot the Linux client VM.
-        5.  After reboot, start the iPerf client again.
+            Note: before reboot - note the TX packets on the VF
+        5.  After reboot, check the TX packets - it should drop to 0 & 
+            start the iPerf client again.
     Acceptance Criteria:
         After the reboot, the SR-IOV device works correctly.
  
@@ -215,6 +217,13 @@ if (-not $vfBeforeThroughput){
 
 "The throughput before rebooting VM is $vfBeforeThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
 
+# Get TX packets from VF
+$vfName = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep -v 'eth0\|eth1\|bond*\|lo'"
+if (-not $vfName) {
+    "INFO: Could not extract VF name from VM" | Tee-Object -Append -file $summaryLog
+}
+[int]$txValue_beforeReboot = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig $vfName | grep 'TX packets' | sed 's/:/ /' | awk '{print `$3}'"
+"TX packet count before reboot is $txValue_beforeReboot" | Tee-Object -Append -file $summaryLog
 #
 # Reboot VM1
 #
@@ -236,6 +245,20 @@ $status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep bond0"
 if (-not $status) {
     "ERROR: The bond is down after reboot!" | Tee-Object -Append -file $summaryLog
     return $false    
+}
+
+[int]$txValue_afterReboot = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig $vfName | grep 'TX packets' | sed 's/:/ /' | awk '{print `$3}'"
+if ($txValue_afterReboot -ge $txValue_beforeReboot){
+    "ERROR: TX packet count didn't decrease after reboot" | Tee-Object -Append -file $summaryLog
+    return $false   
+}
+else {
+    if ($txValue_afterReboot -gt 0){
+        "INFO: TX packet count after reboot is $txValue_afterReboot" | Tee-Object -Append -file $summaryLog  
+    }
+    else {
+        "INFO: TX packet count is 0 after reboot" | Tee-Object -Append -file $summaryLog   
+    }
 }
 
 # Restart iPerf 3 on VM2

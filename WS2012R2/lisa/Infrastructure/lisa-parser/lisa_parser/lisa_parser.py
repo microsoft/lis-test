@@ -66,9 +66,13 @@ def main(args):
     logger.info('Initializing TestRun object')
     if parsed_arguments.perf:
         test_run = PerfTestRun(parsed_arguments.perf,
-                               parsed_arguments.skipkvp)
+                               parsed_arguments.skipkvp,
+                               parsed_arguments.snapshot)
     else:
-        test_run = TestRun(skip_vm_check=parsed_arguments.skipkvp)
+        test_run = TestRun(
+            skip_vm_check=parsed_arguments.skipkvp,
+            checkpoint_name=parsed_arguments.snapshot
+        )
 
     logger.info('Parsing XML file - %s', parsed_arguments.xml_file_path)
     test_run.update_from_xml(parsed_arguments.xml_file_path)
@@ -101,3 +105,4 @@ def main(args):
 
 if __name__ == '__main__':
     main(sys.argv[1:])
+

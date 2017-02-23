@@ -41,7 +41,7 @@ class TestRun(object):
     TestRun class is being used to store test run specific data and launch
     different parsing methods in order to process the output of a test run.
     """
-    def __init__(self, skip_vm_check=False):
+    def __init__(self, skip_vm_check=False, checkpoint_name=False):
         self.suite = ''
         self.timestamp = ''
         self.log_path = ''
@@ -50,6 +50,7 @@ class TestRun(object):
         self.test_cases = dict()
         self.lis_version = ''
         self.server_name = os.environ['COMPUTERNAME']
+        self.checkpoint_name = checkpoint_name
 
     def update_from_xml(self, xml_path):
         xml_object = ParseXML(xml_path)
@@ -70,7 +71,8 @@ class TestRun(object):
                 vm_name=vm_name,
                 hv_server=vm_details['hvServer'],
                 os=vm_details['os'],
-                check=self.validate_vm
+                check=self.validate_vm,
+                checkpoint_name=self.checkpoint_name
                 )
 
     def update_from_ica(self, log_path):
@@ -144,7 +146,8 @@ class TestRun(object):
                 try:
                     test_dict['TestResult'] = test_object.results[vm_name]
                 except KeyError:
-                    logger.error('Unable to find test result for %s on vm %s', test_name, vm_name)
+                    logger.error('Unable to find test result for %s on vm %s',
+                                 test_name, vm_name)
                     logger.info('Skipping %s for database insertion', test_name)
                     continue
 
@@ -164,7 +167,8 @@ class TestRun(object):
                 if not vm_object.kvp_info:
                     test_dict['GuestOSDistro'] = ''
                     test_dict['KernelVersion'] = ''
-                    logger.warning('No values found for VM Distro and VM Kernel Version')
+                    logger.warning('No values found for VM Distro and '
+                                   'VM Kernel Version')
                 else:
                     try:
                         """For some distros OSMajorVersion field is empty"""
@@ -202,8 +206,8 @@ class TestRun(object):
 
 
 class PerfTestRun(TestRun):
-    def __init__(self, perf_path, skip_vm_check=True):
-        super(PerfTestRun, self).__init__(skip_vm_check)
+    def __init__(self, perf_path, skip_vm_check=True, checkpoint_name=False):
+        super(PerfTestRun, self).__init__(skip_vm_check, checkpoint_name)
         self.perf_path = perf_path
 
     def update_from_ica(self, log_path):
@@ -261,8 +265,8 @@ class PerfTestRun(TestRun):
                 "[a-zA-z]+", table_dict['TestCaseName'])[0]
 
         if self.suite.lower() in ['fio-singledisk', 'fio-raid0-4disks']:
-            insertion_list = sorted(insertion_list, key=lambda column: (column['QDepth'],
-                                                                        column['BlockSize_KB']))
+            insertion_list = sorted(insertion_list, key=lambda column: (
+                column['QDepth'], column['BlockSize_KB']))
         elif self.suite.lower() == 'ntttcp':
             insertion_list = sorted(insertion_list, key=lambda column: (
                 column['ProtocolType'], column['NumberOfConnections']))
