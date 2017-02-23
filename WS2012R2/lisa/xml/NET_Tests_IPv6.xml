@@ -29,7 +29,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LIS_Network_tests_run_on_2012R2</subject>
+            <subject>LIS IPv6 Network tests</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -250,7 +250,6 @@
                 <param>STATIC_IP2=fd00::4:100</param>
                 <param>NETMASK=64</param>
                 <param>MAC=001600112233</param>
-                <param>REMOTE_USER=root</param>
             </testparams>
             <testScript>NET_JUMBO_FRAMES.sh</testScript>
             <files>remote-scripts/ica/NET_JUMBO_FRAMES.sh,remote-scripts/ica/utils.sh</files>
@@ -290,7 +289,6 @@
                 <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=2</param>
-                <param>REMOTE_USER=root</param>
                 <param>TestIPV6=yes</param>
             </testParams>
             <testScript>NET_COPY_LARGE.sh</testScript>
@@ -313,7 +311,6 @@
                 <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=1</param>
-                <param>REMOTE_USER=root</param>
                 <param>TestIPV6=yes</param>
             </testParams>
             <testScript>NET_Copy_Different_MTU.sh</testScript>
@@ -329,10 +326,12 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-14</param>
                 <param>VLAN_ID=2</param>
                 <param>TestIPV6=yes</param>
+                <param>STATIC_IP=10.11.12.100</param>
+                <param>NETMASK=255.255.255.0</param>
             </testParams>
             <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
@@ -410,11 +409,12 @@
             <vmName>VMName</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>sshKey.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
                 <param>VM2NAME=vm2Name</param>
-                <param>SSH_PRIVATE_KEY=identity_file</param>
+                <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
                 <param>SnapshotName=ICABase</param>
+				<param>REMOTE_USER=root</param>
             </testParams>
             <suite>Network</suite>
         </vm>
