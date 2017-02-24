@@ -61,10 +61,10 @@ function enable_gsi($vmName, $hvServer){
 
 function get_logs(){
     # Get test case log files
-    GetfileFromVm $ipv4 $sshkey "/root/summary.log" $logdir
-    GetfileFromVm $ipv4 $sshkey "/root/summary_scenario_$scenario.log" $logdir
-    GetfileFromVm $ipv4 $sshkey "/root/LIS_log_scenario_$scenario.log" $logdir
-    GetfileFromVm $ipv4 $sshkey "/root/kernel_install_scenario_$scenario.log" $logdir
+    $file = GetfileFromVm $ipv4 $sshkey "/root/summary.log" $logdir
+    $file = GetfileFromVm $ipv4 $sshkey "/root/summary_scenario_$scenario.log" $logdir
+    $file = GetfileFromVm $ipv4 $sshkey "/root/LIS_log_scenario_$scenario.log" $logdir
+    $file = GetfileFromVm $ipv4 $sshkey "/root/kernel_install_scenario_$scenario.log" $logdir
 
 }
 
@@ -101,10 +101,7 @@ function verify_daemons_modules(){
 }
 
 function check_lis_version(){
-    $LIS_version = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
-    # $LIS_version = $LIS_version -split "\s+"
-    # $LIS_version = $LIS_version[1]
-    # $global_LIS_version = $LIS_version
+    $LIS_version = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:  | tr -s [:space:]"
     if (-not $LIS_version) {
         if ($LIS_version_initial -eq $LIS_version){
             Write-Output "Error: modinfo shows that VM is still using built-in drivers"
@@ -292,8 +289,8 @@ if (-not $sts) {
 }
 
 # Copy both files
-Copy-Item -Path $previous_lis_iso_path -Destination $defaultVhdPath -Force
-Copy-Item -Path $latest_lis_iso_path -Destination $defaultVhdPath -Force
+$sts = Copy-Item -Path $previous_lis_iso_path -Destination $defaultVhdPath -Force
+$sts = Copy-Item -Path $latest_lis_iso_path -Destination $defaultVhdPath -Force
 
 # Attach ISO accordingly to deploy scenario
 stop_vm
@@ -328,9 +325,7 @@ if ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "Off") {
 Start-Sleep -s 10
 # Check if the VM is clean (no external LIS installed already)
 $LIS_version_initial = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
-$LIS_version_initial = $LIS_version_initial[($LIS_version_initial.count -1)]
-$LIS_version_initial = $LIS_version_initial -split "\s+"
-$LIS_version_initial = $LIS_version_initial[1]
+$LIS_version_initial = $LIS_version_initial -split " " | Select-Object -Last 1
 
 if (-not $LIS_version_initial -or ($LIS_version_initial -eq "3.1")) {
     Write-Output "VM is clean, will proceed with LIS Deploy scenario $scenario"   
@@ -379,20 +374,13 @@ switch ($scenario){
         }
 
         $LIS_version_final = check_lis_version
-        $LIS_version_final = $LIS_version_final[($LIS_version_final.count -1)]
-        $LIS_version_final = $LIS_version_final -split "\s+"
-        $LIS_version_final = $LIS_version_final[1]
+        $LIS_version_final = $LIS_version_final[($LIS_version_final.count -1)] -split " " | Select-Object -Last 1
 
         Write-Output "LIS version after installing latest drivers: $LIS_version_final" | Tee-Object -Append -file $summaryLog
         if ($LIS_version_final -eq $LIS_version_initial) {
             Write-Output "Error: LIS version has not changed on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false     
         }
-
-        $logFile = "LIS_log_scenario_$scenario.log"
-        bin\pscp -q -i ssh\${sshKey} root@${ipv4}:LIS_log_scenario_$scenario.log $logdir
-        $content = Get-Content $logFile
-        Write-Output $content | Tee-Object -Append -file $summaryLog
     }
 
     "2" {
@@ -424,9 +412,7 @@ switch ($scenario){
         }
 
         $LIS_version_old = check_lis_version
-        $LIS_version_old = $LIS_version_old[($LIS_version_old.count -1)]
-        $LIS_version_old = $LIS_version_old -split "\s+"
-        $LIS_version_old = $LIS_version_old[1]
+        $LIS_version_old = $LIS_version_old[($LIS_version_old.count -1)] -split " " | Select-Object -Last 1
 
         Write-Output "LIS version with previous LIS drivers: $LIS_version_old" | Tee-Object -Append -file $summaryLog
         if ($LIS_version_old -eq $LIS_version_initial) {
@@ -477,9 +463,7 @@ switch ($scenario){
         }
 
         $LIS_version_final = check_lis_version
-        $LIS_version_final = $LIS_version_final[($LIS_version_final.count -1)]
-        $LIS_version_final = $LIS_version_final -split "\s+"
-        $LIS_version_final = $LIS_version_final[1]
+        $LIS_version_final = $LIS_version_final[($LIS_version_final.count -1)] -split " " | Select-Object -Last 1
 
         Write-Output "LIS version after installing latest drivers: $LIS_version_final" | Tee-Object -Append -file $summaryLog
         if ($LIS_version_final -eq $LIS_version_old) {
@@ -517,9 +501,7 @@ switch ($scenario){
         }
 
         $LIS_version_old = check_lis_version
-        $LIS_version_old = $LIS_version_old[($LIS_version_old.count -1)]
-        $LIS_version_old = $LIS_version_old -split "\s+"
-        $LIS_version_old = $LIS_version_old[1]
+        $LIS_version_old = $LIS_version_old[($LIS_version_old.count -1)] -split " " | Select-Object -Last 1
 
         Write-Output "LIS version with previous LIS drivers: $LIS_version_old" | Tee-Object -Append -file $summaryLog
         if ($LIS_version_old -eq $LIS_version_initial) {
@@ -566,9 +548,7 @@ switch ($scenario){
         }
 
         $LIS_version_upgraded = check_lis_version
-        $LIS_version_upgraded = $LIS_version_upgraded[($LIS_version_upgraded.count -1)]
-        $LIS_version_upgraded = $LIS_version_upgraded -split "\s+"
-        $LIS_version_upgraded = $LIS_version_upgraded[1]
+        $LIS_version_upgraded = $LIS_version_upgraded[($LIS_version_upgraded.count -1)] -split " " | Select-Object -Last 1
 
         Write-Output "LIS version after upgrade: $LIS_version_upgraded" | Tee-Object -Append -file $summaryLog
         if ($LIS_version_upgraded -eq $LIS_version_old) {
@@ -633,9 +613,7 @@ switch ($scenario){
         }
 
         $LIS_version_final = check_lis_version
-        $LIS_version_final = $LIS_version_final[($LIS_version_final.count -1)]
-        $LIS_version_final = $LIS_version_final -split "\s+"
-        $LIS_version_final = $LIS_version_final[1]
+        $LIS_version_final = $LIS_version_final[($LIS_version_final.count -1)] -split " " | Select-Object -Last 1
 
         Write-Output "LIS version final: $LIS_version_final" | Tee-Object -Append -file $summaryLog
         if ($LIS_version_final -eq $LIS_version_upgraded) {
@@ -660,13 +638,20 @@ switch ($scenario){
 
         $sts = SendCommandToVM $ipv4 $sshkey "sync"
         Start-Sleep -s 30
-        # check if kernel upgraded
+        # Check if kernel was upgraded
         $sts = kernel_upgrade
         if(-not $sts[-1]){
             Write-Output "Error: Kernel was not upgraded" | Tee-Object -Append -file $summaryLog
             return $false
         }
         Write-Output "Successfully upgraded kernel."
+
+        # Mount and install LIS
+        $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
 
         # Mount and install LIS
         $sts = install_lis
@@ -726,7 +711,7 @@ switch ($scenario){
 
         $sts = SendCommandToVM $ipv4 $sshkey "sync"
         Start-Sleep -s 30
-        # check if kernel upgraded
+        # Check if kernel was upgraded
         $sts = kernel_upgrade
         if(-not $sts[-1]){
             Write-Output "Error: Kernel was not upgraded" | Tee-Object -Append -file $summaryLog
@@ -848,6 +833,7 @@ switch ($scenario){
         }
 
         # Upgrade kernel
+
         $sts = SendCommandToVM $ipv4 $sshkey "yum install -y kernel >> ~/kernel_install_scenario_$scenario.log"
         if(-not $sts[-1]){
             Write-Output "Error: Unable to upgrade kernel on ${vmName}" | Tee-Object -Append -file $summaryLog
@@ -893,7 +879,7 @@ switch ($scenario){
         }
     }
 
-   "7"{
+    "7"{
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
         if(-not $sts[-1]){
@@ -940,4 +926,5 @@ switch ($scenario){
 }
 
 get_logs
+
 return $True
