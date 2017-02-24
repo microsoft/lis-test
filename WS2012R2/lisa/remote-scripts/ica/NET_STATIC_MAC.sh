@@ -458,6 +458,13 @@ done
 
 sleep 5
 
+# Restarting interfaces if we run on RedHat/CentOS 6.x
+grep -i "6.[0-9]" /etc/*-release
+if [ $? -eq 0 ]; then
+	/etc/init.d/network restart
+	sleep 3
+fi
+
 declare -i __iterator
 # ping REMOTE_SERVER if set
 if [ "${REMOTE_SERVER:-UNDEFINED}" != "UNDEFINED" ]; then
@@ -496,8 +503,6 @@ if [ "${REMOTE_SERVER:-UNDEFINED}" != "UNDEFINED" ]; then
 	done
 fi
 
-# everything ok
-UpdateSummary "Test successful"
 LogMsg "Updating test case state to completed"
 SetTestStateCompleted
 exit 0
