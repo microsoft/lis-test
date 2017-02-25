@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -19,15 +19,14 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Disable then enable the shutdown service and verify shutdown still works.
 
 .Description
     Disable, then re-enable the LIS Shutdown service.  Then verify that
-    a shutdown request still works.  The XML test case definition for
-    this test would look similar to:
+    a shutdown request still works. 
+	The XML test case definition for this test would look similar to:
         <test>
             <testName>VerifyItegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
@@ -48,13 +47,14 @@
     A semicolon separated list of test parameters.
 
 .Example
-    .\INST_LIS_ShutdownServiceDisableEnable.ps1 "myVM" "localhost" "rootDir=D:\lisa\trunk\lisablue;TC_COVERED=10"
+    .\INST_LIS_ShutdownServiceDisableEnable.ps1 "myVM" "localhost" "rootDir=C:\lisa\;TC_COVERED=10"
 #>
-
-
 
 param([String] $vmName, [String] $hvServer, [String] $testParams)
 
+$rootDir = $null
+$tcCovered = "Undefined"
+$ipv4 = $null
 
 #####################################################################
 #
@@ -73,53 +73,6 @@ function CheckVMState([String] $vmName, [String] $newState)
     
     return $stateChanged
 }
-
-
-#####################################################################
-#
-# TestPort
-#
-#####################################################################
-#function TestPort ([String] $serverName, [Int] $port=22, [Int] $to=3)
-#{
-#    $retVal = $False
-#    $timeout = $to * 1000
-#
-    #
-    # Try an async connect to the specified machine/port
-    #
-#    $tcpclient = new-Object system.Net.Sockets.TcpClient
-#    $iar = $tcpclient.BeginConnect($serverName,$port,$null,$null)
-
-    #
-    # Wait for the connect to complete. Also set a timeout
-    # so we don't wait all day
-    #
-#    $connected = $iar.AsyncWaitHandle.WaitOne($timeout,$false)
-
-    #
-    # Check to see if the connection is done
-    #
-#    if($connected)
-#    {
-        #
-        # Close our connection
-        #
-#        try
-#        {
-#            $sts = $tcpclient.EndConnect($iar) | out-Null
-#            $retVal = $true
-#        }
-#        catch
-#        {
-            # Nothing we need to do...
-#        }
-#    }
-#    $tcpclient.Close()
-
-#    return $retVal
-#}
-
 
 #######################################################################
 #
@@ -151,10 +104,6 @@ if ($testParams -eq $null)
 #
 # Parse the testParams string
 #
-$rootDir = $null
-$tcCovered = "Undefined"
-$ipv4 = $null
-
 "Parsing testParams"
 $params = $testParams.Split(";")
 foreach ($p in $params)
@@ -187,21 +136,17 @@ if (-not (Test-Path $rootDir) )
     return $False
 }
 
-#
-# Display the test parameters so they are captured in the log
-#
-"IPv4      = ${ipv4}"
-"rootDir   = ${rootDir}"
-"tcCovered = ${tcCovered}"
-
-#
-# PowerShell test case scripts are run as a PowerShell job.  The
-# default directory for a PowerShell job is not the LISA directory.
-# Change the current directory to where we need to be.
-#
 cd $rootDir
 
-. .\setupscripts\TCUtils.ps1
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
 
 #
 # Updating the summary log with Testcase ID details
@@ -213,7 +158,7 @@ Write-Output "Covers ${tcCovered}" | Out-File $summaryLog
 #
 # Get the VMs Integrated Services and verify Shutdown is enabled and status is OK
 #
-"Info : Verify the Integrated Services Shutdown Service is enabled"
+"Info: Verify the Integrated Services Shutdown Service is enabled"
 $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name Shutdown
 if ($status.Enabled -ne $True)
 {
@@ -230,7 +175,7 @@ if ($status.PrimaryOperationalStatus -ne "Ok")
 #
 # Disable the Shutdown service.
 #
-"Info : Disabling the Integrated Services Shutdown Service"
+"Info: Disabling the Integrated Services Shutdown Service"
 
 Disable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name Shutdown
 $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name Shutdown
@@ -245,18 +190,18 @@ if ($status.PrimaryOperationalStatus -ne "Ok")
     "Error: Incorrect Operational Status for Shutdown Service: $($status.PrimaryOperationalStatus)"
     return $False
 }
-"Info : Integrated Shutdown Service successfully disabled"
+"Info: Integrated Shutdown Service has been successfully disabled"
 
 #
 # Enable the Shutdown service
 #
-"Info : Enabling the Integrated Services Shutdown Service"
+"Info: Enabling the Integrated Services Shutdown Service"
 
 Enable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name Shutdown
 $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name Shutdown
 if ($status.Enabled -ne $True)
 {
-    "Error: Integrated Shutdown Service could not be enabled"
+    "Error: Integrated Shutdown Service could not be enabled!"
     return $False
 }
 
@@ -265,12 +210,12 @@ if ($status.PrimaryOperationalStatus -ne "Ok")
     "Error: Incorrect Operational Status for Shutdown Service: $($status.PrimaryOperationalStatus)"
     return $False
 }
-"Info : Integrated Shutdown Service successfully Enabled"
+"Info: Integrated Shutdown Service successfully Enabled"
 
 #
 # Now do a shutdown to ensure the Shutdown Service is still functioning
 #
-"Info : Shutting down the VM"
+"Info: Shutting down the VM"
 
 $ShutdownTimeout = 600
 Stop-VM -Name $vmName -ComputerName $hvServer -Force
@@ -291,12 +236,12 @@ if ($shutdownTimeout -eq 0)
     return $False
 }
 
-"Info : VM ${vmName} Shutdown successful"
+"Info: VM ${vmName} Shutdown successful"
 
 #
 # Now start the VM so the automation scripts can do what they need to do
 #
-"Info : Starting the VM"
+"Info: Starting the VM"
 
 Start-VM -Name $vmName -ComputerName $hvServer -Confirm:$false
 if ($? -ne "True")
@@ -312,7 +257,7 @@ if (-not (WaitForVMToStartSSH $ipv4 $StartTimeout))
     return $False
 }
 
-"VM successfully started"
+"Info: VM successfully started"
 
 #
 # If we reached here, everything worked fine

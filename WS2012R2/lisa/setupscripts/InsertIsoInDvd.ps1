@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    Mount a .iso in the default DVD drive.
+    Mount an ISO file in the VM default DVD drive.
 
 .Description
     Mount a .iso in the default DVD drive.
@@ -47,39 +47,6 @@ $vmGeneration = $null
 
 #######################################################################
 #
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-    
-    if (-not $filename)
-    {
-        return $null
-    }
-    
-    if (-not $server)
-    {
-        return $null
-    }
-    
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-    
-    return $fileInfo
-}
-
-
-#######################################################################
-#
 # Main script body
 #
 #######################################################################
@@ -101,6 +68,16 @@ if (-not $testParams)
 {
     "Error: Missing testParams argument"
     return $False
+}
+
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
 }
 
 #
@@ -147,6 +124,7 @@ if ($? -eq $False)
 {
    $vmGeneration = 1
 }
+
 #
 # Make sure the DVD drive exists on the VM
 #
@@ -170,7 +148,7 @@ if ($dvd)
 }
 
 #
-# Make sure the .iso file exists on the HyperV server
+# Make sure the .iso file exists on the Hyper-V server
 #
 if (-not ([System.IO.Path]::IsPathRooted($isoFilename)))
 {
@@ -180,7 +158,7 @@ if (-not ([System.IO.Path]::IsPathRooted($isoFilename)))
 	
     if (-not $defaultVhdPath)
     {
-        "Error: Unable to determine VhdDefaultPath on HyperV server ${hvServer}"
+        "Error: Unable to determine VhdDefaultPath on Hyper-V server ${hvServer}"
         $error[0].Exception
         return $False
     }
@@ -214,7 +192,7 @@ else
 }
 if ($? -ne "True")
 {
-    "Error: Unable to mount"
+    "Error: Unable to mount the ISO file!"
     $error[0].Exception
     return $False
 }

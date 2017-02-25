@@ -36,8 +36,8 @@
                              Dynamic
                              Fixed
                              Diff (Differencing)
-   The following are some examples
 
+   The following are some examples:
    SCSI=0,0,Diff : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic
    IDE=1,1,Diff  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Diff
    
@@ -81,63 +81,15 @@ $controllerID = $null
 $lun = $null
 $vhdType = $null
 $parentVhd = $null
-
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-    
-    if (-not $filename)
-    {
-        return $null
-    }
-    
-    if (-not $server)
-    {
-        return $null
-    }
-    
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-    
-    return $fileInfo
-}
+$controller = $null
+$drive = $null
+$vmGeneration = $null 
 
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-"DynamicDiskGrowthCleanup.ps1"
-"  vmName = ${vmName}"
-"  hvServer = ${hvServer}"
-"  testParams = ${testParams}"
-
-# Make sure we have access to the Microsoft Hyper-V snapin
-#
-$hvModule = Get-Module Hyper-V
-if ($hvModule -eq $NULL)
-{
-    import-module Hyper-V
-    $hvModule = Get-Module Hyper-V
-}
-
-if ($hvModule.companyName -ne "Microsoft Corporation")
-{
-    "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $False
-}
 
 #
 # Parse the testParams string
@@ -161,7 +113,7 @@ foreach ($p in $params)
     $lValue = $tokens[0].Trim()
     $rValue = $tokens[1].Trim()
 
-    # ParentVHD test param?
+    # ParentVHD test param
     #
     if ($lValue -eq "ParentVHD")
     {
@@ -170,7 +122,7 @@ foreach ($p in $params)
     }
 
     #
-    # vhdFormat test param?
+    # vhdFormat test param
     #
     if ($lValue -eq "vhdFormat")
     {
@@ -179,7 +131,7 @@ foreach ($p in $params)
     }
 
     #
-    # Controller type testParam?
+    # Controller type testParam
     #
     if (@("IDE", "SCSI") -contains $lValue)
     {
@@ -243,13 +195,19 @@ if (-not $vhdFormat)
     return $False
 }
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
+
 #
 # Delete the drive if it exists
 #
-$controller = $null
-$drive = $null
-$vmGeneration = $null 
-
 if($IDE)
 {
     $controller = Get-VMIdeController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID
@@ -277,17 +235,17 @@ if ($controller)
     $drive = Get-VMHardDiskDrive $controller -ControllerLocation $lun
     if ($drive)
     {
-        write-output "Info : Removing $controllerType $controllerID $lun"
+        write-output "Info: Removing $controllerType $controllerID $lun"
         $sts = Remove-VMHardDiskDrive $drive
     }
     else
     {
-        write-output "Warn : Drive $controllerType $controllerID,$Lun does not exist"
+        write-output "Warn: Drive $controllerType $controllerID,$Lun does not exist"
     }
 }
 else
 {
-    write-output "Warn : the controller $controllerType $controllerID does not exist"
+    write-output "Warn: the controller $controllerType $controllerID does not exist"
 }
 
 $hostInfo = Get-VMHost -ComputerName $hvServer
