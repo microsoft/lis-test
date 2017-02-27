@@ -41,8 +41,7 @@
 
       ControllerType=Controller Index, Lun or Port, vhd type, sector size
 
-   The following are some examples
-
+   The following are some examples:
    SCSI=0,0,Dynamic,4096 : Add SCSI Controller 0, hard drive on Lun 0, .vhd type Dynamic, sector size of 4096
    SCSI=1,0,Fixed,512    : Add SCSI Controller 1, hard drive on Lun 0, .vhd type Fixed, sector size of 512 bytes
    IDE=0,1,Dynamic,512   : Add IDE hard drive on IDE 0, port 1, .vhd type Fixed, sector size of 512 bytes
@@ -110,39 +109,6 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $global:MinDiskSize = 1GB
 $global:DefaultDynamicSize = 127GB
-
-
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-
-    if (-not $filename)
-    {
-        return $null
-    }
-
-    if (-not $server)
-    {
-        return $null
-    }
-
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-
-    return $fileInfo
-}
 
 ############################################################################
 #
@@ -229,7 +195,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
     }
 
     #
-    # If the hard drive exists, complain...
+    # If the hard drive already exists, return an error
     #
 
     $drive = Get-VMHardDiskDrive -VMName $vmName -ControllerNumber $controllerID -ControllerLocation $Lun -ControllerType $controllerType -ComputerName $server
@@ -302,13 +268,11 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
 }
 
 
-
 ############################################################################
 #
 # Main entry point for script
 #
 ############################################################################
-
 $retVal = $true
 
 #
@@ -362,9 +326,7 @@ foreach ($p in $params)
 
     if (@("IDE", "SCSI") -notcontains $controllerType)
     {
-
         # Not a test parameter we are concerned with
-
         continue
     }
 
@@ -383,6 +345,16 @@ foreach ($p in $params)
         continue
     }
 
+  # Source TCUtils.ps1 for common functions
+  if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+  }
+  else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+  }
+	
     $controllerID = $diskArgs[0].Trim()
     $lun = $diskArgs[1].Trim()
     $vhdType = $diskArgs[2].Trim()
@@ -405,18 +377,16 @@ foreach ($p in $params)
         continue
     }
 
-
     "CreateHardDrive $vmName $hvServer $scsi $controllerID $Lun $vhdType $sectorSize"
     $sts = CreateHardDrive -vmName $vmName -server $hvServer -SCSI:$SCSI -ControllerID $controllerID -Lun $Lun -vhdType $vhdType -sectorSize $sectorSize -diskType $diskType
 
     if (-not $sts[$sts.Length-1])
     {
-        write-output "Failed to create hard drive"
+        write-output "Error: Failed to create hard drive!"
         $sts
         $retVal = $false
         continue
     }
-
 }
 
 return $retVal
