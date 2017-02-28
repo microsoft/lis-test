@@ -108,24 +108,6 @@ if (-not $hvServer)
     return $retVal
 }
 
-# $rootDir = $Matches[1]
-
-# if (Test-Path $rootDir)
-# {
-#     Set-Location -Path $rootDir
-#     if (-not $?)
-#     {
-#         "Error: Could not change directory to $rootDir !"
-#         return $false
-#     }
-#     "Changed working directory to $rootDir"
-# }
-# else
-# {
-#     "Error: RootDir = $rootDir is not a valid path"
-#     return $false
-# }
-
 # If dynamic MAC is needed, do necessary operations
 $isDynamic = $false
 $params = $testParams.Split(';')

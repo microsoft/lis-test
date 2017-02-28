@@ -200,10 +200,10 @@ if ($testSecureBootVM)
 }
 
 # Create a file on the VM before backup
-$sts = CreateFile
+$sts = CreateFile "TestFile3"
 if (-not $sts[-1])
 {
-    Write-Output "ERROR: Can not create file"
+    Write-Output "ERROR: Cannot create test file"
     return $False
 }
 Write-Output "File created on VM: $vmname" >> $summaryLog
@@ -319,7 +319,7 @@ if ($sts[-1])
 }
 else
 {
-    $sts = CheckFile
+    $sts = CheckFile "TestFile3"
     if (-not $sts[-1])
         {
             Write-Output "ERROR: File is not present file"
