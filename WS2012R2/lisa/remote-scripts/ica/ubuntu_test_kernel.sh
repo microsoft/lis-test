@@ -26,9 +26,9 @@
 # Description:
 #     This script was created to automate the installation and validation
 #     of an Ubuntu test kernel. The following steps are performed:
-#		1. Download the test kernel from the URL provided in XML file.
-#		2. Install the test kernel
-#		3. Matching LIS daemons packages are also installed.
+#	1. Download the test kernel from the URL provided in XML file.
+#	2. Install the test kernel
+#	3. Matching LIS daemons packages are also installed.
 #
 #######################################################################
 
@@ -53,7 +53,11 @@ UpdateSummary() {
 
 cd ~
 UpdateTestState $ICA_TESTRUNNING
-echo "Updating test case state to running"
+
+if [ -e ~/summary.log ]; then
+    LogMsg "Cleaning up previous copies of summary.log"
+    rm -rf ~/summary.log
+fi
 
 # Check if script is running on primary vm or secondary vm
 # If constants.sh is present means we're on VM1 
@@ -69,7 +73,7 @@ else
     msg="Error: no ${CONSTANTS_FILE} or link.sh file"
     UpdateSummary $msg
     UpdateTestState $ICA_TESTABORTED
-    exit 10
+    exit 1
 fi
 
 if [ -e ~/summary.log ]; then
@@ -84,13 +88,12 @@ dos2unix utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
     echo "TestAborted" > state.txt
-    exit 2
+    exit 1
 }
 
-touch ~/summary.log
 mkdir -p /tmp/test_kernel/
 if [ $? -ne 0 ]; then
-	UpdateSummary "Error: Unable to create the test directory."
+	UpdateSummary "Error: Unable to create the test directory!"
 	UpdateTestState $ICA_TESTABORTED
 fi
 
@@ -99,7 +102,7 @@ if [ "${URL:="UNDEFINED"}" = "UNDEFINED" ]; then
     LogMsg "${msg}"
     UpdateSummary "${msg}"
     UpdateTestState $ICA_TESTFAILED
-    exit 20
+    exit 1
 fi
 
 if is_ubuntu ; then
@@ -131,6 +134,13 @@ if is_ubuntu ; then
 	fi
 	UpdateSummary "Info: linux-tools and linux-cloud-tools have been successfully installed!"
 
+	dpkg -i linux-headers*
+	if [[ $? -ne 0 ]]; then
+		UpdateSummary "Error: Unable to install the new kernel headers!"
+		UpdateTestState $ICA_TESTABORTED
+		exit 1
+	fi
+
 	# Modify grub so it will boot with the test kernel
 	version=$(ls -1 linux-image-extra* | sed -r 's/^.{18}//' | cut -f1 -d"_")
 	LogMsg "New kernel version: $version"
@@ -145,7 +155,7 @@ if is_ubuntu ; then
 	        LogMsg "$msg"
 	        UpdateSummary "$msg"
 	        UpdateTestState $ICA_TESTFAILED
-	        exit 10
+	        exit 1
 	    fi
 
 		scp -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ~/utils.sh "$SERVER_OS_USERNAME"@"$STATIC_IP2":~/utils.sh
@@ -154,7 +164,7 @@ if is_ubuntu ; then
 	        LogMsg "$msg"
 	        UpdateSummary "$msg"
 	        UpdateTestState $ICA_TESTFAILED
-	        exit 10
+	        exit 1
 	    fi
 
 	    ssh -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$SERVER_OS_USERNAME"@"$STATIC_IP2" "echo 'URL=${URL}' >> ~/link.sh"
@@ -163,7 +173,7 @@ if is_ubuntu ; then
 	        LogMsg "$msg"
 	        UpdateSummary "$msg"
 	        UpdateTestState $ICA_TESTFAILED
-	        exit 10
+	        exit 1
 	    fi
 
 	    ssh -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$SERVER_OS_USERNAME"@"$STATIC_IP2" bash ~/ubuntu_test_kernel.sh
@@ -172,7 +182,7 @@ if is_ubuntu ; then
 	        LogMsg "$msg"
 	        UpdateSummary "$msg"
 	        UpdateTestState $ICA_TESTFAILED
-	        exit 10
+	        exit 1
 	    fi
 
         ssh -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$SERVER_OS_USERNAME"@"$STATIC_IP2" init 0
