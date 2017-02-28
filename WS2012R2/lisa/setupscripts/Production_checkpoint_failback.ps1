@@ -147,8 +147,8 @@ if (-not $vm)
 $sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
 if (-not $sts[-1])
 {
-    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-    Write-Output "ERROR: Running $remoteScript script failed on VM!"
+    Write-Output "ERROR executing STOR_VSS_Check_VSS_Daemon.sh on VM. Exiting test case!" >> $summaryLog
+    Write-Output "ERROR: Running STOR_VSS_Check_VSS_Daemon.sh script failed on VM!"
     return $False
 }
 
@@ -156,8 +156,8 @@ if (-not $sts[-1])
 $sts = RunRemoteScript "PC_Stop_VSS_Daemon.sh"
 if (-not $sts[-1])
 {
-    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-    Write-Output "ERROR: Running $remoteScript script failed on VM!"
+    Write-Output "ERROR executing PC_Stop_VSS_Daemon.sh on VM. Exiting test case!" >> $summaryLog
+    Write-Output "ERROR: Running PC_Stop_VSS_Daemon.sh script failed on VM!"
     return $False
 }
 Write-Output "VSS Daemon was successfully stopped" >> $summaryLog
@@ -180,6 +180,9 @@ if (-not $?)
     Write-Output "Error: Could not create a Standard Checkpoint" | Out-File -Append $summaryLog
     $error[0].Exception.Message
     return $False
+}
+else {
+     Write-Output "Standard Checkpoint successfully created" | Out-File -Append $summaryLog   
 }
 
 #
