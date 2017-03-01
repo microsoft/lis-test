@@ -561,7 +561,7 @@ elif is_ubuntu ; then
     sed -i -e 's/sleep 59/#sleep 59/g' /etc/init/failsafe.conf
     PACK_LIST=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 
         at multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm automake libtool pkg-config bridge-utils btrfs-tools 
-    libkeyutils-dev xfsprogs linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r` 
+    libkeyutils-dev xfsprogs reiserfsprogs linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r` 
     sysstat build-essential bc numactl python3 nfs-client)
     for item in ${PACK_LIST[*]}
     do
@@ -642,7 +642,8 @@ elif is_suse ; then
     make install
     cd ~
 
-    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3 nfs-client)
+    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3 nfs-client
+    pciutils libaio-devel)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... " >> summary.log

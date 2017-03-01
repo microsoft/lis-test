@@ -26,6 +26,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <dependency>
+            <!-- Only Windows Server 2016 supports this feature -->
+            <hostVersion>10.0.14393</hostVersion>
+        </dependency>
         <email>
             <recipients>
                 <to>myself@mycompany.com</to>
@@ -57,7 +61,8 @@
     <testCases>
         <test>
             <testName>ProductionCheckpoint</testName>
-            <testScript>setupscripts\Production_checkpoint.ps1</testScript> 
+            <testScript>setupscripts\Production_checkpoint.ps1</testScript>
+			<files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=PC-01</param>
             </testParams>
@@ -67,7 +72,8 @@
 
         <test>
             <testName>ProductionCheckpoint_Failback</testName>
-            <testScript>setupscripts\Production_checkpoint_failback.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\Production_checkpoint_failback.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=PC-02</param>
             </testParams>
@@ -81,7 +87,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-03</param>
@@ -98,7 +105,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-04</param>
@@ -115,7 +123,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-05</param>
@@ -132,7 +141,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-06</param>
@@ -150,7 +160,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript>
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=PC-07</param>
@@ -164,7 +175,8 @@
         <test>
             <testName>ProductionCheckpoint_ISO_NoNetwork</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\Production_checkpoint_ISO_NoNetwork.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\Production_checkpoint_ISO_NoNetwork.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=PC-08</param>
             </testParams>
@@ -175,7 +187,8 @@
         <test>
             <testName>ProductionCheckpoint_3Chain_VHD</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\Production_checkpoint_3Chain_VHD.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\Production_checkpoint_3Chain_VHD.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=PC-09</param>
             </testParams>
@@ -186,7 +199,8 @@
         <test>
             <testName>ProductionCheckpoint_iSCSI</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\Production_checkpoint_iSCSI.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\Production_checkpoint_iSCSI.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=PC-10</param>
                 <param>TargetIP=TARGET_IP</param>

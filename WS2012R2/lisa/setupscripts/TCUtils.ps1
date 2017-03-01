@@ -1255,3 +1255,85 @@ function ConvertStringToDecimal([string] $str)
 
     return $uint64Size
 }
+
+#######################################################################
+#
+# Check boot.msg in Linux VM for Recovering journal
+#
+#######################################################################
+function CheckRecoveringJ()
+{
+    $retValue = $False
+    $filename = ".\boot.msg"
+    $text = "recovering journal"
+
+    echo y | .\bin\pscp -i ssh\${sshKey}  root@${ipv4}:/var/log/boot.* ./boot.msg
+
+    if (-not $?) {
+		Write-Output "ERROR: Unable to copy boot.msg from the VM"
+		return $False
+    }
+
+    $file = Get-Content $filename
+    if (-not $file) {
+        Write-Error -Message "Error: Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+     foreach ($line in $file) {
+        if ($line -match $text) {
+            $retValue = $True
+            Write-Output "$line"
+        }
+    }
+
+    del $filename
+    return $retValue
+}
+
+#######################################################################
+# Create a file on the VM.
+#######################################################################
+function CreateFile([string] $fileName)
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "touch ${fileName}"
+    if (-not $?) {
+        Write-Output "ERROR: Unable to create file" | Out-File -Append $summaryLog
+        return $False
+    }
+
+    return  $True
+}
+
+#######################################################################
+#
+# Delete a file on the VM
+#
+#######################################################################
+function DeleteFile()
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "rm -rf /root/1"
+    if (-not $?)
+    {
+        Write-Error -Message "ERROR: Unable to delete test file!" -ErrorAction SilentlyContinue
+        return $False
+    }
+
+    return  $True
+}
+
+#######################################################################
+#
+# Checks if test file is present or not
+#
+#######################################################################
+function CheckFile([string] $fileName)
+{
+    $retVal = $true
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "stat ${fileName} 2>/dev/null" | out-null
+    if (-not $?) {
+        $retVal = $false
+    }
+
+    return  $retVal
+}
