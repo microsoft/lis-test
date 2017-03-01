@@ -1337,3 +1337,52 @@ function CheckFile([string] $fileName)
 
     return  $retVal
 }
+
+#######################################################################
+#
+# KvpToDict
+#
+#######################################################################
+function KvpToDict($rawData)
+{
+    <#
+    .Synopsis
+        Convert the KVP data to a PowerShell dictionary.
+
+    .Description
+        Convert the KVP xml data into a PowerShell dictionary.
+        All keys are added to the dictionary, even if their
+        values are null.
+
+    .Parameter rawData
+        The raw xml KVP data.
+
+    .Example
+        KvpToDict $myKvpData
+    #>
+
+    $dict = @{}
+
+    foreach ($dataItem in $rawData)
+    {
+        $key = ""
+        $value = ""
+        $xmlData = [Xml] $dataItem
+        
+        foreach ($p in $xmlData.INSTANCE.PROPERTY)
+        {
+            if ($p.Name -eq "Name")
+            {
+                $key = $p.Value
+            }
+
+            if ($p.Name -eq "Data")
+            {
+                $value = $p.Value
+            }
+        }
+        $dict[$key] = $value
+    }
+
+    return $dict
+}

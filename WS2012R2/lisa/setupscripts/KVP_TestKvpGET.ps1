@@ -34,7 +34,7 @@
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testparams>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
+                <param>rootDir=C:\lisa</param>
                 <param>TC_COVERED=KVP-06</param>
             </testparams>
         </test>
@@ -45,7 +45,7 @@
 .Parameter testParams
     Test data for this test case
 .Example
-    setupScripts\Kvp_TestKvpGET.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=KVP-06"
+    setupScripts\Kvp_TestKvpGET.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa;TC_COVERED=KVP-06"
 .Link
     None.
 #>

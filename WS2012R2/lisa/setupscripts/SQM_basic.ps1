@@ -50,56 +50,9 @@
     None.
 #>
 
-param( [String] $vmName,
-       [String] $hvServer,
-       [String] $testParams
-)
+param([String] $vmName, [String] $hvServer, [String] $testParams)
 
-#######################################################################
-#
-# KvpToDict
-#
-#######################################################################
-function KvpToDict($rawData)
-{
-    <#
-    .Synopsis
-        Convert the KVP data to a PowerShell dictionary.
-    .Description
-        Convert the KVP xml data into a PowerShell dictionary.
-        All keys are added to the dictionary, even if their
-        values are null.
-    .Parameter rawData
-        The raw xml KVP data.
-    .Example
-        KvpToDict $myKvpData
-    #>
-
-    $dict = @{}
-
-    foreach ($dataItem in $rawData)
-    {
-        $key = ""
-        $value = ""
-        $xmlData = [Xml] $dataItem
-        
-        foreach ($p in $xmlData.INSTANCE.PROPERTY)
-        {
-            if ($p.Name -eq "Name")
-            {
-                $key = $p.Value
-            }
-
-            if ($p.Name -eq "Data")
-            {
-                $value = $p.Value
-            }
-        }
-        $dict[$key] = $value
-    }
-
-    return $dict
-}
+$intrinsic = $True
 
 #######################################################################
 #
@@ -188,12 +141,10 @@ Write-Output "TestParams : '${testParams}'"
 
 $summaryLog  = "${vmName}_summary.log"
 Del $summaryLog -ErrorAction SilentlyContinue
+
 #
 # Parse the test parameters
 #
-$rootDir = $null
-$intrinsic = $True
-
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -229,7 +180,7 @@ else
   return $false
 }
 
-echo "Covers : ${tcCovered}" >> $summaryLog
+echo "Covers: ${tcCovered}" >> $summaryLog
 #
 # Verify the Data Exchange Service is enabled for this VM
 #
