@@ -1294,12 +1294,11 @@ function CheckRecoveringJ()
 #######################################################################
 # Create a file on the VM.
 #######################################################################
-function CreateFile()
+function CreateFile([string] $fileName)
 {
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo abc > /root/1"
-    if (-not $?)
-    {
-        Write-Error -Message "ERROR: Unable to create test file!" -ErrorAction SilentlyContinue
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "touch ${fileName}"
+    if (-not $?) {
+        Write-Output "ERROR: Unable to create file" | Out-File -Append $summaryLog
         return $False
     }
 
@@ -1328,14 +1327,13 @@ function DeleteFile()
 # Checks if test file is present or not
 #
 #######################################################################
-function CheckFile()
+function CheckFile([string] $fileName)
 {
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "cat /root/1"
-    if (-not $?)
-    {
-        Write-Error -Message "ERROR: Unable to read test file!" -ErrorAction SilentlyContinue
-        return $False
+    $retVal = $true
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "stat ${fileName} 2>/dev/null" | out-null
+    if (-not $?) {
+        $retVal = $false
     }
 
-    return  $True
+    return  $retVal
 }

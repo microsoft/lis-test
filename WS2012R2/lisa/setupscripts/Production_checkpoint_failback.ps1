@@ -56,43 +56,13 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-# Create a file on the VM.
-#######################################################################
-function CreateFile([string] $fileName)
-{
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "touch ${fileName}"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to create file" | Out-File -Append $summaryLog
-        return $False
-    }
-
-    return  $True
-}
-
-#######################################################################
-# Checks if test file is present or not.
-#######################################################################
-function CheckFile([string] $fileName)
-{
-    $retVal = $true
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "stat ${fileName} 2>/dev/null" | out-null
-    if (-not $?)
-    {
-        $retVal = $false
-    }
-
-    return  $retVal
-}
+$retVal = $false
 
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-$retVal = $false
-
 
 # Define and cleanup the summaryLog
 $summaryLog  = "${vmName}_summary.log"
@@ -170,14 +140,6 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
 if (-not $vm)
 {
     "Error: VM '${vmName}' does not exist"
-    return $False
-}
-
-# Send utils.sh to VM
-echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\utils.sh root@${ipv4}:
-if (-not $?)
-{
-    Write-Output "ERROR: Unable to copy utils.sh to the VM"
     return $False
 }
 
