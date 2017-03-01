@@ -642,7 +642,8 @@ elif is_suse ; then
     make install
     cd ~
 
-    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3 nfs-client)
+    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3 nfs-client
+    pciutils libaio-devel)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... " >> summary.log
