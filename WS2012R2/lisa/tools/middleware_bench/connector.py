@@ -26,6 +26,7 @@ import constants
 
 from AWS import AWSConnector
 from Azure import AzureConnector
+from GCE import GCEConnector
 from cmdshell import SSHClient
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -34,11 +35,11 @@ log = logging.getLogger(__name__)
 
 
 def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid=None, keyid=None,
-              secret=None, subscriptionid=None, tenantid=None, imageid=None, instancetype=None,
-              user=None, localpath=None, region=None, zone=None):
+              secret=None, token=None, subscriptionid=None, tenantid=None, projectid=None,
+              imageid=None, instancetype=None, user=None, localpath=None, region=None, zone=None):
     """
     Setup test environment, creating VMs and disk devices.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param vm_count: Number of VMs to prepare
     :param test_type: vm_disk > 1 VM with disk (Orion and Sysbench)
                       no_disk > No disk attached (Redis, Memcached, Apache_bench)
@@ -48,17 +49,21 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
     :param raid: Bool, to specify if a RAID will be configured
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscriptionid: Azure specific subscription id
     :param tenantid: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
-                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS' or
+                    GCE image family, e.g. 'ubuntu-1604-lts'
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
-                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2' or
+                        GCE instance size e.g. 'n1-highmem-16'
     :param user: remote ssh user for the instance
     :param localpath: localpath where the logs should be downloaded, and the
                         default path for other necessary tools
-    :param region: EC2 region to connect to
-    :param zone: EC2 zone where other resources should be available
+    :param region: region to connect to
+    :param zone: zone where other resources should be available
     :rtype Tuple
     :return: connector <Connector>,
              vm_ips <VM private IPs dict>,
@@ -130,10 +135,10 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                                                 device=constants.DEVICE_AWS)
                     time.sleep(3)
         elif provider == constants.AZURE:
-            connector = AzureConnector(clientid=keyid, secret=secret, subscriptionid=subscriptionid,
-                                       tenantid=tenantid, imageid=imageid,
-                                       instancetype=instancetype, user=user, localpath=localpath,
-                                       location=region)
+            connector = AzureConnector(clientid=keyid, secret=secret,
+                                       subscriptionid=subscriptionid, tenantid=tenantid,
+                                       imageid=imageid, instancetype=instancetype, user=user,
+                                       localpath=localpath, location=region)
             connector.azure_connect()
             for i in xrange(1, vm_count + 1):
                 vms[i] = connector.azure_create_vm()
@@ -171,7 +176,51 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                         'ifconfig eth0 | grep "inet\ addr" | cut -d: -f2 | cut -d" " -f1')
                 vm_ips[i] = cmd[1].strip()
         elif provider == constants.GCE:
-            pass
+            connector = GCEConnector(clientid=keyid, secret=secret, token=token,
+                                     projectid=projectid, imageid=imageid,
+                                     instancetype=instancetype, user=user, localpath=localpath,
+                                     zone=zone)
+            connector.gce_connect()
+            for i in xrange(1, vm_count + 1):
+                vms[i] = connector.gce_create_vm()
+            for i in xrange(1, vm_count + 1):
+                ssh_client[i] = connector.wait_for_ping(vms[i])
+                vm_ips[i] = vms[i]['networkInterfaces'][0]['networkIP']
+            if test_type == constants.VM_DISK:
+                if raid:
+                    device = []
+                    for i in xrange(12):
+                        disk_name = connector.attach_disk(vms[1]['name'], disk_size)
+                        log.info('Created disk: {}'.format(disk_name))
+                        device.append('/dev/sd{}'.format(chr(98 + i)))
+                        # device.append(constants.DEVICE_GCE + disk_name)
+                else:
+                    disk_name = connector.attach_disk(vms[1]['name'], disk_size)
+                    log.info('Created disk: {}'.format(disk_name))
+                    # Note: using disk device order prediction,
+                    # as the GCE API is not consistent in the disk naming/detection scheme
+                    # device = constants.DEVICE_GCE + disk_name
+                    device = constants.TEMP_DEVICE_GCE
+            elif test_type == constants.DB_DISK:
+                if raid:
+                    device = []
+                    for i in xrange(12):
+                        disk_name = connector.attach_disk(vms[2]['name'], disk_size)
+                        log.info('Created disk: {}'.format(disk_name))
+                        device.append('/dev/sd{}'.format(chr(98 + i)))
+                        # device.append(constants.DEVICE_GCE + disk_name)
+                else:
+                    disk_name = connector.attach_disk(vms[2]['name'], disk_size)
+                    log.info('Created disk: {}'.format(disk_name))
+                    device = constants.TEMP_DEVICE_GCE
+                    # device = constants.DEVICE_GCE + disk_name
+            elif test_type == constants.CLUSTER_DISK:
+                disk_name = connector.attach_disk(vms[1]['name'], disk_size + 200)
+                log.info('Created disk: {}'.format(disk_name))
+                for i in xrange(2, vm_count + 1):
+                    disk_name = connector.attach_disk(vms[i]['name'], disk_size)
+                    log.info('Created disk: {}'.format(disk_name))
+                device = constants.TEMP_DEVICE_GCE
     except Exception as e:
         log.error(e)
         if connector:
@@ -181,15 +230,17 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
     return connector, vm_ips, device, ssh_client
 
 
-def test_orion(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-               localpath, region, zone):
+def test_orion(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+               instancetype, user, localpath, region, zone):
     """
     Run Orion test.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -203,10 +254,11 @@ def test_orion(provider, keyid, secret, imageid, subscription, tenant, instancet
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK, disk_size=10,
                                                       raid=False, keyid=keyid, secret=secret,
-                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
-                                                      zone=zone)
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
 
     try:
         if all(client for client in ssh_client.values()):
@@ -217,8 +269,9 @@ def test_orion(provider, keyid, secret, imageid, subscription, tenant, instancet
                                    '/tmp/run_orion.sh')
             ssh_client[1].run('chmod +x /tmp/run_orion.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
-            ssh_client[1].run('/tmp/run_orion.sh {}'.format(device))
-
+            cmd = '/tmp/run_orion.sh {}'.format(device)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/orion.zip',
                                    os.path.join(localpath, 'orion' + str(time.time()) + '.zip'))
     except Exception as e:
@@ -229,15 +282,17 @@ def test_orion(provider, keyid, secret, imageid, subscription, tenant, instancet
             connector.teardown()
 
 
-def test_orion_raid(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                    localpath, region, zone):
+def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                    instancetype, user, localpath, region, zone):
     """
     Run Orion test using 12 x SSD devices in RAID 0.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -251,10 +306,11 @@ def test_orion_raid(provider, keyid, secret, imageid, subscription, tenant, inst
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK, disk_size=1,
                                                       raid=True, keyid=keyid, secret=secret,
-                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
-                                                      zone=zone)
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
 
     try:
         if all(client for client in ssh_client.values()):
@@ -269,7 +325,9 @@ def test_orion_raid(provider, keyid, secret, imageid, subscription, tenant, inst
                                    '/tmp/run_orion.sh')
             ssh_client[1].run('chmod +x /tmp/run_orion.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
-            ssh_client[1].run('/tmp/run_orion.sh {}'.format(constants.RAID_DEV))
+            cmd = '/tmp/run_orion.sh {}'.format(constants.RAID_DEV)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
 
             ssh_client[1].get_file('/tmp/orion.zip',
                                    os.path.join(localpath, 'orion' + str(time.time()) + '.zip'))
@@ -281,15 +339,17 @@ def test_orion_raid(provider, keyid, secret, imageid, subscription, tenant, inst
             connector.teardown()
 
 
-def test_sysbench(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                  localpath, region, zone):
+def test_sysbench(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                  instancetype, user, localpath, region, zone):
     """
     Run Sysbench test.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -303,10 +363,11 @@ def test_sysbench(provider, keyid, secret, imageid, subscription, tenant, instan
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK, disk_size=240,
                                                       raid=False, keyid=keyid, secret=secret,
-                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
-                                                      zone=zone)
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
 
     try:
         if all(client for client in ssh_client.values()):
@@ -315,7 +376,9 @@ def test_sysbench(provider, keyid, secret, imageid, subscription, tenant, instan
                                    '/tmp/run_sysbench.sh')
             ssh_client[1].run('chmod +x /tmp/run_sysbench.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_sysbench.sh")
-            ssh_client[1].run('/tmp/run_sysbench.sh {}'.format(device))
+            cmd = '/tmp/run_sysbench.sh {}'.format(device)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/sysbench.zip',
                                    os.path.join(localpath, 'sysbench' + str(time.time()) + '.zip'))
     except Exception as e:
@@ -326,15 +389,17 @@ def test_sysbench(provider, keyid, secret, imageid, subscription, tenant, instan
             connector.teardown()
 
 
-def test_sysbench_raid(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                       localpath, region, zone):
+def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                       instancetype, user, localpath, region, zone):
     """
     Run Sysbench test using 12 x SSD devices in RAID 0.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -348,10 +413,11 @@ def test_sysbench_raid(provider, keyid, secret, imageid, subscription, tenant, i
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK, disk_size=20,
                                                       raid=True, keyid=keyid, secret=secret,
-                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
-                                                      zone=zone)
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
 
     try:
         if all(client for client in ssh_client.values()):
@@ -364,7 +430,9 @@ def test_sysbench_raid(provider, keyid, secret, imageid, subscription, tenant, i
                                    '/tmp/run_sysbench.sh')
             ssh_client[1].run('chmod +x /tmp/run_sysbench.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_sysbench.sh")
-            ssh_client[1].run('/tmp/run_sysbench.sh {}'.format(constants.RAID_DEV))
+            cmd = '/tmp/run_sysbench.sh {}'.format(constants.RAID_DEV)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/sysbench.zip',
                                    os.path.join(localpath, 'sysbench' + str(time.time()) + '.zip'))
     except Exception as e:
@@ -375,15 +443,17 @@ def test_sysbench_raid(provider, keyid, secret, imageid, subscription, tenant, i
             connector.teardown()
 
 
-def test_memcached(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                   localpath, region, zone):
+def test_memcached(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                   instancetype, user, localpath, region, zone):
     """
     Run memcached test on 2 instances.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -396,10 +466,11 @@ def test_memcached(provider, keyid, secret, imageid, subscription, tenant, insta
     """
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=None, disk_size=None, raid=False,
-                                                      keyid=keyid, secret=secret,
+                                                      keyid=keyid, secret=secret, token=token,
                                                       subscriptionid=subscription, tenantid=tenant,
-                                                      imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
                                                       zone=zone)
 
     try:
@@ -414,9 +485,12 @@ def test_memcached(provider, keyid, secret, imageid, subscription, tenant, insta
                                    '/tmp/run_memcached.sh')
             ssh_client[1].run('chmod +x /tmp/run_memcached.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_memcached.sh")
-            ssh_client[1].run('/tmp/run_memcached.sh {} {}'.format(vm_ips[2], user))
+            cmd = '/tmp/run_memcached.sh {} {}'.format(vm_ips[2], user)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/memcached.zip',
-                                   os.path.join(localpath, 'memcached' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'memcached' + str(time.time()) + '.zip'))
     except Exception as e:
         log.error(e)
         raise
@@ -425,15 +499,17 @@ def test_memcached(provider, keyid, secret, imageid, subscription, tenant, insta
             connector.teardown()
 
 
-def test_redis(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-               localpath, region, zone):
+def test_redis(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+               instancetype, user, localpath, region, zone):
     """
     Run redis test on 2 instances.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -446,10 +522,11 @@ def test_redis(provider, keyid, secret, imageid, subscription, tenant, instancet
     """
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=None, disk_size=None, raid=False,
-                                                      keyid=keyid, secret=secret,
+                                                      keyid=keyid, secret=secret, token=token,
                                                       subscriptionid=subscription, tenantid=tenant,
-                                                      imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
                                                       zone=zone)
 
     try:
@@ -464,7 +541,9 @@ def test_redis(provider, keyid, secret, imageid, subscription, tenant, instancet
                                    '/tmp/run_redis.sh')
             ssh_client[1].run('chmod +x /tmp/run_redis.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_redis.sh")
-            ssh_client[1].run('/tmp/run_redis.sh {} {}'.format(vm_ips[2], user))
+            cmd = '/tmp/run_redis.sh {} {}'.format(vm_ips[2], user)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/redis.zip',
                                    os.path.join(localpath, 'redis' + str(time.time()) + '.zip'))
     except Exception as e:
@@ -475,15 +554,17 @@ def test_redis(provider, keyid, secret, imageid, subscription, tenant, instancet
             connector.teardown()
 
 
-def test_apache_bench(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                      localpath, region, zone):
+def test_apache_bench(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                      instancetype, user, localpath, region, zone):
     """
     Run Apache Benchmark test on 2 instances.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -496,10 +577,11 @@ def test_apache_bench(provider, keyid, secret, imageid, subscription, tenant, in
     """
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=None, disk_size=None, raid=False,
-                                                      keyid=keyid, secret=secret,
+                                                      keyid=keyid, secret=secret, token=token,
                                                       subscriptionid=subscription, tenantid=tenant,
-                                                      imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
                                                       zone=zone)
 
     try:
@@ -514,10 +596,11 @@ def test_apache_bench(provider, keyid, secret, imageid, subscription, tenant, in
                                    '/tmp/run_apache_bench.sh')
             ssh_client[1].run('chmod +x /tmp/run_apache_bench.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_apache_bench.sh")
-            ssh_client[1].run('/tmp/run_apache_bench.sh {} {}'.format(vm_ips[2], user))
-            ssh_client[1].get_file(
-                    '/tmp/apache_bench.zip',
-                    os.path.join(localpath, 'apache_bench' + str(time.time()) + '.zip'))
+            cmd = '/tmp/run_apache_bench.sh {} {}'.format(vm_ips[2], user)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
+            ssh_client[1].get_file('/tmp/apache_bench.zip', os.path.join(
+                    localpath, 'apache_bench' + str(time.time()) + '.zip'))
     except Exception as e:
         log.error(e)
         raise
@@ -526,15 +609,17 @@ def test_apache_bench(provider, keyid, secret, imageid, subscription, tenant, in
             connector.teardown()
 
 
-def test_mariadb(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                 localpath, region, zone):
+def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                 instancetype, user, localpath, region, zone):
     """
     Run MariaDB test on 2 instances.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -548,10 +633,11 @@ def test_mariadb(provider, keyid, secret, imageid, subscription, tenant, instanc
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=constants.DB_DISK, disk_size=40,
                                                       raid=False, keyid=keyid, secret=secret,
-                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
-                                                      zone=zone)
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
 
     try:
         if all(client for client in ssh_client.values()):
@@ -565,7 +651,9 @@ def test_mariadb(provider, keyid, secret, imageid, subscription, tenant, instanc
                                    '/tmp/run_mariadb.sh')
             ssh_client[1].run('chmod +x /tmp/run_mariadb.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_mariadb.sh")
-            ssh_client[1].run('/tmp/run_mariadb.sh {} {} {}'.format(vm_ips[2], user, device))
+            cmd = '/tmp/run_mariadb.sh {} {} {}'.format(vm_ips[2], user, device)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/mariadb.zip',
                                    os.path.join(localpath, 'mariadb' + str(time.time()) + '.zip'))
     except Exception as e:
@@ -576,15 +664,17 @@ def test_mariadb(provider, keyid, secret, imageid, subscription, tenant, instanc
             connector.teardown()
 
 
-def test_mariadb_raid(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                      localpath, region, zone):
+def test_mariadb_raid(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                      instancetype, user, localpath, region, zone):
     """
     Run MariaDB test on 2 instances using 12 x SSD devices in RAID 0.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -598,10 +688,11 @@ def test_mariadb_raid(provider, keyid, secret, imageid, subscription, tenant, in
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=constants.DB_DISK, disk_size=10,
                                                       raid=True, keyid=keyid, secret=secret,
-                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
-                                                      zone=zone)
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
 
     try:
         if all(client for client in ssh_client.values()):
@@ -619,8 +710,9 @@ def test_mariadb_raid(provider, keyid, secret, imageid, subscription, tenant, in
                                    '/tmp/run_mariadb.sh')
             ssh_client[1].run('chmod +x /tmp/run_mariadb.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_mariadb.sh")
-            ssh_client[1].run('/tmp/run_mariadb.sh {} {} {}'.format(vm_ips[2], user,
-                                                                    constants.RAID_DEV))
+            cmd = '/tmp/run_mariadb.sh {} {} {}'.format(vm_ips[2], user, constants.RAID_DEV)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/mariadb.zip',
                                    os.path.join(localpath, 'mariadb' + str(time.time()) + '.zip'))
     except Exception as e:
@@ -631,15 +723,17 @@ def test_mariadb_raid(provider, keyid, secret, imageid, subscription, tenant, in
             connector.teardown()
 
 
-def test_mongodb(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                 localpath, region, zone):
+def test_mongodb(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                 instancetype, user, localpath, region, zone):
     """
     Run MongoDB YCBS benchmark test on 2 instances.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -653,10 +747,11 @@ def test_mongodb(provider, keyid, secret, imageid, subscription, tenant, instanc
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=constants.DB_DISK, disk_size=40,
                                                       raid=False, keyid=keyid, secret=secret,
-                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
-                                                      zone=zone)
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
 
     try:
         if all(client for client in ssh_client.values()):
@@ -670,7 +765,9 @@ def test_mongodb(provider, keyid, secret, imageid, subscription, tenant, instanc
                                    '/tmp/run_mongodb.sh')
             ssh_client[1].run('chmod +x /tmp/run_mongodb.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_mongodb.sh")
-            ssh_client[1].run('/tmp/run_mongodb.sh {} {} {}'.format(vm_ips[2], user, device))
+            cmd = '/tmp/run_mongodb.sh {} {} {}'.format(vm_ips[2], user, device)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/mongodb.zip',
                                    os.path.join(localpath, 'mongodb' + str(time.time()) + '.zip'))
     except Exception as e:
@@ -681,15 +778,17 @@ def test_mongodb(provider, keyid, secret, imageid, subscription, tenant, instanc
             connector.teardown()
 
 
-def test_mongodb_raid(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                      localpath, region, zone):
+def test_mongodb_raid(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                      instancetype, user, localpath, region, zone):
     """
     Run MongoDB YCBS benchmark test on 2 instances using 12 x SSD devices in RAID 0.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -703,10 +802,11 @@ def test_mongodb_raid(provider, keyid, secret, imageid, subscription, tenant, in
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=constants.DB_DISK, disk_size=10,
                                                       raid=True, keyid=keyid, secret=secret,
-                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
-                                                      zone=zone)
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
     try:
         if all(client for client in ssh_client.values()):
             # enable key auth between instances
@@ -723,8 +823,9 @@ def test_mongodb_raid(provider, keyid, secret, imageid, subscription, tenant, in
                                    '/tmp/run_mongodb.sh')
             ssh_client[1].run('chmod +x /tmp/run_mongodb.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_mongodb.sh")
-            ssh_client[1].run('/tmp/run_mongodb.sh {} {} {}'.format(vm_ips[2], user,
-                                                                    constants.RAID_DEV))
+            cmd = '/tmp/run_mongodb.sh {} {} {}'.format(vm_ips[2], user, constants.RAID_DEV)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/mongodb.zip',
                                    os.path.join(localpath, 'mongodb' + str(time.time()) + '.zip'))
     except Exception as e:
@@ -735,15 +836,17 @@ def test_mongodb_raid(provider, keyid, secret, imageid, subscription, tenant, in
             connector.teardown()
 
 
-def test_zookeeper(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                   localpath, region, zone):
+def test_zookeeper(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                   instancetype, user, localpath, region, zone):
     """
     Run ZooKeeper benchmark on a tree of 5 servers and 1 generating client.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -757,10 +860,11 @@ def test_zookeeper(provider, keyid, secret, imageid, subscription, tenant, insta
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=6,
                                                       test_type=None, disk_size=None,
                                                       raid=False, keyid=keyid, secret=secret,
-                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath, region=region,
-                                                      zone=zone)
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
 
     try:
         if all(client for client in ssh_client.values()):
@@ -776,9 +880,11 @@ def test_zookeeper(provider, keyid, secret, imageid, subscription, tenant, insta
             ssh_client[1].run('chmod +x /tmp/run_zookeeper.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_zookeeper.sh")
             zk_servers = ' '.join([vm_ips[i] for i in range(2, 7)])
-            ssh_client[1].run('/tmp/run_zookeeper.sh {} {}'.format(user, zk_servers))
-            ssh_client[1].get_file('/tmp/zookeeper.zip',
-                                   os.path.join(localpath, 'zookeeper' + str(time.time()) + '.zip'))
+            cmd = '/tmp/run_zookeeper.sh {} {}'.format(user, zk_servers)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
+            ssh_client[1].get_file('/tmp/zookeeper.zip', os.path.join(
+                    localpath, 'zookeeper' + str(time.time()) + '.zip'))
     except Exception as e:
         log.error(e)
         raise
@@ -787,16 +893,18 @@ def test_zookeeper(provider, keyid, secret, imageid, subscription, tenant, insta
             connector.teardown()
 
 
-def test_terasort(provider, keyid, secret, imageid, subscription, tenant, instancetype, user,
-                  localpath, region, zone):
+def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                  instancetype, user, localpath, region, zone):
     """
     Run Hadoop terasort benchmark on a tree of servers using 1 master and
     5 slaves instances in VPC to elevate AWS Enhanced Networking.
-    :param provider Service provider to be used e.g. azure, middleware_bench, gce.
+    :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
     :param subscription: Azure specific subscription id
     :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
     :param imageid: AWS OS AMI image id or
                     Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
     :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
@@ -810,10 +918,12 @@ def test_terasort(provider, keyid, secret, imageid, subscription, tenant, instan
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=6,
                                                       test_type=constants.CLUSTER_DISK,
                                                       disk_size=50, raid=False, keyid=keyid,
-                                                      secret=secret, subscriptionid=subscription,
-                                                      tenantid=tenant, imageid=imageid,
+                                                      secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
                                                       instancetype=instancetype, user=user,
-                                                      localpath=localpath, region=region, zone=zone)
+                                                      localpath=localpath, region=region,
+                                                      zone=zone)
     try:
         if all(client for client in ssh_client.values()):
             for i in range(1, 7):
@@ -828,7 +938,9 @@ def test_terasort(provider, keyid, secret, imageid, subscription, tenant, instan
             ssh_client[1].run('chmod +x /tmp/run_terasort.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_terasort.sh")
             slaves = ' '.join([vm_ips[i] for i in range(2, 7)])
-            ssh_client[1].run('/tmp/run_terasort.sh {} {} {}'.format(user, device, slaves))
+            cmd = '/tmp/run_terasort.sh {} {} {}'.format(user, device, slaves)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/terasort.zip',
                                    os.path.join(localpath, 'terasort' + str(time.time()) + '.zip'))
     except Exception as e:

@@ -1,4 +1,7 @@
 boto<=2.43.0
 paramiko<=2.0
 azure<=2.0.0rc6
-haikunator<=2.1.0
+google-api-python-client<=1.6.2
+gcs-oauth2-boto-plugin<=1.14
+pycrypto<=2.6.1
+pyOpenSSL<=16.2.0

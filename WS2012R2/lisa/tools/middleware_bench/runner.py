@@ -28,7 +28,7 @@ import connector
 
 from args_validation import TestAction, ProviderAction, KeyIdAction, SecretAction,\
     SubscriptionAction, TenantAction, LocalPathAction, RegionAction, ZoneAction, InstTypeAction,\
-    ImageIdAction, UserAction
+    ImageIdAction, UserAction, ProjectAction, TokenAction
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -43,21 +43,26 @@ def run(options):
               -h, --help
                         show this help message and exit
               -r REGION, --region REGION
-                        AWS specific region to connect to or
+                        AWS specific region or
                         Azure specific location to connect to.
               -z ZONE, --zone ZONE
-                        AWS specific zone where to create resources.
+                        AWS specific zone where to create resources o
+                        GCE specific zone e.g. us-west1-a
               -b SUBSCRIPTION, --subscription SUBSCRIPTION
                         Azure specific subscription id.
               -n TENANT, --tenant TENANT
-                        Azure specific tenant id.
+                        Azure tenant id.
+              -j PROJECTID, --project PROJECTID
+                        GCE project ID
+              -o TOKEN, --token TOKEN
+                        GCE refresh token obtained with gcloud sdk.
 
             mandatory arguments:
               -t TEST, --test TEST
                         Test name to be run - defined in connector.py as a method starting with
                         'test_*'. E.g.: ['test_orion', 'test_sysbench', 'test_test']
               -p PROVIDER, --provider PROVIDER
-                        Service provider to be used e.g. azure, middleware_bench, gce.
+                        Service provider to be used e.g. azure, aws, gce.
               -k KEYID, --keyid KEYID
                         AWS access key id or Azure client id.
               -s SECRET, --secret SECRET
@@ -69,7 +74,8 @@ def run(options):
                         Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
               -g IMAGEID, --imageid IMAGEID
                         AWS OS AMI image id or
-                        Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+                        Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS' or
+                        GCE image family e.g. 'ubuntu-1604-lts'
               -u USER, --user USER
                         Instance/VM login username.
     """
@@ -118,6 +124,10 @@ def run(options):
                                 action=UserAction, required=True,
                                 help='Instance/VM login username.')
 
+    parser.add_argument(constants.CLI_TOKEN_OPT_SH,
+                        constants.CLI_TOKEN_OPT, type=str,
+                        action=TokenAction,
+                        help='GCE refresh token obtained with gcloud sdk.')
     parser.add_argument(constants.CLI_SUBSCRIPTION_OPT_SH,
                         constants.CLI_SUBSCRIPTION_OPT, type=str,
                         action=SubscriptionAction,
@@ -126,13 +136,17 @@ def run(options):
                         constants.CLI_TENANT_OPT, type=str,
                         action=TenantAction,
                         help='Azure specific tenant id.')
+    parser.add_argument(constants.CLI_PROJECTID_OPT_SH, constants.CLI_PROJECTID_OPT,
+                        type=str, action=ProjectAction,
+                        help='GCE project id.')
     parser.add_argument(constants.CLI_REGION_OPT_SH, constants.CLI_REGION_OPT,
                         type=str, action=RegionAction,
-                        help='AWS specific region to connect to or'
+                        help='AWS specific region to connect to or '
                              'Azure specific location to connect to.')
     parser.add_argument(constants.CLI_ZONE_OPT_SH, constants.CLI_ZONE_OPT,
                         type=str, action=ZoneAction,
-                        help='AWS specific zone where to create resources.')
+                        help='AWS specific zone where to create resources or '
+                             'GCE specific zone e.g. us-west1-a.')
 
     args = parser.parse_args(options)
     log.info('Options are {}'.format(vars(args)))

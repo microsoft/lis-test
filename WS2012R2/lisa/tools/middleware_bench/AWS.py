@@ -40,9 +40,9 @@ class AWSConnector:
     def __init__(self, keyid=None, secret=None, imageid=None, instancetype=None, user=None,
                  localpath=None, region=None, zone=None):
         """
-        Init AWS connector to create and configure middleware_bench ec2 instances.
+        Init AWS connector to create and configure AWS ec2 instances.
         :param keyid: user key for executing remote connection
-            http://docs.middleware_bench.amazon.com/IAM/latest/UserGuide/id_users_create.html
+            http://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html
         :param secret: user secret for executing remote connection
         :param imageid: AMI image id from EC2 repo
         :param instancetype: instance flavor constituting resources
@@ -251,8 +251,8 @@ class AWSConnector:
     @staticmethod
     def wait_for_state(obj, attr, state):
         """
-        Check when an middleware_bench object attribute state is achieved.
-        :param obj: the middleware_bench object to verify attribute status
+        Check when an AWS object attribute state is achieved.
+        :param obj: the AWS object to verify attribute status
         :param attr: object attribute to be verified
         :param state: attribute state to wait for
         :return:
