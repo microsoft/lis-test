@@ -21,12 +21,13 @@
 
 <#
 .Synopsis
-    This setup script, that will run before the VM is booted, will Add VHDx Hard Driver to VM.
+    This is a setup script that will run before the VM is booted, 
+	that will create and add a VHDx disk to the VM.
 
 .Description
      This is a setup script that will run before the VM is booted.
-     The script will create a minimum 3GB.vhdx file, and mount it to the
-     specified hard drive.  If the hard drive does not exist, it
+     The script will create a minimum 3GB vhdx file, and mount it to
+	 the specified hard drive. If the hard drive does not exist, it
      will be created.
 
      The .xml entry to specify this startup script would be:
@@ -45,7 +46,6 @@
    SCSI=1,0,Fixed,512,3GB    : Add SCSI Controller 1, hard drive on Lun 0, .vhdx type Fixed, sector size of 512 bytes, 3GB disk size
    IDE=0,1,Dynamic,512,3GB   : Add IDE hard drive on IDE 0, port 1, .vhdx type Fixed, sector size of 512 bytes, 3GB disk size
    IDE=1,1,Fixed,4096,3GB    : Add IDE hard drive on IDE 1, port 1, .vhdx type Fixed, sector size of 4096 bytes, 3GB disk size
-
 
    The following testParams:
      <testParams>
@@ -82,7 +82,7 @@
    IDE=1,1,Fixed,40963GB,D:\Virtual Hard Disks\  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Fixed disk with logical sector size of 4096, 3GB disk size
 
 .Parameter vmName
-    Name of the VM to add disk from.
+    Name of the VM to add the disk.
 
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -135,38 +135,6 @@ function ConvertStringToUInt64([string] $str)
     }
 
     return $uint64Size
-}
-
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-
-    if (-not $filename)
-    {
-        return $null
-    }
-
-    if (-not $server)
-    {
-        return $null
-    }
-
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-
-    return $fileInfo
 }
 
 ############################################################################
@@ -339,6 +307,16 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 {
     "Error: setupScript requires test params"
     return $False
+}
+
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
 }
 
 #

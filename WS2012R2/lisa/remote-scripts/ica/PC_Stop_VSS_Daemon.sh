@@ -75,56 +75,50 @@ dos2unix utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
     echo "TestAborted" > state.txt
-    exit 2
+    UpdateTestState $ICA_TESTABORTED
 }
 
-
-
-if is_rhel7 ; then #If the system is using systemd we use systemctl
-    if [[ "$(systemctl is-active hypervvssd)" == "active" ]] || \
-       [[ "$(systemctl is-active hv_vss_daemon)" == "active" ]]; then
-
+systemctl --version
+if [ $? -eq 0 ]; then
+    vss_service_name=$(systemctl | grep vss | awk '{print $1}' | tail -1)
+    
+    if [ "$(systemctl is-active ${vss_service_name})" == "active" ]; then
         LogMsg "VSS Daemon is running, we will try to stop it gracefully"
-        /bin/systemctl stop hypervvssd.service
+        /bin/systemctl stop $vss_service_name
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Failed to stop VSS Daemon"
             UpdateTestState $ICA_TESTABORTED
-            exit 1
         fi
+
         LogMsg "Succesfully stopped the VSS Daemon"
         UpdateTestState $ICA_TESTCOMPLETED
-        exit 0
 
-    elif [[ "$(systemctl is-active hypervvssd)" == "unknown" ]] && \
-         [[ "$(systemctl is-active hv_vss_daemon)" == "unknown" ]]; then
-
+    elif [ "$(systemctl is-active ${vss_service_name})" == "unknown" ]; then
         LogMsg "ERROR: VSS Daemon not installed, test aborted"
         UpdateTestState $ICA_TESTABORTED
-        exit 1
 
     else
-        LogMsg "ERROR: VSS Daemon is installed but not running. Test aborted"
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
+        LogMsg "Warning: VSS Daemon is installed but not running"
+        UpdateTestState $ICA_TESTCOMPLETED
     fi
 
-else # For older systems we use ps
+else
     if [[ $(ps -ef | grep 'hypervvssd') ]] || \
        [[ $(ps -ef | grep '[h]v_vss_daemon') ]]; then
 
         LogMsg "VSS Daemon is running"
-        service hypervvssd stop
+        vss_pid=$(ps aux | grep vss | head -1 | awk '{print $2}')
+        kill $vss_pid
+        
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Failed to stop VSS Daemon"
             UpdateTestState $ICA_TESTABORTED
-            exit 1
         fi
         LogMsg "Succesfully stopped the VSS Daemon"
         UpdateTestState $ICA_TESTCOMPLETED
-        exit 0
+
     else
         LogMsg "ERROR: VSS Daemon not running, test aborted"
         UpdateTestState $ICA_TESTABORTED
-        exit 1
     fi
 fi

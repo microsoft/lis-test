@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -36,8 +36,8 @@
                              Dynamic
                              Fixed
                              Diff (Differencing)
-   The following are some examples
 
+   The following are some examples:
    SCSI=0,0,Diff : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic
    IDE=1,1,Diff  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Diff
    
@@ -73,37 +73,13 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-    
-    if (-not $filename)
-    {
-        return $null
-    }
-    
-    if (-not $server)
-    {
-        return $null
-    }
-    
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-    
-    return $fileInfo
-}
+$controllerType = $null
+$controllerID = $null
+$lun = $null
+$vhdType = $null
+$parentVhd = $null
+$vhdFormat =$null
+$vmGeneration = $null
 
 ############################################################################
 #
@@ -150,7 +126,9 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
 
 
 #######################################################################
+#
 # Create parentVhd
+#
 #######################################################################
 function CreateParentVhd([string] $vhdFormat, [string] $server)
 {
@@ -187,37 +165,11 @@ function CreateParentVhd([string] $vhdFormat, [string] $server)
 }
 
 #######################################################################
+#
 # Main script body
+#
 #######################################################################
 
-"DiffDiskGrowthSetup.ps1"
-"  vmName = ${vmName}"
-"  hvServer = ${hvServer}"
-"  testParams = ${testParams}"
-
-#
-# Make sure we have access to the Microsoft Hyper-V snapin
-#
-$hvModule = Get-Module Hyper-V
-if ($hvModule -eq $NULL)
-{
-    import-module Hyper-V
-    $hvModule = Get-Module Hyper-V
-}
-
-if ($hvModule.companyName -ne "Microsoft Corporation")
-{
-    "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $False
-}
-
-$controllerType = $null
-$controllerID = $null
-$lun = $null
-$vhdType = $null
-$parentVhd = $null
-$vhdFormat =$null
-$vmGeneration = $null
 #
 # Parse the testParams string
 #
@@ -241,7 +193,7 @@ foreach ($p in $params)
     $rValue = $tokens[1].Trim()
 
     #
-    # ParentVHD test param?
+    # ParentVHD test param
     #
     if ($lValue -eq "ParentVHD")
     {
@@ -250,7 +202,7 @@ foreach ($p in $params)
     }
 
     #
-    # vhdFormat test param?
+    # vhdFormat test param
     #
     if ($lValue -eq "vhdFormat")
     {
@@ -259,7 +211,7 @@ foreach ($p in $params)
     }
 
     #
-    # Controller type testParam?
+    # Controller type testParam
     #
     if (@("IDE", "SCSI") -contains $lValue)
     {
@@ -296,8 +248,18 @@ foreach ($p in $params)
     }
 }
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
+
 #
-# Make sure we have all the required data to do our job
+# Make sure we have all the required data
 #
 if (-not $controllerType)
 {
@@ -323,7 +285,6 @@ if (-not $vhdFormat)
     return $False
 }
 
-###################################
 if (-not $parentVhd)
 {
     # Create a new ParentVHD
@@ -402,7 +363,7 @@ if (-not $defaultVhdPath.EndsWith("\"))
 
 if ($parentVhd.EndsWith(".vhd"))
 {
-    # To Make sure we do not use exisiting Diff disk, del if exisit 
+    # To Make sure we do not use exisiting Diff disk, del if exists 
     $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"  
 }
 else
@@ -410,7 +371,6 @@ else
     $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhdx"  
 }
 
-#$vhdFileInfo = GetRemoteFileInfo -filename $vhdName -server $hvServer
 $vhdFileInfo = GetRemoteFileInfo  $vhdName  $hvServer
 if ($vhdFileInfo)
 {
