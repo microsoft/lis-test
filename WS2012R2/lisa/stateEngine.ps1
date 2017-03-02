@@ -238,11 +238,6 @@ New-Variable TestFailed          -value "TestFailed"          -option ReadOnly
 New-Variable LinuxOS             -value "Linux"               -option ReadOnly
 New-Variable FreeBSDOS           -value "FreeBSD"             -option ReadOnly
 
-#
-# Generate JUnit formated XML object to store case results.
-#
-$testResult = GetJUnitXML
-
 ########################################################################
 #
 # RunICTests()
@@ -325,7 +320,7 @@ function RunICTests([XML] $xmlConfig, [string] $collect)
         #
         # Add the state related xml elements to each VM xml node
         #
-        $xmlElementsToAdd = @("currentTest", "stateTimeStamp", "caseStartTime", "state", "emailSummary", "jobID", "testCaseResults", "iteration", "isRebooted")
+        $xmlElementsToAdd = @("currentTest", "stateTimeStamp", "state", "emailSummary", "jobID", "testCaseResults", "iteration")
         foreach($element in $xmlElementsToAdd)
         {
             if (-not $vm.${element})
@@ -346,12 +341,6 @@ function RunICTests([XML] $xmlConfig, [string] $collect)
         $vm.iteration = "-1"
 
         #
-        # Add test suite and test date time into test result XML
-        #
-        SetTimeStamp $testStartTime.toString()
-        SetResultSuite $vm.suite
-
-        #
         # Add VM specific information to the email summary text
         #
         $vm.emailSummary = "VM: $($vm.vmName)<br />"
@@ -364,11 +353,6 @@ function RunICTests([XML] $xmlConfig, [string] $collect)
         }
         $vm.emailSummary += " build $($OSInfo.BuildNumber)<br />"
         $vm.emailSummary += "<br /><br />"
-
-        #
-        # Add Hyper-V host version into result XML
-        #
-        SetHypervVersion "$($OSInfo.Version)"
 
         #
         # Make sure the VM actually exists on the specific HyperV server
@@ -532,15 +516,6 @@ function ResetVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $snapshotFound = $true
             break
         }
-    }
-    if ($snaps)
-    {
-        $snapshotFound = $true
-    }
-    else
-    {
-        Checkpoint-VM -Name $vm.vmName -SnapshotName $snapshotName -ComputerName $vm.hvServer
-        $snapshotFound = $true
     }
 
     #
@@ -746,7 +721,7 @@ function DoStateMachine([XML] $xmlConfig, [string] $collect)
 
             $Finished
                 {
-                    DoFinished $vm $xmlConfig
+                    # Nothing to do in the Finished state
                 }
 
             $Disabled
@@ -828,19 +803,12 @@ function DoSystemDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         UpdateCurrentTest $vm $xmlData
 
-        #
-        # Mark current test the first case or after rebooted
-        #
-        $vm.isRebooted = $true.ToString()
-
         $iterationMsg = $null
         if ($vm.iteration -ne "-1")
         {
             $iterationMsg = " (iteration $($vm.iteration))"
         }
         LogMsg 0 "Info : $($vm.vmName) currentTest updated to $($vm.currentTest) ${iterationMsg}"
-
-        $vm.caseStartTime = [DateTime]::Now.ToString()
 
         if ($($vm.currentTest) -eq "done")
         {
@@ -1455,7 +1423,6 @@ function DoSlowSystemStarting([System.Xml.XmlElement] $vm, [XML] $xmlData)
     }
     else
     {
-        LogMsg 9 "=================The  VMs IP address to $($vm.ipv4)======================"
         $sts = TestPort $vm.ipv4 -port 22 -timeout 5
         if ($sts)
         {
@@ -1556,10 +1523,6 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
         UpdateState $vm $ForceShutdown
     }
 
-    if (-not [bool]$vm.isRebooted)
-    {
-         $vm.caseStartTime = [DateTime]::Now.ToString()
-    }
     $hostname = $vm.ipv4
     $sshKey = $vm.sshKey
 
@@ -1586,14 +1549,6 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     $os = (GetOSType $vm).ToString()
     LogMsg 9 "INFO : The OS type is $os"
-
-    #
-    # Add guest kernel version and firmware info int result XML
-    #
-    $kernelVer = GetKernelVersion
-    $firmwareVer = GetFirmwareVersion
-
-    SetOSInfo $kernelVer $firmwareVer
 
     If ($vm.role.ToLower().StartsWith("sut"))
     {
@@ -2433,8 +2388,6 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData, [string]
         $iterationMsg = "($($vm.iteration))"
     }
 
-    SetTestResult $currentTest $completionCode
-
     $vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
 
     #
@@ -2740,12 +2693,6 @@ function DoDetermineReboot([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
             else
             {
-                SetRunningTime $vm.currentTest $vm
-                #
-                # Mark next test not rebooted
-                #
-                $vm.isRebooted = $false.ToString()
-
                 UpdateState $vm $SystemUp
 
                 $nextTestData = GetTestData $nextTest $xmlData
@@ -2879,7 +2826,6 @@ function DoShuttingDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
         }
         else
         {
-            SetRunningTime $vm.currentTest $vm
             UpdateState $vm $SystemDown
         }
     }
@@ -2976,7 +2922,6 @@ function DoRunCleanUpScript($vm, $xmlData)
         $vm.emailSummary += "Entered RunCleanupScript but test does not have a cleanup script<br />"
     }
 
-    SetRunningTime $vm.currentTest $vm
     UpdateState $vm $SystemDown
 }
 
@@ -3034,7 +2979,6 @@ function DoForceShutDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
     $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
     if ( $($v.State) -eq "Off" )
     {
-        SetRunningTime $vm.currentTest $vm
         UpdateState $vm $nextState
     }
     else
@@ -3051,7 +2995,6 @@ function DoForceShutDown([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
             if ( $($v.State) -eq "Off" )
             {
-                SetRunningTime $vm.currentTest $vm
                 UpdateState $vm $nextState
                 break
             }
@@ -3097,7 +3040,8 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
     LogMsg 11 "Info : DoFinished( $($vm.vmName), xmlData )"
     LogMsg 11 "Info :   timestamp = $($vm.stateTimestamp))"
     LogMsg 11 "Info :   Test      = $($vm.currentTest))"
-    SaveResultToXML $testDir
+
+    # Currently, nothing to do...
 }
 
 ########################################################################
@@ -3423,7 +3367,6 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     LogMsg 0 "Info : ${vmName} Status for test $($vm.currentTest) = ${completionCode}"
 
-    SetTestResult $currentTest $completionCode
     #
     # Update e-mail summary
     #
