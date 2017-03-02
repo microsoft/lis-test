@@ -271,9 +271,10 @@ Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
 
 # Read the throughput again, it should be higher than before
-# We should see a significant imporvement, we'll check for at least 1gpbs improvement
+# We should see a a similar throughput as before. If the throughput after reboot
+# is lower than 80% of the first recorded throughput, the test is considered failed
 Start-Sleep -s 30
-[decimal]$vfBeforeThroughput = $vfBeforeThroughput - 1
+[decimal]$vfBeforeThroughput = $vfBeforeThroughput * 0.8
 [decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 
 "The throughput after rebooting the VM is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog

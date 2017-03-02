@@ -163,7 +163,9 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-# Get VM2 ipv4
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IPADDRESS: ${ipv4}"
 $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "${vm2Name} IPADDRESS: ${vm2ipv4}"
 
@@ -239,7 +241,7 @@ if (-not $status) {
 
 # Read the throughput with RSS profile changed
 Start-Sleep -s 60
-[decimal]$vfBeforeThroughput = $vfBeforeThroughput / 2
+[decimal]$vfBeforeThroughput = $vfBeforeThroughput * 0.7
 [decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 
 "The throughput after changing RSS profile is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog

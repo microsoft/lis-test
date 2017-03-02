@@ -159,7 +159,9 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-# Get VM2 ipv4
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IPADDRESS: ${ipv4}"
 $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "${vm2Name} IPADDRESS: ${vm2ipv4}"
 
@@ -258,16 +260,11 @@ if (-not $?) {
     "ERROR: Failed to enable SR-IOV on $vm2Name!" | Tee-Object -Append -file $summaryLog
     return $false 
 }
-
-# Restart VF on both VMs
-Start-Sleep -s 20
-RestartVF $ipv4 $sshKey
-RestartVF $vm2ipv4 $sshKey
 Start-Sleep -s 60
 
 # Read the throughput again, it should be higher than before
-# We should see a significant imporvement, we'll check for at least 1gpbs improvement
-[decimal]$vfDisabledThroughput = $vfDisabledThroughput + 1
+# We should see a throughput at least 70% higher
+[decimal]$vfDisabledThroughput = $vfDisabledThroughput * 1.7
 [decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 
 "The throughput after re-enabling SR-IOV is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
