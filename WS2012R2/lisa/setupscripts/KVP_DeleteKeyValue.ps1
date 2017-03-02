@@ -41,6 +41,12 @@
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
+
+$key = $null
+$value = $null
+$rootDir = $null
+$tcCovered = "Unknown"
+
 #
 # Check input arguments
 #
@@ -66,13 +72,6 @@ if (-not $testParams)
 #
 # Find the testParams we require.  Complain if not found
 #
-"Info : Parsing test parameters"
-
-$key = $null
-$value = $null
-$rootDir = $null
-$tcCovered = "Unknown"
-
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -116,7 +115,7 @@ else
 #
 $summaryLog  = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
-Write-Output "Covers ${tcCovered}" | Out-File -Append $summaryLog
+Write-Output "Covers: ${tcCovered}" | Out-File -Append $summaryLog
 
 #
 # Delete the Key Value pair from the Pool 0 on guest OS. If the Key is already not present, will return proper message.
