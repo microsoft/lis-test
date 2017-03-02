@@ -167,6 +167,12 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IPADDRESS: ${ipv4}"
+$vm2ipv4 = GetIPv4 $vm2Name $remoteServer
+"${vm2Name} IPADDRESS: ${vm2ipv4}"
+
 #
 # Configure the bond on test VM
 #
@@ -187,10 +193,6 @@ if (-not $retVal)
     "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4})"
     return $false
 }
-
-# Get ipv4 from VM2
-$vm2ipv4 = GetIPv4 $vm2Name $remoteServer
-"$vm2Name IPADDRESS: $vm2ipv4"
 
 $retVal = iPerfInstall $vm2ipv4 $sshKey $netmask
 if (-not $retVal)

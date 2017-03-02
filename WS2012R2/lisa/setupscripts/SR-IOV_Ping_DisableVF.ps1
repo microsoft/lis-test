@@ -159,6 +159,10 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IPADDRESS: ${ipv4}"
+
 #
 # Configure the bond on test VM
 #
@@ -237,11 +241,6 @@ if (-not $?) {
     "ERROR: Failed to enable SR-IOV on $vm2Name!" | Tee-Object -Append -file $summaryLog
     return $false 
 }
-
-# Restart VF on both VMs
-Start-Sleep -s 20
-RestartVF $ipv4 $sshKey
-RestartVF $vm2ipv4 $sshKey
 Start-Sleep -s 80
 
 # Read the RTT again, it should be lower than before

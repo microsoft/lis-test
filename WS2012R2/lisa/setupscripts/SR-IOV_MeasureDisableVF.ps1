@@ -160,7 +160,9 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-# Get VM2 ipv4
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IPADDRESS: ${ipv4}"
 $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "${vm2Name} IPADDRESS: ${vm2ipv4}"
 
@@ -191,7 +193,7 @@ if (-not $initialRTT){
 "The RTT before disabling VF is $initialRTT ms" | Tee-Object -Append -file $summaryLog
 
 # We add 0.4 ms to the initial RTT to future determine if the data is transmitted through VF or netvsc
-[decimal]$initialRTT = $initialRTT + 0.05
+[decimal]$initialRTT = $initialRTT + 0.03
 #
 # Disable SR-IOV on test VM
 #
@@ -273,7 +275,7 @@ while ($hasSwitched -eq $false){
 
 [int]$timetoSwitch = $enabled_icmpSeq - $initial_icmpSeq_2 
 if ($timetoSwitch -gt 10) {
-    "ERROR: After disabling VF, $timetoSwitch seconds passed until Ping worked again. Time is too big" | Tee-Object -Append -file $summaryLog
+    "ERROR: After enabling VF, $timetoSwitch seconds passed until Ping worked again. Time is too big" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
