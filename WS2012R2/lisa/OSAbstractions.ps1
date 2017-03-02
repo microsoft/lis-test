@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -27,7 +27,7 @@
 .Description
     This file contains functions that are intended to hide
     differences in the OS platforms.  The hope is to hide
-    differences in Linux distros and FreeBSD when the 
+    differences in Linux distros and FreeBSD when the
     Integrated Services are released.
 
     Currently supported OS platforms:
@@ -65,7 +65,7 @@ function GetOSDateTimeCmd ([System.Xml.XmlElement] $vm)
         Return a OS specific date/time command
         Linux:   "date mmddhhMMyyyy"
         FreeBSD: "date -n ccyymmddhhMM"
-	#> 
+	#>
 
     $dateTimeCmd = $null
 
@@ -117,13 +117,13 @@ function GetOSDos2unixCmd ([System.Xml.XmlElement] $vm, [String] $filename)
         Return a OS specific dos2unix command string
         Linux:   dos2unix -q filename
         FreeBSD: dos2unix filename
-	#> 
+	#>
 
     if (-not $vm)
     {
         return $null
     }
-    
+
     if (-not $filename)
     {
         return $null
@@ -138,7 +138,7 @@ function GetOSDos2unixCmd ([System.Xml.XmlElement] $vm, [String] $filename)
         # We use the -q with Linux
         #
         $LinuxOS    { $cmdString = "dos2unix -q ${filename}" }
-        
+
         #
         # No options with FreeBSD
         #
@@ -172,13 +172,13 @@ function StartOSAtDaemon ([System.Xml.XmlElement] $vm)
     .Description
         Start the daemon that handles batch jobs for the OS running on
         the VM.  Linux has the atd daemon.  FreeBSD uses crond.
-	#> 
+	#>
 
     if (-not $vm)
     {
         return $False
     }
-    
+
     $daemonStarted = $False
 
     if ($vm.os)
@@ -232,8 +232,8 @@ function GetOSType ([System.Xml.XmlElement] $vm)
     .Description
         Use SSH to send a uname command to the VM.  Use the
         returned name as OSType.
-	#> 
-    
+	#>
+
     # plink will pending at waiting password if sshkey failed auth, so
     # pipe a 'y' to response
     $os = echo y | bin\plink -i ssh\${sshKey} root@${hostname} "uname -s"
@@ -244,8 +244,57 @@ function GetOSType ([System.Xml.XmlElement] $vm)
         $FreeBSDOS {}
         default    { $os = "unknown" }
     }
-    
+
     return $os
+}
+
+#####################################################################
+#
+# GetKernelVersion()
+#
+#####################################################################
+function GetKernelVersion ()
+{
+	<#
+	.Synopsis
+        Ask the OS to provide Kernel version.
+    .Description
+        Use SSH to send a uname command to the VM.  Use the
+        returned name as Kernel version.
+	#>
+
+    # plink will pending at waiting password if sshkey failed auth, so
+    # pipe a 'y' to response
+    $ver = echo y | bin\plink -i ssh\${sshKey} root@${hostname} "uname -r"
+
+    return $ver
+}
+
+#####################################################################
+#
+# GetFirmwareVersion()
+#
+#####################################################################
+function GetFirmwareVersion ()
+{
+	<#
+	.Synopsis
+        Ask the OS to provide firmware version.
+    .Description
+        Use SSH to send a uname command to the VM.  The firmware is
+        based on shell command result.
+	#>
+
+    # plink will pending at waiting password if sshkey failed auth, so
+    # pipe a 'y' to response
+    $cmdResult = echo y | bin\plink -i ssh\${sshKey} root@${hostname} "[ -d /sys/firmware/efi ] && echo 0"
+
+    $firmware = "BIOS"
+    if ($cmdResult -eq "0")
+    {
+        $firmware = "EFI"
+    }
+    return $firmware
 }
 
 
@@ -262,10 +311,10 @@ function GetOSRunTestCaseCmd ([String] $os, [String] $testFilename, [String] $lo
     .Description
         Create a command string that will run the test case and
         also redirect STDOUT and STDERR to the logfile.
-	#> 
+	#>
 
     $runCmd = $null
-    
+
     switch ($os)
     {
         $LinuxOS
@@ -280,7 +329,7 @@ function GetOSRunTestCaseCmd ([String] $os, [String] $testFilename, [String] $lo
 
         default
             {
-        
+
                 $runCmd = $null
             }
     }
