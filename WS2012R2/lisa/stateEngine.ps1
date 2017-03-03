@@ -533,15 +533,6 @@ function ResetVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             break
         }
     }
-    if ($snaps)
-    {
-        $snapshotFound = $true
-    }
-    else
-    {
-        Checkpoint-VM -Name $vm.vmName -SnapshotName $snapshotName -ComputerName $vm.hvServer
-        $snapshotFound = $true
-    }
 
     #
     # Make sure the snapshot left the VM in a stopped state.
