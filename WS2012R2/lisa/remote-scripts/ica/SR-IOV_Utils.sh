@@ -518,23 +518,6 @@ InstallDependencies()
 	            fi
 	        fi
 
-	        # Check omping
-	        omping -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            wget https://fedorahosted.org/releases/o/m/omping/omping-0.0.4.tar.gz
-	            tar -xzf omping-0.0.4.tar.gz
-	            cd omping-0.0.4/
-	            make
-	            make install
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install omping"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                return 1
-	            fi
-	            cd ~
-			fi
             ;;
 
         redhat*|centos*)

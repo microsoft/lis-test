@@ -86,14 +86,55 @@ if [ $? -ne 0 ]; then
 fi
 
 # Install dependencies needed for testing
-InstallDependencies
-if [ $? -ne 0 ]; then
-    msg="ERROR: Could not install dependencies!"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-fi
+if [ is_ubuntu ]; then
+    tar -xzf omping-0.0.4.tar.gz
+    if [ $? -ne 0 ]; then
+        msg="ERROR: Failed to decompress omping archive"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        return 1
+    fi
 
+    cd omping-0.0.4/
+    make
+    make install
+    if [ $? -ne 0 ]; then
+        msg="ERROR: Failed to install omping"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        return 1
+    fi
+    cd ~
+
+    # Install on dependency VM
+    scp -i "$HOME"/.ssh/"$sshKey" -o BindAddress=$BOND_IP1 -o StrictHostKeyChecking=no omping-0.0.4.tar.gz "$REMOTE_USER"@"$BOND_IP2":/tmp/omping-0.0.4.tar.gz
+    if [ $? -ne 0 ]; then
+        msg="ERROR: Failed to send omping archive to VM2"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        return 1
+    fi
+
+    ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "tar -xzf /tmp/omping-0.0.4.tar.gz && cd ~/omping-0.0.4/ && make && make install"
+    if [ $? -ne 0 ]; then
+        msg="ERROR: Failed to install omping on VM2 via ssh"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        return 1
+    fi
+else
+    InstallDependencies
+    if [ $? -ne 0 ]; then
+        msg="ERROR: Could not install dependencies!"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi    
+fi
 LogMsg "INFO: All configuration completed successfully. Will proceed with the testing"
 
 # Multicast testing

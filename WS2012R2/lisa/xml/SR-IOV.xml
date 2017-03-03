@@ -111,7 +111,7 @@
         <test>
             <testName>Multicast</testName>
             <testScript>SR-IOV_Multicast.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_Multicast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_Multicast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,tools/omping-0.0.4.tar.gz</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
