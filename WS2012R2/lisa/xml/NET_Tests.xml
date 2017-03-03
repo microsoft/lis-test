@@ -555,7 +555,7 @@ permissions and limitations under the License.
             </setupScript>
             <testScript>NET_Multicast.sh</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/NET_set_static_ip.sh,
-                remote-scripts/ica/NET_Multicast.sh</files>
+                remote-scripts/ica/NET_Multicast.sh,tools/omping-0.0.4.tar.gz</files>
             <testparams>
                 <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-25</param>
