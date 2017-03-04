@@ -33,8 +33,7 @@
 #		Linux kernels have VMBus protocol version 3.0.
 #
 #       The test performs the following steps:
-#       1. Make sure we have a constants.sh file.
-#    	2. Looks for the VMBus protocol tag inside the dmesg log.
+#    	1. Looks for the VMBus protocol tag inside the dmesg log.
 #
 #       To pass test parameters into test cases, the host will create
 #    	a file named constants.sh. This file contains one or more
@@ -75,8 +74,6 @@ else
     ERRmsg="Error: no ${CONSTANTS_FILE} file"
     LogMsg $ERRmsg
     echo $ERRmsg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
 fi
 
 if [ -e ~/summary.log ]; then
@@ -103,7 +100,7 @@ if [ "$vmbus_string" = "" ]; then
         LogMsg "Test failed! Could not find the VMBus protocol string in dmesg."
         echo "Test failed! Could not find the VMBus protocol string in dmesg." >> ~/summary.log
         UpdateTestState "TestFailed"
-        exit 10
+        exit 1
 	elif [[ "$vmbus_string" == *hv_vmbus*Hyper-V*Host*Build*Vmbus*version:* ]]; then
 		LogMsg "Test passed! Found a matching VMBus string:\n ${vmbus_string}"
 		echo -e "Test passed! Found a matching VMBus string:\n${vmbus_string}" >> ~/summary.log
@@ -111,3 +108,4 @@ fi
 
 LogMsg "Test Passed"
 UpdateTestState "TestCompleted"
+exit 0
