@@ -33,6 +33,312 @@
 
 #####################################################################
 #
+# GetJUnitXML
+#
+#####################################################################
+function GetJUnitXML()
+{
+    <#
+    .Synopsis
+        Generate a JUnit XML object from template file.
+
+    .Description
+        Load JUnit XML result template file, and generate an XML object.
+
+    .ReturnValue
+        An xml object of JUnit result.
+        Output type: [XML]
+    .Example
+        GetJUnitXML
+    #>
+    LogMsg 6 ("Info :    GetJUnitXML()")
+    $template = @'
+<testsuite name="" timestamp="">
+<properties>
+    <property name="hyperv.version" value="" />
+    <property name="kernel.version" value="" />
+    <property name="firmware.version" value="" />
+</properties>
+<testcase name="" time="">
+    <failure type=""></failure>
+</testcase>
+</testsuite>
+'@
+
+    $guid = [System.Guid]::NewGuid().ToString("N")
+    $templatePath = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), $guid + ".txt");
+    $template | Out-File $templatePath -encoding UTF8
+    # load template into XML object
+    $junit_xml = New-Object xml
+    $junit_xml.Load($templatePath)
+    Remove-Item $templatePath
+    return $junit_xml
+}
+
+#####################################################################
+#
+# SetHypervVersion
+#
+#####################################################################
+function SetHypervVersion([String] $ver)
+{
+    <#
+    .Synopsis
+        Add Hyperv version into XML result.
+
+    .Description
+        Find the Hyperv version property and set Hyperv version into result XML object.
+
+    .Parameter ver
+        The version of Hyperv host.
+        Type : [String]
+
+    .Example
+        SetHypervVersion ""
+    #>
+    LogMsg 6 ("Info :    SetHypervVersion($($ver))")
+
+    foreach ($property in $testResult.testsuite.properties.property)
+    {
+        if ($property.name -eq "hyperv.version")
+        {
+            $property.value = $ver
+            return
+        }
+    }
+}
+
+#####################################################################
+#
+# SetOSInfo
+#
+#####################################################################
+function SetOSInfo([String] $kernelVer, [String] $firmwareVer)
+{
+    <#
+    .Synopsis
+        Add Kernel and firmware version into XML result.
+
+    .Description
+        Find the Kernel and firmware version properties and set Kernel
+        and firmware version into result XML object.
+
+    .Parameter kernelVer
+        The version of guest kernel.
+        Type : [String]
+
+    .Parameter firmwareVer
+        The version of guest firmware info.
+        Type : [String]
+
+    .Example
+        SetOSInfo "2.6.32-694.el6.x86_64" "BIOS"
+    #>
+    LogMsg 6 ("Info :    SetOSInfo($($kernelVer), $($firmwareVer))")
+
+    foreach ($property in $testResult.testsuite.properties.property)
+    {
+        if ($property.name -eq "kernel.version" -and $property.value -eq "")
+        {
+            $property.value = $kernelVer
+        }
+
+        if ($property.name -eq "firmware.version" -and $property.value -eq "")
+        {
+            $property.value = $firmwareVer
+        }
+    }
+}
+
+#####################################################################
+#
+# SetResultSuite
+#
+#####################################################################
+function SetResultSuite([String] $testSuite)
+{
+    <#
+    .Synopsis
+        Configure test suite in result XML object.
+
+    .Description
+        Find the test suite, and configure test suite into result XML object.
+
+    .Parameter testSuite
+        The name of the test suite to run
+        Type : [String]
+
+    .Example
+        SetResultSuite "acceptance"
+    #>
+    LogMsg 6 ("Info :    SetResultSuite($($testSuite))")
+
+    $testResult.testsuite.name = $testSuite
+}
+
+#####################################################################
+#
+# SetTimeStamp
+#
+#####################################################################
+function SetTimeStamp([String] $testTimeStamp)
+{
+    <#
+    .Synopsis
+        Add test date time in result XML object.
+
+    .Description
+        Find the test suite, and configure test date time into result XML object.
+
+    .Parameter testTimeStamp
+        The start time of test run
+        Type : [String]
+
+    .Example
+        SetTimeStamp "02/21/2017 13:14:25"
+    #>
+    LogMsg 6 ("Info :    SetTimeStamp($($testTimeStamp))")
+
+    $testResult.testsuite.timestamp = $testTimeStamp
+}
+
+#####################################################################
+#
+# SetTestResult
+#
+#####################################################################
+function SetTestResult([String] $testName, [String] $completionCode)
+{
+    <#
+    .Synopsis
+        Add test case result into result XML object except running time.
+
+    .Description
+        Clone a test case group as template, add test result into that group.
+
+    .Parameter testName
+        The name of the test
+        Type : [String]
+
+    .Parameter completionCode
+        The test result, such as Passed, Failed, Skipped, and Aborted
+        Type : [String]
+
+    .Example
+        SetTestResult $testName $completionCode
+    #>
+    LogMsg 6 ("Info :    SetTestResult($($testName))")
+
+    $newTestCaseTemplate = (@($testResult.testsuite.testcase)[0]).Clone()
+    $newTestCase = $newTestCaseTemplate.clone()
+    $newTestCase.name = $testName
+    switch ($completionCode)
+    {
+        "Success" {
+            $newTestCase.RemoveChild($newTestCase.ChildNodes[0]) | Out-Null
+        }
+
+        "Failed" {
+            $newTestCase.failure.type = "Failed"
+            $newTestCase.failure.InnerText = "Test $testName Failed."
+        }
+        "Aborted" {
+            $newTestCase.failure.type = "Aborted"
+            $newTestCase.failure.InnerText = "Test $testName Aborted."
+        }
+    }
+    $testResult.testsuite.AppendChild($newTestCase) > $null
+}
+
+#####################################################################
+#
+# SetRunningTime
+#
+#####################################################################
+function SetRunningTime([String] $testName, [System.Xml.XmlElement] $vm)
+{
+    <#
+    .Synopsis
+        Set running time in result XML object.
+
+    .Description
+        Find the test case, and configure test running time into result XML object.
+
+    .Parameter testName
+        The test name
+        Type : [String]
+
+   .Parameter vm
+        An XML element representing the VM
+        Type : [System.Xml.XmlElement]
+
+    .Example
+        SetRunningTime $testName $vm
+    #>
+    LogMsg 6 ("Info :    SetRunningTime($testName)")
+
+    $caseEndTime = [DateTime]::Now
+    $deltaTime = $caseEndTime - [DateTime]::Parse($vm.caseStartTime)
+    LogMsg 0 "Info : $($vm.vmName) currentTest lasts $($deltaTime.hours) Hours, $($deltaTime.minutes) Minutes, $($deltaTime.seconds) seconds."
+
+    $runningTime = "{0:N2}" -f $deltaTime.TotalMinutes
+
+    foreach ($testCase in $testResult.testsuite.testcase)
+    {
+        if ($testCase.name -eq $testName)
+        {
+            $testCase.time = $runningTime
+        }
+    }
+}
+
+#####################################################################
+#
+# SaveResultToXML
+#
+#####################################################################
+function SaveResultToXML([String] $testDir)
+{
+    <#
+    .Synopsis
+        Save test result to XML file in result folder..
+
+    .Description
+        Export result XML object into an XML file.
+
+    .Parameter testDir
+        The folder storing test log.
+        Type : [String]
+
+    .Example
+        SaveResultToXML $testDir
+    #>
+    LogMsg 6 ("Info :    SaveResultToXML to ($($testDir))")
+
+    $resultXMLFileName = "Report-" + $testResult.testsuite.name + ".xml"
+
+    # remove users with undefined name (remove template)
+    $testResult.testsuite.testcase | Where-Object { $_.Name -eq "" } | ForEach-Object  { [void]$testResult.testsuite.RemoveChild($_) }
+    # save xml to file
+    #
+    # Check to see if the provided log path is absolute
+    #
+    if ([System.IO.Path]::IsPathRooted($testDir))
+    {
+        $logPath = $testDir
+    }
+    else
+    {
+        $logPath = (Get-Item -Path ".\" -Verbose).FullName + "\" + $testDir
+    }
+
+    $resultXMLFile = $logPath + "\" + $resultXMLFileName
+    $testResult.Save($resultXMLFile)
+}
+
+
+#####################################################################
+#
 # HasItBeenTooLong
 #
 #####################################################################
@@ -421,13 +727,13 @@ function SummaryToString([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlF
     #
     # Check to see if the provided log path is absolute
     #
-    if ([System.IO.Path]::IsPathRooted($logDir)) 
+    if ([System.IO.Path]::IsPathRooted($logDir))
     {
         $logPath = $logDir
     }
     else
     {
-        $logPath = (Get-Item -Path ".\" -Verbose).FullName + "\" + $logDir    
+        $logPath = (Get-Item -Path ".\" -Verbose).FullName + "\" + $logDir
     }
 
     $str += "Logs can be found at " + $logPath + "\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
@@ -480,17 +786,17 @@ function SendEmail([XML] $xmlConfig, [DateTime] $startTime, [string] $xmlFilenam
     $body = SummaryToString $xmlConfig $startTime $fname
     $body = $body.Replace("Aborted", '<em style="background:Aqua; color:Red">Aborted</em>')
     $body = $body.Replace("Failed", '<em style="background:Yellow; color:Red">Failed</em>')
-    
+
     #
     # Check to see if the provided log path is absolute
     #
-    if ([System.IO.Path]::IsPathRooted($logDir)) 
+    if ([System.IO.Path]::IsPathRooted($logDir))
     {
         $logPath = $logDir
     }
     else
     {
-        $logPath = (Get-Item -Path ".\" -Verbose).FullName + "\" + $logDir    
+        $logPath = (Get-Item -Path ".\" -Verbose).FullName + "\" + $logDir
     }
 
     $str += "Logs can be found at " + $logPath + "\" + $fname + "-" + $startTime.ToString("yyyyMMdd-HHmmss") + "<br /><br />"
