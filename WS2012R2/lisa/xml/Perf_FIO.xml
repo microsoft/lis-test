@@ -29,8 +29,8 @@
     </testSuites>
 
     <testCases>
-         <test> 
-            <testName>Performance_FIO-8k</testName> 
+         <test>
+            <testName>Performance_FIO-8k</testName>
             <testScript>Performance_FIO.sh</testScript>
             <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/perf_utils.sh,tools/fio-2.1.10.tar.gz,tools/fio_8k.fio</files>
             <setupScript>
@@ -40,22 +40,22 @@
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>5400</timeout>
             <testParams>  
-                <param>TC_COVERED=FIO_8k</param>
+                <param>TC_COVERED=FIO</param>
                 <!-- Modify with physical disk  number -->
                 <param>PHYSICAL_NUMBER=3</param>
             	<param>SCSI=0,0,Physical</param>
-                <param>LOG_FOLDER=fio_logs_8k</param> 
+                <param>LOG_FOLDER=fio_logs_8k</param>
                 <param>FIO_SCENARIO_FILE=fio_8k.fio</param>
-            </testParams> 
+            </testParams>
             <uploadFiles>
-                <file>fio_logs_8k.zip</file>                
+                <file>fio_logs_8k.zip</file>
             </uploadFiles>
-            <onError>Continue</onError> 
-            <noReboot>False</noReboot> 
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
         </test>
 
-        <test> 
-            <testName>Performance_FIO-1M</testName> 
+        <test>
+            <testName>Performance_FIO-1M</testName>
             <testScript>Performance_FIO.sh</testScript>
             <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/perf_utils.sh,tools/fio-2.1.10.tar.gz,tools/fio_1M.fio</files>
             <setupScript>
@@ -64,19 +64,19 @@
             </setupScript>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>5400</timeout>
-            <testParams>  
-                <param>TC_COVERED=FIO_1M</param>
+            <testParams>
+                <param>TC_COVERED=FIO</param>
                 <!-- Modify with physical disk  number -->
                 <param>PHYSICAL_NUMBER=3</param>
                 <param>SCSI=0,0,Physical</param>
-                <param>LOG_FOLDER=fio_logs_1M</param> 
+                <param>LOG_FOLDER=fio_logs_1M</param>
                 <param>FIO_SCENARIO_FILE=fio_1M.fio</param>
-            </testParams> 
+            </testParams>
             <uploadFiles>
-                <file>fio_logs_1M.zip</file>                
+                <file>fio_logs_1M.zip</file>
             </uploadFiles>
-            <onError>Continue</onError> 
-            <noReboot>False</noReboot> 
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
         </test>
     </testCases>
     
@@ -96,9 +96,9 @@
                <nic>VMBus,Vm.Enterprise#1</nic>
             </hardware>
             <testParams>
-                <param>DISKS=1</param>
-                <param>TEST_DEVICE1=/dev/sdb</param>
+                <param>TEST_DEVICE=/dev/sdb</param>
                 <param>FILE_NAME=fio-2.1.10.tar.gz</param>
+                <param>FS=ext4</param>
             </testParams>
             <suite>FIO</suite>
         </vm>
