@@ -60,6 +60,7 @@ function GetJUnitXML()
     <property name="firmware.version" value="" />
 </properties>
 <testcase name="" time="">
+    <skipped/>
     <failure type=""></failure>
 </testcase>
 </testsuite>
@@ -234,15 +235,20 @@ function SetTestResult([String] $testName, [String] $completionCode)
     $newTestCase.name = $testName
     switch ($completionCode)
     {
-        "Success" {
+        "Passed" {
+            $newTestCase.RemoveChild($newTestCase.ChildNodes[0]) | Out-Null
             $newTestCase.RemoveChild($newTestCase.ChildNodes[0]) | Out-Null
         }
-
+        "Skipped" {
+            $newTestCase.RemoveChild($newTestCase.ChildNodes[1]) | Out-Null
+        }
         "Failed" {
+            $newTestCase.RemoveChild($newTestCase.ChildNodes[0]) | Out-Null
             $newTestCase.failure.type = "Failed"
             $newTestCase.failure.InnerText = "Test $testName Failed."
         }
         "Aborted" {
+            $newTestCase.RemoveChild($newTestCase.ChildNodes[0]) | Out-Null
             $newTestCase.failure.type = "Aborted"
             $newTestCase.failure.InnerText = "Test $testName Aborted."
         }
@@ -320,7 +326,7 @@ function SaveResultToXML([String] $testDir)
     # remove users with undefined name (remove template)
     $testResult.testsuite.testcase | Where-Object { $_.Name -eq "" } | ForEach-Object  { [void]$testResult.testsuite.RemoveChild($_) }
     # save xml to file
-    #
+
     # Check to see if the provided log path is absolute
     #
     if ([System.IO.Path]::IsPathRooted($testDir))
@@ -662,7 +668,7 @@ function AbortCurrentTest([System.Xml.XmlElement] $vm, [string] $msg)
         logMsg 0 "Error: $($vm.vmName) $msg"
     }
 
-    $vm.testCaseResults = "False"
+    $vm.testCaseResults = $Aborted
     $vm.state = $CollectLogFiles
 
     logMsg 2 "Info : $($vm.vmName) transitioned to state $($vm.state)"
@@ -1513,7 +1519,7 @@ function UpdateCurrentTest([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     #if previous test failed and the XML setting is set to Abort on "onError"
     # then try to quite Lisa
-    if ( (($vm.testCaseResults -eq "False") -or ($vm.testCaseResults -eq "none")) -and $previousTestData.onError -eq "Abort")
+    if ( (($vm.testCaseResults -eq $Aborted) -or ($vm.testCaseResults -eq $Failed)) -and $previousTestData.onError -eq "Abort")
     {
         $vm.currentTest = "done"
         return
