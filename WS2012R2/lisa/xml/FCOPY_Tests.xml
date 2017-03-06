@@ -99,6 +99,7 @@
 		<test>
 			<testName>FCOPY_non_ascii</testName>
 			<testScript>setupscripts\FCOPY_non_ascii.ps1</testScript>
+	        <files>remote-scripts/ica/utils.sh</files>
 			<timeout>2000</timeout>
 			<testParams>
 				<param>TC_COVERED=FCopy-05</param>
