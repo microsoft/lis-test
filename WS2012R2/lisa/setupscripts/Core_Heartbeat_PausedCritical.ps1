@@ -170,7 +170,7 @@ function Cleanup()
     $sts = Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
     if (-not $?)
     {
-      Write-Output "Error: Deleting new VM $vmName1"
+      Write-Output "Error: Cannot remove the child VM $vmName1"
     }
 
     # Delete partition
@@ -303,7 +303,7 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
 $VMNetAdapter = Get-VMNetworkAdapter $vmName -ComputerName $hvServer
 if (-not $?)
 {
-    Write-Output "Error: Get-VMNetworkAdapter" | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: Failed to run Get-VMNetworkAdapter to obtain the source VM configuration" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -311,7 +311,9 @@ if (-not $?)
 $vm_gen = $vm.Generation
 
 # Remove old VM
-Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
+if ( Get-VM $vmName1 -ComputerName $hvServer -ErrorAction SilentlyContinue ) {
+	Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
+}
 
 # Create the ChildVM
 $newVm = New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
@@ -327,7 +329,7 @@ if ($vm_gen -eq 2)
     Set-VMFirmware -VMName $vmName1 -ComputerName $hvServer -EnableSecureBoot Off
     if(-not $?)
     {
-        Write-Output "Error: Unable to disable secure boot" | Tee-Object -Append -file $summaryLog
+        Write-Output "Error: Unable to disable secure boot!" | Tee-Object -Append -file $summaryLog
         return $false
     }
 }
@@ -345,6 +347,7 @@ Write-Output "Info: New VM $vmName1 started"
 
 # Get the VM1 ip
 $ipv4vm1 = GetIPv4 $vmName1 $hvServer
+Start-Sleep 15
 
 # Get partition size
 $disk = Get-WmiObject Win32_LogicalDisk -ComputerName $hvServer -Filter "DeviceID='${driveletter}'" | Select-Object FreeSpace
@@ -362,11 +365,8 @@ if ($createfile -notlike "File *testfile* is created")
 }
 Write-Output "Info: Created test file on \\$hvServer\$file_path_formatted with the size $filesize"
 
-$retVal = SendCommandToVM $ipv4vm1 $sshKey "nohup dd if=/dev/urandom of=/root/data2 bs=1M count=500 &>/dev/null &"
-if (-not $?)
-{
-    Write-Output "Error: Could not send command to vm $vmName1" | Tee-Object -Append -file $summaryLog
-}
+Write-Output "Info: Writing data on the VM disk in order to hit the disk limit"
+SendCommandToVM $ipv4vm1 $sshKey "nohup dd if=/dev/urandom of=/root/data2 bs=1M count=500 &>/dev/null &"
 Start-Sleep 30
 
 $vm1 = Get-VM -Name $vmName1 -ComputerName $hvServer
@@ -376,7 +376,7 @@ if ($vm1.State -ne "PausedCritical")
     Cleanup
     return $False
 }
-Write-Output "Info: VM $vmName1 entered in Paused-Critical state, as expected" | Tee-Object -Append -file $summaryLog
+Write-Output "Info: VM $vmName1 entered in Paused-Critical state, as expected." | Tee-Object -Append -file $summaryLog
 
 # Create space on partition
 Remove-Item -Path \\$hvServer\$file_path_formatted -Force
@@ -400,7 +400,7 @@ if ($vm1.Heartbeat -eq "OkApplicationsUnknown")
 {
     "Info: Heartbeat detected, status OK."
     Write-Output "Info: Test Passed. Heartbeat is again reported as OK." | Tee-Object -Append -file $summaryLog
-	$retVal = $true
+    $retVal = $true
 }
 else
 {
