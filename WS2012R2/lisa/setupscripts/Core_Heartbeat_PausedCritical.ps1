@@ -40,6 +40,9 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$ipv4vm1 = $null
+$retVal = $true
+
 #######################################################################
 # To Get Parent VHD from VM.
 #######################################################################
@@ -154,8 +157,8 @@ function CreateChildVHD($ParentVHD, $defaultpath)
 
 function Cleanup()
 {
-    Write-Output "Starting cleanup"
-    # Clean up
+    Write-Output "Info: Starting cleanup for the child VM"
+
     $sts = Stop-VM -Name $vmName1 -ComputerName $hvServer -TurnOff
     if (-not $?)
     {
@@ -163,17 +166,17 @@ function Cleanup()
 
     }
 
-    # Delete New VM created
+    # Delete the child VM created
     $sts = Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
     if (-not $?)
     {
-      Write-Output "Error: Deleting New VM $vmName1"
+      Write-Output "Error: Deleting new VM $vmName1"
     }
 
     # Delete partition
     Dismount-VHD -Path $vhdpath -ComputerName $hvServer
 
-    # Detele VHD
+    # Delete VHD
     del $vhdpath
 }
 
@@ -183,10 +186,6 @@ function Cleanup()
 # Main script body
 #
 #######################################################################
-
-$ipv4vm1 = $null
-$retVal = $true
-
 $summaryLog  = "${vmName}_summary.log"
 $vmName1 = "${vmName}_ChildVM"
 
@@ -361,14 +360,14 @@ if ($createfile -notlike "File *testfile* is created")
     Cleanup
     return $False
 }
-Write-Output "Info: Created test file on \\$hvServer\$file_path_formatted with the size $filesize" | Tee-Object -Append -file $summaryLog
+Write-Output "Info: Created test file on \\$hvServer\$file_path_formatted with the size $filesize"
 
-$retVal = SendCommandToVM $ipv4vm1 $sshKey "dd if=/dev/urandom of=/root/data2 bs=1M count=500 2>/dev/null &"
+$retVal = SendCommandToVM $ipv4vm1 $sshKey "nohup dd if=/dev/urandom of=/root/data2 bs=1M count=500 &>/dev/null &"
 if (-not $?)
 {
     Write-Output "Error: Could not send command to vm $vmName1" | Tee-Object -Append -file $summaryLog
 }
-Start-Sleep 20
+Start-Sleep 30
 
 $vm1 = Get-VM -Name $vmName1 -ComputerName $hvServer
 if ($vm1.State -ne "PausedCritical")
@@ -386,7 +385,7 @@ if (-not $?) {
     Cleanup
     return $False
 }
-Write-Output "Info: Test file deleted from mounted VHDx" | Tee-Object -Append -file $summaryLog
+Write-Output "Info: Test file deleted from mounted VHDx"
 
 # Resume VM after we created space on the partition
 Resume-VM -Name $vmName1 -ComputerName $hvServer
@@ -401,6 +400,7 @@ if ($vm1.Heartbeat -eq "OkApplicationsUnknown")
 {
     "Info: Heartbeat detected, status OK."
     Write-Output "Info: Test Passed. Heartbeat is again reported as OK." | Tee-Object -Append -file $summaryLog
+	$retVal = $true
 }
 else
 {
