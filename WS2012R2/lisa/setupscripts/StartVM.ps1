@@ -467,21 +467,14 @@ $nic2 = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IsLegacy:
 
 #Generate a Mac address for the VM's test nic, if this is not a specified parameter
 if (-not $vm2MacAddress) {
+    $vm2MacAddress = getRandUnusedMAC $hvServer
 
-    for ($i = 0 ; $i -lt 3; $i++)
-        {
-           $vm2MacAddress = getRandUnusedMAC $hvServer
-           if ($vm2MacAddress)
-           {
-                break
-           }
-        }
-        $retVal = isValidMAC $vm2MacAddress
-        if (-not $retVal)
-        {
-            "Could not find a valid MAC for $vm2Name. Received $vm2MacAddress"
-            return $false
-        }
+    $CurrentDir= "$pwd\"
+    $testfile = "macAddressDependency.file" 
+    $pathToFile="$CurrentDir"+"$testfile" 
+    $streamWrite = [System.IO.StreamWriter] $pathToFile
+    $streamWrite.WriteLine($vm2MacAddress)
+    $streamWrite.close()
 }
 
 #construct NET_ADD_NIC_MAC Parameter

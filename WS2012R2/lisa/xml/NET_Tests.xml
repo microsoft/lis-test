@@ -171,10 +171,11 @@ permissions and limitations under the License.
         <test>
             <testName>StaticMAC</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112233</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-07</param>
-                <param>MAC=00:16:00:11:22:33</param>
+                <param>TestMAC=yes</param>
                 <param>REMOTE_SERVER=8.8.4.4</param>
                 <param>LO_IGNORE=yes</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
@@ -269,7 +270,6 @@ permissions and limitations under the License.
                 <param>STATIC_IP=10.10.10.10</param>
                 <param>STATIC_IP2=10.10.10.20</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>MAC=001600112233</param>
             </testparams>
             <testScript>NET_JUMBO_FRAMES.sh</testScript>
             <files>remote-scripts/ica/NET_JUMBO_FRAMES.sh,remote-scripts/ica/utils.sh</files>
@@ -305,9 +305,8 @@ permissions and limitations under the License.
             </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-12</param>
-                <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=2</param>
             </testParams>
@@ -329,7 +328,6 @@ permissions and limitations under the License.
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-13</param>
-                <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=1</param>
             </testParams>
@@ -535,7 +533,6 @@ permissions and limitations under the License.
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-25</param>
-                <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=10</param>
             </testParams>
