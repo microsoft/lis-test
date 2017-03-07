@@ -41,7 +41,6 @@
 #		PING_SUCC
 #		PING_FAIL
 #
-#
 #	Optional parameters:
 #		STATIC_IP
 #		TC_COVERED
@@ -61,11 +60,7 @@
 #	DISABLE_NM can be set to 'yes' to disable the NetworkManager.
 #	GATEWAY is the IP Address of the default gateway
 #	TC_COVERED is the LIS testcase number
-#
-#
 #############################################################################################################
-
-
 # Convert eol
 dos2unix utils.sh
 
@@ -172,7 +167,6 @@ fi
 #
 # Check for internet protocol version
 #
-
 CheckIPV6 "$PING_SUCC"
 if [[ $? -eq 0 ]]; then
     CheckIPV6 "$PING_FAIL"
@@ -293,10 +287,26 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
 	exit 10
 fi
 
-
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
 # Test interfaces
+# First, verify if an interface with a given MAC address exists on the VM
+if [ "${MAC:-UNDEFINED}" != "UNDEFINED" ]; then
+
+	__sys_interface=$(grep -il "$MAC" /sys/class/net/*/address)
+	if [ 0 -ne $? ]; then
+		msg="MAC Address $MAC does not belong to any interface."
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 10
+	else
+		msg="MAC Address $MAC was found on the VM"
+		UpdateSummary "$msg"
+		LogMsg "$msg"	
+	fi
+fi
+
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
 	ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1

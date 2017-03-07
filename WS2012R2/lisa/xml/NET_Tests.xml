@@ -43,7 +43,6 @@ permissions and limitations under the License.
                 <suiteTest>GuestOnlyNetwork</suiteTest>
                 <suiteTest>MultipleNIC</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
-                <suiteTest>StaticMAC</suiteTest>
                 <suiteTest>NetworkMode</suiteTest>
                 <suiteTest>ChangeNetTypeInternal</suiteTest>
                 <suiteTest>ChangeNetTypeGuest</suiteTest>
@@ -79,7 +78,8 @@ permissions and limitations under the License.
             <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
-                <param>TC_COVERED=NET-02</param>
+                <param>TC_COVERED=NET-02,NET-07</param>
+                <param>TestMAC=yes</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
@@ -163,25 +163,6 @@ permissions and limitations under the License.
             </testParams>
             <testScript>NET_LEGACY.sh</testScript>
             <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/utils.sh</files>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>800</timeout>
-            <onError>Continue</onError>
-        </test>
-
-        <test>
-            <testName>StaticMAC</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,External</param>
-                <param>TC_COVERED=NET-07</param>
-                <param>TestMAC=yes</param>
-                <param>REMOTE_SERVER=8.8.4.4</param>
-                <param>LO_IGNORE=yes</param>
-                <!-- <param>GATEWAY=192.168.0.1</param> -->
-            </testParams>
-            <testScript>NET_STATIC_MAC.sh</testScript>
-            <files>remote-scripts/ica/NET_STATIC_MAC.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
             <onError>Continue</onError>
