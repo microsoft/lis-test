@@ -169,7 +169,6 @@ foreach ($p in $params)
     "VM2NAME" { $vm2Name = $fields[1].Trim() }
     "sshKey"  { $sshKey  = $fields[1].Trim() }
     "ipv4"    { $ipv4    = $fields[1].Trim() }
-    "MAC"     { $vm2MacAddress = $fields[1].Trim() }
     "VM2SERVER"    { $vm2Server    = $fields[1].Trim() }
     "ENABLE_VMMQ"   { $EnableVmmq    = $fields[1].Trim()}
     default   {}  # unknown param - just ignore it
@@ -216,17 +215,19 @@ if (-not $sshKey)
     return $False
 }
 
-if (-not $vm2MacAddress)
-{
-    "Error: test parameter MAC was not specified"
-    return $False
-}
-
 if (-not $vm2Server)
 {
     $vm2Server = $hvServer
     "vm2Server was set as $hvServer"
 }
+
+# Get the MAC that was generated
+$CurrentDir= "$pwd\"
+$testfile = "macAddressDependency.file" 
+$pathToFile="$CurrentDir"+"$testfile" 
+$streamReader = [System.IO.StreamReader] $pathToFile
+$vm2MacAddress = $streamReader.ReadLine()
+$streamReader.close() 
 
 $checkState = Get-VM -Name $vm2Name -ComputerName $vm2Server
 

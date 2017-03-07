@@ -136,6 +136,7 @@ else
 $nic = $False
 $switchs = $False
 $AddressFamily = "IPv4"
+$testMAC = "no"
 
 $params = $testParams.Split(";")
 foreach ($p in $params)
@@ -149,6 +150,7 @@ foreach ($p in $params)
     "AddressFamily" { $AddressFamily    = $fields[1].Trim() }
     "SWITCH"        { $switchs = $fields[1].Trim() }
     "NIC"           { $nic     = $fields[1].Trim() }
+    "TestMAC"       { $testMAC     = $fields[1].Trim() }
     default         {}  # unknown param - just ignore it
     }
 }
@@ -236,6 +238,23 @@ switch ($testType)
 $cmd+="echo `"PING_SUCC=$($PING_SUCC)`" >> ~/constants.sh;";
 $cmd+="echo `"PING_FAIL=$($PING_FAIL)`" >> ~/constants.sh;";
 $cmd+="echo `"PING_FAIL2=$($PING_FAIL2)`" >> ~/constants.sh;";
+
+if ($testMAC -eq "yes"){
+    # Get the MAC that was generated
+    $CurrentDir= "$pwd\"
+    $testfile = "macAddress.file" 
+    $pathToFile="$CurrentDir"+"$testfile" 
+    $streamReader = [System.IO.StreamReader] $pathToFile
+    $macAddress = $streamReader.ReadLine()
+    $streamReader.close() 
+
+    for ($i = 2 ; $i -le 14 ; $i += 3) {
+        $macAddress = $macAddress.insert($i,':')
+    }
+
+    # Send the MAC address to the VM
+    $cmd+="echo `"MAC=$($macAddress)`" >> ~/constants.sh;";    
+}
 
 "PING_SUCC=$PING_SUCC"
 "PING_FAIL=$PING_FAIL"
