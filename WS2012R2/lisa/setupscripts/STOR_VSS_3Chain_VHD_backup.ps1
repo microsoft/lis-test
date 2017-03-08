@@ -116,72 +116,6 @@ function FixSnapshots($vmName, $hvServer)
 }
 
 #######################################################################
-#
-# To Get Parent VHD from VM
-#
-#######################################################################
-function GetParentVHD($vmName, $hvServer)
-{
-    $ParentVHD = $null     
-
-    $VmInfo = Get-VM -Name $vmName 
-    if (-not $VmInfo)
-        { 
-             Write-Error -Message "Error: Unable to collect VM settings for ${vmName}" -ErrorAction SilentlyContinue
-             return $False
-        }    
-    
-    if ( $VmInfo.Generation -eq "" -or $VmInfo.Generation -eq 1  )
-        {
-            $Disks = $VmInfo.HardDrives
-            foreach ($VHD in $Disks)
-                {
-                    if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  ))
-                        {
-                            $Path = Get-VHD $VHD.Path
-                            if ([string]::IsNullOrEmpty($Path.ParentPath))
-                                {
-                                    $ParentVHD = $VHD.Path
-                                }
-                            else{
-                                    $ParentVHD =  $Path.ParentPath
-                                }
-
-                            Write-Host "Parent VHD Found: $ParentVHD "
-                        }
-                }            
-        }
-    if ( $VmInfo.Generation -eq 2 )
-        {
-            $Disks = $VmInfo.HardDrives
-            foreach ($VHD in $Disks)
-                {
-                    if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  ))
-                        {
-                            $Path = Get-VHD $VHD.Path
-                            if ([string]::IsNullOrEmpty($Path.ParentPath))
-                                {
-                                    $ParentVHD = $VHD.Path
-                                }
-                            else{
-                                    $ParentVHD =  $Path.ParentPath
-                                }
-                            Write-Host "Parent VHD Found: $ParentVHD "
-                        }
-                }  
-        }
-
-    if ( -not ($ParentVHD.EndsWith(".vhd") -xor $ParentVHD.EndsWith(".vhdx") ))
-    {
-         Write-Error -Message " Parent VHD is Not correct please check VHD, Parent VHD is: $ParentVHD " -ErrorAction SilentlyContinue
-         return $False
-    }
-
-    return $ParentVHD    
-
-}
-
-#######################################################################
 # To Create Grand Child VHD from Parent VHD.
 #######################################################################
 function CreateGChildVHD($ParentVHD)
@@ -229,16 +163,16 @@ function CreateGChildVHD($ParentVHD)
         del $GChildVHD
     }
 
-     # Create Child VHD  
+     # Create Child VHD
 
-    New-VHD -ParentPath:$ParentVHD -Path:$ChildVHD     
+    New-VHD -ParentPath:$ParentVHD -Path:$ChildVHD 
     if (-not $?)
     {
        Write-Error -Message "Error: Unable to create child VHD"  -ErrorAction SilentlyContinue
        return $False
     }
 
-     # Create Grand Child VHD    
+     # Create Grand Child VHD
     
     $newVHD = New-VHD -ParentPath:$ChildVHD -Path:$GChildVHD
     if (-not $?)
@@ -247,7 +181,7 @@ function CreateGChildVHD($ParentVHD)
        return $False
     }
 
-    return $GChildVHD    
+    return $GChildVHD
 
 }
 
@@ -393,7 +327,7 @@ if (-not $sts[-1])
 }
 
 # Get Parent VHD 
-$ParentVHD = GetParentVHD $vmName -$hvServer
+$ParentVHD = GetParentVHD $vmName $hvServer
 if(-not $ParentVHD)
 {
     "Error: Error getting Parent VHD of VM $vmName"
