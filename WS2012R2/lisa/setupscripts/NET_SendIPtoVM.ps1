@@ -109,6 +109,7 @@ if ($testParams -eq $null)
     "Error: testParams is null"
     return $False
 }
+$vm2MacAddress = $null
 
 # Write out test Params
 $testParams
@@ -171,6 +172,7 @@ foreach ($p in $params)
     "ipv4"    { $ipv4    = $fields[1].Trim() }
     "VM2SERVER"    { $vm2Server    = $fields[1].Trim() }
     "ENABLE_VMMQ"   { $EnableVmmq    = $fields[1].Trim()}
+    "MAC"   { $vm2MacAddress = $fields[1].Trim()}
     default   {}  # unknown param - just ignore it
     }
 }
@@ -222,12 +224,19 @@ if (-not $vm2Server)
 }
 
 # Get the MAC that was generated
-$CurrentDir= "$pwd\"
-$testfile = "macAddressDependency.file" 
-$pathToFile="$CurrentDir"+"$testfile" 
-$streamReader = [System.IO.StreamReader] $pathToFile
-$vm2MacAddress = $streamReader.ReadLine()
-$streamReader.close() 
+$validMac = isValidMAC $vm2MacAddress
+if (-not $validMac) {
+    $CurrentDir= "$pwd\"
+    $testfile = "macAddressDependency.file" 
+    $pathToFile="$CurrentDir"+"$testfile" 
+    $streamReader = [System.IO.StreamReader] $pathToFile
+    $vm2MacAddress = $streamReader.ReadLine()
+    $streamReader.close()
+    if (-not $vm2MacAddress) {
+        "Error: test parameter MAC was not specified"
+        return $False 
+    }
+}
 
 $checkState = Get-VM -Name $vm2Name -ComputerName $vm2Server
 
