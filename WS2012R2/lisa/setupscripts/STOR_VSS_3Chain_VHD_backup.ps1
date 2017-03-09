@@ -116,76 +116,6 @@ function FixSnapshots($vmName, $hvServer)
 }
 
 #######################################################################
-# To Create Grand Child VHD from Parent VHD.
-#######################################################################
-function CreateGChildVHD($ParentVHD)
-{
-
-    $GChildVHD = $null
-    $ChildVHD  = $null
-
-    $hostInfo = Get-VMHost -ComputerName $hvServer
-        if (-not $hostInfo)
-        {
-             Write-Error -Message "Error: Unable to collect Hyper-V settings for ${hvServer}" -ErrorAction SilentlyContinue
-             return $False
-        }
-
-    $defaultVhdPath = $hostInfo.VirtualHardDiskPath
-        if (-not $defaultVhdPath.EndsWith("\"))
-        {
-            $defaultVhdPath += "\"
-        }
-
-    # Create Child VHD
-
-    if ($ParentVHD.EndsWith("x") )
-    {
-        $ChildVHD = $defaultVhdPath+$vmName+"-child.vhdx"
-        $GChildVHD = $defaultVhdPath+$vmName+"-Gchild.vhdx"
-
-    }
-    else
-    {
-        $ChildVHD = $defaultVhdPath+$vmName+"-child.vhd"
-        $GChildVHD = $defaultVhdPath+$vmName+"-Gchild.vhd"
-    }
-
-    if ( Test-Path  $ChildVHD )
-    {
-        Write-Host "Deleting existing VHD $ChildVHD"        
-        del $ChildVHD
-    }
-
-     if ( Test-Path  $GChildVHD )
-    {
-        Write-Host "Deleting existing VHD $GChildVHD"        
-        del $GChildVHD
-    }
-
-     # Create Child VHD
-
-    New-VHD -ParentPath:$ParentVHD -Path:$ChildVHD 
-    if (-not $?)
-    {
-       Write-Error -Message "Error: Unable to create child VHD"  -ErrorAction SilentlyContinue
-       return $False
-    }
-
-     # Create Grand Child VHD
-    
-    $newVHD = New-VHD -ParentPath:$ChildVHD -Path:$GChildVHD
-    if (-not $?)
-    {
-       Write-Error -Message "Error: Unable to create Grand child VHD" -ErrorAction SilentlyContinue
-       return $False
-    }
-
-    return $GChildVHD
-
-}
-
-#######################################################################
 #
 # Main script body
 #
@@ -266,38 +196,22 @@ else {
 	return $false
 }
 
-Write-Output "Info: Removing old backups"
-try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
-Catch { Write-Output "No existing backup's to remove"}
-
-# Check if the VM VHD in not on the same drive as the backup destination 
-$vm = Get-VM -Name $vmName -ComputerName $hvServer
-if (-not $vm)
-{
-    "Error: VM '${vmName}' does not exist"
-    return $False
+# Source STOR_VSS_Utils.ps1 for common VSS functions
+if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
+	. .\setupScripts\STOR_VSS_Utils.ps1
+	"Info: Sourced STOR_VSS_Utils.ps1"
 }
- 
-foreach ($drive in $vm.HardDrives)
-{
-    if ( $drive.Path.StartsWith("${driveLetter}"))
-    {
-        "Error: Backup partition '${driveLetter}' is same as partition hosting the VMs disk"
-        "       $($drive.Path)"
-        return $False
-    }
+else {
+	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	return $false
 }
 
-# Check to see Linux VM is running VSS backup daemon 
-$sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
-if (-not $sts[-1])
-{
-    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-    Write-Output "ERROR: Running $remoteScript script failed on VM!"
-    return $False
-}
 
-Write-Output "Info: VSS Daemon is running" >> $summaryLog
+$sts = runSetup $vmName $hvServer $driveletter
+if (-not $sts[-1]) 
+{
+	return $False
+}
 
 # Stop the running VM so we can create New VM from this parent disk.
 # Shutdown gracefully so we dont corrupt VHD.
@@ -327,7 +241,7 @@ if (-not $sts[-1])
 }
 
 # Get Parent VHD 
-$ParentVHD = GetParentVHD $vmName $hvServer
+$ParentVHD = GetParentVHD $vmName -$hvServer
 if(-not $ParentVHD)
 {
     "Error: Error getting Parent VHD of VM $vmName"
@@ -397,126 +311,44 @@ if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout ))
 Write-Output "INFO: New VM $vmName1 started"
 
 echo "`n"
-# Remove Existing Backup Policy
-try { Remove-WBPolicy -all -force }
-Catch { Write-Output "No existing backup policy to remove"}
 
-echo "`n"
-# Set up a new Backup Policy
-$policy = New-WBPolicy
-
-# Set the backup backup location
-$backupLocation = New-WBBackupTarget -VolumePath $driveletter
-
-# Define VSS WBBackup type
-Set-WBVssBackupOptions -Policy $policy -VssCopyBackup
-
-# Add the Virtual machines to the list
-$VMtoBackup = Get-WBVirtualMachine | where vmname -like $vmName1
-Add-WBVirtualMachine -Policy $policy -VirtualMachine $VMtoBackup
-Add-WBBackupTarget -Policy $policy -Target $backupLocation
-
-# Display the Backup policy
-Write-Output "Backup policy is: `n$policy"
-
-# Start the backup
-Write-Output "Backing to $driveletter"
-Start-WBBackup -Policy $policy
-
-# Review the results            
-$BackupTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
-Write-Output "Backup duration: $BackupTime minutes"           
-"Backup duration: $BackupTime minutes" >> $summaryLog
-
-$sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
+$sts = startBackup $vmName1 $driveletter
+if (-not $sts[-1]) 
 {
-    Write-Output "ERROR: VSS Backup failed"
-    Write-Output $sts.ErrorDescription
-    $retVal = $false
-    return $retVal
+	return $False
+} else {
+	$backupLocation = $sts
 }
 
-Write-Output "`nBackup success!`n"
-# Let's wait a few Seconds
-Start-Sleep -Seconds 30
-
-# Start the Restore
-Write-Output "`nNow let's do restore ...`n"
-
-# Get BackupSet
-$BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
-
-# Start Restore
-Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force -WarningAction SilentlyContinue
-$sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
+$sts = restoreBackup $backupLocation
+if (-not $sts[-1]) 
 {
-    Write-Output "ERROR: VSS Restore failed"
-    Write-Output $sts.ErrorDescription
-    $retVal = $false
-    return $retVal
+	return $False
 }
 
-# Review the results  
-$RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
-Write-Output "Restore duration: $RestoreTime minutes"
-"Restore duration: $RestoreTime minutes" >> $summaryLog
-
-# Make sure VM exist after VSS backup/restore operation 
-$vm = Get-VM -Name $vmName1 -ComputerName $hvServer
-    if (-not $vm)
-    {
-        Write-Output "ERROR: VM ${vmName1} does not exist after restore"
-        return $False
-    }
-Write-Output "Restore success!"
-
-# After Backup Restore VM must be off make sure that.
-if ( $vm.state -ne "Off" )  
+$sts = checkResults $vmName1 $hvServer
+if (-not $sts[-1]) 
 {
-    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state
-    return $False
+	$retVal = $False
+}
+else 
+{
+	$retVal = $True
+    $results = $sts
 }
 
-# Now Start the VM
-$timeout = 300
-$sts = Start-VM -Name $vmName1 -ComputerName $hvServer 
-if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout ))
-{
-    Write-Output "ERROR: ${vmName1} failed to start"
-    return $False
-}
-else
-{
-    Write-Output "INFO: Started VM ${vmName1}"
-}
 
 # Get new IPV4
 $ipv4 =  GetIPv4 $vmName1 $hvServer
 if (-not $?)
     {
        Write-Output "Error: Getting IPV4 of New VM"
-       return $False
+       $retVal= $False
     }
 
 Write-Output "INFO: New VM's IP is $ipv4" 
 
-# Now Check the boot logs in VM to verify if there is no Recovering journals in it . 
-$recovery=CheckRecoveringJ $ipv4
-if ($recovery[-1])
-{
-    Write-Output "ERROR: Recovering Journals in Boot log file, VSS backup/restore failed!"
-    Write-Output "No Recovering Journal in boot logs: Failed" >> $summaryLog
-    return $False
-}
-else 
-{
-    $results = "Passed"
-    $retVal = $True
-    Write-Output "`nINFO: VSS Back/Restore: Success"   
-    Write-Output "No Recovering Journal in boot msg: Success" >> $summaryLog
-}
+
 
 Write-Output "INFO: Test ${results}"
 
@@ -527,10 +359,7 @@ if (-not $?)
        
     }
 
-# Remove Existing Backups
-Write-Output "Removing old backups from $backupLocation"
-try { Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
-Catch { Write-Output "No existing backup's to remove"}
+runCleanup $backupLocation
 
 # Clean Delete New VM created 
 $sts = Remove-VM -Name $vmName1 -Confirm:$false -Force
@@ -540,10 +369,5 @@ if (-not $?)
     } 
 
 Write-Output "INFO: Deleted VM $vmName1"
-
-if ($recovery[-1])
-{
-    return $false
-}
 
 return $retVal
