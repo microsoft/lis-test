@@ -44,7 +44,6 @@
         <suite>
             <suiteName>STOR_VSS</suiteName>
             <suiteTests>
-                <suiteTest>STOR_VSS_BackupRestore</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_ext3_vhd</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_ext4_vhd</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_reiserfs_vhd</suiteTest>
@@ -64,18 +63,6 @@
     </testSuites>
 
     <testCases>
-        <test>
-            <testName>STOR_VSS_BackupRestore</testName>
-            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore.ps1</testScript>
-			<files>remote-scripts/ica/utils.sh</files>
-            <testParams>
-                <param>TC_COVERED=VSS-17,VSS-06</param>
-            </testParams>
-            <timeout>2400</timeout>
-            <OnError>Continue</OnError>
-        </test>
-
         <test>
             <testName>STOR_VSS_BackupRestore_ext3_vhd</testName>
             <setupScript>
@@ -271,9 +258,9 @@
             <testParams>
                 <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
                 <param>snapshotName=ICABase</param>
-				<!-- The below param represents the backup location
-				Usually this is a separate disk not holding any VM data -->
-				<param>DriveLetter=V:</param>
+                <!-- The below param represents the backup location
+                Usually this is a separate disk not holding any VM data -->
+                <param>DriveLetter=V:</param>
             </testParams>
         </vm>
     </VMs>
