@@ -346,12 +346,6 @@ function RunICTests([XML] $xmlConfig, [string] $collect)
         $vm.iteration = "-1"
 
         #
-        # Add test suite and test date time into test result XML
-        #
-        SetTimeStamp $testStartTime.toString()
-        SetResultSuite $vm.suite
-
-        #
         # Add VM specific information to the email summary text
         #
         $vm.emailSummary = "VM: $($vm.vmName)<br />"
@@ -365,11 +359,19 @@ function RunICTests([XML] $xmlConfig, [string] $collect)
         $vm.emailSummary += " build $($OSInfo.BuildNumber)<br />"
         $vm.emailSummary += "<br /><br />"
 
-        #
-        # Add Hyper-V host version into result XML
-        #
-        SetHypervVersion "$($OSInfo.Version)"
+        if ($isSUTVM)
+        {
+            # Add test suite and test date time into test result XML
+            #
+            SetTimeStamp $testStartTime.toString()
+            SetResultSuite $vm.suite
+            #
+            # Add Hyper-V host version into result XML
+            #
+            SetHypervVersion "$($OSInfo.Version)"
+        }
 
+        #
         #
         # Make sure the VM actually exists on the specific HyperV server
         #
@@ -1578,18 +1580,17 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     $os = (GetOSType $vm).ToString()
     LogMsg 9 "INFO : The OS type is $os"
 
-    #
-    # Add guest kernel version and firmware info int result XML
-    #
-    $kernelVer = GetKernelVersion
-    $firmwareVer = GetFirmwareVersion
-
-    SetOSInfo $kernelVer $firmwareVer
-
     If ($vm.role.ToLower().StartsWith("sut"))
     {
-         #for SUT VM, needs to wait for NonSUT VM startup
-         UpdateState $vm $WaitForDependencyVM
+        #
+        # Add guest kernel version and firmware info int result XML
+        #
+        $kernelVer = GetKernelVersion
+        $firmwareVer = GetFirmwareVersion
+        SetOSInfo $kernelVer $firmwareVer
+        
+        #for SUT VM, needs to wait for NonSUT VM startup
+        UpdateState $vm $WaitForDependencyVM
     }
     else
     {
@@ -3088,7 +3089,11 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
     LogMsg 11 "Info : DoFinished( $($vm.vmName), xmlData )"
     LogMsg 11 "Info :   timestamp = $($vm.stateTimestamp))"
     LogMsg 11 "Info :   Test      = $($vm.currentTest))"
-    SaveResultToXML $testDir
+
+    If ($vm.role.ToLower().StartsWith("sut"))
+    {
+        SaveResultToXML $testDir
+    }
 }
 
 ########################################################################
