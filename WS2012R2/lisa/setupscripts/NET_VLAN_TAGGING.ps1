@@ -102,87 +102,6 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 Set-PSDebug -Strict
 
-# function which creates an /etc/sysconfig/network-scripts/ifcfg-ethX file for interface ethX
-function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr,[String]$staticIP,[String]$netmask)
-{
-
-    # Add delimiter if needed
-    if (-not $MacAddr.Contains(":"))
-    {
-        for ($i=2; $i -lt 16; $i=$i+2)
-        {
-            $MacAddr = $MacAddr.Insert($i,':')
-            $i++
-        }
-    }
-
-    # create command to be sent to VM. This determines the interface based on the MAC Address and calls CreateVlanConfig (from utils.sh) to create a new vlan interface
-
-    $cmdToVM = @"
-#!/bin/bash
-        cd /root
-        if [ -f utils.sh ]; then
-            sed -i 's/\r//' utils.sh
-            . utils.sh
-        else
-            exit 1
-        fi
-
-        # make sure we have synthetic network adapters present
-        GetSynthNetInterfaces
-        if [ 0 -ne `$? ]; then
-            exit 2
-        fi
-
-        # get the interface with the given MAC address
-        __sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address)
-        if [ 0 -ne `$? ]; then
-            exit 3
-        fi
-        __sys_interface=`$(basename "`$(dirname "`$__sys_interface")")
-        if [ -z "`$__sys_interface" ]; then
-            exit 4
-        fi
-
-        echo CreateIfupConfigFile: interface `$__sys_interface >> /root/NET_VLAN_TAGGING.log 2>&1
-        CreateIfupConfigFile `$__sys_interface 'static' $staticIP $netmask >> /root/NET_VLAN_TAGGING.log 2>&1
-        __retVal=`$?
-        echo CreateIfupConfigFile: returned `$__retVal >> /root/NET_VLAN_TAGGING.log 2>&1
-        exit `$__retVal
-"@
-
-    $filename = "CreateInterfaceConfig.sh"
-
-    # check for file
-    if (Test-Path ".\${filename}")
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    Add-Content $filename "$cmdToVM"
-
-    # send file
-    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
-    # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
-        return $false
-    }
-
-    # execute sent file
-    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
-    return $retVal
-}
-
-
 function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$noPackets,[String]$macAddr)
 {
 
@@ -271,18 +190,13 @@ function pingVMs([String]$conIpv4,[String]$pingTargetIpv4,[String]$sshKey,[int]$
     return $retVal
 }
 
-
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
 
-#StopVMViaSSH $vmName $hvServer $sshKey 300
-
-#
 # Check input arguments
-#
 if ($vmName -eq $null)
 {
     "Error: VM name is null"
@@ -716,7 +630,7 @@ if (-not $retVal)
 
 "Configuring test interface (${vm1MacAddress}) on $vmName (${ipv4}) "
 # send vlan ifcfg file to each VM
-$retVal = CreateInterfaceConfig $ipv4 $sshKey $vm1MacAddress $testipv4VM1 $netmask
+$retVal = CreateInterfaceConfig $ipv4 $sshKey 'static' $vm1MacAddress $testipv4VM1 $netmask
 if (-not $retVal)
 {
     "Failed to create Interface-File on vm $ipv4 for interface with mac $vm1MacAddress, by setting a static IP of $testipv4VM1 netmask $netmask"
@@ -729,7 +643,7 @@ if ( $TestIPV6 -eq "yes" ) {
 "Successfully configured interface"
 
 "Configuring test interface (${vm2MacAddress}) on $vm2Name (${vm2ipv4}) "
-$retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $testipv4VM2 $netmask
+$retVal = CreateInterfaceConfig $vm2ipv4 $sshKey 'static' $vm2MacAddress $testipv4VM2 $netmask
 if (-not $retVal)
 {
     "Failed to create Vlan Interface on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $testipv4VM2 netmask $netmask"
