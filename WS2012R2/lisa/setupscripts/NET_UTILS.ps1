@@ -684,6 +684,89 @@ function CreateFileOnVM ([String]$conIpv4,[String]$sshKey,[String]$fileSize)
 
 #######################################################################
 #
+#   Function which creates an /etc/sysconfig/network-scripts/ifcfg-ethX 
+# file for interface ethX
+#
+#######################################################################
+function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey, [String]$bootproto, [String]$MacAddr,[String]$staticIP,[String]$netmask)
+{
+
+    # Add delimiter if needed
+    if (-not $MacAddr.Contains(":"))
+    {
+        for ($i=2; $i -lt 16; $i=$i+2)
+        {
+            $MacAddr = $MacAddr.Insert($i,':')
+            $i++
+        }
+    }
+
+    # create command to be sent to VM. This determines the interface based on the MAC Address.
+
+    $cmdToVM = @"
+#!/bin/bash
+        cd /root
+        dos2unix utils.sh
+        if [ -f utils.sh ]; then
+            sed -i 's/\r//' utils.sh
+            . utils.sh
+        else
+            exit 1
+        fi
+        # make sure we have synthetic network adapters present
+        GetSynthNetInterfaces
+        if [ 0 -ne `$? ]; then
+            exit 2
+        fi
+        # get the interface with the given MAC address
+        __sys_interface=`$(grep -il ${MacAddr} /sys/class/net/*/address)
+        if [ 0 -ne `$? ]; then
+            exit 3
+        fi
+        __sys_interface=`$(basename "`$(dirname "`$__sys_interface")")
+        if [ -z "`$__sys_interface" ]; then
+            exit 4
+        fi
+        echo CreateIfupConfigFile: interface `$__sys_interface >> /root/summary.log 2>&1
+        CreateIfupConfigFile `$__sys_interface $bootproto $staticIP $netmask >> /root/summary.log 2>&1
+        __retVal=`$?
+        echo CreateIfupConfigFile: returned `$__retVal >> /root/summary.log 2>&1
+        exit `$__retVal
+"@
+
+    $filename = "CreateInterfaceConfig.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # delete file unless the Leave_trail param was set to yes.
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
+    {
+        Remove-Item ".\${filename}"
+    }
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal)
+    {
+        return $false
+    }
+
+    # execute sent file
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+}
+
+#######################################################################
+#
 # Function that sends a file through the bond interface/interfaces
 #
 #######################################################################

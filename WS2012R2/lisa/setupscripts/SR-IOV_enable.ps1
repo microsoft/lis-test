@@ -70,7 +70,7 @@
 param ([String] $vmName, [String] $hvServer, [string] $testParams)
 
 # function which creates an /etc/sysconfig/network-scripts/ifcfg-ethX file for interface ethX
-function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr,[String]$staticIP,[String]$netmask)
+function CreateInterfaceConfigEth([String]$conIpv4,[String]$sshKey,[String]$MacAddr,[String]$staticIP,[String]$netmask)
 {
 
     # Add delimiter if needed
@@ -96,7 +96,7 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey,[String]$MacAddr
 
         if is_ubuntu ; then
             __file_path="/etc/network/interfaces"
-            echo `$__file_path >> ~/CreateInterfaceConfig.log 2>&1
+            echo `$__file_path >> ~/CreateInterfaceConfigEth.log 2>&1
 
             # Write configuration data into file
             cat <<-EOF >> `$__file_path
@@ -109,7 +109,7 @@ EOF
 
         elif is_suse ; then
             __file_path="/etc/sysconfig/network/ifcfg-eth2"
-            echo `$__file_path >> ~/CreateInterfaceConfig.log 2>&1
+            echo `$__file_path >> ~/CreateInterfaceConfigEth.log 2>&1
 
             # Write configuration data into file
             cat <<-EOF >> `$__file_path
@@ -121,7 +121,7 @@ EOF
 
         elif is_fedora ; then
             __file_path="/etc/sysconfig/network-scripts/ifcfg-eth2" 
-            echo `$__file_path >> ~/CreateInterfaceConfig.log 2>&1
+            echo `$__file_path >> ~/CreateInterfaceConfigEth.log 2>&1
 
             # Write configuration data into file
             cat <<-EOF >> `$__file_path
@@ -135,11 +135,11 @@ EOF
         sleep 5
         ifdown eth2 && ifup eth2
         retval=`$?
-        echo CreateIfupConfigFile: returned `$__retVal >> ~/CreateInterfaceConfig.log 2>&1
+        echo CreateIfupConfigFile: returned `$__retVal >> ~/CreateInterfaceConfigEth.log 2>&1
         exit `$__retVal
 "@
 
-    $filename = "CreateInterfaceConfig.sh"
+    $filename = "CreateInterfaceConfigEth.sh"
 
     # check for file
     if (Test-Path ".\${filename}")
@@ -282,8 +282,8 @@ EOF
         fi  
     
         # to be Changed, some bug bypass
-        if [ -f CreateInterfaceConfig.sh ] ; then
-            bash CreateInterfaceConfig.sh
+        if [ -f CreateInterfaceConfigEth.sh ] ; then
+            bash CreateInterfaceConfigEth.sh
             ifup bond0
         fi 
 
@@ -785,7 +785,7 @@ for ($i=0; $i -lt $nicIterator; $i++){
     if ($nicValues[$i*5+2] -ne "SRIOV")
     {
         "Configuring ifcfg-ethX on $vm2Name (${vm2ipv4}) "
-        $retVal = CreateInterfaceConfig $vm2ipv4 $sshKey $vm2mac $vmStaticIP2 $netmask
+        $retVal = CreateInterfaceConfigEth $vm2ipv4 $sshKey $vm2mac $vmStaticIP2 $netmask
         if (-not $retVal)
         {
             "Failed to create ifcfg-ethX file on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $vmStaticIP2 netmask $netmask"

@@ -363,7 +363,10 @@ permissions and limitations under the License.
 
         <test>
             <testName>Network_Hang_Vxlan</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>SetupScripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
             <testScript>setupscripts\NET_Hang_Vxlan.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testParams>
