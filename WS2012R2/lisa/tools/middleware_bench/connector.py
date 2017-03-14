@@ -46,7 +46,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                       db_disk > Second VM with disk (MariaDB, MongoDB)
                       cluster_disk > All VMs have disks (Terasort)
     :param disk_size:
-    :param raid: Bool, to specify if a RAID will be configured
+    :param raid: Bool or Int (the number of disks), to specify if a RAID will be configured
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
     :param token: GCE refresh token obtained with gcloud sdk
@@ -97,41 +97,45 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                 vm_ips[i] = vms[i].private_ip_address
 
             device = constants.DEVICE_AWS.replace('sd', 'xvd')
+            if type(raid) is int:
+                disks = raid
+            else:
+                disks = 12
             if test_type == constants.VM_DISK:
                 if raid:
                     device = []
-                    for i in xrange(12):
+                    for i in xrange(disks):
                         dev = '/dev/sd{}'.format(chr(120 - i))
-                        connector.attach_ebs_volume(vms[1], size=disk_size,
-                                                    volume_type=connector.volume_type['ssd'],
+                        connector.attach_ebs_volume(vms[1], size=disk_size, iops=5000,
+                                                    volume_type=connector.volume_type['ssd_io1'],
                                                     device=dev)
                         device.append(dev.replace('sd', 'xvd'))
                         time.sleep(3)
                 else:
-                    connector.attach_ebs_volume(vms[1], size=disk_size,
-                                                volume_type=connector.volume_type['ssd'],
+                    connector.attach_ebs_volume(vms[1], size=disk_size, iops=5000,
+                                                volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
             elif test_type == constants.DB_DISK:
                 if raid:
                     device = []
-                    for i in xrange(12):
+                    for i in xrange(disks):
                         dev = '/dev/sd{}'.format(chr(120 - i))
-                        connector.attach_ebs_volume(vms[2], size=disk_size,
-                                                    volume_type=connector.volume_type['ssd'],
+                        connector.attach_ebs_volume(vms[2], size=disk_size, iops=5000,
+                                                    volume_type=connector.volume_type['ssd_io1'],
                                                     device=dev)
                         device.append(dev.replace('sd', 'xvd'))
                         time.sleep(3)
                 else:
-                    connector.attach_ebs_volume(vms[2], size=disk_size,
-                                                volume_type=connector.volume_type['ssd'],
+                    connector.attach_ebs_volume(vms[2], size=disk_size, iops=5000,
+                                                volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
             elif test_type == constants.CLUSTER_DISK:
-                connector.attach_ebs_volume(
-                        vms[1], size=disk_size + 200, volume_type=connector.volume_type['ssd'],
-                        device=constants.DEVICE_AWS)
+                connector.attach_ebs_volume(vms[1], size=disk_size + 200, iops=5000,
+                                            volume_type=connector.volume_type['ssd_io1'],
+                                            device=constants.DEVICE_AWS)
                 for i in xrange(2, vm_count + 1):
-                    connector.attach_ebs_volume(vms[i], size=disk_size,
-                                                volume_type=connector.volume_type['ssd'],
+                    connector.attach_ebs_volume(vms[i], size=disk_size, iops=5000,
+                                                volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
                     time.sleep(3)
         elif provider == constants.AZURE:
@@ -143,10 +147,14 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
             for i in xrange(1, vm_count + 1):
                 vms[i] = connector.azure_create_vm()
             device = constants.DEVICE_AZURE
+            if type(raid) is int:
+                disks = raid
+            else:
+                disks = 12
             if test_type == constants.VM_DISK:
                 if raid:
                     device = []
-                    for i in xrange(12):
+                    for i in xrange(disks):
                         log.info('Created disk: {}'.format(connector.attach_disk(vms[1], disk_size,
                                                                                  lun=i)))
                         device.append('/dev/sd{}'.format(chr(99 + i)))
@@ -155,7 +163,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
             elif test_type == constants.DB_DISK:
                 if raid:
                     device = []
-                    for i in xrange(12):
+                    for i in xrange(disks):
                         log.info('Created disk: {}'.format(connector.attach_disk(vms[2], disk_size,
                                                                                  lun=i)))
                         device.append('/dev/sd{}'.format(chr(99 + i)))
@@ -186,10 +194,14 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
             for i in xrange(1, vm_count + 1):
                 ssh_client[i] = connector.wait_for_ping(vms[i])
                 vm_ips[i] = vms[i]['networkInterfaces'][0]['networkIP']
+            if type(raid) is int:
+                disks = raid
+            else:
+                disks = 12
             if test_type == constants.VM_DISK:
                 if raid:
                     device = []
-                    for i in xrange(12):
+                    for i in xrange(disks):
                         disk_name = connector.attach_disk(vms[1]['name'], disk_size)
                         log.info('Created disk: {}'.format(disk_name))
                         device.append('/dev/sd{}'.format(chr(98 + i)))
@@ -204,7 +216,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
             elif test_type == constants.DB_DISK:
                 if raid:
                     device = []
-                    for i in xrange(12):
+                    for i in xrange(disks):
                         disk_name = connector.attach_disk(vms[2]['name'], disk_size)
                         log.info('Created disk: {}'.format(disk_name))
                         device.append('/dev/sd{}'.format(chr(98 + i)))
@@ -326,6 +338,114 @@ def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenan
             ssh_client[1].run('chmod +x /tmp/run_orion.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
             cmd = '/tmp/run_orion.sh {}'.format(constants.RAID_DEV)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
+
+            ssh_client[1].get_file('/tmp/orion.zip',
+                                   os.path.join(localpath, 'orion' + str(time.time()) + '.zip'))
+    except Exception as e:
+        log.error(e)
+        raise
+    finally:
+        if connector:
+            connector.teardown()
+
+
+def test_orion_raid_azure(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                          instancetype, user, localpath, region, zone):
+    """
+    Run Orion test using 12 x SSD devices in RAID 0.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    """
+    raid = 10
+    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
+                                                      test_type=constants.VM_DISK, disk_size=513,
+                                                      raid=raid, keyid=keyid, secret=secret,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
+                                                      imageid=imageid, instancetype=instancetype,
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
+
+    try:
+        if all(client for client in ssh_client.values()):
+            current_path = os.path.dirname(os.path.realpath(__file__))
+            ssh_client[1].put_file(os.path.join(localpath, 'orion_linux_x86-64.gz'),
+                                   '/tmp/orion_linux_x86-64.gz')
+            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_orion.sh'),
+                                   '/tmp/run_orion.sh')
+            ssh_client[1].run('chmod +x /tmp/run_orion.sh')
+            ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
+            cmd = '/tmp/run_orion.sh {}'.format(' '.join(device))
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
+
+            ssh_client[1].get_file('/tmp/orion.zip',
+                                   os.path.join(localpath, 'orion' + str(time.time()) + '.zip'))
+    except Exception as e:
+        log.error(e)
+        raise
+    finally:
+        if connector:
+            connector.teardown()
+
+
+def test_orion_raid_aws(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                        instancetype, user, localpath, region, zone):
+    """
+    Run Orion test using 12 x SSD devices in RAID 0.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    """
+    raid = 10
+    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
+                                                      test_type=constants.VM_DISK, disk_size=100,
+                                                      raid=raid, keyid=keyid, secret=secret,
+                                                      token=token, subscriptionid=subscription,
+                                                      tenantid=tenant, projectid=projectid,
+                                                      imageid=imageid, instancetype=instancetype,
+                                                      user=user, localpath=localpath,
+                                                      region=region, zone=zone)
+
+    try:
+        if all(client for client in ssh_client.values()):
+            current_path = os.path.dirname(os.path.realpath(__file__))
+            ssh_client[1].put_file(os.path.join(localpath, 'orion_linux_x86-64.gz'),
+                                   '/tmp/orion_linux_x86-64.gz')
+            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_orion.sh'),
+                                   '/tmp/run_orion.sh')
+            ssh_client[1].run('chmod +x /tmp/run_orion.sh')
+            ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
+            cmd = '/tmp/run_orion.sh {}'.format(' '.join(device))
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
 
@@ -575,7 +695,8 @@ def test_apache_bench(provider, keyid, secret, token, imageid, subscription, ten
     :param region: EC2 region to connect to
     :param zone: EC2 zone where other resources should be available
     """
-    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
+    vm_count = 2
+    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=vm_count,
                                                       test_type=None, disk_size=None, raid=False,
                                                       keyid=keyid, secret=secret, token=token,
                                                       subscriptionid=subscription, tenantid=tenant,
@@ -592,11 +713,18 @@ def test_apache_bench(provider, keyid, secret, token, imageid, subscription, ten
             ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
     
             current_path = os.path.dirname(os.path.realpath(__file__))
+            for i in range(1, vm_count + 1):
+                ssh_client[i].put_file(os.path.join(current_path, 'tests', 'perf_tuning.sh'),
+                                       '/tmp/perf_tuning.sh')
+                ssh_client[i].run('chmod +x /tmp/perf_tuning.sh')
+                ssh_client[i].run("sed -i 's/\r//' /tmp/perf_tuning.sh")
+                ssh_client[i].run('/tmp/perf_tuning.sh')
+
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_apache_bench.sh'),
                                    '/tmp/run_apache_bench.sh')
             ssh_client[1].run('chmod +x /tmp/run_apache_bench.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_apache_bench.sh")
-            cmd = '/tmp/run_apache_bench.sh {} {}'.format(vm_ips[2], user)
+            cmd = '/tmp/run_apache_bench.sh {} {} {}'.format(vm_ips[2], user, provider)
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/apache_bench.zip', os.path.join(
