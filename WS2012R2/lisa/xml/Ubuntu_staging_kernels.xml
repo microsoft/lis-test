@@ -107,6 +107,7 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>pki_id_rsa.ppk</sshKey>
+            <role>nonSUT</role>
             <hardware>
                <create>true</create>
                <numCPUs>2</numCPUs>

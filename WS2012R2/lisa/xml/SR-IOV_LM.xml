@@ -198,6 +198,7 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
+           <role>nonSUT</role>
             <hardware>
                <create>false</create>
                <isCluster>true</isCluster>
