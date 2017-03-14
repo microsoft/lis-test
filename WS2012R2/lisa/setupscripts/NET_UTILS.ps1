@@ -82,7 +82,7 @@ function getRandUnusedMAC([String]$hvServer,[Char]$delim)
 	{
 		# now get random number
 		[uint64]$randDecAddr = Get-Random -minimum $randStart -maximum $randStop
-		[String]$randAddr = "{0:X}" -f $randDecAddr
+		[String]$randAddr = "{0:X12}" -f $randDecAddr
 
 		# Now set the unicast/multicast flag bit.
 		[Byte] $firstbyte = "0x" + $randAddr.substring(0,2)

@@ -215,7 +215,7 @@ if (-not $retVal)
 # Get the logs
 "Get Logs"
 Start-Sleep -s 40
-$vfEnabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResults.log | grep sender | awk '{print `$7}'"
+[decimal]$vfEnabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResults.log | grep sender | awk '{print `$7}'"
 if (-not $vfEnabledBandwidth){
     "ERROR: No result was logged! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
     return $false
@@ -252,7 +252,7 @@ Start-Sleep -s 20
 
 # Get the logs
 Start-Sleep -s 60
-$vfDisabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResultsNoVF.log | grep sender | awk '{print `$7}'"
+[decimal]$vfDisabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResultsNoVF.log | grep sender | awk '{print `$7}'"
 if (-not $vfDisabledBandwidth){
     "ERROR: No result was logged after SR-IOV was disabled! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
     return $false
