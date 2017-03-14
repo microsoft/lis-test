@@ -36,15 +36,21 @@ function LogMsg() {
 }
 
 if [ $# -lt 1 ]; then
-    echo -e "\nUsage:\n$0 device"
+    echo -e "\nUsage:\n$0 device1, device2, ..."
     exit 1
 fi
 
-DISK="$1"
+
+declare -a DISKS=("${@:1}")
 ORION_SCENARIO_FILE="orion"
 FILE_NAME="orion_linux_x86-64.gz"
 TEST_MODES=(oltp dss simple normal)
 ORION=${FILE_NAME}
+
+if [ ${#DISKS[@]} -gt 1 ]
+then
+    LogMsg "Using multiple disks."
+fi
 
 sudo apt-get update >> ${LOG_FILE}
 sudo apt-get -y install libaio1 sysstat zip >> ${LOG_FILE}
@@ -52,7 +58,11 @@ sudo apt-get -y install libaio1 sysstat zip >> ${LOG_FILE}
 run_orion()
 {
     LogMsg "Orion start running in $1 mode."
-    iostat -x -d 1 4000 `basename ${DISK}`  2>&1 > /tmp/orion/$1.iostat.diskio.log &
+    for i in "${!DISKS[@]}"
+    do
+        iostat -x -d 1 4000 `basename ${DISKS[$i]}`  2>&1 > /tmp/orion/$1.iostat.diskio.log &
+    done
+
     vmstat       1 4000      2>&1 > /tmp/orion/$1.vmstat.memory.cpu.log &
 
     sudo /tmp/orion_linux_x86-64 -run $1 -testname ${ORION_SCENARIO_FILE} $2 2>&1 | tee -a ${LOG_FILE}
@@ -76,20 +86,13 @@ cd /tmp
 gunzip -f /tmp/${ORION}
 chmod 755 /tmp/orion_linux_x86-64
 mkdir -p /tmp/orion
-echo ${DISK} > /tmp/${ORION_SCENARIO_FILE}.lun
-
-if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
-then
-    sudo mkfs.ext4 ${DISK}
-    sudo mkdir /stor
-    sudo mount ${DISK} /stor
-elif [[ ${DISK} == *"md"* ]]
-then
-    LogMsg "Using ${DISK} as RAID0."
-else
-    LogMsg "Failed to identify disk type for ${DISK}."
-    exit 70
-fi
+for i in "${!DISKS[@]}"
+do
+    sudo mkfs.ext4 ${DISKS[$i]}
+    sudo mkdir /stor${i}
+    sudo mount ${DISKS[$i]} /stor${i}
+    echo ${DISKS[$i]} >> /tmp/${ORION_SCENARIO_FILE}.lun
+done
 
 for mode in "${TEST_MODES[@]}"
 do

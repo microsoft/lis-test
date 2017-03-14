@@ -66,7 +66,8 @@ class AWSConnector:
             self.zone = self.region + 'a'
         else:
             self.zone = zone
-        self.volume_type = {'ssd': 'gp2'}
+        self.volume_type = {'ssd_gp2': 'gp2',
+                            'ssd_io1': 'io1'}
 
         self.key_name = 'test_ssh_key'
         self.group_name = 'test_sec_group'
