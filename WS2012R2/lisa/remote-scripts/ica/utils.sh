@@ -52,6 +52,7 @@ declare __LIS_STATE_FILE="$LIS_HOME/state.txt"
 # LIS possible states recorded in state file
 declare __LIS_TESTRUNNING="TestRunning"      # The test is running
 declare __LIS_TESTCOMPLETED="TestCompleted"  # The test completed successfully
+declare __LIS_TESTSKIPPED="TestSkipped"      # The test is not supported by this scenario
 declare __LIS_TESTABORTED="TestAborted"      # Error during setup of test
 declare __LIS_TESTFAILED="TestFailed"        # Error during execution of test
 
@@ -154,6 +155,12 @@ __SetTestState()
 SetTestStateFailed()
 {
 	__SetTestState "$__LIS_TESTFAILED"
+	return $?
+}
+
+SetTestStateSkipped()
+{
+	__SetTestState "$__LIS_TESTSKIPPED"
 	return $?
 }
 

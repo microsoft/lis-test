@@ -27,6 +27,13 @@
     Test Case Utility functions.  This is a collection of function
     commonly used by PowerShell test case scripts and setup scripts.
 #>
+#
+# test result codes
+#
+New-Variable Passed              -value "Passed"              -option ReadOnly
+New-Variable Skipped             -value "Skipped"             -option ReadOnly
+New-Variable Aborted             -value "Aborted"             -option ReadOnly
+New-Variable Failed              -value "Failed"              -option ReadOnly
 
 
 
@@ -1371,7 +1378,7 @@ function KvpToDict($rawData)
         $key = ""
         $value = ""
         $xmlData = [Xml] $dataItem
-        
+
         foreach ($p in $xmlData.INSTANCE.PROPERTY)
         {
             if ($p.Name -eq "Name")
