@@ -64,7 +64,7 @@
                 <param>TC_COVERED=SQM-01</param>
             </testparams>
         </test>
-        
+
         <test>
             <testName>KVP_Basic</testName>
             <testScript>SetupScripts\KVP_Basic.ps1</testScript>
@@ -114,6 +114,7 @@
         <test>
             <testName>KVP_Remove_Key_Values</testName>
             <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
+            <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
@@ -138,8 +139,8 @@
                 <param>Value=111</param>
             </testparams>
         </test>
-		
-    	<test>
+
+        <test>
     		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
     		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
     		<timeout>600</timeout>
@@ -151,8 +152,8 @@
     			<param>Value=000</param>
     			<param>Pool=0</param>
     		</testparams>
-    	</test>	
-    		
+        </test>
+
     	<test>
     		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
     		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
@@ -165,7 +166,7 @@
     			<param>Value=000</param>
     			<param>Pool=0</param>
     		</testparams>
-    	</test>
+        </test>
 
         <test>
             <testName>KVP_VerifyHostInjectedItems</testName>
@@ -183,7 +184,7 @@
         </test>
     </testCases>
 
-    <VMs>        
+    <VMs>
 	    <vm>
             <hvServer>localhost</hvServer>
             <vmName>VM_NAME</vmName>
