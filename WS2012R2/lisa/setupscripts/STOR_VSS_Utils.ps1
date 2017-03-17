@@ -57,15 +57,26 @@ function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter)
 	}
 
 	# Check to see Linux VM is running VSS backup daemon
-	$sts = CheckVSSDaemon
-	if (-not $sts[-1])
-	{
-		Write-Output "ERROR executing STOR_VSS_Check_VSS_Daemon.sh on VM. Exiting test case!" >> $summaryLog
-		Write-Output "ERROR: Running STOR_VSS_Check_VSS_Daemon.sh script failed on VM!"
-		return $False
+	$sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"		 
+	if (-not $sts[-1])		
+    {
+		Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog		
+		Write-Output "ERROR: Running $remoteScript script failed on VM!"		
+		return $False		
 	}
+	
 
 	Write-Output "Info: VSS Daemon is running" >> $summaryLog
+
+	# Create a file on the VM before backup		
+ 	$sts = CreateFile "/root/1"		
+ 	if (-not $sts[-1])		
+	{		
+ 	  Write-Output "ERROR: Cannot create test file"		
+     	return $False		
+ 	}		
+ 
+ 	Write-Output "File created on VM: $vmname" >> $summaryLog
 	return $True
 }
 
@@ -102,7 +113,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 	$sts=Get-WBJob -Previous 1
 	if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 	{
-		Write-Output "ERROR: VSS Backup failed"
+		Write-Output "ERROR: VSS Backup failed" >> $summaryLog
 		Write-Output $sts.ErrorDescription
 		$retVal = $false
 		return $retVal
@@ -111,6 +122,17 @@ function startBackup([string] $vmName, [string] $driveletter)
 	Write-Output "`nInfo: Backup successful!`n"
 	# Let's wait a few Seconds
 	Start-Sleep -Seconds 70
+
+	# Delete file on the VM	
+    if (-not $vmState) {			
+		$sts = DeleteFile		
+		if (-not $sts[-1])		
+		{		
+			Write-Output "ERROR: Cannot delete test file!" >> $summaryLog
+			return $False		
+		}		
+		Write-Output "File deleted on VM: $vmname" >> $summaryLog
+	}
 	return $backupLocation
 }
 
@@ -127,7 +149,7 @@ function restoreBackup([string] $backupLocation)
 	$sts=Get-WBJob -Previous 1
 	if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 	{
-		Write-Output "ERROR: VSS Restore failed"
+		Write-Output "ERROR: VSS Restore failed" >> $summaryLog
 		Write-Output $sts.ErrorDescription
 		return $False
 	}
@@ -145,7 +167,7 @@ function checkResults([string] $vmName, [string] $hvServer)
 	$vm = Get-VM -Name $vmName -ComputerName $hvServer
 		if (-not $vm)
 		{
-			Write-Output "ERROR: VM ${vmName} does not exist after restore"
+			Write-Output "ERROR: VM ${vmName} does not exist after restore" >> $summaryLog
 			return $False
 		}
 	Write-Output "Restore success!"
@@ -156,10 +178,10 @@ function checkResults([string] $vmName, [string] $hvServer)
 		Start-Sleep -Seconds 60
 		
 		if ( $vm.state -ne "Off" )
-	{
-		Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state
-		return $False
-	}
+		{
+			Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state >> $summaryLog
+			return $False
+		}
 	}
 	
 
@@ -168,7 +190,7 @@ function checkResults([string] $vmName, [string] $hvServer)
 	$sts = Start-VM -Name $vmName -ComputerName $hvServer
 	if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
 	{
-		Write-Output "ERROR: ${vmName} failed to start"
+		Write-Output "ERROR: ${vmName} failed to start" >> $summaryLog
 		return $False
 	}
 	else
