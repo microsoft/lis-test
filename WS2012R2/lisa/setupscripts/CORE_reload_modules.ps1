@@ -72,7 +72,7 @@ function CheckResult()
     $TestCompleted = "TestCompleted"
     $TestAborted   = "TestAborted"
     $TestRunning   = "TestRunning"
-    $attempts      = 100    
+    $attempts      = 200    
      
     Write-Output "Info : pscp -q -i ssh\${sshKey} root@${ipv4}:$stateFile}"
     while ($attempts -ne 0 ){
