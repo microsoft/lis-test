@@ -195,7 +195,7 @@ def parse_ica_log(log_path):
                     parsed_ica['vms'][vm_name]['TestLocation'] = 'Azure'
 
             elif re.search('^test', line) and \
-                    re.search('(success$|failed$|aborted$)', line):
+                    re.search('(success$|failed$|aborted$|skipped$)', line):
                 test = line.split()
                 try:
                     parsed_ica['tests'][test[1].lower()] = (vm_name, test[3])
