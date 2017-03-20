@@ -338,69 +338,53 @@ else {
 }
 
 #
-# Run the remote script to get MD5 checksum on VM
+# Get MD5 checksum for files on the VM
 #
 
 # first file
-$logfilename = ".\summary.log"
-.\bin\plink -i ssh\${sshKey} root@${ipv4} "dos2unix /root/NET_scp_check_md5.sh"
-
-.\bin\plink -i ssh\${sshKey} root@${ipv4} "bash /root/NET_scp_check_md5.sh $testfile1"
+$md5RemoteFile1=.\bin\plink -i ssh\${sshKey} root@${ipv4} "openssl md5 /mnt/$testfile1"
 if (-not $?) {
-    Write-Error -Message  "ERROR: Unable to compute md5 on vm for first file" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to compute md5 on vm for first file" | Tee-Object -Append -file $summaryLog
+    Write-Error -Message "ERROR: Unable to run openssl command on VM for first file" -ErrorAction SilentlyContinue
+    Write-Output "ERROR: Unable to run openssl command on VM for first file" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
 
-.\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/summary.log .
-if (-not $?) {
-    Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to copy the confirmation file from the VM" | Tee-Object -Append -file $summaryLog
-    remove_files
-    return $False
-}
+#Extracting only the MD5 hash for the remote and local variables
+$remoteChecksum1=$md5RemoteFile1.split()[-1]
+$localFile1MD5=$localChksum1.split()[-1]
+Write-Output "MD5 checksum on Guest VM: $remoteChecksum1" | Tee-Object -Append -file $summaryLog
 
-$md5IsMatching = select-string -pattern $localChksum1 -path $logfilename
-if ($md5IsMatching -eq $null)
-{
+$md5IsMatching1 = [string]::Compare($remoteChecksum1, $localFile1MD5, $true)
+if ($md5IsMatching1 -ne 0) {
     Write-Output "ERROR: MD5 checksums are not matching for first file" | Tee-Object -Append -file $summaryLog
-    Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
     remove_files
     return $False
 }
 
 Write-Output "Info: MD5 checksums are matching for first file" | Tee-Object -Append -file $summaryLog
-Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
 
 # 2nd file
-.\bin\plink -i ssh\${sshKey} root@${ipv4} "bash /root/NET_scp_check_md5.sh $testfile2"
+$md5RemoteFile2=.\bin\plink -i ssh\${sshKey} root@${ipv4} "openssl md5 /mnt/$testfile2"
 if (-not $?) {
-    Write-Error -Message  "ERROR: Unable to compute md5 on vm for second file" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to compute md5 on vm for second file" | Tee-Object -Append -file $summaryLog
+    Write-Error -Message "ERROR: Unable to run openssl command on VM for second file" -ErrorAction SilentlyContinue
+    Write-Output "ERROR: Unable to run openssl command on VM for second file" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
 
-.\bin\pscp -i ssh\${sshKey} root@${ipv4}:/root/summary.log .
-if (-not $?) {
-    Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to copy the confirmation file from the VM" | Tee-Object -Append -file $summaryLog
-    remove_files
-    return $False
-}
+$remoteChecksum2=$md5RemoteFile2.split()[-1]
+$localFile2MD5=$localChksum2.split()[-1]
+Write-Output "MD5 checksum on Guest VM: $remoteChecksum2" | Tee-Object -Append -file $summaryLog
 
-$md5IsMatching = select-string -pattern $localChksum2 -path $logfilename
-if ($md5IsMatching -eq $null)
-{
+$md5IsMatching2 = [string]::Compare($remoteChecksum2, $localFile2MD5, $true)
+if ($md5IsMatching2 -ne 0) {
     Write-Output "ERROR: MD5 checksums are not matching for second file" | Tee-Object -Append -file $summaryLog
-    Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
     remove_files
     return $False
 }
 
 Write-Output "Info: MD5 checksums are matching for the second file" | Tee-Object -Append -file $summaryLog
-Remove-Item -Path "NET_scp_check_md5.sh.log" -Force
 
 remove_files
 return $True

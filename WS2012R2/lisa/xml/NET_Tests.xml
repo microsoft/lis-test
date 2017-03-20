@@ -384,7 +384,6 @@ permissions and limitations under the License.
             <testName>CopyFileScp</testName>
             <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
             <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
-            <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
             <testParams>
                 <param>TC_COVERED=NET-19</param>
                 <param>SCSI=1,0,Dynamic,512,15GB</param>
