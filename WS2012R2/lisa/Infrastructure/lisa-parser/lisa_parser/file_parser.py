@@ -195,7 +195,7 @@ def parse_ica_log(log_path):
                     parsed_ica['vms'][vm_name]['TestLocation'] = 'Azure'
 
             elif re.search('^test', line) and \
-                    re.search('(success$|failed$|aborted$|skipped$)', line):
+                    re.search('(passed$|failed$|aborted$|skipped$)', line):
                 test = line.split()
                 try:
                     parsed_ica['tests'][test[1].lower()] = (vm_name, test[3])
@@ -737,7 +737,7 @@ class IPERFLogsReader(BaseLogsReader):
                 lines = f2.readlines()
                 for i in xrange(0, len(lines)):
                     ica_mark = re.match(
-                        '\s*Test\s*iperf3-{}-{}k\s*:\s*Success'.format(
+                        '\s*Test\s*iperf3-{}-{}k\s*:\s*Passed'.format(
                             log_dict['Protocol'],
                             log_dict['SendBufSize_KBytes']),
                         lines[i])
