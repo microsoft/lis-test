@@ -63,7 +63,7 @@ class AWSConnector:
         else:
             self.region = region
         if not zone:
-            self.zone = self.region + 'a'
+            self.zone = self.region + 'b'
         else:
             self.zone = zone
         self.volume_type = {'ssd_gp2': 'gp2',
@@ -229,17 +229,30 @@ class AWSConnector:
         conn = self.conn or self.vpc_conn
         sriov_status = conn.get_instance_attribute(instance.id, 'sriovNetSupport')
         log.info('Enabling SR-IOV on {}'.format(instance.id))
+        client = None
         if not sriov_status and ssh_client:
             util_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client.put_file(os.path.join(util_path, 'tests', 'enable_sr_iov.sh'),
                                 '/tmp/enable_sr_iov.sh')
             ssh_client.run('chmod +x /tmp/enable_sr_iov.sh')
             ssh_client.run("sed -i 's/\r//' /tmp/enable_sr_iov.sh")
-            ssh_client.run('/tmp/enable_sr_iov.sh')
+            ssh_client.run('/tmp/enable_sr_iov.sh {}'.format(self.instancetype))
             conn.stop_instances(instance_ids=[instance.id])
             self.wait_for_state(instance, 'state', 'stopped')
-            mod_sriov = conn.modify_instance_attribute(instance.id, 'sriovNetSupport', 'simple')
-            log.info('Modifying SR-IOV state to simple: {}'.format(mod_sriov))
+            if self.instancetype == constants.AWS_P28XLARGE:
+                log.info('Enabling ENA for instance: {}'.format(self.instancetype))
+                # The enaSupport attribute is not supported at this time.
+                ena_status = conn.get_instance_attribute(instance.id, 'enaSupport')
+                log.info('Enabling ENA for {} instance: {}'.format(constants.AWS_P28XLARGE,
+                                                                   ena_status))
+                conn.modify_instance_attribute(instance.id, 'enaSupport', True)
+            elif self.instancetype == constants.AWS_D24XLARGE:
+                conn.modify_instance_attribute(instance.id, 'sriovNetSupport', 'simple')
+                sriov_status = conn.get_instance_attribute(instance.id, 'sriovNetSupport')
+                log.info('Modifying SR-IOV state to simple: {}'.format(sriov_status))
+            else:
+                log.error('Instance type {} unhandled for SRIOV'.format(self.instancetype))
+                return None
             conn.start_instances(instance_ids=[instance.id])
             self.wait_for_state(instance, 'state', 'running')
 
