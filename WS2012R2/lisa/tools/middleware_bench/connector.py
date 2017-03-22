@@ -279,7 +279,9 @@ def test_orion(provider, keyid, secret, token, imageid, subscription, tenant, pr
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/orion.zip',
-                                   os.path.join(localpath, 'orion' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'orion{}_{}.zip'.format(str(time.time()),
+                                                                        instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -344,7 +346,9 @@ def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenan
             ssh_client[1].run(cmd)
 
             ssh_client[1].get_file('/tmp/orion.zip',
-                                   os.path.join(localpath, 'orion' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'orion{}_{}.zip'.format(str(time.time()),
+                                                                        instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -393,7 +397,9 @@ def test_sysbench(provider, keyid, secret, token, imageid, subscription, tenant,
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/sysbench.zip',
-                                   os.path.join(localpath, 'sysbench' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'sysbench{}_{}.zip'.format(str(time.time()),
+                                                                           instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -446,7 +452,9 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/sysbench.zip',
-                                   os.path.join(localpath, 'sysbench' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'sysbench{}_{}.zip'.format(str(time.time()),
+                                                                           instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -501,7 +509,8 @@ def test_memcached(provider, keyid, secret, token, imageid, subscription, tenant
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/memcached.zip',
                                    os.path.join(localpath,
-                                                'memcached' + str(time.time()) + '.zip'))
+                                                'memcached{}_{}.zip'.format(str(time.time()),
+                                                                            instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -555,7 +564,9 @@ def test_redis(provider, keyid, secret, token, imageid, subscription, tenant, pr
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/redis.zip',
-                                   os.path.join(localpath, 'redis' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'redis{}_{}.zip'.format(str(time.time()),
+                                                                        instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -610,8 +621,10 @@ def test_apache_bench(provider, keyid, secret, token, imageid, subscription, ten
             cmd = '/tmp/run_apache_bench.sh {} {}'.format(vm_ips[2], user)
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
-            ssh_client[1].get_file('/tmp/apache_bench.zip', os.path.join(
-                    localpath, 'apache_bench' + str(time.time()) + '.zip'))
+            ssh_client[1].get_file('/tmp/apache_bench.zip',
+                                   os.path.join(localpath,
+                                                'apache_bench{}_{}.zip'.format(str(time.time()),
+                                                                               instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -665,7 +678,9 @@ def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, 
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/mariadb.zip',
-                                   os.path.join(localpath, 'mariadb' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'mariadb{}_{}.zip'.format(str(time.time()),
+                                                                          instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -732,7 +747,9 @@ def test_mariadb_raid(provider, keyid, secret, token, imageid, subscription, ten
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/mariadb.zip',
-                                   os.path.join(localpath, 'mariadb' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'mariadb{}_{}.zip'.format(str(time.time()),
+                                                                          instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -786,7 +803,9 @@ def test_mongodb(provider, keyid, secret, token, imageid, subscription, tenant, 
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/mongodb.zip',
-                                   os.path.join(localpath, 'mongodb' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'mongodb{}_{}.zip'.format(str(time.time()),
+                                                                          instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -852,7 +871,9 @@ def test_mongodb_raid(provider, keyid, secret, token, imageid, subscription, ten
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/mongodb.zip',
-                                   os.path.join(localpath, 'mongodb' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'mongodb{}_{}.zip'.format(str(time.time()),
+                                                                          instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -907,8 +928,10 @@ def test_zookeeper(provider, keyid, secret, token, imageid, subscription, tenant
             cmd = '/tmp/run_zookeeper.sh {} {}'.format(user, zk_servers)
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
-            ssh_client[1].get_file('/tmp/zookeeper.zip', os.path.join(
-                    localpath, 'zookeeper' + str(time.time()) + '.zip'))
+            ssh_client[1].get_file('/tmp/zookeeper.zip',
+                                   os.path.join(localpath,
+                                                'zookeeper{}_{}.zip'.format(str(time.time()),
+                                                                            instancetype)))
     except Exception as e:
         log.error(e)
         raise
@@ -966,7 +989,9 @@ def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant,
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             ssh_client[1].get_file('/tmp/terasort.zip',
-                                   os.path.join(localpath, 'terasort' + str(time.time()) + '.zip'))
+                                   os.path.join(localpath,
+                                                'terasort{}_{}.zip'.format(str(time.time()),
+                                                                           instancetype)))
     except Exception as e:
         log.error(e)
         raise
