@@ -123,11 +123,12 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                                                 volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
             elif test_type == constants.CLUSTER_DISK:
-                connector.attach_ebs_volume(vms[1], size=disk_size + 200, iops=5000,
+                connector.attach_ebs_volume(vms[1], size=disk_size + 200,
+                                            iops=50 * (disk_size + 200),
                                             volume_type=connector.volume_type['ssd_io1'],
                                             device=constants.DEVICE_AWS)
                 for i in xrange(2, vm_count + 1):
-                    connector.attach_ebs_volume(vms[i], size=disk_size, iops=5000,
+                    connector.attach_ebs_volume(vms[i], size=disk_size, iops=50 * disk_size,
                                                 volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
                     time.sleep(3)
