@@ -25,6 +25,13 @@ function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1} >> ${LOG_FILE}
 }
 
+if [ $# -lt 1 ]; then
+    echo -e "\nUsage:\n$0 provider"
+    exit 1
+fi
+
+PROVIDER="$1"
+
 declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
                            ["net.core.rmem_max"]="67108864"
                            ["net.core.wmem_max"]="67108864"
@@ -42,20 +49,21 @@ function setup_sysctl {
     for param in "${!sysctl_params[@]}"; do
         sudo grep -q "$param" ${sysctl_file} &&
         sudo sed -i 's/^'"$param"'.*/'"$param"' = '"${sysctl_params[$param]}"'/' ${sysctl_file} ||
-        sudo echo "$param = ${sysctl_params[$param]}" >> ${sysctl_file} || return 1
+        echo "$param = ${sysctl_params[$param]}" | sudo tee --append ${sysctl_file} || return 1
     done
     sudo sysctl -p ${sysctl_file}
 }
 
-#if [[ ${PROVIDER} == "azure" ]]; then
-#    total_cpus=`grep -c '^processor' /proc/cpuinfo`
-#    for (( i=0; i<${total_cpus}; i++ ))
-#    do
-#        sudo echo '0' > /proc/sys/kernel/sched_domain/cpu${i}/domain0/idle_idx
-#        sudo echo '4655' > /proc/sys/kernel/sched_domain/cpu${i}/domain0/flags
-#        ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo echo '0' >/proc/sys/kernel/sched_domain/cpu${i}/domain0/idle_idx"
-#        ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo echo '4655' >/proc/sys/kernel/sched_domain/cpu${i}/domain0/flags"
-#    done
-#fi
+function setup_cpu_sched_domain {
+    if [[ ${PROVIDER} == "azure" ]]; then
+        total_cpus=`grep -c '^processor' /proc/cpuinfo`
+        for (( i=0; i<${total_cpus}; i++ ))
+        do
+            echo '0' | sudo tee /proc/sys/kernel/sched_domain/cpu${i}/domain0/idle_idx
+            echo '4655' | sudo tee /proc/sys/kernel/sched_domain/cpu${i}/domain0/flags
+        done
+    fi
+}
 
 setup_sysctl
+setup_cpu_sched_domain

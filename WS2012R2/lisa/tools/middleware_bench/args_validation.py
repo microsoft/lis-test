@@ -68,7 +68,7 @@ class SubscriptionAction(argparse.Action):
             raise ValueError('SubscriptionAction nargs not allowed.')
         super(SubscriptionAction, self).__init__(option_strings, dest, **kwargs)
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, values=None, option_string=None):
         setattr(namespace, self.dest, values)
 
 
@@ -78,7 +78,7 @@ class TenantAction(argparse.Action):
             raise ValueError('TenantAction nargs not allowed.')
         super(TenantAction, self).__init__(option_strings, dest, **kwargs)
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, values=None, option_string=None):
         setattr(namespace, self.dest, values)
 
 
@@ -88,7 +88,7 @@ class ProjectAction(argparse.Action):
             raise ValueError('ProjectAction nargs not allowed.')
         super(ProjectAction, self).__init__(option_strings, dest, **kwargs)
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, values=None, option_string=None):
         setattr(namespace, self.dest, values)
 
 
@@ -98,7 +98,7 @@ class TokenAction(argparse.Action):
             raise ValueError('TokenAction nargs not allowed.')
         super(TokenAction, self).__init__(option_strings, dest, **kwargs)
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, values=None, option_string=None):
         setattr(namespace, self.dest, values)
 
 
