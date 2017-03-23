@@ -60,12 +60,9 @@ fi
 if [ ! ${TC_COVERED} ]; then
     LogMsg "The TC_COVERED variable is not defined."
 	echo "The TC_COVERED variable is not defined." >> ~/summary.log
-    LogMsg "Terminating the test."
-    UpdateTestState "TestAborted"
-    exit 1
 fi
 
-echo "Covers : ${TC_COVERED}" >> ~/summary.log
+echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 
 ### Display info on the Hyper-V modules that are loaded ###
 LogMsg "#### Status of Hyper-V Kernel Modules ####\n"
@@ -82,8 +79,7 @@ for module in ${HYPERV_MODULES[@]}; do
 		load_status=$( lsmod | grep $module_alt 2>&1)
 		module_name=$module_alt
 	fi
-	
-	# load_status=$(modinfo $module 2>&1)
+
 	# Check to see if the module is loaded.  It is if module name 
 	# contained in the output.
 	if [[ $load_status =~ $module_name ]]; then
@@ -92,18 +88,11 @@ for module in ${HYPERV_MODULES[@]}; do
 		echo  " $module : Success" >> ~/summary.log
 	else
 		LogMsg "ERROR: Status: module '$module' is not loaded"
-#		UpdateTestState $ICA_TESTABORTED
-#		exit $E_HYPERVIC_MODULE_NOT_LOADED
 		PASS="1"
 		echo  " $module : Failed" >> ~/summary.log
 	fi
 	echo -ne "\n\n"
 done
-
-# The benchmark tests in the 'benchmark-tests' folder need to be
-# fixed/modified.  They take way to long to run during the Hyper-V automation
-# testing.
-
 
 #
 # Let the caller know everything worked

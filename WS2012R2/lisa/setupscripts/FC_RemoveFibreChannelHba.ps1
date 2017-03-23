@@ -36,7 +36,7 @@
     A semicolon separated list of test parameters.
 	
 .Example
-	.\FC_RemoveFibreChannelHba.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "TC_COVERED=FC-ID;$vSANName=FC_NAME"
+	.\FC_RemoveFibreChannelHba.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "TC_COVERED=FC-ID;vSANName=FC_NAME"
 #>
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
@@ -53,12 +53,6 @@ if (-not $vmName) {
 
 if (-not $hvServer) {
     write-output  "Error: hvServer is null!"
-    return $retVal
-}
-
-if (-not $testParams) {
-  write-output  "Error: No testParams provided!"
-  write-output  "This script requires the test case ID as the test parameter."
     return $retVal
 }
 
@@ -107,14 +101,14 @@ if (-not $vSANName) {
 $retVal = $true
 
 # Remove the FC adapter
-$fc = Get-VMFibreChannelHba -VmName $vmName
+$fc = Get-VMFibreChannelHba -VmName $vmName -ComputerName $hvServer
 
-if ((Remove-VMFibreCHannelHba $fc) -ne $null) {
+if ((Remove-VMFibreCHannelHba $fc -ComputerName $hvServer) -ne $null) {
     write-output "Error: Unable to remove the Fibre Channel named: $vSANName "
     $retVal = $false
 }
 else {
-    write-output "Successfully removed Fibre Channel named:$vSANName "
+    write-output "Info: Successfully removed Fibre Channel $vSANName"
     $retVal = $true
 }
 
