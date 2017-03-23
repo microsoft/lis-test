@@ -1488,3 +1488,43 @@ function CreateChildVHD($ParentVHD, $defaultpath, $hvServer)
 
     return $ChildVHD
 }
+
+# Convert a string to int64 for use with the Set-VMMemory cmdlet
+function ConvertToMemSize([String] $memString, [String]$hvServer)
+{
+    $memSize = [Int64] 0
+
+    if ($memString.EndsWith("MB"))
+    {
+        $num = $memString.Replace("MB","")
+        $memSize = ([Convert]::ToInt64($num)) * 1MB
+    }
+    elseif ($memString.EndsWith("GB"))
+    {
+        $num = $memString.Replace("GB","")
+        $memSize = ([Convert]::ToInt64($num)) * 1GB
+    }
+    elseif( $memString.EndsWith("%"))
+    {
+        $osInfo = Get-WMIObject Win32_OperatingSystem -ComputerName $hvServer
+        if (-not $osInfo)
+        {
+            "Error: Unable to retrieve Win32_OperatingSystem object for server ${hvServer}"
+            return $False
+        }
+
+        $hostMemCapacity = $osInfo.FreePhysicalMemory * 1KB
+        $memPercent = [Convert]::ToDouble("0." + $memString.Replace("%",""))
+        $num = [Int64] ($memPercent * $hostMemCapacity)
+
+        # Align on a 4k boundry
+        $memSize = [Int64](([Int64] ($num / 2MB)) * 2MB)
+    }
+    # we received the number of bytes
+    else
+    {
+        $memSize = ([Convert]::ToInt64($memString))
+    }
+
+    return $memSize
+}
