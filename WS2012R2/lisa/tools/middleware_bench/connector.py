@@ -99,13 +99,13 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                     device = []
                     for i in xrange(raid):
                         dev = '/dev/sd{}'.format(chr(120 - i))
-                        connector.attach_ebs_volume(vms[1], size=disk_size, iops=5000,
+                        connector.attach_ebs_volume(vms[1], size=disk_size, iops=50 * disk_size,
                                                     volume_type=connector.volume_type['ssd_io1'],
                                                     device=dev)
                         device.append(dev.replace('sd', 'xvd'))
                         time.sleep(3)
                 else:
-                    connector.attach_ebs_volume(vms[1], size=disk_size, iops=5000,
+                    connector.attach_ebs_volume(vms[1], size=disk_size, iops=50 * disk_size,
                                                 volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
             elif test_type == constants.DB_DISK:
@@ -113,13 +113,13 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                     device = []
                     for i in xrange(raid):
                         dev = '/dev/sd{}'.format(chr(120 - i))
-                        connector.attach_ebs_volume(vms[2], size=disk_size, iops=5000,
+                        connector.attach_ebs_volume(vms[2], size=disk_size, iops=50 * disk_size,
                                                     volume_type=connector.volume_type['ssd_io1'],
                                                     device=dev)
                         device.append(dev.replace('sd', 'xvd'))
                         time.sleep(3)
                 else:
-                    connector.attach_ebs_volume(vms[2], size=disk_size, iops=5000,
+                    connector.attach_ebs_volume(vms[2], size=disk_size, iops=50 * disk_size,
                                                 volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
             elif test_type == constants.CLUSTER_DISK:
@@ -655,14 +655,20 @@ def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, 
     :param region: EC2 region to connect to
     :param zone: EC2 zone where other resources should be available
     """
+    disk_size = 0
+    if provider == constants.AWS:
+        disk_size = 100
+    elif provider == constants.AZURE:
+        disk_size = 513
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
-                                                      test_type=constants.DB_DISK, disk_size=40,
-                                                      raid=False, keyid=keyid, secret=secret,
-                                                      token=token, subscriptionid=subscription,
-                                                      tenantid=tenant, projectid=projectid,
-                                                      imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath,
-                                                      region=region, zone=zone)
+                                                      test_type=constants.DB_DISK,
+                                                      disk_size=disk_size, raid=False, keyid=keyid,
+                                                      secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone)
     try:
         if all(client for client in ssh_client.values()):
             # enable key auth between instances
@@ -780,14 +786,20 @@ def test_mongodb(provider, keyid, secret, token, imageid, subscription, tenant, 
     :param region: EC2 region to connect to
     :param zone: EC2 zone where other resources should be available
     """
+    disk_size = 0
+    if provider == constants.AWS:
+        disk_size = 100
+    elif provider == constants.AZURE:
+        disk_size = 513
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
-                                                      test_type=constants.DB_DISK, disk_size=40,
-                                                      raid=False, keyid=keyid, secret=secret,
-                                                      token=token, subscriptionid=subscription,
-                                                      tenantid=tenant, projectid=projectid,
-                                                      imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath,
-                                                      region=region, zone=zone)
+                                                      test_type=constants.DB_DISK,
+                                                      disk_size=disk_size, raid=False, keyid=keyid,
+                                                      secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone)
     try:
         if all(client for client in ssh_client.values()):
             # enable key auth between instances
