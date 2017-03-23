@@ -57,7 +57,7 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-$remoteScript = "FC_WWN.sh"
+$remoteScript = "fc_wwn.sh"
 $summaryLog  = "${vmName}_summary.log"
 $retVal = $False
 
@@ -168,7 +168,12 @@ if (-not $result) {
 
 $sts = RunRemoteScript $remoteScript
 
-if (-not $sts[-1]) {
+if ($sts -Match "TestSkipped") {
+	$logfilename = "${TestLogDir}\$remoteScript.log"
+	Get-Content $logfilename | Write-output  >> $summaryLog
+    return $Skipped
+}
+elseif (-not $sts[-1]) {
     Write-Output "Error: Running $remoteScript script failed on VM!" >> $summaryLog
 	$logfilename = "${TestLogDir}\$remoteScript.log"
 	Get-Content $logfilename | Write-output  >> $summaryLog

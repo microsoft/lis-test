@@ -35,15 +35,6 @@
 #
 ################################################################
 
-ICA_TESTRUNNING="TestRunning"      # The test is running
-ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
-ICA_TESTABORTED="TestAborted"      # Error during setup of test
-ICA_TESTFAILED="TestFailed"        # Error during execution of test
-
-UpdateTestState() {
-    echo $1 > $HOME/state.txt
-}
-
 UpdateSummary() {
 	# To add the timestamp to the log file
     echo `date "+%a %b %d %T %Y"` : ${1} >> ~/summary.log
@@ -54,13 +45,11 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
-UpdateTestState "TestRunning"
-
 if [ -e $HOME/constants.sh ]; then
     . $HOME/constants.sh
 else
     echo "ERROR: Unable to source the constants file!"
-    UpdateTestState "TestAborted"
+    SetTestStateAborted
     exit 1
 fi
 
@@ -70,12 +59,15 @@ dos2unix utils.sh
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
+	SetTestStateAborted
     exit 1
 }
 
 # Source constants file and initialize most common variables
 UtilsInit
+
+# Create the state.txt file so ICA knows we are running
+TestRunning
 
 # Distro specific detection
 GetDistro
@@ -83,8 +75,8 @@ GetDistro
 case "$DISTRO" in
 redhat_5|centos_5|redhat_6|centos_6)
 	echo "Info: RedHat/CentOS releases 5.x and 6.x don't support the FC WWN feature! Test will now exit."
-	UpdateTestState $ICA_TESTABORTED
-	exit 30
+	SetTestStateSkipped
+	exit 1
     ;;
 esac
 
@@ -100,8 +92,8 @@ if [ $? -ne 0 ]; then
 	modprobe scsi_transport_fc
 	if [ $? -ne 0 ]; then
 		echo "Error: Cannot load the scsi_transport_fc module!"
-		UpdateTestState $ICA_TESTFAILED
-		exit 30
+		SetTestStateFailed
+		exit 1
 	fi
 fi
 
@@ -110,8 +102,8 @@ fi
 #
 if [ -f /sys/class/fc_host ]; then
 	echo "Error: The /sys/class/fc_host system file is not present! Test failed!"
-	UpdateTestState $ICA_TESTFAILED
-	exit 30
+	SetTestStateFailed
+	exit 1
 fi
 
 #
@@ -121,8 +113,8 @@ if test -n "$(find /sys/class/fc_host/host*/ -maxdepth 1 \( -name 'node_name' -o
 	echo "Info: The WWN node name file and port name file have been found."
 else
 	echo "Error: The WWN node name file or port name file have not been found!"
-	UpdateTestState $ICA_TESTFAILED
-	exit 30
+	SetTestStateFailed
+	exit 1
 fi
 
 #
@@ -136,16 +128,16 @@ PORT_NAME_VM=$(cat /sys/class/fc_host/host*/port_name)
 #
 if ! [[ $NODE_NAME_VM =~ ($expectedWWNN) ]]; then
 	echo "Error: Guest VM presented value $NODE_NAME_VM and the host has $expectedWWNN . Test Failed!"
-    UpdateTestState $ICA_TESTFAILED
-    exit 30
+    SetTestStateFailed
+    exit 1
 else
     echo "Info: WWNN value is matching with the host. VM presented value is $NODE_NAME_VM"
 fi
 
 if ! [[ $PORT_NAME_VM =~ ($expectedWWNP) ]]; then
 	echo "Error: Guest VM presented value $PORT_NAME_VM and the host has $expectedWWNP . Test Failed!"
-    UpdateTestState $ICA_TESTFAILED
-    exit 30
+    SetTestStateFailed
+    exit 1
 else
     echo "Info: WWNP value is matching with the host. VM presented value is $PORT_NAME_VM"
 fi
@@ -154,4 +146,5 @@ fi
 # If we got here, all validations have been successful and no errors have occurred
 #
 echo "Test Completed Successfully"
-UpdateTestState "TestCompleted"
+SetTestStateCompleted
+exit 0
