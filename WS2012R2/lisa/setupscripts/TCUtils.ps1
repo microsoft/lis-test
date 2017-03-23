@@ -36,8 +36,6 @@ New-Variable Aborted             -value "Aborted"             -option ReadOnly
 New-Variable Failed              -value "Failed"              -option ReadOnly
 
 
-
-
 #####################################################################
 #
 # GetFileFromVM()
@@ -1042,6 +1040,7 @@ function RunRemoteScript($remoteScript)
     $TestAborted   = "TestAborted"
     $TestFailed   = "TestFailed"
     $TestRunning   = "TestRunning"
+    $TestSkipped   = "TestSkipped"
     $timeout       = 6000
 
     "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
@@ -1117,6 +1116,11 @@ function RunRemoteScript($remoteScript)
                     if ($contents -eq $TestFailed)
                     {
                         Write-Output "Info : State file contains TestFailed message."
+                        break
+                    }
+                    if ($contents -eq $TestSkipped)
+                    {
+                        Write-Output "Info : State file contains TestSkipped message."
                         break
                     }
                     $timeout--
