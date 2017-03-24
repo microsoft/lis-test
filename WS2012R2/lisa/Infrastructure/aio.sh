@@ -310,6 +310,9 @@ function configure_ssh(){
     else
         echo "Error: Uncomment #PasswordAuthentication failed." >> summary.log
     fi
+
+    echo "Allow root login..."
+    sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
 }
 
 ########################################################################
