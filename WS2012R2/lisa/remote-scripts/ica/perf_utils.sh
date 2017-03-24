@@ -37,6 +37,13 @@
 # 
 ########################################################################
 
+#Source utils.sh
+. utils.sh || {
+    echo "ERROR: unable to source perf_utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
 declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
                            ["net.core.rmem_max"]="67108864"
                            ["net.core.wmem_max"]="67108864"
@@ -398,7 +405,17 @@ function fio_raid {
     fi
     #Write 0 on RAID
     dd if=/dev/zero of=/dev/${RAID_NAME} bs=1M oflag=direct
-    mkfs.${FS} /dev/${RAID_NAME} -E lazy_itable_init=0,lazy_journal_init=0 -K
+    #Detect OS Version
+    GetDistro
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Unable to detect OS version."
+        UpdateTestState $ICA_TESTABORTED
+    fi
+    if [ ${DISTRO} == "centos_6" ]; then
+        mkfs.${FS} /dev/${RAID_NAME} -E lazy_itable_init=0 -K
+    else
+        mkfs.${FS} /dev/${RAID_NAME} -E lazy_itable_init=0,lazy_journal_init=0 -K
+    fi
     mount /dev/${RAID_NAME} /mnt
      #Creating log folder
     if [ -d "/root/${LOG_FOLDER}" ]; then
