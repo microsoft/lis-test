@@ -20,7 +20,6 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-
 #
 # Functions definitions
 #
@@ -59,7 +58,7 @@ SearchModules()
             LogMsg "ERROR: Module $module was NOT found."
             echo "ERROR: Module $module was NOT found." >> /root/summary.log
 			grep -i $module $abs_path*/modules.dep >> /root/summary.log
-            UpdateTestState "TestFailed"
+            SetTestStateFailed
             exit 1
         fi
     done
@@ -72,7 +71,6 @@ SearchModules()
 ######################################################################
 
 dos2unix utils.sh
-
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
@@ -83,15 +81,13 @@ dos2unix utils.sh
 # Source constants file and initialize most common variables
 UtilsInit
 
-
 if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter fileSystems is not defined in constants file."
     LogMsg "$msg"
     echo $msg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
+    SetTestStateAborted
     exit 30
 fi
-
 
 if [[ $DISTRO == "redhat_6" ]]; then
     yum install -y dracut-network
@@ -101,7 +97,7 @@ if [[ $DISTRO == "redhat_6" ]]; then
     else
         LogMsg "Error: dracut -f fails to execute"
         echo "Error: dracut -f fails to execute" >> summary.log
-        UpdateTestState "TestAborted"
+        SetTestStateAborted
         exit 1
     fi
 fi
@@ -126,7 +122,7 @@ case $img_type in
         else
             LogMsg "Error: Failed to unpack the initramfs image."
             echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
-            UpdateTestState "TestFailed"
+            SetTestStateFailed
             exit 1
         fi
     ;;
@@ -137,7 +133,7 @@ case $img_type in
         else
             LogMsg "Error: Failed to unpack the initramfs image with gunzip."
             echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
-            UpdateTestState "TestFailed"
+            SetTestStateFailed
             exit 1
         fi
     ;;
@@ -148,7 +144,7 @@ case $img_type in
         else
             LogMsg "Error: Failed to unpack the initramfs image with gunzip."
             echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
-            UpdateTestState "TestFailed"
+            SetTestStateFailed
             exit 1
         fi
     ;;
@@ -156,5 +152,5 @@ esac
 
 SearchModules
 
-UpdateTestState "TestCompleted"
+SetTestStateCompleted
 exit 0
