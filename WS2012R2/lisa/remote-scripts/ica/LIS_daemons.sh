@@ -375,12 +375,12 @@ ConfigSles()
 
 ConfigCentos()
 {
-    kill `ps -ef | grep daemon | grep -v grep | awk '{print $2}'`
-        if [ $? -ne 0 ]; then
-            echo "Error: Unable to kill daemons." >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-        fi
-    if [[ $(service --status -all | grep _daemon) ]]; then
+    kill $(ps aux | grep -e kvp -e vss -e fcopy | head -3 | awk '{print $2}')
+    if [ $? -ne 0 ]; then
+        echo "Error: Unable to kill daemons." >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+    fi
+    if [[ $(service --status-all | grep _daemon) ]]; then
         echo "Running daemons are being stopped." >> ~/summary.log
             service hypervkvpd stop
             if [ $? -ne 0 ]; then
