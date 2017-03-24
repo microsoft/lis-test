@@ -289,7 +289,7 @@
         <test>
 			<testName>initrd_modules_check</testName>
 			<testScript>modules_check.sh</testScript>
-			<files>remote-scripts/ica/modules_check.sh</files>
+			<files>remote-scripts/ica/modules_check.sh,remote-scripts/ica/utils.sh</files>
 			<files>remote-scripts/ica/utils.sh</files>
 			<testparams>
 				<param>TC_COVERED=CORE-24</param>
