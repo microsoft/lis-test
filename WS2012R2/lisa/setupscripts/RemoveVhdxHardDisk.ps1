@@ -239,14 +239,15 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
           }
           for ($lun=$startLun; $lun -le $endLun; $lun++)
           {
-               $drive = Get-VMHardDiskDrive -VMName $vmName -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun
+               $drive = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun
                if ($drive)
                {    write-output $drive.Path
                     write-output "Info : Removing $controllerType $controllerID $lun"
                     $vhdxPath = $drive.Path
+                    $vhdxPathFromated = ("\\$hvServer\$vhdxPath").Replace(':','$')
                     Remove-VMHardDiskDrive $drive
                     write-output "Info : Removing file $drive.path"
-                    Remove-Item $vhdxPath
+                    Remove-Item $vhdxPathFromated
 
                }
                else
