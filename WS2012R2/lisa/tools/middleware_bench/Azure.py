@@ -84,13 +84,13 @@ class AzureConnector:
         self.user = user
         self.dns_suffix = '.{}.cloudapp.azure.com'.format(self.location)
         self.key_name = 'test_ssh_key'
-        self.group_name = 'middleware_bench'
-        self.vmnet_name = 'middleware_bench_vmnet'
-        self.subnet_name = 'middleware_bench_subnet'
-        self.os_disk_name = 'middleware_bench_osdisk'
+        self.group_name = 'middleware_bench1'
+        self.vmnet_name = 'middleware_bench_vmnet1'
+        self.subnet_name = 'middleware_bench_subnet1'
+        self.os_disk_name = 'middleware_bench_osdisk1'
         self.storage_account = 'benchstor' + str(time.time()).replace('.', '')
-        self.ip_config_name = 'middleware_bench_ipconfig'
-        self.nic_name = 'middleware_bench_nic'
+        self.ip_config_name = 'middleware_bench_ipconfig1'
+        self.nic_name = 'middleware_bench_nic1'
 
         self.subnet = None
         self.vms = []

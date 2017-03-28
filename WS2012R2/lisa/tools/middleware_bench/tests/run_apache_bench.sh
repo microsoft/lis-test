@@ -26,14 +26,13 @@ function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1} >> ${LOG_FILE}
 }
 
-if [ $# -lt 3 ]; then
-    echo -e "\nUsage:\n$0 server user provider"
+if [ $# -lt 2 ]; then
+    echo -e "\nUsage:\n$0 server user"
     exit 1
 fi
 
 SERVER="$1"
 USER="$2"
-PROVIDER="$3"
 TEST_CONCURRENCY_THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
 max_concurrency_per_ab=4
 max_ab_instances=16
@@ -57,17 +56,6 @@ ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service apache2 stop"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service apache2 start" >> ${LOG_FILE}
 ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/apache_bench"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f ab" >> ${LOG_FILE}
-
-if [[ ${PROVIDER} == "azure" ]]; then
-    total_cpus=`grep -c '^processor' /proc/cpuinfo`
-    for (( i=0; i<${total_cpus}; i++ ))
-    do
-        sudo echo '0' > /proc/sys/kernel/sched_domain/cpu${i}/domain0/idle_idx
-        sudo echo '4655' > /proc/sys/kernel/sched_domain/cpu${i}/domain0/flags
-        ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo echo '0' >/proc/sys/kernel/sched_domain/cpu${i}/domain0/idle_idx"
-        ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo echo '4655' >/proc/sys/kernel/sched_domain/cpu${i}/domain0/flags"
-    done
-fi
 
 function run_ab ()
 {
