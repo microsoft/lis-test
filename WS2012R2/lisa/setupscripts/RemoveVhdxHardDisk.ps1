@@ -95,13 +95,16 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$SCSICount = 0
+$IDECount = 0
+$diskCount =$null
 $vmGeneration = $null
 
 $vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq $False)
-{
+if ($? -eq $False) {
    $vmGeneration = 1
 }
+
 ############################################################################
 #
 # DeleteHardDrive
@@ -244,10 +247,10 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
                {    write-output $drive.Path
                     write-output "Info : Removing $controllerType $controllerID $lun"
                     $vhdxPath = $drive.Path
-                    $vhdxPathFromated = ("\\$hvServer\$vhdxPath").Replace(':','$')
+                    $vhdxPathFormated = ("\\$hvServer\$vhdxPath").Replace(':','$')
                     Remove-VMHardDiskDrive $drive
                     write-output "Info : Removing file $drive.path"
-                    Remove-Item $vhdxPathFromated
+                    Remove-Item $vhdxPathFormated
 
                }
                else
@@ -298,31 +301,11 @@ if ($testParams -eq $null -or $testParams.Length -lt 13)
 }
 
 #
-# Make sure we have access to the Microsoft Hyper-V snapin
-#
-$hvModule = Get-Module Hyper-V
-if ($hvModule -eq $NULL)
-{
-    import-module Hyper-V
-    $hvModule = Get-Module Hyper-V
-}
-
-if ($hvModule.companyName -ne "Microsoft Corporation")
-{
-    "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $False
-}
-
-#
 # Parse the testParams string
 # We expect a parameter string similar to: "ide=1,1,dynamic;scsi=0,0,fixed"
 #
 # Create an array of string, each element is separated by the ;
 #
-$SCSICount = 0
-$IDECount = 0
-$diskCount =$null
-
 $params = $testParams.Split(';')
 
 $params = $testParams.TrimEnd(";").Split(";")
