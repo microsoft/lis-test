@@ -446,13 +446,13 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
         disk_size = 513
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK,
-                                                      disk_size=disk_size,
-                                                      raid=raid, keyid=keyid, secret=secret,
-                                                      token=token, subscriptionid=subscription,
-                                                      tenantid=tenant, projectid=projectid,
-                                                      imageid=imageid, instancetype=instancetype,
-                                                      user=user, localpath=localpath,
-                                                      region=region, zone=zone)
+                                                      disk_size=disk_size, raid=raid, keyid=keyid,
+                                                      secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone)
     try:
         if all(client for client in ssh_client.values()):
             current_path = os.path.dirname(os.path.realpath(__file__))

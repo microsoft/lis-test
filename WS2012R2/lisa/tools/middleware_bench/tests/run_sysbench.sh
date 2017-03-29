@@ -89,7 +89,7 @@ else
     exit 70
 fi
 
-sudo sysbench --test=fileio --file-total-size=184G prepare >> ${LOG_FILE}
+sudo sysbench --test=fileio --file-total-size=84G prepare >> ${LOG_FILE}
 for mode in "${MODES[@]}"
 do
     for io in "${IOS[@]}"
@@ -102,7 +102,7 @@ do
     done
     sleep 10
 done
-sudo sysbench --test=fileio --file-total-size=184G cleanup >> ${LOG_FILE}
+sudo sysbench --test=fileio --file-total-size=84G cleanup >> ${LOG_FILE}
 
 LogMsg "Kernel Version : `uname -r` "
 
