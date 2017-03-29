@@ -25,7 +25,7 @@ ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
-
+ICA_TESTSKIPPED="TestSkipped"
 CONSTANTS_FILE="constants.sh"
 
 LogMsg()
@@ -234,6 +234,7 @@ echo "Covers : ${TC_COVERED}" >> ~/summary.log
 # Count the number of SCSI= and IDE= entries in constants
 #
 diskCount=0
+diskIDECount=0
 for entry in $(cat ./constants.sh)
 do
     # Convert to lower case
@@ -243,6 +244,7 @@ do
     if [[ $lowStr == ide* ]];
     then
         diskCount=$((diskCount+1))
+        diskIDECount=$((diskIDECount+1))
     fi
 
     if [[ $lowStr == scsi* ]];
@@ -253,6 +255,12 @@ done
 
 echo "constants disk count = $diskCount"
 
+# Gen2 vm does not support IDE
+if [ $diskIDECount -ge 1 ] && [ -d /sys/firmware/efi ]; then
+    UpdateSummary "Gen2 vm does not support IDE, skip test"
+    UpdateTestState $ICA_TESTSKIPPED
+    exit 0
+fi
 #
 # Compute the number of sd* drives on the system.
 #

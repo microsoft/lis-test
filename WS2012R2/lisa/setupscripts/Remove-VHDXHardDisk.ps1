@@ -120,12 +120,43 @@ foreach($p in $params){
     "Type?"          { $v = $value.substring(4) }
     "SectorSize?"    { $v = $value.substring(10) }
     "DefaultSize?"   { $v = $value.substring(11) }
+    "ControllerType"   { $controllerType = $fields[1].Trim() }
+    "rootDIR"   { $rootDir = $fields[1].Trim() }
     default     {}  # unknown param - just ignore it
     }
     if ([int]$v -gt $max -and $v -ne $null){
         $max = [int]$v
     }
 }
+
+if (-not $rootDir)
+{
+    "Error: no rootdir was specified"
+    return $False
+}
+
+cd $rootDir
+# Source TCUitls.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+    . .\setupScripts\TCUtils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+}
+if ( $controllerType -eq "IDE" )
+{
+    $vmGeneration = GetVMGeneration $vmName $hvServer
+    if ($vmGeneration -eq 2 )
+    {
+        write-output "vm generation 2 does not support IDE disk, please skip this case in test script "
+        return $True
+    }
+}
+
+
 for($pair=0; $pair -le $max; $pair++){
 
   foreach ($p in $params)

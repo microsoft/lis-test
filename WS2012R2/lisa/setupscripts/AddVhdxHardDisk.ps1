@@ -359,11 +359,6 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $False
 }
 
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq $False)
-{
-   $vmGeneration = 1
-}
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($p in $params)
 {
@@ -384,6 +379,30 @@ foreach ($p in $params)
     }
 }
 
+if (-not $rootDir)
+{
+    "Error: no rootdir was specified"
+    return $False
+}
+
+cd $rootDir
+# Source TCUitls.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+    . .\setupScripts\TCUtils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+}
+
+$vmGeneration = GetVMGeneration $vmName $hvServer
+if ($IDECount -ge 1 -and $vmGeneration -eq 2 )
+{
+     write-output "vm generation 2 does not support IDE disk, please skip this case in test script"
+     return $True
+}
 # if define diskCount number, only support one SCSI parameter
 if ($diskCount -ne $null)
 {
