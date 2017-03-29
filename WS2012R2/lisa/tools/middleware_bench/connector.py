@@ -259,9 +259,15 @@ def test_orion(provider, keyid, secret, token, imageid, subscription, tenant, pr
     :param region: EC2 region to connect to
     :param zone: EC2 zone where other resources should be available
     """
+    disk_size = 0
+    if provider == constants.AWS:
+        disk_size = 100
+    elif provider == constants.AZURE:
+        disk_size = 513
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
-                                                      test_type=constants.VM_DISK, disk_size=10,
-                                                      raid=False, keyid=keyid, secret=secret,
+                                                      test_type=constants.VM_DISK,
+                                                      disk_size=disk_size, raid=False,
+                                                      keyid=keyid, secret=secret,
                                                       token=token, subscriptionid=subscription,
                                                       tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
@@ -332,12 +338,6 @@ def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenan
     try:
         if all(client for client in ssh_client.values()):
             current_path = os.path.dirname(os.path.realpath(__file__))
-            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'raid.sh'), '/tmp/raid.sh')
-            ssh_client[1].run('chmod +x /tmp/raid.sh')
-            ssh_client[1].run("sed -i 's/\r//' /tmp/raid.sh")
-            ssh_client[1].run('/tmp/raid.sh 0 12 {}'.format(' '.join(device)))
-            ssh_client[1].put_file(os.path.join(localpath, 'orion_linux_x86-64.gz'),
-                                   '/tmp/orion_linux_x86-64.gz')
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_orion.sh'),
                                    '/tmp/run_orion.sh')
             ssh_client[1].run('chmod +x /tmp/run_orion.sh')
@@ -379,9 +379,15 @@ def test_sysbench(provider, keyid, secret, token, imageid, subscription, tenant,
     :param region: EC2 region to connect to
     :param zone: EC2 zone where other resources should be available
     """
+    disk_size = 0
+    if provider == constants.AWS:
+        disk_size = 100
+    elif provider == constants.AZURE:
+        disk_size = 513
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
-                                                      test_type=constants.VM_DISK, disk_size=240,
-                                                      raid=False, keyid=keyid, secret=secret,
+                                                      test_type=constants.VM_DISK,
+                                                      disk_size=disk_size, raid=False,
+                                                      keyid=keyid, secret=secret,
                                                       token=token, subscriptionid=subscription,
                                                       tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
@@ -430,9 +436,18 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
     :param region: EC2 region to connect to
     :param zone: EC2 zone where other resources should be available
     """
+    raid = 0
+    disk_size = 0
+    if provider == constants.AWS:
+        raid = 10
+        disk_size = 100
+    elif provider == constants.AZURE:
+        raid = 10
+        disk_size = 513
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
-                                                      test_type=constants.VM_DISK, disk_size=20,
-                                                      raid=True, keyid=keyid, secret=secret,
+                                                      test_type=constants.VM_DISK,
+                                                      disk_size=disk_size,
+                                                      raid=raid, keyid=keyid, secret=secret,
                                                       token=token, subscriptionid=subscription,
                                                       tenantid=tenant, projectid=projectid,
                                                       imageid=imageid, instancetype=instancetype,
@@ -444,7 +459,7 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'raid.sh'), '/tmp/raid.sh')
             ssh_client[1].run('chmod +x /tmp/raid.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/raid.sh")
-            ssh_client[1].run('/tmp/raid.sh 0 12 {}'.format(' '.join(device)))
+            ssh_client[1].run('/tmp/raid.sh 0 {} {}'.format(raid, ' '.join(device)))
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_sysbench.sh'),
                                    '/tmp/run_sysbench.sh')
             ssh_client[1].run('chmod +x /tmp/run_sysbench.sh')
