@@ -782,7 +782,7 @@ for ($i=0; $i -lt $nicIterator; $i++){
     $vm2mac
 
     # If VM2 has a syntethic NIC (other than eth0) , configure ifcfg file
-    if ($nicValues[$i*5+2] -ne "SRIOV")
+    if ($nicValues[$i*5+2] -notlike "SRIOV*")
     {
         "Configuring ifcfg-ethX on $vm2Name (${vm2ipv4}) "
         $retVal = CreateInterfaceConfigEth $vm2ipv4 $sshKey $vm2mac $vmStaticIP2 $netmask

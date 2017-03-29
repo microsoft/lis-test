@@ -100,7 +100,7 @@ VerifyVF()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 	            ;;
 	        ubuntu*)
@@ -110,7 +110,7 @@ VerifyVF()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 	            ;;
 	        redhat*|centos*)
@@ -120,7 +120,7 @@ VerifyVF()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 	            ;;
 	            *)
@@ -128,7 +128,7 @@ VerifyVF()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            ;;
 	    esac
 	fi
@@ -142,7 +142,7 @@ VerifyVF()
 	  		LogMsg "$msg"
 		    UpdateSummary "$msg"
 		    SetTestStateFailed
-		    return 1
+		    exit 1
 		fi
 	fi
 
@@ -155,9 +155,20 @@ VerifyVF()
 		    LogMsg "$msg"                                                             
 		    UpdateSummary "$msg"
 		    SetTestStateFailed
-		    return 1
+		    exit 1
 		fi
 	fi
+
+	if [[is_fedora || is_ubuntu]]; then
+        ifconfig | grep enP
+   		if [ $? -ne 0 ]; then
+		    msg="ERROR: No enP2p0s2 device was found!"
+		    LogMsg "$msg"                                                             
+		    UpdateSummary "$msg"
+		    SetTestStateFailed
+		    exit 1
+		fi
+    fi
 
 	return 0
 }
@@ -176,7 +187,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
 	    SetTestStateAborted
-	    return 1
+	    exit 1
 	fi
 
 	if [ "${BOND_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -184,7 +195,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
-        return 1
+        exit 1
 	fi
 
 	IFS=',' read -a networkType <<< "$NIC"
@@ -193,7 +204,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
-        return 1
+        exit 1
 	fi
 
 	if [ "${sshKey:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -201,7 +212,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
-        return 1
+        exit 1
 	fi
 
 	if [ "${REMOTE_USER:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -209,7 +220,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
-        return 1
+        exit 1
 	fi
 	
     return 0
@@ -242,7 +253,7 @@ Create1Gfile()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
 	    SetTestStateFailed
-	    return 1
+	    exit 1
 	fi
 
 	LogMsg "Successfully created $output_file"
@@ -391,7 +402,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
 
@@ -404,7 +415,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
 	            wget http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/iperf-3.1.3-50.1.x86_64.rpm
@@ -413,7 +424,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
 	            rpm -i libiperf*
@@ -423,7 +434,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
 
@@ -436,7 +447,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 	        fi
 
@@ -451,7 +462,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
             ;;
@@ -469,7 +480,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
 
@@ -482,7 +493,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
 	            wget https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
@@ -491,7 +502,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
 	            dpkg -i libiperf*
@@ -501,7 +512,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
 
@@ -514,7 +525,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 	        fi
 
@@ -533,7 +544,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
 
@@ -546,7 +557,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
 	            rpm -i iperf3*
@@ -555,7 +566,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
 
@@ -568,7 +579,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
             fi
 
@@ -581,7 +592,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi	
 			fi
 
@@ -591,7 +602,7 @@ InstallDependencies()
             LogMsg "$msg"
             UpdateSummary "$msg"
             SetTestStateFailed
-            return 1
+            exit 1
         ;;
     esac
 
