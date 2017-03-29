@@ -44,8 +44,8 @@ fi
 
 DISK="$1"
 MODES=(seqwr seqrewr seqrd rndrd rndwr rndrw)
-THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
-IOS=(4 8 16 32)
+THREADS=(1 2 4 8 16 32 64)
+IOS=(4 8 32)
 EXTRA="--file-total-size=184G --max-requests=0 --max-time=300 --file-extra-flags=dsync --file-fsync-freq=0"
 
 if [ -e /tmp/summary.log ]; then
