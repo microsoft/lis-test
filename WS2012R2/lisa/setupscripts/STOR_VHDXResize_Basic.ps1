@@ -140,7 +140,7 @@ else
 {
     cd $rootDir }
 
-# Source TCUitls.ps1
+# Source TCUtils.ps1
 if (Test-Path ".\setupScripts\TCUtils.ps1")
 {
     . .\setupScripts\TCUtils.ps1
@@ -156,7 +156,7 @@ if ( $controllerType -eq "IDE" )
     $vmGeneration = GetVMGeneration $vmName $hvServer
     if ($vmGeneration -eq 2 )
     {
-         write-output "vm generation 2 does not support IDE disk"
+         Write-Output "Generation 2 VM does not support IDE disk, skip test"
          return $Skipped
     }
 }

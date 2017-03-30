@@ -179,9 +179,6 @@ function TestFileSystem()
             fi
          fi
     done
-
-
-
 }
 
 
@@ -255,9 +252,9 @@ done
 
 echo "constants disk count = $diskCount"
 
-# Gen2 vm does not support IDE
+# Generation 2 VM does not support IDE disk
 if [ $diskIDECount -ge 1 ] && [ -d /sys/firmware/efi ]; then
-    UpdateSummary "Gen2 vm does not support IDE, skip test"
+    UpdateSummary "Generation 2 VM does not support IDE disk, skip test"
     UpdateTestState $ICA_TESTSKIPPED
     exit 0
 fi

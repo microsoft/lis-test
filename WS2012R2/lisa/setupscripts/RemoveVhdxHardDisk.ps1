@@ -328,6 +328,7 @@ if (-not $rootDir)
 }
 
 cd $rootDir
+# Source TCUtils.ps1
 if (Test-Path ".\setupScripts\TCUtils.ps1")
 {
     . .\setupScripts\TCUtils.ps1
@@ -341,7 +342,7 @@ else
 $vmGeneration = GetVMGeneration $vmName $hvServer
 if ($IDECount -ge 1 -and $vmGeneration -eq 2 )
 {
-     write-output "vm generation 2 does not support IDE disk, please skip this case in test script"
+     Write-Output "Generation 2 VM does not support IDE disk, please skip this case in the test script"
      return $True
 }
 
@@ -354,8 +355,6 @@ if ($diskCount -ne $null)
       return  $False
   }
 }
-
-
 
 foreach ($p in $params)
 {

@@ -1534,23 +1534,23 @@ function ConvertToMemSize([String] $memString, [String]$hvServer)
 # GetVMGeneration()
 #
 #####################################################################
-function GetVMGeneration([String] $vmName, [String] $server)
+function GetVMGeneration([String] $vmName, [String] $hvServer)
 {
     <#
     .Synopsis
-        Get VM Generation type
+        Get VM generation type
     .Description
-        Get VM Generation type from host, gen1 or gen2
+        Get VM generation type from host, generation 1 or generation 2
     .Parameter vmName
         Name of the VM
-    .Parameter server
+    .Parameter hvServer
         Name of the server hosting the VM
     .Example
-        GetVMGeneration $vmName $server
+        GetVMGeneration $vmName $hvServer
     #>
     $vmInfo = Get-VM -Name $vmName -ComputerName $hvServer
 
-    # hyper-v 2012 only supports gen1.
+    # Hyper-v server 2012 only supports generation 1 VM.
     if ( $vmInfo.Generation -eq "")
     {
         $vmGeneration = 1
