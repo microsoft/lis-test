@@ -119,7 +119,7 @@ foreach ($p in $params)
     
     if ($fields[0].Trim() -eq "VCPU")
     {
-        $numCPUs = [int]$fields[1].Trim()
+        $numCPUs = $fields[1].Trim()
     }
     if ($fields[0].Trim() -eq "NumaNodes")
     {
@@ -160,6 +160,33 @@ if ($procs)
     {
         $maxCPUs = $procs.NumberOfLogicalProcessors
     }
+}
+
+# If 'max' parameter was specified, will try to add the maximum vCPU allowed
+if ($numCPUs -eq "max") 
+{
+    $vm = Get-VM -Name $vmName -ComputerName $hvServer
+
+    # Depending on generation, the maximum allowed vCPU varies
+    # On gen1 is 64 vCPU, on gen2 is 240 vCPU
+    if ($vm.generation -eq 1) {
+        [int]$maxAllowed = 64
+    }
+    else {
+        [int]$maxAllowed = 240
+    }
+
+    if ($maxCPUs -gt $maxAllowed) {
+        $numCPUs = $maxAllowed
+    } 
+    else {
+        $numCPUs = $maxCPUs   
+    }
+
+}
+else 
+{
+   [int]$numCPUs = $numCPUs
 }
 
 if ($numCPUs -lt 1 -or $numCPUs -gt $maxCPUs)
