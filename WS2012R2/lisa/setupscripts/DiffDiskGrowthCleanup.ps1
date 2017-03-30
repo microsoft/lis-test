@@ -40,7 +40,7 @@
    The following are some examples:
    SCSI=0,0,Diff : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic
    IDE=1,1,Diff  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Diff
-   
+
    Note: This setup script only adds differencing disks.
 
     A typical XML definition for this test case would look similar
@@ -51,10 +51,10 @@
         <setupScript>setupscripts\DiffDiskGrowthSetup.ps1</setupScript>
         <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
         <timeout>18000</timeout>
-        <testparams>                
-                <param>IDE=1,1,Diff</param>      
+        <testparams>
+                <param>IDE=1,1,Diff</param>
                 <param>ParentVhd=VHDXParentDiff.vhdx</param>
-                <param>TC_COUNT=DSK_VHDX-75</param>            
+                <param>TC_COUNT=DSK_VHDX-75</param>
         </testparams>
     </test>
 
@@ -68,7 +68,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\DiffDiskGrowthCleanup.ps1 -vmName VM -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=pki_id_rsa.ppk;ipv4=IPaddr;RootDir=" 
+    setupScripts\DiffDiskGrowthCleanup.ps1 -vmName VM -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=pki_id_rsa.ppk;ipv4=IPaddr;RootDir="
 
 .Link
     None.
@@ -83,7 +83,7 @@ $vhdType = $null
 $parentVhd = $null
 $controller = $null
 $drive = $null
-$vmGeneration = $null 
+$vmGeneration = $null
 
 #######################################################################
 #
@@ -103,16 +103,16 @@ foreach ($p in $params)
     }
 
     $tokens = $p.Trim().Split('=')
-    
+
     if ($tokens.Length -ne 2)
     {
-	    # Just ignore it
-         continue
+        # Just ignore it
+        continue
     }
-    
+
     $lValue = $tokens[0].Trim()
     $rValue = $tokens[1].Trim()
-
+    #
     # ParentVHD test param
     #
     if ($lValue -eq "ParentVHD")
@@ -131,12 +131,21 @@ foreach ($p in $params)
     }
 
     #
+    # rootDIR test param
+    #
+    if ($lValue -eq "rootDIR")
+    {
+        $rootDir = $rValue
+        continue
+    }
+
+    #
     # Controller type testParam
     #
     if (@("IDE", "SCSI") -contains $lValue)
     {
         $controllerType = $lValue
-        
+
         $SCSI = $false
         $IDE = $false
         if ($controllerType -eq "SCSI")
@@ -147,19 +156,19 @@ foreach ($p in $params)
         {
             $IDE = $true
         }
-            
+
         $diskArgs = $rValue.Split(',')
-        
+
         if ($diskArgs.Length -ne 3)
         {
             "Error: Incorrect number of disk arguments: $p"
             return $False
         }
-        
+
         $controllerID = $diskArgs[0].Trim()
         $lun = $diskArgs[1].Trim()
         $vhdType = $diskArgs[2].Trim()
-        
+
         if ($vhdType -ne "Diff")
         {
             "Error: The differencing disk test requires a differencing disk"
@@ -195,6 +204,14 @@ if (-not $vhdFormat)
     return $False
 }
 
+if (-not $rootDir)
+{
+    "Warn : no rootdir was specified"
+}
+else
+{
+    cd $rootDir
+}
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
@@ -202,9 +219,15 @@ if (Test-Path ".\setupScripts\TCUtils.ps1") {
 }
 else {
 	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
+	return $False
 }
 
+$vmGeneration = GetVMGeneration $vmName $hvServer
+if ( $controllerType -eq "IDE" -and $vmGeneration -eq 2 )
+{
+        Write-Output "Generation 2 VM does not support IDE disk, please skip this case in the test script"
+        return $True
+}
 #
 # Delete the drive if it exists
 #
@@ -217,11 +240,6 @@ if($SCSI)
     $controller = Get-VMScsiController -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerID
 }
 
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq $False)
-{
-   $vmGeneration = 1
-}
 if ($vmGeneration -eq 1)
 {
     $lun = [int]($diskArgs[1].Trim())
@@ -263,13 +281,13 @@ if (-not $defaultVhdPath.EndsWith("\"))
 
 if ($vhdFormat -eq "vhd")
 {
-    # To Make sure we do not use exisiting Diff disk, delete if exisit 
-    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"  
+    # To Make sure we do not use exisiting Diff disk, delete if exisit
+    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"
 }
 else
 {
-    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhdx"  
-} 
+    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhdx"
+}
 
 $vhdFileInfo = GetRemoteFileInfo  $vhdName  $hvServer
 if ($vhdFileInfo)

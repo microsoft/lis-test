@@ -214,13 +214,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $False
 }
 
-
-
-
 $params = $testParams.TrimEnd(";").Split(";")
-
-
-
 
 [int]$max = 0
 $setIndex = $null
@@ -241,8 +235,6 @@ foreach($p in $params){
     }
 }
 
-
-
 $type = $null
 $sectorSize = $null
 $defaultSize = $null
@@ -261,7 +253,6 @@ for ($pair=0; $pair -le $max; $pair++) {
           "SectorSize"    { $sectorSize   = $value }
           "DefaultSize"   { $defaultSize = $value }
           "ControllerType"   { $controllerType = $value }
-
           default     {}  # unknown param - just ignore it
         }
     }
@@ -274,6 +265,16 @@ for ($pair=0; $pair -le $max; $pair++) {
     {
         cd $rootDir
     }
+    # Source TCUtils.ps1
+    if (Test-Path ".\setupScripts\TCUtils.ps1")
+    {
+        . .\setupScripts\TCUtils.ps1
+    }
+    else
+    {
+        "Error: Could not find setupScripts\TCUtils.ps1"
+        return $False
+    }
     # Source STOR_VHDXResize_Utils.ps1
     if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
     {
@@ -282,7 +283,7 @@ for ($pair=0; $pair -le $max; $pair++) {
     else
     {
         "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
-        return $false
+        return $False
     }
 
     # Check and create SCSI controller
@@ -298,6 +299,13 @@ for ($pair=0; $pair -le $max; $pair++) {
     # Check IDE controller
     elseif ( $controllerType -eq "IDE" )
     {
+        $vmGeneration = GetVMGeneration $vmName $hvServer
+        if ($vmGeneration -eq 2 )
+        {
+            Write-Output "Generation 2 VM does not support IDE disk, please skip this case in the test script"
+            return $True
+        }
+
          Write-Output "ControllerType is IDE"
     }
     else
