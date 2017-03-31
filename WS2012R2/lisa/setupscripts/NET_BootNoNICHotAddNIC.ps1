@@ -126,44 +126,43 @@ function LinuxRelease()
 
 #######################################################################
 #
-# ConfigureRcLocal()
+# SetupStartupScript()
 #
 # Description
-#    Configure the rc.local on the Linux VM to run the 
-#    /root/NET_VerifyBootNoNIC.sh script automactically when the VM
-#    reboots.
+#    Configure the Linux VM to run the /root/NET_VerifyBootNoNIC.sh 
+#    script automactically, on VM startup.
 #
 #######################################################################
-function ConfigureRcLocal()
+function SetupStartupScript()
 {
     $linuxRelease = LinuxRelease
- 
-    switch ($linuxRelease)
+    
+    if ($linuxRelease -eq "CENTOS" -or $linuxRelease -eq "FEDORA" -or $linuxRelease -eq "RHEL")
     {
-    "CENTOS" {
-                 Throw "Error: This script currently does not support the CentOS distribution"
-             }
-    "DEBIAN" {
-                 Throw "Error: This script currently does not support the Debian distribution"
-             }
-    "FEDORA" {
-                 Throw "Error: This script currently does not support the Fedora distribution"
-             }
-    "RHEL"   {
-                 Throw "Error: This script currently does not support the RHEL distribution"
-             }
-    "SLES"   {
-                 plink -i ssh\${sshKey} root@${ipv4} "echo 'dos2unix /root/NET_VerifyBootNoNIC.sh'  >> /etc/init.d/after.local"
-                 plink -i ssh\${sshKey} root@${ipv4} "echo 'chmod 755 /root/NET_VerifyBootNoNIC.sh' >> /etc/init.d/after.local"
-                 plink -i ssh\${sshKey} root@${ipv4} "echo '/root/NET_VerifyBootNoNIC.sh &'         >> /etc/init.d/after.local"
-             }
-    "UBUNTU" {
-                 Throw "Error: This script currently does not support the Ubuntu distribution"
-             }
-    default  {
-                 Throw "Error: Unknown linux distribution '${linuxRelease}'"
-             }
-    }   
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "chmod +x /etc/rc.d/rc.local"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo 'dos2unix /root/NET_VerifyBootNoNIC.sh'  >> /etc/rc.d/rc.local"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo 'chmod 755 /root/NET_VerifyBootNoNIC.sh' >> /etc/rc.d/rc.local"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo 'bash /root/NET_VerifyBootNoNIC.sh &'    >> /etc/rc.d/rc.local"
+    }
+    elseif ($linuxRelease -eq "UBUNTU")
+    {
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "systemctl start crond.service"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "systemctl start cron.service"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo '@reboot dos2unix /root/NET_VerifyBootNoNIC.sh'  >> /var/spool/cron/crontabs/root"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo '@reboot chmod 755 /root/NET_VerifyBootNoNIC.sh' >> /var/spool/cron/crontabs/root"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo '@reboot bash /root/NET_VerifyBootNoNIC.sh &'    >> /var/spool/cron/crontabs/root"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "chmod 0600 /var/spool/cron/crontabs/root" 
+    }
+    elseif ($linuxRelease -eq "SLES")
+    {
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo 'dos2unix /root/NET_VerifyBootNoNIC.sh'  >> /etc/init.d/after.local"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo 'chmod 755 /root/NET_VerifyBootNoNIC.sh' >> /etc/init.d/after.local"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo 'bash /root/NET_VerifyBootNoNIC.sh &'         >> /etc/init.d/after.local" 
+    }
+    else
+    {
+        Throw "Error: Unknown linux distribution '${linuxRelease}'"
+    }
 }
 
 ########################################################################
@@ -289,7 +288,7 @@ function DoTest()
     # Wait for the guest to modify the HotAddTest KVP item value to 'NICUp'
     #
     "Info : Waiting for the VM to set the HotAddTest KVP item to NICUp"
-    $tmo = 300
+    $tmo = 1000
     $value = $null
     while ($tmo -gt 0)
     {
@@ -520,10 +519,9 @@ try
     }
 
     #
-    # Configure the root user to be logged automatically when the VM boots,
-    # and configure the NET_VerifyBootNoNIC.sh script to be run automatically
-    # when the root user logs in.
-    ConfigureRcLocal
+    # Configure the NET_VerifyBootNoNIC.sh script to be run automatically
+    # on boot
+    SetupStartupScript
 
     #
     # Stop the VM
