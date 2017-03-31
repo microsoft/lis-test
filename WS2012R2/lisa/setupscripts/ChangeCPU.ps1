@@ -40,47 +40,12 @@
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-########################################################################
-#
-# ConvertStringToDecimal()
-#
-########################################################################
-function ConvertStringToDecimal([string] $str)
-{
-    $uint64Size = $null
 
-    #
-    # Make sure we received a string to convert
-    #
-    if (-not $str)
-    {
-        Write-Error -Message "ConvertStringToDecimal() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    if ($str.EndsWith("MB"))
-    {
-        $num = $str.Replace("MB","")
-        $uint64Size = ([Convert]::ToDecimal($num)) * 1MB
-    }
-    elseif ($str.EndsWith("GB"))
-    {
-        $num = $str.Replace("GB","")
-        $uint64Size = ([Convert]::ToDecimal($num)) * 1GB
-    }
-    elseif ($str.EndsWith("TB"))
-    {
-        $num = $str.Replace("TB","")
-        $uint64Size = ([Convert]::ToDecimal($num)) * 1TB
-    }
-    else
-    {
-        Write-Error -Message "Invalid newSize parameter: ${str}" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    return $uint64Size
-}
+$numCPUs = 0
+$maxCPUs = 0
+$numaNodes = 8
+$sockets = 1
+$mem = $null
 $retVal = $false
 
 #
@@ -107,11 +72,6 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
 #
 # Find the testParams we require.  Complain if not found
 #
-$numCPUs = 0
-$numaNodes = 8
-$sockets = 1
-$mem = $null
-
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -135,7 +95,18 @@ foreach ($p in $params)
     }
 }
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+    . .\setupScripts\TCUtils.ps1
+    "Info: Sourced TCUtils.ps1"
+}
+else {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+}
+
 $staticMemory = ConvertStringToDecimal $mem
+
 if ($numCPUs -eq 0)
 {
     "Error: VCPU test parameter not found in testParams"
@@ -145,7 +116,6 @@ if ($numCPUs -eq 0)
 #
 # do a sanity check on the value provided in the testParams
 #
-$maxCPUs = 0
 $procs = get-wmiobject -computername $hvServer win32_processor
 if ($procs)
 {
@@ -206,8 +176,8 @@ if ($? -eq "True")
 }
 else
 {
+    write-host "Error: Unable to update CPU count to $numCPUs"
     return $retVal
-    write-host "Error: Unable to update CPU count"
 }
 
 Set-VMProcessor -VMName $vmName -ComputerName $hvServer -MaximumCountPerNumaNode $numaNodes -MaximumCountPerNumaSocket $sockets
@@ -221,6 +191,7 @@ else
     $retVal = $false
     write-host "Error: Unable to update NUMA nodes!"
 }
+
 if ($mem -ne $null)
 {
     Set-VMMemory $vmName -ComputerName $hvServer -MaximumAmountPerNumaNodeBytes $staticMemory
