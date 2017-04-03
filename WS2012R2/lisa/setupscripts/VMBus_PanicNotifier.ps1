@@ -42,7 +42,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\VMBus_PanicNotifier.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=VMBUS-03;sshKey=demo.ppk;ipv4=192.168.1.101"
+    setupScripts\VMBus_PanicNotifier_onKdump.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=VMBUS-04;sshKey=demo.ppk;ipv4=192.168.1.101"
 
 .Link
     None.
@@ -89,6 +89,7 @@ Write-Output "TestParams : '${testParams}'"
 $rootDir = $null
 $ipv4 = "undefined"
 $sshKey = "undefined"
+$kdump_action = "undefined"
 
 $params = $testParams.Split(";")
 foreach ($p in $params)
@@ -99,6 +100,7 @@ foreach ($p in $params)
     "ipv4"        { $ipv4      = $fields[1].Trim() }
     "sshkey"      { $sshKey    = $fields[1].Trim() }
     "rootdir"     { $rootDir   = $fields[1].Trim() }
+    "onKdump"     { $kdump_action = $fields[1].Trim() }
     "TC_COVERED"  { $tcCovered = $fields[1].Trim() }
     default       {<# Ignore unknown test params #>}
     }
@@ -113,6 +115,12 @@ if (-not $rootDir)
 if (-not (Test-Path -Path $rootDir))
 {
     "Error : The rootDir directory '${rootDir}' does not exist"
+    return $False
+}
+
+if (-not $kdump_action)
+{
+    "Error : No onKdump parameter specified"
     return $False
 }
 
@@ -164,11 +172,11 @@ if ($vm.State -ne "Running")
     return $False
 }
 
-$sts = SendCommandToVM $ipv4 $sshKey "service kdump stop"
+$sts = SendCommandToVM $ipv4 $sshKey "service kdump ${kdump_action}"
 if (-not $sts) {
-    $sts = SendCommandToVM $ipv4 $sshKey "service kdump-tools stop"
+    $sts = SendCommandToVM $ipv4 $sshKey "service kdump-tools ${kdump_action}"
     if (-not $sts) {
-        Write-Output "Kdump can't be stopped !" |Tee-Object -Append -file $summaryLog
+        Write-Output "Kdump can't be started !" |Tee-Object -Append -file $summaryLog
         return $False
     }
 }
@@ -210,7 +218,7 @@ foreach ($evt in $events)
 if (-not $testPassed)
 {
     "Error: Event 18590 was not logged by VM ${vmName}"
-    "       Make sure KDump is disabled on the VM"
+    "       Make sure KDump status is ${kdump_action} on the VM"
 }
 
 #
