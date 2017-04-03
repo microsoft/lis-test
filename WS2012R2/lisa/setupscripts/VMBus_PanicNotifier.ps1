@@ -42,13 +42,19 @@
     Test data for this test case
 
 .Example
-    setupScripts\VMBus_PanicNotifier_onKdump.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=VMBUS-04;sshKey=demo.ppk;ipv4=192.168.1.101"
+    setupScripts\VMBus_PanicNotifier.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\;TC_COVERED=VMBUS-04;sshKey=demo.ppk;ipv4=192.168.1.101"
 
 .Link
     None.
 #>
 
 param( [String] $vmName, [String] $hvServer, [String] $testParams )
+
+$rootDir = $null
+$ip = $Null
+$ipv4 = "undefined"
+$sshKey = "undefined"
+$kdump_action = "undefined"
 
 #######################################################################
 #
@@ -78,19 +84,8 @@ if (-not $testParams)
 }
 
 #
-# DEBUG - display the test parameters so they are captured in the log file
-#
-Write-Output "TestParams : '${testParams}'"
-
-#
 # Parse the test parameters
 #
-
-$rootDir = $null
-$ipv4 = "undefined"
-$sshKey = "undefined"
-$kdump_action = "undefined"
-
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -238,7 +233,6 @@ if ($vm.State -ne "Running")
 #
 # Wait up to 5 minutes for the VM to come up
 #
-$ip = $Null
 $timeout = 300
 
 while ($timeout -gt 0)
@@ -255,7 +249,7 @@ while ($timeout -gt 0)
 
 if ($timeout -le 0)
 {
-    "Warn : Unable to start the VM after the panic"
+    "Warn: Unable to start the VM after the panic"
 }
 
 #
