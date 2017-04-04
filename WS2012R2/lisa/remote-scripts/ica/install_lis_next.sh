@@ -404,9 +404,19 @@ if [ $? -ne 0 ]; then
     yum -y install numactl
 fi
 
-#
+#Remove persistent-net file
+if [ -f /etc/udev/rules.d/70-* ]; then
+	echo "70-persistent-net.rules found. Will delete it." >> ~/summary.log
+	rm -rf  /etc/udev/rules.d/70-*
+	if [ $? -ne 0 ]; then
+		echo "Error: Unable remove 70-persistent-net.rules" >> ~/summary.log
+		UpdateTestState $ICA_TESTFAILED
+	fi
+else
+	echo "70-persistent-net.rules not found."
+fi
+
 # If we got here, everything worked as expected.
-#
 LogMsg "Exiting with state: TestCompleted."
 UpdateTestState $ICA_TESTCOMPLETED
 
