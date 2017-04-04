@@ -49,7 +49,7 @@ if [ -e $HOME/constants.sh ]; then
     . $HOME/constants.sh
 else
     echo "ERROR: Unable to source the constants file!"
-    SetTestStateAborted
+    echo "TestAborted" > state.txt
     exit 1
 fi
 
@@ -59,7 +59,7 @@ dos2unix utils.sh
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
-	SetTestStateAborted
+    echo "TestAborted" > state.txt
     exit 1
 }
 
@@ -67,7 +67,7 @@ dos2unix utils.sh
 UtilsInit
 
 # Create the state.txt file so ICA knows we are running
-TestRunning
+SetTestStateRunning
 
 # Distro specific detection
 GetDistro
