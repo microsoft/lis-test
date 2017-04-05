@@ -150,7 +150,7 @@ $kernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -a"
 if( $? -eq $false){
 	write-output "WARNING: Could not get kernel version of $vmName" | Tee-Object -Append -file $summaryLog
 }
-if( $kernel.Contains("2.6") -or $kernel.Contains("i686 i386")){
+if($kernel.Contains("i686 i386")){
 	write-output "Info: NUMA not suported for kernel:`n      $kernel"  | Tee-Object -Append -file $summaryLog
 	return $Skipped
 }
