@@ -60,7 +60,9 @@ function GetNumaSupportStatus([string] $kernel)
     .Synopsis
         Try to determine whether guest support numa
     .Description
-        Get whether numa is supported or not based on kernel verison. Generally, from RHEL 6.6 with kernel version 2.6.32-504, NUMA is supported well.
+        Get whether numa is supported or not based on kernel verison.
+        Generally, from RHEL 6.6 with kernel version 2.6.32-504,
+        NUMA is supported well.
     .Parameter kernel
         $kernel version gets from "uname -r"
     .Example
