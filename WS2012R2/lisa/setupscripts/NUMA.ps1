@@ -52,6 +52,40 @@ function Execute([string] $command) {
 
 #######################################################################
 #
+# GetNumaSupportStatus()
+#
+##########################################################
+#############
+function GetNumaSupportStatus([string] $kernel)
+{
+    <#
+    .Synopsis
+        Try to determine whether guest support numa
+    .Description
+        Get whether numa is supported or not based on kernel verison. Generally, from RHEL 6.6 with kernel version 2.6.32-504, NUMA is supported well.
+    .Parameter kernel
+        $kernel version gets from "uname -r"
+    .Example
+        GetNumaSupportStatus 2.6.32-696.el6.x86_64
+    #>
+
+    if( $kernel.Contains("i686") `
+        -or $kernel.Contains("i386")){
+            return $false
+    }
+    $numaSupport = "2.6.32.504"
+    $kernelSupport = $numaSupport.split(".")
+    $kernelCurrent = $kernel.replace("-",".").split(".")
+
+    for ($i=0; $i -le 3; $i++){
+        if ($kernelCurrent[$i] -lt $kernelSupport[$i] ){
+            return $false
+        }
+    }
+    return $true
+}
+#######################################################################
+#
 # Main script body
 #
 #######################################################################
@@ -131,11 +165,14 @@ $retVal = $True
     return $false
   }
 
-$kernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -a"
+$kernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
 if( $? -eq $false){
     write-output "WARNING: Could not get kernel version of $vmName" | Tee-Object -Append -file $summaryLog
 }
-if($kernel.Contains("i686 i386")){
+
+$numaVal = GetNumaSupportStatus $kernel
+
+if( -not $numaVal ){
 	write-output "Info: NUMA not suported for kernel:`n      $kernel"  | Tee-Object -Append -file $summaryLog
 	return $Skipped
 }
