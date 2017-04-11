@@ -124,10 +124,9 @@ CheckHypervDaemons()
 CheckDaemonsFilesRHEL7()
 {
   dameonFile=`ls /usr/lib/systemd/system | grep -i $1`
-  dameonFile2=`ls /etc/systemd/system/multi-user.target.wants | grep -i $1`
-  if [[ "$dameonFile" != $1 ]] || [[ "$dameonFile2" != $1 ]] ; then
-    LogMsg "ERROR: $1 is not in /usr/lib/systemd/system or /etc/systemd/system/multi-user.target.wants , test failed"
-    UpdateSummary "ERROR: $1 is not in /usr/lib/systemd/system or /etc/systemd/system/multi-user.target.wants , test failed"
+  if [[ "$dameonFile" != $1 ]] ; then
+    LogMsg "ERROR: $1 is not in /usr/lib/systemd/system, test failed"
+    UpdateSummary "ERROR: $1 is not in /usr/lib/systemd/system, test failed"
     UpdateTestState $ICA_TESTFAILED
     exit 1
   fi
