@@ -4,11 +4,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved.
+# All rights reserved. 
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0  
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -48,8 +48,8 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-#######################################################################
-# Main script body
+####################################################################### 
+# Main script body 
 #######################################################################
 
 # Create the state.txt file so ICA knows we are running
@@ -76,19 +76,19 @@ dos2unix utils.sh
     exit 2
 }
 
-if [[ is_rhel7 ]] || [[ is_fedora ]] ; then #If the system is using systemd we use systemctl
+if is_rhel7 ; then #If the system is using systemd we use systemctl
     if [[ "$(systemctl is-active hypervfcopyd)" == "active" ]] || \
        [[ "$(systemctl is-active hv_fcopy_daemon)" == "active" ]]; then
         LogMsg "FCOPY Daemon is running"
         UpdateTestState $ICA_TESTCOMPLETED
         exit 0
-
+    
     elif [[ "$(systemctl is-active hypervfcopyd)" == "unknown" ]] && \
          [[ "$(systemctl is-active hv_fcopy_daemon)" == "unknown" ]]; then
         LogMsg "ERROR: FCOPY Daemon not installed, test aborted"
         UpdateTestState $ICA_TESTABORTED
         exit 1
-
+    
     else
         LogMsg "ERROR: FCOPY Daemon is installed but not running. Test aborted"
         UpdateTestState $ICA_TESTABORTED
