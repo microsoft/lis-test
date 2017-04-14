@@ -29,8 +29,10 @@
 #   2. Using the lspci command, examine the NIC with SR-IOV support
 #   3. Run bondvf.sh
 #   4. Check network capability
-#   5. Disable VF
-#   5. Check network capability
+#   5. Disable VF using ifdown
+#   6. Check network capability (ping & send file to Dependency VM)
+#   5. Enable VF using ifup
+#   6. Check network capability (ping)
 #
 #############################################################################################################
 
@@ -112,15 +114,7 @@ while [ $__iterator -lt $bondCount ]; do
     fi
 
     # Extract VF name that is bonded
-    if is_ubuntu ; then
-        interface=$(grep bond-primary /etc/network/interfaces | awk '{print $2}')
-
-    elif is_suse ; then
-        interface=$(grep BONDING_SLAVE_1 /etc/sysconfig/network/ifcfg-bond${__iterator} | sed 's/=/ /' | awk '{print $2}')
-
-    elif is_fedora ; then
-        interface=$(grep primary /etc/sysconfig/network-scripts/ifcfg-bond${__iterator} | awk '{print substr($3,9,12)}')
-    fi
+    interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo')
 
     # Shut down interface
     LogMsg "Interface to be shut down is $interface"
@@ -171,9 +165,25 @@ while [ $__iterator -lt $bondCount ]; do
         exit 10
     fi            
 
-    msg="Successfully sent file from VM1 to VM2 through bond${__iterator}"
+    msg="Successfully sent file from VM1 to VM2 through bond${__iterator} with VF down"
     LogMsg "$msg"
     UpdateSummary "$msg"
+
+    # Bring up again VF interface
+    ifup $interface
+
+    # Ping the remote host after bringing down the VF
+    ping -I "bond$__iterator" -c 10 "$BOND_IP2" >/dev/null 2>&1
+    if [ 0 -eq $? ]; then
+        msg="Successfully pinged $BOND_IP2 through bond$__iterator after VF restart"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+    else
+        msg="ERROR: Unable to ping $BOND_IP2 through bond$__iterator after VF restart"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
 
     : $((__iterator++))
 done
