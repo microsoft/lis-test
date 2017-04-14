@@ -73,7 +73,8 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=KVP-01</param>
-                <param>DE_change=no</param>
+		<!-- we're going to disable/enable the Data Exchange integration service -->
+                <param>DE_change=yes</param>
             </testparams>
         </test>
 
