@@ -381,7 +381,7 @@ ConfigureBond()
 }
 
 #
-# InstallDependencies - will install iperf, omping, netcat, etc
+# InstallDependencies - will install iperf, netcat, etc
 #
 InstallDependencies()
 {
