@@ -88,7 +88,7 @@ fi
 LogMsg "INFO: All configuration completed successfully. Will proceed with the testing"
 
 # Configure VM2
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "echo '1' > /proc/sys/net/ipv4/ip_forward"
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "echo '1' > /proc/sys/net/ipv4/ip_forward"
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not enable IP Forwarding on VM2!"
     LogMsg "$msg"
@@ -96,7 +96,7 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "ip route add 224.0.0.0/4 dev bond0"
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "ip route add 224.0.0.0/4 dev bond0"
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not add new route to Routing Table on VM2!"
     LogMsg "$msg"
@@ -104,7 +104,7 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "echo '0' > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts"
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "echo '0' > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts"
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not enable broadcast listening on VM2!"
     LogMsg "$msg"
