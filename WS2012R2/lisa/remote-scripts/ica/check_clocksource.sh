@@ -28,79 +28,60 @@
 #	This script was created to check if the current_clocksource is not null.
 #
 ################################################################
-
-ICA_TESTRUNNING="TestRunning"      # The test is running
-ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
-ICA_TESTABORTED="TestAborted"      # Error during setup of test
-ICA_TESTFAILED="TestFailed"        # Error during execution of test
-
-CONSTANTS_FILE="constants.sh"
-
-LogMsg()
-{
-    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
+dos2unix utils.sh
+# Source utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 1
 }
 
-UpdateTestState()
-{
-    echo $1 > $HOME/state.txt
-}
-
-#
-# Update LISA with the current status
-#
-cd ~
-UpdateTestState $ICA_TESTRUNNING
-LogMsg "Updating test case state to running"
-
-if [ -e ~/summary.log ]; then
-    LogMsg "Cleaning up previous copies of summary.log"
-    rm -rf ~/summary.log
-fi
-touch ~/summary.log
-
-#
-# Source the constants file
-#
-if [ -e ./${CONSTANTS_FILE} ]; then
-    source ${CONSTANTS_FILE}
-else
-    msg="Error: no ${CONSTANTS_FILE} file"
-    LogMsg "$msg"
-    echo "$msg" >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
-fi
-
-#
-# Identifying the test-case ID
-#
-if [ ! ${TC_COVERED} ]; then
-	LogMsg "The TC_COVERED variable is not defined!"
-	echo "The TC_COVERED variable is not defined!" >> ~/summary.log
-fi
-
-echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
+# Source constants file and initialize most common variables
+UtilsInit
 
 #
 # Check the file of current_clocksource
+# For rhel6.9+ and rhel7.3+, default clocksource is hyperv_clocksource_tsc_page
 #
 CheckSource()
 {
-    if ! [[ $(find /sys/devices/system/clocksource/clocksource0/current_clocksource -type f -size +0M) ]]; then
+    clocksource="hyperv_clocksource_tsc_page"
+    current_clocksource="/sys/devices/system/clocksource/clocksource0/current_clocksource"
+    if ! [[ $(find $current_clocksource -type f -size +0M) ]]; then
         LogMsg "Test Failed. No file was found current_clocksource greater than 0M."
         echo "Test Failed. No file was found in clocksource of size greater than 0M." >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
+        SetTestStateFailed
         exit 1
     else
-        __file_name=$(cat /sys/devices/system/clocksource/clocksource0/current_clocksource)
-        if [[ "$__file_name" =~ "hyperv_clocksource" ]]; then
+        __file_name=$(cat $current_clocksource)
+        if [[ "$__file_name" == "$clocksource" ]]; then
             LogMsg "Test successful. Proper file was found."
         else
             LogMsg "Test failed. Proper file was NOT found."
             echo "Test failed. Proper file was NOT found." >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
+            SetTestStateFailed
+            exit 1
         fi
+    fi
+
+    # check cpu with constant_tsc
+    if [[ $(grep constant_tsc /proc/cpuinfo) ]];then
+        LogMsg "Test successful. /proc/cpuinfo contains flag constant_tsc"
+    else
+        LogMsg "Test failed. /proc/cpuinfo does not contain flag constant_tsc"
+        echo "Test failed. /proc/cpuinfo does not contain flag constant_tsc" >> ~/summary.log
+        SetTestStateFailed
+        exit 1
+    fi
+
+    # check dmesg with hyperv_clocksource_tsc_page
+    if [[ $(dmesg | grep "clocksource $clocksource") ]];then
+        LogMsg "Test successful. dmesg contains log - clocksource $clocksource"
+    else
+        LogMsg "Test failed. dmesg does not contain log - clocksource $clocksource"
+        echo "Test failed. dmesg does not contain log - clocksource $clocksource" >> ~/summary.log
+        SetTestStateFailed
+        exit 1
     fi
 }
 
@@ -110,4 +91,4 @@ CheckSource()
 CheckSource
 echo "Test passed: the current_clocksource is not null and value is right." >> ~/summary.log
 LogMsg "Test completed successfully"
-UpdateTestState $ICA_TESTCOMPLETED
+SetTestStateCompleted
