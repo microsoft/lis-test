@@ -201,10 +201,9 @@
             <noReboot>False</noReboot>
         </test>
 
-		<test>
+        <test>
             <testName>FloppyDisk</testName>
-            <PreTest>setupscripts\AddFloppyDisk.ps1</PreTest>
-            <testScript>Core_Floppy_Disk.sh</testScript>
+            <testScript>setupscripts\AddFloppyDisk.ps1</testScript>
             <files>remote-scripts\ica\Core_Floppy_Disk.sh</files>
             <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
             <testParams>
