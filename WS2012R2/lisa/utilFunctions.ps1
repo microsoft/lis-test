@@ -282,13 +282,11 @@ function SetRunningTime([String] $testName, [System.Xml.XmlElement] $vm)
         SetRunningTime $testName $vm
     #>
     LogMsg 6 ("Info :    SetRunningTime($testName)")
-
     $caseEndTime = [DateTime]::Now
     $deltaTime = $caseEndTime - [DateTime]::Parse($vm.caseStartTime)
     LogMsg 0 "Info : $($vm.vmName) currentTest lasts $($deltaTime.hours) Hours, $($deltaTime.minutes) Minutes, $($deltaTime.seconds) seconds."
 
     $runningTime = "{0:N2}" -f $deltaTime.TotalMinutes
-
     foreach ($testCase in $testResult.testsuite.testcase)
     {
         if ($testCase.name -eq $testName)

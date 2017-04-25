@@ -159,10 +159,11 @@ VerifyVF()
 		fi
 	fi
 
-	if [[is_fedora || is_ubuntu]]; then
-        ifconfig | grep enP
+	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo')
+	if [[ is_fedora || is_ubuntu ]]; then
+        ifconfig -a | grep $interface
    		if [ $? -ne 0 ]; then
-		    msg="ERROR: No enP2p0s2 device was found!"
+		    msg="ERROR: VF device, $interface , was not found!"
 		    LogMsg "$msg"                                                             
 		    UpdateSummary "$msg"
 		    SetTestStateFailed
@@ -380,7 +381,7 @@ ConfigureBond()
 }
 
 #
-# InstallDependencies - will install iperf, omping, netcat, etc
+# InstallDependencies - will install iperf, netcat, etc
 #
 InstallDependencies()
 {
@@ -409,7 +410,7 @@ InstallDependencies()
 			# Check iPerf3
 			iperf3 -v > /dev/null 2>&1
 			if [ $? -ne 0 ]; then
-				wget http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/libiperf0-3.1.3-50.1.x86_64.rpm
+				wget -4 http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/libiperf0-3.1.3-50.1.x86_64.rpm
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download libiperf (this an iperf3 dependency)"
 	                LogMsg "$msg"
@@ -418,7 +419,7 @@ InstallDependencies()
 	                exit 1
 	            fi
 
-	            wget http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/iperf-3.1.3-50.1.x86_64.rpm
+	            wget -4 http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/iperf-3.1.3-50.1.x86_64.rpm
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download iperf"
 	                LogMsg "$msg"
@@ -431,34 +432,6 @@ InstallDependencies()
 	            rpm -i iperf*
 	            if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to install iperf"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-			fi
-
-			# Check netcat
-			nc -help > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            zypper --non-interactive in netcat
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install netcat"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-	        fi
-
-	        # Check omping
-	        omping -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            zypper addrepo http://download.opensuse.org/repositories/home:emendonca/SLE_12_SP2/home:emendonca.repo
-	            zypper --gpg-auto-import-keys refresh
-	            zypper --non-interactive in omping
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install omping"
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
@@ -487,7 +460,7 @@ InstallDependencies()
 			# Check iPerf3
 			iperf3 -v > /dev/null 2>&1
 			if [ $? -ne 0 ]; then
-				wget https://iperf.fr/download/ubuntu/libiperf0_3.1.3-1_amd64.deb
+				wget -4 https://iperf.fr/download/ubuntu/libiperf0_3.1.3-1_amd64.deb
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download libiperf (this an iperf3 dependency)"
 	                LogMsg "$msg"
@@ -496,7 +469,7 @@ InstallDependencies()
 	                exit 1
 	            fi
 
-	            wget https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
+	            wget -4 https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download iperf"
 	                LogMsg "$msg"
@@ -515,20 +488,6 @@ InstallDependencies()
 	                exit 1
 	            fi
 			fi
-
-			# Check netcat
-			nc -help > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            apt-get install netcat -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install netcat"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-	        fi
-
             ;;
 
         redhat*|centos*)
@@ -551,7 +510,7 @@ InstallDependencies()
 			# Check iPerf3
 			iperf3 -v > /dev/null 2>&1
 			if [ $? -ne 0 ]; then
-	            wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm
+	            wget -4 https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download iperf"
 	                LogMsg "$msg"
@@ -569,33 +528,6 @@ InstallDependencies()
 	                exit 1
 	            fi
 			fi
-
-			# Check netcat
-			nc -help > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            yum install nc -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install netcat"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-            fi
-
-	        # Check omping
-	        omping -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            yum install omping -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install omping"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi	
-			fi
-
         ;;
         *)
             msg="ERROR: OS Version not supported"

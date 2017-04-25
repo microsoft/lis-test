@@ -233,6 +233,13 @@ if ((($majorVersion -le 6) -and ($minorVersion -le 4)) -or $majorVersion -le 5) 
     return $false    
 }
 
+$kernel = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "uname -a | grep 'i686\|i386'"
+if( $kernel.Contains("i686") `
+    -or $kernel.Contains("i386")){
+        Write-Output "Info: Vxlan not supported on 32 bit OS"  | Tee-Object -Append -file $summaryLog
+        return $Skipped
+}
+
 if ($isDynamic -eq $true){
     $vm1MacAddress = $streamReader.ReadLine()
     $streamReader.close()

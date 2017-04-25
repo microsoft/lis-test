@@ -1550,7 +1550,7 @@ function GetVMGeneration([String] $vmName, [String] $hvServer)
     #>
     $vmInfo = Get-VM -Name $vmName -ComputerName $hvServer
 
-    # Hyper-v server 2012 only supports generation 1 VM.
+    # Hyper-V Server 2012 (no R2) only supports generation 1 VM
     if ( $vmInfo.Generation -eq "")
     {
         $vmGeneration = 1
@@ -1560,4 +1560,45 @@ function GetVMGeneration([String] $vmName, [String] $hvServer)
         $vmGeneration = $vmInfo.Generation
     }
     return $vmGeneration
+}
+
+#######################################################################
+#
+# GetNumaSupportStatus()
+#
+#######################################################################
+function GetNumaSupportStatus([string] $kernel)
+{
+    <#
+    .Synopsis
+        Try to determine whether guest supports NUMA
+    .Description
+        Get whether NUMA is supported or not based on kernel verison.
+        Generally, from RHEL 6.6 with kernel version 2.6.32-504,
+        NUMA is supported well.
+    .Parameter kernel
+        $kernel version gets from "uname -r"
+    .Example
+        GetNumaSupportStatus 2.6.32-696.el6.x86_64
+    #>
+
+    if ( $kernel.Contains("i686") -or $kernel.Contains("i386")) {
+        return $false
+    }
+
+    if ( $kernel.StartsWith("2.6")) {
+        $numaSupport = "2.6.32.504"
+        $kernelSupport = $numaSupport.split(".")
+        $kernelCurrent = $kernel.replace("-",".").split(".")
+
+        for ($i=0; $i -le 3; $i++) {
+            if ($kernelCurrent[$i] -lt $kernelSupport[$i] ) {
+                return $false
+            }
+        }
+    }
+
+    # We skip the check if kernel is not 2.6
+    # Anything newer will have support for it
+    return $true
 }

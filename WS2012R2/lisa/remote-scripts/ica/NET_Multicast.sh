@@ -25,185 +25,14 @@
 #   Basic networking test that checks if VM can send and receive multicast packets
 #
 # Steps:
-#   Use Omping (yum install omping -y)
-#   On the 2nd VM: omping $STATIC_IP $STATIC_IP -m 239.255.254.24 -c 11 > out.client &
-#   On the TEST VM: omping $STATIC_IP $STATIC_IP -m 239.255.254.24 -c 11 > out.client
+#   Use ping to test multicast
+#   On the 2nd VM: ping -I eth1 224.0.0.1 -c 11 > out.client &
+#   On the TEST VM: ping -I eth1 224.0.0.1 -c 11 > out.client
 #   Check results:
-#   On the TEST VM: cat out.client | grep multicast | grep /0%
-#   On the 2nd VM: cat out.client | grep multicast | grep /0%
-#   If both have 0% packet loss, test passed
+#   On the TEST VM: cat out.client | grep 0%  && cat out.client | grep 'DUP!'
+#   On the 2nd VM: cat out.client | grep 0%  && cat out.client | grep 'DUP!'
+#   If both have 0% packet loss and duplicate packets, test passed
 ################################################################################
-
-InstallDependencies()
-{
-    # Enable broadcast listening
-    echo 0 >/proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
-
-    GetDistro
-    case "$DISTRO" in
-        suse*)
-            # Disable firewall
-            rcSuSEfirewall2 stop
-
-            # Check omping
-            omping -V > /dev/null 2>&1
-            if [ $? -ne 0 ]; then
-                zypper addrepo http://download.opensuse.org/repositories/home:emendonca/SLE_12_SP2/home:emendonca.repo
-                zypper --gpg-auto-import-keys refresh
-                zypper --non-interactive in omping
-                if [ $? -ne 0 ]; then
-                    msg="ERROR: Failed to install omping"
-                    LogMsg "$msg"
-                    UpdateSummary "$msg"
-                    SetTestStateFailed
-                    return 1
-                fi
-            fi
-            ;;
-
-        ubuntu*)
-            # Disable firewall
-            ufw disable
-
-            # Check omping
-            omping -V > /dev/null 2>&1
-            if [ $? -ne 0 ]; then
-                tar -xzf omping-0.0.4.tar.gz
-                if [ $? -ne 0 ]; then
-                    msg="ERROR: Failed to decompress omping archive"
-                    LogMsg "$msg"
-                    UpdateSummary "$msg"
-                    SetTestStateFailed
-                    return 1
-                fi
-
-                cd omping-0.0.4/
-                make
-                make install
-                if [ $? -ne 0 ]; then
-                    msg="ERROR: Failed to install omping"
-                    LogMsg "$msg"
-                    UpdateSummary "$msg"
-                    SetTestStateFailed
-                    return 1
-                fi
-                cd ~
-
-                # Send Omping archive to dependency VM
-                scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o BindAddress=$STATIC_IP -o StrictHostKeyChecking=no omping-0.0.4.tar.gz "$REMOTE_USER"@"$STATIC_IP2":~/omping-0.0.4.tar.gz
-                if [ $? -ne 0 ]; then
-                    msg="ERROR: Failed to send omping archive to VM2"
-                    LogMsg "$msg"
-                    UpdateSummary "$msg"
-                    SetTestStateFailed
-                    return 1
-                fi
-            fi
-            ;;
-
-        redhat*|centos*)
-            # Disable firewall
-            service firewalld stop
-
-            # Check omping
-            omping -V > /dev/null 2>&1
-            if [ $? -ne 0 ]; then
-                yum install omping -y
-                if [ $? -ne 0 ]; then
-                    msg="ERROR: Failed to install omping"
-                    LogMsg "$msg"
-                    UpdateSummary "$msg"
-                    SetTestStateFailed
-                    return 1
-                fi  
-            fi
-
-        ;;
-        *)
-            msg="ERROR: OS Version not supported"
-            LogMsg "$msg"
-            UpdateSummary "$msg"
-            SetTestStateFailed
-            return 1
-        ;;
-    esac
-
-    return 0
-}
-
-InstallDependenciesRemote(){
-    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ~/utils.sh "$REMOTE_USER"@"$STATIC_IP2":
-    ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "
-chmod +x ./utils.sh ;. ./utils.sh
-
-GetDistro
-
-echo 0 >/proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
-
-GetDistro
-case \"\$DISTRO\" in
-    suse*)
-        # Disable firewall
-        rcSuSEfirewall2 stop
-
-        # Check omping
-        omping -V > /dev/null 2>&1
-        if [ \$? -ne 0 ]; then
-            zypper addrepo http://download.opensuse.org/repositories/home:emendonca/SLE_12_SP2/home:emendonca.repo
-            zypper --gpg-auto-import-keys refresh
-            zypper --non-interactive in omping
-            if [ \$? -ne 0 ]; then
-                UpdateSummary \"ERROR: Failed to install omping\"
-                exit 1
-            fi
-        fi
-        ;;
-
-    ubuntu*)
-        # Disable firewall
-        ufw disable
-
-        # Check omping
-        omping -V > /dev/null 2>&1
-        if [ \$? -ne 0 ]; then
-            tar -xzf omping-0.0.4.tar.gz
-            cd omping-0.0.4/
-            make
-            make install
-            if [ \$? -ne 0 ]; then
-                UpdateSummary \"ERROR: Failed to install omping\"
-                exit 1
-            fi
-            cd ~
-        fi
-        ;;
-
-    redhat*|centos*)
-        # Disable firewall
-        service firewalld stop
-
-        # Check omping
-        omping -V > /dev/null 2>&1
-        if [ \$? -ne 0 ]; then
-            yum install omping -y
-            if [ \$? -ne 0 ]; then
-                UpdateSummary \"ERROR: Failed to install omping\"
-                exit 1
-            fi  
-        fi
-
-    ;;
-    *)
-        UpdateSummary \"ERROR: OS Version not supported\"
-        exit 1
-    ;;
-esac
-
-exit 0
-"
-    return $?
-}
-
 
 ################################################################################3
 
@@ -224,72 +53,107 @@ dos2unix NET_set_static_ip.sh
 chmod +x NET_set_static_ip.sh
 ./NET_set_static_ip.sh
 if [ $? -ne 0 ];then
-    msg="ERROR: Could not set static ip on VM1!"
+    msg="ERROR: Could not set static IP on VM1!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateAborted
 fi
 
-# Install dependencies needed for testing
-InstallDependencies
+# Configure VM1
+echo '0' >/proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not install dependencies on VM1!"
+    msg="ERROR: Could not enable broadcast listening on VM1!"
     LogMsg "$msg"
     UpdateSummary "$msg"
-    SetTestStateAborted
+    SetTestStateFailed
 fi
 
-InstallDependenciesRemote
+echo '1' > /proc/sys/net/ipv4/ip_forward
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not install dependencies on VM2!"
+    msg="ERROR: Could not enable IP forwarding on VM1!"
     LogMsg "$msg"
     UpdateSummary "$msg"
-    SetTestStateAborted
-fi 
-LogMsg "INFO: All configuration completed successfully. Will proceed with the testing"
+    SetTestStateFailed
+fi
+
+ip route add 224.0.0.0/4 dev eth1
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not add new route to Routing Table on VM1!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
+# Configure VM2
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "echo '1' > /proc/sys/net/ipv4/ip_forward"
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not enable IP Forwarding on VM2!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "ip route add 224.0.0.0/4 dev eth1"
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not add new route to Routing Table on VM2!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "echo '0' > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts"
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not enable broadcast listening on VM2!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
 
 # Multicast testing
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "omping $STATIC_IP $STATIC_IP2 -m 239.255.254.24 -c 11 > out.client &"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "ping -I eth1 224.0.0.1 -c 11 > out.client &"
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not start omping on VM2 (STATIC_IP: ${STATIC_IP2})"
+    msg="ERROR: Could not start ping on VM2 (STATIC_IP: ${STATIC_IP2})"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
-omping $STATIC_IP $STATIC_IP2 -m 239.255.254.24 -c 11 > out.client
+ping -I eth1 224.0.0.1 -c 11 > out.client
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not start omping on VM1 (STATIC_IP: ${STATIC_IP})"
+    msg="ERROR: Could not start ping on VM1 (STATIC_IP: ${STATIC_IP})"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
-LogMsg "INFO: Omping was started on both VMs. Results will be checked in a few seconds"
+LogMsg "INFO: ping was started on both VMs. Results will be checked in a few seconds"
 sleep 5
  
-# Check results - Summary must show a 0% loss of packets
-multicastSummary=$(cat out.client | grep multicast | grep /0%)
+# Check results - Summary must show a 0% loss of packets and duplicate packets (DUP!)
+multicastSummary=$(cat out.client | grep 0% && cat out.client | grep 'DUP!')
 if [ $? -ne 0 ]; then
-    msg="ERROR: VM1 shows that packets were lost!"
+    msg="ERROR: VM1 shows that packets were lost or duplicate packets were not found!"
     LogMsg "$msg"
     LogMsg "${multicastSummary}"
     UpdateSummary "$msg"
     UpdateSummary "${multicastSummary}"
     SetTestStateFailed
 fi
+
 LogMsg "Multicast summary"
 LogMsg "${multicastSummary}"
 
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "cat out.client | grep multicast | grep /0%"
+# Check results on VM2
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "cat out.client | grep '0%' && cat out.client | grep 'DUP!'"
 if [ $? -ne 0 ]; then
-    msg="ERROR: VM2 shows that packets were lost!"
+    msg="ERROR: VM2 shows that packets were lost or duplicate packets not found!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
 msg="Multicast packets were successfully sent, 0% loss"
+
 LogMsg $msg
 UpdateSummary "$msg"
 SetTestStateCompleted
