@@ -49,6 +49,16 @@ dos2unix utils.sh
 
 UtilsInit
 
+# Set remote user
+if [ "${REMOTE_USER:-UNDEFINED}" = "UNDEFINED" ]; then
+    msg="The test parameter REMOTE_USER is not defined in ${LIS_CONSTANTS_FILE} . Using root instead"
+    LogMsg "$msg"
+    REMOTE_USER=root
+else
+    msg="REMOTE_USER set to $REMOTE_USER"
+    LogMsg "$msg"
+fi
+
 dos2unix NET_set_static_ip.sh
 chmod +x NET_set_static_ip.sh
 ./NET_set_static_ip.sh
