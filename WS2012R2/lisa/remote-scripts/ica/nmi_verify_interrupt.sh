@@ -32,7 +32,7 @@
 #	 1. Make sure we have a constants.sh file.
 #	 2. Looks for the NMI property of each CPU.
 #	 3. Verifies if each CPU has received a NMI.
-#     
+#
 #	 To pass test parameters into test cases, the host will create
 #	 a file named constants.sh.  This file contains one or more
 #	 variable definition.
@@ -98,9 +98,10 @@ cpu_count=$(grep CPU -o /proc/interrupts | wc -l)
 
 LogMsg "${cpu_count} CPUs found"
 echo "${cpu_count} CPUs found" >> ~/summary.log
-
 #
-# Verifying if NMI is received by checking the /proc/interrupts file
+# Check host version:
+# Prior to WS2016 the NMI is injected to all CPUs of the guest and
+# WS1026 injects it to CPU0 only.
 #
 while read line
 do
@@ -109,19 +110,34 @@ do
         do
             nmiCount=`echo $line | cut -f $(( $i+2 )) -d ' '`
             LogMsg "CPU ${i} interrupt count = ${nmiCount}"
-            if [ $nmiCount -ne 0 ]; then
-                LogMsg "NMI received at CPU ${i}"
+
+            # only not CPU0 and 2016 should not receive NMI
+            if [ $i -eq 0 ] || [ $BuildNumber -lt 14393 ]; then
+                if [ $nmiCount -ne 0 ]; then
+                    LogMsg "Info: NMI received at CPU ${i}"
+                    echo "Info: NMI received at CPU ${i}" >> ~/summary.log
+                else
+                    LogMsg "Error: CPU {$i} did not receive a NMI!"
+                    echo "Error: CPU {$i} did not receive a NMI!" >> ~/summary.log
+                    UpdateTestState $ICA_TESTFAILED
+                    exit 10
+                fi
             else
-                LogMsg "Error: CPU {$i} did not receive a NMI!"
-                echo "Error: CPU {$i} did not receive a NMI!" >> ~/summary.log
-                UpdateTestState $ICA_TESTFAILED
-                exit 10
+                if [ $nmiCount -eq 0 ]; then
+                    LogMsg "Info: CPU {$i} did not receive a NMI, this is expected"
+                    echo "Info: CPU {$i} did not receive a NMI, this is expected" >> ~/summary.log
+                else
+                    LogMsg "Error: CPU {$i} received a NMI!"
+                    echo "Error: CPU {$i} received a NMI!" >> ~/summary.log
+                    UpdateTestState $ICA_TESTFAILED
+                    exit 10
+                fi
             fi
+
         done
     fi
 done < "/proc/interrupts"
 
-echo "Info: NMI calls are received on all CPU cores." >> ~/summary.log
 LogMsg "Test completed successfully"
 UpdateTestState "TestCompleted"
 exit 0

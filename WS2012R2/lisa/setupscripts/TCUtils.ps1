@@ -1550,7 +1550,7 @@ function GetVMGeneration([String] $vmName, [String] $hvServer)
     #>
     $vmInfo = Get-VM -Name $vmName -ComputerName $hvServer
 
-    # Hyper-V Server 2012 (no R2) only supports generation 1 VM
+    # Hyper-v server 2012 only supports generation 1 VM.
     if ( $vmInfo.Generation -eq "")
     {
         $vmGeneration = 1
@@ -1566,14 +1566,15 @@ function GetVMGeneration([String] $vmName, [String] $hvServer)
 #
 # GetNumaSupportStatus()
 #
-#######################################################################
+##########################################################
+#############
 function GetNumaSupportStatus([string] $kernel)
 {
     <#
     .Synopsis
-        Try to determine whether guest supports NUMA
+        Try to determine whether guest supports numa
     .Description
-        Get whether NUMA is supported or not based on kernel verison.
+        Get whether numa is supported or not based on kernel verison.
         Generally, from RHEL 6.6 with kernel version 2.6.32-504,
         NUMA is supported well.
     .Parameter kernel
@@ -1582,23 +1583,59 @@ function GetNumaSupportStatus([string] $kernel)
         GetNumaSupportStatus 2.6.32-696.el6.x86_64
     #>
 
-    if ( $kernel.Contains("i686") -or $kernel.Contains("i386")) {
-        return $false
+    if( $kernel.Contains("i686") `
+        -or $kernel.Contains("i386")){
+            return $false
     }
+    $numaSupport = "2.6.32.504"
+    $kernelSupport = $numaSupport.split(".")
+    $kernelCurrent = $kernel.replace("-",".").split(".")
 
-    if ( $kernel.StartsWith("2.6")) {
-        $numaSupport = "2.6.32.504"
-        $kernelSupport = $numaSupport.split(".")
-        $kernelCurrent = $kernel.replace("-",".").split(".")
-
-        for ($i=0; $i -le 3; $i++) {
-            if ($kernelCurrent[$i] -lt $kernelSupport[$i] ) {
-                return $false
-            }
+    for ($i=0; $i -le 3; $i++){
+        if ($kernelCurrent[$i] -lt $kernelSupport[$i] ){
+            return $false
         }
     }
-
-    # We skip the check if kernel is not 2.6
-    # Anything newer will have support for it
     return $true
+}
+
+#####################################################################
+#
+# GetHostVersion
+#
+#####################################################################
+function GetHostBuildNumber([String] $hvServer)
+{
+    <#
+    .Synopsis
+        Get host BuildNumber.
+
+    .Description
+        Get host BuildNumber.
+        14393: 2016 host
+        9600: 2012R2 host
+        9200: 2012 host
+        0: error
+
+    .Parameter hvServer
+        Name of the server hosting the VM
+
+    .ReturnValue
+        Host BuildNumber.
+
+    .Example
+        GetHostBuildNumber
+    #>
+
+    [System.Int32]$buildNR = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $hvServer).BuildNumber
+
+    if ( $buildNR -gt 0 )
+    {
+        return $buildNR
+    }
+    else
+    {
+        Write-Error -Message "Get host build number failed" -ErrorAction SilentlyContinue
+        return 0
+    }
 }

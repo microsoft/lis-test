@@ -45,7 +45,7 @@
         <suite>
             <suiteName>NMI</suiteName>
             <suiteTests>
-                <suiteTest>NMI_Send_Interrupt</suiteTest>
+                <!-- <suiteTest>NMI_Send_Interrupt</suiteTest> -->
                 <suiteTest>NMI_Verify_Interrupt</suiteTest>
                 <suiteTest>NMI_different_vmStates</suiteTest>
             </suiteTests>
@@ -53,7 +53,7 @@
     </testSuites>
 
     <testCases>
-        <test>
+        <!-- <test>
             <testName>NMI_Send_Interrupt</testName>
             <testScript>setupscripts\NMI_Send_Interrupt.ps1</testScript>
             <timeout>300</timeout>
@@ -62,20 +62,21 @@
             <testParams>
                 <param>TC_COVERED=NMI-01a</param>
             </testParams>
-        </test>
+        </test> -->
 
         <test>
             <testName>NMI_Verify_Interrupt</testName>
-            <testScript>nmi_verify_interrupt.sh</testScript>
+            <testScript>setupscripts\NMI_Send_Interrupt.ps1</testScript>
             <files>remote-scripts\ica\nmi_verify_interrupt.sh</files>
             <timeout>300</timeout>
+            <RevertDefaultSnapshot>True</RevertDefaultSnapshot>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testParams>
-                <param>TC_COVERED=NMI-01b</param>
+                <param>TC_COVERED=NMI-01</param>
             </testParams>
         </test>
-		
+
         <test>
             <testName>NMI_different_vmStates</testName>
             <testScript>setupscripts\NMI_different_vmStates.ps1</testScript>
