@@ -30,11 +30,11 @@
 #
 # test result codes
 #
-New-Variable Passed              -value "Passed"              -option ReadOnly
-New-Variable Skipped             -value "Skipped"             -option ReadOnly
-New-Variable Aborted             -value "Aborted"             -option ReadOnly
-New-Variable Failed              -value "Failed"              -option ReadOnly
 
+New-Variable Passed              -value "Passed"              -option ReadOnly -Force
+New-Variable Skipped             -value "Skipped"             -option ReadOnly -Force
+New-Variable Aborted             -value "Aborted"             -option ReadOnly -Force
+New-Variable Failed              -value "Failed"              -option ReadOnly -Force
 
 #####################################################################
 #
