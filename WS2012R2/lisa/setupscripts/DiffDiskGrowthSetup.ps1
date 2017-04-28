@@ -360,6 +360,12 @@ else
 {
     $lun = [int]($diskArgs[1].Trim()) +1
 }
+
+$dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer
+if ($dvd)
+{
+    Remove-VMDvdDrive $dvd
+}
 $drives = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun
 if ($drives)
 {
