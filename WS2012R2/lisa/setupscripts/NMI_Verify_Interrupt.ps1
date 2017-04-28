@@ -208,11 +208,6 @@ if ($BuildNumber -eq 0)
 {
     return $false
 }
-# not supported if host is 2012 and 2008
-if ($BuildNumber -lt 9600)
-{
-    return $Skipped
-}
 
 $retVal = SendCommandToVM $ipv4 $sshkey "echo BuildNumber=$BuildNumber >> /root/constants.sh"
 if (-not $retVal[-1]){

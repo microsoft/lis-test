@@ -68,6 +68,7 @@
             <testName>NMI_Verify_Interrupt</testName>
             <testScript>setupscripts\NMI_Verify_Interrupt.ps1</testScript>
             <files>remote-scripts\ica\nmi_verify_interrupt.sh</files>
+            <files>remote-scripts/ica/utils.sh</files>
             <timeout>300</timeout>
             <RevertDefaultSnapshot>True</RevertDefaultSnapshot>
             <onError>Continue</onError>
