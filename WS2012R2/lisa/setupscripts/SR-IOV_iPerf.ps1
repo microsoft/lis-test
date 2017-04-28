@@ -206,6 +206,7 @@ if (-not $retVal)
 #
 # Start the client side
 "Start Client"
+.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "kill `$(ps aux | grep iperf | head -1 | awk '{print `$2}')"
 .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "iperf3 -s > client.out &"
 
 "Start Server"
@@ -224,19 +225,12 @@ if (-not $vfEnabledBandwidth){
 "The bandwidth with SR-IOV enabled is $vfEnabledBandwidth Gbits/sec" | Tee-Object -Append -file $summaryLog
 
 #
-# Disable SR-IOV on both VMs
+# Disable SR-IOV
 #
-
 "Disabling VF on vm1"
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 0
 if (-not $?) {
     "ERROR: Failed to disable SR-IOV on $vmName!" | Tee-Object -Append -file $summaryLog
-}
-
-"Disabling VF on vm2"
-Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer -IovWeight 0
-if (-not $?) {
-    "ERROR: Failed to disable SR-IOV on $vm2Name!" | Tee-Object -Append -file $summaryLog
 }
 
 #

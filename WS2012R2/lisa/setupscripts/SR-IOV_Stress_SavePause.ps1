@@ -195,6 +195,7 @@ else {
 #
 # Configure the bond on test VM
 #
+Start-Sleep -s 5
 $retVal = ConfigureBond $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
@@ -205,6 +206,7 @@ if (-not $retVal)
 #
 # Install iPerf3 on VM1
 #
+Start-Sleep -s 5
 "Installing iPerf3 on ${vmName}"
 $retval = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "dos2unix SR-IOV_Utils.sh && source SR-IOV_Utils.sh && InstallDependencies"
 if (-not $retVal)
@@ -216,6 +218,7 @@ if (-not $retVal)
 #
 # Reboot VM
 #
+Start-Sleep -s 5
 Restart-VM -VMName $vmName -ComputerName $hvServer -Force
 $sts = WaitForVMToStartSSH $ipv4 200
 if( -not $sts[-1]){
@@ -230,18 +233,20 @@ $ipv4 = GetIPv4 $vmName $hvServer
 # Start iPerf3 on both VMs
 #
 # Start the client side
+Start-Sleep -s 5
 "Start Client"
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4}  "iperf3 -s > client.out &"
+.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "kill `$(ps aux | grep iperf | head -1 | awk '{print `$2}')"
+.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "iperf3 -s > client.out &"
 
 "Start Server"
 # Start iPerf3 testing
-.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "echo 'source constants.sh && iperf3 -t 1800 -c `$BOND_IP1 --logfile PerfResults.log &' > runIperf.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 1800 -c `$BOND_IP2 --logfile PerfResults.log &' > runIperf.sh"
 Start-Sleep -s 5
-.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
 
 # Wait 10 seconds and read the throughput
 Start-Sleep -s 10
-[decimal]$vfInitialThroughput = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+[decimal]$vfInitialThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 if (-not $vfInitialThroughput){
     "ERROR: No result was logged! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
     return $false
@@ -266,7 +271,7 @@ while ($isDone -eq $False)
     $hasSwitched = $false
 
     # Read the throughput before changing VM state
-    [decimal]$vfBeforeThroughput = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+    [decimal]$vfBeforeThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 
     # Change state
     iex $cmd_StateChange
@@ -297,7 +302,7 @@ while ($isDone -eq $False)
     # Throughput  will also be measured
     while ($hasSwitched -eq $false){
         # This check is made to determine if iPerf3 is still running
-        $iperfDone = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "tail -1 PerfResults.log | grep Done"
+        $iperfDone = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -1 PerfResults.log | grep Done"
         if ($iperfDone) {
             $isDone = $true
             $hasSwitched = $true
@@ -305,7 +310,7 @@ while ($isDone -eq $False)
         }
 
         # Get the throughput
-        [decimal]$vfAfterThroughput = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "tail -2 PerfResults.log | head -1 | grep Gbits | awk '{print `$7}'"
+        [decimal]$vfAfterThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | grep Gbits | awk '{print `$7}'"
 
         # Compare results with the ones taken before the stress test
         # If they are simillar, end the 'while loop' and proceed to another state change
@@ -317,7 +322,7 @@ while ($isDone -eq $False)
         # If more than 5 seconds passed and also VF is not running, fail the test
         else {  
             if ($timeToSwitch -gt 5){
-                $interfaceOutput = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "ifconfig | grep enP"
+                $interfaceOutput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep enP"
                 if ($interfaceOutput -and ($vfAfterThroughput -gt 0)){
                     "Info: On run $counter, the throughput did not increase enough ($vfAfterThroughput gbps), but VF is up" | Tee-Object -Append -file $summaryLog
                     $hasSwitched = $true

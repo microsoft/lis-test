@@ -166,12 +166,27 @@ $ipv4 = GetIPv4 $vmName $hvServer
 #
 # Configure the bond on test VM
 #
+Start-Sleep -s 5
 $retVal = ConfigureBond $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
     "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
     return $false
 }
+Start-Sleep -s 5
+
+# Reboot VM
+Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+$sts = WaitForVMToStartSSH $ipv4 200
+if( -not $sts[-1]){
+    "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
+    return $false    
+}
+
+# Get IPs
+Start-Sleep -s 5
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IP Address after reboot: ${ipv4}"
 
 #
 # Run Ping with SR-IOV enabled
@@ -182,19 +197,18 @@ Start-Sleep -s 5
 
 # Wait 60 seconds and read the RTT
 "Get Logs"
-Start-Sleep -s 60
+Start-Sleep -s 30
 [decimal]$vfEnabledRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 if (-not $vfEnabledRTT){
     "ERROR: No result was logged! Check if Ping was executed!" | Tee-Object -Append -file $summaryLog
     return $false
 }
-
 "The RTT before disabling SR-IOV is $vfEnabledRTT ms" | Tee-Object -Append -file $summaryLog
-Start-Sleep -s 10
 
 #
-# Disable SR-IOV on both VMs
+# Disable SR-IOV on test VM
 #
+Start-Sleep -s 5
 "Disabling VF on vm1"
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 0
 if (-not $?) {
@@ -202,16 +216,8 @@ if (-not $?) {
     return $false 
 }
 
-"Disabling VF on vm2"
-Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer -IovWeight 0
-if (-not $?) {
-    "ERROR: Failed to disable SR-IOV on $vm2Name!" | Tee-Object -Append -file $summaryLog
-    return $false 
-}
-
-
 # Read the RTT with SR-IOV disabled; it should be higher
-Start-Sleep -s 60
+Start-Sleep -s 30
 [decimal]$vfDisabledRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 if (-not $vfDisabledRTT){
     "ERROR: No result was logged after SR-IOV was disabled!" | Tee-Object -Append -file $summaryLog
@@ -223,11 +229,9 @@ if ($vfDisabledRTT -le $vfEnabledRTT) {
     "ERROR: The RTT was lower with SR-IOV disabled, it should be higher" | Tee-Object -Append -file $summaryLog
     return $false 
 }
-Start-Sleep -s 10
 
 #
-# Enable SR-IOV on both VMs
-#
+# Enable SR-IOV on test VM
 "Enable VF on vm1"
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 1
 if (-not $?) {
@@ -235,21 +239,15 @@ if (-not $?) {
     return $false 
 }
 
-"Enable VF on vm2"
-Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer -IovWeight 1
-if (-not $?) {
-    "ERROR: Failed to enable SR-IOV on $vm2Name!" | Tee-Object -Append -file $summaryLog
-    return $false 
-}
-Start-Sleep -s 80
+Start-Sleep -s 30
 
 # Read the RTT again, it should be lower than before
-# We should see a significant imporvement, we'll check for at least 0.1 ms improvement
-[decimal]$vfDisabledRTT = $vfDisabledRTT - 0.08
+# We should see values to close to the initial RTT measured
+[decimal]$vfEnabledRTT = $vfEnabledRTT * 1.3
 [decimal]$vfFinalRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 
 "The RTT after re-enabling SR-IOV is $vfFinalRTT ms" | Tee-Object -Append -file $summaryLog
-if ($vfDisabledRTT -le $vfFinalRTT ) {
+if ($vfFinalRTT -gt $vfEnabledRTT) {
     "ERROR: After re-enabling SR-IOV, the RTT value has not lowered enough
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
     return $false 

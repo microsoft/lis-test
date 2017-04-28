@@ -175,6 +175,7 @@ if (-not $retVal)
     "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
     return $false
 }
+Start-Sleep -s 5
 
 #
 # Install iPerf3 on VM1
@@ -186,6 +187,7 @@ if (-not $retVal)
     "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4})"
     return $false
 }
+Start-Sleep -s 5
 
 #
 # Reboot VM
@@ -196,7 +198,9 @@ if( -not $sts[-1]){
     "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
     return $false    
 }
+
 # Get IPs
+Start-Sleep -s 5
 $ipv4 = GetIPv4 $vmName $hvServer
 "${vmName} IP Address: ${ipv4}"
 
@@ -205,17 +209,18 @@ $ipv4 = GetIPv4 $vmName $hvServer
 #
 # Start the client side
 "Start Client"
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4}  "iperf3 -s > client.out &"
+.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "kill `$(ps aux | grep iperf | head -1 | awk '{print `$2}')"
+.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "iperf3 -s > client.out &"
 
 "Start Server"
 # Start iPerf3 testing
-.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "echo 'source constants.sh && iperf3 -t 1800 -c `$BOND_IP1 --logfile PerfResults.log &' > runIperf.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 1800 -c `$BOND_IP2 --logfile PerfResults.log &' > runIperf.sh"
 Start-Sleep -s 5
-.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
 
 # Wait 30 seconds and read the throughput
 Start-Sleep -s 30
-[decimal]$vfInitialThroughput = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+[decimal]$vfInitialThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 if (-not $vfInitialThroughput){
     "ERROR: No result was logged! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
     return $false
@@ -270,7 +275,7 @@ Start-Sleep -s 20
 
 # Read the throughput again, it should be higher than before
 # We should see a throughput at least 70% higher
-[decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+[decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 
 "The throughput after re-enabling SR-IOV is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
 if ($vfFinalThroughput -lt  $vfInitialThroughput) {

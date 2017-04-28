@@ -159,7 +159,7 @@ VerifyVF()
 		fi
 	fi
 
-	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo')
+	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo' | head -1)
 	if [[ is_fedora || is_ubuntu ]]; then
         ifconfig -a | grep $interface
    		if [ $? -ne 0 ]; then
