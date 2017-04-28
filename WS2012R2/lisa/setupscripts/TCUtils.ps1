@@ -1602,3 +1602,44 @@ function GetNumaSupportStatus([string] $kernel)
     # Anything newer will have support for it
     return $true
 }
+
+#####################################################################
+#
+# GetHostBuildNumber
+#
+#####################################################################
+function GetHostBuildNumber([String] $hvServer)
+{
+    <#
+    .Synopsis
+        Get host BuildNumber.
+
+    .Description
+        Get host BuildNumber.
+        14393: 2016 host
+        9600: 2012R2 host
+        9200: 2012 host
+        0: error
+
+    .Parameter hvServer
+        Name of the server hosting the VM
+
+    .ReturnValue
+        Host BuildNumber.
+
+    .Example
+        GetHostBuildNumber
+    #>
+
+    [System.Int32]$buildNR = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $hvServer).BuildNumber
+
+    if ( $buildNR -gt 0 )
+    {
+        return $buildNR
+    }
+    else
+    {
+        Write-Error -Message "Get host build number failed" -ErrorAction SilentlyContinue
+        return 0
+    }
+}

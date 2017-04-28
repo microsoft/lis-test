@@ -24,10 +24,10 @@
 	Sends a NMI to a given VM by using the Debug-VM cmdlet
 
 .Description
-	The script will send a NMI to the specific VM. Script must be executed 
-	under PowerShell running with Administrator rights, unprivileged user 
+	The script will send a NMI to the specific VM. Script must be executed
+	under PowerShell running with Administrator rights, unprivileged user
 	can not send the NMI to VM.
-	This must be used along with the nmi_verify_interrupt.sh bash script to 
+	This must be used along with the nmi_verify_interrupt.sh bash script to
 	check if the NMI is successfully detected by the Linux guest VM.
 
 	The test case definition for this test case would look similar to:
@@ -42,7 +42,7 @@
             </testParams>
             <noReboot>True</noReboot>
         </test>
-		
+
 	<test>
             <testName>NMI_Verify_Interrupt</testName>
             <testScript>nmi_verify_interrupt.sh</testScript>
@@ -103,14 +103,22 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
+
     if ($fields[0].Trim() -eq "TC_COVERED")
     {
         $TC_COVERED = $fields[1].Trim()
     }
-     if ($fields[0].Trim() -eq "rootDir")
-    {
+    if ($fields[0].Trim() -eq "ipv4") {
+        $ipv4 = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "rootDir") {
         $rootDir = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "sshkey") {
+        $sshkey = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "TestLogDir") {
+        $TestLogDir = $fields[1].Trim()
     }
 }
 
@@ -182,4 +190,39 @@ else
     $retVal = $false
 }
 
-return $retval
+# Source TCUtils.ps1 for test related functions
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+    . .\setupScripts\TCUtils.ps1
+}
+else
+{
+    LogMsg 0 "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+}
+
+# get host build number
+$BuildNumber = GetHostBuildNumber $hvServer
+
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+
+$retVal = SendCommandToVM $ipv4 $sshkey "echo BuildNumber=$BuildNumber >> /root/constants.sh"
+if (-not $retVal[-1]){
+    Write-Output "Error: Could not echo BuildNumber=$BuildNumber to vm's constants.sh."
+    return $false
+}
+
+$retVal = RunRemoteScript nmi_verify_interrupt.sh
+if( $retVal[-1] )
+{
+    Write-output "Info: Verify NMI on VM $vmName successfully" | Tee-Object -Append -file $summaryLog
+    return $true
+}
+else
+{
+    Write-output "Error: Verify NMI on VM $vmName failed" | Tee-Object -Append -file $summaryLog
+    return $false
+}
