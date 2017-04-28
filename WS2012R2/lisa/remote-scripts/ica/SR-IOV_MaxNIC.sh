@@ -37,6 +37,9 @@
 dos2unix SR-IOV_Utils.sh
 
 # Adding IPs for all bonds (VM1 and VM2) in constants.sh
+sed --in-place '/IP1/d' constants.sh
+sed --in-place '/IP2/d' constants.sh
+
 maxBondIterator=14
 __iterator=0
 __ipIterator1=1

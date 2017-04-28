@@ -178,8 +178,23 @@ if (-not $retVal)
 }
 
 #
+# Reboot VM
+#
+Start-Sleep -s 5
+Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+$sts = WaitForVMToStartSSH $ipv4 200
+if( -not $sts[-1]){
+    "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
+    return $false    
+}
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IP Address: ${ipv4}"
+
+#
 # Run Ping with SR-IOV enabled
 #
+Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 20 -I bond0 `$BOND_IP2 > PingResults.log &' > runPing.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
@@ -274,7 +289,7 @@ Start-Sleep -s 5
 [decimal]$beforeRTT = $beforeRTT + 0.04
 [decimal]$afterRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 
-"The RTT after re-enabling SR-IOV is $afterRTT ms" | Tee-Object -Append -file $summaryLog
+"The RTT after resuming VM is $afterRTT ms" | Tee-Object -Append -file $summaryLog
 if ($afterRTT -ge $beforeRTT ) {
     "ERROR: After resuming VM, the RTT value has not lowered enough
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog

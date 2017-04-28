@@ -174,6 +174,7 @@ if (-not $retVal)
     "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
     return $false
 }
+Start-Sleep -s 5
 
 #
 # Install iPerf3 on VM1
@@ -185,13 +186,29 @@ if (-not $retVal)
     "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4})"
     return $false
 }
+Start-Sleep -s 5
+
+# Reboot VM
+Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+$sts = WaitForVMToStartSSH $ipv4 200
+if( -not $sts[-1]){
+    "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
+    return $false    
+}
+
+# Get IPs
+Start-Sleep -s 5
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IP Address after reboot: ${ipv4}"
 
 #
 # Run iPerf3 with SR-IOV enabled
 #
 # Start the client side
 "Start Client"
+.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "kill `$(ps aux | grep iperf | head -1 | awk '{print `$2}')"
 .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "iperf3 -s > client.out &"
+Start-Sleep -s 5
 
 "Start Server"
 # Start iPerf3 testing
@@ -201,18 +218,17 @@ Start-Sleep -s 5
 
 # Wait 60 seconds and read the throughput
 "Get Logs"
-Start-Sleep -s 60
-[decimal]$vfEnabledThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+Start-Sleep -s 30
+[decimal]$vfEnabledThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -4 PerfResults.log | head -1 | awk '{print `$7}'"
 if (-not $vfEnabledThroughput){
     "ERROR: No result was logged! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
 "The throughput before disabling SR-IOV is $vfEnabledThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
-Start-Sleep -s 10
 
 #
-# Disable SR-IOV on both VMs
+# Disable SR-IOV on test VM
 #
 "Disabling VF on vm1"
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 0
@@ -221,17 +237,9 @@ if (-not $?) {
     return $false 
 }
 
-"Disabling VF on vm2"
-Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer -IovWeight 0
-if (-not $?) {
-    "ERROR: Failed to disable SR-IOV on $vm2Name!" | Tee-Object -Append -file $summaryLog
-    return $false 
-}
-
-
 # Read the throughput with SR-IOV disabled; it should be lower
-Start-Sleep -s 60
-[decimal]$vfDisabledThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+Start-Sleep -s 40
+[decimal]$vfDisabledThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -4 PerfResults.log | head -1 | awk '{print `$7}'"
 if (-not $vfDisabledThroughput){
     "ERROR: No result was logged after SR-IOV was disabled!" | Tee-Object -Append -file $summaryLog
     return $false
@@ -242,33 +250,26 @@ if ($vfDisabledThroughput -ge $vfEnabledThroughput) {
     "ERROR: The throughput was higher with SR-IOV disabled, it should be lower" | Tee-Object -Append -file $summaryLog
     return $false 
 }
-Start-Sleep -s 10
 
 #
-# Enable SR-IOV on both VMs
+# Enable SR-IOV on test VM
 #
+Start-Sleep -s 5
 "Enable VF on vm1"
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 1
 if (-not $?) {
     "ERROR: Failed to enable SR-IOV on $vmName!" | Tee-Object -Append -file $summaryLog
     return $false 
 }
-
-"Enable VF on vm2"
-Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer -IovWeight 1
-if (-not $?) {
-    "ERROR: Failed to enable SR-IOV on $vm2Name!" | Tee-Object -Append -file $summaryLog
-    return $false 
-}
-Start-Sleep -s 60
+Start-Sleep -s 30
 
 # Read the throughput again, it should be higher than before
 # We should see a throughput at least 70% higher
-[decimal]$vfDisabledThroughput = $vfDisabledThroughput * 1.7
+[decimal]$vfEnabledThroughput  = $vfEnabledThroughput * 0.7
 [decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 
 "The throughput after re-enabling SR-IOV is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
-if ($vfDisabledThroughput -ge $vfFinalThroughput ) {
+if ($vfEnabledThroughput -gt $vfFinalThroughput ) {
     "ERROR: After re-enabling SR-IOV, the throughput has not increased enough 
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
     return $false 

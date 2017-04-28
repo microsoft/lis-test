@@ -175,6 +175,20 @@ if (-not $retVal)
     "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
     return $false
 }
+Start-Sleep -s 5
+
+# Reboot VM
+Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+$sts = WaitForVMToStartSSH $ipv4 200
+if( -not $sts[-1]){
+    "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
+    return $false    
+}
+
+# Get IPs
+Start-Sleep -s 5
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IP Address after reboot: ${ipv4}"
 
 #
 # Start ping
