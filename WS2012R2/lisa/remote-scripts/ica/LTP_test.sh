@@ -146,6 +146,7 @@ InstallUbuntuDependencies() {
 # Installs RHEL LTP dependencies
 #######################################################################
 InstallRHELDependencies() {
+	yum install -y git
 	yum install -y autoconf
 	yum install -y automake
 	yum install -y m4
