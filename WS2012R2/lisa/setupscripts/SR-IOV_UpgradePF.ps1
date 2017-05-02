@@ -173,6 +173,10 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IPADDRESS: ${ipv4}"
+
 # Get default Hyper-V VHD path; The drivers will be copied here
 $hostInfo = Get-VMHost -ComputerName $hvServer
 $defaultVhdPath = $hostInfo.VirtualHardDiskPath
@@ -284,7 +288,7 @@ if (-not $pfFinalRTT){
 "The RTT after upgrading the firmware: $pfFinalRTT ms" | Tee-Object -Append -file $summaryLog
 
 # Last, check if the RTT values are worse in the end
-[decimal]$pfInitialRTT = $pfInitialRTT + 0.08
+[decimal]$pfInitialRTT = $pfInitialRTT + 0.05
 if ($pfFinalRTT -gt $pfInitialRTT ) {
     "ERROR: After upgrading & downgrading, the RTT value is too high
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog

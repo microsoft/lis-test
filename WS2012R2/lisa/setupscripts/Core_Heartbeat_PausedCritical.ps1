@@ -40,122 +40,13 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-# To Get Parent VHD from VM.
-#######################################################################
-function GetParentVHD($vmName, $hvServer)
-{
-    $ParentVHD = $null
-
-    $VmInfo = Get-VM -Name $vmName -ComputerName $hvServer
-    if (-not $VmInfo)
-        {
-             Write-Error -Message "Error: Unable to collect VM settings for ${vmName}" -ErrorAction SilentlyContinue
-             return $False
-        }
-
-    if ( $VmInfo.Generation -eq "" -or $VmInfo.Generation -eq 1  )
-        {
-            $Disks = $VmInfo.HardDrives
-            foreach ($VHD in $Disks)
-                {
-                    if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  ))
-                        {
-                            $Path = Get-VHD $VHD.Path -ComputerName $hvServer
-                            if ([string]::IsNullOrEmpty($Path.ParentPath))
-                                {
-                                    $ParentVHD = $VHD.Path
-                                }
-                            else{
-                                    $ParentVHD =  $Path.ParentPath
-                                }
-
-                            Write-Host "Parent VHD Found: $ParentVHD "
-                        }
-                }
-        }
-    if ( $VmInfo.Generation -eq 2 )
-        {
-            $Disks = $VmInfo.HardDrives
-            foreach ($VHD in $Disks)
-                {
-                    if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  ))
-                        {
-                            $Path = Get-VHD $VHD.Path -ComputerName $hvServer
-                            if ([string]::IsNullOrEmpty($Path.ParentPath))
-                                {
-                                    $ParentVHD = $VHD.Path
-                                }
-                            else{
-                                    $ParentVHD =  $Path.ParentPath
-                                }
-                            Write-Host "Parent VHD Found: $ParentVHD "
-                        }
-                }
-        }
-
-    if ( -not ($ParentVHD.EndsWith(".vhd") -xor $ParentVHD.EndsWith(".vhdx") ))
-    {
-         Write-Error -Message " Parent VHD is Not correct please check VHD, Parent VHD is: $ParentVHD " -ErrorAction SilentlyContinue
-         return $False
-    }
-
-    return $ParentVHD
-
-}
-
-
-function CreateChildVHD($ParentVHD, $defaultpath)
-{
-    $ChildVHD  = $null
-
-    $hostInfo = Get-VMHost -ComputerName $hvServer
-    if (-not $hostInfo)
-    {
-         Write-Error -Message "Error: Unable to collect Hyper-V settings for ${hvServer}" -ErrorAction SilentlyContinue
-         return $False
-    }
-
-    if (-not $defaultpath.EndsWith("\"))
-    {
-        $defaultpath += "\"
-    }
-
-    # Create Child VHD
-
-    if ($ParentVHD.EndsWith("x") )
-    {
-        $ChildVHD = $defaultpath+$vmName+"-child.vhdx"
-
-    }
-    else
-    {
-        $ChildVHD = $defaultpath+$vmName+"-child.vhd"
-    }
-
-    if ( Test-Path $ChildVHD )
-    {
-        Write-Host "Deleting existing VHD $ChildVHD"
-        del $ChildVHD
-    }
-
-    # Copy Child VHD
-
-    Copy-Item $ParentVHD $ChildVHD
-    if (-not $?)
-    {
-       Write-Error -Message "Error: Unable to create child VHD"  -ErrorAction SilentlyContinue
-       return $False
-    }
-
-    return $ChildVHD
-
-}
+$ipv4vm1 = $null
+$retVal = $true
 
 function Cleanup()
 {
-    Write-Output "Starting cleanup"
-    # Clean up
+    Write-Output "Info: Starting cleanup for the child VM"
+
     $sts = Stop-VM -Name $vmName1 -ComputerName $hvServer -TurnOff
     if (-not $?)
     {
@@ -163,17 +54,17 @@ function Cleanup()
 
     }
 
-    # Delete New VM created
+    # Delete the child VM created
     $sts = Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
     if (-not $?)
     {
-      Write-Output "Error: Deleting New VM $vmName1"
+      Write-Output "Error: Cannot remove the child VM $vmName1"
     }
 
     # Delete partition
     Dismount-VHD -Path $vhdpath -ComputerName $hvServer
 
-    # Detele VHD
+    # Delete VHD
     del $vhdpath
 }
 
@@ -183,10 +74,6 @@ function Cleanup()
 # Main script body
 #
 #######################################################################
-
-$ipv4vm1 = $null
-$retVal = $true
-
 $summaryLog  = "${vmName}_summary.log"
 $vmName1 = "${vmName}_ChildVM"
 
@@ -291,7 +178,7 @@ if (-not $?)
 }
 
 # Copy parent VHD to partition
-$ChildVHD = CreateChildVHD $ParentVHD $driveletter
+$ChildVHD = CreateChildVHD $ParentVHD $driveletter $hvServer
 if(-not $ChildVHD)
 {
     Write-Output "Error: Creating Child VHD of VM $vmName" | Tee-Object -Append -file $summaryLog
@@ -304,7 +191,7 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
 $VMNetAdapter = Get-VMNetworkAdapter $vmName -ComputerName $hvServer
 if (-not $?)
 {
-    Write-Output "Error: Get-VMNetworkAdapter" | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: Failed to run Get-VMNetworkAdapter to obtain the source VM configuration" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -312,7 +199,9 @@ if (-not $?)
 $vm_gen = $vm.Generation
 
 # Remove old VM
-Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
+if ( Get-VM $vmName1 -ComputerName $hvServer -ErrorAction SilentlyContinue ) {
+	Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
+}
 
 # Create the ChildVM
 $newVm = New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
@@ -328,7 +217,7 @@ if ($vm_gen -eq 2)
     Set-VMFirmware -VMName $vmName1 -ComputerName $hvServer -EnableSecureBoot Off
     if(-not $?)
     {
-        Write-Output "Error: Unable to disable secure boot" | Tee-Object -Append -file $summaryLog
+        Write-Output "Error: Unable to disable secure boot!" | Tee-Object -Append -file $summaryLog
         return $false
     }
 }
@@ -346,6 +235,7 @@ Write-Output "Info: New VM $vmName1 started"
 
 # Get the VM1 ip
 $ipv4vm1 = GetIPv4 $vmName1 $hvServer
+Start-Sleep 15
 
 # Get partition size
 $disk = Get-WmiObject Win32_LogicalDisk -ComputerName $hvServer -Filter "DeviceID='${driveletter}'" | Select-Object FreeSpace
@@ -361,14 +251,11 @@ if ($createfile -notlike "File *testfile* is created")
     Cleanup
     return $False
 }
-Write-Output "Info: Created test file on \\$hvServer\$file_path_formatted with the size $filesize" | Tee-Object -Append -file $summaryLog
+Write-Output "Info: Created test file on \\$hvServer\$file_path_formatted with the size $filesize"
 
-$retVal = SendCommandToVM $ipv4vm1 $sshKey "dd if=/dev/urandom of=/root/data2 bs=1M count=500 2>/dev/null &"
-if (-not $?)
-{
-    Write-Output "Error: Could not send command to vm $vmName1" | Tee-Object -Append -file $summaryLog
-}
-Start-Sleep 20
+Write-Output "Info: Writing data on the VM disk in order to hit the disk limit"
+SendCommandToVM $ipv4vm1 $sshKey "nohup dd if=/dev/urandom of=/root/data2 bs=1M count=500 &>/dev/null &"
+Start-Sleep 30
 
 $vm1 = Get-VM -Name $vmName1 -ComputerName $hvServer
 if ($vm1.State -ne "PausedCritical")
@@ -377,7 +264,7 @@ if ($vm1.State -ne "PausedCritical")
     Cleanup
     return $False
 }
-Write-Output "Info: VM $vmName1 entered in Paused-Critical state, as expected" | Tee-Object -Append -file $summaryLog
+Write-Output "Info: VM $vmName1 entered in Paused-Critical state, as expected." | Tee-Object -Append -file $summaryLog
 
 # Create space on partition
 Remove-Item -Path \\$hvServer\$file_path_formatted -Force
@@ -386,7 +273,7 @@ if (-not $?) {
     Cleanup
     return $False
 }
-Write-Output "Info: Test file deleted from mounted VHDx" | Tee-Object -Append -file $summaryLog
+Write-Output "Info: Test file deleted from mounted VHDx"
 
 # Resume VM after we created space on the partition
 Resume-VM -Name $vmName1 -ComputerName $hvServer
@@ -401,6 +288,7 @@ if ($vm1.Heartbeat -eq "OkApplicationsUnknown")
 {
     "Info: Heartbeat detected, status OK."
     Write-Output "Info: Test Passed. Heartbeat is again reported as OK." | Tee-Object -Append -file $summaryLog
+    $retVal = $true
 }
 else
 {

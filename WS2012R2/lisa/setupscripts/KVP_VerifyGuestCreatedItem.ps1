@@ -39,7 +39,7 @@
                 <param>Key=BBB</param>
                 <param>Value=111</param>
                 <param>sshKey=rhel5_id_rsa.ppk</param>
-                <param>rootDir=D:\lisa\trunk\lisablue</param>
+                <param>rootDir=C:\lisa</param>
             </testparams>
         </test>
 
@@ -60,54 +60,12 @@
 #>
 
 param( [String] $vmName, [String] $hvServer, [String] $testParams )
-#######################################################################
-#
-# KvpToDict
-#
-#######################################################################
-function KvpToDict($rawData)
-{
-    <#
-    .Synopsis
-        Convert the KVP data to a PowerShell dictionary.
 
-    .Description
-        Convert the KVP xml data into a PowerShell dictionary.
-        All keys are added to the dictionary, even if their
-        values are null.
-
-    .Parameter rawData
-        The raw xml KVP data.
-
-    .Example
-        KvpToDict $myKvpData
-    #>
-
-    $dict = @{}
-
-    foreach ($dataItem in $rawData)
-    {
-        $key = ""
-        $value = ""
-        $xmlData = [Xml] $dataItem
-        
-        foreach ($p in $xmlData.INSTANCE.PROPERTY)
-        {
-            if ($p.Name -eq "Name")
-            {
-                $key = $p.Value
-            }
-
-            if ($p.Name -eq "Data")
-            {
-                $value = $p.Value
-            }
-        }
-        $dict[$key] = $value
-    }
-
-    return $dict
-}
+$key = $null
+$value = $null
+$sshKey = $null
+$rootDir = $null
+$tcCovered = $null
 
 #######################################################################
 #
@@ -138,19 +96,11 @@ if (-not $testParams)
 #
 # For loggine purposes, display the testParams
 #
-"Info : TestParams : '${testParams}'"
+"Info: TestParams : '${testParams}'"
 
 #
 # Parse the test parameters
 #
-$key = $null
-$value = $null
-$sshKey = $null
-$rootDir = $null
-$tcCovered = $null
-
-"Info : Parsing test params"
-
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -167,7 +117,7 @@ foreach ($p in $params)
     "value"      { $value     = $rValue }
     "sshKey"     { $sshKey    = $rValue }
     "rootdir"    { $rootDir   = $rValue }
-    "tc_covered" { $tcCovered = $rValue }
+    "TC_COVERED" { $tcCovered = $rValue }
     default      {}       
     }
 }
@@ -175,7 +125,6 @@ foreach ($p in $params)
 #
 # Ensure all required test parameters were provided
 #
-"Info : Checking the required test parameters"
 if (-not $key)
 {
     "Error: The 'key' test parameter was not provided"
@@ -194,7 +143,7 @@ if (-not $sshKey)
     return $False
 }
 
-if (-not $tcCovers)
+if (-not $tcCovered)
 {
     "Warn : the TC_COVERED test parameter was not provided"
 }
@@ -221,7 +170,7 @@ echo "Covers : ${tcCovered}" >> $summaryLog
 #
 # Verify the Data Exchange Service is enabled for the test VM
 #
-"Info : Creating Integrated Service object"
+"Info: Creating Integrated Service object"
 
 $des = Get-VMIntegrationService -vmname $vmName -ComputerName $hvServer
 if (-not $des)
@@ -246,7 +195,7 @@ foreach ($svc in $des)
 #
 # Determine the test VMs IP address
 #
-"Info : Determining the VMs IPv4 address"
+"Info: Determining the VMs IPv4 address"
 
 $ipv4 = GetIPv4 $vmName $hvServer
 if (-not $ipv4)
@@ -272,17 +221,17 @@ if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}"))
         return $False
     }
     else {
-        "Info : 32 bit architecture detected"
+        "Info: 32 bit architecture detected"
         $kvp_client = "kvp_client32"
     }
 } 
 else 
 {
-    "Info : 64 bit architecture detected"
+    "Info: 64 bit architecture detected"
     $kvp_client = "kvp_client64"
 }  
 
-"Info : chmod 755 $kvp_client"
+"Info: chmod 755 $kvp_client"
 $cmd = "chmod 755 ./${kvp_client}"
 if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}" ))
 {
@@ -290,7 +239,7 @@ if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}" ))
     return $False
 }
 
-"Info : $kvp_client append 1 ${key} ${value}"
+"Info: $kvp_client append 1 ${key} ${value}"
 $cmd = "./${kvp_client} append 1 ${key} ${value}"
 if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}"))
 {
@@ -301,7 +250,7 @@ if (-not (SendCommandToVM $ipv4 $sshKey "${cmd}"))
 #
 # Create a data exchange object and collect non-intrinsic KVP data from the VM
 #
-"Info : Collecting nonintrinsic KVP data from guest"
+"Info: Collecting nonintrinsic KVP data from guest"
 $Vm = Get-WmiObject -ComputerName $hvServer -Namespace root\virtualization\v2 -Query "Select * From Msvm_ComputerSystem Where ElementName=`'$VMName`'"
 if (-not $Vm)
 {
@@ -328,7 +277,7 @@ $dict = KvpToDict $kvpData
 #
 # For logging purposed, display all kvp data
 #
-"Info : Non-Intrinsic data"
+"Info: Non-Intrinsic data"
 foreach ($key in $dict.Keys)
 {
     $value = $dict[$key]

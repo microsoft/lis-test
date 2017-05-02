@@ -20,35 +20,24 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-ICA_TESTRUNNING="TestRunning"
-ICA_TESTCOMPLETED="TestCompleted"
-ICA_TESTFAILED="TestFailed"
 
 tokens=("Operating system shutdown" "Time Synchronization" "Heartbeat"
         "Data Exchange" "Guest services" "Dynamic Memory" "mouse"
         "keyboard" "Synthetic network adapter" "Synthetic SCSI Controller")
 
-LogMsg()
-{
+LogMsg() {
     echo `date "+%a %b %d %T %Y"` : ${1}
 }
 
-UpdateSummary()
-{
+UpdateSummary() {
     echo $1 >> ~/summary.log
 }
 
-UpdateTestState()
-{
-    echo $1 > ~/state.txt
-}
-
 #######################################################################
+#
 # Main script body
+#
 #######################################################################
-
-# Create the state.txt file so ICA knows we are running
-UpdateTestState $ICA_TESTRUNNING
 
 # Source the constants file
 if [ -e constants.sh ]; then
@@ -69,15 +58,28 @@ fi
 
 echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 
+# Convert eol
 dos2unix utils.sh
-. utils.sh
+
+# Source utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+	SetTestStateAborted
+    exit 1
+}
+
+# Source constants file and initialize most common variables
+UtilsInit
+
+# Create the state.txt file so ICA knows we are running
+TestRunning
 
 GetDistro
 case $DISTRO in
     redhat_5|centos_5*)
-        LogMsg "Error: RedHat/CentOS 5.x not supported."
-        UpdateSummary "Error: RedHat/CentOS 5.x not supported."
-        UpdateTestState $ICA_TESTFAILED
+        LogMsg "Info: RedHat/CentOS 5.x is not supported."
+        UpdateSummary "Info: RedHat/CentOS 5.x is not supported."
+		SetTestStateSkipped
         exit 1
     ;;
 esac
@@ -87,7 +89,7 @@ lsvmbus_path=`which lsvmbus`
 if [ -z $lsvmbus_path ]; then
     LogMsg "Error: lsvmbus not found."
     UpdateSummary "Error: lsvmbus not found."
-    UpdateTestState $ICA_TESTFAILED
+    SetTestStateFailed
     exit 1
 fi
 
@@ -101,11 +103,11 @@ for token in "${tokens[@]}"; do
     if [ $? -ne 0 ]; then
         LogMsg "Error: $token not found in lsvmbus information."
         UpdateSummary "Error: $token not found in lsvmbus information."
-        UpdateTestState $ICA_TESTFAILED
+        SetTestStateFailed
         exit 1
     fi
 done
 
 UpdateSummary "All VMBus device IDs have been found."
-UpdateTestState $ICA_TESTCOMPLETED
+SetTestStateCompleted
 exit 0

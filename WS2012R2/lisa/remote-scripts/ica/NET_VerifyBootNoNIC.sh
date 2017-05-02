@@ -106,90 +106,6 @@ LinuxRelease()
 
 ########################################################################
 #
-#
-#
-########################################################################
-DistroSpecificNicPrep()
-{
-    distro=`LinuxRelease`
-    LogMsg "Info : Distro specific NIC prep for '${distro}'"
-
-    case $distro in
-        "CENTOS" | "RHEL")
-        ;;
-        "UBUNTU")
-        ;;
-        "DEBIAN")
-        ;;
-        "SLES")
-        ;;
-        *)
-            LogMsg "Error: DistroSpecificNicPrep found an invalid distro of '${distro}'"
-            exit 1
-        ;;
-    esac
-}
-
-
-
-########################################################################
-#
-#
-#
-########################################################################
-DistroSpecificIfUp()
-{
-    distro=`LinuxRelease`
-    LogMsg "Info : Distro specific IfUp for '${distro}'"
-
-    case $distro in
-        "CENTOS" | "RHEL")
-        ;;
-        "UBUNTU")
-        ;;
-        "DEBIAN")
-        ;;
-        "SLES")
-            LogMsg "Info : 'ifup eth0' for SLES"
-            ifup eth0
-        ;;
-        *)
-            LogMsg "Error: DistroSpecificIfUp found an invalid distro of '${distro}'"
-            exit 1
-        ;;
-    esac
-}
-
-
-########################################################################
-#
-#
-#
-########################################################################
-DistroSpecificCleanup()
-{
-    distro=`LinuxRelease`
-    LogMsg "Info : Distro specific Cleanup for '${distro}'"
-
-    case $distro in
-        "CENTOS" | "RHEL")
-        ;;
-        "UBUNTU")
-        ;;
-        "DEBIAN")
-        ;;
-        "SLES")
-        ;;
-        *)
-            LogMsg "Error: DistroSpecificCleanup found an invalid distro of '${distro}'"
-            exit 1
-        ;;
-    esac
-}
-
-
-########################################################################
-#
 # Main script body
 #
 ########################################################################
@@ -218,11 +134,6 @@ if [ $ethCount -ne 0 ]; then
 fi
 
 #
-# Do any distro specific prep work before the NIC is hot added
-#
-DistroSpecificNicPrep
-
-#
 # Create a nonintrinsic HotAddTest KVP item with a value of 'NoNICs'
 #
 LogMsg "Info : Creating HotAddTest key with value of 'NoNICS'"
@@ -236,8 +147,8 @@ timeout=300
 noEthDevice=1
 while [ $noEthDevice -eq 1 ]
 do
-    ethCount=$(ifconfig -a | grep '^eth' | wc -l)
-    if [ $ethCount -eq 1 ]; then
+    ethCount=$(ip link | awk '{ print $2 }' | grep '^eth' | wc -l)
+    if [[ $ethCount -eq 1 ]]; then
         LogMsg "Info : an eth device was detected"
         break
     fi
@@ -251,15 +162,15 @@ do
 done
 
 #
-# Configure the new eth device
+# Bring up the new eth device
 #
-DistroSpecificIfUp
+ifup eth0
 
 #
 # Verify the eth device received an IP address
 #
 LogMsg "Info : Verify the new NIC received an IPv4 address"
-ifconfig eth0 | grep -s "inet addr:" > /dev/null
+ip addr show eth0 | grep -s "inet"
 if [ $? -ne 0 ]; then
     LogMsg "Error: eth0 was not assigned an IPv4 address"
     exit 1
@@ -281,7 +192,7 @@ timeout=300
 noEthDevice=1
 while [ $noEthDevice -eq 1 ]
 do
-    ethCount=$(ifconfig -a | grep '^eth' | wc -l)
+    ethCount=$(ip link | awk '{ print $2 }' | grep '^eth' | wc -l)
     if [ $ethCount -eq 0 ]; then
         LogMsg "Info : eth count is zero"
         break
@@ -294,11 +205,6 @@ do
         exit 1
     fi
 done
-
-#
-# Do any distro specific cleanup work required after the NIC was hot removed
-#
-DistroSpecificCleanup
 
 #
 # Modify the KVP HotAddTest value to 'NoNICs'

@@ -40,6 +40,7 @@ UpdateSummary()
 }
 
 cd ~
+
 UpdateTestState "TestRunning"
 
 if [ -e $HOME/constants.sh ]; then
@@ -69,25 +70,24 @@ else
     fi
 fi
 
-umount /mnt
-sleep 1
+# Get the mounting point
+mounting_point=$(ls /dev/sr* | tail -1)
+umount $mounting_point
 UpdateSummary "Mount the CDROM"
-mount /dev/cdrom /mnt
+
+mount $mounting_point /mnt
 sts=$?
 if [ 0 -ne ${sts} ]; then
-    UpdateSummary "Mount CDROM failed: ${sts}"
-    UpdateSummary "Aborting test."
+    UpdateSummary "Error: The ISO file was not mounted"
     UpdateTestState "TestFailed"
     exit 1
-else
-    UpdateSummary  "CDROM is mounted successfully inside the VM"
 fi
 
 UpdateSummary "Info: Perform read operations on the CDROM"
 cd /mnt/
 
 if [ "$first_install" == "" ];then
- first_install=0
+    first_install=0
 fi
 
 # Deleting old LIS
@@ -98,13 +98,25 @@ if [[ "$action" == "install" && "$first_install" == 0 ]]; then
     echo "first_install=1" >> ~/constants.sh
 fi
 
-./$action.sh >> ~/LIS_log_scenario_$scenario.log 2>&1
+./${action}.sh >> ~/LIS_log_scenario_$scenario.log 2>&1
 sts=$?
 if [ 0 -ne ${sts} ]; then
     UpdateSummary "Unable to run ${action}"
     UpdateTestState "TestFailed"
     exit 1
 fi
+
+# Do a double check to see if script finished running
+is_finished=false
+while [ $is_finished == false ]; do
+    cat ~/LIS_log_scenario_$scenario.log | tail -2 | grep reboot
+    if [ $? -eq 0 ]; then
+        is_finished=true
+    else
+        sleep 2
+    fi
+done
+sleep 60
 
 #search for warnings
 cat ~/LIS_log_scenario_$scenario.log | grep -i "Warning"
@@ -138,9 +150,9 @@ fi
 UpdateSummary "LIS drivers ${action}ed successfully"
 
 cd ~
+sleep 5
 umount /mnt/
-sts=$?
-if [ 0 -ne ${sts} ]; then
+if [ $? -ne 0 ]; then
     UpdateSummary "Unable to unmount the CDROM"
     UpdateTestState "TestFailed"
     exit 1
@@ -176,7 +188,7 @@ if [[ "$action" == "install" && ! -f hyperv-daemons.te ]]; then
         fi
     done
 fi
-
 sync
+
 UpdateTestState "TestCompleted"
 exit 0

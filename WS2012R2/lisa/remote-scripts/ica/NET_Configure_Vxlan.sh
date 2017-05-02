@@ -122,6 +122,7 @@ case "$DISTRO" in
         service atd start
         ;;
     ubuntu*)
+        ufw disable
         ;;
     redhat* | centos*)
         iptables -F

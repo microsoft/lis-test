@@ -27,6 +27,14 @@
     Test Case Utility functions.  This is a collection of function
     commonly used by PowerShell test case scripts and setup scripts.
 #>
+#
+# test result codes
+#
+New-Variable Passed              -value "Passed"              -option ReadOnly
+New-Variable Skipped             -value "Skipped"             -option ReadOnly
+New-Variable Aborted             -value "Aborted"             -option ReadOnly
+New-Variable Failed              -value "Failed"              -option ReadOnly
+
 
 #####################################################################
 #
@@ -1032,6 +1040,7 @@ function RunRemoteScript($remoteScript)
     $TestAborted   = "TestAborted"
     $TestFailed   = "TestFailed"
     $TestRunning   = "TestRunning"
+    $TestSkipped   = "TestSkipped"
     $timeout       = 6000
 
     "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
@@ -1107,6 +1116,11 @@ function RunRemoteScript($remoteScript)
                     if ($contents -eq $TestFailed)
                     {
                         Write-Output "Info : State file contains TestFailed message."
+                        break
+                    }
+                    if ($contents -eq $TestSkipped)
+                    {
+                        Write-Output "Info : State file contains TestSkipped message."
                         break
                     }
                     $timeout--
@@ -1254,4 +1268,296 @@ function ConvertStringToDecimal([string] $str)
     }
 
     return $uint64Size
+}
+
+#######################################################################
+#
+# Check boot.msg in Linux VM for Recovering journal
+#
+#######################################################################
+function CheckRecoveringJ()
+{
+    $retValue = $False
+    $filename = ".\boot.msg"
+    $text = "recovering journal"
+
+    echo y | .\bin\pscp -i ssh\${sshKey}  root@${ipv4}:/var/log/boot.* ./boot.msg
+
+    if (-not $?) {
+		Write-Output "ERROR: Unable to copy boot.msg from the VM"
+		return $False
+    }
+
+    $file = Get-Content $filename
+    if (-not $file) {
+        Write-Error -Message "Error: Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+     foreach ($line in $file) {
+        if ($line -match $text) {
+            $retValue = $True
+            Write-Output "$line"
+        }
+    }
+
+    del $filename
+    return $retValue
+}
+
+#######################################################################
+# Create a file on the VM.
+#######################################################################
+function CreateFile([string] $fileName)
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "touch ${fileName}"
+    if (-not $?) {
+        Write-Output "ERROR: Unable to create file" | Out-File -Append $summaryLog
+        return $False
+    }
+
+    return  $True
+}
+
+#######################################################################
+#
+# Delete a file on the VM
+#
+#######################################################################
+function DeleteFile()
+{
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "rm -rf /root/1"
+    if (-not $?)
+    {
+        Write-Error -Message "ERROR: Unable to delete test file!" -ErrorAction SilentlyContinue
+        return $False
+    }
+
+    return  $True
+}
+
+#######################################################################
+#
+# Checks if test file is present or not
+#
+#######################################################################
+function CheckFile([string] $fileName)
+{
+    $retVal = $true
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "stat ${fileName} 2>/dev/null" | out-null
+    if (-not $?) {
+        $retVal = $false
+    }
+
+    return  $retVal
+}
+
+#######################################################################
+#
+# KvpToDict
+#
+#######################################################################
+function KvpToDict($rawData)
+{
+    <#
+    .Synopsis
+        Convert the KVP data to a PowerShell dictionary.
+
+    .Description
+        Convert the KVP xml data into a PowerShell dictionary.
+        All keys are added to the dictionary, even if their
+        values are null.
+
+    .Parameter rawData
+        The raw xml KVP data.
+
+    .Example
+        KvpToDict $myKvpData
+    #>
+
+    $dict = @{}
+
+    foreach ($dataItem in $rawData)
+    {
+        $key = ""
+        $value = ""
+        $xmlData = [Xml] $dataItem
+
+        foreach ($p in $xmlData.INSTANCE.PROPERTY)
+        {
+            if ($p.Name -eq "Name")
+            {
+                $key = $p.Value
+            }
+
+            if ($p.Name -eq "Data")
+            {
+                $value = $p.Value
+            }
+        }
+        $dict[$key] = $value
+    }
+
+    return $dict
+}
+
+
+#######################################################################
+# To Get Parent VHD from VM.
+#######################################################################
+function GetParentVHD($vmName, $hvServer)
+{
+    $ParentVHD = $null
+
+    $VmInfo = Get-VM -Name $vmName -ComputerName $hvServer
+    if (-not $VmInfo) {
+       Write-Error -Message "Error: Unable to collect VM settings for ${vmName}" -ErrorAction SilentlyContinue
+       return $False
+    }
+
+    if ( $VmInfo.Generation -eq "" -or $VmInfo.Generation -eq 1  ) {
+        $Disks = $VmInfo.HardDrives
+        foreach ($VHD in $Disks) {
+            if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  )) {
+                $Path = Get-VHD $VHD.Path -ComputerName $hvServer
+                if ([string]::IsNullOrEmpty($Path.ParentPath)) {
+                    $ParentVHD = $VHD.Path
+                }
+                else {
+                    $ParentVHD =  $Path.ParentPath
+                }
+
+                Write-Host "Parent VHD Found: $ParentVHD "
+            }
+        }
+    }
+    if ( $VmInfo.Generation -eq 2 ) {
+        $Disks = $VmInfo.HardDrives
+        foreach ($VHD in $Disks) {
+            if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  )) {
+                $Path = Get-VHD $VHD.Path -ComputerName $hvServer
+                if ([string]::IsNullOrEmpty($Path.ParentPath)) {
+                    $ParentVHD = $VHD.Path
+                }
+                else {
+                    $ParentVHD =  $Path.ParentPath
+                }
+
+                Write-Host "Parent VHD Found: $ParentVHD "
+            }
+        }
+    }
+
+    if ( -not ($ParentVHD.EndsWith(".vhd") -xor $ParentVHD.EndsWith(".vhdx") )) {
+        Write-Error -Message " Parent VHD is Not correct please check VHD, Parent VHD is: $ParentVHD " -ErrorAction SilentlyContinue
+        return $False
+    }
+
+    return $ParentVHD
+}
+
+
+function CreateChildVHD($ParentVHD, $defaultpath, $hvServer)
+{
+    $ChildVHD  = $null
+    $hostInfo = Get-VMHost -ComputerName $hvServer
+    if (-not $hostInfo) {
+        Write-Error -Message "Error: Unable to collect Hyper-V settings for $hvServer" -ErrorAction SilentlyContinue
+        return $False
+    }
+
+    # Create Child VHD
+    if ($ParentVHD.EndsWith("x") ) {
+        $ChildVHD = $defaultpath + ".vhdx"
+    }
+    else {
+        $ChildVHD = $defaultpath + ".vhd"
+    }
+
+    if ( Test-Path $ChildVHD ) {
+        Write-Host "Deleting existing VHD $ChildVHD"
+        del $ChildVHD
+    }
+
+    # Copy Child VHD
+    Copy-Item $ParentVHD $ChildVHD
+    if (-not $?) {
+        Write-Error -Message "Error: Unable to create child VHD"  -ErrorAction SilentlyContinue
+        return $False
+    }
+
+    return $ChildVHD
+}
+
+# Convert a string to int64 for use with the Set-VMMemory cmdlet
+function ConvertToMemSize([String] $memString, [String]$hvServer)
+{
+    $memSize = [Int64] 0
+
+    if ($memString.EndsWith("MB"))
+    {
+        $num = $memString.Replace("MB","")
+        $memSize = ([Convert]::ToInt64($num)) * 1MB
+    }
+    elseif ($memString.EndsWith("GB"))
+    {
+        $num = $memString.Replace("GB","")
+        $memSize = ([Convert]::ToInt64($num)) * 1GB
+    }
+    elseif( $memString.EndsWith("%"))
+    {
+        $osInfo = Get-WMIObject Win32_OperatingSystem -ComputerName $hvServer
+        if (-not $osInfo)
+        {
+            "Error: Unable to retrieve Win32_OperatingSystem object for server ${hvServer}"
+            return $False
+        }
+
+        $hostMemCapacity = $osInfo.FreePhysicalMemory * 1KB
+        $memPercent = [Convert]::ToDouble("0." + $memString.Replace("%",""))
+        $num = [Int64] ($memPercent * $hostMemCapacity)
+
+        # Align on a 4k boundry
+        $memSize = [Int64](([Int64] ($num / 2MB)) * 2MB)
+    }
+    # we received the number of bytes
+    else
+    {
+        $memSize = ([Convert]::ToInt64($memString))
+    }
+
+    return $memSize
+}
+
+#####################################################################
+#
+# GetVMGeneration()
+#
+#####################################################################
+function GetVMGeneration([String] $vmName, [String] $hvServer)
+{
+    <#
+    .Synopsis
+        Get VM generation type
+    .Description
+        Get VM generation type from host, generation 1 or generation 2
+    .Parameter vmName
+        Name of the VM
+    .Parameter hvServer
+        Name of the server hosting the VM
+    .Example
+        GetVMGeneration $vmName $hvServer
+    #>
+    $vmInfo = Get-VM -Name $vmName -ComputerName $hvServer
+
+    # Hyper-v server 2012 only supports generation 1 VM.
+    if ( $vmInfo.Generation -eq "")
+    {
+        $vmGeneration = 1
+    }
+    else
+    {
+        $vmGeneration = $vmInfo.Generation
+    }
+    return $vmGeneration
 }

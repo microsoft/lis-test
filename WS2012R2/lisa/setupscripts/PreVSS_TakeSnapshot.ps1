@@ -22,6 +22,7 @@
 <#
 .Synopsis
     Creates a quick snapshot, to not revert to the default ICABase snapshot.
+
 .Description
     Modified version of STOR_TakeRevert_Snapshot.ps1 to only create a snapshot.
     This is usefull if the default snapshot represents a clean state,

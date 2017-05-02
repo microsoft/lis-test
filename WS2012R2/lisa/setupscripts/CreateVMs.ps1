@@ -32,7 +32,7 @@
 
    Before creating the VM, the script will check to make sure all
    required tags are present. It will also check the values of the
-   settings.  If the exceen the HyperV's resources, a warning message
+   settings.  If the VM exceeds the HyperV's resources, a warning message
    will be displayed, and default values will override the specified
    values.
 
@@ -177,9 +177,9 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     {
         if (Get-VM -Name $vmName -ComputerName $hvServer |  Where { $_.State -like "Running" })
             {
-                Stop-VM $vmName -ComputerName $hvServer -Force
+                Stop-VM $vmName -ComputerName $hvServer -TurnOff
                 if (-not $?) {
-                    Write-Host "Error: Unable to shut $vmName down in order to remove it!"
+                    Write-Host "Error: Unable to turn off $vmName in order to remove it!"
                     return $False
                 }
             }
@@ -830,7 +830,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                         }
                         else
                         {
-                            Write-Warning "Warn : Invalid mac address for nic ${nic}.  NIC left with dynamic MAC"
+                            Write-Warning "Warn : Invalid MAC address for NIC ${nic}. NIC left with dynamic MAC"
                         }
                     }
                 }

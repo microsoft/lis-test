@@ -52,6 +52,7 @@ declare __LIS_STATE_FILE="$LIS_HOME/state.txt"
 # LIS possible states recorded in state file
 declare __LIS_TESTRUNNING="TestRunning"      # The test is running
 declare __LIS_TESTCOMPLETED="TestCompleted"  # The test completed successfully
+declare __LIS_TESTSKIPPED="TestSkipped"      # The test is not supported by this scenario
 declare __LIS_TESTABORTED="TestAborted"      # Error during setup of test
 declare __LIS_TESTFAILED="TestFailed"        # Error during execution of test
 
@@ -154,6 +155,12 @@ __SetTestState()
 SetTestStateFailed()
 {
 	__SetTestState "$__LIS_TESTFAILED"
+	return $?
+}
+
+SetTestStateSkipped()
+{
+	__SetTestState "$__LIS_TESTSKIPPED"
 	return $?
 }
 
@@ -1914,24 +1921,7 @@ function GetOSVersion {
         else
             os_CODENAME=""
         fi
-    elif [[ -x $(which lsb_release 2>/dev/null) ]]; then
-        os_VENDOR=$(lsb_release -i -s)
-        os_RELEASE=$(lsb_release -r -s)
-        os_UPDATE=""
-        os_PACKAGE="rpm"
-        if [[ "Debian,Ubuntu,LinuxMint" =~ $os_VENDOR ]]; then
-            os_PACKAGE="deb"
-        elif [[ "SUSE LINUX" =~ $os_VENDOR ]]; then
-            lsb_release -d -s | grep -q openSUSE
-            if [[ $? -eq 0 ]]; then
-                os_VENDOR="openSUSE"
-            fi
-        elif [[ $os_VENDOR == "openSUSE project" ]]; then
-            os_VENDOR="openSUSE"
-        elif [[ $os_VENDOR =~ Red.*Hat ]]; then
-            os_VENDOR="Red Hat"
-        fi
-        os_CODENAME=$(lsb_release -c -s)
+
     elif [[ -r /etc/redhat-release ]]; then
         # Red Hat Enterprise Linux Server release 5.5 (Tikanga)
         # Red Hat Enterprise Linux Server release 7.0 Beta (Maipo)
@@ -1953,6 +1943,26 @@ function GetOSVersion {
             os_VENDOR=""
         done
         os_PACKAGE="rpm"
+        
+    elif [[ -x $(which lsb_release 2>/dev/null) ]]; then
+        os_VENDOR=$(lsb_release -i -s)
+        os_RELEASE=$(lsb_release -r -s)
+        os_UPDATE=""
+        os_PACKAGE="rpm"
+        if [[ "Debian,Ubuntu,LinuxMint" =~ $os_VENDOR ]]; then
+            os_PACKAGE="deb"
+        elif [[ "SUSE LINUX" =~ $os_VENDOR ]]; then
+            lsb_release -d -s | grep -q openSUSE
+            if [[ $? -eq 0 ]]; then
+                os_VENDOR="openSUSE"
+            fi
+        elif [[ $os_VENDOR == "openSUSE project" ]]; then
+            os_VENDOR="openSUSE"
+        elif [[ $os_VENDOR =~ Red.*Hat ]]; then
+            os_VENDOR="Red Hat"
+        fi
+        os_CODENAME=$(lsb_release -c -s)
+
     elif [[ -r /etc/SuSE-release ]]; then
         for r in openSUSE "SUSE Linux"; do
             if [[ "$r" = "SUSE Linux" ]]; then

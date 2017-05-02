@@ -58,12 +58,18 @@
     None.
 #>
 
+param([string] $vmName, [string] $hvServer, [string] $testParams)
+
+$Key = $null
+$Value = $null
+$rootDir = $null
+$tcCovered = "unknown"
+
 ############################################################################
 #
 # Main script body
 #
 ############################################################################
-param([string] $vmName, [string] $hvServer, [string] $testParams)
 #
 # Check input arguments
 #
@@ -87,13 +93,8 @@ if (-not $testParams)
 }
 
 #
-# Find the testParams we require.  Complain if not found
+# Find the testParams we require
 #
-$Key = $null
-$Value = $null
-$rootDir = $null
-$tcCovered = "unknown"
-
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {

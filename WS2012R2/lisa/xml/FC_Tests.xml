@@ -101,7 +101,7 @@
 		<test>
 			<testName>FC_WWN_basic</testName>
 			<testScript>setupScripts\FC_WWN.ps1</testScript>
-			<files>remote-scripts\ica\FC_WWN.sh,remote-scripts/ica/utils.sh</files>
+			<files>remote-scripts\ica\fc_wwn.sh,remote-scripts/ica/utils.sh</files>
 			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
 			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
 			<timeout>800</timeout>

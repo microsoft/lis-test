@@ -43,7 +43,6 @@ permissions and limitations under the License.
                 <suiteTest>GuestOnlyNetwork</suiteTest>
                 <suiteTest>MultipleNIC</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
-                <suiteTest>StaticMAC</suiteTest>
                 <suiteTest>NetworkMode</suiteTest>
                 <suiteTest>ChangeNetTypeInternal</suiteTest>
                 <suiteTest>ChangeNetTypeGuest</suiteTest>
@@ -79,7 +78,8 @@ permissions and limitations under the License.
             <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
-                <param>TC_COVERED=NET-02</param>
+                <param>TC_COVERED=NET-02,NET-07</param>
+                <param>TestMAC=yes</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
@@ -169,24 +169,6 @@ permissions and limitations under the License.
         </test>
 
         <test>
-            <testName>StaticMAC</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112233</param>
-                <param>TC_COVERED=NET-07</param>
-                <param>MAC=00:16:00:11:22:33</param>
-                <param>REMOTE_SERVER=8.8.4.4</param>
-                <param>LO_IGNORE=yes</param>
-                <!-- <param>GATEWAY=192.168.0.1</param> -->
-            </testParams>
-            <testScript>NET_STATIC_MAC.sh</testScript>
-            <files>remote-scripts/ica/NET_STATIC_MAC.sh,remote-scripts/ica/utils.sh</files>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>800</timeout>
-            <onError>Continue</onError>
-        </test>
-
-        <test>
             <testName>NetworkMode</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
@@ -269,7 +251,6 @@ permissions and limitations under the License.
                 <param>STATIC_IP=10.10.10.10</param>
                 <param>STATIC_IP2=10.10.10.20</param>
                 <param>NETMASK=255.255.255.0</param>
-                <param>MAC=001600112233</param>
             </testparams>
             <testScript>NET_JUMBO_FRAMES.sh</testScript>
             <files>remote-scripts/ica/NET_JUMBO_FRAMES.sh,remote-scripts/ica/utils.sh</files>
@@ -305,9 +286,8 @@ permissions and limitations under the License.
             </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-12</param>
-                <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=2</param>
             </testParams>
@@ -329,7 +309,6 @@ permissions and limitations under the License.
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-13</param>
-                <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=1</param>
             </testParams>
@@ -384,7 +363,10 @@ permissions and limitations under the License.
 
         <test>
             <testName>Network_Hang_Vxlan</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>SetupScripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
             <testScript>setupscripts\NET_Hang_Vxlan.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testParams>
@@ -402,7 +384,6 @@ permissions and limitations under the License.
             <testName>CopyFileScp</testName>
             <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
             <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
-            <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
             <testParams>
                 <param>TC_COVERED=NET-19</param>
                 <param>SCSI=1,0,Dynamic,512,15GB</param>
@@ -535,7 +516,6 @@ permissions and limitations under the License.
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-25</param>
-                <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
                 <param>FILE_SIZE_GB=10</param>
             </testParams>
@@ -555,7 +535,7 @@ permissions and limitations under the License.
             </setupScript>
             <testScript>NET_Multicast.sh</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/NET_set_static_ip.sh,
-                remote-scripts/ica/NET_Multicast.sh</files>
+                remote-scripts/ica/NET_Multicast.sh,tools/omping-0.0.4.tar.gz</files>
             <testparams>
                 <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-25</param>

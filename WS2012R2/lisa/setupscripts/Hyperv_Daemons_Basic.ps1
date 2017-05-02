@@ -154,10 +154,13 @@ if (-not $gsi.Enabled) {
 	Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
 	Start-VM -Name $vmName -ComputerName $hvServer
 
-	# Waiting for the VM to run again and respond to SSH - port 22
-	do {
-		sleep 5
-	} until (Test-NetConnection $IPv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
+	# Waiting for the VM to run again and respond to SSH - port
+    $timeout = 200
+    if (-not (WaitForVMToStartSSH $ipv4 $timeout))
+    {
+        "Error: Test case timed out for VM to be running again!"
+        return $False
+    }
 }
 
 $remoteScript = "Hyperv_Daemons_Files_Status.sh"

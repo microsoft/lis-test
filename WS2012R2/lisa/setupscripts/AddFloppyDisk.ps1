@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    Mount a floppy in the VMs floppy drive.
+    Mount a floppy vfd file in the VMs floppy drive.
 
 .Description
     Mount a floppy in the VMs floppy drive
@@ -57,37 +57,7 @@
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $hvServer )
-{
-    $fileInfo = $null
-    
-    if (-not $filename)
-    {
-        return $null
-    }
-    
-    if (-not $hvServer)
-    {
-        return $null
-    }
-    
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $hvServer
-    
-    return $fileInfo
-}
+$vfdPath = $null
 
 #############################################################
 #
@@ -95,7 +65,6 @@ function GetRemoteFileInfo([String] $filename, [String] $hvServer )
 #
 #############################################################
 $retVal = $False
-$vfdPath = $null
 
 #
 # Check the required input args are present
@@ -110,6 +79,16 @@ if (-not $hvServer)
 {
     "Error: null hvServer argument"
     return $False
+}
+
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
 }
 
 # If a .vfd file does not exist, create one
@@ -130,7 +109,7 @@ $defaultVhdPath=$hostInfo.VirtualHardDiskPath
 
 $vfdPath = "${defaultVhdPath}${vmName}.vfd"
 
-$fileInfo = GetRemoteFileInfo -filename $vfdPath -hvServer $hvServer
+$fileInfo = GetRemoteFileInfo $vfdPath $hvServer
 if (-not $fileInfo)
 {
     #
@@ -143,22 +122,20 @@ if (-not $fileInfo)
         return $False
     }
 }
-else
-{
+else {
     "Info: The file ${vfdPath} already exists"
 }
 
 #
-# Add the vfd 
+# Add the vfd
 #
 Set-VMFloppyDiskDrive -Path $vfdPath -VMName $vmName -ComputerName $hvServer
 if ($? -eq "True")
 {
     $retVal = $True
 }
-else
-{
-    "Error: Unable to mount floppy"
+else {
+    "Error: Unable to mount the floppy file!"
 }
 
 return $retVal

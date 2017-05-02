@@ -145,6 +145,27 @@ else
     cd $rootDir
 }
 
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+    . .\setupScripts\TCUtils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $False
+}
+
+if ( $controllerType -eq "IDE" )
+{
+    $vmGeneration = GetVMGeneration $vmName $hvServer
+    if ($vmGeneration -eq 2 )
+    {
+         Write-Output "Generation 2 VM does not support IDE disk, skip test"
+         return $Skipped
+    }
+}
+
 # Source STOR_VHDXResize_Utils.ps1
 if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
 {
@@ -266,10 +287,10 @@ if ( $controllerType -eq "IDE" -or $offline -eq "True" )
 {
   "Info: Check disk from VM needs to turn on VM"
   $timeout = 300
-  $sts = Start-VM -Name $vmName -ComputerName $hvServer
-  if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
+  Start-VM -Name $vmName -ComputerName $hvServer
+  if (-not (WaitForVMToStartSSH $ipv4 $timeout))
   {
-      Write-Output "ERROR: ${vmName} failed to start"
+      "Error: Test case timed out for VM to be running again!"
       return $False
   }
   else
@@ -289,8 +310,7 @@ if ( $newSize.contains("GB") -and $vhdxInfoResize.Size/1gb -ne $newSize.Trim("GB
 #
 # Let system have some time for the volume change to be indicated
 #
-$sleepTime = 60
-Start-Sleep -s $sleepTime
+$sleepTime = 5
 
 #
 # Check if the guest sees the added space
@@ -374,22 +394,16 @@ if (-not $?)
    return $False
 }
 
-#
-# Let system have some time for the volume change to be indicated
-#
-$sleepTime = 60
-Start-Sleep -s $sleepTime
-
 # Now start the VM if IDE disk attached or offline resize
 
 if ( $controllerType -eq "IDE" -or $offline -eq "True" )
 {
   "Info: Check disk from VM needs to turn on VM"
   $timeout = 300
-  $sts = Start-VM -Name $vmName -ComputerName $hvServer
-  if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
+  Start-VM -Name $vmName -ComputerName $hvServer
+  if (-not (WaitForVMToStartSSH $ipv4 $timeout))
   {
-      Write-Output "ERROR: ${vmName} failed to start"
+      "Error: Test case timed out for VM to be running again!"
       return $False
   }
   else

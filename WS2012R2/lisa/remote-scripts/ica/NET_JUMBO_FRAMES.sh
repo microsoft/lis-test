@@ -417,7 +417,7 @@ if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
 		fi
 
 		# make sure no legacy interfaces are present
-		__legacy_interface_no=\$(find /sys/devices -name net -a ! -path '*vmbus*' -a ! -path '*virtual*' -a ! -path '*lo*' | wc -l)
+		__legacy_interface_no=\$(find /sys/devices -name net -a ! -ipath '*vmbus*' -a ! -path '*virtual*' -a ! -path '*lo*' | wc -l)
 
 		if [ 0 -ne \"\$__legacy_interface_no\" ]; then
 			exit 2

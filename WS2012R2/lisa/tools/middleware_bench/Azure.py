@@ -84,13 +84,13 @@ class AzureConnector:
         self.user = user
         self.dns_suffix = '.{}.cloudapp.azure.com'.format(self.location)
         self.key_name = 'test_ssh_key'
-        self.group_name = 'middleware_bench'
-        self.vmnet_name = 'middleware_bench_vmnet'
-        self.subnet_name = 'middleware_bench_subnet'
-        self.os_disk_name = 'middleware_bench_osdisk'
+        self.group_name = 'middleware_bench1'
+        self.vmnet_name = 'middleware_bench_vmnet1'
+        self.subnet_name = 'middleware_bench_subnet1'
+        self.os_disk_name = 'middleware_bench_osdisk1'
         self.storage_account = 'benchstor' + str(time.time()).replace('.', '')
-        self.ip_config_name = 'middleware_bench_ipconfig'
-        self.nic_name = 'middleware_bench_nic'
+        self.ip_config_name = 'middleware_bench_ipconfig1'
+        self.nic_name = 'middleware_bench_nic1'
 
         self.subnet = None
         self.vms = []
@@ -134,7 +134,6 @@ class AzureConnector:
         log.info('Creating VM: {}'.format(self.imageid))
         vm_name = self.imageid['offer'].lower() + str(time.time()).replace('.', '')
         nic = self.create_nic(vm_name)
-        print(nic.__dict__)
         with open(os.path.join(self.localpath, self.key_name + '.pub'), 'r') as f:
             key_data = f.read()
         vm_parameters = {
@@ -192,7 +191,6 @@ class AzureConnector:
                  'dns_settings': {
                      'domain_name_label': vm_name}})
         public_ip = create_public_ip.result()
-        print(public_ip.__dict__)
 
         nic_op = self.network_client.network_interfaces.create_or_update(
                 self.group_name, self.nic_name + str(time.time()),
@@ -215,6 +213,7 @@ class AzureConnector:
         disk_name = vm_instance.name + '_disk_' + str(time.time())
         disk_profile = {'name': disk_name,
                         'disk_size_gb': disk_size,
+                        'caching': 'None',
                         'lun': lun,
                         'vhd': {'uri': "http://{}.blob.core.windows.net/vhds/{}.vhd".format(
                                 self.storage_account, disk_name)},
@@ -226,8 +225,7 @@ class AzureConnector:
                                                                           vm_instance)
         vm_update.wait()
         try:
-            print('disk obj')
-            print(vm_update.result())
+            log.info(vm_update.result())
         except Exception as de:
             log.info(de)
         return disk_name

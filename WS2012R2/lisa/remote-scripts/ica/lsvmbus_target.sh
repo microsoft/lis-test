@@ -43,7 +43,9 @@ UpdateTestState()
 
 
 #######################################################################
+#
 # Main script body
+#
 #######################################################################
 
 # Create the state.txt file so ICA knows we are running
@@ -88,13 +90,12 @@ esac
 # check if lsvmbus exists
 lsvmbus_path=`which lsvmbus`
 if [ -z $lsvmbus_path ]; then
-    LogMsg "Error: lsvmbus not found."
-    UpdateSummary "Error: lsvmbus not found."
+    LogMsg "Error: lsvmbus tool not found!"
+    UpdateSummary "Error: lsvmbus tool not found!"
     UpdateTestState $ICA_TESTFAILED
     exit 1
 fi
 
-$lsvmbus_path -vvv
 $lsvmbus_path -vvv >> lsvmbus.log
 
 while IFS='' read -r line || [[ -n "$line" ]]; do
@@ -115,18 +116,18 @@ while IFS='' read -r line || [[ -n "$line" ]]; do
     fi
 done < "lsvmbus.log"
 
-
 if [ $network_counter != $VCPU ] && [ $scsi_counter != $VCPU/4 ]; then
-    LogMsg "Error: values are wrong. Expected for network adapter: $VCPU and actual: $network_counter;
+    error_msg="Error: values are wrong. Expected for network adapter: $VCPU and actual: $network_counter;
     expected for scsi controller: 2, actual: $scsi_counter."
-    UpdateSummary "Error: values are wrong. Expected for network adapter: $VCPU and actual: $network_counter;
-    expected for scsi controller: 2, actual: $scsi_counter."
+
+    LogMsg "$error_msg"
+    UpdateSummary "$error_msg"
     UpdateTestState $ICA_TESTFAILED
     exit 1
 fi
 
-UpdateSummary "Network driver is spread on all: $network_counter cores as expected."
-UpdateSummary "SCSI driver is spread on all: $scsi_counter cores as expected."
+UpdateSummary "Network driver is spread on all $network_counter cores as expected."
+UpdateSummary "Storage driver is spread on all $scsi_counter cores as expected."
 
 UpdateSummary "Test completed successfully."
 UpdateTestState $ICA_TESTCOMPLETED

@@ -68,8 +68,15 @@ InstallDependencies()
             # Check omping
             omping -V > /dev/null 2>&1
             if [ $? -ne 0 ]; then
-                wget https://fedorahosted.org/releases/o/m/omping/omping-0.0.4.tar.gz
                 tar -xzf omping-0.0.4.tar.gz
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to decompress omping archive"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    return 1
+                fi
+
                 cd omping-0.0.4/
                 make
                 make install
@@ -81,6 +88,16 @@ InstallDependencies()
                     return 1
                 fi
                 cd ~
+
+                # Send Omping archive to dependency VM
+                scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o BindAddress=$STATIC_IP -o StrictHostKeyChecking=no omping-0.0.4.tar.gz "$REMOTE_USER"@"$STATIC_IP2":~/omping-0.0.4.tar.gz
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to send omping archive to VM2"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    return 1
+                fi
             fi
             ;;
 
@@ -149,7 +166,6 @@ case \"\$DISTRO\" in
         # Check omping
         omping -V > /dev/null 2>&1
         if [ \$? -ne 0 ]; then
-            wget https://fedorahosted.org/releases/o/m/omping/omping-0.0.4.tar.gz
             tar -xzf omping-0.0.4.tar.gz
             cd omping-0.0.4/
             make
@@ -190,10 +206,6 @@ exit 0
 
 
 ################################################################################3
-
-
-
-
 
 # Convert eol
 dos2unix utils.sh

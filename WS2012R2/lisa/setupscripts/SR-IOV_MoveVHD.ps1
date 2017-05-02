@@ -70,93 +70,6 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-# To Get Parent VHD from VM.
-#######################################################################
-function GetParentVHD($vmName, $hvServer)
-{
-    $ParentVHD = $null
-
-    $VmInfo = Get-VM -Name $vmName -ComputerName $hvServer
-    if (-not $VmInfo) {
-       Write-Error -Message "Error: Unable to collect VM settings for ${vmName}" -ErrorAction SilentlyContinue
-       return $False
-    }
-
-    if ( $VmInfo.Generation -eq "" -or $VmInfo.Generation -eq 1  ) {
-        $Disks = $VmInfo.HardDrives
-        foreach ($VHD in $Disks) {
-            if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  )) {
-                $Path = Get-VHD $VHD.Path -ComputerName $hvServer
-                if ([string]::IsNullOrEmpty($Path.ParentPath)) {
-                    $ParentVHD = $VHD.Path
-                }
-                else {
-                    $ParentVHD =  $Path.ParentPath
-                }
-
-                Write-Host "Parent VHD Found: $ParentVHD "
-            }
-        }
-    }
-    if ( $VmInfo.Generation -eq 2 ) {
-        $Disks = $VmInfo.HardDrives
-        foreach ($VHD in $Disks) {
-            if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  )) {
-                $Path = Get-VHD $VHD.Path -ComputerName $hvServer
-                if ([string]::IsNullOrEmpty($Path.ParentPath)) {
-                    $ParentVHD = $VHD.Path
-                }
-                else {
-                    $ParentVHD =  $Path.ParentPath
-                }
-
-                Write-Host "Parent VHD Found: $ParentVHD "
-            }
-        }
-    }
-
-    if ( -not ($ParentVHD.EndsWith(".vhd") -xor $ParentVHD.EndsWith(".vhdx") )) {
-        Write-Error -Message " Parent VHD is Not correct please check VHD, Parent VHD is: $ParentVHD " -ErrorAction SilentlyContinue
-        return $False
-    }
-
-    return $ParentVHD
-}
-
-
-function CreateChildVHD($ParentVHD, $defaultpath)
-{
-    $ChildVHD  = $null
-    $hostInfo = Get-VMHost -ComputerName $remoteHost
-    if (-not $hostInfo) {
-        Write-Error -Message "Error: Unable to collect Hyper-V settings for $remoteHost" -ErrorAction SilentlyContinue
-        return $False
-    }
-
-    # Create Child VHD
-    if ($ParentVHD.EndsWith("x") ) {
-        $ChildVHD = $defaultpath + ".vhdx"
-    }
-    else {
-        $ChildVHD = $defaultpath + ".vhd"
-    }
-
-    if ( Test-Path $ChildVHD ) {
-        Write-Host "Deleting existing VHD $ChildVHD"
-        del $ChildVHD
-    }
-
-    # Copy Child VHD
-    Copy-Item $ParentVHD $ChildVHD
-    if (-not $?) {
-        Write-Error -Message "Error: Unable to create child VHD"  -ErrorAction SilentlyContinue
-        return $False
-    }
-
-    return $ChildVHD
-}
-
 function Cleanup($childVMName)
 {
     # Clean up
@@ -263,19 +176,6 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 # Check if there are running old child VMs and stop them
 Cleanup "SRIOV_Child_Remote"
 
-#
-# Configure the bond on test VM
-#
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
-if (-not $retVal)
-{
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
-    return $false
-}
-
-#
-# Start creating the VM on the remote host
-#
 # Get default Hyper-V VHD path; The VHD will be copied there
 $hostInfo = Get-VMHost -ComputerName $remoteHost
 $defaultVhdPath = $hostInfo.VirtualHardDiskPath
@@ -313,7 +213,7 @@ if (-not $?) {
 }
 
 # Create Child vhd
-$ChildVHD = CreateChildVHD $ParentVHD $final_vhd_path
+$ChildVHD = CreateChildVHD $ParentVHD $final_vhd_path $remoteHost
 
 # Check if SR-IOV Switch is present on remote host
 Get-VMSwitch $networkName -ComputerName $remoteHost

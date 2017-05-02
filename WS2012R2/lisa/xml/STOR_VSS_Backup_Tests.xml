@@ -44,7 +44,6 @@
         <suite>
             <suiteName>STOR_VSS</suiteName>
             <suiteTests>
-                <suiteTest>STOR_VSS_BackupRestore</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_ext3_vhd</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_ext4_vhd</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_reiserfs_vhd</suiteTest>
@@ -54,32 +53,24 @@
                 <suiteTest>STOR_VSS_BackupRestore_State_Off</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_State_Paused</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_Fail</suiteTest>
-                <suiteTest>STOR_VSS_BackupRestore_PassTru</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_ISCSI</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_DiskStress</suiteTest>
+                <!-- Live backup operations can fail silently if the VM has an
+                attached iSCSI device or direct-attached storage (pass-through disk)
+                <suiteTest>STOR_VSS_BackupRestore_PassTru</suiteTest> -->
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
         <test>
-            <testName>STOR_VSS_BackupRestore</testName>
-            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore.ps1</testScript> 
-            <testParams>
-                <param>TC_COVERED=VSS-17,VSS-06</param>
-            </testParams>
-            <timeout>2400</timeout>
-            <OnError>Continue</OnError>
-        </test>
-
-        <test>
             <testName>STOR_VSS_BackupRestore_ext3_vhd</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
+            <files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=VSS-01</param>
                 <param>SCSI=0,1,Dynamic</param>
@@ -96,7 +87,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
+            <files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=VSS-02</param>
                 <param>SCSI=0,1,Dynamic</param>
@@ -113,7 +105,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
+            <files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=VSS-03</param>
                 <param>SCSI=0,1,Dynamic</param>
@@ -130,7 +123,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
+            <files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=VSS-05</param>
                 <param>SCSI=0,1,Dynamic</param>
@@ -145,6 +139,7 @@
             <testName>STOR_VSS_BackupRestore_ISO_NoNetwork</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=VSS-11</param>
                 <param>IsoFilename=CDTEST.iso</param>
@@ -156,7 +151,8 @@
         <test>
             <testName>STOR_VSS_BackupRestore_3Chain_VHD</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_3Chain_VHD_backup.ps1</testScript> 
+            <testScript>setupscripts\STOR_VSS_3Chain_VHD_backup.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=VSS-12</param>
             </testParams>
@@ -167,7 +163,8 @@
         <test>
             <testName>STOR_VSS_BackupRestore_ISCSI</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_ISCSI.ps1</testScript> 
+            <testScript>setupscripts\STOR_VSS_BackupRestore_ISCSI.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=VSS-13</param>
                 <param>TargetIP=10.7.1.10</param>
@@ -181,7 +178,8 @@
         <test>
             <testName>STOR_VSS_BackupRestore_DiskStress</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_DiskStress.ps1</testScript> 
+            <testScript>setupscripts\STOR_VSS_BackupRestore_DiskStress.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=VSS-14</param>
                 <param>iOzoneVers=3_424</param>
@@ -193,7 +191,7 @@
         <test>
             <testName>STOR_VSS_BackupRestore_State_Off</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript> 
+            <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=VSS-15</param>
                 <param>vmState=Off</param>
@@ -205,7 +203,8 @@
         <test>
             <testName>STOR_VSS_BackupRestore_State_Paused</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript> 
+            <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=VSS-15</param>
                 <param>vmState=Paused</param>
@@ -220,7 +219,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript> 
+			<files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=VSS-16</param>
                 <param>SCSI=0,1,PassThrough</param>
@@ -236,7 +236,8 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_Fail.ps1</testScript> 
+            <files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\STOR_VSS_BackupRestore_Fail.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=VSS-18</param>
                 <param>IDE=0,1,Dynamic</param>
@@ -258,9 +259,9 @@
             <testParams>
                 <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
                 <param>snapshotName=ICABase</param>
-				<!-- The below param represents the backup location
-				Usually this is a separate disk not holding any VM data -->
-				<param>DriveLetter=V:</param>
+                <!-- The below param represents the backup location
+                Usually this is a separate disk not holding any VM data -->
+                <param>DriveLetter=V:</param>
             </testParams>
         </vm>
     </VMs>

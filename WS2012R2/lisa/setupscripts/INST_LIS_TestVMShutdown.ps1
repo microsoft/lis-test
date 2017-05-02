@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -21,22 +21,24 @@
 
 <#
 .Synopsis
-    Check the VM shuts down using the LIS 
+    Check the VM shuts down using a host side trigger
 
 .Description
 	TestVMShutdown will send a shutdown request to the specific VM.
 	It then will wait to confirm the VM left the Running state.
 
     The test case definition for this test case would look similar to:
-        <test>
-            <testName>LISShutdownVM</testName>
-            <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>
-            <testParams>
-                <param>TC_COVERED=CORE-05</param>
-            </testParams>
+		<test>
+			<testName>LISShutdownVM</testName>
+			<setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+			<testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
+			<testParams>
+				<param>TC_COVERED=CORE-07</param>
+				<param>vCPU=5</param>
+			</testParams>
+			<timeout>600</timeout>
+			<onError>Continue</onError>
+			<noReboot>False</noReboot>
         </test>
 
 .Parameter vmName
@@ -49,7 +51,7 @@
     A semicolon separated list of test parameters.
 
 .Example
-    .\INST_LIS_TestVMShutdown.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "TC_COVERED=CORE-05"
+    .\INST_LIS_TestVMShutdown.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "TC_COVERED=CORE-07;vCPU=5"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -107,7 +109,7 @@ foreach ($p in $params)
     {      
     "ipv4"       { $vmIPAddr  = $fields[1].Trim() }
     "rootdir"    { $rootDir   = $fields[1].Trim() }
-    "TC_COVERED" { $tcCovered = $fields[1].Trim() }
+    "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "VCPU"       { $vcpu      = $fields[1].Trim() }
     default  {}       
     }
@@ -153,7 +155,7 @@ else
 # The VM should be in a running state.  Ask Hyper-V to invoke a shut-down.
 # The VMs state will go from Running to Stopping, then Stopped.
 #
-"Verifying VM is running"
+"Info: Verifying if the VM is running"
 $vm = Get-VM $vmName -ComputerName $hvServer
 if (-not $vm)
 {
@@ -164,8 +166,7 @@ if (-not $vm)
 
 if ($($vm.State) -ne [Microsoft.HyperV.PowerShell.VMState]::Running )
 {
-    "Error: VM ${vmName} is not in the running state"
-    "     : Test is terminated"
+    "Error: VM ${vmName} is not in the running state!"
     return $False
 }
 
@@ -179,7 +180,7 @@ if ($vcpu)
     if ($vm.ProcessorCount -ne $vcpu)
     {
         "Error: VM ${vmName} is configure with the wrong number of VCPUs"
-        "       The VM has $($vm.ProcessorCount) processors.  It should have ${vcpu}"
+        "       The VM has $($vm.ProcessorCount) processors. It should have ${vcpu}"
         return $False
     }
 }
@@ -188,7 +189,7 @@ if ($vcpu)
 # Ask Hyper-V to request the VM to shut-down, then wait for the 
 # VM to go into a Stopped state
 #
-"Shutting down the VM"
+"Info: Shutting down the VM"
 Stop-VM -Name $vmName -ComputerName $hvServer -Force
 while ($testCaseTimeout -gt 0)
 {
@@ -207,16 +208,16 @@ if ($testCaseTimeout -eq 0)
     return $False
 }
 
-"VM Shut-down successful"
+"Info: VM Shut-down successful"
 
 #
 # Now start the VM so the automation scripts can finish
 #
-"Starting the VM"
+"Info: Starting the VM"
 Start-VM -Name $vmName -ComputerName $hvServer -Confirm:$false
 if ($? -ne "True")
 {
-    "Error: Unable to restart the VM"
+    "Error: Unable to restart the VM!"
     return $False
 }
 
@@ -237,7 +238,7 @@ if ($testCaseTimeout -eq 0)
     return $False
 }
 
-"VM successfully started"
+"Info: VM successfully started"
 
 #
 # Finally, we need to wait for TCP port 22 to be available on the VM
@@ -259,7 +260,7 @@ if ($testCaseTimeout -eq 0)
     return $False
 }
 
-"SSH is running on the test VM"
+"Info: SSH is running on the test VM"
 
 #
 # If we got here, the VM was shut-down and restarted

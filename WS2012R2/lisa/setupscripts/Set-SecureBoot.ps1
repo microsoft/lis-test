@@ -26,16 +26,16 @@
     This setup script will enable the Secure Boot features of a Generation 2 VM.
     
 .Parameter vmName
-    Name of the VM to remove disk from .
+    Name of the VM.
 
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
 
 .Parameter testParams
-    Test data for this test case
+    Test data for this test case.
 
 .Example
-    setupScripts\SecureBootVSS.ps1 -hvServer localhost -vmName NameOfVm -testParams 'sshKey=path/to/ssh;rootdir=path/to/testdir;ipv4=ipaddress;driveletter=D:'
+    setupScripts\Set-SecureBoot.ps1 -hvServer localhost -vmName NameOfVm -testParams 'rootdir=path/to/testdir;'
 
 #>
 param(
@@ -63,44 +63,44 @@ if (-not $testParams)
 }
 
 $error.Clear()
-$vm = Get-VM -Name $vmName
+$vm = Get-VM -Name $vmName -ComputerName $hvServer
 if ($error.Count -gt 0)
 {
-    "Error: Unable to get `"${vmName}`" vm"
+    "Error: Cannot find VM `"${vmName}`" "
     $error[0].Exception
     return $False
 }
 
 #
-# Check if it's a Generation 2 vm
-
+# Check if it's a Generation 2 VM
+#
 if ($vm.Generation -ne 2)
 {
-    "Error: `"${vmName}`" is not a Generation 2 vm"
+    "Error: VM `"${vmName}`" is not a Generation 2 VM"
     return $False
 }
 
 #
-# Check if Secure Boot is enabledd
+# Check if Secure Boot is enabled
 #
-$firmwareSettings = Get-VMFirmware -VMName $vm.Name
+$firmwareSettings = Get-VMFirmware -VMName $vm.Name -ComputerName $hvServer
 if ($firmwareSettings.SecureBoot -ne "On")
 {
     $error.Clear()
     Set-VMFirmware -VMName $vm.Name -EnableSecureBoot On
     if ($error.Count -gt 0)
     {
-        "Error: Unable to enable secure boot"
+        "Error: Unable to enable secure boot!"
         $error[0].Exception
         return $False
     }
 }
 
 $error.Clear()
-Set-VMFirmware -VMName $vm.Name -SecureBootTemplate MicrosoftUEFICertificateAuthority
+Set-VMFirmware -VMName $vm.Name -ComputerName $hvServer -SecureBootTemplate MicrosoftUEFICertificateAuthority
 if ($error.Count -gt 0)
 {
-    "Error: Unable to set secure boot template"
+    "Error: Unable to set secure boot template!"
     $error[0].Exception
     return $False
 }

@@ -46,7 +46,7 @@
     </test>
 
 .Parameter vmName
-    Name of the VM to remove disk from .
+    Name of the VM to backup/restore.
 
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -61,200 +61,9 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-# Runs a remote script on the VM an returns the log.
-#######################################################################
-function RunRemoteScript($remoteScript)
-{
-    $retValue = $False
-    $stateFile     = "state.txt"
-    $TestCompleted = "TestCompleted"
-    $TestAborted   = "TestAborted"
-    $TestRunning   = "TestRunning"
-    $timeout       = 6000    
-
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
-
-    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
-       return $False
-    }      
-
-     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
-       return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on runtest.sh" 
-        return $False
-    }
-    
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x ${remoteScript}" 
-        return $False
-    }
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
-        return $False
-    }
-
-    # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
-    
-    # Return the state file
-    while ($timeout -ne 0 )
-    {
-    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $stateFile)
-        {
-            $contents = Get-Content -Path $stateFile
-            if ($null -ne $contents)
-            {
-                    if ($contents -eq $TestCompleted)
-                    {                    
-                        Write-Output "Info : state file contains Testcompleted"              
-                        $retValue = $True
-                        break                                             
-                                     
-                    }
-
-                    if ($contents -eq $TestAborted)
-                    {
-                         Write-Output "Info : State file contains TestAborted failed. "                                  
-                         break
-                          
-                    }
-                    #Start-Sleep -s 1
-                    $timeout-- 
-
-                    if ($timeout -eq 0)
-                    {                        
-                        Write-Output "Error : Timed out on Test Running , Exiting test execution."                    
-                        break                                               
-                    }                                
-                  
-            }    
-            else
-            {
-                Write-Output "Warn : state file is empty"
-                break
-            }
-           
-        }
-        else
-        {
-             Write-Host "Warn : ssh reported success, but state file was not copied"
-             break
-        }
-    }
-    else #
-    {
-         Write-Output "Error : pscp exit status = $sts"
-         Write-Output "Error : unable to pull state.txt from VM." 
-         break
-    }     
-    }
-
-    # Get the logs
-    $remoteScriptLog = $remoteScript+".log"
-    
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} . 
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $remoteScriptLog)
-        {
-            $contents = Get-Content -Path $remoteScriptLog
-            if ($null -ne $contents)
-            {
-                    if ($null -ne ${TestLogDir})
-                    {
-                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
-                
-                    }
-
-                    else 
-                    {
-                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"                                
-                    }                              
-                  
-            }    
-            else
-            {
-                Write-Output "Warn: $remoteScriptLog is empty"                
-            }           
-        }
-        else
-        {
-             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"             
-        }
-    }
-    
-    # Cleanup 
-    del state.txt -ErrorAction "SilentlyContinue"
-    del runtest.sh -ErrorAction "SilentlyContinue"
-
-    return $retValue
-}
-
-#######################################################################
-# Check boot.msg in Linux VM for Recovering journal. 
-#######################################################################
-function CheckRecoveringJ()
-{
-    $retValue = $False
-       
-    echo y | .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/var/log/boot.* ./boot.msg 
-
-    if (-not $?)
-    {
-      Write-Output "ERROR: Unable to copy boot.msg from the VM"
-       return $False
-    }
-
-    $filename = ".\boot.msg"
-    $text = "recovering journal"
-    
-    $file = Get-Content $filename
-    if (-not $file)
-    {
-        Write-Error -Message "Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-     foreach ($line in $file)
-    {
-        if ($line -match $text)
-        {           
-            $retValue = $True 
-            Write-Output "$line"          
-        }             
-    }
-
-    del $filename
-    return $retValue    
-}
+$retVal = $false
+$summaryLog  = "${vmName}_summary.log"
+$vm2Name = $null
 
 #######################################################################
 # Fix snapshots. If there are more then 1 remove all except latest.
@@ -307,154 +116,10 @@ function FixSnapshots($vmName, $hvServer)
 }
 
 #######################################################################
-# To Get Parent VHD from VM.
-#######################################################################
-function GetParentVHD($vmName, $hvServer)
-{
-    $ParentVHD = $null     
-
-    $VmInfo = Get-VM -Name $vmName 
-    if (-not $VmInfo)
-        { 
-             Write-Error -Message "Error: Unable to collect VM settings for ${vmName}" -ErrorAction SilentlyContinue
-             return $False
-        }    
-    
-    if ( $VmInfo.Generation -eq "" -or $VmInfo.Generation -eq 1  )
-        {
-            $Disks = $VmInfo.HardDrives
-            foreach ($VHD in $Disks)
-                {
-                    if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  ))
-                        {
-                            $Path = Get-VHD $VHD.Path
-                            if ([string]::IsNullOrEmpty($Path.ParentPath))
-                                {
-                                    $ParentVHD = $VHD.Path
-                                }
-                            else{
-                                    $ParentVHD =  $Path.ParentPath
-                                }
-
-                            Write-Host "Parent VHD Found: $ParentVHD "
-                        }
-                }            
-        }
-    if ( $VmInfo.Generation -eq 2 )
-        {
-            $Disks = $VmInfo.HardDrives
-            foreach ($VHD in $Disks)
-                {
-                    if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  ))
-                        {
-                            $Path = Get-VHD $VHD.Path
-                            if ([string]::IsNullOrEmpty($Path.ParentPath))
-                                {
-                                    $ParentVHD = $VHD.Path
-                                }
-                            else{
-                                    $ParentVHD =  $Path.ParentPath
-                                }
-                            Write-Host "Parent VHD Found: $ParentVHD "
-                        }
-                }  
-        }
-
-    if ( -not ($ParentVHD.EndsWith(".vhd") -xor $ParentVHD.EndsWith(".vhdx") ))
-    {
-         Write-Error -Message " Parent VHD is Not correct please check VHD, Parent VHD is: $ParentVHD " -ErrorAction SilentlyContinue
-         return $False
-    }
-
-    return $ParentVHD    
-
-}
-
-#######################################################################
-# To Create Grand Child VHD from Parent VHD.
-#######################################################################
-function CreateGChildVHD($ParentVHD)
-{
-
-    $GChildVHD = $null
-    $ChildVHD  = $null
-
-    $hostInfo = Get-VMHost -ComputerName $hvServer
-        if (-not $hostInfo)
-        {
-             Write-Error -Message "Error: Unable to collect Hyper-V settings for ${hvServer}" -ErrorAction SilentlyContinue
-             return $False
-        }
-
-    $defaultVhdPath = $hostInfo.VirtualHardDiskPath
-        if (-not $defaultVhdPath.EndsWith("\"))
-        {
-            $defaultVhdPath += "\"
-        }
-
-    # Create Child VHD
-
-    if ($ParentVHD.EndsWith("x") )
-    {
-        $ChildVHD = $defaultVhdPath+$vmName+"-child.vhdx"
-        $GChildVHD = $defaultVhdPath+$vmName+"-Gchild.vhdx"
-
-    }
-    else
-    {
-        $ChildVHD = $defaultVhdPath+$vmName+"-child.vhd"
-        $GChildVHD = $defaultVhdPath+$vmName+"-Gchild.vhd"
-    }
-
-    if ( Test-Path  $ChildVHD )
-    {
-        Write-Host "Deleting existing VHD $ChildVHD"        
-        del $ChildVHD
-    }
-
-     if ( Test-Path  $GChildVHD )
-    {
-        Write-Host "Deleting existing VHD $GChildVHD"        
-        del $GChildVHD
-    }
-
-     # Create Child VHD  
-
-    New-VHD -ParentPath:$ParentVHD -Path:$ChildVHD     
-    if (-not $?)
-    {
-       Write-Error -Message "Error: Unable to create child VHD"  -ErrorAction SilentlyContinue
-       return $False
-    }
-
-     # Create Grand Child VHD    
-    
-    $newVHD = New-VHD -ParentPath:$ChildVHD -Path:$GChildVHD
-    if (-not $?)
-    {
-       Write-Error -Message "Error: Unable to create Grand child VHD" -ErrorAction SilentlyContinue
-       return $False
-    }
-
-    return $GChildVHD    
-
-}
-
-#######################################################################
 #
 # Main script body
 #
 #######################################################################
-
-$retVal = $false
-
-$summaryLog  = "${vmName}_summary.log"
-
-echo "Covers: VSS Backup 3 Chain VHD " >> $summaryLog
-
-Write-Output "Removing old backups"
-try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
-Catch { Write-Output "No existing backup's to remove"}
 
 # Check input arguments
 if ($vmName -eq $null)
@@ -468,8 +133,6 @@ if ($hvServer -eq $null)
     Write-Output "Error: hvServer is null"
     return $retVal
 }
-
-$vm2Name = $null
 
 $params = $testParams.Split(";")
 
@@ -516,45 +179,39 @@ $vmName1 = "${vmName}_ChildVM"
 
 cd $rootDir
 
-# Source the TCUtils.ps1 file
-. .\setupscripts\TCUtils.ps1
+#
+# Delete any summary.log from a previous test run, then create a new file
+#
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-# Check if the Vm VHD in not on the same drive as the backup destination 
-$vm = Get-VM -Name $vmName -ComputerName $hvServer
-if (-not $vm)
-{
-    "Error: VM '${vmName}' does not exist"
-    return $False
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
 }
- 
-foreach ($drive in $vm.HardDrives)
-{
-    if ( $drive.Path.StartsWith("${driveLetter}"))
-    {
-        "Error: Backup partition '${driveLetter}' is same as partition hosting the VMs disk"
-        "       $($drive.Path)"
-        return $False
-    }
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
 }
 
-# Send utils.sh to VM
-echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\utils.sh root@${ipv4}:
-if (-not $?)
-{
-    Write-Output "ERROR: Unable to copy utils.sh to the VM"
-    return $False
+# Source STOR_VSS_Utils.ps1 for common VSS functions
+if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
+	. .\setupScripts\STOR_VSS_Utils.ps1
+	"Info: Sourced STOR_VSS_Utils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	return $false
 }
 
-# Check to see Linux VM is running VSS backup daemon 
-$sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
-if (-not $sts[-1])
-{
-    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-    Write-Output "ERROR: Running $remoteScript script failed on VM!"
-    return $False
-}
 
-Write-Output "VSS Daemon is running " >> $summaryLog
+$sts = runSetup $vmName $hvServer $driveletter
+if (-not $sts[-1]) 
+{
+	return $False
+}
 
 # Stop the running VM so we can create New VM from this parent disk.
 # Shutdown gracefully so we dont corrupt VHD.
@@ -653,132 +310,45 @@ if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout ))
 
 Write-Output "INFO: New VM $vmName1 started"
 
-# Install the Windows Backup feature
-Write-Output "INFO: Checking if the Windows Server Backup feature is installed..."
-try { Add-WindowsFeature -Name Windows-Server-Backup -IncludeAllSubFeature:$true -Restart:$false }
-Catch { Write-Output "Windows Server Backup feature is already installed, no actions required."}
-
 echo "`n"
-# Remove Existing Backup Policy
-try { Remove-WBPolicy -all -force }
-Catch { Write-Output "No existing backup policy to remove"}
 
-echo "`n"
-# Set up a new Backup Policy
-$policy = New-WBPolicy
-
-# Set the backup backup location
-$backupLocation = New-WBBackupTarget -VolumePath $driveletter
-
-# Define VSS WBBackup type
-Set-WBVssBackupOptions -Policy $policy -VssCopyBackup
-
-# Add the Virtual machines to the list
-$VMtoBackup = Get-WBVirtualMachine | where vmname -like $vmName1
-Add-WBVirtualMachine -Policy $policy -VirtualMachine $VMtoBackup
-Add-WBBackupTarget -Policy $policy -Target $backupLocation
-
-# Display the Backup policy
-Write-Output "Backup policy is: `n$policy"
-
-# Start the backup
-Write-Output "Backing to $driveletter"
-Start-WBBackup -Policy $policy
-
-# Review the results            
-$BackupTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
-Write-Output "Backup duration: $BackupTime minutes"           
-"Backup duration: $BackupTime minutes" >> $summaryLog
-
-$sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
+$sts = startBackup $vmName1 $driveletter
+if (-not $sts[-1]) 
 {
-    Write-Output "ERROR: VSS Backup failed"
-    Write-Output $sts.ErrorDescription
-    $retVal = $false
-    return $retVal
+	return $False
+} else {
+	$backupLocation = $sts
 }
 
-Write-Output "`nBackup success!`n"
-# Let's wait a few Seconds
-Start-Sleep -Seconds 30
-
-# Start the Restore
-Write-Output "`nNow let's do restore ...`n"
-
-# Get BackupSet
-$BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
-
-# Start Restore
-Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force -WarningAction SilentlyContinue
-$sts=Get-WBJob -Previous 1
-if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
+$sts = restoreBackup $backupLocation
+if (-not $sts[-1]) 
 {
-    Write-Output "ERROR: VSS Restore failed"
-    Write-Output $sts.ErrorDescription
-    $retVal = $false
-    return $retVal
+	return $False
 }
 
-# Review the results  
-$RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
-Write-Output "Restore duration: $RestoreTime minutes"
-"Restore duration: $RestoreTime minutes" >> $summaryLog
-
-# Make sure VM exist after VSS backup/restore operation 
-$vm = Get-VM -Name $vmName1 -ComputerName $hvServer
-    if (-not $vm)
-    {
-        Write-Output "ERROR: VM ${vmName1} does not exist after restore"
-        return $False
-    }
-Write-Output "Restore success!"
-
-# After Backup Restore VM must be off make sure that.
-if ( $vm.state -ne "Off" )  
+$sts = checkResults $vmName1 $hvServer
+if (-not $sts[-1]) 
 {
-    Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state
-    return $False
+	$retVal = $False
+}
+else 
+{
+	$retVal = $True
+    $results = $sts
 }
 
-# Now Start the VM
-$timeout = 300
-$sts = Start-VM -Name $vmName1 -ComputerName $hvServer 
-if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout ))
-{
-    Write-Output "ERROR: ${vmName1} failed to start"
-    return $False
-}
-else
-{
-    Write-Output "INFO: Started VM ${vmName1}"
-}
 
 # Get new IPV4
 $ipv4 =  GetIPv4 $vmName1 $hvServer
 if (-not $?)
     {
        Write-Output "Error: Getting IPV4 of New VM"
-       return $False
+       $retVal= $False
     }
 
 Write-Output "INFO: New VM's IP is $ipv4" 
 
-# Now Check the boot logs in VM to verify if there is no Recovering journals in it . 
-$recovery=CheckRecoveringJ $ipv4
-if ($recovery[-1])
-{
-    Write-Output "ERROR: Recovering Journals in Boot log file, VSS backup/restore failed!"
-    Write-Output "No Recovering Journal in boot logs: Failed" >> $summaryLog
-    return $False
-}
-else 
-{
-    $results = "Passed"
-    $retVal = $True
-    Write-Output "`nINFO: VSS Back/Restore: Success"   
-    Write-Output "No Recovering Journal in boot msg: Success" >> $summaryLog
-}
+
 
 Write-Output "INFO: Test ${results}"
 
@@ -789,10 +359,7 @@ if (-not $?)
        
     }
 
-# Remove Existing Backups
-Write-Output "Removing old backups from $backupLocation"
-try { Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
-Catch { Write-Output "No existing backup's to remove"}
+runCleanup $backupLocation
 
 # Clean Delete New VM created 
 $sts = Remove-VM -Name $vmName1 -Confirm:$false -Force
@@ -802,10 +369,5 @@ if (-not $?)
     } 
 
 Write-Output "INFO: Deleted VM $vmName1"
-
-if ($recovery[-1])
-{
-    return $false
-}
 
 return $retVal

@@ -21,8 +21,8 @@
 
 <#
 .Synopsis
-    This test script, which runs inside VM it mount the dirve and perform write operation on diff disk.
-    And checks to ensure that parent disk size does not change.
+    This test script, which runs inside VM it mount the drive and perform write operations on diff disk.
+    It then checks to ensure that parent disk size does not change.
 
 .Description
     ControllerType=Controller Index, Lun or Port, vhd type
@@ -37,8 +37,8 @@
                              Dynamic
                              Fixed
                              Diff (Differencing)
-   The following are some examples
 
+   The following are some examples:
    SCSI=0,0,Diff : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic
    IDE=1,1,Diff  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Diff
 
@@ -77,221 +77,6 @@
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
-######################################################################
-# Runs a remote script on the VM an returns the log.
-#######################################################################
-function RunRemoteScript($remoteScript)
-{
-    $retValue = $False
-    $stateFile     = "state.txt"
-    $TestCompleted = "TestCompleted"
-    $TestAborted   = "TestAborted"
-    $TestRunning   = "TestRunning"
-    $timeout       = 6000    
-
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
-
-    echo y | .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
-       return $False
-    }      
-
-    echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
-       return $False
-    }
-
-    echo y | .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on runtest.sh" 
-        return $False
-    }
-    
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x ${remoteScript}" 
-        return $False
-    }
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
-        return $False
-    }
-
-    # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh 2> /dev/null"
-    
-    # Return the state file
-    while ($timeout -ne 0 )
-    {
-    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $stateFile)
-        {
-            $contents = Get-Content -Path $stateFile
-            if ($null -ne $contents)
-            {
-                    if ($contents -eq $TestCompleted)
-                    {                    
-                        Write-Output "Info : state file contains Testcompleted"              
-                        $retValue = $True
-                        break                                             
-                                     
-                    }
-
-                    if ($contents -eq $TestAborted)
-                    {
-                         Write-Output "Info : State file contains TestAborted failed. "                                  
-                         break
-                          
-                    }
-                    #Start-Sleep -s 1
-                    $timeout-- 
-
-                    if ($timeout -eq 0)
-                    {                        
-                        Write-Output "Error : Timed out on Test Running , Exiting test execution."                    
-                        break                                               
-                    }                                
-                  
-            }    
-            else
-            {
-                Write-Output "Warn : state file is empty"
-                break
-            }
-           
-        }
-        else
-        {
-             Write-Host "Warn : ssh reported success, but state file was not copied"
-             break
-        }
-    }
-    else #
-    {
-         Write-Output "Error : pscp exit status = $sts"
-         Write-Output "Error : unable to pull state.txt from VM." 
-         break
-    }     
-    }
-
-    # Get the logs
-    $remoteScriptLog = $remoteScript+".log"
-    
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} . 
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $remoteScriptLog)
-        {
-            $contents = Get-Content -Path $remoteScriptLog
-            if ($null -ne $contents)
-            {
-                    if ($null -ne ${TestLogDir})
-                    {
-                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
-                
-                    }
-
-                    else 
-                    {
-                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"                                
-                    }                              
-                  
-            }    
-            else
-            {
-                Write-Output "Warn: $remoteScriptLog is empty"                
-            }           
-        }
-        else
-        {
-             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"             
-        }
-    }
-    
-    # Cleanup 
-    del state.txt -ErrorAction "SilentlyContinue"
-    del runtest.sh -ErrorAction "SilentlyContinue"
-
-    return $retValue
-}
-
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-
-    if (-not $filename)
-    {
-        return $null
-    }
-
-    if (-not $server)
-    {
-        return $null
-    }
-
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-
-    return $fileInfo
-}
-
-############################################################################
-#
-# Main script body
-#
-############################################################################
-$retVal = $False
-$remoteScript = "PartitionDisks.sh"
-
-#
-# Display a little info about our environment
-#
-"STOR_DiffDiskGrowthTestCase.ps1"
-"  vmName = ${vmName}"
-"  hvServer = ${hvServer}"
-"  testParams = ${testParams}"
-
-#
-# Make sure we have access to the Microsoft Hyper-V snapin
-#
-$hvModule = Get-Module Hyper-V
-if ($hvModule -eq $NULL)
-{
-    import-module Hyper-V
-    $hvModule = Get-Module Hyper-V
-}
-
 $controllerType = $null
 $controllerID = $null
 $lun = $null
@@ -302,8 +87,17 @@ $sshKey = $null
 $ipv4 = $null
 $TC_COVERED = $null
 $vhdFormat = $null
+$vmGeneration = $null
+$retVal = $False
 
-$vmGeneration = $null 
+$remoteScript = "PartitionDisks.sh"
+
+############################################################################
+#
+# Main script body
+#
+############################################################################
+
 #
 # Parse the testParams string and make sure all
 # required test parameters have been specified.
@@ -327,7 +121,7 @@ foreach ($p in $params)
     $rValue = $tokens[1].Trim()
 
     #
-    # ParentVHD test param?
+    # ParentVHD test param
     #
     if ($lValue -eq "ParentVHD")
     {
@@ -399,6 +193,16 @@ if ($null -eq $rootdir)
 
 cd $rootdir
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $False
+}
+
 # del $summaryLog -ErrorAction SilentlyContinue
 $summaryLog = "${vmName}_summary.log"
 "Covers: ${TC_COVERED}" >> $summaryLog
@@ -409,6 +213,13 @@ if (-not $controllerType)
 {
     "Error: Missing controller type in test parameters"
     return $False
+}
+
+$vmGeneration = GetVMGeneration $vmName $hvServer
+if ( $controllerType -eq "IDE" -and $vmGeneration -eq 2 )
+{
+    Write-Output "Generation 2 VM does not support IDE disk, skip test"
+    return $Skipped
 }
 
 if (-not $controllerID)
@@ -453,6 +264,16 @@ if (-not $ipv4)
     return $False
 }
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
+
 $hostInfo = Get-VMHost -ComputerName $hvServer
 if (-not $hostInfo)
 {
@@ -464,12 +285,6 @@ $defaultVhdPath = $hostInfo.VirtualHardDiskPath
 if (-not $defaultVhdPath.EndsWith("\"))
 {
     $defaultVhdPath += "\"
-}
-
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq $False)
-{
-   $vmGeneration = 1
 }
 
 if ($vmGeneration -eq 1)
@@ -532,9 +347,9 @@ if (-not $parentFileInfo)
 
 $parentInitialSize = $parentFileInfo.FileSize
 
-# Format the disk
 Start-Sleep -Seconds 30
 
+# Format the disk
 $sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
 {
@@ -547,7 +362,6 @@ if (-not $sts[-1])
     return $False
 }
 
-# Write-Output "$remoteScript execution on VM: Success"
 Write-Output "Here are the remote logs:`n`n###################"
 $logfilename = ".\$remoteScript.log"
 Get-Content $logfilename
@@ -607,7 +421,7 @@ if ($parentFinalSize -eq $parentInitialSize)
 
 if ($vhdFinalSize -gt $vhdInitialSize)
 {
-    "Info : The differencing disk grew in size from ${vhdInitialSize} to ${vhdFinalSize}"
+    "Info: The differencing disk grew in size from ${vhdInitialSize} to ${vhdFinalSize}"
 }
 
 return $retVal

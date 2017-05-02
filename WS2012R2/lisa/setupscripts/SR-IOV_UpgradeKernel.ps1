@@ -167,7 +167,9 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-# Get VM2 ipv4
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IPADDRESS: ${ipv4}"
 $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "${vm2Name} IPADDRESS: ${vm2ipv4}"
 

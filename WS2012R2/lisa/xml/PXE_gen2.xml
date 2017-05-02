@@ -127,6 +127,7 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>key.ppk</sshKey>
+            <role>nonSUT</role>
             <hardware>
                <create>true</create>
                <numCPUs>1</numCPUs>

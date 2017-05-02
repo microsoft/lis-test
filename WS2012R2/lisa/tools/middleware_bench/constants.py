@@ -40,6 +40,10 @@ CLI_SUBSCRIPTION_OPT = '--subscription'
 CLI_SUBSCRIPTION_OPT_SH = '-b'
 CLI_TENANT_OPT = '--tenant'
 CLI_TENANT_OPT_SH = '-n'
+CLI_PROJECTID_OPT = '--projectid'
+CLI_PROJECTID_OPT_SH = '-j'
+CLI_TOKEN_OPT = '--token'
+CLI_TOKEN_OPT_SH = '-o'
 
 CLI_LOCAL_PATH_OPT = '--localpath'
 CLI_LOCAL_PATH_OPT_SH = '-l'
@@ -60,6 +64,8 @@ GCE = 'gce'
 
 DEVICE_AWS = '/dev/sdx'
 DEVICE_AZURE = '/dev/sdc'
+DEVICE_GCE = '/dev/disk/by-id/google-'
+TEMP_DEVICE_GCE = '/dev/sdb'
 
 AWS_P28XLARGE = 'p2.8xlarge'
 AWS_D24XLARGE = 'd2.4xlarge'
@@ -69,4 +75,3 @@ DB_DISK = 'db_disk'
 CLUSTER_DISK = 'cluster_disk'
 
 RAID_DEV = '/dev/md0'
-

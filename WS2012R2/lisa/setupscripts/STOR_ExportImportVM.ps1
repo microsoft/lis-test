@@ -17,6 +17,7 @@
 # See the Apache Version 2.0 License for specific language governing
 # permissions and limitations under the License.
 #
+########################################################################
 
 <#
 .Synopsis
@@ -95,7 +96,6 @@ if ($hvServer -eq $null) {
 #
 # Parse the testParams string
 #
-
 $params = $testParams.Split(';')
 foreach ($p in $params) {
     if ($p.Trim().Length -eq 0) {
@@ -148,7 +148,7 @@ if (-not $vm) {
 Write-Output "VM ${vmName} is present on server and running"
 
 #
-# Stop the VM to export it.
+# Stop the VM in order to export it
 #
 while ($testCaseTimeout -gt 0) {
     Stop-VM -Name $vmName -ComputerName $hvServer -Force -Verbose
@@ -166,8 +166,6 @@ if ($testCaseTimeout -eq 0) {
     return $False
 }
 
-Write-Output "VM ${vmName} has stopped successfully"
-
 #
 # Create a Snapshot before exporting the VM
 #
@@ -179,9 +177,7 @@ if ($? -ne "True") {
 
 Write-Output "Successfully created a new snapshot before exporting the VM"
 
-
 $exportPath = (Get-VMHost).VirtualMachinePath + "\ExportTest\"
-
 $vmPath = $exportPath + $vmName +"\"
 
 #
@@ -190,7 +186,7 @@ $vmPath = $exportPath + $vmName +"\"
 Remove-Item -Path $vmPath -Recurse -Force -ErrorAction SilentlyContinue
 
 #
-# Export the VM.
+# Export the VM
 #
 Export-VM -Name $vmName -ComputerName $hvServer -Path $exportPath -Confirm:$False -Verbose
 if ($? -ne "True") {
@@ -198,7 +194,7 @@ if ($? -ne "True") {
     return $false
 }
 
-Write-Output "VM ${vmName} exported successfully"
+Write-Output "Info: VM ${vmName} exported successfully"
 
 #
 # Before importing the VM from exported folder, Delete the created snapshot from the orignal VM.
@@ -212,9 +208,8 @@ $ExportedVM = Get-VM -Name $vmName -ComputerName $hvServer
 $ExportedVMID = $ExportedVM.VMId
 
 #
-# Import back the above exported VM.
+# Import back the above exported VM
 #
-"Info : Detecting Host version of Windows Server"
 $osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
 if (-not $osInfo)
 {
@@ -242,7 +237,7 @@ switch ($BuildNum)
 
 Write-Output $vmConfig.fullname
 
-Import-VM -Path $vmConfig -ComputerName $hvServer -Copy "${vmPath}\Virtual Hard Disks" -Verbose -Confirm:$False   -GenerateNewId
+Import-VM -Path $vmConfig -ComputerName $hvServer -Copy "${vmPath}\Virtual Hard Disks" -Verbose -Confirm:$False -GenerateNewId
 if ($? -ne "True") {
     Write-Output "Error while importing the VM" | Out-File -Append $summaryLog
     return $false
@@ -292,7 +287,7 @@ do {
 Write-Output "Imported VM ${newName} has a snapshot TestExport, applied the snapshot and VM started successfully"
 
 
-Stop-VM -Name $newName -ComputerName $hvServer -Force -Verbose
+Stop-VM -Name $newName -ComputerName $hvServer -Force -TurnOff
 if ($? -ne "True") {
     Write-Output "Error while stopping the VM" | Out-File -Append $summaryLog
     return $false
@@ -309,13 +304,13 @@ if ($? -ne "True") {
     return $false
 }
 else {
-    Write-Output "Imported VM Removed, test completed" | Out-File -Append $summaryLog
+    Write-Output "Info: Imported VM removed, test completed" | Out-File -Append $summaryLog
     $retVal = $True
 }
 
 Remove-Item -Path "${vmPath}" -Recurse -Force
 if ($? -ne "True") {
-    Write-Output "Error while deleting the export folder trying again"
+    Write-Output "Error while deleting the export folder, trying again..."
     del -Recurse -Path "${vmPath}" -Force
 }
 

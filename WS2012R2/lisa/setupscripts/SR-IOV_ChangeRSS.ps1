@@ -163,7 +163,9 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-# Get VM2 ipv4
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IPADDRESS: ${ipv4}"
 $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "${vm2Name} IPADDRESS: ${vm2ipv4}"
 
@@ -217,14 +219,14 @@ Start-Sleep -s 10
 # Change RSS profile
 #
 # First, we'll save the current RSS profile
-$rssProfile = Get-NetAdapterRss -Name SRIOV
+$rssProfile = Get-NetAdapterRss -Name "vEthernet (SRIOV)*"
 $rssProfile = $rssProfile.Profile
 
 "Changing RSS profile on VM1"
-Set-NetAdapterRss -Name SRIOV -Profile ClosestStatic
+Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile ClosestStatic
 if (-not $?) {
     "ERROR: Failed to change RSS profile for SRIOV interface!" | Tee-Object -Append -file $summaryLog
-    Set-NetAdapterRss -Name SRIOV -Profile $rssProfile
+    Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
     return $false 
 }
 
@@ -233,20 +235,20 @@ Start-Sleep -s 30
 $status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep bond0"
 if (-not $status) {
     "ERROR: The VF is down after changing RSS profile!" | Tee-Object -Append -file $summaryLog
-    Set-NetAdapterRss -Name SRIOV -Profile $rssProfile
+    Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
     return $false    
 }
 
 # Read the throughput with RSS profile changed
 Start-Sleep -s 60
-[decimal]$vfBeforeThroughput = $vfBeforeThroughput / 2
+[decimal]$vfBeforeThroughput = $vfBeforeThroughput * 0.7
 [decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 
 "The throughput after changing RSS profile is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
 if (-not $vfFinalThroughput) {
     "ERROR: After changing RSS profile, the throughput is significantly lower
     Please check if the VF is still running" | Tee-Object -Append -file $summaryLog
-    Set-NetAdapterRss -Name SRIOV -Profile $rssProfile
+    Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
     return $false 
 }
 
@@ -255,10 +257,10 @@ Start-Sleep -s 60
 $status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "grep 'Call Trace' /var/log/* --exclude-dir=*"
 if ($status) {
     "ERROR: System logs shows Call Traces. Please check the VM for further info" | Tee-Object -Append -file $summaryLog
-    Set-NetAdapterRss -Name SRIOV -Profile $rssProfile
+    Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
     return $false    
 }
 # Change back the RSS profile
-Set-NetAdapterRss -Name SRIOV -Profile $rssProfile
+Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
 
 return $true

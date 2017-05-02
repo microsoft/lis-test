@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -36,11 +36,11 @@
                              Dynamic
                              Fixed
                              Diff (Differencing)
-   The following are some examples
 
+   The following are some examples:
    SCSI=0,0,Diff : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic
    IDE=1,1,Diff  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Diff
-   
+
    Note: This setup script only adds differencing disks.
 
     A typical XML definition for this test case would look similar
@@ -51,10 +51,10 @@
         <setupScript>setupscripts\DiffDiskGrowthSetup.ps1</setupScript>
         <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
         <timeout>18000</timeout>
-        <testparams>                
-                <param>IDE=1,1,Diff</param>      
+        <testparams>
+                <param>IDE=1,1,Diff</param>
                 <param>ParentVhd=VHDXParentDiff.vhdx</param>
-                <param>TC_COUNT=DSK_VHDX-75</param>            
+                <param>TC_COUNT=DSK_VHDX-75</param>
         </testparams>
     </test>
 
@@ -68,42 +68,18 @@
     Test data for this test case
 
 .Example
-    setupScripts\DiffDiskGrowthSetup.ps1 -vmName VMname -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IP;RootDir=" 
+    setupScripts\DiffDiskGrowthSetup.ps1 -vmName VMname -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IP;RootDir="
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-    
-    if (-not $filename)
-    {
-        return $null
-    }
-    
-    if (-not $server)
-    {
-        return $null
-    }
-    
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-    
-    return $fileInfo
-}
+$controllerType = $null
+$controllerID = $null
+$lun = $null
+$vhdType = $null
+$parentVhd = $null
+$vhdFormat =$null
+$vmGeneration = $null
 
 ############################################################################
 #
@@ -150,7 +126,9 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
 
 
 #######################################################################
+#
 # Create parentVhd
+#
 #######################################################################
 function CreateParentVhd([string] $vhdFormat, [string] $server)
 {
@@ -187,37 +165,11 @@ function CreateParentVhd([string] $vhdFormat, [string] $server)
 }
 
 #######################################################################
+#
 # Main script body
+#
 #######################################################################
 
-"DiffDiskGrowthSetup.ps1"
-"  vmName = ${vmName}"
-"  hvServer = ${hvServer}"
-"  testParams = ${testParams}"
-
-#
-# Make sure we have access to the Microsoft Hyper-V snapin
-#
-$hvModule = Get-Module Hyper-V
-if ($hvModule -eq $NULL)
-{
-    import-module Hyper-V
-    $hvModule = Get-Module Hyper-V
-}
-
-if ($hvModule.companyName -ne "Microsoft Corporation")
-{
-    "Error: The Microsoft Hyper-V PowerShell module is not available"
-    return $False
-}
-
-$controllerType = $null
-$controllerID = $null
-$lun = $null
-$vhdType = $null
-$parentVhd = $null
-$vhdFormat =$null
-$vmGeneration = $null
 #
 # Parse the testParams string
 #
@@ -230,18 +182,18 @@ foreach ($p in $params)
     }
 
     $tokens = $p.Trim().Split('=')
-    
+
     if ($tokens.Length -ne 2)
     {
         # Just ignore it
          continue
     }
-    
+
     $lValue = $tokens[0].Trim()
     $rValue = $tokens[1].Trim()
 
     #
-    # ParentVHD test param?
+    # ParentVHD test param
     #
     if ($lValue -eq "ParentVHD")
     {
@@ -250,7 +202,7 @@ foreach ($p in $params)
     }
 
     #
-    # vhdFormat test param?
+    # vhdFormat test param
     #
     if ($lValue -eq "vhdFormat")
     {
@@ -259,30 +211,39 @@ foreach ($p in $params)
     }
 
     #
-    # Controller type testParam?
+    # rootDIR test param
+    #
+    if ($lValue -eq "rootDIR")
+    {
+        $rootDir = $rValue
+        continue
+    }
+
+    #
+    # Controller type testParam
     #
     if (@("IDE", "SCSI") -contains $lValue)
     {
         $controllerType = $lValue
-        
+
         $SCSI = $false
         if ($controllerType -eq "SCSI")
         {
             $SCSI = $true
         }
-            
+
         $diskArgs = $rValue.Split(',')
-        
+
         if ($diskArgs.Length -ne 3)
         {
             "Error: Incorrect number of disk arguments: $p"
             return $False
         }
-        
+
         $controllerID = $diskArgs[0].Trim()
         $lun = $diskArgs[1].Trim()
         $vhdType = $diskArgs[2].Trim()
-        
+
         #
         # Just a reminder. The test case is testing differencing disks.
         # If we are asked to create a disk other than a differencing disk,
@@ -296,13 +257,39 @@ foreach ($p in $params)
     }
 }
 
+if (-not $rootDir)
+{
+    "Warn : no rootdir was specified"
+}
+else
+{
+    cd $rootDir
+}
+
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $False
+}
+
 #
-# Make sure we have all the required data to do our job
+# Make sure we have all the required data
 #
 if (-not $controllerType)
 {
     "Error: No controller type specified in the test parameters"
     return $False
+}
+
+$vmGeneration = GetVMGeneration $vmName $hvServer
+if ( $controllerType -eq "IDE" -and $vmGeneration -eq 2 )
+{
+        Write-Output "Generation 2 VM does not support IDE disk, please skip this case in the test script"
+        return $True
 }
 
 if (-not $controllerID)
@@ -323,7 +310,6 @@ if (-not $vhdFormat)
     return $False
 }
 
-###################################
 if (-not $parentVhd)
 {
     # Create a new ParentVHD
@@ -333,7 +319,7 @@ if (-not $parentVhd)
         "Error: Failed to create parent $vhdFormat on $hvServer"
         return $False
     }
-    else 
+    else
     {
         "Info: Parent disk $parentVhd created"
     }
@@ -347,7 +333,7 @@ if ($SCSI)
         "Error: CreateHardDrive was passed a bad SCSI Controller ID: $ControllerID"
         return $false
     }
-    
+
     # Create the SCSI controller if needed
     $sts = CreateController $vmName $hvServer $controllerID
     if (-not $sts[$sts.Length-1])
@@ -365,11 +351,6 @@ else # Make sure the controller ID is valid for IDE
     }
 }
 
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq $False)
-{
-   $vmGeneration = 1
-}
 
 if ($vmGeneration -eq 1)
 {
@@ -379,7 +360,7 @@ else
 {
     $lun = [int]($diskArgs[1].Trim()) +1
 }
-$drives = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun 
+$drives = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun
 if ($drives)
 {
     write-output "Error: drive $controllerType $controllerID $Lun already exists"
@@ -399,18 +380,16 @@ if (-not $defaultVhdPath.EndsWith("\"))
     $defaultVhdPath += "\"
 }
 
-
 if ($parentVhd.EndsWith(".vhd"))
 {
-    # To Make sure we do not use exisiting Diff disk, del if exisit 
-    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"  
+    # To Make sure we do not use exisiting Diff disk, del if exists
+    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"
 }
 else
 {
-    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhdx"  
+    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhdx"
 }
 
-#$vhdFileInfo = GetRemoteFileInfo -filename $vhdName -server $hvServer
 $vhdFileInfo = GetRemoteFileInfo  $vhdName  $hvServer
 if ($vhdFileInfo)
 {
@@ -440,7 +419,7 @@ if (-not $parentFileInfo)
 
 #
 # Create the .vhd file
-$newVhd = New-Vhd -Path $vhdName -ParentPath $parentVhdFilename -ComputerName $hvServer -Differencing          
+$newVhd = New-Vhd -Path $vhdName -ParentPath $parentVhdFilename -ComputerName $hvServer -Differencing
 if (-not $newVhd)
 {
     "Error: unable to create a new .vhd file"
@@ -459,7 +438,7 @@ if ($newVhd.ParentPath -ne $parentVhdFilename)
 # Attach the .vhd file to the new drive
 #
 $error.Clear()
-$disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun -Path $vhdName    
+$disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun -Path $vhdName
 if ($error.Count -gt 0)
 {
     "Error: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
@@ -471,5 +450,5 @@ else
     "Info: Child disk $vhdName created and attached to ${controllerType} : ${controllerID} : ${Lun}"
     $retVal = $true
 }
-    
+
 return $retVal

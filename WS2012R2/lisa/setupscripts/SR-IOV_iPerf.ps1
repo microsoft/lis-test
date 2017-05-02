@@ -167,6 +167,12 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Get IPs
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IPADDRESS: ${ipv4}"
+$vm2ipv4 = GetIPv4 $vm2Name $remoteServer
+"${vm2Name} IPADDRESS: ${vm2ipv4}"
+
 #
 # Configure the bond on test VM
 #
@@ -187,10 +193,6 @@ if (-not $retVal)
     "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4})"
     return $false
 }
-
-# Get ipv4 from VM2
-$vm2ipv4 = GetIPv4 $vm2Name $remoteServer
-"$vm2Name IPADDRESS: $vm2ipv4"
 
 $retVal = iPerfInstall $vm2ipv4 $sshKey $netmask
 if (-not $retVal)
@@ -213,7 +215,7 @@ if (-not $retVal)
 # Get the logs
 "Get Logs"
 Start-Sleep -s 40
-$vfEnabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResults.log | grep sender | awk '{print `$7}'"
+[decimal]$vfEnabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResults.log | grep sender | awk '{print `$7}'"
 if (-not $vfEnabledBandwidth){
     "ERROR: No result was logged! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
     return $false
@@ -250,7 +252,7 @@ Start-Sleep -s 20
 
 # Get the logs
 Start-Sleep -s 60
-$vfDisabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResultsNoVF.log | grep sender | awk '{print `$7}'"
+[decimal]$vfDisabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResultsNoVF.log | grep sender | awk '{print `$7}'"
 if (-not $vfDisabledBandwidth){
     "ERROR: No result was logged after SR-IOV was disabled! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
     return $false

@@ -261,8 +261,8 @@ class PerfTestRun(TestRun):
             elif self.suite.lower() == 'iperf':
                 self.prep_for_iperf(table_dict, test_case_obj)
 
-            table_dict['TestCaseName'] = re.findall(
-                "[a-zA-z]+", table_dict['TestCaseName'])[0]
+            table_dict['TestCaseName'] = re.match('(.*[a-z]+)[0-9]*',
+                                                  table_dict['TestCaseName']).group(1)
 
         if self.suite.lower() in ['fio-singledisk', 'fio-raid0-4disks']:
             insertion_list = sorted(insertion_list, key=lambda column: (

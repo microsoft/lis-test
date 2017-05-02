@@ -20,7 +20,6 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-
 #
 # Functions definitions
 #
@@ -30,11 +29,6 @@ LogMsg()
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
 
-UpdateTestState()
-{
-    echo $1 > ~/state.txt
-}
-
 CopyImage()
 {
     if [ -d /root/initr ]; then
@@ -42,7 +36,7 @@ CopyImage()
         rm -rf /root/initr/
     fi
 
-    LogMsg "Creating temporary directory."    
+    LogMsg "Creating temporary directory."
     mkdir /root/initr
     cp $1 /root/initr/boot.img
     cd /root/initr/
@@ -57,14 +51,14 @@ SearchModules()
     [[ -d "/root/initr/usr/lib/modules" ]] && abs_path="/root/initr/usr/lib/modules/" || abs_path="/root/initr/lib/modules/"
     for module in "${hv_modules[@]}"; do
         grep -i $module $abs_path*/modules.dep
-        if [ $? -eq 0 ]; then 
+        if [ $? -eq 0 ]; then
             LogMsg "Info: Module $module was found in initrd."
             echo "Info: Module $module was found in initrd." >> /root/summary.log
         else
             LogMsg "ERROR: Module $module was NOT found."
             echo "ERROR: Module $module was NOT found." >> /root/summary.log
 			grep -i $module $abs_path*/modules.dep >> /root/summary.log
-            UpdateTestState "TestFailed"
+            SetTestStateFailed
             exit 1
         fi
     done
@@ -76,48 +70,42 @@ SearchModules()
 #
 ######################################################################
 
-LogMsg "Updating test case state to running"
-UpdateTestState "TestRunning"
+dos2unix utils.sh
+# Source utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 1
+}
 
-CONSTANTS_FILE="constants.sh"
-
-
-if [ -e ~/${CONSTANTS_FILE} ]; then
-    source ~/${CONSTANTS_FILE}
-else
-    msg="Error: no ${CONSTANTS_FILE} file"
-    echo $msg
-    echo $msg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
-fi
-
-
-# Remove existing logs
-if [ -e ~/summary.log ]; then
-    LogMsg "Cleaning up previous copies of summary.log"
-    rm -f ~/summary.log
-fi
+# Source constants file and initialize most common variables
+UtilsInit
 
 if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter fileSystems is not defined in constants file."
     LogMsg "$msg"
     echo $msg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
+    SetTestStateAborted
     exit 30
 fi
 
-if [ ! ${TC_COVERED} ]; then
-    LogMsg "The TC_COVERED variable is not defined!"
-  echo "The TC_COVERED variable is not defined!" >> ~/summary.log
+if [[ $DISTRO == "redhat_6" ]]; then
+    yum install -y dracut-network
+    dracut -f
+    if [ "$?" = "0" ]; then
+        LogMsg "Info: dracut -f executes successfully"
+    else
+        LogMsg "Error: dracut -f fails to execute"
+        echo "Error: dracut -f fails to execute" >> summary.log
+        SetTestStateAborted
+        exit 1
+    fi
 fi
-
-echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 
 if [ -f /boot/initramfs-0-rescue* ]; then
     img=/boot/initramfs-0-rescue*
 else
-    [[ -f "/boot/initrd-`uname -r`" ]] && img="/boot/initrd-`uname -r`" || [[ -f "/boot/initramfs-`uname -r`.img" ]] && img="/boot/initramfs-`uname -r`.img" || img="/boot/initrd.img-`uname -r`"    
+    [[ -f "/boot/initrd-`uname -r`" ]] && img="/boot/initrd-`uname -r`" || [[ -f "/boot/initramfs-`uname -r`.img" ]] && img="/boot/initramfs-`uname -r`.img" || img="/boot/initrd.img-`uname -r`"
 fi
 
 echo "The initrd test image is: $img" >> summary.log
@@ -134,7 +122,7 @@ case $img_type in
         else
             LogMsg "Error: Failed to unpack the initramfs image."
             echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
-            UpdateTestState "TestFailed"
+            SetTestStateFailed
             exit 1
         fi
     ;;
@@ -145,7 +133,7 @@ case $img_type in
         else
             LogMsg "Error: Failed to unpack the initramfs image with gunzip."
             echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
-            UpdateTestState "TestFailed"
+            SetTestStateFailed
             exit 1
         fi
     ;;
@@ -156,7 +144,7 @@ case $img_type in
         else
             LogMsg "Error: Failed to unpack the initramfs image with gunzip."
             echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
-            UpdateTestState "TestFailed"
+            SetTestStateFailed
             exit 1
         fi
     ;;
@@ -164,5 +152,5 @@ esac
 
 SearchModules
 
-UpdateTestState "TestCompleted"
+SetTestStateCompleted
 exit 0

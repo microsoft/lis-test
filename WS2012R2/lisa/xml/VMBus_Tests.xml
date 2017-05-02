@@ -29,7 +29,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>VMBus tests for WS2012R2</subject>
+            <subject>VMBus tests</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
 
@@ -71,7 +71,7 @@
 		<noReboot>False</noReboot>
 		<testParams>
             		<param>TC_COVERED=VMBus-02</param>
-			<param>vCPU=4</param>
+			<param>vCPU=8</param>
             	</testParams>
         </test>
         
@@ -86,6 +86,7 @@
 			<param>TC_COVERED=VMBus-03</param>
             		<param>VMMemory=2GB</param>
 		</testParams>
+		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
@@ -99,6 +100,7 @@
 			<param>TC_COVERED=VMBus-04</param>
 			<param>VMMemory=2GB</param>
 		</testParams>
+		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
     </testCases>
 
@@ -110,6 +112,9 @@
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>VMBus</suite>
+            <testParams>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
         </vm>
     </VMs>
 

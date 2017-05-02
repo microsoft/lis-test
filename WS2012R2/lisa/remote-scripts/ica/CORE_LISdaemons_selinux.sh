@@ -23,7 +23,6 @@
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTFAILED="TestFailed"
-
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
@@ -50,12 +49,12 @@ UpdateTestState()
 
 CheckSelinuxRules()
 {
-  aucStatus=`ausearch -m avc -c "$1"`
-  if [[ -n $aucStatus  ]]; then
-    LogMsg "ERROR: $1 is searched out in audit log, test failed. Log is $aucStatus"
+  avcStatus=`ausearch -m avc | grep -i "$1"`
+  avcUserStatus=`ausearch -m user_avc | grep -i "$1"`
+  if [ -n "$avcStatus" ] || [ -n "$avcUserStatus" ]; then
+    LogMsg "ERROR: $1 is searched out in audit log, test failed. Log is $avcStatus $avcUserStatus"
     UpdateTestState $ICA_TESTFAILED
     UpdateSummary "$1 is searched out in audit log, test failed."
-    UpdateSummary $aucStatus
     exit 1
   fi
 }

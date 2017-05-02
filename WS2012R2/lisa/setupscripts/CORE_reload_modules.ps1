@@ -72,7 +72,7 @@ function CheckResult()
     $TestCompleted = "TestCompleted"
     $TestAborted   = "TestAborted"
     $TestRunning   = "TestRunning"
-    $attempts       = 250    
+    $attempts      = 200    
      
     Write-Output "Info : pscp -q -i ssh\${sshKey} root@${ipv4}:$stateFile}"
     while ($attempts -ne 0 ){
@@ -100,8 +100,9 @@ function CheckResult()
             }
         }
         else {
-            Start-Sleep -s 1
+            Start-Sleep -s 10
             $attempts--
+			Write-Output "Info : Attempt number ${attempts}"
             if ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {                     
                 Write-Output "Error : Lost Communication to vm" | Out-File -Append $summaryLog                  
                 break
@@ -141,7 +142,7 @@ function Execute ([string] $command)
 #	Push the remote script to VM.
 # 
 #######################################################################
-function RunTest ()
+function setupTest ()
 {
     "./${remoteScript} &> CORE_StressReloadModules.log " | out-file -encoding ASCII -filepath runtest.sh 
 
@@ -181,13 +182,6 @@ function RunTest ()
         return $False
     }
 
-    $result = Execute("./runtest.sh");
-    if (-not $result) {
-        Write-Error -Message "Error: Unable to submit runtest.sh to atd" -ErrorAction SilentlyContinue 
-        return $False
-    }
-
-    del runtest.sh
     return $True      
 }
 
@@ -253,11 +247,15 @@ cd $rootDir
 #
 . .\setupscripts\TCUtils.ps1
 
-$sts = RunTest
-if (-not $($sts[-1])) {         
-    "Error: Running CORE_StressReloadModules script failed on the VM, exiting test!"  
-    return $False 
+$sts = setupTest
+if (-not $sts) {
+	"Error: Running test setup has failed!"  
+	return $False 
 }
+
+# Run test script in background
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} 'nohup ./runtest.sh &>/dev/null &'
+
 
 $status = CheckResult 
 if (-not $($status[-1])) {
@@ -269,6 +267,8 @@ else {
     $retVal = $True
 }
 
+del runtest.sh
 "Info : Test Stress Reload Modules ${results} "
 
 return $retVal
+0

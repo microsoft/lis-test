@@ -61,163 +61,6 @@
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 #######################################################################
-# Runs a remote script on the VM an returns the log.
-#######################################################################
-function RunRemoteScript($remoteScript)
-{
-    $retValue = $False
-    $stateFile     = "state.txt"
-    $TestCompleted = "TestCompleted"
-    $TestAborted   = "TestAborted"
-    $TestRunning   = "TestRunning"
-    $timeout       = 6000
-
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
-
-    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
-       return $False
-    }
-
-    .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
-       return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on runtest.sh"
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x ${remoteScript}"
-        return $False
-    }
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
-        return $False
-    }
-
-    # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh"
-
-    # Return the state file
-    while ($timeout -ne 0 )
-    {
-    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $stateFile)
-        {
-            $contents = Get-Content -Path $stateFile
-            if ($null -ne $contents)
-            {
-                    if ($contents -eq $TestCompleted)
-                    {
-                        Write-Output "Info : state file contains Testcompleted"
-                        $retValue = $True
-                        break
-
-                    }
-
-                    if ($contents -eq $TestAborted)
-                    {
-                         Write-Output "Info : State file contains TestAborted failed. "
-                         break
-
-                    }
-                    #Start-Sleep -s 1
-                    $timeout--
-
-                    if ($timeout -eq 0)
-                    {
-                        Write-Output "Error : Timed out on Test Running , Exiting test execution."
-                        break
-                    }
-
-            }
-            else
-            {
-                Write-Output "Warn : state file is empty"
-                break
-            }
-
-        }
-        else
-        {
-             Write-Host "Warn : ssh reported success, but state file was not copied"
-             break
-        }
-    }
-    else #
-    {
-         Write-Output "Error : pscp exit status = $sts"
-         Write-Output "Error : unable to pull state.txt from VM."
-         break
-    }
-    }
-
-    # Get the logs
-    $remoteScriptLog = $remoteScript+".log"
-
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} .
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $remoteScriptLog)
-        {
-            $contents = Get-Content -Path $remoteScriptLog
-            if ($null -ne $contents)
-            {
-                    if ($null -ne ${TestLogDir})
-                    {
-                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
-
-                    }
-
-                    else
-                    {
-                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
-                    }
-
-            }
-            else
-            {
-                Write-Output "Warn: $remoteScriptLog is empty"
-            }
-        }
-        else
-        {
-             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"
-        }
-    }
-
-    # Cleanup
-    del state.txt -ErrorAction "SilentlyContinue"
-    del runtest.sh -ErrorAction "SilentlyContinue"
-
-    return $retValue
-}
-
-#######################################################################
 # Fix snapshots. If there are more then 1 remove all except latest.
 #######################################################################
 function FixSnapshots($vmName, $hvServer)
@@ -265,68 +108,6 @@ function FixSnapshots($vmName, $hvServer)
     }
 
     return $True
-}
-
-#######################################################################
-# To Get Parent VHD from VM.
-#######################################################################
-function GetParentVHD($vmName, $hvServer)
-{
-    $ParentVHD = $null     
-
-    $VmInfo = Get-VM -Name $vmName 
-    if (-not $VmInfo)
-        { 
-             Write-Error -Message "Error: Unable to collect VM settings for ${vmName}" -ErrorAction SilentlyContinue
-             return $False
-        }    
-    
-    if ( $VmInfo.Generation -eq "" -or $VmInfo.Generation -eq 1  )
-        {
-            $Disks = $VmInfo.HardDrives
-            foreach ($VHD in $Disks)
-                {
-                    if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  ))
-                        {
-                            $Path = Get-VHD $VHD.Path
-                            if ([string]::IsNullOrEmpty($Path.ParentPath))
-                                {
-                                    $ParentVHD = $VHD.Path
-                                }
-                            else{
-                                    $ParentVHD =  $Path.ParentPath
-                                }
-
-                            Write-Host "Parent VHD Found: $ParentVHD "
-                        }
-                }            
-        }
-    if ( $VmInfo.Generation -eq 2 )
-        {
-            $Disks = $VmInfo.HardDrives
-            foreach ($VHD in $Disks)
-                {
-                    if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  ))
-                        {
-                            $Path = Get-VHD $VHD.Path
-                            if ([string]::IsNullOrEmpty($Path.ParentPath))
-                                {
-                                    $ParentVHD = $VHD.Path
-                                }
-                            else{
-                                    $ParentVHD =  $Path.ParentPath
-                                }
-                            Write-Host "Parent VHD Found: $ParentVHD "
-                        }
-                }  
-        }
-
-    if ( -not ($ParentVHD.EndsWith(".vhd") -xor $ParentVHD.EndsWith(".vhdx") ))
-    {
-        Write-Error -Message " Parent VHD is Not correct please check VHD, Parent VHD is: $ParentVHD " -ErrorAction SilentlyContinue
-        return $False
-    }
-    return $ParentVHD    
 }
 
 #######################################################################
@@ -392,36 +173,6 @@ function CreateGChildVHD($ParentVHD)
     }
 
     return $GChildVHD
-}
-
-#######################################################################
-# Create a file on the VM.
-#######################################################################
-function CreateFile([string] $fileName)
-{
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "touch ${fileName}" 
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to create file" | Out-File -Append $summaryLog
-        return $False
-    }
-
-    return  $True
-}
-
-#######################################################################
-# Checks if test file is present or not.
-#######################################################################
-function CheckFile([string] $fileName)
-{
-    $retVal = $true
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "stat ${fileName} 2>/dev/null" | out-null
-    if (-not $?)
-    {
-        $retVal = $false
-    }
-
-    return  $retVal
 }
 
 #######################################################################
@@ -512,14 +263,6 @@ if (-not $vm)
     return $False
 }
 
-# Send utils.sh to VM
-echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\utils.sh root@${ipv4}:
-if (-not $?)
-{
-    Write-Output "ERROR: Unable to copy utils.sh to the VM"
-    return $False
-}
-
 # Check to see Linux VM is running VSS backup daemon
 $sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
 if (-not $sts[-1])
@@ -553,7 +296,7 @@ if (-not $sts[-1])
 }
 
 # Get Parent VHD 
-$ParentVHD = GetParentVHD $vmName -$hvServer
+$ParentVHD = GetParentVHD $vmName $hvServer
 if(-not $ParentVHD)
 {
     "Error: Error getting Parent VHD of VM $vmName"
