@@ -151,6 +151,18 @@ else
     return $false
 }
 
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
+
 if ( $controllerType -eq "IDE" )
 {
     $vmGeneration = GetVMGeneration $vmName $hvServer
