@@ -21,6 +21,7 @@
                 <suiteTest>MultipleReboot</suiteTest>
                 <suiteTest>Stress_IOzone</suiteTest>
                 <suiteTest>Sysbench</suiteTest>
+                <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
                 <!-- Obsolete test cases
                 <suiteTest>Stress_Kernbench</suiteTest>
                 <suiteTest>Stress_Dynamo</suiteTest>
@@ -69,6 +70,18 @@
             </testParams>
             <timeout>800</timeout>
             <OnError>Abort</OnError>
+        </test>
+
+        <test>
+            <testName>ChangeMTU_ReloadNetvsc</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\STRESS_mtu_netvsc_reload.ps1</testScript>
+            <testparams>
+                <param>TC_COVERED=Stress-04</param>
+                <param>SnapshotName=ICABase</param>
+            </testparams>
+            <timeout>1800</timeout>
+            <onError>Continue</onError>
         </test>
 
 <!-- Obsolete test case
