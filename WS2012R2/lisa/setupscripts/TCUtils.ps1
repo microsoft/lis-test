@@ -1551,7 +1551,7 @@ function GetVMGeneration([String] $vmName, [String] $hvServer)
     $vmInfo = Get-VM -Name $vmName -ComputerName $hvServer
 
     # Hyper-V Server 2012 (no R2) only supports generation 1 VM
-    if ( $vmInfo.Generation -eq "")
+    if (!$vmInfo.Generation)
     {
         $vmGeneration = 1
     }
