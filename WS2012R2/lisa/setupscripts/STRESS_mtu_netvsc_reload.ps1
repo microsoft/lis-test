@@ -118,7 +118,7 @@ foreach ($i in $mtu_values) {
     Write-Output "Changing MTU on VM to $i"
 
     $sts = .\bin\plink.exe -v -i ssh\$sshKey root@${ipv4} "echo 'sleep 5 && ip link set dev eth0 mtu $i &' > changeMTU.sh"
-    $sts = .\bin\plink.exe -v -i ssh\$sshKey root@${ipv4} "bash ~/changeMTU.sh > ChangeMTU.log 2>&1"
+    $sts = .\bin\plink.exe -v -i ssh\$sshKey root@${ipv4} "bash ~/changeMTU.sh > changeMTU.log 2>&1"
 
     Start-Sleep -s 30
     Test-Connection -ComputerName $ipv4
