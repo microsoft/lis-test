@@ -186,10 +186,10 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
             return $false
         }
 
-        # Make sure we are not deleting IDE 0 0, or IDE 1,0
-        if ( $Lun -eq 0)
+        # Make sure we are not deleting IDE 0 0
+        if ($Lun -eq 0 -and $controllerID -eq 0)
         {
-            write-output "Error - Cannot delete IDE 0,0 or IDE 1,0"
+            write-output "Error - Cannot delete IDE 0,0"
             return $false
         }
     }
