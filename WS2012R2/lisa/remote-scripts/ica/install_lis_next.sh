@@ -110,7 +110,7 @@ fi
 
 if [ ! ${branch} ]; then
     LogMsg "The branch variable is not defined! Will use default master."
-    echo "The branch variable is not defined! Will use default master." >> ~/summary.
+    echo "The branch variable is not defined! Will use default master." >> ~/summary.log
     branch="master"
 fi
 
