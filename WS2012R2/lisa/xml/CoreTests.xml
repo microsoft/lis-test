@@ -108,9 +108,10 @@
 
 		<test>
             <testName>TimeSync_SavedVM</testName>
-            <testScript>SetupScripts\INST_timesync_savedVM.ps1</testScript>
+            <testScript>SetupScripts\INST_timesync_change_state.ps1</testScript>
             <testparams>
                 <param>TC_COVERED=CORE-06</param>
+                <param>vmState=Save</param>
             </testparams>
             <timeout>800</timeout>
             <onError>Continue</onError>
@@ -338,9 +339,10 @@
 
 		<test>
             <testName>TimeSync_PausedVM</testName>
-            <testScript>SetupScripts\INST_timesync_pausedVM.ps1</testScript>
+            <testScript>SetupScripts\INST_timesync_change_state.ps1</testScript>
             <testparams>
                 <param>TC_COVERED=CORE-27</param>
+                <param>vmState=Pause</param>
             </testparams>
             <timeout>1000</timeout>
             <onError>Continue</onError>

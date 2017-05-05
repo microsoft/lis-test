@@ -20,10 +20,10 @@
 
 <#
 .Synopsis
-    Verify the time sync after VM paused
+    Verify the time sync after VM state change
 .Description
-    This test will check the time sync of guest OS with the host. It will pause the VM.It will wait for 10 mins, 
-resume the VM from paused state and will re-check the time sync.
+    This test will check the time sync of guest OS with the host. It will save/pause the VM, wait for 10 mins, 
+    resume/start the VM and re-check the time sync.
 
 .Parameter vmName
     Name of the VM to test.
@@ -35,7 +35,7 @@ resume the VM from paused state and will re-check the time sync.
     Test data for this test case.
 
 .Example
-    setupScripts\INST_timesync_pausedVM.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress'
+    setupScripts\INST_timesync_change_state.ps1 -vmName NameOfVm -hvServer localhost -testParams 'sshKey=path/to/ssh;ipv4=ipaddress;vmState=Pause'
 
 #>
 
@@ -50,8 +50,6 @@ $rootDir = $null
 # Main script body
 #
 #####################################################################
-
-$retVal = $False
 
 #
 # Make sure all command line arguments were provided
@@ -94,7 +92,8 @@ foreach($p in $params)
     "sshkey"  { $sshKey = $val }
     "ipv4"    { $ipv4 = $val }
     "rootdir" { $rootDir = $val }
-    "tc_covered" {$tcCovered = $val}
+    "tc_covered" { $tcCovered = $val }
+    "vmState" { $vmState = $val.toLower() }
     default  { continue }
     }
 }
@@ -114,6 +113,12 @@ if (-not $ipv4)
     return $False
 }
 
+if (-not $vmState)
+{
+    "Error: testParams is missing the vmState parameter"
+    return $False
+}
+
 #
 # Change the working directory
 #
@@ -125,14 +130,20 @@ if (-not (Test-Path $rootDir))
 
 cd $rootDir
 
-
-. .\setupscripts\TimeSync_Utils.ps1
+. .\setupscripts\TCUtils.ps1
 #
 # Delete any summary.log from a previous test run, then create a new file
 #
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "Covers ${tcCovered}" | Out-File -Append $summaryLog
+
+$retVal = ConfigTimeSync -sshKey $sshKey -ipv4 $ipv4
+if (-not $retVal) 
+{
+    Write-Output "Error: Failed to config time sync."
+    return $False
+}
 
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 if ($diffInSeconds -and $diffInSeconds -lt 5)
@@ -146,10 +157,21 @@ else
 }
 
 #
-# Pause/Suspend the VM state and wait for 10 mins.
+# Pause/Save the VM state and wait for 10 mins.
 #
+if ($vmState -eq "pause")
+{
+    Suspend-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
+}
+elseif ($vmState -eq "save")
+{
+    Save-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
+}
+else
+{
+    Write-Output "Error: Invalid VM state - ${vmState}" | Out-Fie $summaryLog
+}
 
-Suspend-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
 if ($? -ne "True")
 {
   write-host "Error while suspending the VM state"
@@ -161,21 +183,21 @@ Start-Sleep -seconds 600
 #
 # After 10 mins resume the VM and check the time sync.
 #
-Resume-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
+Start-VM -Name $vmName -ComputerName $hvServer -Confirm:$False -WarningAction SilentlyContinue
 if ($? -ne "True")
 {
-  write-host "Error while resuming the VM from paused state"
+  write-host "Error while changing VM state"
   return $false
 }
 
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    Write-Output "Info: Time is properly synced after pause action" | Out-File $summaryLog
+    Write-Output "Info: Time is properly synced after start action" | Out-File $summaryLog
     return $True
 }
 else
 {
-    Write-Output "Error: Time is out of sync after pause action!" | Out-File $summaryLog
+    Write-Output "Error: Time is out of sync after start action!" | Out-File $summaryLog
     return $False
 }

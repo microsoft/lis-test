@@ -130,7 +130,6 @@ if (-not (Test-Path $rootDir) )
 cd $rootDir
 
 . .\setupscripts\TCUtils.ps1
-. .\setupscripts\TimeSync_Utils.ps1
 
 #
 # Updating the summary log with Testcase ID details
@@ -138,6 +137,13 @@ cd $rootDir
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "Covers ${tcCovered}" | Out-File $summaryLog
+
+$retVal = ConfigTimeSync -sshKey $sshKey -ipv4 $ipv4
+if (-not $retVal) 
+{
+    Write-Output "Error: Failed to config time sync."
+    return $False
+}
 
 #
 # Get the VMs Integrated Services and verify Time Sync is enabled and status is OK

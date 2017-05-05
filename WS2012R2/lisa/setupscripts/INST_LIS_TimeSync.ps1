@@ -178,11 +178,6 @@ del $summaryLog -ErrorAction SilentlyContinue
 . .\setupscripts\TCUtils.ps1
 
 #
-# Source the timesync utility functions
-#
-. .\setupscripts\TimeSync_Utils.ps1
-
-#
 # Determine the IPv4 address of the test VM
 #
 "Determine IPv4 address for VM '${vmName}'"
@@ -203,6 +198,12 @@ if (-not $ipv4)
 "  testDelay   = ${testDelay}"
 "  rootDir     = ${rootDir}"
 
+$retVal = ConfigTimeSync -sshKey $sshKey -ipv4 $ipv4
+if (-not $retVal) 
+{
+    Write-Output "Error: Failed to config time sync."
+    return $False
+}
 
 #
 # If the test delay was specified, sleep for a bit
@@ -211,17 +212,6 @@ if ($testDelay -ne "0")
 {
     "Sleeping for ${testDelay} seconds"
     Start-Sleep -S $testDelay
-}
-
-#
-# Get a time string from the VM, then convert the Unix time string into a .NET DateTime object
-#
-"Get time from Unix VM"
-$unixTimeStr = GetUnixVMTime -sshKey "ssh\${sshKey}" -ipv4 $ipv4
-if (-not $unixTimeStr)
-{
-    "Error: Unable to get date/time string from VM"
-    return $False
 }
 
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
