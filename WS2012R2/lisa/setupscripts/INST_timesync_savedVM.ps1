@@ -43,119 +43,10 @@ $rootDir = $null
 
 #####################################################################
 #
-# SendCommandToVM()
-#
-#####################################################################
-function SendCommandToVM([String] $sshKey, [String] $ipv4, [string] $command)
-{
-    $retVal = $null
-
-    $sshKeyPath = Resolve-Path $sshKey
-    
-    $dt = .\bin\plink.exe -i ${sshKeyPath} root@${ipv4} $command
-    if ($?)
-
-    {
-        $retVal = $dt
-    }
-    else
-    {
-        Write-Output "Error: $vmName unable to send command to VM. Command = '$command'"
-    }
-
-    return $retVal
-}
-
-#####################################################################
-#
-#   GetUnixVMTime()
-#
-#####################################################################
-function GetUnixVMTime([String] $sshKey, [String] $ipv4)
-{
-    if (-not $sshKey)
-    {
-        return $null
-    }
-
-    if (-not $ipv4)
-    {
-        return $null
-    }
-
-    $unixTimeStr = $null
-    $command = 'date "+%m/%d/%Y/%T" -u'
-
-    $unixTimeStr = SendCommandToVM ${sshKey} $ipv4 $command
-    if (-not $unixTimeStr -and $unixTimeStr.Length -lt 20)
-    {
-        return $null
-    }
-    
-    return $unixTimeStr
-}
-
-#####################################################################
-#
-#   GetTimeSync()
-#
-#####################################################################
-function GetTimeSync([String] $sshKey, [String] $ipv4)
-{
-    if (-not $sshKey)
-    {
-        return $null
-    }
-
-    if (-not $ipv4)
-    {
-        return $null
-    }
-    #
-    # Get a time string from the VM, then convert the Unix time string into a .NET DateTime object
-    #
-    $unixTimeStr = GetUnixVMTime -sshKey "ssh\${sshKey}" -ipv4 $ipv4
-    if (-not $unixTimeStr)
-    {
-       "Error: Unable to get date/time string from VM"
-        return $False
-    }
-
-    $pattern = 'MM/dd/yyyy/HH:mm:ss'
-    $unixTime = [DateTime]::ParseExact($unixTimeStr, $pattern, $null)
-
-    #
-    # Get our time
-    #
-    $windowsTime = [DateTime]::Now.ToUniversalTime()
-
-    #
-    # Compute the timespan, then convert it to the absolute value of the total difference in seconds
-    #
-    $diffInSeconds = $null
-    $timeSpan = $windowsTime - $unixTime
-    if ($timeSpan)
-    {
-        $diffInSeconds = [Math]::Abs($timeSpan.TotalSeconds)
-    }
-
-    #
-    # Display the data
-    #
-    "Windows time: $($windowsTime.ToString())"
-    "Unix time: $($unixTime.ToString())"
-    "Difference: $diffInSeconds"
-
-     Write-Output "Time difference = ${diffInSeconds}" | Out-File -Append $summaryLog
-     return $diffInSeconds
-}
-
-#####################################################################
-#
 # Main script body
 #
 #####################################################################
-$retVal = $False
+
 
 #
 # Make sure all command line arguments were provided
@@ -227,7 +118,7 @@ if (-not (Test-Path $rootDir))
 }
 
 cd $rootDir
-
+. .\setupscripts\TimeSync_Utils.ps1
 #
 # Delete any summary.log from a previous test run, then create a new file
 #
@@ -240,11 +131,14 @@ $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 $msg = "Error: Test case failed!"
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    $msg = "Info: Time is properly synced"
-    $retVal = $true
+    Write-Output "Info: Time is properly synced before save action" | Out-File $summaryLog
+}
+else
+{
+    Write-Output "Error: Time is out of sync before save action!" | Out-File $summaryLog
+    return $False
 }
 
-$msg
 
 #
 # Save the VM state and wait for 10 mins. 
@@ -269,13 +163,13 @@ if ($? -ne "True")
 }
 
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
-
-$msg = "Error: Test case failed!"
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    $msg = "Info: After start from save state, time is properly synced"
-    $retVal = $true
+    Write-Output "Info: Time is properly synced after save action" | Out-File $summaryLog
+    return $True
 }
-
-Write-Output $msg | Out-File $summaryLog
-return $retVal
+else
+{
+    Write-Output "Error: Time is out of sync after save action!" | Out-File $summaryLog
+    return $False
+}
