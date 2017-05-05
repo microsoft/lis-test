@@ -68,9 +68,7 @@ if [ -e ~/constants.sh ]; then
     LogMsg "Info : Sourcing ~/constants.sh"
     . ~/constants.sh
 else
-    LogMsg "ERROR: Unable to source the constants file."
-    UpdateTestState $ICA_TESTABORTED
-    exit 1
+    LogMsg "Warning: Unable to source the constants file."
 fi
 
 #
@@ -100,7 +98,7 @@ if [ -e ./lis-next ]; then
 fi
 
 #
-# Clone Lis-Next
+# Clone lis-next
 #
 LogMsg "Info : Cloning lis-next"
 git clone https://github.com/LIS/lis-next
@@ -397,12 +395,6 @@ redhat_6|centos_6)
 esac
 
 echo "Info: Successfully compiled and started the lis-next tree LIS daemons." >> ~/summary.log
-
-# work-around to satisfy requirements
-numactl -s
-if [ $? -ne 0 ]; then
-    yum -y install numactl
-fi
 
 #
 # If we got here, everything worked as expected.
