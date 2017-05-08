@@ -81,106 +81,6 @@
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
-
-#####################################################################
-#
-# AskVmForTime()
-#
-#####################################################################
-function AskVmForTime([String] $sshKey, [String] $ipv4, [string] $command)
-{
-    <#
-    .Synopsis
-        Send a time command to a VM
-    .Description
-        Use SSH to request the data/time on a Linux VM.
-    .Parameter sshKey
-        SSH key for the VM
-    .Parameter ipv4
-        IPv4 address of the VM
-    .Parameter command
-        Linux date command to send to the VM
-    .Output
-        The date/time string returned from the Linux VM.
-    .Example
-        AskVmForTime "lisa_id_rsa.ppk" "192.168.1.101" 'date "+%m/%d/%Y%t%T%p "'
-    #>
-
-    $retVal = $null
-
-    $sshKeyPath = Resolve-Path $sshKey
-    
-    #
-    # Note: We did not use SendCommandToVM since it does not return
-    #       the output of the command.
-    #
-    $dt = .\bin\plink -i ${sshKeyPath} root@${ipv4} $command
-    if ($?)
-    {
-        $retVal = $dt
-    }
-    else
-    {
-        LogMsg 0 "Error: $vmName unable to send command to VM. Command = '$command'"
-    }
-
-    return $retVal
-}
-
-
-#####################################################################
-#
-# GetUnixVMTime()
-#
-#####################################################################
-function GetUnixVMTime([String] $sshKey, [String] $ipv4)
-{
-    <#
-    .Synopsis
-        Return a Linux VM current time as a string.
-    .Description
-        Return a Linxu VM current time as a string
-    .Parameter sshKey
-        SSH key used to connect to the Linux VM
-    .Parameter ivp4
-        IP address of the target Linux VM
-    .Example
-        GetUnixVMTime "lisa_id_rsa.ppk" "192.168.6.101"
-    #>
-
-    if (-not $sshKey)
-    {
-        return $null
-    }
-
-    if (-not $ipv4)
-    {
-        return $null
-    }
-
-    #
-    # now=`date "+%m/%d/%Y/%T"
-    # returns 04/27/2012/16:10:30PM
-    #
-    $unixTimeStr = $null
-    $command = 'date "+%m/%d/%Y/%T" -u'
-
-    $unixTimeStr = AskVMForTime ${sshKey} $ipv4 $command
-    if (-not $unixTimeStr -and $unixTimeStr.Length -lt 10)
-    {
-        return $null
-    }
-    
-    return $unixTimeStr
-}
-
-
-#####################################################################
-#
-# Main script body
-#
-#####################################################################
-
 $retVal = $False
 
 #
@@ -278,7 +178,7 @@ del $summaryLog -ErrorAction SilentlyContinue
 . .\setupscripts\TCUtils.ps1
 
 #
-# Determin the IPv4 address of the test VM
+# Determine the IPv4 address of the test VM
 #
 "Determine IPv4 address for VM '${vmName}'"
 if (-not $ipv4)
@@ -298,6 +198,12 @@ if (-not $ipv4)
 "  testDelay   = ${testDelay}"
 "  rootDir     = ${rootDir}"
 
+$retVal = ConfigTimeSync -sshKey $sshKey -ipv4 $ipv4
+if (-not $retVal) 
+{
+    Write-Output "Error: Failed to config time sync."
+    return $False
+}
 
 #
 # If the test delay was specified, sleep for a bit
@@ -308,57 +214,15 @@ if ($testDelay -ne "0")
     Start-Sleep -S $testDelay
 }
 
-#
-# Get a time string from the VM, then convert the Unix time string into a .NET DateTime object
-#
-"Get time from Unix VM"
-$unixTimeStr = GetUnixVMTime -sshKey "ssh\${sshKey}" -ipv4 $ipv4
-if (-not $unixTimeStr)
+$diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
+
+if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    "Error: Unable to get date/time string from VM"
+    Write-Output "Info: Time is properly synced" | Out-File $summaryLog
+    return $True
+}
+else
+{
+    Write-Output "Error: Time is out of sync!" | Out-File $summaryLog
     return $False
 }
-
-#
-# Get our time
-#
-$windowsTime = [DateTime]::Now.ToUniversalTime()
-
-#
-# Convert the Unix tiime string into a DateTime object
-#
-# returns 04/27/2012/16:10:30PM
-$pattern = 'MM/dd/yyyy/HH:mm:ss'
-$unixTime = [DateTime]::ParseExact($unixTimeStr, $pattern, $null)
-
-#
-# Compute the timespan, then convert it to the absolute value of the total difference in seconds
-#
-"Compute time difference between localhost and Linux VM"
-$diffInSeconds = $null
-$timeSpan = $windowsTime - $unixTime
-if (-not $timeSpan)
-{
-    "Error: Unable to compute timespan"
-    return $False
-}
-
-$diffInSeconds = [Math]::Abs($timeSpan.TotalSeconds)
-
-#
-# Display the data
-#
-"Windows time: $($windowsTime.ToString())"
-"Unix time: $($unixTime.ToString())"
-"Difference: ${diffInSeconds}"
-
-$msg = "Test case FAILED.  Time difference greater than ${maxTimeDiff} seconds"
-if ($diffInSeconds -and $diffInSeconds -lt $maxTimeDiff)
-{
-    $msg = "Test case passed"
-    $retVal = $true
-}
-
-$msg
-
-return $retVal
