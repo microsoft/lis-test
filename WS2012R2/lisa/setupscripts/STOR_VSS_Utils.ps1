@@ -33,7 +33,14 @@
 function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter) 
 {	
 
-	
+	# Check if drive is mounted
+	$sts = Test-Path $driveletter
+	if (-not $sts)
+	{
+		Write-Output "Path ${driveletter} does not exist"
+		return $False
+	}
+
 	Write-Output "Info: Removing old backups"
 	try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
 	Catch { Write-Output "No existing backup's to remove"}
