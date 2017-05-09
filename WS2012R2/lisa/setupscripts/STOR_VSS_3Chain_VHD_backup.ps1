@@ -241,7 +241,7 @@ if (-not $sts[-1])
 }
 
 # Get Parent VHD 
-$ParentVHD = GetParentVHD $vmName -$hvServer
+$ParentVHD = GetParentVHD $vmName $hvServer
 if(-not $ParentVHD)
 {
     "Error: Error getting Parent VHD of VM $vmName"
@@ -251,7 +251,9 @@ if(-not $ParentVHD)
 Write-Output "INFO: Successfully Got Parent VHD"
 
 # Create Child and Grand-Child VHD
-$CreateVHD = CreateGChildVHD $ParentVHD
+$childVhd = "${driveletter}\\vssVhd"
+
+$CreateVHD = CreateChildVHD $ParentVHD $childVhd $hvServer
 if(-not $CreateVHD)
 {
     Write-Output "Error: Error Creating Child and Grand Child VHD of VM $vmName"
@@ -262,7 +264,7 @@ Write-Output "INFO: Successfully created GrandChild VHD"
 
 # Now create New VM out of this VHD.
 # New VM is static hardcoded since we do not need it to be dynamic
-$GChildVHD = $CreateVHD[-1]
+$GChildVHD = $CreateVHD
 
 # Get-VM 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
@@ -277,7 +279,6 @@ if (-not $?)
 
 #Get VM Generation
 $vm_gen = $vm.Generation
-
 # Create the GChildVM
 $newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
@@ -300,8 +301,10 @@ if ($vm_gen -eq 2)
 echo "Successfully created new 3 Chain VHD VM $vmName1" >> $summaryLog
 Write-Output "INFO: New 3 Chain VHD VM $vmName1 created"
 
-$timeout = 500
+$timeout = 600
 $sts = Start-VM -Name $vmName1 -ComputerName $hvServer 
+$logMsg = Get-VM -Name $vmName1
+Write-Output $logMsg
 if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout ))
 {
     Write-Output "Error: ${vmName1} failed to start"
@@ -315,6 +318,7 @@ echo "`n"
 $sts = startBackup $vmName1 $driveletter
 if (-not $sts[-1]) 
 {
+	Write-Output "INFO: Failed backup"
 	return $False
 } else {
 	$backupLocation = $sts
@@ -323,12 +327,14 @@ if (-not $sts[-1])
 $sts = restoreBackup $backupLocation
 if (-not $sts[-1]) 
 {
+	Write-Output "INFO: Failed restore"
 	return $False
 }
 
 $sts = checkResults $vmName1 $hvServer
 if (-not $sts[-1]) 
 {
+	Write-Output "INFO: Failed result"
 	$retVal = $False
 }
 else 
@@ -364,9 +370,9 @@ runCleanup $backupLocation
 # Clean Delete New VM created 
 $sts = Remove-VM -Name $vmName1 -Confirm:$false -Force
 if (-not $?)
-    {
-      Write-Output "Error: Deleting New VM $vmName1"  
-    } 
+{
+    Write-Output "Error: Deleting New VM $vmName1"  
+} 
 
 Write-Output "INFO: Deleted VM $vmName1"
 

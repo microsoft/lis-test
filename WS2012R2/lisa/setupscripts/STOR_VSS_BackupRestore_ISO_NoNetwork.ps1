@@ -270,7 +270,7 @@ Write-Output "Attached DVD: Success" >> $summaryLog
 # Bring down the network. 
 RunRemoteScriptNoState $remoteScript
 
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 60
 # echo $x
 # return $False
 
@@ -280,6 +280,7 @@ $pingresult = $False
 foreach ($line in $sts)
 {
    if (( $line -Like "*unreachable*" ) -or ($line -Like "*timed*")) 
+   
    {
        $pingresult = $True
    }
