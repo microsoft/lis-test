@@ -1827,3 +1827,11 @@ function ConfigTimeSync([String] $sshKey, [String] $ipv4)
 
     return $True
 }
+
+function CheckVMState([String] $vmName, [String] $hvServer)
+{
+    $vm = Get-Vm -VMName $vmName -ComputerName $hvServer
+    $vmStatus = $vm.state
+    
+    return $vmStatus
+}
