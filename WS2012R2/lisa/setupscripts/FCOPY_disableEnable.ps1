@@ -294,14 +294,10 @@ if ($checkVM -eq "True") {
         $retVal = $false
     }
 
-    # Check FCopy status befor starting file transfer
-    $fcopyDaemon = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl | grep fcopy | awk '{print $1}' | tail -1"
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "ps aux | grep hv_fcopy_daemon | grep -v grep"
-    if ($? -ne "True") {
-        Write-Output "Error: FCopy daemon is not automatically started by systemd. Will start it manually." | Tee-Object -Append -file $summaryLog
-        #$retVal = $false
-        .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl start $fcopyDaemon"
+    $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active *fcopy*"
+    if ($checkProcess -ne "active") {
+         Write-Output "Warning: FCopy daemon was not automatically started by systemd. Will start it manually." | Tee-Object -Append -file $summaryLog
+         $startProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl start *fcopy*"
     }
 
     $gsi = Get-VMIntegrationService -vmName $vmName -ComputerName $hvServer -Name "Guest Service Interface"
@@ -365,11 +361,9 @@ if ($checkVM -eq "True") {
     $sts = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat ~/check_traces.log | grep ERROR"
     if ($sts.Contains("ERROR")) {
        Write-Output "Warning: Call traces have been found on VM" | Tee-Object -Append -file $summaryLog
-       $retVal = $true
     }
     if ($sts -eq $NULL) {
         Write-Output "Info: No Call traces have been found on VM" | Tee-Object -Append -file $summaryLog
-        $retVal = $true
     }
     return $retVal
 }
