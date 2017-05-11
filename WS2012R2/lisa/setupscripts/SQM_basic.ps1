@@ -150,13 +150,13 @@ foreach ($p in $params)
 {
     $fields = $p.Split("=")
     switch ($fields[0].Trim())
-    {      
+    {
     "nonintrinsic" { $intrinsic = $False }
     "rootdir"      { $rootDir   = $fields[1].Trim() }
     "ipv4"         { $ipv4      = $fields[1].Trim() }
     "SshKey"       { $sshKey    = $fields[1].Trim() }
     "TC_COVERED"   { $tcCovered = $fields[1].Trim() }
-    default  {}       
+    default  {}
     }
 }
 
@@ -181,6 +181,15 @@ else
 }
 
 echo "Covers: ${tcCovered}" >> $summaryLog
+
+# get host build number
+$BuildNumber = GetHostBuildNumber $hvServer
+
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+
 #
 # Verify the Data Exchange Service is enabled for this VM
 #
@@ -244,6 +253,12 @@ else
 }
 
 $dict = KvpToDict $kvpData
+
+#after disable KVP on vm, $kvpData is empty on hyper-v 2012 host
+if (-not $kvpData -and $BuildNumber -lt 9600 )
+{
+    return $Skipped
+}
 #
 # Write out the kvp data so it appears in the log file
 #
@@ -255,19 +270,13 @@ foreach ($key in $dict.Keys)
 
 if ($Intrinsic)
 {
-    $osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
-    if (-not $osInfo)
-    {
-        "Error: Unable to collect Operating System information"
-        return $False
-    }
+
     #
     # Create an array of key names specific to a build of Windows.
     #
     $osSpecificKeyNames = $null
-    [System.Int32]$buildNR = $osInfo.BuildNumber
 
-    if ($buildNR -ge 9600)
+    if ($BuildNumber -ge 9600)
     {
         $osSpecificKeyNames = @("OSDistributionName", "OSDistributionData", "OSPlatformId","OSKernelVersion")
     }
