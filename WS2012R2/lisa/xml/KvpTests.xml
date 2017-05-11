@@ -49,6 +49,7 @@
                 <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
                 <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
                 <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
+                <suiteTest>VerifyItegratedExchangeService</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -181,6 +182,16 @@
                 <param>Pool=3</param>
                 <param>Items=11</param>
             </testparams>
+        </test>
+        </test>
+
+	<test>
+            <testName>VerifyItegratedExchangeService</testName>
+            <testScript>setupscripts\INST_LIS_ExchangeServiceDisableEnable.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=KVP-11</param>
+            </testParams>
         </test>
     </testCases>
 
