@@ -55,7 +55,7 @@
 	setupScripts\NET_ADD_Switch -hvServer localhost -testParams "switch=Internal,InternalNet"
 #>
 
-param([string] $vmName, [string] $hvServer, [string] $testParams)
+param( [string] $hvServer, [string] $testParams)
 
 $retVal = $false
 
