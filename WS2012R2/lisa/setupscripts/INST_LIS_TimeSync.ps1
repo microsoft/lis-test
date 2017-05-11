@@ -170,7 +170,7 @@ cd $rootDir
 #
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
-"Covers ${tcCovered}" >> $summaryLog
+"Info: Covers ${tcCovered}" >> $summaryLog
 
 #
 # Source the utility functions so we have access to them
@@ -218,11 +218,11 @@ $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    Write-Output "Info: Time is properly synced" | Out-File $summaryLog
+    Write-Output "Info: Time is properly synced" | Out-File $summaryLog --Append
     return $True
 }
 else
 {
-    Write-Output "Error: Time is out of sync!" | Out-File $summaryLog
+    Write-Output "Error: Time is out of sync!" | Out-File $summaryLog --Append
     return $False
 }

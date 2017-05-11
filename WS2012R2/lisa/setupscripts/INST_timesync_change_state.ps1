@@ -193,11 +193,11 @@ if ($? -ne "True")
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    Write-Output "Info: Time is properly synced after start action" | Out-File $summaryLog
+    Write-Output "Info: Time is properly synced after start action" | Out-File $summaryLog --Append
     return $True
 }
 else
 {
-    Write-Output "Error: Time is out of sync after start action!" | Out-File $summaryLog
+    Write-Output "Error: Time is out of sync after start action!" | Out-File $summaryLog --Append
     return $False
 }
