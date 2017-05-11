@@ -132,6 +132,42 @@ if (-not $testParams)
     Return $False
 }
 
+# change working directory to root dir
+$testParams -match "RootDir=([^;]+)"
+if (-not $?)
+{
+  "Mandatory param RootDir=Path; not found!"
+  return $false
+}
+$rootDir = $Matches[1]
+
+if (Test-Path $rootDir)
+{
+  Set-Location -Path $rootDir
+  if (-not $?)
+  {
+    "Error: Could not change directory to $rootDir !"
+    return $false
+  }
+  "Changed working directory to $rootDir"
+}
+else
+{
+  "Error: RootDir = $rootDir is not a valid path"
+  return $false
+}
+
+# Source TCUitls.ps1 for getipv4 and other functions
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+  . .\setupScripts\TCUtils.ps1
+}
+else
+{
+  "Error: Could not find setupScripts\TCUtils.ps1"
+  return $false
+}
+
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($param in $params)
 {
@@ -329,4 +365,3 @@ Write-Output "Bad pings  = $badPings"  | Tee-Object -Append -file $summaryLog
 $retVal = ($jobInfo[$jobInfo.Length-1] -eq $True) -and ($lastPing)
 
 return $retVal
-
