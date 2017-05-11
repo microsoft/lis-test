@@ -251,14 +251,13 @@ else
     "Non-Intrinsic Data"
     $kvpData = $Kvp.GuestExchangeItems
 }
-
-$dict = KvpToDict $kvpData
-
 #after disable KVP on vm, $kvpData is empty on hyper-v 2012 host
 if (-not $kvpData -and $BuildNumber -lt 9600 )
 {
     return $Skipped
 }
+
+$dict = KvpToDict $kvpData
 #
 # Write out the kvp data so it appears in the log file
 #
