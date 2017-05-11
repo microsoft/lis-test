@@ -115,7 +115,7 @@ function Check-Systemd()
         Write-Output "Systemd-analyze not present on VM."
         $check2 = $false
     }
-    
+
     if (($check1 -and $check2) -eq $true) {
         return $true
     } else {
@@ -132,7 +132,7 @@ foreach ($p in $params) {
     switch ($fields[0].Trim()) {
         "sshKey"    { $sshKey  = $fields[1].Trim() }
         "ipv4"      { $ipv4    = $fields[1].Trim() }
-        "rootDIR"   { $rootDir = $fields[1].Trim() }      
+        "rootDIR"   { $rootDir = $fields[1].Trim() }
         "DefaultSize"   { $DefaultSize = $fields[1].Trim() }
         "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() }
         "Type"          { $Type = $fields[1].Trim() }
@@ -165,6 +165,24 @@ if (-not $testParams) {
 # Change directory
 cd $rootDir
 
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+    . .\setupScripts\TCUtils.ps1
+} else {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+}
+
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
+
 # Create log file
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
@@ -172,13 +190,6 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 
 # Delete previous summary on the VM
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -rf ~/summary.log"
-
-# Source TCUtils.ps1
-if (Test-Path ".\setupScripts\TCUtils.ps1") {
-    . .\setupScripts\TCUtils.ps1
-} else {
-    "Error: Could not find setupScripts\TCUtils.ps1"
-}
 
 # Check VM state
 $currentState = CheckVMState $vmName $hvServer
@@ -219,7 +230,7 @@ if ($checkVM -eq "True") {
 
     # Disable and Enable Guest Service according to the given parameter
     $counter = 0
-    while ($counter -lt $CycleCount) { 
+    while ($counter -lt $CycleCount) {
         Disable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
         if ($? -ne "True") {
             Write-Output "Error: Unable to disable VMIntegrationService on $vmName ($hvServer) on $counter run" | Tee-Object -Append -file $summaryLog
@@ -233,7 +244,7 @@ if ($checkVM -eq "True") {
             $retVal = $false
         }
         Start-Sleep 5
-        $counter += 1 
+        $counter += 1
     }
 
     Write-Output "Disabled and Enabled Guest Services $counter times" | Tee-Object -Append -file $summaryLog
@@ -268,7 +279,7 @@ if ($checkVM -eq "True") {
             break
         }
     }
-    
+
     $operStatus = (Get-VMIntegrationService -vmName $vmName -ComputerName $hvServer -Name "Guest Service Interface").PrimaryStatusDescription
     Write-Output "Current Integration Services PrimaryStatusDescription is: $operStatus"
     if ($operStatus -ne "Ok") {
@@ -280,7 +291,7 @@ if ($checkVM -eq "True") {
         $fileToCopySize = ConvertStringToUInt64 $FcopyFileSize
 
         # Create a 5GB sample file
-        $createFile = fsutil.exe file createnew \\$hvServer\$filePathFormatted $fileToCopySize     
+        $createFile = fsutil.exe file createnew \\$hvServer\$filePathFormatted $fileToCopySize
         if ($createFile -notlike "File *testfile-*.file is created") {
             Write-Output "Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
             $retVal = $false
