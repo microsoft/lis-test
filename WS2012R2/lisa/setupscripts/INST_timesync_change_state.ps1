@@ -152,7 +152,7 @@ if ($diffInSeconds -and $diffInSeconds -lt 5)
 }
 else
 {
-    Write-Output "Error: Time is out of sync before pause action!" | Out-File $summaryLog
+    Write-Output "Error: Time is out of sync before pause/save action!" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
@@ -193,11 +193,11 @@ if ($? -ne "True")
 $diffInSeconds = GetTimeSync -sshKey $sshKey -ipv4 $ipv4
 if ($diffInSeconds -and $diffInSeconds -lt 5)
 {
-    Write-Output "Info: Time is properly synced after start action" | Out-File $summaryLog --Append
+    Write-Output "Info: Time is properly synced after start action" | Tee-Object -Append -file $summaryLog
     return $True
 }
 else
 {
-    Write-Output "Error: Time is out of sync after start action!" | Out-File $summaryLog --Append
+    Write-Output "Error: Time is out of sync after start action!" | Tee-Object -Append -file $summaryLog
     return $False
 }
