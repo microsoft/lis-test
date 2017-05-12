@@ -123,7 +123,7 @@ if (Test-Path ".\setupscripts\TCUtils.ps1")
 else
 {
     "Error: Could not find setupScripts\TCUtils.ps1"
-    return $false
+    return $False
 }
 
 # Delete any previous summary.log file, then create a new one
@@ -131,38 +131,53 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-#
-# Verify if the Guest services are enabled for this VM
-#
-$gsi = Get-VMIntegrationService -vmName $vmName -ComputerName $hvServer -Name "Guest Service Interface"
-if (-not $gsi) {
-    "Error: Unable to retrieve Integration Service status from VM '${vmName}'" | Tee-Object -Append -file $summaryLog
+# get host build number
+$BuildNumber = GetHostBuildNumber $hvServer
+
+if ($BuildNumber -eq 0)
+{
     return $False
 }
-
-if (-not $gsi.Enabled) {
-    "Warning: The Guest services are not enabled for VM '${vmName}'" | Tee-Object -Append -file $summaryLog
-	if ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
-		Stop-VM -ComputerName $hvServer -Name $vmName -Force -Confirm:$false
-	}
-
-	# Waiting until the VM is off
-	while ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
-		Start-Sleep -Seconds 5
-	}
-
-	Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
-	Start-VM -Name $vmName -ComputerName $hvServer
-
-	# Waiting for the VM to run again and respond to SSH - port
-    $timeout = 200
-    if (-not (WaitForVMToStartSSH $ipv4 $timeout))
-    {
-        "Error: Test case timed out for VM to be running again!"
+# if lower than 9600, skip "Guest Service Interface" check
+if ($BuildNumber -ge 9600)
+{
+    #
+    # Verify if the Guest services are enabled for this VM
+    #
+    $gsi = Get-VMIntegrationService -vmName $vmName -ComputerName $hvServer -Name "Guest Service Interface"
+    if (-not $gsi) {
+        "Error: Unable to retrieve Integration Service status from VM '${vmName}'" | Tee-Object -Append -file $summaryLog
         return $False
     }
-}
 
+    if (-not $gsi.Enabled) {
+        "Warning: The Guest services are not enabled for VM '${vmName}'" | Tee-Object -Append -file $summaryLog
+    	if ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
+    		Stop-VM -ComputerName $hvServer -Name $vmName -Force -Confirm:$False
+    	}
+
+    	# Waiting until the VM is off
+    	while ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
+    		Start-Sleep -Seconds 5
+    	}
+
+    	Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
+    	Start-VM -Name $vmName -ComputerName $hvServer
+
+    	# Waiting for the VM to run again and respond to SSH - port
+        $timeout = 200
+        if (-not (WaitForVMToStartSSH $ipv4 $timeout))
+        {
+            "Error: Test case timed out for VM to be running again!"
+            return $False
+        }
+    }
+}
+$retVal = SendCommandToVM $ipv4 $sshkey "echo BuildNumber=$BuildNumber >> /root/constants.sh"
+if (-not $retVal[-1]){
+    Write-Output "Error: Could not echo BuildNumber=$BuildNumber to vm's constants.sh."
+    return $False
+}
 $remoteScript = "Hyperv_Daemons_Files_Status.sh"
 $sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
