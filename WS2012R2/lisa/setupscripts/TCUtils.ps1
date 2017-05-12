@@ -1794,7 +1794,7 @@ function GetTimeSync([String] $sshKey, [String] $ipv4)
     "Unix time: $($unixTime.ToString())"
     "Difference: $diffInSeconds"
 
-     Write-Output "Time difference = ${diffInSeconds}" | Out-File -Append $summaryLog
+     Write-Output "Time difference = ${diffInSeconds}" | Tee-Object -Append -file $summaryLog
      return $diffInSeconds
 }
 
