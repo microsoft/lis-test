@@ -32,8 +32,12 @@
 
 function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter) 
 {	
-
-	
+	$sts = Test-Path $driveletter
+	if (-not $sts)
+	{
+		Write-Output "Error: Drive ${driveletter} does not exist"
+		return $False	
+	}
 	Write-Output "Info: Removing old backups"
 	try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
 	Catch { Write-Output "No existing backup's to remove"}
@@ -124,6 +128,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 	Start-Sleep -Seconds 70
 
 	# Delete file on the VM	
+	$vmState = $(Get-VM -name $vmName -ComputerName $hvServer).state
     if (-not $vmState) {			
 		$sts = DeleteFile		
 		if (-not $sts[-1])		
@@ -142,7 +147,7 @@ function restoreBackup([string] $backupLocation)
 	Write-Output "`nNow let's restore the VM from backup...`n"
 
 	# Get BackupSet
-	$BackupSet=Get-WBBackupSet -BackupTarget $backupLocation
+	$BackupSet = Get-WBBackupSet -BackupTarget $backupLocation
 
 	# Start restore
 	Start-WBHyperVRecovery -BackupSet $BackupSet -VMInBackup $BackupSet.Application[0].Component[0] -Force -WarningAction SilentlyContinue
@@ -212,7 +217,8 @@ function checkResults([string] $vmName, [string] $hvServer)
     else
     {
         $results = "Passed"
-        Write-Output "INFO: VSS Back/Restore: Success"
+		$logMessage = "INFO: VSS Back/Restore: Success"
+        Write-Output $logMessage
         Write-Output "Recovering Journal in boot msg: Success"
 		$logMessage >> $summaryLog
         return $results

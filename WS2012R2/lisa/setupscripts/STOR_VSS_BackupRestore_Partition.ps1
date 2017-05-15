@@ -198,12 +198,14 @@ if (-not $sts[-1])
 $sts = restoreBackup $backupLocation
 if (-not $sts[-1]) 
 {
+	write-output "Restore backup action failed" >> $summaryLog
 	return $False
 }
 
 $sts = checkResults $vmName $hvServer
 if (-not $sts[-1]) 
 {
+	write-output "Backup evaluation failed" >> $summaryLog
 	$retVal = $False
 }
 else 

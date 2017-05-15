@@ -190,7 +190,7 @@ Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
 $sts = startBackup $vmName $driveletter
 if (-not $sts[-1])
 {
-    return $False
+   return $False
 }
 else 
 {
