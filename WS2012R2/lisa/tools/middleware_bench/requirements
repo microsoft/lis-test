@@ -5,3 +5,4 @@ google-api-python-client<=1.6.2
 gcs-oauth2-boto-plugin<=1.14
 pycrypto<=2.6.1
 pyOpenSSL<=16.2.0
+SQLAlchemy<=1.1.16

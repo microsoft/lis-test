@@ -227,10 +227,8 @@ class AWSConnector:
         :return: SSHClient (needs to reconnect after reboot)
         """
         conn = self.conn or self.vpc_conn
-        sriov_status = conn.get_instance_attribute(instance.id, 'sriovNetSupport')
         log.info('Enabling SR-IOV on {}'.format(instance.id))
-        client = None
-        if not sriov_status and ssh_client:
+        if ssh_client:
             util_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client.put_file(os.path.join(util_path, 'tests', 'enable_sr_iov.sh'),
                                 '/tmp/enable_sr_iov.sh')
@@ -241,26 +239,33 @@ class AWSConnector:
             self.wait_for_state(instance, 'state', 'stopped')
             if self.instancetype == constants.AWS_P28XLARGE:
                 log.info('Enabling ENA for instance: {}'.format(self.instancetype))
-                # The enaSupport attribute is not supported at this time.
-                ena_status = conn.get_instance_attribute(instance.id, 'enaSupport')
-                log.info('Enabling ENA for {} instance: {}'.format(constants.AWS_P28XLARGE,
-                                                                   ena_status))
-                conn.modify_instance_attribute(instance.id, 'enaSupport', True)
+                import boto3
+                client = boto3.client('ec2', region_name=self.region, aws_access_key_id=self.keyid,
+                                      aws_secret_access_key=self.secret)
+                client.modify_instance_attribute(InstanceId=instance.id, Attribute='enaSupport',
+                                                 Value='true')
+                log.info('ENA support: {}'.format(client.__dict__))
+                try:
+                    log.info(conn.get_instance_attribute(instance.id, 'enaSupport'))
+                except Exception as e:
+                    log.info(e)
+                    pass
+                # conn.modify_instance_attribute(instance.id, 'enaSupport', True)
+                # ena_status = conn.get_instance_attribute(instance.id, 'enaSupport')
+                # log.info('ENA status for {} instance: {}'.format(constants.AWS_P28XLARGE,
+                #                                                  ena_status))
+
             elif self.instancetype == constants.AWS_D24XLARGE:
                 conn.modify_instance_attribute(instance.id, 'sriovNetSupport', 'simple')
                 sriov_status = conn.get_instance_attribute(instance.id, 'sriovNetSupport')
-                log.info('Modifying SR-IOV state to simple: {}'.format(sriov_status))
+                log.info("SR-IOV status is: {}".format(sriov_status))
             else:
                 log.error('Instance type {} unhandled for SRIOV'.format(self.instancetype))
                 return None
             conn.start_instances(instance_ids=[instance.id])
             self.wait_for_state(instance, 'state', 'running')
 
-            client = self.wait_for_ping(instance)
-            instance.update()
-            sriov_status = conn.get_instance_attribute(instance.id, 'sriovNetSupport')
-            log.info("SR-IOV status is: {}".format(sriov_status))
-        return client
+        return self.wait_for_ping(instance)
 
     @staticmethod
     def wait_for_state(obj, attr, state):
