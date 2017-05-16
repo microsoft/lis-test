@@ -192,6 +192,7 @@
             <testName>STOR_VSS_BackupRestore_State_Off</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=VSS-15</param>
                 <param>vmState=Off</param>
