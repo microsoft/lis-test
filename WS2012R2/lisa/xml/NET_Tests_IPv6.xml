@@ -43,7 +43,6 @@
                 <suiteTest>GuestOnlyNetwork</suiteTest>
                 <suiteTest>MultipleNIC</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
-                <suiteTest>StaticMAC</suiteTest>
                 <suiteTest>NetworkMode</suiteTest>
                 <!-- <suiteTest>ChangeNetTypeInternal</suiteTest> -->
                 <!-- <suiteTest>ChangeNetTypeGuest</suiteTest> -->
@@ -155,22 +154,6 @@
         </test>
 
         <test>
-            <testName>StaticMAC</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112233</param>
-                <param>TC_COVERED=NET-07</param>
-                <param>MAC=00:16:00:11:22:33</param>
-                <param>REMOTE_SERVER=2001:4860:4860::8888</param>
-                <param>LO_IGNORE=yes</param>
-            </testParams>
-            <testScript>NET_STATIC_MAC.sh</testScript>
-            <files>remote-scripts/ica/NET_STATIC_MAC.sh,remote-scripts/ica/utils.sh</files>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>800</timeout>
-        </test>
-
-        <test>
             <testName>NetworkMode</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
@@ -189,7 +172,6 @@
         </test>
 
         <!-- The following two tests are actually one single TC -->
-
         <test>
             <testName>ChangeNetTypeInternal</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -414,7 +396,7 @@
                 <param>VM2NAME=vm2Name</param>
                 <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
                 <param>SnapshotName=ICABase</param>
-				<param>REMOTE_USER=root</param>
+                <param>REMOTE_USER=root</param>
             </testParams>
             <suite>Network</suite>
         </vm>
