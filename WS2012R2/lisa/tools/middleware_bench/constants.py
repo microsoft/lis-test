@@ -57,6 +57,10 @@ CLI_IMAGEID_OPT = '--imageid'
 CLI_IMAGEID_OPT_SH = '-g'
 CLI_USER_OPT = '--user'
 CLI_USER_OPT_SH = '-u'
+CLI_SRIOV_OPT = '--sriov'
+CLI_SRIOV_OPT_SH = '-sr'
+CLI_KERNEL_OPT = '--kernel'
+CLI_KERNEL_OPT_SH = '-kr'
 
 AWS = 'aws'
 AZURE = 'azure'
@@ -75,3 +79,6 @@ DB_DISK = 'db_disk'
 CLUSTER_DISK = 'cluster_disk'
 
 RAID_DEV = '/dev/md0'
+
+# SQL table names
+SYSBENCH = 'Perf_AWS_Sysbench'

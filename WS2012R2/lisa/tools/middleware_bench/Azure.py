@@ -200,6 +200,8 @@ class AzureConnector:
                                         'public_ip_address': {'id': public_ip.id}
                                         }]
                  })
+        log.info(nic_op.result())
+        log.info(nic_op.result().__dict__)
         return nic_op.result()
 
     def attach_disk(self, vm_instance, disk_size, lun=0):
@@ -229,6 +231,31 @@ class AzureConnector:
         except Exception as de:
             log.info(de)
         return disk_name
+
+    def restart_vm(self, vm_name):
+        """
+        Restart instances VM.
+        """
+        vm_instance = self.compute_client.virtual_machines.get(self.group_name, vm_name)
+
+        log.info('Restarting VM: {}'.format(vm_name))
+        vm_restart = self.compute_client.virtual_machines.restart(self.group_name, vm_name)
+        vm_restart.wait()
+        time.sleep(30)
+        log.info('Restarted VM: {}'.format(vm_instance.__dict__))
+
+        return vm_instance
+
+    def enable_sr_iov(self, vm_instance):
+        """
+        Enable SR-IOV on the instances VM.
+        """
+        log.info('Enabling SR-IOV for VM: {}'.format(vm_instance.name))
+        vm_nic_name = vm_instance.network_profile.network_interfaces[0].id.split('/')[-1]
+
+        self.network_client.network_interfaces.create_or_update(
+                self.group_name, vm_nic_name, {'enable_accelerated_networking': True})
+        self.restart_vm(vm_instance.name)
 
     def teardown(self):
         """
