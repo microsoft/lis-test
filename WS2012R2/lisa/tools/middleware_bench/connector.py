@@ -245,7 +245,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
             ssh_client[i].run('/tmp/perf_tuning.sh {}'.format(' '.join(params)))
             if '.deb' in kernel:
                 vms[i] = connector.restart_vm(vms[i].name)
-                # TODO add custom kernel support for all providers - azure support only atm
+                # TODO add custom kernel support for all providers - only azure support
                 ssh_client[i] = SSHClient(server=vms[i].name + connector.dns_suffix,
                                           host_key_file=connector.host_key_file,
                                           user=connector.user,
