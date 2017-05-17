@@ -94,7 +94,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
 
             for i in xrange(1, vm_count + 1):
                 ssh_client[i] = connector.wait_for_ping(vms[i])
-                if sriov:
+                if sriov == 'enabled':
                     ssh_client[i] = connector.enable_sr_iov(vms[i], ssh_client[i])
                 vms[i].update()
                 vm_ips[i] = vms[i].private_ip_address
@@ -146,7 +146,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
             connector.azure_connect()
             for i in xrange(1, vm_count + 1):
                 vms[i] = connector.azure_create_vm()
-                if sriov:
+                if sriov == 'enabled':
                     connector.enable_sr_iov(vms[i])
             device = constants.DEVICE_AZURE
             if test_type == constants.VM_DISK:
@@ -237,13 +237,13 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
             ssh_client[i].run('chmod +x /tmp/perf_tuning.sh')
             ssh_client[i].run("sed -i 's/\r//' /tmp/perf_tuning.sh")
             params = [provider]
-            if kernel:
+            if '.deb' in kernel:
                 log.info('Uploading kernel {} on {}'.format(kernel, vm_ips[i]))
                 ssh_client[i].put_file(os.path.join(localpath, kernel),
                                        '/tmp/{}'.format(kernel))
                 params.append('/tmp/{}'.format(kernel))
             ssh_client[i].run('/tmp/perf_tuning.sh {}'.format(' '.join(params)))
-            if kernel:
+            if '.deb' in kernel:
                 vms[i] = connector.restart_vm(vms[i].name)
                 # TODO add custom kernel support for all providers - azure support only atm
                 ssh_client[i] = SSHClient(server=vms[i].name + connector.dns_suffix,
