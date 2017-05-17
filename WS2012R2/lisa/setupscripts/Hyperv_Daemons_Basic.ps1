@@ -178,13 +178,7 @@ if (-not $retVal[-1]){
     Write-Output "Error: Could not echo BuildNumber=$BuildNumber to vm's constants.sh."
     return $False
 }
+
 $remoteScript = "Hyperv_Daemons_Files_Status.sh"
 $sts = RunRemoteScript $remoteScript
-if (-not $sts[-1])
-{
-		Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-		Write-Output "ERROR: Running $remoteScript script failed on VM!"
-		return $False
-}
-
-return $True
+return $sts[-1]

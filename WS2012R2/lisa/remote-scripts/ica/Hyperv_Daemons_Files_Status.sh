@@ -24,7 +24,7 @@ ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
-
+ICA_TESTSKIPPED="TestSkipped"
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
@@ -117,10 +117,16 @@ CheckHypervDaemons()
           CheckDaemonsStatusRHEL7 ${hv_service[$i]}
         done
         ;;
+    "FEDORA")
+            for (( i=0; i<$len_hv; i++))
+            do
+              CheckDaemonsStatusRHEL7 ${hv_service[$i]}
+            done
+            ;;
     *)
         LogMsg "Distro not supported"
-        UpdateTestState "TestAborted"
-        UpdateSummary "Distro not supported, test aborted"
+        UpdateTestState $ICA_TESTSKIPPED
+        UpdateSummary "Distros not supported, test skipped"
         exit 1
     ;;
     esac
@@ -148,6 +154,7 @@ CheckDaemonsFilesRHEL7()
     exit 1
   fi
 }
+
 
 #######################################################################
 # Check hyper-v daemons related file under default folder for rhel 6
