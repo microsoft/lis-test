@@ -83,8 +83,6 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-$retVal = $True
-
 # Source TCUtils.ps1 for test related functions
   if (Test-Path ".\setupScripts\TCUtils.ps1")
   {
