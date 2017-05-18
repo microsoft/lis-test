@@ -29,7 +29,7 @@
                 <to>myboss@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LISA kdump Tests Run on WS2012R2</subject>
+            <subject>LISA kdump Tests Run</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -179,7 +179,7 @@
 
     <VMs>
         <vm>
-            <hvServer>HyperVhost</hvServer>
+            <hvServer>localhost</hvServer>
             <vmName>vmName</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
