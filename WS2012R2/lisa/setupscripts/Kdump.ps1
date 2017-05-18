@@ -22,6 +22,7 @@
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $retVal = $false
+$TC_COVERED = $null
 $sshKey = $null
 $ipv4 = $null
 $nmi = $null
@@ -48,6 +49,7 @@ foreach ($p in $params) {
 
     switch ($fields[0].Trim()) {
         "rootDir"   { $rootDir = $fields[1].Trim() }
+	"TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
         "sshKey" { $sshKey  = $fields[1].Trim() }
         "ipv4"   { $ipv4    = $fields[1].Trim() }
         "crashkernel"   { $crashkernel    = $fields[1].Trim() }
@@ -69,25 +71,30 @@ if ($null -eq $ipv4) {
     return $False
 }
 
-if (-not $rootDir)
-{
-    "Warn : no rootdir was specified"
+# Change the working directory to where we need to be
+if (-not (Test-Path $rootDir)) {
+    "Error: The directory `"${rootDir}`" does not exist!"
+    return $False
 }
-else
-{
-    cd $rootDir
-}
+cd $rootDir
 
-# Source TCUitls.ps1 for getipv4 and other functions
-if (Test-Path ".\setupScripts\TCUtils.ps1")
-{
+# Delete any previous summary.log file
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+
+$retVal = $True
+
+# Source TCUtils.ps1 for test related functions
+  if (Test-Path ".\setupScripts\TCUtils.ps1")
+  {
     . .\setupScripts\TCUtils.ps1
-}
-else
-{
+  }
+  else
+  {
     "Error: Could not find setupScripts\TCUtils.ps1"
     return $false
-}
+  }
 
 if ($vm2Name -And $use_nfs -eq "yes")
 {
@@ -214,7 +221,7 @@ if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.nam
     return $False
 }
 
-Write-Output "VM Heartbeat is OK."
+Write-Output "Info: VM Heartbeat is OK"
 
 # Waiting the VM to have a connection
 Write-Output "Checking the VM connection after kernel panic..."
