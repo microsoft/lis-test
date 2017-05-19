@@ -253,7 +253,7 @@ ForEach ($memory in $memArgs)
     #
     # Wait for VM to start ssh
     #
-    $sts = WaitForVMToStartSSH $ipv4 20
+    $sts = WaitForVMToStartSSH $ipv4 60
     if(-not $sts[-1]){
         Write-Output "ERROR: Port 22 not open" | Tee-Object -Append -file $summaryLog
         $retVal = $False
