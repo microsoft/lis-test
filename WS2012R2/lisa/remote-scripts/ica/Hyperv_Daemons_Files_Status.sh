@@ -24,7 +24,7 @@ ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
-
+ICA_TESTSKIPPED="TestSkipped"
 #######################################################################
 # Adds a timestamp to the log file
 #######################################################################
@@ -84,37 +84,52 @@ LinuxRelease()
 }
 
 #######################################################################
-# Check hyper-daemons default files and service status
+# Check hyper-daemons default files and service status.
+# If BuildNumber < 9600, hypervvssd and hypervfcopyd service are inactive,
+# only check hypervkvpd
 #######################################################################
 CheckHypervDaemons()
 {
+    if [ $BuildNumber -lt 9600 ];then
+        hv=('hypervkvpd')
+        hv_alias=('[h]v_kvp_daemon')
+        hv_service=("hypervkvpd.service")
+    else
         hv=('hypervvssd' 'hypervkvpd' 'hypervfcopyd')
         hv_alias=('[h]v_vss_daemon' '[h]v_kvp_daemon' '[h]v_fcopy_daemon')
         hv_service=("hypervkvpd.service" "hypervvssd.service" "hypervfcopyd.service")
-        # Start the hyperv daemons check. This is distro-specific.
-        case $(LinuxRelease) in
-        "RHEL6" | "CENTOS6")
+    fi
+    len_hv=${#hv_service[@]}
+    # Start the hyperv daemons check. This is distro-specific.
+    case $(LinuxRelease) in
+    "RHEL6" | "CENTOS6")
 
-            for (( i=0; i<=2; i++))
+        for (( i=0; i<$len_hv; i++))
+        do
+            CheckDaemonsFilesRHEL6 ${hv_service[$i]}
+            CheckDaemonsStatus ${hv[$i]} ${hv_alias[$i]}
+        done
+        ;;
+    "RHEL7" | "CENTOS7")
+        for (( i=0; i<$len_hv; i++))
+        do
+          CheckDaemonsFilesRHEL7 ${hv_service[$i]}
+          CheckDaemonsStatusRHEL7 ${hv_service[$i]}
+        done
+        ;;
+    "FEDORA")
+            for (( i=0; i<$len_hv; i++))
             do
-                CheckDaemonsFilesRHEL6 ${hv_service[$i]}
-                CheckDaemonsStatus ${hv[$i]} ${hv_alias[$i]}
-            done
-            ;;
-        "RHEL7" | "CENTOS7")
-            for (( i=0; i<=2; i++))
-            do
-              CheckDaemonsFilesRHEL7 ${hv_service[$i]}
               CheckDaemonsStatusRHEL7 ${hv_service[$i]}
             done
             ;;
-        *)
-            LogMsg "Distro not supported"
-            UpdateTestState "TestAborted"
-            UpdateSummary "Distro not supported, test aborted"
-            exit 1
-        ;;
-        esac
+    *)
+        LogMsg "Distro not supported"
+        UpdateTestState $ICA_TESTSKIPPED
+        UpdateSummary "Distros not supported, test skipped"
+        exit 1
+    ;;
+    esac
 }
 
 #######################################################################
@@ -139,6 +154,7 @@ CheckDaemonsFilesRHEL7()
     exit 1
   fi
 }
+
 
 #######################################################################
 # Check hyper-v daemons related file under default folder for rhel 6
