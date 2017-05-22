@@ -143,25 +143,37 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 # Main script block
 #
 #######################################################################
-$OSInfo = get-wmiobject -computername $hvServer win32_processor
+
+$OSInfo = Get-WmiObject -class Win32_OperatingSystem -ComputerName $hvServer
 if ($OSInfo)
 {
-    if ($OSInfo.Caption -match '.2008 R2.'){
+    if ($OSInfo.Caption -match '.2008 R2.') {
         $guest_max_cpus = 4
-    }else{
-        $guest_max_cpus = 64
-        if($OSInfo.Caption -match '.2016.'){
+    }
+    else {
+        # Check VM OS architecture and set max CPU allowed
+        $linuxArch = .\bin\plink -i ssh\${sshKey} root@${ipv4} "uname -m"
+        if ($linuxArch -eq "i686") {
+            $guest_max_cpus = 32
+        }
+        if ($linuxArch -eq "x86_64") {
+            $guest_max_cpus = 64
+        }
+
+        if ($OSInfo.Caption -match '.2016.') {
             $generation = (Get-VM -Name $vmName -ComputerName $hvServer).Generation
-            if($generation -eq 2){
+            if($generation -eq 2) {
                 $guest_max_cpus = 240
             }
         }
     }
+
     #
     # Get the total number of Logical processor
     #
-    $maxCPUs =  ($OSInfo.NumberOfLogicalProcessors | Measure-Object -sum).sum
-    if($maxCPUs -gt $guest_max_cpus){
+    $procInfo= get-wmiobject -computername $hvServer win32_processor
+    $maxCPUs =  ($procInfo.NumberOfLogicalProcessors | Measure-Object -sum).sum
+    if($maxCPUs -gt $guest_max_cpus) {
         $maxCPUs = $guest_max_cpus
     }
 }

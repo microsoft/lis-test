@@ -1111,6 +1111,7 @@ function RunRemoteScript($remoteScript)
                     if ($contents -eq $TestAborted)
                     {
                          Write-Output "Info : State file contains TestAborted message."
+                         $retValue = $Aborted
                          break
                     }
                     if ($contents -eq $TestFailed)
@@ -1120,6 +1121,7 @@ function RunRemoteScript($remoteScript)
                     }
                     if ($contents -eq $TestSkipped)
                     {
+                        $retValue = $Skipped
                         Write-Output "Info : State file contains TestSkipped message."
                         break
                     }
@@ -1672,7 +1674,7 @@ function AskVmForTime([String] $sshKey, [String] $ipv4, [string] $command)
     $retVal = $null
 
     $sshKeyPath = Resolve-Path $sshKey
-    
+
     #
     # Note: We did not use SendCommandToVM since it does not return
     #       the output of the command.
@@ -1733,7 +1735,7 @@ function GetUnixVMTime([String] $sshKey, [String] $ipv4)
     {
         return $null
     }
-    
+
     return $unixTimeStr
 }
 
@@ -1832,6 +1834,6 @@ function CheckVMState([String] $vmName, [String] $hvServer)
 {
     $vm = Get-Vm -VMName $vmName -ComputerName $hvServer
     $vmStatus = $vm.state
-    
+
     return $vmStatus
 }
