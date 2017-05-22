@@ -118,6 +118,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Multicast testing
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "ping -I eth1 224.0.0.1 -c 299 > out.client &"
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not start ping on VM2 (STATIC_IP: ${STATIC_IP2})"
     LogMsg "$msg"
@@ -125,6 +126,7 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
+ping -I eth1 224.0.0.1 -c 299 > out.client
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not start ping on VM1 (STATIC_IP: ${STATIC_IP})"
     LogMsg "$msg"
