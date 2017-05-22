@@ -21,20 +21,21 @@
 #
 ########################################################################
 
+########################################################################
+#
 # Description:
-#   Basic networking test that checks if VM can send and receive multicast packets
+#   Basic networking test that checks if VMs can send and receive multicast packets
 #
 # Steps:
 #   Use ping to test multicast
 #   On the 2nd VM: ping -I eth1 224.0.0.1 -c 11 > out.client &
 #   On the TEST VM: ping -I eth1 224.0.0.1 -c 11 > out.client
 #   Check results:
-#   On the TEST VM: cat out.client | grep 0%  && cat out.client | grep 'DUP!'
-#   On the 2nd VM: cat out.client | grep 0%  && cat out.client | grep 'DUP!'
-#   If both have 0% packet loss and duplicate packets, test passed
-################################################################################
-
-################################################################################3
+#   On the TEST VM: cat out.client | grep 0%
+#   On the 2nd VM: cat out.client | grep 0%
+#   If both have 0% packet loss, test is passed
+#
+########################################################################
 
 # Convert eol
 dos2unix utils.sh
@@ -54,9 +55,6 @@ if [ "${REMOTE_USER:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter REMOTE_USER is not defined in ${LIS_CONSTANTS_FILE} . Using root instead"
     LogMsg "$msg"
     REMOTE_USER=root
-else
-    msg="REMOTE_USER set to $REMOTE_USER"
-    LogMsg "$msg"
 fi
 
 dos2unix NET_set_static_ip.sh
@@ -120,7 +118,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Multicast testing
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "ping -I eth1 224.0.0.1 -c 11 > out.client &"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "ping -I eth1 224.0.0.1 -c 299 > out.client &"
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not start ping on VM2 (STATIC_IP: ${STATIC_IP2})"
     LogMsg "$msg"
@@ -128,7 +126,7 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-ping -I eth1 224.0.0.1 -c 11 > out.client
+ping -I eth1 224.0.0.1 -c 299 > out.client
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not start ping on VM1 (STATIC_IP: ${STATIC_IP})"
     LogMsg "$msg"
@@ -136,13 +134,13 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-LogMsg "INFO: ping was started on both VMs. Results will be checked in a few seconds"
+LogMsg "Info: ping was started on both VMs. Results will be checked in a few seconds"
 sleep 5
  
 # Check results - Summary must show a 0% loss of packets and duplicate packets (DUP!)
-multicastSummary=$(cat out.client | grep 0% && cat out.client | grep 'DUP!')
+multicastSummary=$(cat out.client | grep 0%)
 if [ $? -ne 0 ]; then
-    msg="ERROR: VM1 shows that packets were lost or duplicate packets were not found!"
+    msg="ERROR: VM1 shows that packets were lost!"
     LogMsg "$msg"
     LogMsg "${multicastSummary}"
     UpdateSummary "$msg"
@@ -154,16 +152,15 @@ LogMsg "Multicast summary"
 LogMsg "${multicastSummary}"
 
 # Check results on VM2
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "cat out.client | grep '0%' && cat out.client | grep 'DUP!'"
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "cat out.client | grep '0%'"
 if [ $? -ne 0 ]; then
-    msg="ERROR: VM2 shows that packets were lost or duplicate packets not found!"
+    msg="ERROR: VM2 shows that packets were lost!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
-msg="Multicast packets were successfully sent, 0% loss"
-
+msg="Info: Multicast packets were successfully sent, 0% loss"
 LogMsg $msg
 UpdateSummary "$msg"
 SetTestStateCompleted
