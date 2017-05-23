@@ -31,9 +31,10 @@
 #	a file named constants.sh. This file contains one or more
 #	variable definition.
 #
-#	The vFC HBA WWN feature is not supported on RedHat 5.x and 6.x
+#	The vFC HBA WWN feature is not supported on RedHat 5.x and 6.x,
+#	kernels 2.6.
 #
-################################################################
+########################################################################
 
 UpdateSummary() {
 	# To add the timestamp to the log file
@@ -69,21 +70,18 @@ UtilsInit
 # Create the state.txt file so ICA knows we are running
 SetTestStateRunning
 
-# Distro specific detection
-GetDistro
-
-case "$DISTRO" in
-redhat_5|centos_5|redhat_6|centos_6)
-	echo "Info: RedHat/CentOS releases 5.x and 6.x don't support the FC WWN feature! Test will now exit."
+kernel=$(uname -r)
+if [[ $kernel == 2.6.* ]] ;
+then
+	echo "Test Skipped: Kernel 2.6 does not support the FC WWN feature."
 	SetTestStateSkipped
 	exit 1
-    ;;
-esac
+fi
 
 #
 # WWN feature requires the scsi_transport_fc module to be loaded
 #
-echo "Checking if the scsi_transport_fc module is loaded..."
+echo "Info: Checking if the scsi_transport_fc module is loaded..."
 
 lsmod | grep -q "scsi_transport_fc"
 if [ $? -ne 0 ]; then
