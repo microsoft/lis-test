@@ -34,6 +34,7 @@
 #	No optional parameters are needed
 #
 ########################################################################
+
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
@@ -177,20 +178,9 @@ else
     echo $msg
     echo $msg >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
-   exit 10
+   exit 1
 fi
 
-#
-# Make sure constants.sh contains the variables we expect
-#
-if [ "${TC_COVERED:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter TC_COVERED is not defined in ${CONSTANTS_FILE}"
-    echo $msg >> ~/summary.log
-fi
-
-#
-# Echo TCs we cover
-#
 echo "Covers ${TC_COVERED}" > ~/summary.log
 
 LogMsg "Installing dependencies"
@@ -211,7 +201,6 @@ case $(LinuxRelease) in
 		;;
 esac
 
-LogMsg "Creating working directory"
 test -d "$TOP_SRCDIR" || mkdir -p "$TOP_SRCDIR"
 cd $TOP_SRCDIR
 
@@ -223,7 +212,6 @@ LogMsg "Configuring LTP..."
 cd $TOP_SRCDIR
 make autotools
 
-LogMsg "Creating bild directory"
 test -d "$TOP_BUILDDIR" || mkdir -p "$TOP_BUILDDIR"
 cd $TOP_BUILDDIR && "$TOP_SRCDIR/configure"
 cd "$TOP_SRCDIR"
@@ -232,34 +220,32 @@ cd "$TOP_SRCDIR"
 LogMsg "Compiling LTP..."
 make all
 if [ $? -gt 0 ]; then
-	Logmsg "Error: Failed to compile LTP!"
+	LogMsg "Error: Failed to compile LTP!"
 	UpdateSummary "Error: Failed to compile LTP!"
 	UpdateTestState $ICA_TESTFAILED
-	exit 10
+	exit 1
 fi
 
 LogMsg "Installing LTP..."
 make install
 if [ $? -gt 0 ]; then
-        Logmsg "Error: Failed to install LTP!"
+        LogMsg "Error: Failed to install LTP!"
         UpdateSummary "Error: Failed to install LTP!"
         UpdateTestState $ICA_TESTFAILED
-        exit 10
+        exit 1
 fi
 
 cd $TOP_BUILDDIR
-LogMsg "Running LTP..."
-# Old method can break the test run, using lite mode instead
-#./runltp -c 4 -i 4 -p -q -S $LTP_SKIPFILE -l $LTP_RESULTS -o $LTP_OUTPUT -C $LTP_FAILED -g $LTP_HTML -d $TOP_BUILDDIR
 
+LogMsg "Running LTP..."
 ./runltplite.sh -c 4 -p -q -l $LTP_RESULTS -o $LTP_OUTPUT
 
 LogMsg "Updating summary log"
 grep -A 5 "Total Tests" $LTP_RESULTS >> ~/summary.log
-if grep FAIL $LTP_OUTPUT
-then
+if grep FAIL $LTP_OUTPUT ; then
 	echo "Failed Tests:" >> ~/summary.log
 	grep FAIL $LTP_OUTPUT | cut -d':' -f 2- >> ~/summary.log
 fi
+
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
