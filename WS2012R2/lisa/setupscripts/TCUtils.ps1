@@ -30,11 +30,11 @@
 #
 # test result codes
 #
-New-Variable Passed              -value "Passed"              -option ReadOnly
-New-Variable Skipped             -value "Skipped"             -option ReadOnly
-New-Variable Aborted             -value "Aborted"             -option ReadOnly
-New-Variable Failed              -value "Failed"              -option ReadOnly
 
+New-Variable Passed              -value "Passed"              -option ReadOnly -Force
+New-Variable Skipped             -value "Skipped"             -option ReadOnly -Force
+New-Variable Aborted             -value "Aborted"             -option ReadOnly -Force
+New-Variable Failed              -value "Failed"              -option ReadOnly -Force
 
 #####################################################################
 #
@@ -1111,6 +1111,7 @@ function RunRemoteScript($remoteScript)
                     if ($contents -eq $TestAborted)
                     {
                          Write-Output "Info : State file contains TestAborted message."
+                         $retValue = $Aborted
                          break
                     }
                     if ($contents -eq $TestFailed)
@@ -1120,6 +1121,7 @@ function RunRemoteScript($remoteScript)
                     }
                     if ($contents -eq $TestSkipped)
                     {
+                        $retValue = $Skipped
                         Write-Output "Info : State file contains TestSkipped message."
                         break
                     }
@@ -1527,4 +1529,311 @@ function ConvertToMemSize([String] $memString, [String]$hvServer)
     }
 
     return $memSize
+}
+
+#####################################################################
+#
+# GetVMGeneration()
+#
+#####################################################################
+function GetVMGeneration([String] $vmName, [String] $hvServer)
+{
+    <#
+    .Synopsis
+        Get VM generation type
+    .Description
+        Get VM generation type from host, generation 1 or generation 2
+    .Parameter vmName
+        Name of the VM
+    .Parameter hvServer
+        Name of the server hosting the VM
+    .Example
+        GetVMGeneration $vmName $hvServer
+    #>
+    $vmInfo = Get-VM -Name $vmName -ComputerName $hvServer
+
+    # Hyper-V Server 2012 (no R2) only supports generation 1 VM
+    if (!$vmInfo.Generation)
+    {
+        $vmGeneration = 1
+    }
+    else
+    {
+        $vmGeneration = $vmInfo.Generation
+    }
+    return $vmGeneration
+}
+
+#######################################################################
+#
+# GetNumaSupportStatus()
+#
+#######################################################################
+function GetNumaSupportStatus([string] $kernel)
+{
+    <#
+    .Synopsis
+        Try to determine whether guest supports NUMA
+    .Description
+        Get whether NUMA is supported or not based on kernel verison.
+        Generally, from RHEL 6.6 with kernel version 2.6.32-504,
+        NUMA is supported well.
+    .Parameter kernel
+        $kernel version gets from "uname -r"
+    .Example
+        GetNumaSupportStatus 2.6.32-696.el6.x86_64
+    #>
+
+    if ( $kernel.Contains("i686") -or $kernel.Contains("i386")) {
+        return $false
+    }
+
+    if ( $kernel.StartsWith("2.6")) {
+        $numaSupport = "2.6.32.504"
+        $kernelSupport = $numaSupport.split(".")
+        $kernelCurrent = $kernel.replace("-",".").split(".")
+
+        for ($i=0; $i -le 3; $i++) {
+            if ($kernelCurrent[$i] -lt $kernelSupport[$i] ) {
+                return $false
+            }
+        }
+    }
+
+    # We skip the check if kernel is not 2.6
+    # Anything newer will have support for it
+    return $true
+}
+
+#####################################################################
+#
+# GetHostBuildNumber
+#
+#####################################################################
+function GetHostBuildNumber([String] $hvServer)
+{
+    <#
+    .Synopsis
+        Get host BuildNumber.
+
+    .Description
+        Get host BuildNumber.
+        14393: 2016 host
+        9600: 2012R2 host
+        9200: 2012 host
+        0: error
+
+    .Parameter hvServer
+        Name of the server hosting the VM
+
+    .ReturnValue
+        Host BuildNumber.
+
+    .Example
+        GetHostBuildNumber
+    #>
+
+    [System.Int32]$buildNR = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $hvServer).BuildNumber
+
+    if ( $buildNR -gt 0 )
+    {
+        return $buildNR
+    }
+    else
+    {
+        Write-Error -Message "Get host build number failed" -ErrorAction SilentlyContinue
+        return 0
+    }
+}
+
+
+#####################################################################
+#
+# AskVmForTime()
+#
+#####################################################################
+function AskVmForTime([String] $sshKey, [String] $ipv4, [string] $command)
+{
+    <#
+    .Synopsis
+        Send a time command to a VM
+    .Description
+        Use SSH to request the data/time on a Linux VM.
+    .Parameter sshKey
+        SSH key for the VM
+    .Parameter ipv4
+        IPv4 address of the VM
+    .Parameter command
+        Linux date command to send to the VM
+    .Output
+        The date/time string returned from the Linux VM.
+    .Example
+        AskVmForTime "lisa_id_rsa.ppk" "192.168.1.101" 'date "+%m/%d/%Y%t%T%p "'
+    #>
+
+    $retVal = $null
+
+    $sshKeyPath = Resolve-Path $sshKey
+
+    #
+    # Note: We did not use SendCommandToVM since it does not return
+    #       the output of the command.
+    #
+    $dt = .\bin\plink -i ${sshKeyPath} root@${ipv4} $command
+    if ($?)
+    {
+        $retVal = $dt
+    }
+    else
+    {
+        LogMsg 0 "Error: $vmName unable to send command to VM. Command = '$command'"
+    }
+
+    return $retVal
+}
+
+
+#####################################################################
+#
+# GetUnixVMTime()
+#
+#####################################################################
+function GetUnixVMTime([String] $sshKey, [String] $ipv4)
+{
+    <#
+    .Synopsis
+        Return a Linux VM current time as a string.
+    .Description
+        Return a Linxu VM current time as a string
+    .Parameter sshKey
+        SSH key used to connect to the Linux VM
+    .Parameter ivp4
+        IP address of the target Linux VM
+    .Example
+        GetUnixVMTime "lisa_id_rsa.ppk" "192.168.6.101"
+    #>
+
+    if (-not $sshKey)
+    {
+        return $null
+    }
+
+    if (-not $ipv4)
+    {
+        return $null
+    }
+
+    #
+    # now=`date "+%m/%d/%Y/%T"
+    # returns 04/27/2012/16:10:30PM
+    #
+    $unixTimeStr = $null
+    $command = 'date "+%m/%d/%Y/%T" -u'
+
+    $unixTimeStr = AskVMForTime ${sshKey} $ipv4 $command
+    if (-not $unixTimeStr -and $unixTimeStr.Length -lt 10)
+    {
+        return $null
+    }
+
+    return $unixTimeStr
+}
+
+
+#####################################################################
+#
+#   GetTimeSync()
+#
+#####################################################################
+function GetTimeSync([String] $sshKey, [String] $ipv4)
+{
+    if (-not $sshKey)
+    {
+        return $null
+    }
+
+    if (-not $ipv4)
+    {
+        return $null
+    }
+    #
+    # Get a time string from the VM, then convert the Unix time string into a .NET DateTime object
+    #
+    $unixTimeStr = GetUnixVMTime -sshKey "ssh\${sshKey}" -ipv4 $ipv4
+    if (-not $unixTimeStr)
+    {
+       "Error: Unable to get date/time string from VM"
+        return $False
+    }
+
+    $pattern = 'MM/dd/yyyy/HH:mm:ss'
+    $unixTime = [DateTime]::ParseExact($unixTimeStr, $pattern, $null)
+
+    #
+    # Get our time
+    #
+    $windowsTime = [DateTime]::Now.ToUniversalTime()
+
+    #
+    # Compute the timespan, then convert it to the absolute value of the total difference in seconds
+    #
+    $diffInSeconds = $null
+    $timeSpan = $windowsTime - $unixTime
+    if (-not $timeSpan)
+    {
+        "Error: Unable to compute timespan"
+        return $False
+    }
+    else
+    {
+        $diffInSeconds = [Math]::Abs($timeSpan.TotalSeconds)
+    }
+
+    #
+    # Display the data
+    #
+    "Windows time: $($windowsTime.ToString())"
+    "Unix time: $($unixTime.ToString())"
+    "Difference: $diffInSeconds"
+
+     Write-Output "Time difference = ${diffInSeconds}" | Tee-Object -Append -file $summaryLog
+     return $diffInSeconds
+}
+
+#####################################################################
+#
+#   ConfigTimeSync()
+#
+#####################################################################
+function ConfigTimeSync([String] $sshKey, [String] $ipv4)
+{
+    #
+    # Copying required scripts
+    #
+    $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
+    $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\Core_Config_TimeSync.sh" "/root/config_timesync.sh"
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal)
+    {
+        Write-Output "Error: Failed to send config file to VM."
+        return $False
+    }
+
+    $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix config_timesync.sh && chmod u+x config_timesync.sh && ./config_timesync.sh"
+    if ($retVal -eq $False)
+    {
+        Write-Output "Error: Failed to configure time sync. Check logs for details."
+        return $False
+    }
+
+    return $True
+}
+
+function CheckVMState([String] $vmName, [String] $hvServer)
+{
+    $vm = Get-Vm -VMName $vmName -ComputerName $hvServer
+    $vmStatus = $vm.state
+
+    return $vmStatus
 }

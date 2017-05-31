@@ -48,9 +48,9 @@
 		<cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
 		<noReboot>False</noReboot>
 		<testParams>               
-			<param>TC_COVERED=STOR-01</param>
+			<param>TC_COVERED=CORE-19</param>
 		</testParams>
-		<timeout>600</timeout>			
+		<timeout>600</timeout>
   </test>
 
 #>
@@ -58,28 +58,64 @@
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
 $vfdPath = $null
+$retVal = $False
+$remoteScript = "Core_Floppy_Disk.sh"
 
 #############################################################
 #
 # Main script body
 #
 #############################################################
-$retVal = $False
 
 #
 # Check the required input args are present
 #
-if (-not $vmName)
-{
+if (-not $vmName) {
     "Error: null vmName argument"
     return $False
 }
 
-if (-not $hvServer)
-{
+if (-not $hvServer) {
     "Error: null hvServer argument"
     return $False
 }
+
+#
+# Checking the mandatory testParams. New parameters must be validated here.
+#
+$params = $testParams.Split(";")
+foreach ($p in $params) {
+    $fields = $p.Split("=")
+
+    if ($fields[0].Trim() -eq "TC_COVERED") {
+        $TC_COVERED = $fields[1].Trim()
+    }
+
+    if ($fields[0].Trim() -eq "ipv4") {
+        $IPv4 = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "rootDir") {
+        $rootDir = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "sshkey") {
+        $sshkey = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "TestLogDir") {
+        $TestLogDir = $fields[1].Trim()
+    }
+}
+
+# Change the working directory to where we need to be
+if (-not (Test-Path $rootDir)) {
+    "Error: The directory `"${rootDir}`" does not exist!"
+    return $False
+}
+cd $rootDir
+
+# Delete any previous summary.log file
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
@@ -91,51 +127,61 @@ else {
 	return $false
 }
 
-# If a .vfd file does not exist, create one
-#
-#
 $hostInfo = Get-VMHost -ComputerName $hvServer
-if (-not $hostInfo)
-{
+if (-not $hostInfo) {
 	"Error: Unable to collect Hyper-V settings for ${hvServer}"
 	return $False
 }
 
+$vmGeneration = GetVMGeneration $vmName $hvServer
+if ( $vmGeneration -eq 2 ) {
+	Write-Output "Info: Generation 2 VM does not support floppy disks."
+	return $Skipped
+}
+
 $defaultVhdPath=$hostInfo.VirtualHardDiskPath
-        if (-not $defaultVhdPath.EndsWith("\"))
-        {
-            $defaultVhdPath += "\"
-        }
+if (-not $defaultVhdPath.EndsWith("\")) {
+	$defaultVhdPath += "\"
+}
 
 $vfdPath = "${defaultVhdPath}${vmName}.vfd"
 
 $fileInfo = GetRemoteFileInfo $vfdPath $hvServer
-if (-not $fileInfo)
-{
+if (-not $fileInfo) {
     #
     # The .vfd file does not exist, so create one
     #
     $newVfd = New-VFD -Path $vfdPath -ComputerName $hvServer 
-    if (-not $newVfd)
-    {
-        "Error: Unable to create VFD file ${vfdPath}"
-        return $False
+    if (-not $newVfd) {
+		"Error: Unable to create VFD file ${vfdPath}"
+		return $False
     }
 }
 else {
-    "Info: The file ${vfdPath} already exists"
+	"Info: The file ${vfdPath} already exists"
 }
 
 #
 # Add the vfd
 #
 Set-VMFloppyDiskDrive -Path $vfdPath -VMName $vmName -ComputerName $hvServer
-if ($? -eq "True")
-{
-    $retVal = $True
+if ($? -eq "True") {
+	$retVal = $True
 }
 else {
-    "Error: Unable to mount the floppy file!"
+	"Error: Unable to mount the floppy file!"
+}
+
+#
+# Run the guest VM side script to verify floppy disk operations
+#
+$sts = RunRemoteScript $remoteScript
+
+if (-not $sts[-1]) {
+	Write-Output "Error: Running $remoteScript script failed on VM!" >> $summaryLog
+	$logfilename = "${TestLogDir}\$remoteScript.log"
+	Get-Content $logfilename | Write-output  >> $summaryLog
+	return $False
 }
 
 return $retVal

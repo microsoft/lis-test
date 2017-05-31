@@ -100,7 +100,7 @@ VerifyVF()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 	            ;;
 	        ubuntu*)
@@ -110,7 +110,7 @@ VerifyVF()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 	            ;;
 	        redhat*|centos*)
@@ -120,7 +120,7 @@ VerifyVF()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 	            ;;
 	            *)
@@ -128,7 +128,7 @@ VerifyVF()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            ;;
 	    esac
 	fi
@@ -142,7 +142,7 @@ VerifyVF()
 	  		LogMsg "$msg"
 		    UpdateSummary "$msg"
 		    SetTestStateFailed
-		    return 1
+		    exit 1
 		fi
 	fi
 
@@ -155,9 +155,21 @@ VerifyVF()
 		    LogMsg "$msg"                                                             
 		    UpdateSummary "$msg"
 		    SetTestStateFailed
-		    return 1
+		    exit 1
 		fi
 	fi
+
+	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo' | head -1)
+	if [[ is_fedora || is_ubuntu ]]; then
+        ifconfig -a | grep $interface
+   		if [ $? -ne 0 ]; then
+		    msg="ERROR: VF device, $interface , was not found!"
+		    LogMsg "$msg"                                                             
+		    UpdateSummary "$msg"
+		    SetTestStateFailed
+		    exit 1
+		fi
+    fi
 
 	return 0
 }
@@ -176,7 +188,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
 	    SetTestStateAborted
-	    return 1
+	    exit 1
 	fi
 
 	if [ "${BOND_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -184,7 +196,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
-        return 1
+        exit 1
 	fi
 
 	IFS=',' read -a networkType <<< "$NIC"
@@ -193,7 +205,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
-        return 1
+        exit 1
 	fi
 
 	if [ "${sshKey:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -201,7 +213,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
-        return 1
+        exit 1
 	fi
 
 	if [ "${REMOTE_USER:-UNDEFINED}" = "UNDEFINED" ]; then
@@ -209,7 +221,7 @@ Check_SRIOV_Parameters()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
-        return 1
+        exit 1
 	fi
 	
     return 0
@@ -242,7 +254,7 @@ Create1Gfile()
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
 	    SetTestStateFailed
-	    return 1
+	    exit 1
 	fi
 
 	LogMsg "Successfully created $output_file"
@@ -369,7 +381,7 @@ ConfigureBond()
 }
 
 #
-# InstallDependencies - will install iperf, omping, netcat, etc
+# InstallDependencies - will install iperf, netcat, etc
 #
 InstallDependencies()
 {
@@ -391,29 +403,29 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
 
 			# Check iPerf3
 			iperf3 -v > /dev/null 2>&1
 			if [ $? -ne 0 ]; then
-				wget http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/libiperf0-3.1.3-50.1.x86_64.rpm
+				wget -4 http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/libiperf0-3.1.3-50.1.x86_64.rpm
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download libiperf (this an iperf3 dependency)"
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
-	            wget http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/iperf-3.1.3-50.1.x86_64.rpm
+	            wget -4 http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/iperf-3.1.3-50.1.x86_64.rpm
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download iperf"
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
 	            rpm -i libiperf*
@@ -423,35 +435,7 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
-	            fi
-			fi
-
-			# Check netcat
-			nc -help > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            zypper --non-interactive in netcat
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install netcat"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                return 1
-	            fi
-	        fi
-
-	        # Check omping
-	        omping -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            zypper addrepo http://download.opensuse.org/repositories/home:emendonca/SLE_12_SP2/home:emendonca.repo
-	            zypper --gpg-auto-import-keys refresh
-	            zypper --non-interactive in omping
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install omping"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
             ;;
@@ -469,29 +453,29 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
 
 			# Check iPerf3
 			iperf3 -v > /dev/null 2>&1
 			if [ $? -ne 0 ]; then
-				wget https://iperf.fr/download/ubuntu/libiperf0_3.1.3-1_amd64.deb
+				wget -4 https://iperf.fr/download/ubuntu/libiperf0_3.1.3-1_amd64.deb
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download libiperf (this an iperf3 dependency)"
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
-	            wget https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
+	            wget -4 https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download iperf"
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
 	            dpkg -i libiperf*
@@ -501,23 +485,9 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
-
-			# Check netcat
-			nc -help > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            apt-get install netcat -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install netcat"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                return 1
-	            fi
-	        fi
-
             ;;
 
         redhat*|centos*)
@@ -533,20 +503,20 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
 
 			# Check iPerf3
 			iperf3 -v > /dev/null 2>&1
 			if [ $? -ne 0 ]; then
-	            wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm
+	            wget -4 https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download iperf"
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 
 	            rpm -i iperf3*
@@ -555,43 +525,16 @@ InstallDependencies()
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
-	                return 1
+	                exit 1
 	            fi
 			fi
-
-			# Check netcat
-			nc -help > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            yum install nc -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install netcat"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                return 1
-	            fi
-            fi
-
-	        # Check omping
-	        omping -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            yum install omping -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install omping"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                return 1
-	            fi	
-			fi
-
         ;;
         *)
             msg="ERROR: OS Version not supported"
             LogMsg "$msg"
             UpdateSummary "$msg"
             SetTestStateFailed
-            return 1
+            exit 1
         ;;
     esac
 

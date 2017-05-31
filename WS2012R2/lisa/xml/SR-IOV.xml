@@ -42,22 +42,31 @@
         <suite>
             <suiteName>SR-IOV</suiteName>
             <suiteTests>
-                <!-- Basic SR-IOV tests -->
+                <!-- Basic SR-IOV test -->
                 <suiteTest>VerifyVF_basic</suiteTest>
-                <suiteTest>Multicast</suiteTest> 
-                <suiteTest>Broadcast</suiteTest>
+
+                <!-- Failover tests group -->
                 <suiteTest>DisableVF</suiteTest>
+                <suiteTest>ModuleReload</suiteTest>
                 <suiteTest>Ping_DisableVF</suiteTest>
                 <suiteTest>iPerf_DisableVF</suiteTest>
+                <suiteTest>Deattach_Attach_NIC</suiteTest>
+                <suiteTest>Host_Disable_SRIOV</suiteTest>
+                <suiteTest>DisableNIC</suiteTest>
+
+                <!-- Complex SR-IOV tests -->
+                <suiteTest>Multicast</suiteTest> 
+                <suiteTest>Broadcast</suiteTest>
                 <suiteTest>iPerf_Reboot</suiteTest>
                 <suiteTest>iPerf_Stress</suiteTest>
                 <suiteTest>Disable_VMQ</suiteTest>
                 <suiteTest>Change_RSS</suiteTest>
-                <suiteTest>CompareRTT</suiteTest>
                 <suiteTest>Compare_iPerf</suiteTest>
                 <suiteTest>Upgrade_Linux_kernel</suiteTest>
                 <suiteTest>Measure_DisableVF</suiteTest>
                 <suiteTest>Move_VHD</suiteTest>
+                <suiteTest>Max_vCPU</suiteTest>
+                
                 <!-- Mellanox specific -->
                 <suiteTest>Upgrade_Downgrade_PF</suiteTest>
                 
@@ -68,9 +77,9 @@
 
                 <!-- Pause/Save VM tests with Single/Multiple NICs -->
                 <suiteTest>Single_PauseVM</suiteTest>
-                <suiteTest>Multiple_PauseVM</suiteTest>
+                <suiteTest>Stress_PauseVM</suiteTest>
                 <suiteTest>Single_SaveVM</suiteTest>
-                <suiteTest>Multiple_SaveVM</suiteTest>
+                <suiteTest>Stress_SaveVM</suiteTest>
 
                 <!-- Multiple VMs -->
                 <suiteTest>Max_VMs</suiteTest>
@@ -99,52 +108,9 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-1,SRIOV-2,SRIOV-3</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>TC_COVERED=SRIOV-1,SRIOV-2,SRIOV-3</param>
+                <param>Clean_Dependency=yes</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
-            <timeout>1000</timeout>
-        </test>
-
-        <test>
-            <testName>Multicast</testName>
-            <testScript>SR-IOV_Multicast.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_Multicast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,tools/omping-0.0.4.tar.gz</files> 
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
-            <noReboot>False</noReboot>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-4</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-            </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
-            <timeout>1000</timeout>
-        </test>
-
-        <test>
-            <testName>Broadcast</testName>
-            <testScript>SR-IOV_Broadcast.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_Broadcast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
-            <noReboot>False</noReboot>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-5</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-            </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1000</timeout>
         </test>
 
@@ -159,12 +125,24 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-6</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>TC_COVERED=SRIOV-4</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
+            <timeout>1000</timeout>
+        </test>
+
+        <test>
+            <testName>ModuleReload</testName>
+            <testScript>SR-IOV_ModuleReload.sh</testScript>
+            <files>remote-scripts/ica/SR-IOV_ModuleReload.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
+                <param>TC_COVERED=SRIOV-5</param>                                   
+            </testParams>
             <timeout>1000</timeout>
         </test>
 
@@ -179,13 +157,8 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-7</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHostName</param>
+                <param>TC_COVERED=SRIOV-6,SRIOV-17</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1800</timeout>
         </test>
 
@@ -200,14 +173,89 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-8</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHostName</param>
+                <param>TC_COVERED=SRIOV-7</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1800</timeout>
+        </test>
+
+        <test>
+            <testName>Deattach_Attach_NIC</testName>
+            <testScript>setupscripts\SR-IOV_Deattach_NIC.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
+                <param>TC_COVERED=SRIOV-8</param>
+            </testParams>
+            <timeout>1800</timeout>
+        </test>
+
+        <test>
+            <testName>Host_Disable_SRIOV</testName>
+            <testScript>setupscripts\SR-IOV_Host_Disable.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
+                <param>TC_COVERED=SRIOV-9</param>
+            </testParams>
+            <timeout>1800</timeout>
+        </test>
+
+        <test>
+            <testName>DisableNIC</testName>
+            <testScript>setupscripts\SR-IOV_DisableNIC.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
+                <param>TC_COVERED=SRIOV-10</param>
+            </testParams>
+            <timeout>1800</timeout>
+        </test>
+
+        <test>
+            <testName>Multicast</testName>
+            <testScript>SR-IOV_Multicast.sh</testScript>
+            <files>remote-scripts/ica/SR-IOV_Multicast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
+                <param>TC_COVERED=SRIOV-11</param>
+            </testParams>
+            <timeout>1000</timeout>
+        </test>
+
+        <test>
+            <testName>Broadcast</testName>
+            <testScript>SR-IOV_Broadcast.sh</testScript>
+            <files>remote-scripts/ica/SR-IOV_Broadcast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
+                <param>TC_COVERED=SRIOV-12</param>
+            </testParams>
+            <timeout>1000</timeout>
         </test>
 
         <test>
@@ -221,13 +269,8 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-9</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHostName</param>
+                <param>TC_COVERED=SRIOV-13</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1800</timeout>
         </test>
 
@@ -242,13 +285,8 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-10</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHostName</param>
+                <param>TC_COVERED=SRIOV-14</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>3600</timeout>
         </test>
 
@@ -263,13 +301,8 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-11</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHostName</param>
+                <param>TC_COVERED=SRIOV-15</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1800</timeout>
         </test>
 
@@ -284,36 +317,8 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-12</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHostName</param>
+                <param>TC_COVERED=SRIOV-16</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
-            <timeout>1800</timeout>
-        </test>
-
-        <test>
-            <testName>CompareRTT</testName>
-            <testScript>SR-IOV_compareRTT.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_compareRTT.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
-            <noReboot>False</noReboot>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>NIC=NetworkAdapter,Internal,Internal,001600112801</param>
-                <param>TC_COVERED=SRIOV-13</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>STATIC_IP1=192.168.0.10</param>
-                <param>STATIC_IP2=192.168.0.20</param>
-                <param>NETMASK=255.255.255.0</param>
-            </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1800</timeout>
         </test>
 
@@ -328,13 +333,8 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-14</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHostName</param>
+                <param>TC_COVERED=SRIOV-18</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1800</timeout>
         </test>
 
@@ -349,13 +349,8 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-15</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=lis-f2323</param>
+                <param>TC_COVERED=SRIOV-19</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>2400</timeout>
         </test>
 
@@ -370,13 +365,8 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-16</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHost</param>
+                <param>TC_COVERED=SRIOV-20</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>2400</timeout>
         </test>
 
@@ -391,14 +381,29 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-17</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHost</param>
+                <param>TC_COVERED=SRIOV-21</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>2400</timeout>
+        </test>
+
+        <test>
+            <testName>Max_vCPU</testName>
+            <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
+            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\ChangeCPU.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
+                <param>TC_COVERED=SRIOV-22</param>
+                <param>vCPU=max</param>
+				<!-- This is based on the physical CPU hardware topology -->
+				<param>numaNodes=36</param>
+            </testParams>
+            <timeout>1000</timeout>
         </test>
 
         <test>
@@ -412,11 +417,7 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
-                <param>TC_COVERED=SRIOV-18</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHost</param>
+                <param>TC_COVERED=SRIOV-23</param>
                 <param>OLDER_DRIVER_FOLDER_PATH=\\network\path\to\old\drivers</param>
                 <param>NEWER_DRIVER_FOLDER_PATH=\\network\path\to\new\drivers</param>
             </testParams>
@@ -435,14 +436,11 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
-                <param>TC_COVERED=SRIOV-19</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
+                <param>TC_COVERED=SRIOV-24</param>
                 <param>BOND_IP3=10.12.12.33</param>
                 <param>BOND_IP4=10.12.12.34</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>Clean_Dependency=yes</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1000</timeout>
         </test>
 
@@ -458,14 +456,10 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
-                <param>TC_COVERED=SRIOV-20</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
+                <param>TC_COVERED=SRIOV-25</param>
                 <param>BOND_IP3=10.12.12.33</param>
                 <param>BOND_IP4=10.12.12.34</param>
-                <param>NETMASK=255.255.255.0</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1000</timeout>
         </test>
 
@@ -479,11 +473,10 @@
             </setupScript> 
             <noReboot>False</noReboot>
             <testParams>
-                <param>TC_COVERED=SRIOV-21</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>TC_COVERED=SRIOV-26</param>
                 <param>MAX_NICS=yes</param>
+                <param>Clean_Dependency=yes</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1600</timeout>
         </test>
 
@@ -498,20 +491,17 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-22</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>TC_COVERED=SRIOV-27</param>
+                <param>Clean_Dependency=yes</param>
                 <!-- VM_STATE has to be 'pause' or 'save' -->
                 <param>VM_STATE=pause</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1800</timeout>
         </test>
 
         <test>
-            <testName>Multiple_PauseVM</testName>
-            <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
+            <testName>Stress_PauseVM</testName>
+            <testScript>setupScripts\SR-IOV_Stress_SavePause.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
@@ -520,18 +510,11 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
-                <param>TC_COVERED=SRIOV-23</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-            	<param>BOND_IP3=10.12.12.33</param>
-                <param>BOND_IP4=10.12.12.34</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>TC_COVERED=SRIOV-28</param>
                 <!-- VM_STATE has to be 'pause' or 'save' -->
                 <param>VM_STATE=pause</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
-            <timeout>1800</timeout>
+            <timeout>2400</timeout>
         </test>
 
         <test>
@@ -545,20 +528,16 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-24</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>TC_COVERED=SRIOV-29</param>
                 <!-- VM_STATE has to be 'pause' or 'save' -->
                 <param>VM_STATE=save</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>1800</timeout>
         </test>
 
         <test>
-            <testName>Multiple_SaveVM</testName>
-            <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
+            <testName>Stress_SaveVM</testName>
+            <testScript>setupScripts\SR-IOV_Stress_SavePause.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
@@ -567,18 +546,11 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
-                <param>TC_COVERED=SRIOV-25</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>BOND_IP3=10.12.12.33</param>
-                <param>BOND_IP4=10.12.12.34</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>TC_COVERED=SRIOV-30</param>
                 <!-- VM_STATE has to be 'pause' or 'save' -->
                 <param>VM_STATE=save</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
-            <timeout>1800</timeout>
+            <timeout>2400</timeout>
         </test>
 
         <test>
@@ -590,7 +562,7 @@
             </setupScript> 
             <noReboot>False</noReboot>
             <testParams>
-                <param>TC_COVERED=SRIOV-26</param>
+                <param>TC_COVERED=SRIOV-31</param>
                 <param>VM_NUMBER=4</param>
             </testParams>
             <timeout>10800</timeout>
@@ -607,13 +579,9 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-27</param>
-                <param>BOND_IP1=10.11.12.61</param>
-                <param>BOND_IP2=10.11.12.62</param>
+                <param>TC_COVERED=SRIOV-32</param>
                 <param>VM3BOND_IP=10.11.12.63</param>
                 <param>VM4BOND_IP=10.11.12.64</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHostName</param>
                 <param>VM3NAME=VM3_Name_HOST1</param>
                 <param>VM4NAME=VM4_Name_HOST1</param>
             </testParams>
@@ -632,13 +600,9 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-28</param>
-                <param>BOND_IP1=10.11.12.61</param>
-                <param>BOND_IP2=10.11.12.62</param>
+                <param>TC_COVERED=SRIOV-33</param>
                 <param>VM3BOND_IP=10.11.12.63</param>
                 <param>VM4BOND_IP=10.11.12.64</param>
-                <param>NETMASK=255.255.255.0</param>
-                <param>REMOTE_SERVER=remoteHostName</param>
                 <param>VM3NAME=VM3_Name_HOST1</param>
                 <param>VM4NAME=VM4_Name_HOST2</param>
             </testParams>
@@ -657,10 +621,7 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-29</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>TC_COVERED=SRIOV-34</param>
                 <param>ReplicationServer=ReplicaServer</param>
                 <param>ReplicationPort=8080</param>
                 <param>enableVF=yes</param>
@@ -683,18 +644,14 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
-                <param>TC_COVERED=SRIOV-30</param>
-                <param>leaveTrail=no</param>                                 
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
-                <param>NETMASK=255.255.255.0</param>
+                <param>TC_COVERED=SRIOV-35</param>
+                <param>leaveTrail=no</param>
                 <param>ReplicationServer=ReplicaServer</param>
                 <param>ReplicationPort=80</param>
                 <param>enableVF=no</param>
                 <!-- Optional param - fill only if replication server is clustered -->
                 <param>clusterName=cluster_name</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>2400</timeout>
         </test>
 
@@ -709,19 +666,15 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-31</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
+                <param>TC_COVERED=SRIOV-36</param>
                 <param>BOND_IP3=10.12.12.33</param>
                 <param>BOND_IP4=10.12.12.34</param>
-                <param>NETMASK=255.255.255.0</param>
                 <param>ReplicationServer=ReplicaServer</param>
                 <param>ReplicationPort=80</param>
                 <param>enableVF=yes</param>
                 <!-- Optional param - fill only if replication server is clustered -->
                 <param>clusterName=cluster_name</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>2400</timeout>
         </test>
 
@@ -737,19 +690,15 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
-                <param>TC_COVERED=SRIOV-32</param>                                   
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
+                <param>TC_COVERED=SRIOV-37</param>
                 <param>BOND_IP3=10.12.12.33</param>
                 <param>BOND_IP4=10.12.12.34</param>
-                <param>NETMASK=255.255.255.0</param>
                 <param>ReplicationServer=ReplicaServer</param>
                 <param>ReplicationPort=80</param>
                 <param>enableVF=no</param>
                 <!-- Optional param - fill only if replication server is clustered -->
                 <param>clusterName=cluster_name</param>
             </testParams>
-            <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
             <timeout>2400</timeout>
         </test>
     </testCases>
@@ -760,12 +709,16 @@
             <vmName>vm1</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>id_rsa.ppk</sshKey>
+            <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
                 <param>VM2NAME=vm2</param>
+                <param>REMOTE_SERVER=remoteHostName</param>
                 <param>SnapshotName=ICABase</param>
-                <param>sshKey=id_rsa</param>
+                <param>sshKey=linux_id_rsa</param>
                 <param>REMOTE_USER=root</param>
+                <param>BOND_IP1=10.11.12.31</param>
+                <param>BOND_IP2=10.11.12.32</param>
+                <param>NETMASK=255.255.255.0</param>
             </testParams>
             <suite>SR-IOV</suite>
         </vm>

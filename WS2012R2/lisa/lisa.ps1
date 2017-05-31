@@ -19,7 +19,6 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Perform tests on a VM as defined in a .xml file
@@ -27,8 +26,8 @@
 .Description
     This powershell script automates the tasks required to test
     the Linux Integrated Services (LIS) on Windows Hyper-V Server.
-    This script is the entry script into the automation.  The basics
-    behavior of the automation is:
+    This script is the entry script into the automation.
+    The basic behavior of the automation is:
         Start a VM
         Push files to a VM
         Start a script executing on a VM
@@ -132,7 +131,7 @@
         <VMs>
             <vm>
                 <hvServer>myHyperVHost</hvServer>
-                <vmName>SLES11SP3</vmName>
+                <vmName>vmName</vmName>
                 <os>Linux</os>
                 <ipv4>192.168.1.101</ipv4>
                 <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -987,7 +986,7 @@ switch ($cmdVerb)
         # we need to check the last one which is the final
         if (!$sts[-1])
         {
-            $lisaExitCode = 2
+            $lisaExitCode = 0
         }
     }
 "validate" {
@@ -1017,4 +1016,3 @@ default    {
 
 LogMsg 0 "Test will exit with error code $lisaExitCode"
 exit $lisaExitCode
-0

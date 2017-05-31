@@ -63,24 +63,6 @@ $testCaseTimeout = 600
 
 #####################################################################
 #
-# CheckVMState()
-#
-#####################################################################
-function CheckVMState([String] $vmName, [String] $newState)
-{
-    $stateChanged = $False
-    
-    $vm = Get-VM $vmName -ComputerName $hvServer    
-    if ($($vm.State.ToString()) -eq $newState)
-    {
-        $stateChanged = $True
-    }
-    
-    return $stateChanged
-}
-
-#####################################################################
-#
 # Main script body
 #
 #####################################################################
@@ -191,10 +173,8 @@ if ($vcpu)
 #
 "Info: Shutting down the VM"
 Stop-VM -Name $vmName -ComputerName $hvServer -Force
-while ($testCaseTimeout -gt 0)
-{
-    if ( (CheckVMState $vmName "Off"))
-    {
+while ($testCaseTimeout -gt 0) {
+    if ((CheckVMState $vmName $hvServer) -eq "Off") {
         break
     }   
 
@@ -202,8 +182,7 @@ while ($testCaseTimeout -gt 0)
     $testCaseTimeout -= 2
 }
 
-if ($testCaseTimeout -eq 0)
-{
+if ($testCaseTimeout -eq 0) {
     "Error: Test case timed out waiting for VM to go to Stopped"
     return $False
 }
@@ -221,10 +200,8 @@ if ($? -ne "True")
     return $False
 }
 
-while ($testCaseTimeout -gt 0)
-{
-    if ( (CheckVMState $vmName "Running"))
-    {
+while ($testCaseTimeout -gt 0) {
+    if ( (CheckVMState $vmName $hvServer) -eq "Running") {
         break
     }   
 
@@ -232,8 +209,7 @@ while ($testCaseTimeout -gt 0)
     $testCaseTimeout -= 2
 }
 
-if ($testCaseTimeout -eq 0)
-{
+if ($testCaseTimeout -eq 0) {
     "Error: Test case timed out for VM to go to Running"
     return $False
 }

@@ -21,15 +21,13 @@
 
 <#
 .Synopsis
-    SR-IOV Save/Pause tests
+    Continuous iPerf, disable SR-IOV, enable SR-IOV
 
 .Description
-    1. Transfer a 1GB file between 2 VMs to verify SR-IOV functionality
-    2. Pause/Save one VM for at least one minute
-    3. Resume the VM
-    4. Transfer again an 1GB file
-    Acceptance: In both cases, the network traffic goes through bond0
-    
+    Disable SR-IOV while transferring data of the device, then enable SR-IOV. 
+    While disabled, the traffic should fallback to the synthetic device and throughput should drop. 
+    Once SR-IOV is enabled again, traffic should handled by the SR-IOV device and throughput increase.
+   
 .Parameter vmName
     Name of the test VM.
 
@@ -42,9 +40,9 @@
 
 .Example
     <test>
-        <testName>Single_SaveVM</testName>
-        <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
-        <files>remote-scripts/ica/utils.sh</files> 
+        <testName>iPerf_DisableVF</testName>
+        <testScript>setupscripts\SR-IOV_iPerf_DisableVF.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -52,13 +50,11 @@
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
-            <param>TC_COVERED=??</param>                                   
+            <param>TC_COVERED=SRIOV-8</param>
             <param>BOND_IP1=10.11.12.31</param>
             <param>BOND_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
-            <param>REMOTE_USER=root</param>
-            <!-- VM_STATE has to be 'pause' or 'save' -->
-            <param>VM_STATE=save</param>
+            <param>REMOTE_SERVER=remoteHostName</param>
         </testParams>
         <timeout>1800</timeout>
     </test>
@@ -72,6 +68,7 @@ param ([String] $vmName, [String] $hvServer, [string] $testParams)
 #
 #############################################################
 $retVal = $False
+$leaveTrail = "no"
 
 #
 # Check the required input args are present
@@ -151,21 +148,22 @@ foreach ($p in $params)
         "ipv4" { $ipv4 = $fields[1].Trim() }   
         "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
         "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
-        "BOND_IP3" { $vmBondIP3 = $fields[1].Trim() }
-        "BOND_IP4" { $vmBondIP4 = $fields[1].Trim() }
-        "NETMASK"  { $netmask = $fields[1].Trim() }
-        "REMOTE_USER" { $remoteUser = $fields[1].Trim() }
-        "VM2NAME"  { $vm2Name = $fields[1].Trim() }
-        "VM_STATE" { $vmState = $fields[1].Trim()}
+        "NETMASK" { $netmask = $fields[1].Trim() }
+        "VM2NAME" { $vm2Name = $fields[1].Trim() }
+        "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     }
 }
+
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+
 # Get IPs
 $ipv4 = GetIPv4 $vmName $hvServer
 "${vmName} IPADDRESS: ${ipv4}"
+$vm2ipv4 = GetIPv4 $vm2Name $remoteServer
+"${vm2Name} IPADDRESS: ${vm2ipv4}"
 
 #
 # Configure the bond on test VM
@@ -173,140 +171,93 @@ $ipv4 = GetIPv4 $vmName $hvServer
 $retVal = ConfigureBond $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask" | Tee-Object -Append -file $summaryLog
+    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
     return $false
 }
+Start-Sleep -s 5
 
 #
 # Reboot VM
 #
-Start-Sleep -s 5
 Restart-VM -VMName $vmName -ComputerName $hvServer -Force
 $sts = WaitForVMToStartSSH $ipv4 200
 if( -not $sts[-1]){
     "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
     return $false    
 }
+
 # Get IPs
+Start-Sleep -s 5
 $ipv4 = GetIPv4 $vmName $hvServer
 "${vmName} IP Address: ${ipv4}"
 
 #
 # Run Ping with SR-IOV enabled
 #
-Start-Sleep -s 5
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 20 -I bond0 `$BOND_IP2 > PingResults.log &' > runPing.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 600 -I bond0 `$BOND_IP2 > PingResults.log &' > runPing.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
 
 # Wait 60 seconds and read the RTT
 "Get Logs"
-Start-Sleep -s 10
-[decimal]$beforeRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
-if (-not $beforeRTT){
+Start-Sleep -s 15
+[decimal]$initialRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
+if (-not $initialRTT){
     "ERROR: No result was logged! Check if Ping was executed!" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
-"The RTT before saving/pausing VM is $beforeRTT ms" | Tee-Object -Append -file $summaryLog
+"The RTT before switching the SR-IOV NIC is $initialRTT ms" | Tee-Object -Append -file $summaryLog
+
+#
+# Switch SR-IOV NIC to a non-SRIOV NIC
+#
+# Get the NIC
+$nicInfo = Get-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer | Where-Object {$_.SwitchName -like 'SRIOV*'}
+$sriovSwitch = $nicInfo.SwitchName
+
+# Connect a non-SRIOV vSwitch. We will use the samech as the management NIC
+[string]$managementSwitch = Get-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer | Select-Object -First 1 | Select -ExpandProperty SwitchName
+Connect-VMNetworkAdapter -VMNetworkAdapter $nicInfo -SwitchName $managementSwitch -Confirm:$False
+if (-not $?) {
+    "ERROR: Failed to switch the NIC!" | Tee-Object -Append -file $summaryLog
+    return $false 
+}
 Start-Sleep -s 10
 
-#
-# Create an 1 GB file on test VM
-#
-Start-Sleep -s 3
-$retVal = CreateFileOnVM $ipv4 $sshKey 1024
-if (-not $retVal)
-{
-    "ERROR: Failed to create a file on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask" | Tee-Object -Append -file $summaryLog
-    return $false
+# Check if the  SR-IOV module is still loaded
+.\bin\plink.exe -i .\ssh\$sshKey root@${ipv4} "lspci -vvv | grep 'mlx4_core\|ixgbevf'"
+if ($?) {
+    "ERROR: SR-IOV module is still loaded on the VM after the NIC switch!" | Tee-Object -Append -file $summaryLog
+    return $false 
 }
 
-#
-# Send the file from the test VM to the dependency VM
-#
-Start-Sleep -s 3
-$retVal = SRIOV_SendFile $ipv4 $sshKey 7000
-if (-not $retVal)
-{
-    "ERROR: Failed to send the file from vm $vmName to $vm2Name" | Tee-Object -Append -file $summaryLog
-    return $false
+# Check if the VF is available in sys/class/net
+.\bin\plink.exe -i .\ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep -v 'eth0\|eth1\|lo\|bond*'"
+if ($?) {
+    "ERROR: VF is still available in sys/class/net " | Tee-Object -Append -file $summaryLog
+    return $false 
 }
-
-#
-# Pause/Save the test VM for 2 minutes
-#
-Start-Sleep -s 3
-if ( $vmState -eq "pause" )
-{
-    Suspend-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
-    if ($? -ne "True")
-    {
-        "ERROR: VM $vmName failed to enter paused state" | Tee-Object -Append -file $summaryLog
-        return $false
-    }
-
-    Start-Sleep -s 60
-
-    Resume-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
-    if ($? -ne "True")
-    {
-        "ERROR: VM $vmName failed to resume" | Tee-Object -Append -file $summaryLog
-        return $false
-    }
-}
-
-elseif ( $vmState -eq "save" )
-{
-    Save-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
-    if ($? -ne "True")
-    {
-        "ERROR: VM $vmName failed to enter saved state" | Tee-Object -Append -file $summaryLog
-        return $false
-    }
-
-    Start-Sleep -s 60
-
-    Start-VM -Name $vmName -ComputerName $hvServer -Confirm:$False
-    if ($? -ne "True")
-    {
-      "ERROR: VM $vmName failed to restart" | Tee-Object -Append -file $summaryLog
-      return $false
-    }    
-}
-
 else {
-    "ERROR: Check the parameters! It should have VM_STATE=pause or VM_STATE=save" | Tee-Object -Append -file $summaryLog
-    return $false    
+    "VF is no longer present in the VM after deattaching the SR-IOV vSwitch " | Tee-Object -Append -file $summaryLog  
 }
 
-# Read the RTT again, it should be lower than before
-# We should see a significant imporvement, we'll check for at least 0.1 ms improvement
-Start-Sleep -s 10
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
-Start-Sleep -s 5
+#
+# Switch non-SR-IOV NIC back to a SRIOV NIC
+#
+# Connect to the initial SRIOV vSwitch
+Connect-VMNetworkAdapter -VMNetworkAdapter $nicInfo -SwitchName $sriovSwitch -Confirm:$False
 
-[decimal]$beforeRTT = $beforeRTT + 0.04
-[decimal]$afterRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
+Start-Sleep -s 15
+# Read the RTT again, it should be simillar to the initial read
+[decimal]$initialRTT = $initialRTT * 1.7
+[decimal]$finalRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 
-"The RTT after resuming VM is $afterRTT ms" | Tee-Object -Append -file $summaryLog
-if ($afterRTT -ge $beforeRTT ) {
-    "ERROR: After resuming VM, the RTT value has not lowered enough
+"The RTT after attaching SR-IOV vSwitch again is $finalRTT ms" | Tee-Object -Append -file $summaryLog
+if ($finalRTT -gt $initialRTT) {
+    "ERROR: After re-enabling SR-IOV, the RTT value has not lowered enough
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
     return $false 
 }
 
-#
-# Send the file from the test VM to the dependency VM
-#
-Start-Sleep -s 20
-$retVal = SRIOV_SendFile $ipv4 $sshKey 14000
-if (-not $retVal)
-{
-    "ERROR: Failed to send the file from vm $vmName to $vm2Name after changing state" | Tee-Object -Append -file $summaryLog
-    return $false
-}
-
-Start-Sleep -s 10
- "File was successfully sent from VM1 to VM2 after resuming VM" | Tee-Object -Append -file $summaryLog
 return $true

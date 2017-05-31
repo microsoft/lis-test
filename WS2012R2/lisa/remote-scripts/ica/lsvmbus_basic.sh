@@ -72,23 +72,23 @@ dos2unix utils.sh
 UtilsInit
 
 # Create the state.txt file so ICA knows we are running
-TestRunning
+SetTestStateRunning
 
 GetDistro
 case $DISTRO in
     redhat_5|centos_5*)
-        LogMsg "Info: RedHat/CentOS 5.x is not supported."
-        UpdateSummary "Info: RedHat/CentOS 5.x is not supported."
-		SetTestStateSkipped
-        exit 1
+	LogMsg "Info: RedHat/CentOS 5.x is not supported."
+	UpdateSummary "Info: RedHat/CentOS 5.x is not supported."
+	SetTestStateSkipped
+	exit 1
     ;;
 esac
 
 # check if lsvmbus exists
 lsvmbus_path=`which lsvmbus`
 if [ -z $lsvmbus_path ]; then
-    LogMsg "Error: lsvmbus not found."
-    UpdateSummary "Error: lsvmbus not found."
+    LogMsg "Error: lsvmbus tool not found!"
+    UpdateSummary "Error: lsvmbus tool not found!"
     SetTestStateFailed
     exit 1
 fi
@@ -108,6 +108,6 @@ for token in "${tokens[@]}"; do
     fi
 done
 
-UpdateSummary "All VMBus device IDs have been found."
+UpdateSummary "Info: All VMBus device IDs have been found."
 SetTestStateCompleted
 exit 0

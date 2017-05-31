@@ -25,12 +25,12 @@
 #   Basic SR-IOV test that checks if VF can send and receive multicast packets
 #
 # Steps:
-#   Use Omping (yum install omping -y)
-#   On the 2nd VM: omping $BOND_IP1 $BOND_IP2 -m 239.255.254.24 -c 11 > out.client &
-#   On the TEST VM: omping $BOND_IP1 $BOND_IP2 -m 239.255.254.24 -c 11 > out.client
+#   Use Ping
+#   On the 2nd VM: ping -I bond0 224.0.0.1 -c 11 > out.client &
+#   On the TEST VM: ping -I bond0 224.0.0.1 -c 11 > out.client
 #   Check results:
-#   On the TEST VM: cat out.client | grep multicast | grep /0%
-#   On the 2nd VM: cat out.client | grep multicast | grep /0%
+#   On the TEST VM: cat out.client | grep 0%
+#   On the 2nd VM: cat out.client | grep 0%
 #   If both have 0% packet loss, test passed
 ################################################################################
 
@@ -85,80 +85,55 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-# Install dependencies needed for testing
-if [ is_ubuntu ]; then
-    tar -xzf omping-0.0.4.tar.gz
-    if [ $? -ne 0 ]; then
-        msg="ERROR: Failed to decompress omping archive"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        return 1
-    fi
-
-    cd omping-0.0.4/
-    make
-    make install
-    if [ $? -ne 0 ]; then
-        msg="ERROR: Failed to install omping"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        return 1
-    fi
-    cd ~
-
-    # Install on dependency VM
-    scp -i "$HOME"/.ssh/"$sshKey" -o BindAddress=$BOND_IP1 -o StrictHostKeyChecking=no omping-0.0.4.tar.gz "$REMOTE_USER"@"$BOND_IP2":/tmp/omping-0.0.4.tar.gz
-    if [ $? -ne 0 ]; then
-        msg="ERROR: Failed to send omping archive to VM2"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        return 1
-    fi
-
-    ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "tar -xzf /tmp/omping-0.0.4.tar.gz && cd ~/omping-0.0.4/ && make && make install"
-    if [ $? -ne 0 ]; then
-        msg="ERROR: Failed to install omping on VM2 via ssh"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        return 1
-    fi
-else
-    InstallDependencies
-    if [ $? -ne 0 ]; then
-        msg="ERROR: Could not install dependencies!"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi    
-fi
 LogMsg "INFO: All configuration completed successfully. Will proceed with the testing"
 
+# Configure VM2
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "echo '1' > /proc/sys/net/ipv4/ip_forward"
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not enable IP Forwarding on VM2!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "ip route add 224.0.0.0/4 dev bond0"
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not add new route to Routing Table on VM2!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "echo '0' > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts"
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not enable broadcast listening on VM2!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
+
 # Multicast testing
-ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "omping $BOND_IP1 $BOND_IP2 -m 239.255.254.24 -c 11 > out.client &"
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "ping -I bond0 224.0.0.1 -c 11 > out.client &"
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not start omping on VM2 (BOND_IP: ${BOND_IP2})"
+    msg="ERROR: Could not start ping on VM2 (BOND_IP: ${BOND_IP2})"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
-omping $BOND_IP1 $BOND_IP2 -m 239.255.254.24 -c 11 > out.client
+ping -I bond0 224.0.0.1 -c 11 > out.client
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not start omping on VM1 (BOND_IP: ${BOND_IP1})"
+    msg="ERROR: Could not start ping on VM1 (BOND_IP: ${BOND_IP1})"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
-LogMsg "INFO: Omping was started on both VMs. Results will be checked in a few seconds"
+LogMsg "INFO: Ping was started on both VMs. Results will be checked in a few seconds"
 sleep 5
  
 # Check results - Summary must show a 0% loss of packets
-multicastSummary=$(cat out.client | grep multicast | grep /0%)
+multicastSummary=$(cat out.client | grep 0%)
 if [ $? -ne 0 ]; then
     msg="ERROR: VM1 shows that packets were lost!"
     LogMsg "$msg"
@@ -170,7 +145,7 @@ fi
 LogMsg "Multicast summary"
 LogMsg "${multicastSummary}"
 
-ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "cat out.client | grep multicast | grep /0%"
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" "cat out.client | grep 0%"
 if [ $? -ne 0 ]; then
     msg="ERROR: VM2 shows that packets were lost!"
     LogMsg "$msg"

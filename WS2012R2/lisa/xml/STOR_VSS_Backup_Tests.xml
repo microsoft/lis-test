@@ -77,7 +77,7 @@
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext3</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -95,7 +95,7 @@
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext4</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -113,7 +113,7 @@
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=reiserfs</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -131,7 +131,7 @@
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext4</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -144,7 +144,7 @@
                 <param>TC_COVERED=VSS-11</param>
                 <param>IsoFilename=CDTEST.iso</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -156,7 +156,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-12</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -171,7 +171,7 @@
                 <param>IQN=iqn.2000-01.com:test-iqn</param>
                 <param>FILESYS=ext4</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -184,7 +184,7 @@
                 <param>TC_COVERED=VSS-14</param>
                 <param>iOzoneVers=3_424</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -192,11 +192,12 @@
             <testName>STOR_VSS_BackupRestore_State_Off</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=VSS-15</param>
                 <param>vmState=Off</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -209,7 +210,7 @@
                 <param>TC_COVERED=VSS-15</param>
                 <param>vmState=Paused</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -226,7 +227,7 @@
                 <param>SCSI=0,1,PassThrough</param>
                 <param>FILESYS=ext3</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -243,7 +244,7 @@
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext3</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
     </testCases>

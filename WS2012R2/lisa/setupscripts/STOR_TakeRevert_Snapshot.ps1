@@ -56,162 +56,6 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-######################################################################
-# Runs a remote script on the VM an returns the log.
-#######################################################################
-function RunRemoteScript($remoteScript)
-{
-    $retValue = $False
-    $stateFile     = "state.txt"
-    $TestCompleted = "TestCompleted"
-    $TestAborted   = "TestAborted"
-    $TestRunning   = "TestRunning"
-    $timeout       = 6000
-
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
-
-    echo y | .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy runtest.sh to the VM"
-       return $False
-    }
-
-    echo y | .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
-    if (-not $?)
-    {
-       Write-Output "ERROR: Unable to copy ${remoteScript} to the VM"
-       return $False
-    }
-
-    echo y | .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${remoteScript} 2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on ${remoteScript}"
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to run dos2unix on runtest.sh"
-        return $False
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x ${remoteScript}"
-        return $False
-    }
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
-    if (-not $?)
-    {
-        Write-Output "ERROR: Unable to chmod +x runtest.sh " -
-        return $False
-    }
-
-    # Run the script on the vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "./runtest.sh 2> /dev/null"
-
-    # Return the state file
-    while ($timeout -ne 0 )
-    {
-    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $stateFile)
-        {
-            $contents = Get-Content -Path $stateFile
-            if ($null -ne $contents)
-            {
-                    if ($contents -eq $TestCompleted)
-                    {
-                        Write-Output "Info : state file contains Testcompleted"
-                        $retValue = $True
-                        break
-
-                    }
-
-                    if ($contents -eq $TestAborted)
-                    {
-                         Write-Output "Info : State file contains TestAborted failed. "
-                         break
-
-                    }
-                    #Start-Sleep -s 1
-                    $timeout--
-
-                    if ($timeout -eq 0)
-                    {
-                        Write-Output "Error : Timed out on Test Running , Exiting test execution."
-                        break
-                    }
-
-            }
-            else
-            {
-                Write-Output "Warn : state file is empty"
-                break
-            }
-
-        }
-        else
-        {
-             Write-Host "Warn : ssh reported success, but state file was not copied"
-             break
-        }
-    }
-    else #
-    {
-         Write-Output "Error : pscp exit status = $sts"
-         Write-Output "Error : unable to pull state.txt from VM."
-         break
-    }
-    }
-
-    # Get the logs
-    $remoteScriptLog = $remoteScript+".log"
-
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${remoteScriptLog} .
-    $sts = $?
-    if ($sts)
-    {
-        if (test-path $remoteScriptLog)
-        {
-            $contents = Get-Content -Path $remoteScriptLog
-            if ($null -ne $contents)
-            {
-                    if ($null -ne ${TestLogDir})
-                    {
-                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
-
-                    }
-
-                    else
-                    {
-                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
-                    }
-
-            }
-            else
-            {
-                Write-Output "Warn: $remoteScriptLog is empty"
-            }
-        }
-        else
-        {
-             Write-Output "Warn: ssh reported success, but $remoteScriptLog file was not copied"
-        }
-    }
-
-    # Cleanup
-    del state.txt -ErrorAction "SilentlyContinue"
-    del runtest.sh -ErrorAction "SilentlyContinue"
-
-    return $retValue
-}
 $retVal = $false
 $TC_COVERED = $null
 $rootDir = $null
@@ -220,6 +64,7 @@ $sshKey = $null
 $snapshotname = $null
 $random = Get-Random -minimum 1024 -maximum 4096
 $remoteScript = "STOR_Lis_Disk.sh"
+
 #
 # Check input arguments
 #
@@ -261,13 +106,6 @@ foreach ($p in $params)
         }
 }
 
-
-if (-not $TC_COVERED)
-{
-    "Error: Missing testParam TC_COVERED value"
-    return $retVal
-}
-
 if (-not $rootDir)
 {
     "Error: Missing testParam rootDir value"
@@ -307,14 +145,21 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
+
 #######################################################################
 #
 # Main script block
 #
 #######################################################################
-
-# Source the TCUtils.ps1 file
-. .\setupscripts\TCUtils.ps1
 
 #
 #Creating a file for snapshot
@@ -349,74 +194,73 @@ if ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
 #
 if (-not (WaitForVmToStop $vmName $hvServer 300))
 {
-    Write-Output "Error: Unable to stop VM"
+    Write-Output "Error: Unable to stop VM!"
     return $False
 }
 
 #
 # Take a snapshot then restore the VM to the snapshot
 #
-"Info : Taking Snapshot operation on VM"
+"Info: Taking Snapshot operation on VM"
 
 $Snapshot = "TestSnapshot_$random"
 Checkpoint-VM -Name $vmName -SnapshotName $Snapshot -ComputerName $hvServer
 if (-not $?)
 {
-    Write-Output "Error: Taking snapshot" | Out-File -Append $summaryLog
+    Write-Output "Error: Could not create VM snapshot!" | Out-File -Append $summaryLog
     return $False
 }
 
-"Info : Restoring Snapshot operation on VM"
+"Info: Restoring Snapshot operation on VM"
 Restore-VMSnapshot -VMName $vmName -Name $snapshotname -ComputerName $hvServer -Confirm:$false
 if (-not $?)
 {
-    Write-Output "Error: Restoring snapshot" | Out-File -Append $summaryLog
+    Write-Output "Error: Could not restore VM snapshot!" | Out-File -Append $summaryLog
     $error[0].Exception.Message
     return $False
 }
 
 #
-# Starting the VM
-#
-Start-VM $vmName -ComputerName $hvServer
-
-#
-# Waiting for the VM to run again and respond to SSH - port 22
+# Start the VM and wait up to 5 minutes for it to come up
 #
 $timeout = 300
+
+Start-VM $vmName -ComputerName $hvServer
+
 while ($timeout -gt 0) {
-    if ( (TestPort $ipv4) ) {
+    $ipv4 = GetIPv4 -vmName $vmName -Server $hvServer
+    if ($ipv4 -ne $Null) {
         break
     }
 
-    Start-Sleep -seconds 2
-    $timeout -= 2
+    Start-Sleep -S 3
+    $timeout -= 3
 }
 
 if ($timeout -eq 0) {
-    Write-Output "Error: Test case timed out waiting for VM to boot" | Out-File -Append $summaryLog
-    return $False
+	Write-Output "Error: Test case timed out waiting for VM to boot!" | Out-File -Append $summaryLog
+	return $False
 }
 
-"Info : Checking if the test file is still present..."
+"Info: Checking if the test file is still present..."
 $sts = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "stat /root/PostSnapData.txt 2>/dev/null" | out-null
 if ( $?)
 {
-    Write-Output "Error: File still present in VM" | Out-File -Append $summaryLog
-    return $False
+	Write-Output "Error: File still present in VM" | Out-File -Append $summaryLog
+	return $False
 }
 $retVal = $True
 
- Write-Output "Snapshot/Restore : Success!" | Out-File -Append $summaryLog
+Write-Output "Info: VM Snapshot and Restore operations were successful." | Out-File -Append $summaryLog
 
 #
 # Delete the snapshot
 #
-"Info : Deleting Snapshot ${Snapshot} of VM ${vmName}"
+"Info: Deleting snapshot ${Snapshot} of VM ${vmName}"
 Remove-VMSnapshot -VMName $vmName -Name $Snapshot -ComputerName $hvServer
 if ( -not $?)
 {
-   Write-Output "Error: Deleting snapshot"  | Out-File -Append $summaryLog
+   Write-Output "Error: Could not delete temporary VM snapshot!"  | Out-File -Append $summaryLog
 }
 
 return $retVal

@@ -56,24 +56,6 @@ $rootDir = $null
 $tcCovered = "Undefined"
 $ipv4 = $null
 
-#####################################################################
-#
-# CheckVMState()
-#
-#####################################################################
-function CheckVMState([String] $vmName, [String] $newState)
-{
-    $stateChanged = $False
-    
-    $vm = Get-VM $vmName -ComputerName $hvServer    
-    if ($($vm.State.ToString()) -eq $newState)
-    {
-        $stateChanged = $True
-    }
-    
-    return $stateChanged
-}
-
 #######################################################################
 #
 # Main script body
@@ -104,7 +86,6 @@ if ($testParams -eq $null)
 #
 # Parse the testParams string
 #
-"Parsing testParams"
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -162,7 +143,7 @@ Write-Output "Covers ${tcCovered}" | Out-File $summaryLog
 $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name Shutdown
 if ($status.Enabled -ne $True)
 {
-    "Error: The Itegrated Shutdown Service is already disabled"
+    "Error: The Integrated Shutdown Service is already disabled"
     return $False
 }
 
@@ -173,7 +154,7 @@ if ($status.PrimaryOperationalStatus -ne "Ok")
 }
 
 #
-# Disable the Shutdown service.
+# Disable the Shutdown service
 #
 "Info: Disabling the Integrated Services Shutdown Service"
 
@@ -219,12 +200,10 @@ if ($status.PrimaryOperationalStatus -ne "Ok")
 
 $ShutdownTimeout = 600
 Stop-VM -Name $vmName -ComputerName $hvServer -Force
-while ($shutdownTimeout -gt 0)
-{
-    if ( (CheckVMState $vmName "Off"))
-    {
+while ($shutdownTimeout -gt 0) {
+    if ( (CheckVMState $vmName $hvServer) -eq "Off") {
         break
-    }   
+    }
 
     Start-Sleep -seconds 2
     $shutdownTimeout -= 2

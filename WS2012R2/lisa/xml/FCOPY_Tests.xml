@@ -45,6 +45,7 @@
             <suiteTest>FCOPY_large_file</suiteTest>
             <suiteTest>FCOPY_non_ascii</suiteTest>
             <suiteTest>FCOPY_repeat</suiteTest>
+            <suiteTest>FCOPY_disableEnable</suiteTest>
         </suiteTests>
         </suite>
     </testSuites>
@@ -121,6 +122,25 @@
         <param>ControllerType=SCSI</param>
 		    <!--Make sure DefaultSize is equal or bigger than FileSize-->
 				<param>FileSize=2GB</param>
+			</testParams>
+			<noReboot>False</noReboot>
+		</test>
+
+		<test>
+			<testName>FCOPY_disableEnable</testName>
+			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+			<testScript>setupscripts\FCOPY_disableEnable.ps1</testScript>
+			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+			<files>remote-scripts\ica\utils.sh,remote-scripts\ica\check_traces.sh</files>
+			<timeout>1200</timeout>
+			<testParams>
+				<param>TC_COVERED=FCopy-07</param>
+		        <param>Type=Fixed</param>
+		        <param>SectorSize=512</param>
+		        <param>DefaultSize=7GB</param>
+				<param>ControllerType=SCSI</param>
+				<param>FcopyFileSize=5GB</param>
+				<param>CycleCount=20</param>
 			</testParams>
 			<noReboot>False</noReboot>
 		</test>

@@ -386,14 +386,13 @@ permissions and limitations under the License.
             <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=NET-19</param>
-                <param>SCSI=1,0,Dynamic,512,15GB</param>
-                <param>Type=Fixed</param>
+                <param>Type=Dynamic</param>
                 <param>SectorSize=512</param>
                 <param>DefaultSize=25GB</param>
                 <param>ControllerType=SCSI</param>
             </testParams>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-            <timeout>3000</timeout>
+            <timeout>2400</timeout>
             <onError>Continue</onError>
         </test>
 
@@ -535,7 +534,7 @@ permissions and limitations under the License.
             </setupScript>
             <testScript>NET_Multicast.sh</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/NET_set_static_ip.sh,
-                remote-scripts/ica/NET_Multicast.sh,tools/omping-0.0.4.tar.gz</files>
+                remote-scripts/ica/NET_Multicast.sh</files>
             <testparams>
                 <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-25</param>

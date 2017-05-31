@@ -21,20 +21,13 @@
 
 <#
 .Synopsis
-    Run single thread iperf, confirm throughput enhancement.
+    Continuous iPerf, disable SR-IOV, enable SR-IOV
 
 .Description
-    a. Install the iPerf benchmark utility
-    b. Configure/enable SR-IOV on the vSwitch and on the VMs synthetic NIC.
-    c. Run an iPerf throughput test.
-       Note the throughput.
-    d. Configure/Enable SR-IOV on the NIC.
-    e. Run an iPerf throughput test.
-       Note the throughput.
-  Acceptance Criteria
-    a. The throughput with SR-IOV enabled should be greater than when SR-IOV is disabled.
-
-    
+    Disable SR-IOV while transferring data of the device, then enable SR-IOV. 
+    While disabled, the traffic should fallback to the synthetic device and throughput should drop. 
+    Once SR-IOV is enabled again, traffic should handled by the SR-IOV device and throughput increase.
+   
 .Parameter vmName
     Name of the test VM.
 
@@ -47,9 +40,9 @@
 
 .Example
     <test>
-        <testName>Single_SaveVM</testName>
-        <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
-        <files>remote-scripts/ica/utils.sh</files> 
+        <testName>iPerf_DisableVF</testName>
+        <testScript>setupscripts\SR-IOV_iPerf_DisableVF.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -57,13 +50,11 @@
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
-            <param>TC_COVERED=??</param>                                   
+            <param>TC_COVERED=SRIOV-8</param>
             <param>BOND_IP1=10.11.12.31</param>
             <param>BOND_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
-            <param>REMOTE_USER=root</param>
-            <!-- VM_STATE has to be 'pause' or 'save' -->
-            <param>VM_STATE=save</param>
+            <param>REMOTE_SERVER=remoteHostName</param>
         </testParams>
         <timeout>1800</timeout>
     </test>
@@ -77,6 +68,7 @@ param ([String] $vmName, [String] $hvServer, [string] $testParams)
 #
 #############################################################
 $retVal = $False
+$leaveTrail = "no"
 
 #
 # Check the required input args are present
@@ -182,84 +174,117 @@ if (-not $retVal)
     "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
     return $false
 }
+Start-Sleep -s 5
 
 #
-# Install iPerf3 on both VMs
+# Install iPerf3 on VM1
 #
-"Started Install"
-$retVal = iPerfInstall $ipv4 $sshKey $netmask
+"Installing iPerf3 on ${vmName}"
+$retval = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "dos2unix SR-IOV_Utils.sh && source SR-IOV_Utils.sh && InstallDependencies"
 if (-not $retVal)
 {
     "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4})"
     return $false
 }
+Start-Sleep -s 5
 
-$retVal = iPerfInstall $vm2ipv4 $sshKey $netmask
-if (-not $retVal)
-{
-    "ERROR: Failed to install iPerf3 on vm $vm2Name (IP: ${vm2ipv4})"
-    return $false
-}
-"Ended install"
 #
-# Run iPerf3 with SR-IOV enabled
+# Reboot VM
+#
+Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+$sts = WaitForVMToStartSSH $ipv4 200
+if( -not $sts[-1]){
+    "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
+    return $false    
+}
+
+# Get IPs
+Start-Sleep -s 5
+$ipv4 = GetIPv4 $vmName $hvServer
+"${vmName} IP Address: ${ipv4}"
+
+#
+# Start iPerf3 on both VMs
 #
 # Start the client side
 "Start Client"
 .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "kill `$(ps aux | grep iperf | head -1 | awk '{print `$2}')"
-.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "iperf3 -s > client.out &"
+.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "iperf3 -s > client.out &"
 
 "Start Server"
 # Start iPerf3 testing
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "source constants.sh && iperf3 -c `$BOND_IP2 >> PerfResults.log &"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 1800 -c `$BOND_IP2 --logfile PerfResults.log &' > runIperf.sh"
+Start-Sleep -s 5
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
 
-# Get the logs
-"Get Logs"
-Start-Sleep -s 40
-[decimal]$vfEnabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResults.log | grep sender | awk '{print `$7}'"
-if (-not $vfEnabledBandwidth){
+# Wait 30 seconds and read the throughput
+Start-Sleep -s 30
+[decimal]$vfInitialThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+if (-not $vfInitialThroughput){
     "ERROR: No result was logged! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
-"The bandwidth with SR-IOV enabled is $vfEnabledBandwidth Gbits/sec" | Tee-Object -Append -file $summaryLog
+"The throughput before starting the stress test is $vfInitialThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
+
+Start-Sleep -s 10
 
 #
-# Disable SR-IOV
+# Disable SR-IOV from host side
 #
-"Disabling VF on vm1"
-Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 0
+# Get the physical NIC description
+$switchName = Get-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer | Where-Object {$_.SwitchName -like 'SRIOV*'} | Select -ExpandProperty SwitchName
+$hostNIC_name = Get-VMSwitch -Name $switchName | Select -ExpandProperty NetAdapterInterfaceDescription
+
+"Disabling VF on $hostNIC_name"
+Disable-NetAdapterSriov -InterfaceDescription $hostNIC_name
 if (-not $?) {
-    "ERROR: Failed to disable SR-IOV on $vmName!" | Tee-Object -Append -file $summaryLog
+    "ERROR: Failed to disable SR-IOV on $hostNIC_name!" | Tee-Object -Append -file $summaryLog
+    return $false 
 }
 
-#
-# Run iPerf3 again and get the results
-#
-# Start the client side
-Start-Sleep -s 20
-# Start the client side
-.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "iperf3 -s > client.out &"
-
-# Start iPerf3 testing
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "source constants.sh && iperf3 -c `$BOND_IP2 >> PerfResultsNoVF.log &"
-
-# Get the logs
+# Read the throughput with SR-IOV disabled; it should be lower
 Start-Sleep -s 60
-[decimal]$vfDisabledBandwidth = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat PerfResultsNoVF.log | grep sender | awk '{print `$7}'"
-if (-not $vfDisabledBandwidth){
-    "ERROR: No result was logged after SR-IOV was disabled! Check if iPerf was executed!" | Tee-Object -Append -file $summaryLog
+[decimal]$vfDisabledThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+if (-not $vfDisabledThroughput){
+    "ERROR: No result was logged after SR-IOV was disabled!" | Tee-Object -Append -file $summaryLog
+    Enable-NetAdapterSriov -InterfaceDescription $hostNIC_name
     return $false
 }
 
-"The bandwidth with SR-IOV disabled is $vfDisabledBandwidth Gbits/sec" | Tee-Object -Append -file $summaryLog
+"The throughput with SR-IOV disabled is $vfDisabledThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
+if ($vfDisabledThroughput -ge $vfInitialThroughput) {
+    "ERROR: The throughput was higher with SR-IOV disabled, it should be lower" | Tee-Object -Append -file $summaryLog
+    Enable-NetAdapterSriov -InterfaceDescription $hostNIC_name
+    return $false 
+}
+Start-Sleep -s 10
 
 #
-# Compare the results
+# Enable SR-IOV on both VMs
 #
-if ($vfDisabledBandwidth -ge $vfEnabledBandwidth) {
-    "ERROR: The bandwidth with SR-IOV enabled is worse than with SR-IOV disabled!" | Tee-Object -Append -file $summaryLog
-    return $false    
+"Enable VF on vm1"
+Enable-NetAdapterSriov -InterfaceDescription $hostNIC_name
+if (-not $?) {
+    "ERROR: Failed to enable SR-IOV on $hostNIC_name! Please try to manually enable it" | Tee-Object -Append -file $summaryLog
+    return $false 
+}
+
+Start-Sleep -s 20
+
+# Read the throughput again, it should be higher than before
+# We should see a throughput at least 70% higher
+# Get 70% of the initial throughput
+[decimal]$vfInitialThroughput = $vfInitialThroughput * 0.7
+"Values under $vfInitialThroughput Gbits/sec will end this test with a failure"
+
+[decimal]$vfFinalThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
+
+"The throughput after re-enabling SR-IOV is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
+if ($vfFinalThroughput -lt  $vfInitialThroughput) {
+    "ERROR: After re-enabling SR-IOV, the throughput has not increased enough 
+    Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
+    return $false 
 }
 
 return $true

@@ -148,11 +148,14 @@ return $false
 
 $kernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
 if( $? -eq $false){
-    write-output "WARNING: Could not get kernel version of $vmName" | Tee-Object -Append -file $summaryLog
+	write-output "WARNING: Could not get kernel version of $vmName" | Tee-Object -Append -file $summaryLog
 }
-if( $kernel.StartsWith("2.6") -or $kernel.EndsWith(".i686")){
-    write-output "NUMA not suported for kernel $kernel"  | Tee-Object -Append -file $summaryLog
-    return $false
+
+$numaVal = GetNumaSupportStatus $kernel
+
+if( -not $numaVal ){
+	write-output "Info: NUMA not suported for kernel:`n      $kernel"  | Tee-Object -Append -file $summaryLog
+	return $Skipped
 }
 
 #
@@ -160,10 +163,8 @@ if( $kernel.StartsWith("2.6") -or $kernel.EndsWith(".i686")){
 #
 $vmGeneration = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation -ErrorAction SilentlyContinue
 if ($? -eq $False) {
-   $vmGeneration = 1
+	$vmGeneration = 1
 }
-
-LogMsg 9 "Info: The VM you are working on is a generation $VmGeneration VM."
 
 #
 # Extracting the node and port name values for the VM attached HBA
@@ -174,11 +175,11 @@ $NumaNodes = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Num
 # Send the Numa Nodes value to the guest if it matches with the number of CPUs
 #
 if ( $NumaNodes -eq $numCPUs ) {
-    LogMsg 9 "Info: NumaNodes and the number of CPU are matched."
+	LogMsg 9 "Info: NumaNodes and the number of CPU are matched."
 }
 else {
-    LogMsg 0 "Error: NumaNodes and the number of CPU does not match. "
-    return $False
+	LogMsg 0 "Error: NumaNodes and the number of CPU does not match."
+	return $False
 }
 
 $cmd_numanodes="(echo expected_number=$NumaNodes; echo MaxMemSizeEachNode=$MaxMemSizeEachNode; echo VmGeneration=$VmGeneration) >> ~/constants.sh";
@@ -262,8 +263,8 @@ if ($timeout -eq 0)
 #
 # Check the kernel parameter working or not
 #
-$NumaNodesHost = Get-VM $vmName | select -ExpandProperty NumaNodesCount
-Write-Output "VM $vmName is configured with $NumaNodesHost nodes." | Tee-Object -Append -file $summaryLog
+$NumaNodesHost = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty NumaNodesCount
+Write-Output "Info: VM $vmName is configured with $NumaNodesHost nodes." | Tee-Object -Append -file $summaryLog
 
 $NumaNodesGuest = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "numactl -H | grep cpu | wc -l"
 LogMsg 9 "Debug: Only $NumaNodesGuest node is available for VM when NUMA-Off kernel param enabled."
@@ -271,7 +272,7 @@ Write-Output "Only $NumaNodesGuest node is available for VM when NUMA-Off kernel
 
 if ($NumaNodesGuest -eq 1) {
     LogMsg 9 "Info: Kernel parameter 'numa=off' works."
-    Write-Output "Passed: Kernel parameter 'numa=off' works" | Tee-Object -Append -file $summaryLog
+    Write-Output "Test successful: Kernel parameter 'numa=off' works" | Tee-Object -Append -file $summaryLog
 }
 else {
     LogMsg 0 "Error: Kernel parameter numa=off does not work."

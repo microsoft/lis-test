@@ -94,10 +94,10 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-
 #
 # Run file copy tests for each bond interface 
 #
+sleep 10
 __iterator=0
 __ipIterator1=1
 __ipIterator2=2
@@ -130,7 +130,7 @@ while [ $__iterator -lt $bondCount ]; do
         exit 10
     fi
 
-    rxValue=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" ifconfig bond$__iterator | grep "RX packets" | sed 's/:/ /' | awk '{print $3}')
+    rxValue=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" ifconfig | grep $staticIP2 -A 7 | grep "RX packets" | sed 's/:/ /' | awk '{print $3}')
     LogMsg "RX Value: $rxValue"
     if [ $rxValue -lt 70000 ]; then
         msg="ERROR: RX packets insufficient"
@@ -143,6 +143,7 @@ while [ $__iterator -lt $bondCount ]; do
     # Remove file from VM2
     ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$staticIP2" rm -f /tmp/"$output_file"
 
+    sleep 10
     msg="Successfully sent file from VM1 to VM2 through bond${__iterator}"
     LogMsg "$msg"
     UpdateSummary "$msg"

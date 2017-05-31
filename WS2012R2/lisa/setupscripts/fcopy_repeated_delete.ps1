@@ -23,13 +23,13 @@
 .Synopsis
     This script tests the functionality of copying a 3GB large file multiple times.
 .Description
-    The script will copy a random generated 2GB file multiple times from a Windows host to 
+    The script will copy a random generated 2GB file multiple times from a Windows host to
     the Linux VM, and then checks if the size is matching.
     A typical XML definition for this test case would look similar
     to the following:
        <test>
 		<testName>FCOPY_repeat</testName>
-		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript> 
+		<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
 		<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
 		<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
 		<timeout>1200</timeout>
@@ -66,7 +66,7 @@ $gsi = $null
 function check_fcopy_daemon()
 {
     $filename = ".\fcopy_present"
-    
+
     .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /tmp/fcopy_present"
     if (-not $?) {
         Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
@@ -83,12 +83,12 @@ function check_fcopy_daemon()
 
     # When using grep on the process in file, it will return 1 line if the daemon is running
     if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) {
-        Write-Output "Info: hv_fcopy_daemon process is running."  
+        Write-Output "Info: hv_fcopy_daemon process is running."
         $retValue = $True
     }
-    
-    del $filename   
-    return $retValue 
+
+    del $filename
+    return $retValue
 }
 
 #######################################################################
@@ -100,7 +100,7 @@ function check_file([String] $testfile)
 {
     .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /mnt/$testfile"
     if (-not $?) {
-        Write-Output "ERROR: Unable to read file /mnt/$testfile." -ErrorAction SilentlyContinue 
+        Write-Output "ERROR: Unable to read file /mnt/$testfile." -ErrorAction SilentlyContinue
         return $False
     }
     return $True
@@ -125,7 +125,7 @@ function mount_disk()
 
     $sts = SendCommandToVM $ipv4 $sshKey "(echo n;echo p;echo 1;echo;echo;echo w)|fdisk ${driveName}" | Tee-Object -Append -file $summaryLog
     if (-not $sts) {
-        Write-Output "ERROR: Failed to format the disk in the VM $vmName." 
+        Write-Output "ERROR: Failed to format the disk in the VM $vmName."
         return $False
     }
 
@@ -221,7 +221,7 @@ if (-not $testParams) {
 $params = $testParams.Split(";")
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    
+
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
@@ -249,6 +249,23 @@ if (-not (Test-Path $rootDir)) {
 }
 cd $rootDir
 
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+    . .\setupScripts\TCUtils.ps1
+} else {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+}
+
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
 # Delete any previous summary.log file, then create a new one
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
@@ -278,8 +295,8 @@ if (-not $gsi.Enabled) {
     while ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
         Start-Sleep -Seconds 5
     }
-    
-    Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer 
+
+    Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
     Start-VM -Name $vmName -ComputerName $hvServer
 
     # Waiting for the VM to run again and respond to SSH - port 22
@@ -351,7 +368,7 @@ for($i=0; $i -ne 4; $i++){
             $retVal = $False
             break
         }
-        Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" 
+        Write-Output "Info: File has been successfully copied to guest VM '${vmName}'"
 
         $sts = check_file_vm
         if (-not $sts) {
@@ -359,7 +376,7 @@ for($i=0; $i -ne 4; $i++){
             $retVal = $False
             break
         }
-        Write-Output "Info: The file copied matches the ${originalFileSize} size." 
+        Write-Output "Info: The file copied matches the ${originalFileSize} size."
 
         $sts = remove_file_vm
         if (-not $sts) {
@@ -367,7 +384,7 @@ for($i=0; $i -ne 4; $i++){
             $retVal = $False
             break
         }
-        Write-Output "Info: File has been successfully removed from guest VM '${vmName}'" 
+        Write-Output "Info: File has been successfully removed from guest VM '${vmName}'"
     }
     else {
         break

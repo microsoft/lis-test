@@ -40,7 +40,7 @@
    The following are some examples:
    SCSI=0,0,Diff : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic
    IDE=1,1,Diff  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Diff
-   
+
    Note: This setup script only adds differencing disks.
 
     A typical XML definition for this test case would look similar
@@ -51,10 +51,10 @@
         <setupScript>setupscripts\DiffDiskGrowthSetup.ps1</setupScript>
         <cleanupScript>setupscripts\DiffDiskGrowthCleanup.ps1</cleanupScript>
         <timeout>18000</timeout>
-        <testparams>                
-                <param>IDE=1,1,Diff</param>      
+        <testparams>
+                <param>IDE=1,1,Diff</param>
                 <param>ParentVhd=VHDXParentDiff.vhdx</param>
-                <param>TC_COUNT=DSK_VHDX-75</param>            
+                <param>TC_COUNT=DSK_VHDX-75</param>
         </testparams>
     </test>
 
@@ -68,7 +68,7 @@
     Test data for this test case
 
 .Example
-    setupScripts\DiffDiskGrowthSetup.ps1 -vmName VMname -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IP;RootDir=" 
+    setupScripts\DiffDiskGrowthSetup.ps1 -vmName VMname -hvServer localhost -testParams "IDE=1,1,Diff;ParentVhd=VHDXParentDiff.vhdx;sshkey=rhel5_id_rsa.ppk;ipv4=IP;RootDir="
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -182,13 +182,13 @@ foreach ($p in $params)
     }
 
     $tokens = $p.Trim().Split('=')
-    
+
     if ($tokens.Length -ne 2)
     {
         # Just ignore it
          continue
     }
-    
+
     $lValue = $tokens[0].Trim()
     $rValue = $tokens[1].Trim()
 
@@ -211,30 +211,39 @@ foreach ($p in $params)
     }
 
     #
+    # rootDIR test param
+    #
+    if ($lValue -eq "rootDIR")
+    {
+        $rootDir = $rValue
+        continue
+    }
+
+    #
     # Controller type testParam
     #
     if (@("IDE", "SCSI") -contains $lValue)
     {
         $controllerType = $lValue
-        
+
         $SCSI = $false
         if ($controllerType -eq "SCSI")
         {
             $SCSI = $true
         }
-            
+
         $diskArgs = $rValue.Split(',')
-        
+
         if ($diskArgs.Length -ne 3)
         {
             "Error: Incorrect number of disk arguments: $p"
             return $False
         }
-        
+
         $controllerID = $diskArgs[0].Trim()
         $lun = $diskArgs[1].Trim()
         $vhdType = $diskArgs[2].Trim()
-        
+
         #
         # Just a reminder. The test case is testing differencing disks.
         # If we are asked to create a disk other than a differencing disk,
@@ -248,6 +257,15 @@ foreach ($p in $params)
     }
 }
 
+if (-not $rootDir)
+{
+    "Warn : no rootdir was specified"
+}
+else
+{
+    cd $rootDir
+}
+
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
@@ -255,7 +273,7 @@ if (Test-Path ".\setupScripts\TCUtils.ps1") {
 }
 else {
 	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
+	return $False
 }
 
 #
@@ -265,6 +283,13 @@ if (-not $controllerType)
 {
     "Error: No controller type specified in the test parameters"
     return $False
+}
+
+$vmGeneration = GetVMGeneration $vmName $hvServer
+if ( $controllerType -eq "IDE" -and $vmGeneration -eq 2 )
+{
+        Write-Output "Generation 2 VM does not support IDE disk, please skip this case in the test script"
+        return $True
 }
 
 if (-not $controllerID)
@@ -294,7 +319,7 @@ if (-not $parentVhd)
         "Error: Failed to create parent $vhdFormat on $hvServer"
         return $False
     }
-    else 
+    else
     {
         "Info: Parent disk $parentVhd created"
     }
@@ -308,7 +333,7 @@ if ($SCSI)
         "Error: CreateHardDrive was passed a bad SCSI Controller ID: $ControllerID"
         return $false
     }
-    
+
     # Create the SCSI controller if needed
     $sts = CreateController $vmName $hvServer $controllerID
     if (-not $sts[$sts.Length-1])
@@ -326,11 +351,6 @@ else # Make sure the controller ID is valid for IDE
     }
 }
 
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq $False)
-{
-   $vmGeneration = 1
-}
 
 if ($vmGeneration -eq 1)
 {
@@ -340,7 +360,13 @@ else
 {
     $lun = [int]($diskArgs[1].Trim()) +1
 }
-$drives = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun 
+
+$dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer
+if ($dvd)
+{
+    Remove-VMDvdDrive $dvd
+}
+$drives = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun
 if ($drives)
 {
     write-output "Error: drive $controllerType $controllerID $Lun already exists"
@@ -360,15 +386,14 @@ if (-not $defaultVhdPath.EndsWith("\"))
     $defaultVhdPath += "\"
 }
 
-
 if ($parentVhd.EndsWith(".vhd"))
 {
-    # To Make sure we do not use exisiting Diff disk, del if exists 
-    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"  
+    # To Make sure we do not use exisiting Diff disk, del if exists
+    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhd"
 }
 else
 {
-    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhdx"  
+    $vhdName = $defaultVhdPath + ${vmName} +"-" + ${controllerType} + "-" + ${controllerID}+ "-" + ${lun} + "-" + "Diff.vhdx"
 }
 
 $vhdFileInfo = GetRemoteFileInfo  $vhdName  $hvServer
@@ -400,7 +425,7 @@ if (-not $parentFileInfo)
 
 #
 # Create the .vhd file
-$newVhd = New-Vhd -Path $vhdName -ParentPath $parentVhdFilename -ComputerName $hvServer -Differencing          
+$newVhd = New-Vhd -Path $vhdName -ParentPath $parentVhdFilename -ComputerName $hvServer -Differencing
 if (-not $newVhd)
 {
     "Error: unable to create a new .vhd file"
@@ -419,7 +444,7 @@ if ($newVhd.ParentPath -ne $parentVhdFilename)
 # Attach the .vhd file to the new drive
 #
 $error.Clear()
-$disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun -Path $vhdName    
+$disk = Add-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerType $controllerType -ControllerNumber $controllerID -ControllerLocation $lun -Path $vhdName
 if ($error.Count -gt 0)
 {
     "Error: Add-VMHardDiskDrive failed to add drive on ${controllerType} ${controllerID} ${Lun}s"
@@ -431,5 +456,5 @@ else
     "Info: Child disk $vhdName created and attached to ${controllerType} : ${controllerID} : ${Lun}"
     $retVal = $true
 }
-    
+
 return $retVal

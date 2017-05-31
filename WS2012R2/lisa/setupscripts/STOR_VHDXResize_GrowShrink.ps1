@@ -145,6 +145,39 @@ else
     cd $rootDir
 }
 
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+    . .\setupScripts\TCUtils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $False
+}
+
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
+
+if ( $controllerType -eq "IDE" )
+{
+    $vmGeneration = GetVMGeneration $vmName $hvServer
+    if ($vmGeneration -eq 2 )
+    {
+         Write-Output "Generation 2 VM does not support IDE disk, skip test"
+         return $Skipped
+    }
+}
+
 # Source STOR_VHDXResize_Utils.ps1
 if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
 {

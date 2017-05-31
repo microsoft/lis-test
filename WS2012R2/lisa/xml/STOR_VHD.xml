@@ -9,7 +9,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LISA Storage VHD Test Run on WS2012R2</subject>
+            <subject>LISA Storage VHD Test Run</subject>
             <smtpServer>smtphost.mycompany.com</smtpServer>
         </email>
 
@@ -323,8 +323,10 @@
 
         <test>
             <testName>TakeRevert_SnapShot</testName>
-            <setupScript>setupScripts\AddDisk.ps1</setupScript>
+            <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
             <testScript>setupScripts\STOR_TakeRevert_Snapshot.ps1</testScript>
+			<files>remote-scripts/ica/check_traces.sh</files>
+			<cleanupScript>setupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>1800</timeout>
             <testParams>
                 <param>DiskType=VHD</param>

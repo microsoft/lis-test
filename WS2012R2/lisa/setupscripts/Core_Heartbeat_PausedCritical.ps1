@@ -204,10 +204,10 @@ if ( Get-VM $vmName1 -ComputerName $hvServer -ErrorAction SilentlyContinue ) {
 }
 
 # Create the ChildVM
-$newVm = New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
+$newVm = New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 2048MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
 {
-   Write-Output "Error: Creating New VM $vmName1" | Tee-Object -Append -file $summaryLog
+   Write-Output "Error: Creating new VM $vmName1 failed!" | Tee-Object -Append -file $summaryLog
    return $False
 }
 
