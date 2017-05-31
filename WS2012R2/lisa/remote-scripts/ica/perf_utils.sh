@@ -37,13 +37,6 @@
 # 
 ########################################################################
 
-#Source utils.sh
-. utils.sh || {
-    echo "ERROR: unable to source perf_utils.sh!"
-    echo "TestAborted" > state.txt
-    exit 2
-}
-
 declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
                            ["net.core.rmem_max"]="67108864"
                            ["net.core.wmem_max"]="67108864"
@@ -110,7 +103,7 @@ function setup_ntttcp {
       if [ $status -eq 0 ]; then
         echo "ntttcp-for-linux successfully downloaded." >> ~/summary.log
         cd ntttcp-for-linux/src
-      else 
+      else
         echo "ERROR: Unable to download ntttcp-for-linux" >> ~/summary.log
         UpdateTestState $ICA_TESTABORTED
         exit 1
@@ -197,8 +190,9 @@ function setup_fio {
 }
 #Upgrade gcc to 4.8.1
 function upgrade_gcc {
+# for RHEL subscription this is available with the devtoolset-2 package
 # Import CERN's GPG key
-    rpm --import http://ftp.scientificlinux.org/linux/scientific/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
+    rpm --import http://ftp.scientificlinux.org/linux/scientific/obsolete/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
     if [ $? -ne 0 ]; then
         echo "Error: Failed to import CERN's GPG key." >> ~/summary.log
         UpdateTestState $ICA_TESTABORTED
@@ -227,7 +221,7 @@ function upgrade_gcc {
 function get_tx_bytes(){
     # RX bytes:66132495566 (66.1 GB)  TX bytes:3067606320236 (3.0 TB)
     Tx_bytes=`ifconfig $1 | grep "TX bytes"   | awk -F':' '{print $3}' | awk -F' ' ' {print $1}'`
-    
+
     if [ "x$Tx_bytes" == "x" ]
     then
         #TX packets 223558709  bytes 15463202847 (14.4 GiB)
@@ -253,21 +247,23 @@ function get_tx_pkts(){
 #Firewall and iptables for Ubuntu/CentOS6.x/RHEL6.x
 function disable_firewall {
     service ufw status | grep inactive
-    if [[ $? -ne 0 ]]; then 
+    if [[ $? -ne 0 ]]; then
       echo "WARN: Service firewall active. Will disable it ..."
       service ufw stop
     else
       echo "Firewall is disabled."
     fi
+    iptables -F
+    ip6tables -F
     service iptables status | grep inactive
-    if [[ $? -ne 0 ]]; then 
+    if [[ $? -ne 0 ]]; then
       echo "WARN: Service iptables active. Will disable it ..."
       service iptables stop
     else
       echo "Iptables is disabled."
     fi
     service ip6tables status | grep inactive
-    if [[ $? -ne 0 ]]; then 
+    if [[ $? -ne 0 ]]; then
       echo "WARN: Service ip6tables active. Will disable it ..."
       service ip6tables stop
     else
@@ -277,7 +273,7 @@ function disable_firewall {
 }
 
 # Set static IPs for test interfaces
-function config_staticip {  
+function config_staticip {
     declare -i __iterator=0
     while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
         LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
@@ -323,11 +319,12 @@ function fio_single_disk {
     if [ -d "/root/${LOG_FOLDER}" ]; then
         echo "WARN: ${LOG_FOLDER} exists. Will delete it ..." >> ~/summary.log
         rm -rf /root/${LOG_FOLDER}
-        mkdir /root/${LOG_FOLDER}
-    else
-        echo "Creating log folder..."
-        mkdir /root/${LOG_FOLDER}
+
     fi
+
+	echo "Creating log folder..."
+    mkdir /root/${LOG_FOLDER}
+
         # Run FIO with block size 8k and iodepth 1
     /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1q.log
 
@@ -372,7 +369,7 @@ function fio_single_disk {
     /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1024q.log
 
     cd /root
-    zip -r ${LOG_FOLDER}.zip . -i ${LOG_FOLDER}/*
+    zip -r ${LOG_FOLDER}.zip ${LOG_FOLDER}/*
     if [ $? -ne 0 ]; then
         echo "ERROR: Unable to archive ${LOG_FOLDER}." >> ~/summary.log
         UpdateTestState $ICA_TESTABORTED
@@ -478,5 +475,5 @@ function fio_raid {
     sleep 1
 
     cd /root
-    zip -r ${LOG_FOLDER}.zip . -i ${LOG_FOLDER}/*
+    zip -r ${LOG_FOLDER}.zip ${LOG_FOLDER}/*
 }

@@ -105,6 +105,16 @@ dos2unix perf_utils.sh
     exit 2
 }
 
+# Convert eol
+dos2unix utils.sh
+
+# Source perf_utils.sh
+. utils.sh || {
+    echo "ERROR: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
 #Apling performance parameters
 setup_io_scheduler
 if [ $? -ne 0 ]; then

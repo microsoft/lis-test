@@ -418,40 +418,41 @@ class NTTTCPLogsReader(BaseLogsReader):
         n_conn = reduce(lambda x1, x2: int(x1) * int(x2),
                         f_match.group(1).split('X'))
         log_dict['NumberOfConnections'] = n_conn
+        log_dict['Throughput_Gbps'] = 0
+        log_dict['SenderCyclesPerByte'] = 0
+        log_dict['ReceiverCyclesPerByte'] = 0
+        log_dict['AverageLatency_ms'] = 0
         with open(log_file, 'r') as fl:
-            f_lines = fl.readlines()
-            for x in range(0, len(f_lines)):
+            for x in fl:
                 if not log_dict.get('Throughput_Gbps', None):
-                    throughput = re.match('.+throughput.+:([0-9.]+)', f_lines[x])
+                    throughput = re.match('.+throughput.+:([0-9.]+)', x)
                     if throughput:
                         log_dict['Throughput_Gbps'] = throughput.group(1).strip()
                 if not log_dict.get('SenderCyclesPerByte', None):
-                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', f_lines[x])
+                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
                     if cycle:
                         log_dict['SenderCyclesPerByte'] = cycle.group(1).strip()
         receiver_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
                                      'ntttcp-receiver-p{}.log'.format(f_match.group(1)))
         with open(receiver_file, 'r') as fl:
-            f_lines = fl.readlines()
-            for x in range(0, len(f_lines)):
+            for x in fl:
                 if not log_dict.get('ReceiverCyclesPerByte', None):
-                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', f_lines[x])
+                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
                     if cycle:
                         log_dict['ReceiverCyclesPerByte'] = cycle.group(1).strip()
         lat_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
                                 'lagscope-ntttcp-p{}.log'.format(f_match.group(1)))
         with open(lat_file, 'r') as fl:
-            f_lines = fl.readlines()
-            for x in range(0, len(f_lines)):
+            for x in fl:
                 if not log_dict.get('IPVersion', None):
-                    ip_version = re.match('domain:.+(IPv[4,6])', f_lines[x])
+                    ip_version = re.match('domain:.+(IPv[4,6])', x)
                     if ip_version:
                         log_dict['IPVersion'] = ip_version.group(1).strip()
                 if not log_dict.get('Protocol', None):
-                    ip_proto = re.match('protocol:.+([A-Z]{3})', f_lines[x])
+                    ip_proto = re.match('protocol:.+([A-Z]{3})', x)
                     if ip_proto:
                         log_dict['Protocol'] = ip_proto.group(1).strip()
-                latency = re.match('.+Average = ([0-9.]+)([a-z]+)', f_lines[x])
+                latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
                 if latency:
                     unit = latency.group(2).strip()
                     log_dict['AverageLatency_ms'] = \
@@ -672,8 +673,9 @@ class IPERFLogsReader(BaseLogsReader):
         log_dict['NumberOfConnections'] = int(f_match.group(1))
         log_dict['TxThroughput_Gbps'] = 0
         log_dict['RxThroughput_Gbps'] = 0
+        log_dict['SendBufSize_KBytes'] = 0
         log_dict['IPVersion'] = 'IPv4'
-        log_dict['Protocol'] = 'TCP'
+        log_dict['Protocol'] = 'UDP'
         lost_datagrams = 0
         total_datagrams = 0
         with open(log_file, 'r') as fl:
@@ -682,16 +684,12 @@ class IPERFLogsReader(BaseLogsReader):
             read_server = False
             for x in xrange(0, len(f_lines)):
                 if not log_dict.get('SendBufSize_KBytes', None):
-                    iperf_opt = re.match('Process.+iperf3.+?(-u\s*[A-Z]{3})*'
-                                         '.+?-(4|6).+\s*-l\s*([0-9]+)([a-z]+)'
-                                         '.+started', f_lines[x])
-                    if iperf_opt.group(1):
-                        log_dict['Protocol'] = iperf_opt.group(1).split(
-                            '-u')[1].strip()
-                    if iperf_opt.group(2):
-                        log_dict['IPVersion'] = 'IPv' + iperf_opt.group(2).strip()
-                    log_dict['SendBufSize_KBytes'] = int(
-                        iperf_opt.group(3).strip())
+                    iperf_opt = re.match('.+iperf3.+(-u\s*[A-Z]{3}).+?(-4|-6).+-l\s*([0-9]+)([a-zA-Z]+)', f_lines[x])
+                    if iperf_opt:
+                        log_dict['Protocol'] = iperf_opt.group(1).split('-u')[1].strip()
+                        if iperf_opt.group(2):
+                            log_dict['IPVersion'] = 'IPv' + iperf_opt.group(2).split('-')[1].strip()
+                        log_dict['SendBufSize_KBytes'] = int(iperf_opt.group(3).strip())
                 if 'Connecting to host' in f_lines[x]:
                     read_client = True
                     read_server = False
@@ -732,6 +730,7 @@ class IPERFLogsReader(BaseLogsReader):
             log_dict['DatagramLoss'] = 0
 
         if not log_dict.get('PacketSize_KBytes', None):
+            log_dict['PacketSize_KBytes'] = 0
             ica_log = os.path.join(self.log_base_path, 'ica.log')
             with open(ica_log, 'r') as f2:
                 lines = f2.readlines()
