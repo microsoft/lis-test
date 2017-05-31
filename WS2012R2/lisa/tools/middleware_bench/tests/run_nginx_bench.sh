@@ -37,24 +37,36 @@ TEST_CONCURRENCY_THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
 max_concurrency_per_ab=4
 max_ab_instances=16
 
-
 if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
-sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install libaio1 sysstat zip nginx apache2-utils >> ${LOG_FILE}
+distro="$(head -1 /etc/issue)"
+web_server="nginx"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt-get update >> ${LOG_FILE}
+    sudo apt-get -y install libaio1 sysstat zip nginx apache2-utils >> ${LOG_FILE}
+
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install sysstat zip nginx apache2-utils" >> ${LOG_FILE}
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean >> ${LOG_FILE}
+    sudo yum -y install sysstat zip nginx httpd-tools >> ${LOG_FILE}
+
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum clean" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip nginx httpd-tools" >> ${LOG_FILE}
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
 
 sudo pkill -f ab
 mkdir -p /tmp/nginx_bench
-
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install sysstat zip nginx apache2-utils" >> ${LOG_FILE}
 LogMsg "Info: Generate test data file on the nginx server /var/www/html/test.dat"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo dd if=/dev/urandom of=/var/www/html/test.dat bs=1K count=200"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service apache2 stop" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service nginx stop" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service nginx start" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${web_server} stop" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${web_server} start" >> ${LOG_FILE}
 ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/nginx_bench"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f ab" >> ${LOG_FILE}
 
@@ -139,6 +151,7 @@ do
 done
 
 LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r nginx_bench.zip . -i nginx_bench/* >> ${LOG_FILE}

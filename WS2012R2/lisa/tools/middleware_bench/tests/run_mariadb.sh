@@ -41,10 +41,6 @@ if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
-sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install libaio1 sysstat zip sysbench mysql-client* >> ${LOG_FILE}
-
-mkdir -p /tmp/mariadb
 if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then
     db_path="/maria/db"
@@ -60,15 +56,50 @@ else
     exit 70
 fi
 
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mariadb-server" >> ${LOG_FILE}
-ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/mariadb"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mysql stop" >> ${LOG_FILE}
-
 escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/datadir/c\datadir = ${escaped_path}' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind-address/c\bind-address = 0\.0\.0\.0' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/max_connections/c\max_connections = 1024' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
+distro="$(head -1 /etc/issue)"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt-get update >> ${LOG_FILE}
+    sudo apt-get -y install libaio1 sysstat zip sysbench mysql-client* >> ${LOG_FILE}
+
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mariadb-server" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mysql stop" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/datadir/c\datadir = ${escaped_path}' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind-address/c\bind-address = 0\.0\.0\.0' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/max_connections/c\max_connections = 1024' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean dbcache >> ${LOG_FILE}
+    sudo yum -y install sysstat zip sysstat zip gcc libtool wget >> ${LOG_FILE}
+    maria_repo_server="[mariadb-main]\
+                  \nname = MariaDB Server\
+                  \nbaseurl = https://downloads.mariadb.com/MariaDB/mariadb-10.0/yum/centos/6/x86_64\
+                  \ngpgkey = file:///etc/pki/rpm-gpg/MariaDB-Server-GPG-KEY\
+                  \ngpgcheck = 1\
+                  \nenabled = 1"
+    echo -e ${maria_repo_server} | sudo tee /etc/yum.repos.d/mariadb.repo >> ${LOG_FILE}
+    sudo yum -y install MariaDB-client MariaDB-devel >> ${LOG_FILE}
+    cd /tmp
+    wget http://downloads.mysql.com/source/sysbench-0.4.12.5.tar.gz
+    gunzip -c sysbench-0.4.12.5.tar.gz |tar zx
+    cd /tmp/sysbench-0.4.12.5; ./configure; make; sudo make install >> ${LOG_FILE}
+    sudo cp /usr/local/bin/sysbench /usr/bin/sysbench
+
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e ${maria_repo_server} | sudo tee /etc/yum.repos.d/mariadb.repo" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip MariaDB-server" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mysql stop" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo datadir = ${db_path} | sudo tee --append /etc/my.cnf.d/server.cnf" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo bind-address = 0.0.0.0 | sudo tee --append /etc/my.cnf.d/server.cnf" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo max_connections = 1024| sudo tee --append /etc/my.cnf.d/server.cnf" >> ${LOG_FILE}
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
+
+cd /tmp
+mkdir -p /tmp/mariadb
+ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/mariadb"
 
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo cp -rf /var/lib/mysql/* ${db_path}" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chmod 700 -R ${db_path}"
@@ -129,6 +160,7 @@ done
 sudo sysbench --test=oltp --mysql-host=${SERVER} --mysql-user=${USER} --mysql-password=lisapassword --mysql-db=sbtest cleanup >> ${LOG_FILE}
 
 LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r mariadb.zip . -i mariadb/* >> ${LOG_FILE}

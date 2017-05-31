@@ -50,6 +50,8 @@ sudo rm -rf /tmp/hsperfdata*
 sudo umount -l ${hadoop_store}
 sudo rm -rf ${hadoop_store}
 
+distro="$(head -1 /etc/issue)"
+
 sudo apt-get update >> ${LOG_FILE}
 sudo apt-get install -y zip maven libssl-dev build-essential rsync pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk bc >> ${LOG_FILE}
 
@@ -204,7 +206,8 @@ sleep 10
 # c4.large = 1.75 * 4 * 2 = 14
 /tmp/${hadoop_version}/bin/hadoop jar /tmp/${hadoop_version}/share/hadoop/mapreduce/hadoop-*examples*.jar terasort -Dmapreduce.job.reduces=112 ${hadoop_store}/genout ${hadoop_store}/sortout 2&> /tmp/terasort/terasort.log
 
-LogMsg "Kernel Version : `uname -r` "
+LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r terasort.zip . -i terasort/* >> ${LOG_FILE}

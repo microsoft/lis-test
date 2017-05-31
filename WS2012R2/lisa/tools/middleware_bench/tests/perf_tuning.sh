@@ -38,7 +38,6 @@ fi
 declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
                            ["net.core.rmem_max"]="67108864"
                            ["net.core.wmem_max"]="67108864"
-                           #["net.ipv4.tcp_mem"]="8388608 8388608 8388608"
                            ["net.ipv4.tcp_wmem"]="4096 12582912 33554432"
                            ["net.ipv4.tcp_rmem"]="4096 12582912 33554432"
                            ["net.ipv4.tcp_max_syn_backlog"]="80960"

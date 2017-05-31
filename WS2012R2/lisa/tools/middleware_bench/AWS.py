@@ -63,7 +63,7 @@ class AWSConnector:
         else:
             self.region = region
         if not zone:
-            self.zone = self.region + 'b'
+            self.zone = self.region + 'c'
         else:
             self.zone = zone
         self.volume_type = {'ssd_gp2': 'gp2',
@@ -172,7 +172,12 @@ class AWSConnector:
             key_pair.save(self.localpath)
         except conn.ResponseError as e:
             if e.code == 'InvalidKeyPair.Duplicate':
-                log.error('KeyPair: {} already exists.'.format(self.key_name))
+                key_path = os.path.join(self.localpath, self.key_name)
+                if os.path.exists(key_path):
+                    bkp_key_pair = self.key_name + str(time.time())
+                    os.rename(key_path, os.path.join(self.localpath, bkp_key_pair))
+                    log.info('Existing KeyPair {} renamed to {}'.format(self.key_name,
+                                                                        bkp_key_pair))
             else:
                 raise
 

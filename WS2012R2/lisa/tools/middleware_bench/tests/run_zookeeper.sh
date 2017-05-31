@@ -44,6 +44,8 @@ if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
+distro="$(head -1 /etc/issue)"
+
 sudo apt-get update >> ${LOG_FILE}
 sudo apt-get -y install libaio1 sysstat zip default-jdk git python-dev libzookeeper-mt-dev python-pip >> ${LOG_FILE}
 sudo -H pip install zkpython >> ${LOG_FILE}
@@ -142,6 +144,7 @@ do
 done
 
 LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r zookeeper.zip . -i zookeeper/* >> ${LOG_FILE}

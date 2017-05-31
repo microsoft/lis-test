@@ -42,6 +42,8 @@ if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
+distro="$(head -1 /etc/issue)"
+
 sudo apt-get update >> ${LOG_FILE}
 sudo apt-get -y install sysstat zip fio blktrace bc >> ${LOG_FILE}
 
@@ -110,7 +112,8 @@ do
     done
 done
 
-LogMsg "Kernel Version : `uname -r` "
+LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r storage.zip . -i storage/* >> ${LOG_FILE}

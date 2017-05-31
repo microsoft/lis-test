@@ -52,8 +52,18 @@ then
     LogMsg "Using multiple disks."
 fi
 
-sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install libaio1 sysstat zip >> ${LOG_FILE}
+distro="$(head -1 /etc/issue)"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt-get update >> ${LOG_FILE}
+    sudo apt-get -y install libaio1 sysstat zip >> ${LOG_FILE}
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean >> ${LOG_FILE}
+    sudo yum -y install sysstat zip sysstat zip >> ${LOG_FILE}
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
 
 run_orion()
 {
@@ -99,7 +109,8 @@ do
     run_orion ${mode}
 done
 
-LogMsg "Kernel Version : `uname -r` "
+LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 sudo zip -r orion.zip . -i orion/* >> ${LOG_FILE}

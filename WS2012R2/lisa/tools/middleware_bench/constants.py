@@ -80,5 +80,4 @@ CLUSTER_DISK = 'cluster_disk'
 
 RAID_DEV = '/dev/md0'
 
-# SQL table names
-SYSBENCH = 'Perf_AWS_Sysbench'
+ENABLED = 'enabled'

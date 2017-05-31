@@ -52,8 +52,24 @@ if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
-sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install libaio1 sysstat zip sysbench >> ${LOG_FILE}
+distro="$(head -1 /etc/issue)"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt-get update >> ${LOG_FILE}
+    sudo apt-get -y install libaio1 sysstat zip sysbench >> ${LOG_FILE}
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean dbcache>> ${LOG_FILE}
+    sudo yum -y install sysstat zip sysstat zip gcc libtool wget >> ${LOG_FILE}
+    cd /tmp
+    wget http://downloads.mysql.com/source/sysbench-0.4.12.5.tar.gz >> ${LOG_FILE}
+    gunzip -c sysbench-0.4.12.5.tar.gz |tar zx >> ${LOG_FILE}
+    cd /tmp/sysbench-0.4.12.5; ./configure --without-mysql; make; sudo make install >> ${LOG_FILE}
+    sudo cp /usr/local/bin/sysbench /usr/bin/sysbench
+    cd /tmp
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
 
 function fileio ()
 {
@@ -104,7 +120,8 @@ do
 done
 sudo sysbench --test=fileio --file-total-size=84G cleanup >> ${LOG_FILE}
 
-LogMsg "Kernel Version : `uname -r` "
+LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r sysbench.zip . -i sysbench_fileio/* >> ${LOG_FILE}
