@@ -41,11 +41,9 @@ UtilsInit
 
 #
 # Check the file of current_clocksource
-# For rhel6.9+ and rhel7.3+, default clocksource is hyperv_clocksource_tsc_page
 #
 CheckSource()
 {
-    clocksource="hyperv_clocksource_tsc_page"
     current_clocksource="/sys/devices/system/clocksource/clocksource0/current_clocksource"
     if ! [[ $(find $current_clocksource -type f -size +0M) ]]; then
         LogMsg "Test Failed. No file was found current_clocksource greater than 0M."
@@ -53,9 +51,10 @@ CheckSource()
         SetTestStateFailed
         exit 1
     else
-        __file_name=$(cat $current_clocksource)
-        if [[ "$__file_name" == "$clocksource" ]]; then
-            LogMsg "Test successful. Proper file was found."
+        __file_name=$(cat $current_clocksource | grep hyperv_clocksource*)
+        if [[ $? -eq 0 ]]; then
+            LogMsg "Test successful. Proper file was found. Clocksource file content is $__file_name"
+            echo "Clocksource file content is $__file_name" >> ~/summary.log
         else
             LogMsg "Test failed. Proper file was NOT found."
             echo "Test failed. Proper file was NOT found." >> ~/summary.log
@@ -74,12 +73,14 @@ CheckSource()
         exit 1
     fi
 
-    # check dmesg with hyperv_clocksource_tsc_page
-    if [[ $(dmesg | grep "clocksource $clocksource") ]];then
-        LogMsg "Test successful. dmesg contains log - clocksource $clocksource"
+    # check dmesg with hyperv_clocksource
+    __dmesg_output=$(dmesg | grep "clocksource hyperv_clocksource*")
+    if [[ $? -eq 0 ]];then
+        LogMsg "Test successful. dmesg contains log - clocksource $__dmesg_output"
+        echo "Test successful. dmesg contains the following log: $__dmesg_output" >> ~/summary.log
     else
-        LogMsg "Test failed. dmesg does not contain log - clocksource $clocksource"
-        echo "Test failed. dmesg does not contain log - clocksource $clocksource" >> ~/summary.log
+        LogMsg "Test failed. dmesg does not contain log - clocksource $__dmesg_output"
+        echo "Test failed. dmesg does not contain log - clocksource $__dmesg_output" >> ~/summary.log
         SetTestStateFailed
         exit 1
     fi
