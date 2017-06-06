@@ -33,7 +33,7 @@
                 <to>myboss@mail.com</to>
             </recipients>
             <sender>myself@mail.com</sender>
-            <subject>LISA VHDx Resize on WS2012R2</subject>
+            <subject>LISA VHDx Resize Tests Run</subject>
             <smtpServer>smtp.your.company.com</smtpServer>
         </email>
     </global>
@@ -58,6 +58,7 @@
                 <suiteTest>VHDxResizeGrowOver2TB_Shrink_SCSI_Online</suiteTest>
                 <suiteTest>VHDxResizeGrowOver2TB_Shrink_SCSI_Offline</suiteTest>
                 <suiteTest>VHDxResizeGrowOver2TB_Shrink_IDE</suiteTest>
+                <!-- The below test case requires the VM to run on a cluster setup -->
                 <suiteTest>VHDxResize_Live_Migration</suiteTest>
             </suiteTests>
         </suite>
@@ -415,7 +416,7 @@
 
     <VMs>
         <vm>
-            <hvServer>hvServer</hvServer>
+            <hvServer>localhost</hvServer>
             <vmName>VM</vmName>
             <os>Linux</os>
             <ipv4></ipv4>

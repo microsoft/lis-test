@@ -148,7 +148,29 @@ else
     return $false
 }
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
+
 Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+
+#
+# Verify if the VM is clustered
+#
+Get-Command "Get-ClusterResource" -ErrorAction SilentlyContinue
+if ($?) {
+    $cluster_vm = Get-ClusterGroup -Name $vmName -ErrorAction SilentlyContinue
+
+    if (-not $cluster_vm) {
+        Write-Output "Test skipped: VM $vmName is not running on a cluster." | Tee-Object -Append -file $summaryLog
+        return $Skipped
+    }
+}
 
 #
 # Convert the new size
@@ -168,7 +190,8 @@ foreach ($vhdx in $vhdxDisks)
     $vhdxPath = $vhdx.Path
     if ($vhdxPath.Contains($vhdxName))
     {
-        $vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber $vhdx.ControllerNumber -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
+        $vhdxDrive = Get-VMHardDiskDrive -VMName $vmName -Controllertype SCSI -ControllerNumber $vhdx.ControllerNumber `
+        -ControllerLocation $vhdx.ControllerLocation -ComputerName $hvServer -ErrorAction SilentlyContinue
     }
 }
 if (-not $vhdxDrive)
@@ -227,7 +250,7 @@ if (-not $($sts[-1]))
     {
         "Warning : Failed getting summary.log from VM"
     }
-    "Error: Running '${guest_script}' script failed on VM "
+    "Error: Running '${guest_script}' script failed on VM!"
     return $False
 }
 
@@ -260,7 +283,7 @@ if (-not $?)
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
 if (-not $?)
 {
-    "Error: Failed to force SCSI device rescan"
+    "Error: Failed to force SCSI device rescan!"
     return $False
 }
 
@@ -346,12 +369,12 @@ $CheckResultsts = CheckResult
 $sts = RunTestLog $guest_script $TestLogDir $TestName
 if (-not $($sts[-1]))
 {
-    "Warning : Getting RunTestLog.log from VM, will not exit test case execution "
+    "Warning : Getting RunTestLog.log from VM, will not exit test case execution"
 }
 
 if (-not $($CheckResultsts[-1]))
 {
-    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+    "Error: Running '${guest_script}'script failed on VM. check VM logs, exiting test case execution."
     return $False
 }
 
@@ -367,5 +390,4 @@ if (-not $?)
 
 "Info : The guest sees the new size ($diskSize)"
 "Info : VHDx Resize - ${TC_COVERED} is Done"
-
 return $True
