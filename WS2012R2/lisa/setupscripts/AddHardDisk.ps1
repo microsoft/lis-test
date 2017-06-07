@@ -116,22 +116,20 @@
     None.
 #>
 
-
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $global:MinDiskSize = "1GB"
 
 ############################################################################
 #
-# CreateController
+# CreateControllerVHD
 #
 # Description
 #     Create a SCSI controller if one with the ControllerID does not
 #     already exist.
 #
 ############################################################################
-function CreateController([string] $vmName, [string] $server, [string] $controllerID)
+function CreateControllerVHD([string] $vmName, [string] $server, [string] $controllerID)
 {
     #
     # Hyper-V only allows 4 SCSI controllers - make sure the Controller ID is valid
@@ -150,7 +148,7 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
     #       SCSI controllers.
     #
     $maxControllerID = 0
-    $createController = $true
+    $CreateControllerVHD = $true
     $controllers = Get-VMScsiController -VMName $vmName -ComputerName $server
 
     if ($controllers -ne $null)
@@ -167,14 +165,14 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
         if ($controllerID -lt $maxControllerID)
         {
             "Info : Controller exists - controller not created"
-            $createController = $false
+            $CreateControllerVHD = $false
         }
     }
 
     #
     # If needed, create the controller
     #
-    if ($createController)
+    if ($CreateControllerVHD)
     {
         $ctrl = Add-VMSCSIController -VMName $vmName -ComputerName $server -Confirm:$false
         if($? -ne $true)
@@ -216,7 +214,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
         #
         # Create the SCSI controller if needed
         #
-        $sts = CreateController $vmName $server $controllerID
+        $sts = CreateControllerVHD $vmName $server $controllerID
 
         if (-not $sts[$sts.Length-1])
         {
@@ -338,7 +336,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         #
         # Create the SCSI controller if needed
         #
-        $sts = CreateController $vmName $server $controllerID
+        $sts = CreateControllerVHD $vmName $server $controllerID
         if (-not $sts[$sts.Length-1])
         {
             "Error: Unable to create SCSI controller $controllerID"
