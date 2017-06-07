@@ -394,6 +394,7 @@
                 <param>vhdpath=C:\TestVolume.vhdx</param>
             </testParams>
             <timeout>1200</timeout>
+            <cleanupScript>SetupScripts\Core_Heartbeat_Cleanup.ps1</cleanupScript>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
         </test>
