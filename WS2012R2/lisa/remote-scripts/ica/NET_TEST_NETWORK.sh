@@ -397,7 +397,7 @@ if [ "$pingVersion" == "ping6" ] && [ ${#SYNTH_NET_INTERFACES[@]} -ge 1 ]; then
     if [[ "$DISTRO" == "redhat"* || "$DISTRO" == "centos"* ]]; then
         service network restart
         if [ $? -ne 0 ]; then
-			msg="Unable to restart netwrok service."
+			msg="Unable to restart network service."
 			LogMsg "$msg"
 			UpdateSummary "$msg"
 		fi
