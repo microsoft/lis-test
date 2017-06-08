@@ -123,13 +123,13 @@ else
         LogMsg "Test Passed! All {$cpu_count} CPU cores are processing interrupts."
         echo "Test Passed! All {$cpu_count} CPU cores are processing interrupts." >> ~/summary.log
     else
-        LogMsg "Test Failed! Not all CPU cores are processing VMBUS interrupts."
-        echo "Test Failed! Not all CPU cores are processing VMBUS interrupts." >> ~/summary.log
+        LogMsg "Error: Not all CPU cores are processing VMBUS interrupts!"
+        echo "Error: Not all CPU cores are processing VMBUS interrupts!" >> ~/summary.log
         UpdateTestState "TestFailed"
         exit 10
     fi
+    LogMsg "Test completed successfully"
+    UpdateTestState "TestCompleted"
 fi
 
-LogMsg "Test completed successfully"
-UpdateTestState "TestCompleted"
 exit 0
