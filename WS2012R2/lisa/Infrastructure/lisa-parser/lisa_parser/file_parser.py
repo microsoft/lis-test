@@ -434,12 +434,13 @@ class NTTTCPLogsReader(BaseLogsReader):
                         log_dict['SenderCyclesPerByte'] = cycle.group(1).strip()
         receiver_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
                                      'ntttcp-receiver-p{}.log'.format(f_match.group(1)))
-        with open(receiver_file, 'r') as fl:
-            for x in fl:
-                if not log_dict.get('ReceiverCyclesPerByte', None):
-                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
-                    if cycle:
-                        log_dict['ReceiverCyclesPerByte'] = cycle.group(1).strip()
+        if os.path.exists(receiver_file):
+            with open(receiver_file, 'r') as fl:
+                for x in fl:
+                    if not log_dict.get('ReceiverCyclesPerByte', None):
+                        cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
+                        if cycle:
+                            log_dict['ReceiverCyclesPerByte'] = cycle.group(1).strip()
         lat_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
                                 'lagscope-ntttcp-p{}.log'.format(f_match.group(1)))
         with open(lat_file, 'r') as fl:
