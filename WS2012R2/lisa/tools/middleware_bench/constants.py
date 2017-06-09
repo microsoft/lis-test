@@ -66,6 +66,10 @@ AWS = 'aws'
 AZURE = 'azure'
 GCE = 'gce'
 
+HVM = 'hvm'
+MSAZURE = 'MS Azure'
+KVM = 'kvm'
+
 DEVICE_AWS = '/dev/sdx'
 DEVICE_AZURE = '/dev/sdc'
 DEVICE_GCE = '/dev/disk/by-id/google-'
@@ -81,3 +85,5 @@ CLUSTER_DISK = 'cluster_disk'
 RAID_DEV = '/dev/md0'
 
 ENABLED = 'enabled'
+SRIOV = 'SRIOV'
+SYNTHETIC = 'Synthetic'

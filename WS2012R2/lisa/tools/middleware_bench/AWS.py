@@ -172,12 +172,7 @@ class AWSConnector:
             key_pair.save(self.localpath)
         except conn.ResponseError as e:
             if e.code == 'InvalidKeyPair.Duplicate':
-                key_path = os.path.join(self.localpath, self.key_name)
-                if os.path.exists(key_path):
-                    bkp_key_pair = self.key_name + str(time.time())
-                    os.rename(key_path, os.path.join(self.localpath, bkp_key_pair))
-                    log.info('Existing KeyPair {} renamed to {}'.format(self.key_name,
-                                                                        bkp_key_pair))
+                log.info('Duplicate KeyPair {}'.format(self.key_name))
             else:
                 raise
 

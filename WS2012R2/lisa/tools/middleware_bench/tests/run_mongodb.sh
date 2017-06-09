@@ -70,7 +70,7 @@ then
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache >> ${LOG_FILE}
-    sudo yum -y install sysstat zip sysstat zip gcc libtool curl >> ${LOG_FILE}
+    sudo yum -y install sysstat zip sysstat zip automake openssl-devel gcc libtool curl >> ${LOG_FILE}
     mongo_repo_server="[mongodb-org-2.6]\
                        \nname=MongoDB 2.6 Repository\
                        \nbaseurl=http://downloads-distro.mongodb.org/repo/redhat/os/x86_64\
@@ -79,8 +79,8 @@ then
     echo -e ${mongo_repo_server} | sudo tee /etc/yum.repos.d/mongodb.repo >> ${LOG_FILE}
     sudo yum -y install mongodb-org-tools >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum clean dbcache" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e ${mongo_repo_server} | sudo tee /etc/yum.repos.d/mongodb.repo" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip mongodb-org" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e '${mongo_repo_server}' | sudo tee /etc/yum.repos.d/mongodb.repo" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install openssl-devel sysstat zip mongodb-org" >> ${LOG_FILE}
     db_conf="/etc/mongod.conf"
     db_service="mongod"
 else
@@ -99,7 +99,7 @@ mkdir -p /tmp/mongodb
 ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/mongodb"
 
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${db_service} stop" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R mongodb:mongodb ${db_path}"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R ${db_service}:${db_service} ${db_path}"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/dbpath/c\dbpath=${escaped_path}' ${db_conf}" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind_ip/c\bind_ip = 0\.0\.0\.0' ${db_conf}" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${db_service} start" >> ${LOG_FILE}

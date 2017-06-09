@@ -25,6 +25,9 @@ import os
 import time
 import zipfile
 import shutil
+import csv
+
+from datetime import datetime
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -106,6 +109,11 @@ class BaseLogsReader(object):
                     guest_os = re.match('.+:\s*Guest\s*OS\s*:\s*([a-zA-Z0-9. ]+)', line)
                     if guest_os:
                         log_dict['guest_os'] = guest_os.group(1).strip()
+                if not log_dict.get('hadoop_version', None):
+                    hadoop_version = re.match('.+:\s*Hadoop\s*Version\s*:\s*hadoop-([0-9. ]+)',
+                                              line)
+                    if hadoop_version:
+                        log_dict['hadoop_version'] = hadoop_version.group(1).strip()
         return log_dict
 
     def teardown(self):
@@ -167,7 +175,10 @@ class BaseLogsReader(object):
                 continue
             log_dict = dict.fromkeys(self.headers, '')
             collected_data = self.collect_data(f_match, log_file, log_dict)
-            list_log_dict.append(collected_data)
+            if type(collected_data) is list:
+                list_log_dict += collected_data
+            else:
+                list_log_dict.append(collected_data)
 
         self.teardown()
         if self.sorter:
@@ -186,25 +197,37 @@ class BaseLogsReader(object):
 class OrionLogsReader(BaseLogsReader):
     """
     Subclass for parsing Orion log files e.g.
-    rndrd_4K_1_sysbench.log
+    normal_iops.log
+    normal_lat.log
+    normal_mbps.log
     """
     def __init__(self, log_path=None, test_case_name=None, host_type=None, instance_size=None,
                  disk_setup=None):
         super(OrionLogsReader, self).__init__(log_path)
-        self.headers = ['TestCaseName', 'HostType', 'InstanceSize', 'DiskSetup', 'FileTestMode',
-                        'BlockSize_Kb', 'Threads', 'Latency95Percentile_ms',
-                        'RequestsExecutedPerSec']
-        self.sorter = ['FileTestMode', 'BlockSize_Kb', 'Threads']
+        self.headers = ['TestMode', 'NumOutstandingSmall_IO', 'NumOutstandingLarge_IO',
+                        'Throughput_MBps', 'Latency_ms', 'IOPS']
+        self.sorter = ['TestMode', 'NumOutstandingSmall_IO', 'NumOutstandingLarge_IO']
         self.test_case_name = test_case_name
         self.host_type = host_type
         self.instance_size = instance_size
         self.disk_setup = disk_setup
 
-        self.log_matcher = '([a-z]+)_([0-9]+)K_([0-9]+)_sysbench.log'
+        self.log_matcher = '([a-z]+)_iops.csv'
+
+    @staticmethod
+    def __parse_csv(csv_path):
+        list_dict = []
+        with open(csv_path, 'r') as fl:
+            header = [h.strip() for h in fl.next().split(',')]
+            reader = csv.DictReader(fl, fieldnames=header)
+            for csv_dict in reader:
+                list_dict.append({key: value.strip() for key, value in csv_dict.items()
+                                  if value})
+        return list_dict
 
     def collect_data(self, f_match, log_file, log_dict):
         """
-        Customized data collect for FIO test case.
+        Customized data collect for Orion test case.
         :param f_match: regex file matcher
         :param log_file: full path log file name
         :param log_dict: dict constructed from the defined headers
@@ -214,32 +237,60 @@ class OrionLogsReader(BaseLogsReader):
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
         log_dict['DiskSetup'] = self.disk_setup
-        log_dict['TestMode'] = 'fileio'
-        log_dict['FileTestMode'] = f_match.group(1)
-        log_dict['BlockSize_Kb'] = f_match.group(2)
-        log_dict['Threads'] = f_match.group(3)
+        log_dict['TestMode'] = f_match.group(1)
+        log_dict['Throughput_MBps'] = 0
+        log_dict['IOPS'] = 0
+        log_dict['Latency_ms'] = 0
 
         summary = self.get_summary_log()
         log_dict['KernelVersion'] = summary['kernel']
         log_dict['TestDate'] = summary['date']
         log_dict['GuestOS'] = summary['guest_os']
 
-        with open(log_file, 'rU') as fl:
-            for key in log_dict:
-                if not log_dict[key]:
-                    for line in fl:
-                        if 'Latency' in key:
-                            lat = re.match('\s*approx.\s*95\s*percentile:\s*([0-9.]+)([a-z]+)',
-                                           line)
-                            if lat:
-                                unit = lat.group(2).strip()
-                                log_dict[key] = float(
-                                    lat.group(1).strip()) * self.CUNIT[unit]
-                        elif 'Requests' in key:
-                            req = re.match('\s*([0-9.]+)\s*Requests/sec\s*executed', line)
-                            if req:
-                                log_dict[key] = req.group(1).strip()
-        return log_dict
+        iops_csv = self.__parse_csv(log_file)
+        lat_csv = self.__parse_csv(os.path.join(os.path.dirname(log_file),
+                                                log_dict['TestMode'] + '_lat.csv'))
+        mbps_csv = self.__parse_csv(os.path.join(os.path.dirname(log_file),
+                                                 log_dict['TestMode'] + '_mbps.csv'))
+        list_log_dict = []
+        for data in mbps_csv:
+            log_dict['NumOutstandingSmall_IO'] = None
+            log_dict['NumOutstandingLarge_IO'] = data['Large/Small']
+            for key, value in data.items():
+                if key != 'Large/Small':
+                    log_dict['NumOutstandingSmall_IO'] = key
+                    log_dict['Throughput_MBps'] = value
+                    list_log_dict.append(log_dict.copy())
+
+        for data in iops_csv:
+            log_dict['NumOutstandingSmall_IO'] = None
+            log_dict['NumOutstandingLarge_IO'] = data['Large/Small']
+            for key, value in data.items():
+                if key != 'Large/Small':
+                    log_dict['NumOutstandingSmall_IO'] = key
+                    log_dict['IOPS'] = value
+                    try:
+                        log_dict['Latency_ms'] = \
+                            (item[item_key] for item in lat_csv for item_key in item
+                             if log_dict['NumOutstandingLarge_IO'] == item['Large/Small'] and
+                             log_dict['NumOutstandingSmall_IO'] == item_key).next()
+                    except StopIteration:
+                        log_dict['Latency_ms'] = 0
+                    log_dict['Throughput_MBps'] = 0
+                    if any(item for item in list_log_dict
+                           if log_dict["NumOutstandingSmall_IO"] ==
+                           item['NumOutstandingSmall_IO'] and log_dict['NumOutstandingLarge_IO'] ==
+                            item["NumOutstandingLarge_IO"]):
+                        for row in list_log_dict:
+                            if row['NumOutstandingSmall_IO'] == \
+                                    log_dict['NumOutstandingSmall_IO']\
+                                    and row['NumOutstandingLarge_IO'] ==\
+                                    log_dict['NumOutstandingLarge_IO']:
+                                row['IOPS'] = log_dict['IOPS']
+                                row['Latency_ms'] = log_dict['Latency_ms']
+                    else:
+                        list_log_dict.append(log_dict.copy())
+        return list_log_dict
 
 
 class SysbenchLogsReader(BaseLogsReader):
@@ -250,8 +301,7 @@ class SysbenchLogsReader(BaseLogsReader):
     def __init__(self, log_path=None, test_case_name=None, host_type=None, instance_size=None,
                  disk_setup=None):
         super(SysbenchLogsReader, self).__init__(log_path)
-        self.headers = ['TestCaseName', 'HostType', 'InstanceSize', 'DiskSetup', 'FileTestMode',
-                        'BlockSize_Kb', 'Threads', 'Latency95Percentile_ms',
+        self.headers = ['FileTestMode', 'BlockSize_Kb', 'Threads', 'Latency95Percentile_ms',
                         'RequestsExecutedPerSec']
         self.sorter = ['FileTestMode', 'BlockSize_Kb', 'Threads']
         self.test_case_name = test_case_name
@@ -284,18 +334,19 @@ class SysbenchLogsReader(BaseLogsReader):
         log_dict['GuestOS'] = summary['guest_os']
 
         with open(log_file, 'rU') as fl:
+            f_lines = fl.readlines()
             for key in log_dict:
                 if not log_dict[key]:
-                    for line in fl:
+                    for x in range(0, len(f_lines)):
                         if 'Latency' in key:
                             lat = re.match('\s*approx.\s*95\s*percentile:\s*([0-9.]+)([a-z]+)',
-                                           line)
+                                           f_lines[x])
                             if lat:
                                 unit = lat.group(2).strip()
                                 log_dict[key] = float(
-                                    lat.group(1).strip()) * self.CUNIT[unit]
+                                        lat.group(1).strip()) * self.CUNIT[unit]
                         elif 'Requests' in key:
-                            req = re.match('\s*([0-9.]+)\s*Requests/sec\s*executed', line)
+                            req = re.match('\s*([0-9.]+)\s*Requests/sec\s*executed', f_lines[x])
                             if req:
                                 log_dict[key] = req.group(1).strip()
         return log_dict
@@ -306,13 +357,15 @@ class MemcachedLogsReader(BaseLogsReader):
     Subclass for parsing Memcached log files e.g.
     1.memtier_benchmark.run.log
     """
-    def __init__(self, log_path=None, test_case_name=None, host_type=None, instance_size=None):
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None):
         super(MemcachedLogsReader, self).__init__(log_path)
         self.headers = ['TestConnections', 'Threads', 'ConnectionsPerThread',
                         'RequestsPerThread', 'BestLatency_ms', 'WorstLatency_ms',
                         'AverageLatency_ms', 'BestOpsPerSec',
                         'WorstOpsPerSec', 'AverageOpsPerSec']
         self.test_case_name = test_case_name
+        self.data_path = data_path
         self.host_type = host_type
         self.instance_size = instance_size
         self.log_matcher = '([0-9]+).memtier_benchmark.run.log'
@@ -326,6 +379,7 @@ class MemcachedLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
         log_dict['TestConnections'] = f_match.group(1)
@@ -382,11 +436,13 @@ class RedisLogsReader(BaseLogsReader):
     Subclass for parsing Redis log files e.g.
     1.redis.set.get.log
     """
-    def __init__(self, log_path=None, test_case_name=None, host_type=None, instance_size=None):
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None):
         super(RedisLogsReader, self).__init__(log_path)
         self.headers = ['TestPipelines', 'TotalRequests', 'ParallelClients', 'Payload_bytes',
                         'SETRRequestsPerSec', 'GETRequestsPerSec']
         self.test_case_name = test_case_name
+        self.data_path = data_path
         self.host_type = host_type
         self.instance_size = instance_size
         self.log_matcher = '([0-9]+).redis.set.get.log'
@@ -400,6 +456,7 @@ class RedisLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
         log_dict['TestPipelines'] = f_match.group(1)
@@ -441,12 +498,14 @@ class ApacheLogsReader(BaseLogsReader):
     Subclass for parsing Apache bench log files e.g.
     1.apache.bench.log
     """
-    def __init__(self, log_path=None, test_case_name=None, host_type=None, instance_size=None):
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None):
         super(ApacheLogsReader, self).__init__(log_path)
         self.headers = ['TestConcurrency', 'NumberOfAbInstances', 'ConcurrencyPerAbInstance',
                         'WebServerVersion', 'Document_bytes', 'CompleteRequests',
                         'RequestsPerSec', 'TransferRate_KBps', 'MeanConnectionTimes_ms']
         self.test_case_name = test_case_name
+        self.data_path = data_path
         self.host_type = host_type
         self.instance_size = instance_size
         self.log_matcher = '([0-9]+).apache.bench.log'
@@ -460,6 +519,7 @@ class ApacheLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
         log_dict['TestConcurrency'] = f_match.group(1)
@@ -519,13 +579,14 @@ class MariadbLogsReader(BaseLogsReader):
     Subclass for parsing MariaDB log files e.g.
     1.sysbench.mariadb.run.log
     """
-    def __init__(self, log_path=None, test_case_name=None, host_type=None,
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
                  instance_size=None, disk_setup=None):
         super(MariadbLogsReader, self).__init__(log_path)
         self.headers = ['TestMode', 'Driver', 'Threads', 'TotalQueries',
                         'TransactionsPerSec', 'DeadlocksPerSec',
                         'RWRequestsPerSec', 'Latency95Percentile_ms']
         self.test_case_name = test_case_name
+        self.data_path = data_path
         self.host_type = host_type
         self.instance_size = instance_size
         self.disk_setup = disk_setup
@@ -540,6 +601,7 @@ class MariadbLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
         log_dict['DiskSetup'] = self.disk_setup
@@ -583,16 +645,15 @@ class MongodbLogsReader(BaseLogsReader):
     Subclass for parsing MongoDB log files e.g.
     1.ycsb.run.log
     """
-    def __init__(self, log_path=None, test_case_name=None, host_type=None, instance_size=None,
-                 disk_setup=None):
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None, disk_setup=None):
         super(MongodbLogsReader, self).__init__(log_path)
-        self.headers = ['Threads', 'TotalOpsPerSec',
-                        'ReadOps', 'ReadLatency95Percentile_us',
+        self.headers = ['Threads', 'TotalOpsPerSec', 'ReadOps', 'ReadLatency95Percentile_us',
                         'CleanupOps', 'CleanupLatency95Percentile_us',
                         'UpdateOps', 'UpdateLatency95Percentile_us',
-                        'ReadFailedOps',
-                        'ReadFailedLatency95Percentile_us']
+                        'ReadFailedOps', 'ReadFailedLatency95Percentile_us']
         self.test_case_name = test_case_name
+        self.data_path = data_path
         self.host_type = host_type
         self.instance_size = instance_size
         self.disk_setup = disk_setup
@@ -600,13 +661,14 @@ class MongodbLogsReader(BaseLogsReader):
 
     def collect_data(self, f_match, log_file, log_dict):
         """
-        Customized data collect for FIO test case.
+        Customized data collect for MongoDB test case.
         :param f_match: regex file matcher
         :param log_file: full path log file name
         :param log_dict: dict constructed from the defined headers
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
         log_dict['DiskSetup'] = self.disk_setup
@@ -659,13 +721,14 @@ class ZookeeperLogsReader(BaseLogsReader):
     Subclass for parsing Zookeeper log files e.g.
     1.zookeeper.latency.log
     """
-    def __init__(self, log_path=None, test_case_name=None, host_type=None, instance_size=None,
-                 cluster_setup=None):
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None, cluster_setup=None):
         super(ZookeeperLogsReader, self).__init__(log_path)
         self.headers = ['Threads', 'TotalCreatedCallsPerSec',
                         'TotalGetCallsPerSec', 'TotalSetCallsPerSec',
                         'TotalDeletedCallsPerSec', 'TotalWatchedCallsPerSec']
         self.test_case_name = test_case_name
+        self.data_path = data_path
         self.host_type = host_type
         self.instance_size = instance_size
         self.cluster_setup = cluster_setup
@@ -680,6 +743,7 @@ class ZookeeperLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
         log_dict['ClusterSetup'] = self.cluster_setup
@@ -723,4 +787,59 @@ class ZookeeperLogsReader(BaseLogsReader):
                 if watched:
                     r = round(log_dict['TotalWatchedCallsPerSec'] + float(watched.group(4)), 3)
                     log_dict['TotalWatchedCallsPerSec'] = r
+        return log_dict
+
+
+class TerasortLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing Terasort log files e.g.
+    terasort.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None, cluster_setup=None):
+        super(TerasortLogsReader, self).__init__(log_path)
+        self.headers = ['HadoopVersion', 'TeragenRecords', 'SortDuration_sec']
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.cluster_setup = cluster_setup
+        self.log_matcher = 'terasort.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for Terasort test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
+        log_dict['HostType'] = self.host_type
+        log_dict['InstanceSize'] = self.instance_size
+        log_dict['ClusterSetup'] = self.cluster_setup
+        log_dict['TeragenRecords'] = 0
+        log_dict['SortDuration_sec'] = 0
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestOS'] = summary['guest_os']
+        log_dict['HadoopVersion'] = summary['hadoop_version']
+
+        start = 0
+        end = 0
+        with open(log_file, 'r') as fl:
+            for line in fl:
+                starting = re.match('\s*([0-9:/ ]+)\s*INFO\s*terasort.TeraSort:\s*starting', line)
+                if starting:
+                    start = datetime.strptime(starting.group(1).strip(), "%y/%m/%d %H:%M:%S")
+                ending = re.match('\s*([0-9:/ ]+)\s*INFO\s*terasort.TeraSort:\s*done', line)
+                if ending:
+                    end = datetime.strptime(ending.group(1).strip(), "%y/%m/%d %H:%M:%S")
+                records = re.match('\s*Map\s*input\s*records=\s*([0-9]+)', line)
+                if records:
+                    log_dict['TeragenRecords'] = int(records.group(1).strip())
+        log_dict['SortDuration_sec'] = (end - start).total_seconds()
         return log_dict

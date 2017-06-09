@@ -13,10 +13,20 @@ def host_type(provider):
     :return: Host type string
     """
     if provider == constants.AWS:
-        return 'hvm'
+        return constants.HVM
     elif provider == constants.AZURE:
-        return 'MS Azure'
+        return constants.MSAZURE
     elif provider == constants.GCE:
-        return 'kvm'
+        return constants.KVM
 
 
+def data_path(sriov):
+    """
+    Return data path based on sriov state
+    :param sriov: sriov state
+    :return: Data path string
+    """
+    if sriov == constants.ENABLED:
+        return constants.SRIOV
+    else:
+        return constants.SYNTHETIC

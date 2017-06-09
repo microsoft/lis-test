@@ -72,12 +72,11 @@ then
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache >> ${LOG_FILE}
-    sudo yum -y install sysstat zip sysstat zip gcc libtool wget >> ${LOG_FILE}
+    sudo yum -y install sysstat zip sysstat zip gcc automake openssl-devel libtool wget >> ${LOG_FILE}
     maria_repo_server="[mariadb-main]\
                   \nname = MariaDB Server\
                   \nbaseurl = https://downloads.mariadb.com/MariaDB/mariadb-10.0/yum/centos/6/x86_64\
-                  \ngpgkey = file:///etc/pki/rpm-gpg/MariaDB-Server-GPG-KEY\
-                  \ngpgcheck = 1\
+                  \ngpgcheck = 0\
                   \nenabled = 1"
     echo -e ${maria_repo_server} | sudo tee /etc/yum.repos.d/mariadb.repo >> ${LOG_FILE}
     sudo yum -y install MariaDB-client MariaDB-devel >> ${LOG_FILE}
@@ -87,12 +86,12 @@ then
     cd /tmp/sysbench-0.4.12.5; ./configure; make; sudo make install >> ${LOG_FILE}
     sudo cp /usr/local/bin/sysbench /usr/bin/sysbench
 
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e ${maria_repo_server} | sudo tee /etc/yum.repos.d/mariadb.repo" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip MariaDB-server" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e '${maria_repo_server}' | sudo tee /etc/yum.repos.d/mariadb.repo" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip openssl-devel MariaDB-server" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mysql stop" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo datadir = ${db_path} | sudo tee --append /etc/my.cnf.d/server.cnf" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo bind-address = 0.0.0.0 | sudo tee --append /etc/my.cnf.d/server.cnf" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo max_connections = 1024| sudo tee --append /etc/my.cnf.d/server.cnf" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo max_connections = 1024 | sudo tee --append /etc/my.cnf.d/server.cnf" >> ${LOG_FILE}
 else
     LogMsg "Unsupported distribution: ${distro}."
 fi
@@ -106,7 +105,6 @@ ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chmod 700 -R ${db_pat
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R mysql:adm ${db_path}"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mysql start" >> ${LOG_FILE}
 sleep 30
-mysql_pid=$(ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} pidof mysqld)
 
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mysql -e \"GRANT ALL PRIVILEGES ON *.* TO '${USER}'@'${client_ip}' IDENTIFIED BY 'lisapassword' WITH GRANT OPTION;\"" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mysql -e \"DROP DATABASE sbtest;\"" >> ${LOG_FILE}
@@ -128,12 +126,10 @@ function run_mariadb ()
     ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/mariadb/${threads}.iostat.diskio.log"
     ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/mariadb/${threads}.vmstat.memory.cpu.log"
     ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "mpstat -P ALL 1 900 2>&1 > /tmp/mariadb/${threads}.mpstat.cpu.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "pidstat -h -r -u -v -p ${mysql_pid} 1 900 2>&1 > /tmp/mariadb/${threads}.pidstat.cpu.log"
     sar -n DEV 1 900   2>&1 > /tmp/mariadb/${threads}.sar.netio.log &
     iostat -x -d 1 900 2>&1 > /tmp/mariadb/${threads}.iostat.netio.log &
     vmstat 1 900       2>&1 > /tmp/mariadb/${threads}.vmstat.netio.log &
     mpstat -P ALL 1 900 2>&1 > /tmp/mariadb/${threads}.mpstat.cpu.log &
-    ( sleep 5 ; pidstat -h -r -u -v -p $(pidof sysbench) 1 900 2>&1 > /tmp/mariadb/${threads}.pidstat.cpu.log ) &
 
     sudo sysbench --test=oltp --mysql-host=${SERVER} --mysql-user=${USER} --mysql-password=lisapassword --mysql-db=sbtest --max-time=300 --oltp-test-mode=complex --mysql-table-engine=innodb --oltp-read-only=off --max-requests=100000000 --num-threads=${threads} run > /tmp/mariadb/${threads}.sysbench.mariadb.run.log
 
@@ -141,12 +137,10 @@ function run_mariadb ()
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iostat"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f vmstat"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f mpstat"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f pidstat"
     sudo pkill -f sar
     sudo pkill -f iostat
     sudo pkill -f vmstat
     sudo pkill -f mpstat
-    sudo pkill -f pidstat
 
     LogMsg "sleep 60 seconds"
     sleep 60

@@ -247,7 +247,7 @@ class AzureConnector:
         log.info('Restarting VM: {}'.format(vm_name))
         vm_restart = self.compute_client.virtual_machines.restart(self.group_name, vm_name)
         vm_restart.wait()
-        time.sleep(30)
+        time.sleep(120)
         log.info('Restarted VM: {}'.format(vm_instance.__dict__))
 
         return vm_instance

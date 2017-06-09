@@ -208,6 +208,7 @@ sleep 10
 
 LogMsg "Kernel Version : `uname -r`"
 LogMsg "Guest OS : ${distro}"
+LogMsg "Hadoop Version : ${hadoop_version}"
 
 cd /tmp
 zip -r terasort.zip . -i terasort/* >> ${LOG_FILE}

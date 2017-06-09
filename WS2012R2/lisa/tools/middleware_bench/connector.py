@@ -32,7 +32,7 @@ from cmdshell import SSHClient
 
 from db_utils import upload_results
 from results_parser import SysbenchLogsReader, MemcachedLogsReader, RedisLogsReader, \
-    ApacheLogsReader, MariadbLogsReader, MongodbLogsReader, ZookeeperLogsReader
+    ApacheLogsReader, MariadbLogsReader, MongodbLogsReader, ZookeeperLogsReader, TerasortLogsReader
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -448,13 +448,9 @@ def test_sysbench(provider, keyid, secret, token, imageid, subscription, tenant,
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_Sysbench'.format(provider),
-                       results_path=results_path,
-                       parser=SysbenchLogsReader,
-                       test_case_name='{}_sysbench_fileio_perf_tuned{}'.format(provider, suffix),
+                       results_path=results_path, parser=SysbenchLogsReader,
+                       test_case_name='{}_sysbench_fileio_perf_tuned'.format(provider),
                        host_type=utils.host_type(provider), instance_size=instancetype,
                        disk_setup='1 x SSD {}GB'.format(disk_size))
 
@@ -524,13 +520,9 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_Sysbench'.format(provider),
-                       results_path=results_path,
-                       parser=SysbenchLogsReader,
-                       test_case_name='{}_sysbench_fileio_perf_tuned{}'.format(provider, suffix),
+                       results_path=results_path, parser=SysbenchLogsReader,
+                       test_case_name='{}_sysbench_fileio_perf_tuned'.format(provider),
                        host_type=utils.host_type(provider), instance_size=instancetype,
                        disk_setup='{} x SSD {}GB RAID0'.format(raid, disk_size))
 
@@ -593,14 +585,11 @@ def test_memcached(provider, keyid, secret, token, imageid, subscription, tenant
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_Memcached'.format(provider),
-                       results_path=results_path,
-                       parser=MemcachedLogsReader,
-                       test_case_name='{}_memcached_perf_tuned{}'.format(provider, suffix),
-                       host_type=utils.host_type(provider), instance_size=instancetype)
+                       results_path=results_path, parser=MemcachedLogsReader,
+                       test_case_name='{}_memcached_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype)
 
 
 def test_redis(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
@@ -660,13 +649,11 @@ def test_redis(provider, keyid, secret, token, imageid, subscription, tenant, pr
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_Redis'.format(provider),
                        results_path=results_path, parser=RedisLogsReader,
-                       test_case_name='{}_redis_perf_tuned{}'.format(provider, suffix),
-                       host_type=utils.host_type(provider), instance_size=instancetype)
+                       test_case_name='{}_redis_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype)
 
 
 def test_apache_bench(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
@@ -727,13 +714,11 @@ def test_apache_bench(provider, keyid, secret, token, imageid, subscription, ten
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_Apache'.format(provider),
                        results_path=results_path, parser=ApacheLogsReader,
-                       test_case_name='{}_Apache_bench_perf_tuned{}'.format(provider, suffix),
-                       host_type=utils.host_type(provider), instance_size=instancetype)
+                       test_case_name='{}_Apache_bench_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype)
 
 
 def test_nginx_bench(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
@@ -794,13 +779,11 @@ def test_nginx_bench(provider, keyid, secret, token, imageid, subscription, tena
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_Nginx'.format(provider),
                        results_path=results_path, parser=ApacheLogsReader,
-                       test_case_name='{}_Apache_bench_perf_tuned{}'.format(provider, suffix),
-                       host_type=utils.host_type(provider), instance_size=instancetype)
+                       test_case_name='{}_Apache_bench_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype)
 
 
 def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
@@ -866,14 +849,11 @@ def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, 
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_MariaDB'.format(provider),
                        results_path=results_path, parser=MariadbLogsReader,
-                       test_case_name='{}_MariaDB_perf_tuned{}'.format(provider, suffix),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
-                       disk_setup='1 x SSD {}GB'.format(disk_size))
+                       test_case_name='{}_MariaDB_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype, disk_setup='1 x SSD {}GB'.format(disk_size))
 
 
 def test_mariadb_raid(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
@@ -946,13 +926,11 @@ def test_mariadb_raid(provider, keyid, secret, token, imageid, subscription, ten
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_MariaDB'.format(provider),
                        results_path=results_path, parser=MariadbLogsReader,
-                       test_case_name='{}_MariaDB_perf_tuned{}'.format(provider, suffix),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       test_case_name='{}_MariaDB_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype,
                        disk_setup='{} x SSD {}GB RAID0'.format(raid, disk_size))
 
 
@@ -1019,14 +997,11 @@ def test_mongodb(provider, keyid, secret, token, imageid, subscription, tenant, 
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_MongoDB'.format(provider),
                        results_path=results_path, parser=MongodbLogsReader,
-                       test_case_name='{}_MongoDB_perf_tuned{}'.format(provider, suffix),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
-                       disk_setup='1 x SSD {}GB'.format(disk_size))
+                       test_case_name='{}_MongoDB_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype, disk_setup='1 x SSD {}GB'.format(disk_size))
 
 
 def test_mongodb_raid(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
@@ -1098,13 +1073,11 @@ def test_mongodb_raid(provider, keyid, secret, token, imageid, subscription, ten
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_MongoDB'.format(provider),
                        results_path=results_path, parser=MongodbLogsReader,
-                       test_case_name='{}_MongoDB_perf_tuned{}'.format(provider, suffix),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       test_case_name='{}_MongoDB_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype,
                        disk_setup='{} x SSD {}GB RAID0'.format(raid, disk_size))
 
 
@@ -1169,13 +1142,11 @@ def test_zookeeper(provider, keyid, secret, token, imageid, subscription, tenant
         if connector:
             connector.teardown()
     if results_path:
-        suffix = ''
-        if sriov != constants.ENABLED:
-            suffix = '_noSRIOV'
         upload_results(localpath=localpath, table_name='Perf_{}_Zookeeper'.format(provider),
                        results_path=results_path, parser=ZookeeperLogsReader,
-                       test_case_name='{}_Zookeeper_perf_tuned{}'.format(provider, suffix),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       test_case_name='{}_Zookeeper_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype,
                        cluster_setup='{} x servers'.format(vm_count - 1))
 
 
@@ -1203,7 +1174,8 @@ def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant,
     :param sriov: Enable or disable SR-IOV
     :param kernel: custom kernel name provided in localpath
     """
-    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=6,
+    vm_count = 6
+    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=vm_count,
                                                       test_type=constants.CLUSTER_DISK,
                                                       disk_size=50, raid=False, keyid=keyid,
                                                       secret=secret, token=token,
@@ -1212,6 +1184,7 @@ def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant,
                                                       instancetype=instancetype, user=user,
                                                       localpath=localpath, region=region,
                                                       zone=zone, sriov=sriov, kernel=kernel)
+    results_path = None
     try:
         if all(client for client in ssh_client.values()):
             for i in range(1, 7):
@@ -1229,16 +1202,22 @@ def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant,
             cmd = '/tmp/run_terasort.sh {} {} {}'.format(user, device, slaves)
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
-            ssh_client[1].get_file('/tmp/terasort.zip',
-                                   os.path.join(localpath,
-                                                'terasort{}_{}.zip'.format(str(time.time()),
-                                                                           instancetype)))
+            results_path = os.path.join(localpath, 'terasort{}_{}.zip'.format(str(time.time()),
+                                                                              instancetype))
+            ssh_client[1].get_file('/tmp/terasort.zip', results_path)
     except Exception as e:
         log.error(e)
         raise
     finally:
         if connector:
             connector.teardown()
+    if results_path:
+        upload_results(localpath=localpath, table_name='Perf_{}_Terasort'.format(provider),
+                       results_path=results_path, parser=TerasortLogsReader,
+                       test_case_name='{}_Terasort_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype,
+                       cluster_setup='1 master + {} slaves'.format(vm_count - 1))
 
 
 def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, projectid,

@@ -12,6 +12,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
 log = logging.getLogger(__name__)
 
 COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
+           {'name': 'DataPath', 'type': NVARCHAR(10)},
            {'name': 'TestDate', 'type': Date},
            {'name': 'HostType', 'type': NVARCHAR(10)},
            {'name': 'InstanceSize', 'type': NVARCHAR(20)},
