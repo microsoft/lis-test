@@ -61,8 +61,9 @@ def main(args):
     )
 
     logger.debug('Parsing env variables')
-    env.read_envfile(parsed_arguments.config)
-
+    if not parsed_arguments.nodbcommit:
+        env.read_envfile(parsed_arguments.config)
+    
     logger.info('Initializing TestRun object')
     if parsed_arguments.perf:
         test_run = PerfTestRun(parsed_arguments.perf,
@@ -89,19 +90,21 @@ def main(args):
     # Parse values to be inserted
     logger.info('Parsing test run for database insertion')
     insert_values = test_run.parse_for_db_insertion()
-    # Connect to db and insert values in the table
-    logger.info('Initializing database connection')
-    db_connection, db_cursor = sql_utils.init_connection()
 
-    logger.info('Executing insertion commands')
-    for table_line in insert_values:
-        sql_utils.insert_values(db_cursor, table_line)
+    if not parsed_arguments.nodbcommit:
+        # Connect to db and insert values in the table
+        logger.info('Initializing database connection')
+        db_connection, db_cursor = sql_utils.init_connection()
 
-    logger.info('Committing changes to the database')
-    db_connection.commit()
+        logger.info('Executing insertion commands')
+        for table_line in insert_values:
+            sql_utils.insert_values(db_cursor, table_line)
 
-    logger.info("Checking insert validity")
-    sql_utils.check_insert(db_cursor, insert_values)
+        logger.info('Committing changes to the database')
+        db_connection.commit()
+
+        logger.info("Checking insert validity")
+        sql_utils.check_insert(db_cursor, insert_values)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

@@ -63,6 +63,11 @@ def init_arg_parser():
         default=False,
         help="snapshot name of the virtual machine that was tested"
     )
+    arg_parser.add_argument(
+        "-n", "--nodbcommit",
+        default=False,
+        help="skip commiting results to the database"
+    )
 
     return arg_parser
 
