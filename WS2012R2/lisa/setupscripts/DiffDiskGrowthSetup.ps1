@@ -81,50 +81,6 @@ $parentVhd = $null
 $vhdFormat =$null
 $vmGeneration = $null
 
-############################################################################
-#
-# CreateController
-#
-# Description
-#     Create a SCSI controller if one with the ControllerID does not
-#     already exist.
-#
-############################################################################
-function CreateController([string] $vmName, [string] $server, [string] $controllerID)
-{
-    #
-    # Initially, we will limit this to 4 SCSI controllers...
-    #
-    if ($ControllerID -lt 0 -or $controllerID -gt 3)
-    {
-        write-output "    Error: Bad SCSI controller ID: $controllerID"
-        return $False
-    }
-
-    #
-    # Check if the controller already exists.
-    #
-    $scsiCtrl = Get-VMScsiController -VMName $vmName -ComputerName $hvServer
-    if ($scsiCtrl.Length -1 -ge $controllerID)
-    {
-        "Info : SCSI ontroller already exists"
-    }
-    else
-    {
-        $error.Clear()
-        Add-VMScsiController -VMName $vmName -ComputerName $hvServer
-        if ($error.Count -gt 0)
-        {
-            "    Error: Add-VMScsiController failed to add 'SCSI Controller $ControllerID'"
-            $error[0].Exception
-            return $False
-        }
-        "Info : Controller successfully added"
-    }
-    return $True
-}
-
-
 #######################################################################
 #
 # Create parentVhd
