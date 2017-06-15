@@ -1581,9 +1581,12 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #Determine LIS version on guest VM
     #
     if ($Script:LIS_version -eq $null) {
-        $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'version:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/ //g'"
+        $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus 2> /dev/null | grep -w 'version:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/ //g'"
         if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
-            $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"
+            $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus 2> /dev/null | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"
+            if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
+                $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_netvsc 2> /dev/null | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"   
+            }
         }
     }
 
