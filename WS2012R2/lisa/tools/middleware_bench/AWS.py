@@ -237,7 +237,7 @@ class AWSConnector:
             ssh_client.run('/tmp/enable_sr_iov.sh {}'.format(self.instancetype))
             conn.stop_instances(instance_ids=[instance.id])
             self.wait_for_state(instance, 'state', 'stopped')
-            if self.instancetype == constants.AWS_P28XLARGE:
+            if self.instancetype in [constants.AWS_P28XLARGE, constants.AWS_M416XLARGE]:
                 log.info('Enabling ENA for instance: {}'.format(self.instancetype))
                 import boto3
                 client = boto3.client('ec2', region_name=self.region, aws_access_key_id=self.keyid,
@@ -254,7 +254,6 @@ class AWSConnector:
                 # ena_status = conn.get_instance_attribute(instance.id, 'enaSupport')
                 # log.info('ENA status for {} instance: {}'.format(constants.AWS_P28XLARGE,
                 #                                                  ena_status))
-
             elif self.instancetype == constants.AWS_D24XLARGE:
                 conn.modify_instance_attribute(instance.id, 'sriovNetSupport', 'simple')
                 sriov_status = conn.get_instance_attribute(instance.id, 'sriovNetSupport')

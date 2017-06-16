@@ -211,7 +211,6 @@ class OrionLogsReader(BaseLogsReader):
         self.host_type = host_type
         self.instance_size = instance_size
         self.disk_setup = disk_setup
-
         self.log_matcher = '([a-z]+)_iops.csv'
 
     @staticmethod
@@ -327,6 +326,8 @@ class SysbenchLogsReader(BaseLogsReader):
         log_dict['FileTestMode'] = f_match.group(1)
         log_dict['BlockSize_Kb'] = f_match.group(2)
         log_dict['Threads'] = f_match.group(3)
+        log_dict['Latency95Percentile_ms'] = 0
+        log_dict['RequestsExecutedPerSec'] = 0
 
         summary = self.get_summary_log()
         log_dict['KernelVersion'] = summary['kernel']
@@ -364,6 +365,7 @@ class MemcachedLogsReader(BaseLogsReader):
                         'RequestsPerThread', 'BestLatency_ms', 'WorstLatency_ms',
                         'AverageLatency_ms', 'BestOpsPerSec',
                         'WorstOpsPerSec', 'AverageOpsPerSec']
+        self.sorter = ['Threads']
         self.test_case_name = test_case_name
         self.data_path = data_path
         self.host_type = host_type
@@ -383,6 +385,14 @@ class MemcachedLogsReader(BaseLogsReader):
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
         log_dict['TestConnections'] = f_match.group(1)
+        log_dict['ConnectionsPerThread'] = 0
+        log_dict['RequestsPerThread'] = 0
+        log_dict['BestLatency_ms'] = 0
+        log_dict['WorstLatency_ms'] = 0
+        log_dict['AverageLatency_ms'] = 0
+        log_dict['BestOpsPerSec'] = 0
+        log_dict['WorstOpsPerSec'] = 0
+        log_dict['AverageOpsPerSec'] = 0
 
         summary = self.get_summary_log()
         log_dict['KernelVersion'] = summary['kernel']
@@ -441,6 +451,7 @@ class RedisLogsReader(BaseLogsReader):
         super(RedisLogsReader, self).__init__(log_path)
         self.headers = ['TestPipelines', 'TotalRequests', 'ParallelClients', 'Payload_bytes',
                         'SETRRequestsPerSec', 'GETRequestsPerSec']
+        self.sorter = ['TestPipelines']
         self.test_case_name = test_case_name
         self.data_path = data_path
         self.host_type = host_type
@@ -460,6 +471,11 @@ class RedisLogsReader(BaseLogsReader):
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
         log_dict['TestPipelines'] = f_match.group(1)
+        log_dict['TotalRequests'] = 0
+        log_dict['ParallelClients'] = 0
+        log_dict['Payload_bytes'] = 0
+        log_dict['SETRRequestsPerSec'] = 0
+        log_dict['GETRequestsPerSec'] = 0
 
         summary = self.get_summary_log()
         log_dict['KernelVersion'] = summary['kernel']
@@ -504,6 +520,7 @@ class ApacheLogsReader(BaseLogsReader):
         self.headers = ['TestConcurrency', 'NumberOfAbInstances', 'ConcurrencyPerAbInstance',
                         'WebServerVersion', 'Document_bytes', 'CompleteRequests',
                         'RequestsPerSec', 'TransferRate_KBps', 'MeanConnectionTimes_ms']
+        self.sorter = ['TestConcurrency']
         self.test_case_name = test_case_name
         self.data_path = data_path
         self.host_type = host_type
@@ -585,6 +602,7 @@ class MariadbLogsReader(BaseLogsReader):
         self.headers = ['TestMode', 'Driver', 'Threads', 'TotalQueries',
                         'TransactionsPerSec', 'DeadlocksPerSec',
                         'RWRequestsPerSec', 'Latency95Percentile_ms']
+        self.sorter = ['Threads']
         self.test_case_name = test_case_name
         self.data_path = data_path
         self.host_type = host_type
@@ -606,6 +624,11 @@ class MariadbLogsReader(BaseLogsReader):
         log_dict['InstanceSize'] = self.instance_size
         log_dict['DiskSetup'] = self.disk_setup
         log_dict['Threads'] = f_match.group(1)
+        log_dict['TotalQueries'] = 0
+        log_dict['TransactionsPerSec'] = 0
+        log_dict['DeadlocksPerSec'] = 0
+        log_dict['RWRequestsPerSec'] = 0
+        log_dict['Latency95Percentile_ms'] = 0
 
         summary = self.get_summary_log()
         log_dict['KernelVersion'] = summary['kernel']
@@ -652,6 +675,7 @@ class MongodbLogsReader(BaseLogsReader):
                         'CleanupOps', 'CleanupLatency95Percentile_us',
                         'UpdateOps', 'UpdateLatency95Percentile_us',
                         'ReadFailedOps', 'ReadFailedLatency95Percentile_us']
+        self.sorter = ['Threads']
         self.test_case_name = test_case_name
         self.data_path = data_path
         self.host_type = host_type
@@ -673,6 +697,15 @@ class MongodbLogsReader(BaseLogsReader):
         log_dict['InstanceSize'] = self.instance_size
         log_dict['DiskSetup'] = self.disk_setup
         log_dict['Threads'] = f_match.group(1)
+        log_dict['TotalOpsPerSec'] = 0
+        log_dict['ReadOps'] = 0
+        log_dict['ReadLatency95Percentile_us'] = 0
+        log_dict['CleanupOps'] = 0
+        log_dict['CleanupLatency95Percentile_us'] = 0
+        log_dict['UpdateOps'] = 0
+        log_dict['UpdateLatency95Percentile_us'] = 0
+        log_dict['ReadFailedOps'] = 0
+        log_dict['ReadFailedLatency95Percentile_us'] = 0
 
         summary = self.get_summary_log()
         log_dict['KernelVersion'] = summary['kernel']
@@ -727,6 +760,7 @@ class ZookeeperLogsReader(BaseLogsReader):
         self.headers = ['Threads', 'TotalCreatedCallsPerSec',
                         'TotalGetCallsPerSec', 'TotalSetCallsPerSec',
                         'TotalDeletedCallsPerSec', 'TotalWatchedCallsPerSec']
+        self.sorter = ['Threads']
         self.test_case_name = test_case_name
         self.data_path = data_path
         self.host_type = host_type
@@ -842,4 +876,150 @@ class TerasortLogsReader(BaseLogsReader):
                 if records:
                     log_dict['TeragenRecords'] = int(records.group(1).strip())
         log_dict['SortDuration_sec'] = (end - start).total_seconds()
+        return log_dict
+
+
+class TCPLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing TCP log files e.g.
+    XXX_ntttcp-sender.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
+                 region=None, host_type=None, instance_size=None):
+        super(TCPLogsReader, self).__init__(log_path)
+        self.headers = ['NumberOfConnections', 'Throughput_Gbps', 'Latency_ms',
+                        'PacketSize_KBytes', 'IPVersion', 'ProtocolType']
+        self.sorter = ['NumberOfConnections']
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.provider = provider
+        self.region = region
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.log_matcher = '([0-9]+)_ntttcp-sender.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for NTTTCP test case.
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
+        log_dict['HostBy'] = self.region
+        log_dict['HostOS'] = self.host_type
+        log_dict['HostType'] = self.provider
+        log_dict['GuestSize'] = self.instance_size
+        log_dict['NumberOfConnections'] = f_match.group(1).strip()
+        log_dict['Throughput_Gbps'] = 0
+        log_dict['Latency_ms'] = 0
+        log_dict['PacketSize_KBytes'] = 0
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestDistro'] = summary['guest_os']
+        log_dict['GuestOSType'] = 'Linux'
+
+        with open(log_file, 'r') as fl:
+            for x in fl:
+                if not log_dict.get('Throughput_Gbps', None):
+                    throughput = re.match('.+throughput.+:([0-9.]+)', x)
+                    if throughput:
+                        log_dict['Throughput_Gbps'] = throughput.group(1).strip()
+                if not log_dict.get('PacketSize_KBytes', None):
+                    pkg_size = re.match('\s*Average\s*Package\s*Size:\s*([0-9.]+)', x)
+                    if pkg_size:
+                        log_dict['PacketSize_KBytes'] = pkg_size.group(1).strip()
+        lat_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
+                                '{}_lagscope.log'.format(log_dict['NumberOfConnections']))
+        with open(lat_file, 'r') as fl:
+            for x in fl:
+                if not log_dict.get('IPVersion', None):
+                    ip_version = re.match('domain:.+(IPv[4,6])', x)
+                    if ip_version:
+                        log_dict['IPVersion'] = ip_version.group(1).strip()
+                if not log_dict.get('ProtocolType', None):
+                    ip_proto = re.match('protocol:.+([A-Z]{3})', x)
+                    if ip_proto:
+                        log_dict['ProtocolType'] = ip_proto.group(1).strip()
+                latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
+                if latency:
+                    unit = latency.group(2).strip()
+                    log_dict['Latency_ms'] = float(latency.group(1).strip()) * self.CUNIT[unit]
+        return log_dict
+
+
+class LatencyLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing lagscope log files e.g.
+    lagscope.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
+                 region=None, host_type=None, instance_size=None):
+        super(LatencyLogsReader, self).__init__(log_path)
+        self.headers = ['MaxLatency_us', 'AverageLatency_us', 'MinLatency_us',
+                        'Latency95Percentile_us', 'Latency99Percentile_us', 'IPVersion',
+                        'ProtocolType']
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.provider = provider
+        self.region = region
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.log_matcher = 'lagscope.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for lagscope test case.
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
+        log_dict['HostBy'] = self.region
+        log_dict['HostOS'] = self.host_type
+        log_dict['HostType'] = self.provider
+        log_dict['GuestSize'] = self.instance_size
+        log_dict['MinLatency_us'] = 0
+        log_dict['AverageLatency_us'] = 0
+        log_dict['MaxLatency_us'] = 0
+        log_dict['Latency95Percentile_us'] = 0
+        log_dict['Latency99Percentile_us'] = 0
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestDistro'] = summary['guest_os']
+        log_dict['GuestOSType'] = 'Linux'
+
+        with open(log_file, 'r') as fl:
+            for x in fl:
+                if not log_dict.get('IPVersion', None):
+                    ip_version = re.match('domain:.+(IPv[4,6])', x)
+                    if ip_version:
+                        log_dict['IPVersion'] = ip_version.group(1).strip()
+                if not log_dict.get('ProtocolType', None):
+                    ip_proto = re.match('protocol:.+([A-Z]{3})', x)
+                    if ip_proto:
+                        log_dict['ProtocolType'] = ip_proto.group(1).strip()
+                min_latency = re.match('.+Minimum\s*=\s*([0-9.]+)\s*([a-z]+)', x)
+                if min_latency:
+                    unit = min_latency.group(2).strip()
+                    log_dict['MinLatency_us'] = \
+                        float(min_latency.group(1).strip()) * self.CUNIT[unit]
+                avg_latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
+                if avg_latency:
+                    unit = avg_latency.group(2).strip()
+                    log_dict['AverageLatency_us'] = \
+                        float(avg_latency.group(1).strip()) * self.CUNIT[unit]
+                avg_latency = re.match('.+Maximum\s*=\s*([0-9.]+)\s*([a-z]+)', x)
+                if avg_latency:
+                    unit = avg_latency.group(2).strip()
+                    log_dict['MaxLatency_us'] = \
+                        float(avg_latency.group(1).strip()) * self.CUNIT[unit]
         return log_dict

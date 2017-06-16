@@ -52,7 +52,7 @@ sudo rm -rf ${hadoop_store}
 
 distro="$(head -1 /etc/issue)"
 
-sudo apt-get update >> ${LOG_FILE}
+sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
 sudo apt-get install -y zip maven libssl-dev build-essential rsync pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk bc >> ${LOG_FILE}
 
 LogMsg "Upgrading procps - Azure issue."
@@ -164,7 +164,7 @@ do
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo umount -l ${hadoop_store}" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo rm -rf ${hadoop_store}" >> ${LOG_FILE}
     LogMsg "Configuring hadoop on: ${slave}"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get update" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get install -y maven libssl-dev rsync build-essential pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk bc" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get upgrade -y procps" >> ${LOG_FILE}
     scp -o StrictHostKeyChecking=no /tmp/${hadoop_version}.tar.gz ${USER}@${slave}:/tmp >> ${LOG_FILE}

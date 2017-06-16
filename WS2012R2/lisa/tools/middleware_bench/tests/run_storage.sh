@@ -43,9 +43,19 @@ if [ -e /tmp/summary.log ]; then
 fi
 
 distro="$(head -1 /etc/issue)"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
+    sudo apt-get -y install sysstat zip fio blktrace bc >> ${LOG_FILE}
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean dbcache>> ${LOG_FILE}
+    sudo yum -y install sysstat zip fio blktrace bc >> ${LOG_FILE}
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
 
-sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install sysstat zip fio blktrace bc >> ${LOG_FILE}
+
 
 if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then

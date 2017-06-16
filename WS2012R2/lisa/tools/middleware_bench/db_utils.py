@@ -2,7 +2,7 @@ import os
 import logging
 import ConfigParser
 
-from sqlalchemy import Table, Column, Date, DECIMAL, BIGINT, NVARCHAR, MetaData, create_engine
+from sqlalchemy import Table, Column, Date, DECIMAL, INT, BIGINT, NVARCHAR, MetaData, create_engine
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import create_session, mapper
 
@@ -14,19 +14,27 @@ log = logging.getLogger(__name__)
 COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            {'name': 'DataPath', 'type': NVARCHAR(10)},
            {'name': 'TestDate', 'type': Date},
-           {'name': 'HostType', 'type': NVARCHAR(10)},
+           {'name': 'HostBy', 'type': NVARCHAR(50)},
+           {'name': 'HostOS', 'type': NVARCHAR(100)},
+           {'name': 'HostType', 'type': NVARCHAR(50)},
            {'name': 'InstanceSize', 'type': NVARCHAR(20)},
            {'name': 'GuestOS', 'type': NVARCHAR(50)},
+           {'name': 'GuestSize', 'type': NVARCHAR(50)},
+           {'name': 'GuestOSType', 'type': NVARCHAR(50)},
+           {'name': 'GuestDistro', 'type': NVARCHAR(50)},
            {'name': 'KernelVersion', 'type': NVARCHAR(30)},
            {'name': 'DiskSetup', 'type': NVARCHAR(20)},
            {'name': 'TestMode', 'type': NVARCHAR(30)},
            {'name': 'FileTestMode', 'type': NVARCHAR(20)},
            {'name': 'WebServerVersion', 'type': NVARCHAR(20)},
            {'name': 'Driver', 'type': NVARCHAR(10)},
+           {'name': 'IPVersion', 'type': NVARCHAR(4)},
+           {'name': 'ProtocolType', 'type': NVARCHAR(3)},
            {'name': 'ClusterSetup', 'type': NVARCHAR(25)},
            {'name': 'HadoopVersion', 'type': NVARCHAR(12)},
            {'name': 'Threads', 'type': DECIMAL(4, 0)},
            {'name': 'TestConnections', 'type': DECIMAL(4, 0)},
+           {'name': 'NumberOfConnections', 'type': INT},
            {'name': 'TestPipelines', 'type': DECIMAL(4, 0)},
            {'name': 'TestConcurrency', 'type': DECIMAL(4, 0)},
            {'name': 'NodeSize_bytes', 'type': DECIMAL(4, 0)},
@@ -78,6 +86,14 @@ COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            {'name': 'UpdateLatency95Percentile_us', 'type': DECIMAL(6, 0)},
            {'name': 'ReadFailedOps', 'type': DECIMAL(9, 1)},
            {'name': 'ReadFailedLatency95Percentile_us', 'type': DECIMAL(6, 0)},
+           {'name': 'Throughput_Gbps', 'type': DECIMAL(5, 3)},
+           {'name': 'Latency_ms', 'type': DECIMAL(9, 3)},
+           {'name': 'PacketSize_KBytes', 'type': DECIMAL(5, 3)},
+           {'name': 'MaxLatency_us', 'type': DECIMAL(9, 3)},
+           {'name': 'AverageLatency_us', 'type': DECIMAL(9, 3)},
+           {'name': 'MinLatency_us', 'type': DECIMAL(9, 3)},
+           {'name': 'Latency95Percentile_us', 'type': DECIMAL(9, 3)},
+           {'name': 'Latency99Percentile_us', 'type': DECIMAL(9, 3)},
            ]
 
 

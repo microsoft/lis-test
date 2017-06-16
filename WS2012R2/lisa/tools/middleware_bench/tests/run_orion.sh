@@ -55,12 +55,12 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update >> ${LOG_FILE}
+    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
     sudo apt-get -y install libaio1 sysstat zip >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
-    sudo yum clean >> ${LOG_FILE}
-    sudo yum -y install sysstat zip sysstat zip >> ${LOG_FILE}
+    sudo yum clean dbcache>> ${LOG_FILE}
+    sudo yum -y install sysstat zip >> ${LOG_FILE}
 else
     LogMsg "Unsupported distribution: ${distro}."
 fi

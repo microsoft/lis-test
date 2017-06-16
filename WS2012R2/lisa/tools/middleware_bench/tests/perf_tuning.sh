@@ -67,7 +67,7 @@ function setup_cpu_sched_domain {
 }
 
 function install_kernel {
-    sudo apt-get install dpkg
+    sudo apt-get install -y dpkg
     sudo dpkg -i ${KERNEL}
     sudo update-grub
 }

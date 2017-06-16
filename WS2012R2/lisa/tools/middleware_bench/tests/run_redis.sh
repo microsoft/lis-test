@@ -44,10 +44,10 @@ distro="$(head -1 /etc/issue)"
 redis_conf=
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update >> ${LOG_FILE}
+    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
     sudo apt-get -y install libaio1 sysstat zip redis-tools>> ${LOG_FILE}
 
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip redis-server" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i 's/bind 127\.0\.0\.1/bind 0\.0\.0\.0/' /etc/redis/redis.conf" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service redis-server restart" >> ${LOG_FILE}

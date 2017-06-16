@@ -54,10 +54,10 @@ then
     web_server="apache2"
 elif [[ ${distro} == *"Amazon"* ]]
 then
-    sudo yum clean >> ${LOG_FILE}
+    sudo yum clean dbcache>> ${LOG_FILE}
     sudo yum -y install sysstat zip httpd-tools >> ${LOG_FILE}
 
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum clean" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum clean dbcache" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip httpd httpd-tools" >> ${LOG_FILE}
     web_server="httpd"
 else
