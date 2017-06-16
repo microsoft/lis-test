@@ -278,14 +278,14 @@ $sts = Get-ChildItem -Name $latest_lis_iso_path
 if (-not $sts) {
     Write-Output "Error: The path for the latest LIS ISO file is incorrect. 
     Please check the network share or ISO name in the XML file" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 $sts = Get-ChildItem -Name $previous_lis_iso_path
 if (-not $sts) {
     Write-Output "Error: The path for the previous LIS ISO file is incorrect. 
     Please check the network share or ISO name in the XML file" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 # Copy both files
@@ -331,7 +331,7 @@ if (-not $LIS_version_initial -or ($LIS_version_initial -eq "3.1")) {
     Write-Output "VM is clean, will proceed with LIS Deploy scenario $scenario"   
 }
 else {
-    Write-Output "Error: VM has already has $LIS_version_initial installed"  | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: VM already has LIS $LIS_version_initial installed"  | Tee-Object -Append -file $summaryLog
     return $false
 }
 

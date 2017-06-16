@@ -453,11 +453,13 @@ permissions and limitations under the License.
             <testName>MaxLegacyNIC</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\ChangeCPU.ps1</file>
                 <file>setupscripts\NET_ADD_MAX_NIC.ps1</file>
             </setupScript>
             <testParams>
                 <param>TC_COVERED=NET-21</param>
                 <param>TEST_TYPE=legacy</param>
+                <param>VCPU=1</param>
                 <param>LEGACY_NICS=4</param>
                 <param>NETWORK_TYPE=external</param>
             </testParams>
@@ -471,11 +473,13 @@ permissions and limitations under the License.
             <testName>MaxNIC</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\ChangeCPU.ps1</file>
                 <file>setupscripts\NET_ADD_MAX_NIC.ps1</file>
             </setupScript>
             <testParams>
                 <param>TC_COVERED=NET-22</param>
                 <param>TEST_TYPE=synthetic,legacy</param>
+                <param>VCPU=1</param>
                 <param>SYNTHETIC_NICS=7</param>
                 <param>LEGACY_NICS=4</param>
                 <param>NETWORK_TYPE=external</param>
