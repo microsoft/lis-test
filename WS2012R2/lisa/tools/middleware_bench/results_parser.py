@@ -38,9 +38,9 @@ class BaseLogsReader(object):
     """
     Base class for collecting data from multiple log files
     """
-    CUNIT = {'us': 10**-3,
-             'ms': 1,
-             's': 10**3}
+    UNIT = {'us': 10 ** -6,
+             'ms': 10 ** -3,
+             's': 1}
 
     def __init__(self, log_path):
         """
@@ -53,6 +53,13 @@ class BaseLogsReader(object):
         self.log_matcher = None
         self.log_base_path = log_path
         self.sorter = []
+
+    def _convert(self, value, unit_from, unit_to):
+        """
+        Convert units.
+        :return: converted unit
+        """
+        return value * self.UNIT[unit_from] / self.UNIT[unit_to]
 
     def process_log_path(self, log_path):
         """
@@ -344,8 +351,8 @@ class SysbenchLogsReader(BaseLogsReader):
                                            f_lines[x])
                             if lat:
                                 unit = lat.group(2).strip()
-                                log_dict[key] = float(
-                                        lat.group(1).strip()) * self.CUNIT[unit]
+                                log_dict[key] = self._convert(float(lat.group(1).strip()),
+                                                              self.UNIT[unit], self.UNIT['ms'])
                         elif 'Requests' in key:
                             req = re.match('\s*([0-9.]+)\s*Requests/sec\s*executed', f_lines[x])
                             if req:
@@ -948,7 +955,8 @@ class TCPLogsReader(BaseLogsReader):
                 latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
                 if latency:
                     unit = latency.group(2).strip()
-                    log_dict['Latency_ms'] = float(latency.group(1).strip()) * self.CUNIT[unit]
+                    log_dict['Latency_ms'] = self._convert(float(latency.group(1).strip()),
+                                                           self.UNIT[unit], self.UNIT['ms'])
         return log_dict
 
 
@@ -1010,16 +1018,16 @@ class LatencyLogsReader(BaseLogsReader):
                 min_latency = re.match('.+Minimum\s*=\s*([0-9.]+)\s*([a-z]+)', x)
                 if min_latency:
                     unit = min_latency.group(2).strip()
-                    log_dict['MinLatency_us'] = \
-                        float(min_latency.group(1).strip()) * self.CUNIT[unit]
+                    log_dict['MinLatency_us'] = self._convert(float(min_latency.group(1).strip()),
+                                                              self.UNIT[unit], self.UNIT['us'])
                 avg_latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
                 if avg_latency:
                     unit = avg_latency.group(2).strip()
-                    log_dict['AverageLatency_us'] = \
-                        float(avg_latency.group(1).strip()) * self.CUNIT[unit]
-                avg_latency = re.match('.+Maximum\s*=\s*([0-9.]+)\s*([a-z]+)', x)
-                if avg_latency:
-                    unit = avg_latency.group(2).strip()
-                    log_dict['MaxLatency_us'] = \
-                        float(avg_latency.group(1).strip()) * self.CUNIT[unit]
+                    log_dict['AverageLatency_us'] = self._convert(
+                            float(avg_latency.group(1).strip()), self.UNIT[unit], self.UNIT['us'])
+                max_latency = re.match('.+Maximum\s*=\s*([0-9.]+)\s*([a-z]+)', x)
+                if max_latency:
+                    unit = max_latency.group(2).strip()
+                    log_dict['MaxLatency_us'] = self._convert(float(max_latency.group(1).strip()),
+                                                              self.UNIT[unit], self.UNIT['us'])
         return log_dict
