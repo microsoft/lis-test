@@ -42,18 +42,6 @@ if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
-sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install libaio1 sysstat zip curl python default-jdk >> ${LOG_FILE}
-
-cd /tmp
-curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.11.0/ycsb-0.11.0.tar.gz
-tar xfvz ycsb-0.11.0.tar.gz
-sudo pkill -f ycsb
-
-#Generating custom LIS workload
-echo -e "recordcount=20000000\noperationcount=20000000\nreadallfields=true\nwriteallfields=false\nworkload=com.yahoo.ycsb.workloads.CoreWorkload\nreadproportion=0.5\nupdateproportion=0.5\nrequestdistribution=zipfian\nthreadcount=8\nmaxexecutiontime=900" >> ${workload}
-
-mkdir -p /tmp/mongodb
 if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then
     db_path="/mongo/db"
@@ -69,16 +57,52 @@ else
     exit 70
 fi
 
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mongodb stop" >> ${LOG_FILE}
+escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
+distro="$(head -1 /etc/issue)"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
+    sudo apt-get -y install libaio1 sysstat zip curl python default-jdk >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
+    db_conf="/etc/mongodb.conf"
+    db_service="mongodb"
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean dbcache >> ${LOG_FILE}
+    sudo yum -y install sysstat zip sysstat zip automake openssl-devel gcc libtool curl >> ${LOG_FILE}
+    mongo_repo_server="[mongodb-org-2.6]\
+                       \nname=MongoDB 2.6 Repository\
+                       \nbaseurl=http://downloads-distro.mongodb.org/repo/redhat/os/x86_64\
+                       \ngpgcheck=0\
+                       \nenabled=1"
+    echo -e ${mongo_repo_server} | sudo tee /etc/yum.repos.d/mongodb.repo >> ${LOG_FILE}
+    sudo yum -y install mongodb-org-tools >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum clean dbcache" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e '${mongo_repo_server}' | sudo tee /etc/yum.repos.d/mongodb.repo" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install openssl-devel sysstat zip mongodb-org" >> ${LOG_FILE}
+    db_conf="/etc/mongod.conf"
+    db_service="mongod"
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
+
+cd /tmp
+curl -O --location https://github.com/brianfrankcooper/YCSB/releases/download/0.11.0/ycsb-0.11.0.tar.gz
+tar xfvz ycsb-0.11.0.tar.gz
+sudo pkill -f ycsb
+
+#Generating custom LIS workload
+echo -e "recordcount=20000000\noperationcount=20000000\nreadallfields=true\nwriteallfields=false\nworkload=com.yahoo.ycsb.workloads.CoreWorkload\nreadproportion=0.5\nupdateproportion=0.5\nrequestdistribution=zipfian\nthreadcount=8\nmaxexecutiontime=900" >> ${workload}
+
+mkdir -p /tmp/mongodb
 ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/mongodb"
 
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R mongodb:mongodb ${db_path}"
-escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/dbpath/c\dbpath=${escaped_path}' /etc/mongodb.conf" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind_ip/c\bind_ip = 0\.0\.0\.0' /etc/mongodb.conf" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mongodb start" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${db_service} stop" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R ${db_service}:${db_service} ${db_path}"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/dbpath/c\dbpath=${escaped_path}' ${db_conf}" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind_ip/c\bind_ip = 0\.0\.0\.0' ${db_conf}" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${db_service} start" >> ${LOG_FILE}
 
 # Wait for mongo server to create its artifacts at the new location
 sleep 60
@@ -119,6 +143,7 @@ do
 done
 
 LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r mongodb.zip . -i mongodb/* >> ${LOG_FILE}

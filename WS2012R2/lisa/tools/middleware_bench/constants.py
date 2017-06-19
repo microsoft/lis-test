@@ -57,10 +57,18 @@ CLI_IMAGEID_OPT = '--imageid'
 CLI_IMAGEID_OPT_SH = '-g'
 CLI_USER_OPT = '--user'
 CLI_USER_OPT_SH = '-u'
+CLI_SRIOV_OPT = '--sriov'
+CLI_SRIOV_OPT_SH = '-sr'
+CLI_KERNEL_OPT = '--kernel'
+CLI_KERNEL_OPT_SH = '-kr'
 
 AWS = 'aws'
 AZURE = 'azure'
 GCE = 'gce'
+
+HVM = 'hvm'
+MSAZURE = 'MS Azure'
+KVM = 'kvm'
 
 DEVICE_AWS = '/dev/sdx'
 DEVICE_AZURE = '/dev/sdc'
@@ -69,9 +77,14 @@ TEMP_DEVICE_GCE = '/dev/sdb'
 
 AWS_P28XLARGE = 'p2.8xlarge'
 AWS_D24XLARGE = 'd2.4xlarge'
+AWS_M416XLARGE= 'm4.16xlarge'
 
 VM_DISK = 'vm_disk'
 DB_DISK = 'db_disk'
 CLUSTER_DISK = 'cluster_disk'
 
 RAID_DEV = '/dev/md0'
+
+ENABLED = 'enabled'
+SRIOV = 'SRIOV'
+SYNTHETIC = 'Synthetic'
