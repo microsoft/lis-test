@@ -474,7 +474,7 @@
 			<param>fileSystems=(ext4)</param>
 			<param>ControllerType=SCSI</param>
 			<param>TestWget=True</param>
-			<param>Wget_Path=http://10.66.10.35/pub/kernel/kernel-3.10.0-305.el7.x86_64.rpm</param>
+			<param>Wget_Path=http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-Azure-1703.qcow2</param>
 		</testparams>
 		<onError>Continue</onError>
 		<noReboot>False</noReboot>
