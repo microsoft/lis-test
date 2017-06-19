@@ -30,9 +30,15 @@ def init_arg_parser():
     arg_parser = argparse.ArgumentParser()
 
     arg_parser.add_argument(
-        "xml_file_path", help="path to the xml config file"
+        "xml_file_path", 
+        help="path to the xml config file",
+        default=None
     )
-    arg_parser.add_argument("log_file_path", help="path to the ica log file")
+    arg_parser.add_argument(
+        "log_file_path", 
+        help="path to the ica log file",
+        default=None
+    )
     arg_parser.add_argument(
         "-c", "--config",
         help="path to the config file",
@@ -62,6 +68,22 @@ def init_arg_parser():
         "-s", "--snapshot",
         default=False,
         help="snapshot name of the virtual machine that was tested"
+    )
+    arg_parser.add_argument(
+        "-n", "--nodbcommit",
+        default=False,
+        action='store_true',
+        help="skip commiting results to the database"
+    )
+    arg_parser.add_argument(
+        "-S", "--summary",
+        default=False,
+        help="Get a summary out of previous reports"
+    )
+    arg_parser.add_argument(
+        "-R", "--report",
+        default=False,
+        help="Get a report of test coverage and issues on a specific file"
     )
 
     return arg_parser
@@ -168,4 +190,3 @@ def setup_logging(
         logging.config.dictConfig(config)
     else:
         logging.basicConfig(level=level)
-0
