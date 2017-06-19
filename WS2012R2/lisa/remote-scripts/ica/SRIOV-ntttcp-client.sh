@@ -23,7 +23,7 @@
 
 #######################################################################
 #
-# perf_ntttcp_client.sh
+# SRIOV-ntttcp-client.sh
 #
 # Description:
 #     A multiple-thread based Linux network throughput benchmark tool.
@@ -37,7 +37,7 @@
 #To measure the network performance between two multi-core serves running SLES 12, NODE1 (192.168.4.1) and NODE2 (192.168.4.2), connected via a 40 GigE connection.
 #
 #And on NODE2 (the sender), run: ./ntttcp -s192.168.4.1
-#Run ntttcp as a receiver with default setting. The default setting includes: with 16 threads created and run across all CPUs, 
+#Run ntttcp as a receiver with default setting. The default setting includes: with 16 threads created and run across all CPUs,
 #allocating 64K receiver buffer, and run for 60 seconds.)
 #######################################################################
 
@@ -76,15 +76,8 @@ fi
 touch ~/summary.log
 
 # Convert eol
-dos2unix utils.sh
 dos2unix perf_utils.sh
-
-# Source utils.sh
-. utils.sh || {
-    echo "ERROR: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
-    exit 2
-}
+dos2unix SR-IOV_Utils.sh
 
 # Source perf_utils.sh
 . perf_utils.sh || {
@@ -93,8 +86,12 @@ dos2unix perf_utils.sh
     exit 2
 }
 
-# Source constants file and initialize most common variables
-UtilsInit
+# Source perf_utils.sh
+. SR-IOV_Utils.sh || {
+    echo "ERROR: Unable to source SR-IOV_Utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
 
 #Apling performance parameters
 setup_sysctl
@@ -104,168 +101,65 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTABORTED
 fi
 
-# In case of ERROR
-case $? in
-    0)
-        #do nothing, init succeeded
-        ;;
-    1)
-        LogMsg "Unable to cd to $LIS_HOME. Aborting..."
-        UpdateSummary "Unable to cd to $LIS_HOME. Aborting..."
-        SetTestStateAborted
-        exit 3
-        ;;
-    2)
-        LogMsg "Unable to use test state file. Aborting..."
-        UpdateSummary "Unable to use test state file. Aborting..."
-        # need to wait for test timeout to kick in
-        # hailmary try to update teststate
-        sleep 60
-        echo "TestAborted" > state.txt
-        exit 4
-        ;;
-    3)
-        LogMsg "ERROR: unable to source constants file. Aborting..."
-        UpdateSummary "ERROR: unable to source constants file"
-        SetTestStateAborted
-        exit 5
-        ;;
-    *)
-        # should not happen
-        LogMsg "UtilsInit returned an unknown ERROR. Aborting..."
-        UpdateSummary "UtilsInit returned an unknown ERROR. Aborting..."
-        SetTestStateAborted
-        exit 6
-        ;;
-esac
-
 #Create log folder
-if [ -d  $HOME/$log_folder ]; then
+if [ -d  $log_folder ]; then
     echo "File $log_folder exists: will be deleted."
     LogMsg "File $log_folder exists." >> ~/summary.log
-    rm -rf $HOME/$log_folder
+    rm -rf $log_folder
+else
+    mkdir $log_folder
 fi
-
-mkdir $HOME/$log_folder
 eth_log="$HOME/$log_folder/eth_report.log"
-echo "#test_connections    throughput_gbps    average_packet_size" > $eth_log 
+echo "#test_connections    throughput_gbps    average_packet_size" > $eth_log
 
 #
 # Make sure the required test parameters are defined
-if [ "${STATIC_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="ERROR: the STATIC_IP test parameter is missing"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 20
-fi
+#
 
-if [ "${NETMASK:="UNDEFINED"}" = "UNDEFINED" ]; then
-    NETMASK="255.255.255.0"
-    msg="ERROR: the NETMASK test parameter is missing, default value will be used: 255.255.255.0"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
-if [ "${SERVER_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="ERROR: the SERVER_IP test parameter is missing"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 20
-fi
-
-if [ "${STATIC_IP2:="UNDEFINED"}" = "UNDEFINED" ]; then
-    msg="ERROR: the STATIC_IP2 test parameter is missing"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 20
-fi
-
-if [ "${SERVER_OS_USERNAME:="UNDEFINED"}" = "UNDEFINED" ]; then
-    SERVER_OS_USERNAME="root"
-    msg="Warning: the SERVER_OS_USERNAME test parameter is missing and the default value will be used: ${SERVER_OS_USERNAME}."
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
-declare __iface_ignore
-
-# Parameter provided in constants file
-#   ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
-#   it is not touched during this test (no dhcp or static ip assigned to it)
-
-if [ "${ipv4:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter ipv4 is not defined in constants file! Make sure you are using the latest LIS code."
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateAborted
-    exit 30
-else
-    CheckIP "$ipv4"
-    if [ 0 -ne $? ]; then
-        msg="Test parameter ipv4 = $ipv4 is not a valid IP Address"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateAborted
-        exit 10
-    fi
-
-    # Get the interface associated with the given ipv4
-    __iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
-fi
-
-# Retrieve synthetic network interfaces
-GetSynthNetInterfaces
-if [ 0 -ne $? ]; then
-    msg="No synthetic network interfaces found"
+# Check the parameters in constants.sh
+Check_SRIOV_Parameters
+if [ $? -ne 0 ]; then
+    msg="ERROR: The necessary parameters are not present in constants.sh. Please check the xml test file"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
-    exit 10
 fi
 
-# Remove interface if present
-SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
-if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
-    msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
+# Check if the SR-IOV driver is in use
+VerifyVF
+if [ $? -ne 0 ]; then
+    msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
     LogMsg "$msg"
     UpdateSummary "$msg"
-    SetTestStateAborted
-    exit 10
+    SetTestStateFailed
 fi
 
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+# Run the bonding script. Make sure you have this already on the system
+# Note: The location of the bonding script may change in the future
+RunBondingScript
+bondCount=$?
+if [ $bondCount -eq 99 ]; then
+    msg="ERROR: Running the bonding script failed. Please double check if it is present on the system"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
 
-# Test interfaces
-declare -i __iterator
-for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-    ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
-    if [ 0 -ne $? ]; then
-        msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 20
-    fi
-done
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+else
+    LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"
+fi
 
-echo "Ntttcp client test interface ip           = ${STATIC_IP}"
-echo "Ntttcp server ip           = ${STATIC_IP2}"
-echo "Ntttcp server test interface ip        = ${SERVER_IP}"
-echo "Test duration       = ${TEST_DURATION}"
-echo "Test Threads       = ${TEST_THREADS}"
-echo "Max threads       = ${MAX_THREADS}"
-echo "user name on server       = ${SERVER_OS_USERNAME}"
-echo "Test Interface       = ${ETH_NAME}"
+# Set static IP to the bond
+ConfigureBond
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not set a static IP to the bond!"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+fi
 
-#
-# Check for internet protocol version
-CheckIPV6 "$STATIC_IP"
+CheckIPV6 "$BOND_IP1"
 if [[ $? -eq 0 ]]; then
-    CheckIPV6 "$SERVER_IP"
+    CheckIPV6 "$BOND_IP2"
     if [[ $? -eq 0 ]]; then
         ipVersion="-6"
     else
@@ -278,8 +172,6 @@ if [[ $? -eq 0 ]]; then
 else
     ipVersion=
 fi
-
-#
 #Check distro
 #
 iptables -F
@@ -296,7 +188,7 @@ debian*|ubuntu*)
         exit 1
     fi
     LogMsg "Installing sar on Ubuntu"
-    apt-get install sysstat -y
+    apt-get install bc
     if [ $? -ne 0 ]; then
         msg="ERROR: sysstat failed to install"
         LogMsg "${msg}"
@@ -337,6 +229,8 @@ redhat_5|redhat_6|centos_6|centos_5)
     fi
     ;;
 redhat_7|centos_7)
+    #Installing monitoring tools
+    yum install -y bc sysstat
     LogMsg "Check irqbalance status on RHEL 7.xx."
     systemctl status irqbalance
     if [ $? -eq 3 ]; then
@@ -408,29 +302,24 @@ fi
 #Install LAGSCOPE tool for latency
 setup_lagscope
 if [ $? -ne 0 ]; then
-    echo "ERROR: Unable to compile lagscope."
-    LogMsg "ERROR: Unable to compile lagscope."
+    echo "Unable to compile lagscope."
+    LogMsg "Unable to compile lagscope."
     UpdateTestState $ICA_TESTABORTED
 fi
 
 #Install NTTTCP for network throughput
 setup_ntttcp
 if [ $? -ne 0 ]; then
-    echo "ERROR: Unable to compile ntttcp-for-linux."
-    LogMsg "ERROR: Unable to compile ntttcp-for-linux."
+    echo "Unable to compile ntttcp-for-linux."
+    LogMsg "Unable to compile ntttcp-for-linux."
     UpdateTestState $ICA_TESTABORTED
 fi
 dos2unix ~/*.sh
 chmod 755 ~/*.sh
-#Config static ip on the client side.
-config_staticip ${STATIC_IP} ${NETMASK}
-if [ $? -ne 0 ]; then
-    echo "ERROR: Function config_staticip failed."
-    LogMsg "ERROR: Function config_staticip failed."
-    UpdateTestState $ICA_TESTABORTED
-fi
+
+# set static IPs for test interfaces
 LogMsg "Copy files to server: ${STATIC_IP2}"
-scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/perf_ntttcp_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ~/SRIOV-ntttcp-server.sh ${REMOTE_USER}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
     msg="ERROR: Unable to copy test scripts to target server machine: ${STATIC_IP2}. scp command failed."
     LogMsg "${msg}"
@@ -438,14 +327,16 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 130
 fi
-scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
-scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
-scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ~/perf_utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ~/constants.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ~/utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ~/perf_utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
 
+
+#
 # Start ntttcp in server mode on the Target server side
 #
-LogMsg "Starting ntttcp in server mode on ${STATIC_IP2}"
-ssh -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo '~/perf_ntttcp_server.sh > ntttcp_ServerSideScript.log' | at now"
+LogMsg "Starting ntttcp in server mode on ${BOND_IP2}"
+ssh -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo '~/SRIOV-ntttcp-server.sh > ntttcp_ServerSideScript.log' | at now"
 if [ $? -ne 0 ]; then
     msg="ERROR: Unable to start ntttcp server scripts on the target server machine"
     LogMsg "${msg}"
@@ -455,12 +346,11 @@ if [ $? -ne 0 ]; then
 fi
 
 # Wait for server to be ready
-#
 wait_for_server=600
 server_state_file=serverstate.txt
 while [ $wait_for_server -gt 0 ]; do
     # Try to copy and understand server state
-    scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
+    scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ${REMOTE_USER}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
 
     if [ -f ~/${server_state_file} ];
     then
@@ -490,7 +380,8 @@ fi
 #Starting test
 previous_tx_bytes=$(get_tx_bytes $ETH_NAME)
 previous_tx_pkts=$(get_tx_pkts $ETH_NAME)
-ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "mkdir /root/$log_folder"
+ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "mkdir /root/$log_folder"
+
 i=0
 while [ "x${TEST_THREADS[$i]}" != "x" ]
 do
@@ -508,15 +399,15 @@ do
     echo "Running Test: $num_threads_P X $num_threads_n"
     echo "======================================"
 
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f ntttcp"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} ${ipVersion} -P $num_threads_P -t ${TEST_DURATION} -e > ~/$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log" &
+    ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "pkill -f ntttcp"
+    ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "ntttcp -r${BOND_IP2} -P $num_threads_P ${ipVersion} -e > $HOME/$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log" &
 
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f lagscope"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "lagscope -r${SERVER_IP} ${ipVersion}" &
+    ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "pkill -f lagscope"
+    ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "lagscope -r${BOND_IP2} ${ipVersion}" &
 
     sleep 2
-    lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V ${ipVersion} > $HOME/$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log &
-    ntttcp -s${SERVER_IP} ${ipVersion} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION}  > $HOME/$log_folder/ntttcp-sender-p${num_threads_P}X${num_threads_n}.log
+    lagscope -s${BOND_IP2} -t ${TEST_DURATION} -V ${ipVersion} > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
+    ntttcp -s${BOND_IP2} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION} ${ipVersion} -f > "./$log_folder/ntttcp-sender-p${num_threads_P}X${num_threads_n}.log"
 
     current_tx_bytes=$(get_tx_bytes $ETH_NAME)
     current_tx_pkts=$(get_tx_pkts $ETH_NAME)
@@ -540,7 +431,7 @@ if [ $sts -eq 0 ]; then
     LogMsg "Ntttcp succeeded with all connections."
     echo "Ntttcp succeeded with all connections." >> ~/summary.log
     cd $HOME
-    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2}:/root/$log_folder/* /root/$log_folder
+    scp -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@[${STATIC_IP2}]:/root/$log_folder/* /root/$log_folder
     if [ $? -ne 0 ]; then
         echo "ERROR: Unable to trnsfer server side logs."
         UpdateTestState $ICA_TESTFAILED

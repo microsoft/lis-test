@@ -23,33 +23,37 @@
 
 #######################################################################
 #
-# perf_ntttcp_server.sh
+# sriov-perf_iperf_server.sh
 #
 # Description:
-#     A multiple-thread based Linux network throughput benchmark tool.
-#     For the test to run you have to install ntttcp-for-linux from github: https://github.com/Microsoft/ntttcp-for-linux
+#     For the test to run you have to place the iperf3 tool package in the
+#     Tools folder under lisa.
 #
 # Requirements:
-#   - GCC installed
+#   The sar utility must be installed, package named sysstat
 #
-#Example run
+# Parameters:
+#     IPERF_PACKAGE: the iperf3 tool package
+#     INDIVIDUAL_TEST_DURATION: the test duration of each iperf3 test
+#     CONNECTIONS_PER_IPERF3: how many iPerf connections will be created by iPerf3 client to a single iperf3 server
+#     TEST_SIGNAL_FILE: the signal file send by client side to sync up the number of test connections
+#     TEST_RUN_LOG_FOLDER: the log folder name. sar log and top log will be saved in this folder for further analysis
 #
-#To measure the network performance between two multi-core serves running SLES 12, NODE1 (192.168.4.1) and NODE2 (192.168.4.2), connected via a 40 GigE connection.
-#
-#On NODE1 (the receiver), run: ./ntttcp -r
 #######################################################################
 
 ICA_TESTRUNNING="TestRunning"
-ICA_NTTTCPRUNNING="NtttcpRunning"
+ICA_IPERF3RUNNING="iPerf3Running"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
-LogMsg() {
+LogMsg()
+{
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
 
-UpdateTestState() {
+UpdateTestState()
+{
     echo $1 > ~/state.txt
 }
 
@@ -58,6 +62,7 @@ UpdateTestState() {
 # Main script body
 #
 #######################################################################
+
 cd ~
 UpdateTestState $ICA_TESTRUNNING
 LogMsg "Starting running the script"
@@ -74,7 +79,6 @@ touch ~/summary.log
 
 # Convert eol
 dos2unix utils.sh
-dos2unix perf_utils.sh
 
 # Source utils.sh
 . utils.sh || {
@@ -83,28 +87,13 @@ dos2unix perf_utils.sh
     exit 2
 }
 
-# Source perf_utils.sh
-. perf_utils.sh || {
-    echo "Error: unable to source perf_utils.sh!"
-    echo "TestAborted" > state.txt
-    exit 2
-}
-
 # Source constants file and initialize most common variables
 UtilsInit
-
-#Apling performance parameters
-setup_sysctl
-if [ $? -ne 0 ]; then
-    echo "Unable to add performance parameters."
-    LogMsg "Unable to add performance parameters."
-    UpdateTestState $ICA_TESTABORTED
-fi
 
 # In case of error
 case $? in
     0)
-        # do nothing, init succeeded
+        #do nothing, init succeeded
         ;;
     1)
         LogMsg "Unable to cd to $LIS_HOME. Aborting..."
@@ -139,84 +128,81 @@ esac
 #
 # Make sure the required test parameters are defined
 #
-
-#Get test synthetic interface
-declare __iface_ignore
-
-# Parameter provided in constants file
-#   ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
-#   it is not touched during this test (no dhcp or static ip assigned to it)
-
-if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter STATIC_IP2 is not defined in constants file! Make sure you are using the latest LIS code."
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateAborted
-    exit 30
-else
-
-    CheckIP "$STATIC_IP2"
-
-    if [ 0 -ne $? ]; then
-        msg="Test parameter STATIC_IP2 = $STATIC_IP2 is not a valid IP Address"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateAborted
-        exit 10
-    fi
-
-    # Get the interface associated with the given ipv4
-    __iface_ignore=$(ip -o addr show | grep "$STATIC_IP2" | cut -d ' ' -f2)
+if [ "${IPERF_PACKAGE:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Error: the IPERF_PACKAGE test parameter is missing"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 20
 fi
 
-# Retrieve synthetic network interfaces
-GetSynthNetInterfaces
-
-if [ 0 -ne $? ]; then
-    msg="No synthetic network interfaces found"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-    exit 10
+if [ "${IPERF3_PROTOCOL:="UNDEFINED"}" = "UNDEFINED" ]; then
+    msg="Info: no IPERF3_PROTOCOL was specified, assuming default TCP"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
 fi
 
-# Remove interface if present
-SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
-
-if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
-    msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateAborted
-    exit 10
+if [ "${INDIVIDUAL_TEST_DURATION:="UNDEFINED"}" = "UNDEFINED" ]; then
+    INDIVIDUAL_TEST_DURATION=600
+    msg="Error: the INDIVIDUAL_TEST_DURATION test parameter is missing and the default value will be used: ${INDIVIDUAL_TEST_DURATION}."
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
 fi
 
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+if [ "${CONNECTIONS_PER_IPERF3:="UNDEFINED"}" = "UNDEFINED" ]; then
+    CONNECTIONS_PER_IPERF3=4
+    msg="Error: the CONNECTIONS_PER_IPERF3 test parameter is missing and the default value will be used: ${CONNECTIONS_PER_IPERF3}."
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
 
-# Test interfaces
-declare -i __iterator
-for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-    ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
-    if [ 0 -ne $? ]; then
-        msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 20
-    fi
-done
+if [ "${TEST_SIGNAL_FILE:="UNDEFINED"}" = "UNDEFINED" ]; then
+    TEST_SIGNAL_FILE="~/iperf3.test.sig"
+    msg="Warning: the TEST_SIGNAL_FILE test parameter is missing and the default value will be used: ${TEST_SIGNAL_FILE}."
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
 
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+if [ "${TEST_RUN_LOG_FOLDER:="UNDEFINED"}" = "UNDEFINED" ]; then
+    TEST_RUN_LOG_FOLDER="iperf3-server-logs"
+    msg="Warning: the TEST_RUN_LOG_FOLDER test parameter is is missing and the default value will be used:${TEST_RUN_LOG_FOLDER}"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
 
+# Extract the files from the IPerf tar package
 #
-# Check for internet protocol version
-#
-CheckIPV6 "$SERVER_IP"
+tar -xzf ./${IPERF_PACKAGE}
+if [ $? -ne 0 ]; then
+    msg="Error: Unable extract ${IPERF_PACKAGE}"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 70
+fi
+
+
+CheckIPV6 "$BOND_IP2"
 if [[ $? -eq 0 ]]; then
     ipVersion="-6"
 else
-    ipVersion=$null
+    ipVersion="-4"
 fi
+
+#
+# Get the root directory of the tarball
+#
+rootDir=`tar -tzf ${IPERF_PACKAGE} | sed -e 's@/.*@@' | uniq`
+if [ -z ${rootDir} ]; then
+    msg="Error: Unable to determine iperf3's root directory"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 80
+fi
+
+LogMsg "rootDir = ${rootDir}"
+cd ${rootDir}
 
 #
 # Distro specific setup
@@ -227,14 +213,9 @@ GetDistro
 
 case "$DISTRO" in
 debian*|ubuntu*)
-    disable_firewall
-    if [[ $? -ne 0 ]]; then
-        msg="ERROR: Unable to disable firewall.Exiting"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 1
-    fi
+    LogMsg "Updating apt repositories"
+    apt-get update & wait
+
     LogMsg "Installing sar on Ubuntu"
     apt-get install sysstat -y
     if [ $? -ne 0 ]; then
@@ -244,13 +225,23 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 85
     fi
-    apt-get install build-essential git -y
+    apt-get install zip build-essential -y
     if [ $? -ne 0 ]; then
         msg="Error: Build essential failed to install"
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
         exit 85
+    fi
+    service ufw status
+    if [ $? -ne 3 ]; then
+        LogMsg "Disabling firewall on Ubuntu"
+        service ufw stop
+        if [ $? -ne 0 ]; then
+                msg="Error: Failed to stop ufw"
+                LogMsg "${msg}"
+                echo "${msg}" >> ~/summary.log
+        fi
     fi
     ;;
 redhat_5|redhat_6|centos_6|centos_5)
@@ -291,7 +282,7 @@ redhat_7|centos_7)
         fi
     fi
     LogMsg "Check iptables status on RHEL"
-	systemctl status firewalld
+    systemctl status firewalld
     if [ $? -ne 3 ]; then
         LogMsg "Disabling firewall on Redhat 7"
         systemctl disable firewalld
@@ -309,17 +300,31 @@ redhat_7|centos_7)
             echo "${msg}" >> ~/summary.log
         fi
     fi
-    disable_firewall
-    if [[ $? -ne 0 ]]; then
-        msg="ERROR: Unable to disable firewall.Exiting"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 1
+
+    LogMsg "Check iptables status on RHEL7"
+    service iptables status
+    if [ $? -ne 3 ]; then
+        iptables -F;
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to flush iptables rules. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+        chkconfig iptables off
+        if [ $? -ne 0 ]; then
+            msg="Error: Failed to turn off iptables. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
     fi
     ;;
 suse_12)
-    LogMsg "Check iptables status on SLES 12"
+	#
+	# Install gcc which is required to build iperf3
+	#
+	zypper --non-interactive install gcc
+
+    LogMsg "Check iptables status on RHEL7"
     service SuSEfirewall2 status
     if [ $? -ne 3 ]; then
         iptables -F;
@@ -346,6 +351,36 @@ suse_12)
     ;;
 esac
 
+#
+# Build iperf
+#
+./configure
+if [ $? -ne 0 ]; then
+    msg="Error: ./configure failed"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 90
+fi
+
+make
+if [ $? -ne 0 ]; then
+    msg="Error: Unable to build iperf"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 100
+fi
+
+make install
+if [ $? -ne 0 ]; then
+    msg="Error: Unable to install iperf"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 110
+fi
+
 if [ $DISTRO -eq "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
@@ -355,37 +390,57 @@ if [ $DISTRO -eq "suse_12" ]; then
     fi
 fi
 
-setup_lagscope
-if [ $? -ne 0 ]; then
-    echo "Unable to compile lagscope."
-    LogMsg "Unable to compile lagscope."
-    UpdateTestState $ICA_TESTABORTED
-fi
+# go back to test root folder
+cd ~
 
-#Install NTTTCP for network throughput
-setup_ntttcp
-if [ $? -ne 0 ]; then
-    echo "Unable to compile ntttcp-for-linux."
-    LogMsg "Unable to compile ntttcp-for-linux."
-    UpdateTestState $ICA_TESTABORTED
-fi
+# Start iPerf3 server instances
+#
+LogMsg "Starting iPerf3 in server mode"
 
-LogMsg "Enlarging the system limit"
-ulimit -n 30480
-if [ $? -ne 0 ]; then
-    LogMsg "Error: Unable to enlarged system limit"
-    UpdateTestState $ICA_TESTABORTED
-fi
+UpdateTestState $ICA_IPERF3RUNNING
+LogMsg "iperf3 server instances now are ready to run"
 
-# set static ips for test interfaces
- config_staticip ${SERVER_IP} ${NETMASK}
-if [ $? -ne 0 ]; then
-    echo "ERROR: Function config_staticip failed."
-    LogMsg "ERROR: Function config_staticip failed."
-    UpdateTestState $ICA_TESTABORTED
-fi
+mkdir ${TEST_RUN_LOG_FOLDER}
+#default the parameter
+number_of_connections=0
+touch ${TEST_SIGNAL_FILE}
+echo 0 > ${TEST_SIGNAL_FILE}
 
-# Start ntttcp server instances
-sleep 3
-UpdateTestState $ICA_NTTTCPRUNNING
-LogMsg "Ntttcp server instances are now ready to run"
+time=0
+while true; do
+    #once received a reset/start signal from client side, do the test
+    if [ -f ${TEST_SIGNAL_FILE} ];
+    then
+        number_of_connections=$(head -n 1 ${TEST_SIGNAL_FILE})
+        rm -rf ${TEST_SIGNAL_FILE}
+        echo "Reset iperf3 server for test. Connections: ${number_of_connections} ..."
+        pkill -f iperf3
+        sleep 1
+
+        echo "Start new iperf3 instances..."
+        number_of_iperf_instances=$((number_of_connections/CONNECTIONS_PER_IPERF3+8001))
+
+        for ((i=8001; i<=$number_of_iperf_instances; i++))
+        do
+            /root/${rootDir}/src/iperf3 -s $ipVersion -p $i -i ${INDIVIDUAL_TEST_DURATION} -D
+            sleep 1
+        done
+        x=$(ps -aux | grep iperf | wc -l)
+        echo "ps -aux | grep iperf | wc -l: $x"
+
+        mkdir ./${TEST_RUN_LOG_FOLDER}/$number_of_connections
+
+        sar -n DEV 1 ${INDIVIDUAL_TEST_DURATION} 2>&1 > ./${TEST_RUN_LOG_FOLDER}/$number_of_connections/sar.log &
+    fi
+
+    top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}' >> ./${TEST_RUN_LOG_FOLDER}/$number_of_connections/top.log
+    #ifstat eth0 | grep eth0 | awk '{print $6}' >> ifstatlog.log
+    if [ $(($time % 10)) -eq 0 ];
+    then
+        echo $(netstat -nat | grep ESTABLISHED | wc -l) >> ./${TEST_RUN_LOG_FOLDER}/$number_of_connections/connections.log
+    fi
+
+    sleep 1
+    time=$(($time + 1))
+    echo "$time"
+done
