@@ -68,10 +68,10 @@ def commit_results(insert_values, config_file_path):
         sql_utils.insert_values(db_cursor, table_line)
 
     logger.info('Committing changes to the database')
-    #db_connection.commit()
+    db_connection.commit()
 
-    #logger.info("Checking insert validity")
-    #sql_utils.check_insert(db_cursor, insert_values)
+    logger.info("Checking insert validity")
+    sql_utils.check_insert(db_cursor, insert_values)
 
     
 def main(args):
