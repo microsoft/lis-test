@@ -50,12 +50,14 @@ then
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache>> ${LOG_FILE}
-    sudo yum -y install sysstat zip fio blktrace bc >> ${LOG_FILE}
+    sudo yum -y install sysstat zip blktrace bc libaio* wget gcc automake autoconf >> ${LOG_FILE}
+    cd /tmp; wget http://brick.kernel.dk/snaps/fio-2.21.tar.gz
+    tar -xzf fio-2.21.tar.gz
+    cd fio-2.21; ./configure; sudo make; sudo make install
+    sudo cp /usr/local/bin/fio /usr/bin/fio
 else
     LogMsg "Unsupported distribution: ${distro}."
 fi
-
-
 
 if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then

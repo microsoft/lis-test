@@ -39,8 +39,11 @@ class BaseLogsReader(object):
     Base class for collecting data from multiple log files
     """
     UNIT = {'us': 10 ** -6,
-             'ms': 10 ** -3,
-             's': 1}
+            'ms': 10 ** -3,
+            's': 1}
+    BitUNIT = {'K': 1,
+               'M': 2 ** 10,
+               'G': 2 ** 100}
 
     def __init__(self, log_path):
         """
@@ -1030,4 +1033,90 @@ class LatencyLogsReader(BaseLogsReader):
                     unit = max_latency.group(2).strip()
                     log_dict['MaxLatency_us'] = self._convert(float(max_latency.group(1).strip()),
                                                               unit, 'us')
+        return log_dict
+
+
+class StorageLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing FIO log files e.g.
+    FIOLog-XXXq.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
+                 region=None, host_type=None, instance_size=None, disk_setup=None):
+        super(StorageLogsReader, self).__init__(log_path)
+        self.headers = ['seq_read_iops', 'seq_read_lat_usec',
+                        'rand_read_iops', 'rand_read_lat_usec',
+                        'seq_write_iops', 'seq_write_lat_usec',
+                        'rand_write_iops:', 'rand_write_lat_usec', 'QDepth', 'BlockSize_KB']
+        self.sorter = ['BlockSize_KB', 'QDepth']
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.provider = provider
+        self.region = region
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.disk_setup = disk_setup
+        self.log_matcher = '([0-9]+)([A-Z])-([0-9]+)-read.fio.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for FIO test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['HostBy'] = self.region
+        log_dict['HostOS'] = self.host_type
+        log_dict['HostType'] = self.provider
+        log_dict['GuestSize'] = self.instance_size
+        log_dict['DiskSetup'] = self.disk_setup
+        log_dict['BlockSize_KB'] = \
+            int(f_match.group(1)) * self.BitUNIT[f_match.group(2).strip()]
+        log_dict['QDepth'] = int(f_match.group(3))
+        log_dict['seq_read_iops'] = 0
+        log_dict['seq_read_lat_usec'] = 0
+        log_dict['rand_read_iops'] = 0
+        log_dict['rand_read_lat_usec'] = 0
+        log_dict['seq_write_iops'] = 0
+        log_dict['seq_write_lat_usec'] = 0
+        log_dict['rand_write_iops'] = 0
+        log_dict['rand_write_lat_usec'] = 0
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestDistro'] = summary['guest_os']
+        log_dict['GuestOSType'] = 'Linux'
+
+        test_modes = ['seq_read', 'rand_read', 'seq_write', 'rand_write']
+        for mode in test_modes:
+            if 'seq' in mode:
+                simple_mode = mode.split('_')[1]
+            else:
+                simple_mode = mode.replace('_', '')
+            mode_log = os.path.join(os.path.dirname(os.path.abspath(log_file)),
+                                    '{}{}-{}-{}.fio.log'.format(f_match.group(1), f_match.group(2),
+                                                                f_match.group(3), simple_mode))
+            lat_key = '{}_lat_usec'.format(mode)
+            iops_key = '{}_iops'.format(mode)
+            with open(mode_log, 'r') as fl:
+                for f_line in fl:
+                    if not log_dict.get(lat_key, None):
+                        lat = re.match('\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)', f_line)
+                        if lat:
+                            unit = lat.group(1).strip()
+                            log_dict[lat_key] = self._convert(float(lat.group(2).strip()),
+                                                              unit[:2], 'us')
+                    if not log_dict.get(iops_key, None):
+                        if 'Ubuntu' in log_dict['GuestDistro']:
+                            iops = re.match('.+iops=([0-9. ]+),', f_line)
+                        else:
+                            iops = re.match('.+IOPS=([0-9a-z. ]+),', f_line)
+                        if iops:
+                            iops_digit = iops.group(1).strip()
+                            if 'k' in iops_digit:
+                                iops_digit = float(iops_digit.split('k')[0]) * 1000
+                            log_dict[iops_key] = iops_digit
         return log_dict

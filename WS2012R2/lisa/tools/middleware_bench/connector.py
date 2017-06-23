@@ -33,7 +33,7 @@ from cmdshell import SSHClient
 from db_utils import upload_results
 from results_parser import OrionLogsReader, SysbenchLogsReader, MemcachedLogsReader,\
     RedisLogsReader, ApacheLogsReader, MariadbLogsReader, MongodbLogsReader, ZookeeperLogsReader,\
-    TerasortLogsReader, TCPLogsReader, LatencyLogsReader
+    TerasortLogsReader, TCPLogsReader, LatencyLogsReader, StorageLogsReader
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -102,6 +102,20 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
 
             device = constants.DEVICE_AWS.replace('sd', 'xvd')
             if test_type == constants.VM_DISK:
+                if raid and type(raid) is int:
+                    device = []
+                    for i in xrange(raid):
+                        dev = '/dev/sd{}'.format(chr(120 - i))
+                        connector.attach_ebs_volume(vms[1], size=disk_size, iops=50 * disk_size,
+                                                    volume_type=connector.volume_type['ssd_io1'],
+                                                    device=dev)
+                        device.append(dev.replace('sd', 'xvd'))
+                        time.sleep(3)
+                else:
+                    connector.attach_ebs_volume(vms[1], size=disk_size, iops=50 * disk_size,
+                                                volume_type=connector.volume_type['ssd_io1'],
+                                                device=constants.DEVICE_AWS)
+            elif test_type == constants.VM_DISK_STOR:
                 if raid and type(raid) is int:
                     device = []
                     for i in xrange(raid):
@@ -1256,20 +1270,21 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
     :param kernel: custom kernel name provided in localpath
     """
     disk_size = 0
+    raid = 12
     if provider == constants.AWS:
         disk_size = 100
     elif provider == constants.AZURE:
         disk_size = 513
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK,
-                                                      disk_size=disk_size, raid=False, keyid=keyid,
+                                                      disk_size=disk_size, raid=raid, keyid=keyid,
                                                       secret=secret, token=token,
                                                       subscriptionid=subscription, tenantid=tenant,
                                                       projectid=projectid, imageid=imageid,
                                                       instancetype=instancetype, user=user,
                                                       localpath=localpath, region=region,
                                                       zone=zone, sriov=sriov, kernel=kernel)
-
+    results_path = None
     try:
         if all(client for client in ssh_client.values()):
             current_path = os.path.dirname(os.path.realpath(__file__))
@@ -1280,16 +1295,22 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
             cmd = '/tmp/run_storage.sh {}'.format(device)
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
-            ssh_client[1].get_file('/tmp/storage.zip',
-                                   os.path.join(localpath,
-                                                'storage{}_{}.zip'.format(str(time.time()),
-                                                                          instancetype)))
+            results_path = os.path.join(localpath, 'storage{}_{}.zip'.format(str(time.time()),
+                                                                             instancetype))
+            ssh_client[1].get_file('/tmp/storage.zip', results_path)
     except Exception as e:
         log.error(e)
         raise
     finally:
         if connector:
             connector.teardown()
+    if results_path:
+        upload_results(localpath=localpath, table_name='Perf_{}_Storage'.format(provider),
+                       results_path=results_path, parser=StorageLogsReader,
+                       test_case_name='{}_Storage'.format(provider),
+                       provider=provider, region=region, data_path=utils.data_path(sriov),
+                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       disk_setup='RAID0:{}x{}G'.format(raid, disk_size))
 
 
 def test_network_tcp(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
