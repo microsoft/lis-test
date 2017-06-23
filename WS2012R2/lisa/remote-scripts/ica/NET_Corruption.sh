@@ -63,6 +63,10 @@ function ConfigInterface
     sysctl -w net.ipv4.conf.eth1.rp_filter=0
     sleep 2
 
+    # Disable tcp segmentation offload
+    ethtool -K eth1 tso off
+    ethtool -K eth1 gso off
+    
     return 0
 }
 
