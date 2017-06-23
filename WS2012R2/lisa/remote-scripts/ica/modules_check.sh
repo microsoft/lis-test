@@ -81,6 +81,13 @@ dos2unix utils.sh
 # Source constants file and initialize most common variables
 UtilsInit
 
+if [ -d /sys/firmware/efi ]; then
+    msg = "Test not available for gen 2 VMs"
+    LogMsg "$msg"
+    echo $msg >> ~/summary.log
+    SetTestStateSkipped
+fi
+
 if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter fileSystems is not defined in constants file."
     LogMsg "$msg"
