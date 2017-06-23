@@ -115,20 +115,6 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                     connector.attach_ebs_volume(vms[1], size=disk_size, iops=50 * disk_size,
                                                 volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
-            elif test_type == constants.VM_DISK_STOR:
-                if raid and type(raid) is int:
-                    device = []
-                    for i in xrange(raid):
-                        dev = '/dev/sd{}'.format(chr(120 - i))
-                        connector.attach_ebs_volume(vms[1], size=disk_size, iops=50 * disk_size,
-                                                    volume_type=connector.volume_type['ssd_io1'],
-                                                    device=dev)
-                        device.append(dev.replace('sd', 'xvd'))
-                        time.sleep(3)
-                else:
-                    connector.attach_ebs_volume(vms[1], size=disk_size, iops=50 * disk_size,
-                                                volume_type=connector.volume_type['ssd_io1'],
-                                                device=constants.DEVICE_AWS)
             elif test_type == constants.DB_DISK:
                 if raid and type(raid) is int:
                     device = []
@@ -1288,10 +1274,10 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
     try:
         if all(client for client in ssh_client.values()):
             current_path = os.path.dirname(os.path.realpath(__file__))
-            ssh_client[2].put_file(os.path.join(current_path, 'tests', 'raid.sh'), '/tmp/raid.sh')
-            ssh_client[2].run('chmod +x /tmp/raid.sh')
-            ssh_client[2].run("sed -i 's/\r//' /tmp/raid.sh")
-            ssh_client[2].run('/tmp/raid.sh 0 {} {}'.format(raid, ' '.join(device)))
+            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'raid.sh'), '/tmp/raid.sh')
+            ssh_client[1].run('chmod +x /tmp/raid.sh')
+            ssh_client[1].run("sed -i 's/\r//' /tmp/raid.sh")
+            ssh_client[1].run('/tmp/raid.sh 0 {} {}'.format(raid, ' '.join(device)))
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_storage.sh'),
                                    '/tmp/run_storage.sh')
             ssh_client[1].run('chmod +x /tmp/run_storage.sh')
@@ -1311,7 +1297,7 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Storage'.format(provider),
                        results_path=results_path, parser=StorageLogsReader,
-                       test_case_name='{}_Storage'.format(provider),
+                       test_case_name='{}_Storage_perf_tuned'.format(provider),
                        provider=provider, region=region, data_path=utils.data_path(sriov),
                        host_type=utils.host_type(provider), instance_size=instancetype,
                        disk_setup='RAID0:{}x{}G'.format(raid, disk_size))
