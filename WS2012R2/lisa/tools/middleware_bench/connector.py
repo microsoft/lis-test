@@ -1288,11 +1288,15 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
     try:
         if all(client for client in ssh_client.values()):
             current_path = os.path.dirname(os.path.realpath(__file__))
+            ssh_client[2].put_file(os.path.join(current_path, 'tests', 'raid.sh'), '/tmp/raid.sh')
+            ssh_client[2].run('chmod +x /tmp/raid.sh')
+            ssh_client[2].run("sed -i 's/\r//' /tmp/raid.sh")
+            ssh_client[2].run('/tmp/raid.sh 0 {} {}'.format(raid, ' '.join(device)))
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_storage.sh'),
                                    '/tmp/run_storage.sh')
             ssh_client[1].run('chmod +x /tmp/run_storage.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_storage.sh")
-            cmd = '/tmp/run_storage.sh {}'.format(device)
+            cmd = '/tmp/run_storage.sh {}'.format(constants.RAID_DEV)
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             results_path = os.path.join(localpath, 'storage{}_{}.zip'.format(str(time.time()),
