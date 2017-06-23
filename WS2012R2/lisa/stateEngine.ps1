@@ -498,7 +498,7 @@ function ResetVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
     if ($v.State -ne "Off")
     {
         LogMsg 3 "Info : $($vm.vmName) is not in a stopped state - stopping VM"
-        Stop-VM $vm.vmName -ComputerName $vm.hvServer -force | out-null
+        Stop-VM $vm.vmName -ComputerName $vm.hvServer -TurnOff -Force | out-null
 
         $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
         if ($v.State -ne "Off")
