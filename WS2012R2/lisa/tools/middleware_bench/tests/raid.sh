@@ -49,7 +49,7 @@ fi
 #for i in /sys/class/scsi_host/*; do sudo echo "- - -" > ${i}/scan; done
 #sudo fdisk -l
 
-LogMsg "Parameters are level=${level} raid-devices=${no_devices} devices=${devices[@]}"
+LogMsg "Parameters are level=${level} raid-devices=${no_devices} devices=${devices}"
 conf_raid()
 {
 DEV="/dev/md0"
