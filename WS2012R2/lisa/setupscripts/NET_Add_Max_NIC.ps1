@@ -147,6 +147,10 @@ foreach($p in $params)
 	if ($temp[0].Trim() -eq "SYNTHETIC_NICS")
 	{
 		$syntheticNICs = $temp[1] -as [int]
+		[int]$hostBuildNumber = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $hvServer).BuildNumber
+		if ($hostBuildNumber -le 9200) {
+			[int]$syntheticNICs  = 2
+		}
 	}
 	elseif ($temp[0].Trim() -eq "LEGACY_NICS")
 	{
