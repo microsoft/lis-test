@@ -29,7 +29,7 @@
                 <to>myboss@mail.com</to>
             </recipients>
             <sender>myself@mail.com</sender>
-            <subject>LISA Live Migration tests on WS2012R2</subject>
+            <subject>LISA Live Migration tests</subject>
             <smtpServer>smtp.your.company.com</smtpServer>
         </email>
     </global>
@@ -41,21 +41,20 @@
                 <suiteTest>LiveMigrate</suiteTest>
                 <suiteTest>QuickMigrate</suiteTest>
                 <suiteTest>CopyFileDuringMigration</suiteTest>
-                <suiteTest>Failover</suiteTest>
-                <suiteTest>SetMemory512MB_LiveMig</suiteTest>
-                <suiteTest>SetMemory512MB_QuickMig</suiteTest>
                 <suiteTest>SetMemory2GB_LiveMig</suiteTest>
                 <suiteTest>SetMemory2GB_QuickMig</suiteTest>
                 <suiteTest>SetMemory5GB_LiveMig</suiteTest>
                 <suiteTest>SetMemory5GB_QuickMig</suiteTest>
+                <suiteTest>SetMemory8GB_LiveMig</suiteTest>
+                <suiteTest>SetMemory8GB_QuickMig</suiteTest>
                 <suiteTest>SetMemory16GB_LiveMig</suiteTest>
-                <suiteTest>MultiCPU2_LiveMig</suiteTest>
-                <suiteTest>MultiCPU3_LiveMig</suiteTest>
                 <suiteTest>MultiCPU4_LiveMig</suiteTest>
+                <suiteTest>MultiCPU8_LiveMig</suiteTest>
                 <suiteTest>MultiCPU16_LiveMig</suiteTest>
-                <suiteTest>MultiCPU2_QuickMig</suiteTest>
-                <suiteTest>MultiCPU3_QuickMig</suiteTest>
                 <suiteTest>MultiCPU4_QuickMig</suiteTest>
+                <suiteTest>MultiCPU8_QuickMig</suiteTest>
+                <suiteTest>MultiCPU16_QuickMig</suiteTest>
+                <suiteTest>Failover</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -92,37 +91,26 @@
                 <param>TC_COVERED=NET_LIVEMIG-03</param>
             </testparams>
         </test>
-	<test>
-            <testName>Failover</testName>
-            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
-            <timeout>1800</timeout>
-            <onError>Continue</onError>
-            <testparams>
-                <param>stopClusterNode=True</param>
-                <param>MigrationType=Live</param>
-                <param>TC_COVERED=NET_LIVEMIG-04</param>
-            </testparams>
-        </test>
         <test>
-            <testName>SetMemory512MB_LiveMig</testName>
+            <testName>SetMemory8GB_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>VMMemory=512MB</param>
+                <param>VMMemory=8GB</param>
                 <param>MigrationType=Live</param>
                 <param>TC_COVERED=NET_LIVEMIG-05a</param>
             </testparams>
         </test>
         <test>
-            <testName>SetMemory512MB_QuickMig</testName>
+            <testName>SetMemory8GB_QuickMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\SetVMMemory.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>VMMemory=512MB</param>
+                <param>VMMemory=8GB</param>
                 <param>MigrationType=Quick</param>
                 <param>TC_COVERED=NET_LIVEMIG-06a</param>
             </testparams>
@@ -192,19 +180,7 @@
             </testparams>
         </test>
         <test>
-            <testName>MultiCPU2_LiveMig</testName>
-            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
-            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <testparams>
-                <param>VCPU=2</param>
-                <param>MigrationType=Live</param>
-                <param>TC_COVERED=NET_LIVEMIG-07a</param>
-            </testparams>
-        </test>
-        <test>
-            <testName>MultiCPU3_LiveMig</testName>
+            <testName>MultiCPU4_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
@@ -212,59 +188,31 @@
             <testparams>
                 <param>VCPU=4</param>
                 <param>MigrationType=Live</param>
-                <param>TC_COVERED=NET_LIVEMIG-08a</param>
+                <param>TC_COVERED=NET_LIVEMIG-07a</param>
             </testparams>
         </test>
         <test>
-            <testName>MultiCPU4_LiveMig</testName>
+            <testName>MultiCPU8_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
             <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>VCPU=6</param>
+                <param>VCPU=8</param>
                 <param>MigrationType=Live</param>
-                <param>TC_COVERED=NET_LIVEMIG-07b</param>
+                <param>TC_COVERED=NET_LIVEMIG-08a</param>
             </testparams>
         </test>
         <test>
             <testName>MultiCPU16_LiveMig</testName>
             <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
-            <setupScript>
-                <file>setupscripts\ChangeCPU.ps1</file>
-                <file>setupScripts\SetVMMemory.ps1</file>
-            </setupScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>VMMemory=2GB</param>
                 <param>VCPU=16</param>
                 <param>MigrationType=Live</param>
-                <param>TC_COVERED=NET_LIVEMIG-022c</param>
-            </testparams>
-        </test>
-        <test>
-            <testName>MultiCPU2_QuickMig</testName>
-            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
-            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <testparams>
-                <param>VCPU=2</param>
-                <param>MigrationType=Quick</param>
-                <param>TC_COVERED=NET_LIVEMIG-08b</param>
-            </testparams>
-        </test>
-        <test>
-            <testName>MultiCPU3_QuickMig</testName>
-            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
-            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <testparams>
-                <param>VCPU=3</param>
-                <param>MigrationType=Quick</param>
-                <param>TC_COVERED=NET_LIVEMIG-07c</param>
+                <param>TC_COVERED=NET_LIVEMIG-07b</param>
             </testparams>
         </test>
         <test>
@@ -276,10 +224,44 @@
             <testparams>
                 <param>VCPU=4</param>
                 <param>MigrationType=Quick</param>
+                <param>TC_COVERED=NET_LIVEMIG-08b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU8_QuickMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VCPU=8</param>
+                <param>MigrationType=Quick</param>
+                <param>TC_COVERED=NET_LIVEMIG-07c</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>MultiCPU16_QuickMig</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>VCPU=16</param>
+                <param>MigrationType=Quick</param>
                 <param>TC_COVERED=NET_LIVEMIG-08c</param>
             </testparams>
         </test>
-
+	    <test>
+            <testName>Failover</testName>
+            <testScript>setupScripts\NET_LIVEMIG.ps1</testScript>
+            <timeout>1800</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>stopClusterNode=True</param>
+                <param>MigrationType=Live</param>
+                <param>TC_COVERED=NET_LIVEMIG-04</param>
+            </testparams>
+        </test>
     </testCases>
     <VMs>
         <vm>
