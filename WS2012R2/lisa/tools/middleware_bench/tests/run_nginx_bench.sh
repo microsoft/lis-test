@@ -6,17 +6,17 @@
 # Copyright (c) Microsoft Corporation
 #
 # All rights reserved.
-# Licensed under the Apache License, Version 2.0 (the ""License"");
+# Licensed under the nginx License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.nginx.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
 # ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
 # PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
 #
-# See the Apache Version 2.0 License for specific language governing
+# See the nginx Version 2.0 License for specific language governing
 # permissions and limitations under the License.
 #
 ########################################################################
@@ -37,42 +37,37 @@ TEST_CONCURRENCY_THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
 max_concurrency_per_ab=4
 max_ab_instances=16
 
-
 if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
 distro="$(head -1 /etc/issue)"
-web_server=
+web_server="nginx"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip apache2 apache2-utils" >> ${LOG_FILE}
+    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
+    sudo apt-get -y install libaio1 sysstat zip nginx apache2-utils >> ${LOG_FILE}
 
-    sudo apt-get update >> ${LOG_FILE}
-    sudo apt-get -y install libaio1 sysstat zip apache2-utils >> ${LOG_FILE}
-    web_server="apache2"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install sysstat zip nginx apache2-utils" >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache>> ${LOG_FILE}
-    sudo yum -y install sysstat zip httpd-tools >> ${LOG_FILE}
+    sudo yum -y install sysstat zip nginx httpd-tools >> ${LOG_FILE}
 
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum clean dbcache" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip httpd httpd-tools" >> ${LOG_FILE}
-    web_server="httpd"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip nginx httpd-tools" >> ${LOG_FILE}
 else
     LogMsg "Unsupported distribution: ${distro}."
 fi
 
 sudo pkill -f ab
-mkdir -p /tmp/apache_bench
-LogMsg "Info: Generate test data file on the Apache server /var/www/html/test.dat"
+mkdir -p /tmp/nginx_bench
+LogMsg "Info: Generate test data file on the nginx server /var/www/html/test.dat"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo dd if=/dev/urandom of=/var/www/html/test.dat bs=1K count=200"
-
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${web_server} stop" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${web_server} start" >> ${LOG_FILE}
-
-ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/apache_bench"
+ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/nginx_bench"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f ab" >> ${LOG_FILE}
 
 function run_ab ()
@@ -121,22 +116,22 @@ function run_ab ()
     wait ${PID_LIST}
 }
 
-function run_apache_bench ()
+function run_nginx_bench ()
 {
     current_concurrency=$1
 
     LogMsg "======================================"
-    LogMsg "Running apache_bench test with current concurrency: ${current_concurrency}"
+    LogMsg "Running nginx_bench test with current concurrency: ${current_concurrency}"
     LogMsg "======================================"
 
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/apache_bench/${current_concurrency}.sar.netio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/apache_bench/${current_concurrency}.iostat.diskio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/apache_bench/${current_concurrency}.vmstat.memory.cpu.log"
-    sar -n DEV 1 900   2>&1 > /tmp/apache_bench/${current_concurrency}.sar.netio.log &
-    iostat -x -d 1 900 2>&1 > /tmp/apache_bench/${current_concurrency}.iostat.netio.log &
-    vmstat 1 900       2>&1 > /tmp/apache_bench/${current_concurrency}.vmstat.netio.log &
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/nginx_bench/${current_concurrency}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/nginx_bench/${current_concurrency}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/nginx_bench/${current_concurrency}.vmstat.memory.cpu.log"
+    sar -n DEV 1 900   2>&1 > /tmp/nginx_bench/${current_concurrency}.sar.netio.log &
+    iostat -x -d 1 900 2>&1 > /tmp/nginx_bench/${current_concurrency}.iostat.netio.log &
+    vmstat 1 900       2>&1 > /tmp/nginx_bench/${current_concurrency}.vmstat.netio.log &
 
-    run_ab ${current_concurrency} > /tmp/apache_bench/${current_concurrency}.apache.bench.log
+    run_ab ${current_concurrency} > /tmp/nginx_bench/${current_concurrency}.apache.bench.log
 
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f sar"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iostat"
@@ -152,12 +147,12 @@ function run_apache_bench ()
 
 for threads in "${TEST_CONCURRENCY_THREADS[@]}"
 do
-    run_apache_bench ${threads}
+    run_nginx_bench ${threads}
 done
 
 LogMsg "Kernel Version : `uname -r`"
 LogMsg "Guest OS : ${distro}"
 
 cd /tmp
-zip -r apache_bench.zip . -i apache_bench/* >> ${LOG_FILE}
-zip -r apache_bench.zip . -i summary.log >> ${LOG_FILE}
+zip -r nginx_bench.zip . -i nginx_bench/* >> ${LOG_FILE}
+zip -r nginx_bench.zip . -i summary.log >> ${LOG_FILE}

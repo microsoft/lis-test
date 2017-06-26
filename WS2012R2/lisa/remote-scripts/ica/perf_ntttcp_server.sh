@@ -218,28 +218,6 @@ else
     ipVersion=$null
 fi
 
-setup_lagscope
-if [ $? -ne 0 ]; then
-    echo "Unable to compile lagscope."
-    LogMsg "Unable to compile lagscope."
-    UpdateTestState $ICA_TESTABORTED
-fi
-
-#Install NTTTCP for network throughput
-setup_ntttcp
-if [ $? -ne 0 ]; then
-    echo "Unable to compile ntttcp-for-linux."
-    LogMsg "Unable to compile ntttcp-for-linux."
-    UpdateTestState $ICA_TESTABORTED
-fi
-
-LogMsg "Enlarging the system limit"
-ulimit -n 20480
-if [ $? -ne 0 ]; then
-    LogMsg "Error: Unable to enlarged system limit"
-    UpdateTestState $ICA_TESTABORTED
-fi
-
 #
 # Distro specific setup
 #
@@ -281,7 +259,7 @@ redhat_5|redhat_6|centos_6)
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
-        fi    
+        fi
         disable_firewall
         if [[ $? -ne 0 ]]; then
             msg="ERROR: Unable to disable firewall.Exiting"
@@ -292,7 +270,7 @@ redhat_5|redhat_6|centos_6)
         fi
     fi
     ;;
-redhat_7)
+redhat_7|centos_7)
     LogMsg "Check iptables status on RHEL"
     systemctl status firewalld
     if [ $? -ne 3 ]; then
@@ -356,6 +334,28 @@ if [ $DISTRO -eq "suse_12" ]; then
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
     fi
+fi
+
+setup_lagscope
+if [ $? -ne 0 ]; then
+    echo "Unable to compile lagscope."
+    LogMsg "Unable to compile lagscope."
+    UpdateTestState $ICA_TESTABORTED
+fi
+
+#Install NTTTCP for network throughput
+setup_ntttcp
+if [ $? -ne 0 ]; then
+    echo "Unable to compile ntttcp-for-linux."
+    LogMsg "Unable to compile ntttcp-for-linux."
+    UpdateTestState $ICA_TESTABORTED
+fi
+
+LogMsg "Enlarging the system limit"
+ulimit -n 20480
+if [ $? -ne 0 ]; then
+    LogMsg "Error: Unable to enlarged system limit"
+    UpdateTestState $ICA_TESTABORTED
 fi
 
 # set static ips for test interfaces

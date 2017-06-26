@@ -50,7 +50,9 @@ sudo rm -rf /tmp/hsperfdata*
 sudo umount -l ${hadoop_store}
 sudo rm -rf ${hadoop_store}
 
-sudo apt-get update >> ${LOG_FILE}
+distro="$(head -1 /etc/issue)"
+
+sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
 sudo apt-get install -y zip maven libssl-dev build-essential rsync pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk bc >> ${LOG_FILE}
 
 LogMsg "Upgrading procps - Azure issue."
@@ -162,7 +164,7 @@ do
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo umount -l ${hadoop_store}" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo rm -rf ${hadoop_store}" >> ${LOG_FILE}
     LogMsg "Configuring hadoop on: ${slave}"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get update" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get install -y maven libssl-dev rsync build-essential pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk bc" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get upgrade -y procps" >> ${LOG_FILE}
     scp -o StrictHostKeyChecking=no /tmp/${hadoop_version}.tar.gz ${USER}@${slave}:/tmp >> ${LOG_FILE}
@@ -204,7 +206,9 @@ sleep 10
 # c4.large = 1.75 * 4 * 2 = 14
 /tmp/${hadoop_version}/bin/hadoop jar /tmp/${hadoop_version}/share/hadoop/mapreduce/hadoop-*examples*.jar terasort -Dmapreduce.job.reduces=112 ${hadoop_store}/genout ${hadoop_store}/sortout 2&> /tmp/terasort/terasort.log
 
-LogMsg "Kernel Version : `uname -r` "
+LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
+LogMsg "Hadoop Version : ${hadoop_version}"
 
 cd /tmp
 zip -r terasort.zip . -i terasort/* >> ${LOG_FILE}

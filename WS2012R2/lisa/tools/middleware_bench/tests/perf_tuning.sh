@@ -26,11 +26,14 @@ function LogMsg() {
 }
 
 if [ $# -lt 1 ]; then
-    echo -e "\nUsage:\n$0 provider"
+    echo -e "\nUsage:\n$0 provider kernel"
     exit 1
 fi
 
 PROVIDER="$1"
+if [ ! -z "$2" ]; then
+    KERNEL="$2"
+fi
 
 declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
                            ["net.core.rmem_max"]="67108864"
@@ -55,15 +58,24 @@ function setup_sysctl {
 }
 
 function setup_cpu_sched_domain {
-    if [[ ${PROVIDER} == "azure" ]]; then
-        total_cpus=`grep -c '^processor' /proc/cpuinfo`
-        for (( i=0; i<${total_cpus}; i++ ))
-        do
-            echo '0' | sudo tee /proc/sys/kernel/sched_domain/cpu${i}/domain0/idle_idx
-            echo '4655' | sudo tee /proc/sys/kernel/sched_domain/cpu${i}/domain0/flags
-        done
-    fi
+    total_cpus=`grep -c '^processor' /proc/cpuinfo`
+    for (( i=0; i<${total_cpus}; i++ ))
+    do
+        echo '0' | sudo tee /proc/sys/kernel/sched_domain/cpu${i}/domain0/idle_idx
+        echo '4655' | sudo tee /proc/sys/kernel/sched_domain/cpu${i}/domain0/flags
+    done
+}
+
+function install_kernel {
+    sudo apt-get install -y dpkg
+    sudo dpkg -i ${KERNEL}
+    sudo update-grub
 }
 
 setup_sysctl
-setup_cpu_sched_domain
+if [[ ${PROVIDER} == "azure" ]]; then
+    setup_cpu_sched_domain
+fi
+if [ ! -z ${KERNEL} ]; then
+    install_kernel
+fi

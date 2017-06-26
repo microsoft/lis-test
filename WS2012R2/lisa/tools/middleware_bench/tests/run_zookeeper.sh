@@ -44,9 +44,29 @@ if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
-sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install libaio1 sysstat zip default-jdk git python-dev libzookeeper-mt-dev python-pip >> ${LOG_FILE}
-sudo -H pip install zkpython >> ${LOG_FILE}
+distro="$(head -1 /etc/issue)"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
+    sudo apt-get -y install libaio1 sysstat zip default-jdk git python-dev libzookeeper-mt-dev python-pip >> ${LOG_FILE}
+    sudo -H pip install zkpython >> ${LOG_FILE}
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean dbcache>> ${LOG_FILE}
+    sudo yum -y install sysstat zip java git python-devel python-pip gcc libtool autoconf automake >> ${LOG_FILE}
+    cd /tmp
+    wget ftp://rpmfind.net/linux/centos/6.8/os/x86_64/Packages/cppunit-1.12.1-3.1.el6.x86_64.rpm
+    sudo yum localinstall /tmp/cppunit-1.12.1-3.1.el6.x86_64.rpm
+    wget ftp://rpmfind.net/linux/centos/6.8/os/x86_64/Packages/cppunit-devel-1.12.1-3.1.el6.x86_64.rpm
+    sudo yum localinstall /tmp/cppunit-devel-1.12.1-3.1.el6.x86_64.rpm
+    wget http://apache.spinellicreations.com/zookeeper/${zk_version}/${zk_version}.tar.gz
+    tar -xzf tar -xzf ${zk_version}.tar.gz.tar.gz
+    cd ${zk_version}/src/c; sudo autoreconf -if; ./configure; sudo make install
+    sudo -H pip install zkpython >> ${LOG_FILE}
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
+
 
 cd /tmp
 git clone https://github.com/phunt/zk-smoketest >> ${LOG_FILE}
@@ -70,8 +90,17 @@ function run_zk ()
 for server in "${SERVERS[@]}"
 do
     LogMsg "Configuring zookeeper server on: ${server}"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt-get update" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt-get -y install libaio1 sysstat default-jdk" >> ${LOG_FILE}
+    if [[ ${distro} == *"Ubuntu"* ]]
+    then
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt-get -y install libaio1 sysstat default-jdk" >> ${LOG_FILE}
+    elif [[ ${distro} == *"Amazon"* ]]
+    then
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo yum clean dbcache" >> ${LOG_FILE}
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo yum -y install sysstat zip java libtool" >> ${LOG_FILE}
+    else
+        LogMsg "Unsupported distribution: ${distro}."
+    fi
     ssh -o StrictHostKeyChecking=no ${USER}@${server} "cd /tmp;wget http://apache.spinellicreations.com/zookeeper/${zk_version}/${zk_version}.tar.gz" >> ${LOG_FILE}
     ssh -o StrictHostKeyChecking=no ${USER}@${server} "cd /tmp;tar -xzf ${zk_version}.tar.gz"
     ssh -o StrictHostKeyChecking=no ${USER}@${server} "cp /tmp/${zk_version}/conf/zoo_sample.cfg /tmp/${zk_version}/conf/zoo.cfg" >> ${LOG_FILE}
@@ -105,15 +134,11 @@ do
         ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo /tmp/${zk_version}/bin/zkServer.sh start" >> ${LOG_FILE}
         LogMsg "Waiting zookeeper to start on server ${server}"
         sleep 20
-        java_pid=$(ssh -o StrictHostKeyChecking=no ${USER}@${server} pidof java)
-        LogMsg "Server ${server} ZK Java pid: ${java_pid}"
-
         ssh -o StrictHostKeyChecking=no ${USER}@${server} "mkdir -p /tmp/zookeeper"
         ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "sar -n DEV 1 900   2>&1 > /tmp/zookeeper/${threads}.sar.netio.log"
         ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "iostat -x -d 1 900 2>&1 > /tmp/zookeeper/${threads}.iostat.diskio.log"
         ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "vmstat 1 900       2>&1 > /tmp/zookeeper/${threads}.vmstat.memory.cpu.log"
         ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "mpstat -P ALL 1 900 2>&1 > /tmp/zookeeper/${threads}.mpstat.cpu.log"
-        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "pidstat -h -r -u -v -p ${java_pid} 1 900 2>&1 > /tmp/zookeeper/${threads}.pidstat.cpu.log"
     done
 
     sar -n DEV 1 900   2>&1 > /tmp/zookeeper/${threads}.sar.netio.log &
@@ -134,7 +159,6 @@ do
         ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f iostat"
         ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f vmstat"
         ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f mpstat"
-        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo pkill -f pidstat"
         ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo /tmp/${zk_version}/bin/zkServer.sh stop"
         ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo rm -rf ${zk_data}/version-2"
     done
@@ -142,6 +166,7 @@ do
 done
 
 LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r zookeeper.zip . -i zookeeper/* >> ${LOG_FILE}

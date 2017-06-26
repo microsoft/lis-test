@@ -28,7 +28,7 @@ import connector
 
 from args_validation import TestAction, ProviderAction, KeyIdAction, SecretAction,\
     SubscriptionAction, TenantAction, LocalPathAction, RegionAction, ZoneAction, InstTypeAction,\
-    ImageIdAction, UserAction, ProjectAction, TokenAction
+    ImageIdAction, UserAction, ProjectAction, TokenAction, KernelAction, SriovAction
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -56,6 +56,10 @@ def run(options):
                         GCE project ID
               -o TOKEN, --token TOKEN
                         GCE refresh token obtained with gcloud sdk.
+              -sr SRIOV, --sriov SRIOV
+                        Bool to enable or disable SRIOV.
+              -kr KERNEL, --kernel KERNEL
+                        Custom kernel to install from localpath.
 
             mandatory arguments:
               -t TEST, --test TEST
@@ -147,6 +151,12 @@ def run(options):
                         type=str, action=ZoneAction,
                         help='AWS specific zone where to create resources or '
                              'GCE specific zone e.g. us-west1-a.')
+    parser.add_argument(constants.CLI_SRIOV_OPT_SH, constants.CLI_SRIOV_OPT,
+                        type=str, action=SriovAction,
+                        help='Bool to enable or disable SRIOV.')
+    parser.add_argument(constants.CLI_KERNEL_OPT_SH, constants.CLI_KERNEL_OPT,
+                        type=str, action=KernelAction,
+                        help='Custom kernel to install from localpath.')
 
     args = parser.parse_args(options)
     log.info('Options are {}'.format(vars(args)))

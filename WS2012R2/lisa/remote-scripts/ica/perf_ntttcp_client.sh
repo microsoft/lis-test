@@ -140,14 +140,13 @@ case $? in
 esac
 
 #Create log folder
-if [ -d  $log_folder ]; then
+if [ -d  $HOME/$log_folder ]; then
     echo "File $log_folder exists: will be deleted."
     LogMsg "File $log_folder exists." >> ~/summary.log
-    rm -rf $log_folder
-else    
-    mkdir $log_folder
+    rm -rf $HOME/$log_folder
 fi
 
+mkdir $HOME/$log_folder
 eth_log="$HOME/$log_folder/eth_report.log"
 echo "#test_connections    throughput_gbps    average_packet_size" > $eth_log 
 
@@ -333,7 +332,7 @@ redhat_5|redhat_6|centos_6)
         LogMsg "Iptables and ip6tables are disabled."
     fi
     ;;
-redhat_7)
+redhat_7|centos_7)
     LogMsg "Check firewalld status on RHEL 7.xx."
     systemctl status firewalld
     if [ $? -ne 3 ]; then
@@ -444,7 +443,7 @@ wait_for_server=600
 server_state_file=serverstate.txt
 while [ $wait_for_server -gt 0 ]; do
     # Try to copy and understand server state
-    scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
+    scp -i $HOME/.ssh/$SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
 
     if [ -f ~/${server_state_file} ];
     then
@@ -474,7 +473,7 @@ fi
 #Starting test
 previous_tx_bytes=$(get_tx_bytes $ETH_NAME)
 previous_tx_pkts=$(get_tx_pkts $ETH_NAME)
-ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "mkdir /root/$log_folder"
+ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "mkdir /root/$log_folder"
 i=0
 while [ "x${TEST_THREADS[$i]}" != "x" ]
 do
@@ -492,15 +491,15 @@ do
     echo "Running Test: $num_threads_P X $num_threads_n" 
     echo "======================================"
     
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f ntttcp"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} ${ipVersion} -P $num_threads_P -t ${TEST_DURATION} -e > ./$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log" &
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f ntttcp"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "ntttcp -r${SERVER_IP} ${ipVersion} -P $num_threads_P -t ${TEST_DURATION} -e > ~/$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log" &
 
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f lagscope"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "lagscope -r${SERVER_IP} ${ipVersion}" &
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "pkill -f lagscope"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${SERVER_IP} "lagscope -r${SERVER_IP} ${ipVersion}" &
     
     sleep 2
-    lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V ${ipVersion} > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
-    ntttcp -s${SERVER_IP} ${ipVersion} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION}  > "./$log_folder/ntttcp-sender-p${num_threads_P}X${num_threads_n}.log"
+    lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V ${ipVersion} > $HOME/$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log &
+    ntttcp -s${SERVER_IP} ${ipVersion} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION}  > $HOME/$log_folder/ntttcp-sender-p${num_threads_P}X${num_threads_n}.log
 
     current_tx_bytes=$(get_tx_bytes $ETH_NAME)
     current_tx_pkts=$(get_tx_pkts $ETH_NAME)
