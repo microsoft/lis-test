@@ -240,6 +240,10 @@ del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "Covers: ${tcCovered}" | Tee-Object -Append -file $summaryLog
 
 "Info : Executing bash script"
+[int]$hostBuildNumber = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $hvServer).BuildNumber
+if ($hostBuildNumber -le 9200) {
+	$sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sed -i 's/NICS=7/NICS=2/g' constants.sh"
+}
 
 $sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix NET_MAX_NIC.sh 2>/dev/null"
 $sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod 755 NET_MAX_NIC.sh 2>/dev/null"
