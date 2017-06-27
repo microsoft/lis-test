@@ -25,19 +25,19 @@
 
 .Description
     This script will format and mount connected disk in the VM.
-    After that it will proceed with backup/restore operation. 
-    
-    It uses a second partition as target. 
+    After that it will proceed with backup/restore operation.
+
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     A typical xml entry looks like this:
 
     <test>
         <testName>VSS_BackupRestore_ext4_vhdx</testName>
         <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript>
         <testParams>
             <param>driveletter=F:</param>
             <param>SCSI=0,1,Dynamic</param>
@@ -68,11 +68,11 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $retVal = $false
 $remoteScript = "PartitionDisks.sh"
-
-####################################################################### 
-# 
-# Main script body 
-# 
+$IDECount = 0
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Check input arguments
@@ -96,7 +96,8 @@ foreach ($p in $params)
         "rootdir" { $rootDir = $fields[1].Trim() }
         "driveletter" { $driveletter = $fields[1].Trim() }
         "FILESYS" { $FILESYS = $fields[1].Trim() }
-        default  {}          
+        "IDE"  { $IDECount = $IDECount +1 }
+        default  {}
         }
 }
 
@@ -150,6 +151,24 @@ else {
 	return $false
 }
 
+$vmGeneration = GetVMGeneration $vmName $hvServer
+if ($IDECount -ge 1 -and $vmGeneration -eq 2 )
+{
+     Write-Output "Generation 2 VM does not support IDE disk, please skip this case "
+     return $Skipped
+}
+
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
+
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
@@ -161,7 +180,7 @@ else {
 }
 
 $sts = runSetup $vmName $hvServer $driveletter
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	return $False
 }
@@ -188,7 +207,7 @@ Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
 del $remoteScript.log
 
 $sts = startBackup $vmName $driveletter
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	return $False
 } else {
@@ -196,19 +215,19 @@ if (-not $sts[-1])
 }
 
 $sts = restoreBackup $backupLocation
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	write-output "Restore backup action failed" >> $summaryLog
 	return $False
 }
 
 $sts = checkResults $vmName $hvServer
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	write-output "Backup evaluation failed" >> $summaryLog
 	$retVal = $False
 }
-else 
+else
 {
 	$retVal = $True
     $results = $sts

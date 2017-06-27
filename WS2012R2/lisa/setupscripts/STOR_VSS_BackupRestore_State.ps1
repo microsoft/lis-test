@@ -25,13 +25,13 @@
 
 .Description
     This script will set the vm in Paused, Saved or Off state.
-    
+
     After that it will perform backup/restore.
 
-    It uses a second partition as target. 
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     For the state param there are 3 options:
 
@@ -41,10 +41,10 @@
 
     A typical XML definition for this test case would look similar
     to the following:
-    
+
     <test>
     <testName>VSS_BackupRestore_State</testName>
-    <testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript> 
+    <testScript>setupscripts\VSS_BackupRestore_State.ps1</testScript>
     <testParams>
         <param>driveletter=F:</param>
         <param>vmState=Paused</param>
@@ -74,7 +74,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $retVal = $false
 
 #######################################################################
-# Channge the VM state 
+# Channge the VM state
 #######################################################################
 function ChangeVMState($vmState,$vmName)
 {
@@ -90,21 +90,21 @@ function ChangeVMState($vmState,$vmName)
         Save-VM -Name $vmName -Action SilentlyContinue
         return $vm.state
     }
-    elseif ($vmState -eq "Paused") 
+    elseif ($vmState -eq "Paused")
     {
         Suspend-VM -Name $vmName -ErrorAction SilentlyContinue
         return $vm.state
     }
     else
     {
-        return $false    
+        return $false
     }
 }
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Check input arguments
@@ -120,7 +120,7 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
   $fields = $p.Split("=")
-    
+
   switch ($fields[0].Trim())
     {
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
@@ -129,7 +129,7 @@ foreach ($p in $params)
     "rootdir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
     "vmState" { $vmState = $fields[1].Trim() }
-     default  {}          
+     default  {}
     }
 }
 
@@ -193,10 +193,19 @@ else {
 	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
 	return $false
 }
-
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
 
 $sts = runSetup $vmName $hvServer $driveletter
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
     return $False
 }
@@ -206,7 +215,7 @@ if (-not $sts[-1])
 $vm = Get-VM -Name $vmName
 $currentState=$vm.state
 
-if ( $currentState -ne "Running" )  
+if ( $currentState -ne "Running" )
 {
     Write-Output "ERROR: $vmName is not started."
     return $False
@@ -234,23 +243,23 @@ if (-not $sts[-1])
 {
     return $False
 }
-else 
+else
 {
     $backupLocation = $sts
 }
 
 $sts = restoreBackup $backupLocation
 if (-not $sts[-1])
-{   
+{
     return $False
 }
 
 $sts = checkResults $vmName $hvServer
-if (-not $sts[-1]) 
-{   
+if (-not $sts[-1])
+{
     $retVal = $False
-} 
-else 
+}
+else
 {
 	$retVal = $True
     $results = $sts
