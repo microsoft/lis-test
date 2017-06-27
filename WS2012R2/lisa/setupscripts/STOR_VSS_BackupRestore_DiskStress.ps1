@@ -24,19 +24,19 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will push VSS_Disk_Stress.sh script to the vm. 
-    While the script is running it will perform the backup/restore operation. 
-    
-    It uses a second partition as target. 
+    This script will push VSS_Disk_Stress.sh script to the vm.
+    While the script is running it will perform the backup/restore operation.
+
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     A typical xml entry looks like this:
 
     <test>
     <testName>VSS_BackupRestore_DiskStress</testName>
-        <testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript> 
+        <testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript>
         <testParams>
             <param>driveletter=F:</param>
             <param>iOzoneVers=3_424</param>
@@ -45,8 +45,8 @@
         <timeout>1200</timeout>
         <OnERROR>Continue</OnERROR>
     </test>
-    
-    The iOzoneVers param is needed for the download of the correct iOzone version. 
+
+    The iOzoneVers param is needed for the download of the correct iOzone version.
 
 .Parameter vmName
     Name of the VM to backup/restore.
@@ -67,10 +67,10 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $retVal = $false
 $remoteScript = "STOR_VSS_Disk_Stress.sh"
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Check input arguments
@@ -95,7 +95,7 @@ foreach ($p in $params)
         "driveletter" { $driveletter = $fields[1].Trim() }
         "iOzoneVers" { $iOzoneVers = $fields[1].Trim() }
         "TestLogDir" { $TestLogDir = $fields[1].Trim() }
-        default  {}          
+        default  {}
         }
 }
 
@@ -163,9 +163,19 @@ else {
 	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
 	return $false
 }
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
 
 $sts = runSetup $vmName $hvServer $driveletter
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
     return $False
 }
@@ -188,7 +198,7 @@ if (-not $sts[-1])
 {
     return $False
 }
-else 
+else
 {
     $backupLocation = $sts
 }
@@ -202,11 +212,11 @@ if (-not $sts[-1])
 }
 
 $sts = checkResults $vmName $hvServer
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
     $retVal = $False
-} 
-else 
+}
+else
 {
 	$retVal = $True
     $results = $sts

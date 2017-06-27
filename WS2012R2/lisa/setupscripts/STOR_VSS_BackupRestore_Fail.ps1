@@ -25,19 +25,19 @@
 
 .Description
     This script will push test if VSS backup will gracefully fail in case
-    of failure. 
-    
-    It uses a second partition as target. 
+    of failure.
+
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     A typical xml entry looks like this:
 
     <test>
     <testName>VSS_BackupRestore_Fail</testName>
         <setupScript>setupscripts\AddHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Fail.ps1</testScript> 
+        <testScript>setupscripts\VSS_BackupRestore_Fail.ps1</testScript>
         <testParams>
             <param>driveletter=F:</param>
             <param>SCSI=0,1,Dynamic</param>
@@ -49,7 +49,7 @@
         <timeout>1200</timeout>
         <OnERROR>Continue</OnERROR>
     </test>
-    
+
 .Parameter vmName
     Name of the VM to backup/restore.
 
@@ -68,11 +68,11 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $remoteScript = "STOR_VSS_Disk_Fail.sh"
 $retVal = $false
-
-####################################################################### 
-# 
-# Main script body 
-# 
+$IDECount = 0
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Check input arguments
@@ -97,6 +97,7 @@ foreach ($p in $params)
         "driveletter" { $driveletter = $fields[1].Trim() }
         "TestLogDir" { $TestLogDir = $fields[1].Trim() }
         "FILESYS" { $FILESYS = $fields[1].Trim() }
+        "IDE"  { $IDECount = $IDECount +1 }
         default  {}
         }
 }
@@ -156,7 +157,6 @@ else {
 	return $false
 }
 
-
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
@@ -167,10 +167,26 @@ else {
 	return $false
 }
 
+$vmGeneration = GetVMGeneration $vmName $hvServer
+if ($IDECount -ge 1 -and $vmGeneration -eq 2 )
+{
+     Write-Output "Generation 2 VM does not support IDE disk, please skip this case "
+     return $Skipped
+}
 
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
 
 $sts = runSetup $vmName $hvServer $driveletter
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
     return $False
 }
@@ -192,7 +208,7 @@ if (-not $sts[-1])
 {
    return $False
 }
-else 
+else
 {
     $backupLocation = $sts
 }
@@ -204,12 +220,12 @@ if(-not $EventLog)
 {
     "ERROR: Cannot get Event log."
     $retVal = $False
-} 
+}
 
 # Event ID 10107 is what we looking here, it will be always be 10107.
 foreach ($event in $EventLog)
    {
-       Write-Output "VSS Backup Error in Event Log number is $($event.ID):" 
+       Write-Output "VSS Backup Error in Event Log number is $($event.ID):"
        if ($event.Id -eq 10150)
        {
            $results = "Passed"
