@@ -59,29 +59,29 @@ LinuxRelease()
     case $DISTRO in
         *buntu*)
             echo "UBUNTU";;
-        Fedora*)
+        *Fedora*)
             echo "FEDORA";;
-        CentOS*)
+        *CentOS*)
             echo "CENTOS";;
         *suse*)
             echo "SLES";;
-        Red*Hat*)
+        *Red*Hat*)
             echo "RHEL";;
-        Debian*)
+        *Debian*)
             echo "DEBIAN";;
         *)
             LogMsg "Unknown Distro"
             UpdateTestState "TestAborted"
             UpdateSummary "Unknown Distro, test aborted"
             exit 1
-            ;; 
+            ;;
     esac
 }
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Create the state.txt file so ICA knows we are running
@@ -164,7 +164,7 @@ if [ 0 -ne ${sts} ]; then
     	exit 1
 fi
 
-# cd in to directory    
+# cd in to directory
 if [ !  ${ROOTDIR} ];
 then
     LogMsg "Cannot find ROOTDIR."
@@ -188,7 +188,7 @@ sts=$?
 	fi
 
 # Run Iozone
-while true ; do ./iozone -ag 10G   ; done > /dev/null 2>&1 & 
+while true ; do ./iozone -ag 10G   ; done > /dev/null 2>&1 &
 sts=$?
         if [ 0 -ne ${sts} ]; then
             LogMsg "Error:  running IOzone  Failed ${sts}"
