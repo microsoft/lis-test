@@ -69,8 +69,6 @@ fi
 
 cd /tmp
 git clone https://github.com/phunt/zk-smoketest >> ${LOG_FILE}
-export PYTHONPATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6"
-export LD_LIBRARY_PATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6"
 
 function run_zk ()
 {
@@ -78,7 +76,7 @@ function run_zk ()
     for (( client_id=1; client_id<=${parallel_clients}; client_id++ ))
     do
         LogMsg  "Running zk-latency client with: --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id}"
-        sudo python /tmp/zk-smoketest/zk-latencies.py --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id} --force & pid=$!
+        sudo PYTHONPATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6" LD_LIBRARY_PATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6" python /tmp/zk-smoketest/zk-latencies.py --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id} --force & pid=$!
         PID_LIST+=" $pid"
     done
 
