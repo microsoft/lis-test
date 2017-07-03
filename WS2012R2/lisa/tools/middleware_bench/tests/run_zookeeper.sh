@@ -55,23 +55,20 @@ then
     sudo yum clean dbcache>> ${LOG_FILE}
     sudo yum -y install sysstat zip java git python-devel python-pip gcc libtool autoconf automake >> ${LOG_FILE}
     cd /tmp
-    wget ftp://rpmfind.net/linux/centos/6.8/os/x86_64/Packages/cppunit-1.12.1-3.1.el6.x86_64.rpm
-    sudo yum localinstall /tmp/cppunit-1.12.1-3.1.el6.x86_64.rpm
-    wget ftp://rpmfind.net/linux/centos/6.8/os/x86_64/Packages/cppunit-devel-1.12.1-3.1.el6.x86_64.rpm
-    sudo yum localinstall /tmp/cppunit-devel-1.12.1-3.1.el6.x86_64.rpm
+    wget ftp://rpmfind.net/linux/centos/6/os/x86_64/Packages/cppunit-1.12.1-3.1.el6.x86_64.rpm
+    sudo yum localinstall -y /tmp/cppunit-1.12.1-3.1.el6.x86_64.rpm
+    wget ftp://rpmfind.net/linux/centos/6/os/x86_64/Packages/cppunit-devel-1.12.1-3.1.el6.x86_64.rpm
+    sudo yum localinstall -y /tmp/cppunit-devel-1.12.1-3.1.el6.x86_64.rpm
     wget http://apache.spinellicreations.com/zookeeper/${zk_version}/${zk_version}.tar.gz
-    tar -xzf tar -xzf ${zk_version}.tar.gz.tar.gz
+    tar -xzf ${zk_version}.tar.gz
     cd ${zk_version}/src/c; sudo autoreconf -if; ./configure; sudo make install
     sudo -H pip install zkpython >> ${LOG_FILE}
 else
     LogMsg "Unsupported distribution: ${distro}."
 fi
 
-
 cd /tmp
 git clone https://github.com/phunt/zk-smoketest >> ${LOG_FILE}
-export PYTHONPATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6"
-export LD_LIBRARY_PATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6"
 
 function run_zk ()
 {
@@ -79,7 +76,7 @@ function run_zk ()
     for (( client_id=1; client_id<=${parallel_clients}; client_id++ ))
     do
         LogMsg  "Running zk-latency client with: --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id}"
-        sudo python /tmp/zk-smoketest/zk-latencies.py --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id} --force & pid=$!
+        sudo PYTHONPATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6" LD_LIBRARY_PATH="/tmp/zk-smoketest/lib.linux-x86_64-2.6" python /tmp/zk-smoketest/zk-latencies.py --cluster=${cluster_string} --znode_size=${znode_size} --znode_count=${znode_count} --timeout=5000 --watch_multiple=${watch_multiple} --root_znode=/TESTNODE${client_id} --force & pid=$!
         PID_LIST+=" $pid"
     done
 
@@ -98,6 +95,10 @@ do
     then
         ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo yum clean dbcache" >> ${LOG_FILE}
         ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo yum -y install sysstat zip java libtool" >> ${LOG_FILE}
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "cd /tmp; wget ftp://rpmfind.net/linux/centos/6/os/x86_64/Packages/cppunit-1.12.1-3.1.el6.x86_64.rpm" >> ${LOG_FILE}
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo yum localinstall -y /tmp/cppunit-1.12.1-3.1.el6.x86_64.rpm" >> ${LOG_FILE}
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "cd /tmp; wget ftp://rpmfind.net/linux/centos/6/os/x86_64/Packages/cppunit-devel-1.12.1-3.1.el6.x86_64.rpm" >> ${LOG_FILE}
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo yum localinstall -y /tmp/cppunit-devel-1.12.1-3.1.el6.x86_64.rpm" >> ${LOG_FILE}
     else
         LogMsg "Unsupported distribution: ${distro}."
     fi

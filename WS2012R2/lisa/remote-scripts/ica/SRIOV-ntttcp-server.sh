@@ -75,23 +75,20 @@ touch ~/summary.log
 # Convert eol
 dos2unix utils.sh
 dos2unix perf_utils.sh
+dos2unix SR-IOV_Utils.sh
 
-# Source utils.sh
-. utils.sh || {
-    echo "Error: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
-    exit 2
-}
-
-# Source perf_utils.sh
 . perf_utils.sh || {
     echo "Error: unable to source perf_utils.sh!"
     echo "TestAborted" > state.txt
     exit 2
 }
 
-# Source constants file and initialize most common variables
-UtilsInit
+# Source perf_utils.sh
+. SR-IOV_Utils.sh || {
+    echo "Error: Unable to source SR-IOV_Utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
 
 #Apling performance parameters
 setup_sysctl
@@ -101,130 +98,10 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTABORTED
 fi
 
-# In case of error
-case $? in
-    0)
-        # do nothing, init succeeded
-        ;;
-    1)
-        LogMsg "Unable to cd to $LIS_HOME. Aborting..."
-        UpdateSummary "Unable to cd to $LIS_HOME. Aborting..."
-        SetTestStateAborted
-        exit 3
-        ;;
-    2)
-        LogMsg "Unable to use test state file. Aborting..."
-        UpdateSummary "Unable to use test state file. Aborting..."
-        # need to wait for test timeout to kick in
-        # hailmary try to update teststate
-        sleep 60
-        echo "TestAborted" > state.txt
-        exit 4
-        ;;
-    3)
-        LogMsg "Error: unable to source constants file. Aborting..."
-        UpdateSummary "Error: unable to source constants file"
-        SetTestStateAborted
-        exit 5
-        ;;
-    *)
-        # should not happen
-        LogMsg "UtilsInit returned an unknown error. Aborting..."
-        UpdateSummary "UtilsInit returned an unknown error. Aborting..."
-        SetTestStateAborted
-        exit 6
-        ;;
-esac
 
-#
-# Make sure the required test parameters are defined
-#
-
-#Get test synthetic interface
-declare __iface_ignore
-
-# Parameter provided in constants file
-#   ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
-#   it is not touched during this test (no dhcp or static ip assigned to it)
-
-if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter STATIC_IP2 is not defined in constants file! Make sure you are using the latest LIS code."
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateAborted
-    exit 30
-else
-
-    CheckIP "$STATIC_IP2"
-
-    if [ 0 -ne $? ]; then
-        msg="Test parameter STATIC_IP2 = $STATIC_IP2 is not a valid IP Address"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateAborted
-        exit 10
-    fi
-
-    # Get the interface associated with the given ipv4
-    __iface_ignore=$(ip -o addr show | grep "$STATIC_IP2" | cut -d ' ' -f2)
-fi
-
-# Retrieve synthetic network interfaces
-GetSynthNetInterfaces
-
-if [ 0 -ne $? ]; then
-    msg="No synthetic network interfaces found"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-    exit 10
-fi
-
-# Remove interface if present
-SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
-
-if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
-    msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateAborted
-    exit 10
-fi
-
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
-
-# Test interfaces
-declare -i __iterator
-for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
-    ip link show "${SYNTH_NET_INTERFACES[$__iterator]}" >/dev/null 2>&1
-    if [ 0 -ne $? ]; then
-        msg="Invalid synthetic interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 20
-    fi
-done
-
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
-
-#
-# Check for internet protocol version
-#
-CheckIPV6 "$SERVER_IP"
-if [[ $? -eq 0 ]]; then
-    ipVersion="-6"
-else
-    ipVersion=$null
-fi
-
-#
-# Distro specific setup
-#
 iptables -F
 ip6tables -F
 GetDistro
-
 case "$DISTRO" in
 debian*|ubuntu*)
     disable_firewall
@@ -291,7 +168,7 @@ redhat_7|centos_7)
         fi
     fi
     LogMsg "Check iptables status on RHEL"
-	systemctl status firewalld
+    systemctl status firewalld
     if [ $? -ne 3 ]; then
         LogMsg "Disabling firewall on Redhat 7"
         systemctl disable firewalld
@@ -346,15 +223,14 @@ suse_12)
     ;;
 esac
 
-if [ $DISTRO -eq "suse_12" ]; then
-    ldconfig
-    if [ $? -ne 0 ]; then
-        msg="Warning: Couldn't run ldconfig, there might be shared library errors"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-    fi
+LogMsg "Enlarging the system limit"
+ulimit -n 30480
+if [ $? -ne 0 ]; then
+    LogMsg "Error: Unable to enlarged system limit"
+    UpdateTestState $ICA_TESTABORTED
 fi
 
+#Install LAGSCOPE tool for latency
 setup_lagscope
 if [ $? -ne 0 ]; then
     echo "Unable to compile lagscope."
@@ -370,22 +246,10 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTABORTED
 fi
 
-LogMsg "Enlarging the system limit"
-ulimit -n 30480
-if [ $? -ne 0 ]; then
-    LogMsg "Error: Unable to enlarged system limit"
-    UpdateTestState $ICA_TESTABORTED
-fi
-
-# set static ips for test interfaces
- config_staticip ${SERVER_IP} ${NETMASK}
-if [ $? -ne 0 ]; then
-    echo "ERROR: Function config_staticip failed."
-    LogMsg "ERROR: Function config_staticip failed."
-    UpdateTestState $ICA_TESTABORTED
-fi
-
 # Start ntttcp server instances
+#
 sleep 3
+LogMsg "Ntttcp is ready to start in server mode."
+
 UpdateTestState $ICA_NTTTCPRUNNING
 LogMsg "Ntttcp server instances are now ready to run"

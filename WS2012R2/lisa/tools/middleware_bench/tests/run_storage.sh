@@ -46,16 +46,18 @@ distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
     sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
-    sudo apt-get -y install sysstat zip fio blktrace bc >> ${LOG_FILE}
+    sudo apt-get -y install sysstat zip fio blktrace bc libaio1 >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache>> ${LOG_FILE}
-    sudo yum -y install sysstat zip fio blktrace bc >> ${LOG_FILE}
+    sudo yum -y install sysstat zip blktrace bc libaio* wget gcc automake autoconf >> ${LOG_FILE}
+    cd /tmp; wget http://brick.kernel.dk/snaps/fio-2.21.tar.gz
+    tar -xzf fio-2.21.tar.gz
+    cd fio-2.21; ./configure; sudo make; sudo make install
+    sudo cp /usr/local/bin/fio /usr/bin/fio
 else
     LogMsg "Unsupported distribution: ${distro}."
 fi
-
-
 
 if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then
@@ -83,7 +85,7 @@ function run_storage ()
     file_size=$3
     io_mode=$4
 
-    if [[ ${DISK} != *"xvd"* || ${DISK} != *"sd"* && ${qdepth} -gt 8 ]]
+    if [[ ${qdepth} -gt 8 ]]
     then
         actual_q_depth=$((${qdepth} / 8))
         num_jobs=8
@@ -99,7 +101,7 @@ function run_storage ()
     iostat -x -d 1 900 2>&1 > /tmp/storage/${qdepth}.iostat.netio.log &
     vmstat 1 900       2>&1 > /tmp/storage/${qdepth}.vmstat.netio.log &
 
-    sudo fio --name=${io_mode} --bs=${io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${file_size}G --direct=1 --runtime=120 --numjobs=${num_jobs} --rw=${io_mode} --group_reporting -directory ${MNT} > /tmp/storage/${io_size}K-${qdepth}-${io_mode}.fio.log
+    sudo fio --name=${io_mode} --bs=${io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${file_size}G --direct=1 --runtime=120 --numjobs=${num_jobs} --rw=${io_mode} --group_reporting --directory ${MNT} > /tmp/storage/${io_size}K-${qdepth}-${io_mode}.fio.log
 
     sudo pkill -f iostat
     sudo pkill -f vmstat

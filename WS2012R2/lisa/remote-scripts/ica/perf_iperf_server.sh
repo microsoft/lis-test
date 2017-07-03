@@ -239,7 +239,7 @@ done
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 
 echo "iPerf package name		= ${IPERF_PACKAGE}"
-echo "iPerf protocol        = ${IPERF3_PROTOCOL-TCP}"
+echo "iPerf protocol        = ${IPERF3_PROTOCOL}"
 echo "individual test duration (sec)	= ${INDIVIDUAL_TEST_DURATION}"
 echo "connections per iperf3		= ${CONNECTIONS_PER_IPERF3}"
 echo "test signal file			= ${TEST_SIGNAL_FILE}"
@@ -282,6 +282,8 @@ fi
 LogMsg "rootDir = ${rootDir}"
 cd ${rootDir}
 
+iptables -F
+ip6tables -F
 #
 # Distro specific setup
 #
@@ -320,44 +322,45 @@ debian*|ubuntu*)
         fi
     fi
     ;;
-redhat_5|redhat_6)
-    LogMsg "Check iptables status on RHEL"
-    service iptables status
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Redhat"
-        iptables -F
+redhat_5|redhat_6|centos_6|centos_5)
+    LogMsg "Check irqbalance status on RHEL 5/6.x."
+    service irqbalance status
+    if [ $? -eq 3 ]; then
+        LogMsg "Enabling irqbalance on Redhat 5/6.x"
+        service irqbalance start
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service iptables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
+            msg="ERROR: Failed to start irqbalance. Failing."
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-		service ip6tables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop ip6tables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        chkconfig iptables off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
+            exit 1
         fi
     fi
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
     ;;
-redhat_7)
+redhat_7|centos_7)
+    LogMsg "Check irqbalance status on RHEL 7.xx."
+    systemctl status irqbalance
+    if [ $? -eq 3 ]; then
+        LogMsg "Enabling irqbalance on Redhat 7.x"
+        systemctl enable irqbalance && systemctl start irqbalance
+        if [ $? -ne 0 ]; then
+            msg="ERROR: Failed to start irqbalance. Failing."
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+    fi
     LogMsg "Check iptables status on RHEL"
-    systemctl status firewalld
+	systemctl status firewalld
     if [ $? -ne 3 ]; then
         LogMsg "Disabling firewall on Redhat 7"
         systemctl disable firewalld
@@ -390,8 +393,6 @@ redhat_7)
             msg="Error: Failed to stop iptables"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
         fi
         chkconfig iptables off
         if [ $? -ne 0 ]; then
