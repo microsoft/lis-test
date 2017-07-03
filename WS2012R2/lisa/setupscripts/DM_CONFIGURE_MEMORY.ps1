@@ -123,6 +123,11 @@ foreach ($p in $params)
         continue
     }
 
+    if ($temp[0].Trim() -eq "vmName")
+    {
+       $vmName = $temp[1]
+    }
+
     if($temp[0].Trim() -eq "enableDM")
     {
 
