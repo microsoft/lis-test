@@ -43,9 +43,9 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
+    sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
     sudo apt-get -y install sysstat zip bc build-essential >> ${LOG_FILE}
-    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq" >> ${LOG_FILE}
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install sysstat zip bc build-essential" >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
