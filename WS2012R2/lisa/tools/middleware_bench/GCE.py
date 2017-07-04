@@ -77,8 +77,8 @@ class GCEConnector:
 
         self.key_name = 'test_ssh_key'
         self.bucket_name = 'middleware_bench' + str(time.time()).replace('.', '')
-        self.net_name = 'middleware-bench-net'
-        self.subnet_name = 'middleware-bench-subnet'
+        self.net_name = 'middleware-bench-net' + str(time.time()).replace('.', '')
+        self.subnet_name = 'middleware-bench-subnet' + str(time.time()).replace('.', '')
 
         self.vms = []
 
