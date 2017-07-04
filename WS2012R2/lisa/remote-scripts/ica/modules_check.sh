@@ -36,7 +36,6 @@ CopyImage()
         rm -rf /root/initr/
     fi
 
-    LogMsg "Creating temporary directory."
     mkdir /root/initr
     cp $1 /root/initr/boot.img
     cd /root/initr/
@@ -78,18 +77,17 @@ dos2unix utils.sh
     exit 1
 }
 
-# Source constants file and initialize most common variables
 UtilsInit
 
-if [ -d /sys/firmware/efi ]; then
-    msg = "Test not available for gen 2 VMs"
+if ! [ -d /sys/firmware/efi ]; then
+    msg = "Info: Test not available for Gen2 VMs."
     LogMsg "$msg"
     echo $msg >> ~/summary.log
     SetTestStateSkipped
 fi
 
 if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter fileSystems is not defined in constants file."
+    msg="The test parameter hv_modules is not defined in constants file."
     LogMsg "$msg"
     echo $msg >> ~/summary.log
     SetTestStateAborted
@@ -100,7 +98,7 @@ if [[ $DISTRO == "redhat_6" ]]; then
     yum install -y dracut-network
     dracut -f
     if [ "$?" = "0" ]; then
-        LogMsg "Info: dracut -f executes successfully"
+        LogMsg "Info: dracut -f ran successfully"
     else
         LogMsg "Error: dracut -f fails to execute"
         echo "Error: dracut -f fails to execute" >> summary.log
