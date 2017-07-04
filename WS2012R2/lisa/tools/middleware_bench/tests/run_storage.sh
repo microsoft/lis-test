@@ -34,7 +34,7 @@ fi
 DISK="$1"
 
 QDEPTH=(1 2 4 8 16 32 64 128 256 512 1024)
-IO_SIZE=(4 8 128 1024)
+IO_SIZE=(4 1024)
 FILE_SIZE=(16)
 IO_MODE=(read randread write randwrite)
 

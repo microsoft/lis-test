@@ -88,7 +88,8 @@ class GCEConnector:
         net, subnet and fw rules.
         """
         log.info('Creating compute client')
-        self.compute = discovery.build('compute', 'v1', credentials=self.credentials)
+        self.compute = discovery.build('compute', 'v1', credentials=self.credentials,
+                                       cache_discovery=False)
 
         # keeping bucket related code in case these will be later required
         # https://cloud.google.com/compute/docs/disks/gcs-buckets

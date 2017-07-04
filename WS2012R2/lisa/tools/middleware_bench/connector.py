@@ -291,6 +291,9 @@ def test_orion(provider, keyid, secret, token, imageid, subscription, tenant, pr
         disk_size = 100
     elif provider == constants.AZURE:
         disk_size = 513
+    elif provider == constants.GCE:
+        # pd-ssd 30iops/gb => 167GB = 5010 iops
+        disk_size = 167
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK,
                                                       disk_size=disk_size, raid=False,
@@ -354,14 +357,14 @@ def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenan
     :param sriov: Enable or disable SR-IOV
     :param kernel: custom kernel name provided in localpath
     """
-    raid = 0
     disk_size = 0
+    raid = 10
     if provider == constants.AWS:
-        raid = 10
         disk_size = 100
     elif provider == constants.AZURE:
-        raid = 10
         disk_size = 513
+    elif provider == constants.GCE:
+        disk_size = 167
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK,
                                                       disk_size=disk_size, raid=raid, keyid=keyid,
@@ -429,7 +432,8 @@ def test_sysbench(provider, keyid, secret, token, imageid, subscription, tenant,
         disk_size = 100
     elif provider == constants.AZURE:
         disk_size = 513
-    results_path = None
+    elif provider == constants.GCE:
+        disk_size = 167
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK,
                                                       disk_size=disk_size, raid=False,
@@ -440,6 +444,7 @@ def test_sysbench(provider, keyid, secret, token, imageid, subscription, tenant,
                                                       user=user, localpath=localpath,
                                                       region=region, zone=zone, sriov=sriov,
                                                       kernel=kernel)
+    results_path = None
     try:
         if all(client for client in ssh_client.values()):
             current_path = os.path.dirname(os.path.realpath(__file__))
@@ -490,15 +495,14 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
     :param sriov: Enable or disable SR-IOV
     :param kernel: custom kernel name provided in localpath
     """
-    raid = 0
     disk_size = 0
+    raid = 10
     if provider == constants.AWS:
-        raid = 10
         disk_size = 100
     elif provider == constants.AZURE:
-        raid = 10
         disk_size = 513
-    results_path = None
+    elif provider == constants.GCE:
+        disk_size = 167
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK,
                                                       disk_size=disk_size, raid=raid, keyid=keyid,
@@ -508,6 +512,7 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
                                                       instancetype=instancetype, user=user,
                                                       localpath=localpath, region=region,
                                                       zone=zone, sriov=sriov, kernel=kernel)
+    results_path = None
     try:
         if all(client for client in ssh_client.values()):
             current_path = os.path.dirname(os.path.realpath(__file__))
@@ -826,6 +831,8 @@ def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, 
         disk_size = 100
     elif provider == constants.AZURE:
         disk_size = 513
+    elif provider == constants.GCE:
+        disk_size = 167
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=constants.DB_DISK,
                                                       disk_size=disk_size, raid=False, keyid=keyid,
@@ -891,14 +898,14 @@ def test_mariadb_raid(provider, keyid, secret, token, imageid, subscription, ten
     :param sriov: Enable or disable SR-IOV
     :param kernel: custom kernel name provided in localpath
     """
-    raid = 0
     disk_size = 0
+    raid = 10
     if provider == constants.AWS:
-        raid = 10
         disk_size = 100
     elif provider == constants.AZURE:
-        raid = 10
         disk_size = 513
+    elif provider == constants.GCE:
+        disk_size = 167
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=constants.DB_DISK,
                                                       disk_size=disk_size, raid=raid, keyid=keyid,
@@ -974,6 +981,8 @@ def test_mongodb(provider, keyid, secret, token, imageid, subscription, tenant, 
         disk_size = 100
     elif provider == constants.AZURE:
         disk_size = 513
+    elif provider == constants.GCE:
+        disk_size = 167
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=constants.DB_DISK,
                                                       disk_size=disk_size, raid=False, keyid=keyid,
@@ -1039,14 +1048,14 @@ def test_mongodb_raid(provider, keyid, secret, token, imageid, subscription, ten
     :param sriov: Enable or disable SR-IOV
     :param kernel: custom kernel name provided in localpath
     """
-    raid = 0
     disk_size = 0
+    raid = 10
     if provider == constants.AWS:
-        raid = 10
         disk_size = 100
     elif provider == constants.AZURE:
-        raid = 10
         disk_size = 513
+    elif provider == constants.GCE:
+        disk_size = 167
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
                                                       test_type=constants.DB_DISK,
                                                       disk_size=disk_size, raid=raid, keyid=keyid,
@@ -1261,6 +1270,8 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
         disk_size = 100
     elif provider == constants.AZURE:
         disk_size = 513
+    elif provider == constants.GCE:
+        disk_size = 167
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
                                                       test_type=constants.VM_DISK,
                                                       disk_size=disk_size, raid=raid, keyid=keyid,
