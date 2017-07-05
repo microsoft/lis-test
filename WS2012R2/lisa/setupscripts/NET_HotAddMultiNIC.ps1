@@ -181,7 +181,7 @@ try
     #
     # Source the utility functions so we have access to them
     #
-    #. .\setupscripts\TCUtils.ps1
+    . .\setupscripts\TCUtils.ps1
 
     #
     # Eat any Putty prompts asking to save the server key
@@ -200,22 +200,25 @@ try
 
     if ($vm.Generation -ne 2)
     {
-        Throw "Error: This test requires a Gen 2 VM. VM '${vmName}' is not a Gen2 VM"
+        Write-Output "Info: This test requires a Gen 2 VM. VM '${vmName}' is not a Gen2 VM" | Tee-Object -Append -file $summaryLog
+        return $Skipped
     }
 
     #
     # Verify Windows Server version
     #
-    $osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
+    $osInfo = GetHostBuildNumber $hvServer
     if (-not $osInfo)
     {
         "Error: Unable to collect Operating System information"
         return $False
     }
-    if ($osInfo.BuildNumber -le 10000)
+    if ($osInfo -le 9600)
     {
-        Throw "Error: This test requires Windows Server 2016 or higher"
+        Write-Output "Info: This test requires Windows Server 2016 or higher" | Tee-Object -Append -file $summaryLog
+        return $Skipped
     }
+
     #
     # Verify the target VM does not have a Hot Add NIC.  If it does, then assume
     # there is a test configuration or setup issue, and fail the test.
