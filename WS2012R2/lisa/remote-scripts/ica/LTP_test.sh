@@ -216,6 +216,8 @@ cd $TOP_SRCDIR
 git -c advice.detachedHead=false checkout tags/$ltp_version
 
 LogMsg "Configuring LTP..."
+# use autoreconf to match the installed package versions
+autoreconf -f
 make autotools
 
 test -d "$TOP_BUILDDIR" || mkdir -p "$TOP_BUILDDIR"
