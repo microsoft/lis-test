@@ -55,6 +55,7 @@
                 <suiteTest>STOR_VSS_BackupRestore_Fail</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_ISCSI</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_DiskStress</suiteTest>
+                <suiteTest>STOR_VSS_BackupRestore_Mount_Squashfs</suiteTest>
                 <!-- Live backup operations can fail silently if the VM has an
                 attached iSCSI device or direct-attached storage (pass-through disk)
                 <suiteTest>STOR_VSS_BackupRestore_PassTru</suiteTest> -->
@@ -138,7 +139,7 @@
         <test>
             <testName>STOR_VSS_BackupRestore_ISO_NoNetwork</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
+            <testScript>setupscripts\STOR_VSS_BackupRestore_ISO_NoNetwork.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=VSS-11</param>
@@ -248,6 +249,18 @@
             <OnError>Continue</OnError>
         </test>
     </testCases>
+
+    <test>
+        <testName>STOR_VSS_BackupRestore_Mount_Squashfs</testName>
+        <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+        <testScript>setupscripts\STOR_VSS_BackupRestore_Mount_Squashfs.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=VSS-20</param>
+        </testParams>
+        <timeout>3000</timeout>
+        <OnError>Continue</OnError>
+    </test>
 
     <VMs>
         <vm>
