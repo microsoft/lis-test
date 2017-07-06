@@ -170,19 +170,30 @@ if (-not $sts[-1])
     return $False
 }
 
-# Run the remote script
-$sts = RunRemoteScript $remoteScript
-if (-not $sts[-1])
+$stressJobName = "stressVM"
+$scriptString = "
+	$`key = $sshKey
+	$`addr = $ipv4
+	$`script = $remoteScript
+	. .\setupScripts\TCUtils.ps1
+	$`sts = RunRemoteScript $`script
+	if (-not $`sts[-1]) { return $`False } else { return $`True }
+	"
+$scriptBlock = [scriptblock]::Create($scriptString)
+$stress_job = Start-Job -Name $stressJobName -ScriptBlock $scriptBlock
+if ($stress_job.state -eq "Failed")
 {
-    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-    Write-Output "ERROR: Running $remoteScript script failed on VM!"
+    $msg =  "ERROR: Unable to run background stress job" 
+	$msg >> $summaryLog
+    Write-Output $msg
     return $False
 }
-Write-Output "$remoteScript execution on VM: Success"
-Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
+$msg = "Started stress background job"
+$msg
+$msg >> $summaryLog
 
-
-
+# Wait 5 seconds for stress action to start on the VM
+Start-Sleep -s 5
 $sts = startBackup $vmName $driveletter
 if (-not $sts[-1])
 {
