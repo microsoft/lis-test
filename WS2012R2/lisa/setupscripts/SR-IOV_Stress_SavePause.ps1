@@ -214,20 +214,22 @@ if (-not $retVal)
     "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4})"
     return $false
 }
+# Verify distro VM. If it's RHEL/CentOS no reboot is needed
+$sts = SendCommandToVM $ipv4 $sshKey "cat /etc/redhat-release"
+if (-not $sts[-1]){
+    # Reboot VM
+    Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+    $sts = WaitForVMToStartSSH $ipv4 200
+    if( -not $sts[-1]){
+        "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
+        return $false    
+    }
 
-#
-# Reboot VM
-#
-Start-Sleep -s 5
-Restart-VM -VMName $vmName -ComputerName $hvServer -Force
-$sts = WaitForVMToStartSSH $ipv4 200
-if( -not $sts[-1]){
-    "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
-    return $false    
+    # Get IPs
+    Start-Sleep -s 5
+    $ipv4 = GetIPv4 $vmName $hvServer
+    "${vmName} IP Address after reboot: ${ipv4}"
 }
-# Get IPs
-$ipv4 = GetIPv4 $vmName $hvServer
-"${vmName} IP Address: ${ipv4}"
 
 #
 # Start iPerf3 on both VMs

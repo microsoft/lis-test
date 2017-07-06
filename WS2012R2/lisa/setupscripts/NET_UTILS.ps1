@@ -454,7 +454,10 @@ function CIDRtoNetmask([int]$cidr){
 #######################################################################
 function ConfigureBond([String]$conIpv4,[String]$sshKey,[String]$netmask)
 {
-        # Send utils.sh on VM
+    # Transform netmask for RHEL/CentOS distro
+    $netmaskCIDR = netmaskToCIDR $netmask
+
+    # Send utils.sh on VM
     "Sending .\remote-scripts\ica\utils.sh to $conIpv4, authenticating with $sshKey"
     $retVal = SendFileToVM "$conIpv4" "$sshKey" ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
 
@@ -508,6 +511,9 @@ function ConfigureBond([String]$conIpv4,[String]$sshKey,[String]$netmask)
             fi
 
         elif is_fedora ; then
+            service NetworkManager start
+            sleep 10
+
             bash bondvf.sh
 
             # Verify if bond0 was created
@@ -515,6 +521,7 @@ function ConfigureBond([String]$conIpv4,[String]$sshKey,[String]$netmask)
             if [ 0 -eq `$__bondCount ]; then
                 exit 2
             fi
+            service NetworkManager restart
         fi
 
         __iterator=0
@@ -542,14 +549,11 @@ function ConfigureBond([String]$conIpv4,[String]$sshKey,[String]$netmask)
 EOF
 
             elif is_fedora ; then
-                __file_path="/etc/sysconfig/network-scripts/ifcfg-bond`$__iterator"
-                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-                sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
-                cat <<-EOF >> `$__file_path
-                BOOTPROTO=static
-                IPADDR=`$staticIP
-                NETMASK=`$NETMASK
-EOF
+                nmcli connection modify Bond\ bond0 ipv4.method auto
+                sleep 3
+                nmcli connection modify Bond\ bond0 ipv4.addresses `${staticIP}/${netmaskCIDR}
+                sleep 3
+                nmcli connection modify Bond\ bond0 ipv4.method manual
             fi
             LogMsg "Network config file path: `$__file_path"
 
@@ -565,7 +569,7 @@ EOF
             service network restart
 
         elif is_fedora ; then
-            service network restart
+            nmcli connection up Bond\ bond0
         fi     
 
         echo CreateBond: returned `$__retVal >> /root/SR-IOV_enable.log 2>&1
@@ -1187,6 +1191,9 @@ function ConfigureVMandBond([String]$vmName,[String]$hvServer,[String]$sshKey,[S
         return $false
     }
 
+    # Transform netmask for RHEL/CentOS distro
+    $netmaskCIDR = netmaskToCIDR $netmask
+
     # Verify VM2 exists
     $vm = Get-VM -Name $vmName -ComputerName $hvServer -ERRORAction SilentlyContinue
     if (-not $vm)
@@ -1328,6 +1335,10 @@ function ConfigureVMandBond([String]$vmName,[String]$hvServer,[String]$sshKey,[S
 EOF
 
         elif is_fedora ; then
+
+            service NetworkManager start
+            sleep 10
+
             bash bondvf.sh
 
             # Verify if bond0 was created
@@ -1335,15 +1346,13 @@ EOF
             if [ 0 -eq `$__bondCount ]; then
                 exit 2
             fi
+            service NetworkManager restart
 
-            __file_path="/etc/sysconfig/network-scripts/ifcfg-bond0"
-            # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-            sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
-            cat <<-EOF >> `$__file_path
-            BOOTPROTO=static
-            IPADDR=$bondIP
-            NETMASK=$netmask
-EOF
+            nmcli connection modify Bond\ bond0 ipv4.method auto
+            sleep 3
+            nmcli connection modify Bond\ bond0 ipv4.addresses `${staticIP}/${netmaskCIDR}
+            sleep 3
+            nmcli connection modify Bond\ bond0 ipv4.method manual
         fi
 
         echo "Network config file path: `$__file_path" >> ConfigureVMandBond.log
@@ -1356,7 +1365,7 @@ EOF
             service network restart
 
         elif is_fedora ; then
-            service network restart
+            nmcli connection up Bond\ bond0
         fi
 
         __retVal=0
