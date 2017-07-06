@@ -117,36 +117,26 @@ LogMsg "Unloading the module(s)"
 lsmod | grep ixgbevf
 if [ $? -eq 0 ]; then
     modprobe -r ixgbevf
-    if [ $? -ne 0 ]; then
-        msg="ERROR: failed to unload ixgbevf"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi
     moduleName='ixgbevf'
 fi
 
 lsmod | grep mlx4_en
 if [ $? -eq 0 ]; then
     modprobe -r mlx4_en
-    if [ $? -ne 0 ]; then
-        msg="ERROR: failed to unload mlx_en"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi
 fi
 
 lsmod | grep mlx4_core
 if [ $? -eq 0 ]; then
     modprobe -r mlx4_core
-    if [ $? -ne 0 ]; then
-        msg="ERROR: failed to unload mlx4_core"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi
     moduleName='mlx4'
+fi
+
+ifconfig $interface
+if [ 0 -eq $? ]; then
+    msg="ERROR: VF is still up after unloading the VF module"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
 fi
 
 # Ping the remote host after bringing down the VF
@@ -228,7 +218,6 @@ fi
 
 # Verify if VF is up
 sleep 5
-interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo')
 ifconfig $interface
 if [ 0 -ne $? ]; then
     msg="ERROR: VF has not restarted from ifconfig after the module was loaded"
