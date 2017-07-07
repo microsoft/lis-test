@@ -43,7 +43,7 @@ UtilsInit
 GetDistro
 
 case $DISTRO in
-    redhat* | fedora*)
+    redhat* | fedora* | centos*)
         yum -y install squashfs-tools
     ;;
     ubuntu*)
