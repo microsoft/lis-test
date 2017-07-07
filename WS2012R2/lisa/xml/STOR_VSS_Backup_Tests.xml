@@ -50,10 +50,10 @@
                 <suiteTest>STOR_VSS_BackupRestore_ISCSI</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_DiskStress</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_Mount_Multi_Paths</suiteTest>
+                <suiteTest>STOR_VSS_BackupRestore_Mount_Squashfs</suiteTest>
                 <!-- Live backup operations can fail silently if the VM has an
                 attached iSCSI device or direct-attached storage (pass-through disk)
                 <suiteTest>STOR_VSS_BackupRestore_PassTru</suiteTest> -->
-                <suiteTest>STOR_VSS_BackupRestore_Mount_Squashfs</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -272,7 +272,6 @@
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
-
     </testCases>
 
     <VMs>

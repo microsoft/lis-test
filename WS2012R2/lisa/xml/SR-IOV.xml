@@ -61,7 +61,6 @@
                 <suiteTest>iPerf_Stress</suiteTest>
                 <suiteTest>Disable_VMQ</suiteTest>
                 <suiteTest>Change_RSS</suiteTest>
-                <suiteTest>Compare_iPerf</suiteTest>
                 <suiteTest>Upgrade_Linux_kernel</suiteTest>
                 <suiteTest>Measure_DisableVF</suiteTest>
                 <suiteTest>Move_VHD</suiteTest>
@@ -174,7 +173,7 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-7</param>
+                <param>TC_COVERED=SRIOV-7,SRIOV-18</param>
             </testParams>
             <timeout>1800</timeout>
         </test>
@@ -319,22 +318,6 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>TC_COVERED=SRIOV-16</param>
-            </testParams>
-            <timeout>1800</timeout>
-        </test>
-
-        <test>
-            <testName>Compare_iPerf</testName>
-            <testScript>setupscripts\SR-IOV_iPerf.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files> 
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
-            <noReboot>False</noReboot>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-18</param>
             </testParams>
             <timeout>1800</timeout>
         </test>
