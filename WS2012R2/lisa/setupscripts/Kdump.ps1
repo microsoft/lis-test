@@ -113,7 +113,7 @@ if ($vm2Name -And $use_nfs -eq "yes")
             "Warning: $vm2Name never started KVP"
         }
 
-       sleep 10
+       Start-Sleep 10
 
         $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
@@ -128,7 +128,7 @@ if ($vm2Name -And $use_nfs -eq "yes")
     "Info: Succesfully started dependency VM ${vm2Name}"
     }
 
-    SendFileToVM $vm2ipv4 $sshKey ".\remote-scripts\ica\Kdump_nfs_config.sh" "/root/kdump_nfs_config.sh"
+    # Configure NFS for kdump
     $retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && dos2unix kdump_nfs_config.sh && chmod u+x kdump_nfs_config.sh && ./kdump_nfs_config.sh"
     if ($retVal -eq $False)
     {
@@ -138,18 +138,8 @@ if ($vm2Name -And $use_nfs -eq "yes")
 }
 
 #
-# Copying required scripts to VM for generating kernel panic with appropriate permissions
+# Configure kdump on the VM
 #
-$retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\kdump_config.sh" "/root/kdump_config.sh"
-
-# check the return Value of SendFileToVM
-if (-not $retVal)
-{
-    Write-Output "Error: Failed to send kdump_config.sh to VM."
-    return $false
-}
-Write-Output "Success: send kdump_config.sh to VM."
-
 $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh && chmod u+x kdump_config.sh && ./kdump_config.sh $crashkernel $vm2ipv4"
 if ($retVal -eq $False)
 {
@@ -171,18 +161,8 @@ do {
 } until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 
 #
-# Copying required scripts to VM for generating kernel panic with appropriate permissions
+# Triger the kernel panic
 #
-$retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\kdump_execute.sh" "/root/kdump_execute.sh"
-
-# check the return Value of SendFileToVM
-if (-not $retVal)
-{
-    Write-Output "Error: Failed to send kdump_execute.sh to VM."
-    return $false
-}
-Write-Output "Success: send kdump_execute.sh to VM."
-
 $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_execute.sh && chmod u+x kdump_execute.sh && ./kdump_execute.sh"
 if ($retVal -eq $False)
 {
@@ -230,20 +210,11 @@ if (-not $sts[-1]){
     return $false
 }
 
+Write-Output "Connection to VM is good. Checking the results..."
+
 #
 # Verifying if the kernel panic process creates a vmcore file of size 10M+
 #
-Write-Output "Connection to VM is good. Checking the results..."
-$retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\kdump_results.sh" "/root/kdump_results.sh"
-
-# check the return Value of SendFileToVM
-if (-not $retVal)
-{
-    Write-Output "Error: Failed to send kdump_results.sh to VM."
-    return $false
-}
-Write-Output "Success: sent kdump_results.sh to VM."
-
 $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh && chmod u+x kdump_results.sh && ./kdump_results.sh $vm2ipv4"
 if ($retVal -eq $False)
 {
@@ -253,9 +224,9 @@ if ($retVal -eq $False)
 }
 
 bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
-# Stop NFS server
-if ($vm2Name)
-{
+
+# Stop NFS server VM
+if ($vm2Name) {
     Stop-VM -vmName $vm2Name -ComputerName $hvServer -Force
 }
 
