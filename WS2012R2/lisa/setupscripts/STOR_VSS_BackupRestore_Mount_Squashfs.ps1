@@ -87,7 +87,6 @@ foreach ($p in $params)
         "rootdir" { $rootDir = $fields[1].Trim() }
         "driveletter" { $driveletter = $fields[1].Trim() }
         "TestLogDir" { $TestLogDir = $fields[1].Trim() }
-        "FILESYS" { $FILESYS = $fields[1].Trim() }
         default  {}
         }
 }
@@ -113,12 +112,6 @@ if ($null -eq $rootdir)
 if ($null -eq $driveletter)
 {
     Write-Output "ERROR: Test parameter driveletter was not specified."
-    return $False
-}
-
-if ($null -eq $FILESYS)
-{
-    Write-Output "ERROR: Test parameter FILESYS was not specified."
     return $False
 }
 
