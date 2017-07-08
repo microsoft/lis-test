@@ -498,7 +498,7 @@ function ResetVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
     if ($v.State -ne "Off")
     {
         LogMsg 3 "Info : $($vm.vmName) is not in a stopped state - stopping VM"
-        Stop-VM $vm.vmName -ComputerName $vm.hvServer -TurnOff -Force | out-null
+        Stop-VM $vm.vmName -ComputerName $vm.hvServer -force | out-null
 
         $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
         if ($v.State -ne "Off")
@@ -1513,15 +1513,80 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
     # Current behavior for this function is defined to just log some messages
     # and then try to stop the VM
     #
-    LogMsg 0 "Error: $($vm.vmName) never booted for test $($vm.currentTest)"
-    LogMsg 0 "Error: $($vm.vmName) terminating test run."
-    $vm.emailSummary += "    Unsuccessful boot for test $($vm.currentTest)<br />"
+    LogMsg 0 "Warn : $($vm.vmName) never booted for test $($vm.currentTest) on first try"
 
     #
-    # currently, we do not do anything other than stopping the VM
+    # Proceed with restarting the VM
     #
-    $vm.currentTest = "done"
-    UpdateState $vm $ForceShutdown
+    $timeout = 60
+    Stop-VM -Name $vm.vmName -ComputerName $vm.hvServer -Force -TurnOff
+
+    while ($timeout -gt 0)
+    {
+        $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
+        if ( $($v.State) -eq "Off" )
+        {
+            LogMsg 0 "Warn : $($vm.vmName) is now starting for the second time for test $($vm.currentTest)"
+            Start-VM $vm.vmName -ComputerName $vm.hvServer | out-null
+            $timeout_startVM = 60
+            while ($timeout_startVM -gt 0)
+            {
+                #
+                # Check if the VM is in the Hyper-v Running state
+                #
+                $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
+                if ($($v.State) -eq "Running")
+                {
+                    break
+                }
+
+                Start-Sleep -s 1
+                $timeout_startVM -= 1
+            }
+
+            $ipv4 = $null
+            $hasBooted = $false
+            [int]$timeoutBoot = 25
+            # Update the vm.ipv4 value if the VMs IP address changed
+            while (($hasBooted -eq $false) -and ($timeoutBoot -ge 0)) 
+            {
+                Start-Sleep -s 1
+                $ipv4 = GetIPv4 $vm.vmName $vm.hvServer
+                LogMsg 9 "Debug: vm.ipv4 = $($vm.ipv4)"
+                if ($ipv4 -and ($vm.ipv4 -ne [String] $ipv4))
+                {
+                    LogMsg 9 "Updating VM IP from $($vm.ipv4) to ${ipv4}"
+                    $vm.ipv4 = [String] $ipv4
+                }
+                $sts = TestPort $vm.ipv4 -port 22 -timeout 5
+                if ($sts)
+                {
+                    $hasBooted = $true
+                }
+                $timeoutBoot -= 1
+            }
+
+            if ($hasBooted -eq $true)
+            {
+                UpdateState $vm $SystemUp
+            }
+            else 
+            {
+                $completionCode = $Aborted
+                LogMsg 0 "Error: $($vm.vmName) did not boot after second try for test $($vm.currentTest)"
+                LogMsg 0 "Info : $($vm.vmName) Status for test $($vm.currentTest) = ${completionCode}"
+
+                SetTestResult $currentTest $completionCode
+                $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $($vm.currentTest), $completionCode)
+                UpdateState $vm $ForceShutdown
+            }
+    }
+        else
+        {
+            $timeout -= 1
+            Start-Sleep -S 1
+        }
+    }
 }
 
 
