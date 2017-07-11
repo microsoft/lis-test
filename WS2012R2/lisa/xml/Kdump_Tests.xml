@@ -58,7 +58,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh,remote-scripts/ica/kdump_nfs_config.sh</files>
             <testParams>
                 <param>crashkernel=384M</param>
                 <param>TC_COVERED=KDUMP-01</param>
@@ -75,7 +75,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupscripts\kdump.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh,remote-scripts/ica/kdump_nfs_config.sh</files>
             <testParams>
                 <param>crashkernel=384M</param>
                 <param>TC_COVERED=KDUMP-02</param>
@@ -92,7 +92,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupscripts\kdump.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh,remote-scripts/ica/kdump_nfs_config.sh</files>
             <testParams>
                 <param>crashkernel=384M</param>
                 <param>TC_COVERED=KDUMP-03</param>
@@ -110,7 +110,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh,remote-scripts/ica/kdump_nfs_config.sh</files>
             <testParams>
                 <!-- Minimum RAM=2GB -->
                 <param>crashkernel=auto</param>
@@ -128,7 +128,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh,remote-scripts/ica/kdump_nfs_config.sh</files>
             <testParams>
                 <!-- Minimum RAM=2GB -->
                 <param>crashkernel=384M</param>
@@ -146,7 +146,7 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh,remote-scripts/ica/kdump_nfs_config.sh</files>
             <testParams>
                 <!-- Minimum RAM=2GB -->
                 <param>crashkernel=512M</param>
