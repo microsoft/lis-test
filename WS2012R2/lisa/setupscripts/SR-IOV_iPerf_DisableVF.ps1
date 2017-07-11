@@ -175,31 +175,22 @@ if (-not $retVal)
     return $false
 }
 Start-Sleep -s 5
+# Verify distro VM. If it's RHEL/CentOS no reboot is needed
+$sts = SendCommandToVM $ipv4 $sshKey "cat /etc/redhat-release"
+if (-not $sts[-1]){
+    # Reboot VM
+    Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+    $sts = WaitForVMToStartSSH $ipv4 200
+    if( -not $sts[-1]){
+        "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
+        return $false    
+    }
 
-#
-# Install iPerf3 on VM1
-#
-"Installing iPerf3 on ${vmName}"
-$retval = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "dos2unix SR-IOV_Utils.sh && source SR-IOV_Utils.sh && InstallDependencies"
-if (-not $retVal)
-{
-    "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4})"
-    return $false
+    # Get IPs
+    Start-Sleep -s 5
+    $ipv4 = GetIPv4 $vmName $hvServer
+    "${vmName} IP Address after reboot: ${ipv4}"
 }
-Start-Sleep -s 5
-
-# Reboot VM
-Restart-VM -VMName $vmName -ComputerName $hvServer -Force
-$sts = WaitForVMToStartSSH $ipv4 200
-if( -not $sts[-1]){
-    "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
-    return $false    
-}
-
-# Get IPs
-Start-Sleep -s 5
-$ipv4 = GetIPv4 $vmName $hvServer
-"${vmName} IP Address after reboot: ${ipv4}"
 
 #
 # Run iPerf3 with SR-IOV enabled
