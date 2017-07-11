@@ -197,7 +197,7 @@ if ($retVal -eq $false)
     bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_execute_fail_summary.log
     return $false
 }
-bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_execute_passsummary.log
+bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_execute_pass_summary.log
 
 #
 # Trigger the kernel panic
@@ -248,7 +248,7 @@ $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_results.sh &
 if ($retVal -eq $false)
 {
     Write-Output "Error: Results are not as expected. Check logs for details."
-    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_results_summary.log
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_results_fail_summary.log
     #
     # Stop NFS server VM
     #
@@ -258,9 +258,8 @@ if ($retVal -eq $false)
     return $false
 }
 $result = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "find /var/crash/ -name vmcore -type f -size +10M"
-Write-Host -F Red "PASS: Get vmcore, and result is $result"
 Write-Output "PASS: Get vmcore, and result is $result"
-bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_results_summary.log
+bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_results_pass_summary.log
 #
 # Stop NFS server VM
 #
