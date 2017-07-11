@@ -62,7 +62,7 @@ mkdir -p /tmp/network${PROTO}
 cd /tmp
 if [[ ${PROTO} == "TCP" ]]
 then
-    TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024 2048 3072 6144 10240)
+    TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024 2048 4096 6144 8192 10240)
     cd /tmp; git clone https://github.com/Microsoft/ntttcp-for-linux
     cd /tmp/ntttcp-for-linux/src; sudo make && sudo make install
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "cd /tmp; git clone https://github.com/Microsoft/ntttcp-for-linux" >> ${LOG_FILE}
