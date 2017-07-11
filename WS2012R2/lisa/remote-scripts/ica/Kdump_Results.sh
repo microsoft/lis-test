@@ -19,31 +19,26 @@
 # permissions and limitations under the License.
 #
 #####################################################################
-LinuxRelease()
-{
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
 
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        *Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-    esac
+dos2unix utils.sh
+
+#
+# Source utils.sh to get more utils
+# Get $DISTRO, LogMsg directly from utils.sh
+#
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
+	exit 1
 }
 
-LogMsg()
-{
-    # To add the time-stamp to the log file
-    echo `date "+%a %b %d %T %Y"` ": ${1}"
-}
+#
+# Source constants file and initialize most common variables
+#
+UtilsInit
+
+ICA_TESTFAILED="TestFailed"
+ICA_TESTCOMPLETED="TestCompleted"
+vm2ipv4=$1
 
 UpdateTestState()
 {
@@ -80,29 +75,18 @@ VerifyRemoteStatus()
     fi
 }
 
+#######################################################################
 #
-# MAIN SCRIPT
+# Main script body
 #
+#######################################################################
 
-ICA_TESTFAILED="TestFailed"
-ICA_TESTCOMPLETED="TestCompleted"
-vm2ipv4=$1
-
-dos2unix utils.sh
-
-# Source utils.sh
-. utils.sh || {
-    echo "Error: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
-    exit 2
-}
-
-# Source constants file and initialize most common variables
-UtilsInit
-
-distro=`LinuxRelease`
-case $distro in
-    "CENTOS" | "RHEL")
+#
+# As $DISTRO from utils.sh get the DETAILED Disro. eg. redhat_6, redhat_7, ubuntu_13, ubuntu_14
+# So, redhat* / ubuntu* / suse*
+#
+case $DISTRO in
+    centos* | redhat*)
         if [ $vm2ipv4 != "" ]; then
             status=`ssh -i /root/.ssh/${ssh_key} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/var/crash/*/vmcore -type f -size +10M; echo $?"`
             VerifyRemoteStatus
@@ -110,7 +94,7 @@ case $distro in
             CheckVmcore
         fi
     ;;
-    "UBUNTU")
+    ubuntu*)
         if [ $vm2ipv4 != "" ]; then
             status=`ssh -i /root/.ssh/${ssh_key} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/* -type f -size +10M; echo $?"`
             VerifyRemoteStatus
@@ -127,8 +111,8 @@ case $distro in
             fi
         fi
     ;;
-    "SLES")
-        if [ $vm2ipv4 != "" ]; then
+  suse*)
+        if [ x$vm2ipv4 != x"" ]; then
             status=`ssh -i /root/.ssh/${ssh_key} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/* -type f -size +10M; echo $?"`
             VerifyRemoteStatus
         else
@@ -136,8 +120,8 @@ case $distro in
         fi
     ;;
      *)
-        LogMsg "Test Failed. Unknown DISTRO: $distro."
-        echo "Test Failed. Unknown DISTRO: $distro." >> ~/summary.log
+        LogMsg "Test Failed. Unknown DISTRO: $DISTRO."
+        echo "Test Failed. Unknown DISTRO: $DISTRO." >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
         exit 1
     ;;
