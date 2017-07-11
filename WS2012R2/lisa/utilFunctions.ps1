@@ -2208,3 +2208,35 @@ function checkHostVersion([XML] $xmlData)
     }
     return $retVal
 }
+
+#####################################################################
+#
+# TakeConsoleScreenShot
+#
+#####################################################################
+function TakeConsoleScreenShot
+{
+    param
+    (
+        $VM,
+        $x,
+        $y
+    )
+    # This function captures a screenshot of the VM console
+    # It's used when the VM enters DiagnoseHungSystem state
+
+    $VMMS = Get-WmiObject -Namespace root\virtualization\v2 -Class Msvm_VirtualSystemManagementService
+
+    # Get screenshot
+    $image = $VMMS.GetVirtualSystemThumbnailImage($VMCS, $x, $y).ImageData
+
+    # Transform into bitmap
+    $BitMap = New-Object System.Drawing.Bitmap -Args $x,$y,Format16bppRgb565
+    $Rect = New-Object System.Drawing.Rectangle 0,0,$x,$y
+    $BmpData = $BitMap.LockBits($Rect,"ReadWrite","Format16bppRgb565")
+    [System.Runtime.InteropServices.Marshal]::Copy($Image, 0, $BmpData.Scan0, $BmpData.Stride*$BmpData.Height)
+    
+    $BitMap.UnlockBits($BmpData)
+
+    return $BitMap
+}
