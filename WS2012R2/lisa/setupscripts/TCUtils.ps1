@@ -1969,7 +1969,7 @@ function GetSelinuxAVCLog([String] $ipv4, [String] $sshKey)
     return $False
 }
 
-function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$supportkernel)
+function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$supportKernel)
 {
     <#
     .Synopsis

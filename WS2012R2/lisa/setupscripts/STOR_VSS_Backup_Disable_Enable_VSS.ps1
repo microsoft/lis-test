@@ -155,8 +155,7 @@ $checkVSSD= @($false,$true)
 # If the kernel version is smaller than 3.10.0-383,
 # it does not take effect after un-check then
 # check VSS service unless restart VM.
-#$supportkernel = "3.10.0.383"
-$supportkernel = "3.10.0.999"
+$supportkernel = "3.10.0.383"
 $supportStatus = GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
 
 for ($i = 0; $i -le 1; $i++ )
