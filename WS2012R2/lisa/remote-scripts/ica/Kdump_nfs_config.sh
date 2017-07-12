@@ -133,15 +133,14 @@ ConfigUbuntu()
 #
 # Configure kdump - this has distro specific behaviour
 #
-distro=`LinuxRelease`
-case $distro in
-    "CENTOS" | "RHEL")
+case $DISTRO in
+    centos* | redhat*)
         ConfigRhel
     ;;
-    "UBUNTU")
+    ubuntu*)
         ConfigUbuntu
     ;;
-    "SLES")
+    suse*)
         ConfigSles
     ;;
      *)

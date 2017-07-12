@@ -372,12 +372,11 @@ fi
 #
 # Configure kdump - this has distro specific behaviour
 #
-distro=`LinuxRelease`
-case $distro in
-    "CENTOS" | "RHEL")
+case $DISTRO in
+    centos* | redhat*)
         ConfigRhel
     ;;
-    "UBUNTU")
+    ubuntu*)
         if [ "$crashkernel" == "auto" ]; then
             LogMsg "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y."
             UpdateSummary "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y."
@@ -387,7 +386,7 @@ case $distro in
             ConfigUbuntu
         fi
     ;;
-    "SLES")
+    suse*)
         if [ "$crashkernel" == "auto" ]; then
             LogMsg "WARNING: crashkernel=auto doesn't work for SLES. Please use this pattern: crashkernel=X@Y."
             UpdateSummary "WARNING: crashkernel=auto doesn't work for SLES. Please use this pattern: crashkernel=X@Y."

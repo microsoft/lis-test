@@ -159,7 +159,7 @@ kdump_loaded()
     if [ ! -e $sys_kexec_crash ] && [ -z "$CRASHKERNEL" ] ; then
         LogMsg "FAILED: kdump is not enabled after reboot."
         UpdateSummary "FAILED: Verify the configuration settings for kdump and grub. Kdump is not enabled after reboot."
-		SetTestStateAborted
+		SetTestStateFailed
         exit 1
     else
         LogMsg "Kdump is loaded after reboot."
