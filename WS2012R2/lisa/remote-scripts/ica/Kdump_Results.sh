@@ -36,26 +36,22 @@ dos2unix utils.sh
 #
 UtilsInit
 
-ICA_TESTFAILED="TestFailed"
-ICA_TESTCOMPLETED="TestCompleted"
-vm2ipv4=$1
-
-UpdateTestState()
-{
-    echo $1 >> ~/state.txt
-}
-
+#######################################################################
+#
+# CheckVmcore()
+#
+#######################################################################
 CheckVmcore()
 {
     if ! [[ $(find /var/crash/*/vmcore -type f -size +10M) ]]; then
         LogMsg "Test Failed. No file was found in /var/crash of size greater than 10M."
-        echo "Test Failed. No file was found in /var/crash of size greater than 10M." >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
+        UpdateSummary "Test Failed. No file was found in /var/crash of size greater than 10M."
+        SetTestStateFailed
         exit 1
     else
         LogMsg "Test Successful. Proper file was found."
-        echo "Test Successful. Proper file was found." >> ~/summary.log
-        UpdateTestState $ICA_TESTCOMPLETED
+        UpdateSummary "Test Successful. Proper file was found."
+        SetTestStateCompleted
     fi
 }
 
@@ -65,12 +61,12 @@ VerifyRemoteStatus()
     exit_code=${array_status[1]}
     if [ $exit_code -eq 0 ]; then
         LogMsg "Test Successful. Proper file was found on nfs server."
-        echo "Test Successful. Proper file was found on nfs server." >> ~/summary.log
-        UpdateTestState $ICA_TESTCOMPLETED
+        UpdateSummary "Test Successful. Proper file was found on nfs server."
+		SetTestStateCompleted
     else
         LogMsg "Test Failed. No file was found on nfs server of size greater than 10M."
-        echo "Test Failed. No file was found on nfs server of size greater than 10M." >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
+        UpdateSummary "Test Failed. No file was found on nfs server of size greater than 10M."
+		SetTestStateFailed
         exit 1
     fi
 }
@@ -101,13 +97,13 @@ case $DISTRO in
         else
             if ! [[ $(find /var/crash/2* -type f -size +10M) ]]; then
                 LogMsg "Test Failed. No file was found in /var/crash of size greater than 10M."
-                echo "Test Failed. No file was found in /var/crash of size greater than 10M." >> ~/summary.log
-                UpdateTestState $ICA_TESTFAILED
+                UpdateSummary "Test Failed. No file was found in /var/crash of size greater than 10M."
+				SetTestStateFailed
                 exit 1
             else
                 LogMsg "Test Successful. Proper file was found."
-                echo "Test Successful. Proper file was found." >> ~/summary.log
-                UpdateTestState $ICA_TESTCOMPLETED
+                UpdateSummary "Test Successful. Proper file was found."
+				SetTestStateCompleted
             fi
         fi
     ;;
@@ -121,8 +117,8 @@ case $DISTRO in
     ;;
      *)
         LogMsg "Test Failed. Unknown DISTRO: $DISTRO."
-        echo "Test Failed. Unknown DISTRO: $DISTRO." >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
+        UpdateSummary "Test Failed. Unknown DISTRO: $DISTRO."
+		SetTestStateFailed
         exit 1
     ;;
 esac

@@ -37,19 +37,9 @@ dos2unix utils.sh
 #
 UtilsInit
 
-ICA_TESTABORTED="TestAborted"
-
 kdump_conf=/etc/kdump.conf
 dump_path=/var/crash
 sys_kexec_crash=/sys/kernel/kexec_crash_loaded
-
-#
-# Functions definitions
-#
-UpdateTestState()
-{
-    echo $1 >> ~/state.txt
-}
 
 #######################################################################
 #
@@ -59,7 +49,7 @@ UpdateTestState()
 Rhel()
 {
     LogMsg "Waiting 50 seconds for kdump to become active."
-    echo "Waiting 50 seconds for kdump to become active." >> summary.log
+    UpdateSummary "Waiting 50 seconds for kdump to become active."
     sleep 50
 
 	case $DISTRO in
@@ -72,12 +62,12 @@ Rhel()
 		if  [ $? -eq 0 ]
 		then
 			LogMsg "ERROR: kdump service is not active after reboot!"
-      echo "ERROR: kdump service is not active after reboot!" >> summary.log
-			UpdateTestState $ICA_TESTABORTED
+			UpdateSummary "ERROR: kdump service is not active after reboot!"
+			SetTestStateAborted
 			exit 1
 		else
 			LogMsg "Kdump is active after reboot."
-      echo "Success: kdump service is active after reboot." >> summary.log
+			UpdateSummary "Success: kdump service is active after reboot."
 		fi
 		;;
 	redhat_7)
@@ -89,18 +79,18 @@ Rhel()
 		if  [ $? -eq 0 ]
 		then
 			LogMsg "Kdump is active after reboot."
-			echo "Success: kdump service is active after reboot." >> summary.log
+			UpdateSummary "Success: kdump service is active after reboot."
 		else
-      LogMsg "ERROR: kdump service is not active after reboot!"
-      echo "ERROR: kdump service is not active after reboot!" >> summary.log
-			UpdateTestState $ICA_TESTABORTED
+			LogMsg "ERROR: kdump service is not active after reboot!"
+			UpdateSummary "ERROR: kdump service is not active after reboot!"
+			SetTestStateAborted
 			exit 1
 		fi
 		;;
         *)
 			LogMsg "FAIL: Unknown OS!"
 			UpdateSummary "FAIL: Unknown OS!"
-			UpdateTestState $ICA_TESTABORTED
+			SetTestStateAborted
 			exit 1
 		;;
 	esac
@@ -113,23 +103,23 @@ Rhel()
 #######################################################################
 Sles()
 {
-    LogMsg "Waiting 50 seconds for kdump to become active."
-    echo "Waiting 50 seconds for kdump to become active." >> summary.log
+	LogMsg "Waiting 50 seconds for kdump to become active."
+    UpdateSummary "Waiting 50 seconds for kdump to become active."
     sleep 50
 
     if systemctl is-active kdump.service | grep -q "active"; then
-        LogMsg "Kdump is active after reboot"
-        echo "Success: kdump service is active after reboot." >> summary.log
+		LogMsg "Kdump is active after reboot."
+		UpdateSummary "Success: kdump service is active after reboot."
     else
         rckdump status | grep "running"
         if [ $? -ne 0 ]; then
-            LogMsg "ERROR: kdump service is not active after reboot!"
-            echo "ERROR: kdump service is not active after reboot!" >> summary.log
-            UpdateTestState $ICA_TESTABORTED
-            exit 1
+			LogMsg "ERROR: kdump service is not active after reboot!"
+			UpdateSummary "ERROR: kdump service is not active after reboot!"
+			SetTestStateAborted
+			exit 1
         else
-            LogMsg "Kdump is active after reboot"
-            echo "Success: kdump service is active after reboot." >> summary.log
+			LogMsg "Kdump is active after reboot."
+			UpdateSummary "Success: kdump service is active after reboot."
         fi
     fi
 }
@@ -141,18 +131,18 @@ Sles()
 #######################################################################
 Ubuntu()
 {
+	LogMsg "Waiting 50 seconds for kdump to become active."
+    UpdateSummary "Waiting 50 seconds for kdump to become active."
     sleep 50
-    LogMsg "Waiting 50 seconds for kdump to become active."
-    echo "Waiting 50 seconds for kdump to become active." >> summary.log
 
     if [ -e $sys_kexec_crash -a `cat $sys_kexec_crash` -eq 1 ]; then
-        LogMsg "Kdump is active after reboot"
-        echo "Success: kdump service is active after reboot." >> summary.log
+		LogMsg "Kdump is active after reboot."
+		UpdateSummary "Success: kdump service is active after reboot."
     else
-        LogMsg "ERROR: kdump service is not active after reboot!"
-        echo "ERROR: kdump service is not active after reboot!" >> summary.log
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
+		LogMsg "ERROR: kdump service is not active after reboot!"
+		UpdateSummary "ERROR: kdump service is not active after reboot!"
+		SetTestStateAborted
+		exit 1
     fi
 }
 
@@ -163,17 +153,17 @@ Ubuntu()
 #######################################################################
 kdump_loaded()
 {
-    echo "Checking if kdump is loaded after reboot..." >> summary.log
+    UpdateSummary "Checking if kdump is loaded after reboot..."
     CRASHKERNEL=`grep -i crashkernel= /proc/cmdline`;
 
     if [ ! -e $sys_kexec_crash ] && [ -z "$CRASHKERNEL" ] ; then
         LogMsg "FAILED: kdump is not enabled after reboot."
-        echo "FAILED: Verify the configuration settings for kdump and grub. Kdump is not enabled after reboot." >> summary.log
-        UpdateTestState $ICA_TESTABORTED
+        UpdateSummary "FAILED: Verify the configuration settings for kdump and grub. Kdump is not enabled after reboot."
+		SetTestStateAborted
         exit 1
     else
         LogMsg "Kdump is loaded after reboot."
-        echo "Success: Kdump is loaded after reboot." >> summary.log
+        UpdateSummary "Success: Kdump is loaded after reboot."
     fi
 }
 
@@ -187,12 +177,12 @@ ConfigureNMI()
     sysctl -w kernel.unknown_nmi_panic=1
     if [ $? -ne 0 ]; then
         LogMsg "Failed to enable kernel to call panic when it receives a NMI."
-        echo "Failed to enable kernel to call panic when it receives a NMI." >> summary.log
-        UpdateTestState $ICA_TESTABORTED
+        UpdateSummary "Failed to enable kernel to call panic when it receives a NMI."
+		SetTestStateAborted
         exit 1
     else
         LogMsg "Success: enabling kernel to call panic when it receives a NMI."
-        echo "Success: enabling kernel to call panic when it receives a NMI." >> summary.log
+        UpdateSummary "Success: enabling kernel to call panic when it receives a NMI."
     fi
 }
 
@@ -235,7 +225,7 @@ esac
 #
 # Preparing for the kernel panic
 #
-echo "Preparing for kernel panic..." >> summary.log
+echo "Preparing for kernel panic..."
 sync
 sleep 6
 
