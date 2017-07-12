@@ -1515,9 +1515,37 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     LogMsg 0 "Warn : $($vm.vmName) never booted for test $($vm.currentTest) on first try"
 
+    # Take a Console Screenshot
+    $VMName = $vm.vmName
+
+    $BMPName = (pwd).Path + "\" + "${testDir}\$($vm.currentTest)_ConsoleScreenShot.bmp"
+    Add-Type -AssemblyName "System.Drawing"
+ 
+    $VMCS = Get-WmiObject -Namespace root\virtualization\v2 -Class Msvm_ComputerSystem -Filter "ElementName='$($VMName)'" 
+
+    # This is the default resolution in most cases
+    [int]$xResolution = 1152
+    [int]$yResolution = 864
+    LogMsg 0 "Info: Screenshot was captured on this location $BMPName "
+
+    try 
+    {
+        # This will capture a screenshot at the default resolution of 1152*864
+        (TakeConsoleScreenShot $VMCS $xResolution $yResolution).Save($BMPName)
+    }
+    catch 
+    {
+        # Sometimes 1152*864 resolution is not available on VM Console
+        # In this case a screenshot with 640*480 resolution will be taken
+        [int]$xResolution = 640
+        [int]$yResolution = 480
+        (TakeConsoleScreenShot $VMCS $xResolution $yResolution).Save($BMPName)
+    }
+
     #
     # Proceed with restarting the VM
     #
+    Start-Sleep -s 5    
     $timeout = 60
     Stop-VM -Name $vm.vmName -ComputerName $vm.hvServer -Force -TurnOff
 
