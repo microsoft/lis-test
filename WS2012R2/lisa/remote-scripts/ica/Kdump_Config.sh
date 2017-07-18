@@ -21,12 +21,16 @@
 #
 ########################################################################
 
-dos2unix utils.sh
+kdump_conf=/etc/kdump.conf
+dump_path=/var/crash
+sys_kexec_crash=/sys/kernel/kexec_crash_loaded
+kdump_sysconfig=/etc/sysconfig/kdump
 
 #
 # Source utils.sh to get more utils
 # Get $DISTRO, LogMsg directly from utils.sh
 #
+dos2unix utils.sh
 . utils.sh || {
 	echo "Error: unable to source utils.sh!"
 	exit 1
@@ -36,11 +40,6 @@ dos2unix utils.sh
 # Source constants file and initialize most common variables
 #
 UtilsInit
-
-kdump_conf=/etc/kdump.conf
-dump_path=/var/crash
-sys_kexec_crash=/sys/kernel/kexec_crash_loaded
-kdump_sysconfig=/etc/sysconfig/kdump
 
 #######################################################################
 #
@@ -361,7 +360,7 @@ vm2ipv4=$2
 #
 # Checking the negotiated VMBus version
 #
-vmbus_string=`dmesg | grep "Vmbus version:3.0"`
+vmbus_string=`dmesg | grep "Vmbus version:"`
 
 if [ "$vmbus_string" = "" ]; then
     LogMsg "WARNING: Negotiated VMBus version is not 3.0. Kernel might be old or patches not included."
