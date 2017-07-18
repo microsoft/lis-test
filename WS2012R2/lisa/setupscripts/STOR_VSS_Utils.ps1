@@ -216,19 +216,28 @@ function checkResults([string] $vmName, [string] $hvServer)
         $logMessage = "INFO: no selinux avc deny log in audit logs"
         Write-Output $logMessage
     }
-
-	$sts= CheckFile "/root/1"
-	if (-not $sts[-1])
-    {
-        $logMessage = "ERROR: No /root/1 file after restore "
-        Write-Output $logMessage
-		$logMessage >> $summaryLog
-        return $False
-    }
+	# only check restore file when ip available
+	#$ipv4 = GetIPv4 $vmName $hvServer
+	$stsipv4 = Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue
+	if ($stsipv4.PingSucceeded)
+	{
+		$sts= CheckFile "/root/1"
+		if (-not $sts[-1])
+		{
+			$logMessage = "ERROR: No /root/1 file after restore "
+			Write-Output $logMessage
+			$logMessage >> $summaryLog
+			return $False
+		}
+		else
+		{
+			$logMessage = "INFO: there is /root/1 file after restore"
+			Write-Output $logMessage
+		}
+	}
 	else
 	{
-		$logMessage = "INFO: there is /root/1 file after restore"
-        Write-Output $logMessage
+		Write-Output "INFO: Ignore checking file /root/1 when no network"
 	}
 
 	# Now Check the boot logs in VM to verify if there is no Recovering journals in it .
