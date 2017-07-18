@@ -80,7 +80,7 @@ dos2unix utils.sh
 UtilsInit
 
 if ! [ -d /sys/firmware/efi ]; then
-    msg = "Info: Test not available for Gen2 VMs."
+    msg="Info: Test not available for Gen2 VMs."
     LogMsg "$msg"
     echo $msg >> ~/summary.log
     SetTestStateSkipped
