@@ -286,6 +286,17 @@
             <OnError>Continue</OnError>
         </test>
 
+        <test>
+            <testName>STOR_VSS_Backup_Stop_VSSD</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\STOR_VSS_Backup_Stop_VSSD.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=VSS-22</param>
+            </testParams>
+            <timeout>2400</timeout>
+            <OnError>Continue</OnError>
+        </test>
+
     </testCases>
 
     <VMs>
