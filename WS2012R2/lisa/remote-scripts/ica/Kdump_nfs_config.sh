@@ -21,45 +21,21 @@
 #
 ########################################################################
 
-ICA_TESTRUNNING="TestRunning"
+dos2unix utils.sh
+
 #
-# Functions definitions
+# Source utils.sh to get more utils
+# Get $DISTRO, LogMsg directly from utils.sh
 #
-LogMsg()
-{
-    # To add the time-stamp to the log file
-    echo `date "+%a %b %d %T %Y"` ": ${1}"
+. utils.sh || {
+	echo "Error: unable to source utils.sh!"
+	exit 1
 }
 
-UpdateTestState()
-{
-    echo $1 >> ~/state.txt
-}
-
-#######################################################################
 #
-# LinuxRelease()
+# Source constants file and initialize most common variables
 #
-#######################################################################
-LinuxRelease()
-{
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
-
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        *Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-    esac
-}
+UtilsInit
 
 #######################################################################
 #
@@ -70,12 +46,12 @@ ConfigRhel()
 {
     # Modifying kdump.conf settings
     LogMsg "Configuring nfs (Rhel)..."
-    echo "Configuring kdump (Rhel)..." >> summary.log
+    UpdateSummary "Configuring kdump (Rhel)..."
     yum install -y nfs-utils
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to install nfs."
-        echo "ERROR: Failed to configure nfs." >> summary.log
-        UpdateTestState "TestAborted"
+        UpdateSummary "ERROR: Failed to configure nfs."
+        SetTestStateAborted
         exit 1
     fi
 
@@ -83,8 +59,8 @@ ConfigRhel()
     service nfs restart
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to restart nfs service."
-        echo "ERROR: Failed to restart nfs service." >> summary.log
-        UpdateTestState "TestAborted"
+        UpdateSummary "ERROR: Failed to restart nfs service."
+        SetTestStateAborted
         exit 1
     fi
 }
@@ -98,12 +74,12 @@ ConfigRhel()
 ConfigSles()
 {
     LogMsg "Configuring kdump (Sles)..."
-    echo "Configuring kdump (Sles)..." >> summary.log
+    UpdateSummary "Configuring kdump (Sles)..."
     zypper --non-interactive install nfs-kernel-server
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to install nfs."
-        echo "ERROR: Failed to configure nfs." >> summary.log
-        UpdateTestState "TestAborted"
+        UpdateSummary "ERROR: Failed to configure nfs."
+        SetTestStateAborted
         exit 1
     fi
 
@@ -114,8 +90,8 @@ ConfigSles()
     systemctl restart nfsserver.service
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to restart nfs service."
-        echo "ERROR: Failed to restart nfs service." >> summary.log
-        UpdateTestState "TestAborted"
+        UpdateSummary "ERROR: Failed to restart nfs service."
+        SetTestStateAborted
         exit 1
     fi
 }
@@ -128,13 +104,13 @@ ConfigSles()
 ConfigUbuntu()
 {
     LogMsg "Configuring kdump (Ubuntu)..."
-    echo "Configuring kdump (Ubuntu)..." >> summary.log
+    UpdateSummary "Configuring kdump (Ubuntu)..."
     apt-get update
     apt-get install -y nfs-kernel-server
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to install nfs."
-        echo "ERROR: Failed to configure nfs." >> summary.log
-        UpdateTestState "TestAborted"
+        UpdateSummary "ERROR: Failed to configure nfs."
+        SetTestStateAborted
         exit 1
     fi
 
@@ -142,8 +118,8 @@ ConfigUbuntu()
     service nfs-kernel-server restart
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to restart nfs service."
-        echo "ERROR: Failed to restart nfs service." >> summary.log
-        UpdateTestState "TestAborted"
+        UpdateSummary "ERROR: Failed to restart nfs service."
+        SetTestStateAborted
         exit 1
     fi
 }
@@ -153,37 +129,27 @@ ConfigUbuntu()
 # Main script body
 #
 #######################################################################
-UpdateTestState $ICA_TESTRUNNING
-
-cd ~
-# Delete any old summary.log file
-if [ -e ~/summary.log ]; then
-    rm -f ~/summary.log
-fi
-
-touch ~/summary.log
 
 #
 # Configure kdump - this has distro specific behaviour
 #
-distro=`LinuxRelease`
-case $distro in
-    "CENTOS" | "RHEL")
+case $DISTRO in
+    centos* | redhat*)
         ConfigRhel
     ;;
-    "UBUNTU")
+    ubuntu*)
         ConfigUbuntu
     ;;
-    "SLES")
+    suse*)
         ConfigSles
     ;;
      *)
         msg="WARNING: Distro '${distro}' not supported, defaulting to RedHat"
         LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
+        UpdateSummary "${msg}"
         ConfigRhel
     ;;
 esac
 
 rm -rf /mnt/*
-UpdateTestState "TestCompleted"
+SetTestStateCompleted
