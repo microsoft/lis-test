@@ -250,7 +250,7 @@ if(-not $ParentVHD)
 
 Write-Output "INFO: Successfully Got Parent VHD"
 
-# Create Child and Grand-Child VHD, use temp path to avoid use same disk with backup drive
+# Create Child and Grand-Child VHD, use temp path to avoid using same disk with backup drive
 
 $childVhd = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(),"vssVhd")
 
