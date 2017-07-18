@@ -24,20 +24,20 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will create a new VM with a 3-chained differencing disk 
-    attached based on the source vm vhd/x. 
+    This script will create a new VM with a 3-chained differencing disk
+    attached based on the source vm vhd/x.
     If the source Vm has more than 1 snapshot, they will be removed except
     the latest one. If the VM has no snapshots, the script will create one.
-    After that it will proceed with backup/restore operation. 
-    
-    It uses a second partition as target. 
+    After that it will proceed with backup/restore operation.
+
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     <test>
         <testName>VSS_BackupRestore_3Chain_VHD</testName>
-        <testScript>setupscripts\VSS_3Chain_VHD_backup.ps1</testScript> 
+        <testScript>setupscripts\VSS_3Chain_VHD_backup.ps1</testScript>
         <testParams>
             <param>driveletter=F:</param>
         </testParams>
@@ -77,12 +77,12 @@ function FixSnapshots($vmName, $hvServer)
     # Get latest snapshot
     $latestsnapshot = Get-VMSnapshot -VMName $vmName | sort CreationTime | select -Last 1
     $LastestSnapName = $latestsnapshot.name
-    
+
     # Delete all snapshots except the latest
     if ($snapnumber -gt 1)
     {
         Write-Output "INFO: $vmName has $snapnumber snapshots. Removing all except $LastestSnapName"
-        foreach ($snap in $vmsnapshots) 
+        foreach ($snap in $vmsnapshots)
         {
             if ($snap.id -ne $latestsnapshot.id)
             {
@@ -103,7 +103,7 @@ function FixSnapshots($vmName, $hvServer)
     ElseIf ($snapnumber -eq 0)
     {
         Write-Output "INFO: There are no snapshots for $vmName. Creating one ..."
-        $sts = Checkpoint-VM -VMName $vmName -ComputerName $hvServer 
+        $sts = Checkpoint-VM -VMName $vmName -ComputerName $hvServer
         if (-not $?)
         {
            Write-Output "ERROR: Unable to create snapshot of ${vmName}: `n${sts}"
@@ -139,14 +139,14 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
   $fields = $p.Split("=")
-    
+
   switch ($fields[0].Trim())
     {
     "sshKey" { $sshKey  = $fields[1].Trim() }
     "ipv4"   { $ipv4    = $fields[1].Trim() }
     "rootDir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
-     default  {}          
+     default  {}
     }
 }
 
@@ -208,17 +208,17 @@ else {
 
 
 $sts = runSetup $vmName $hvServer $driveletter
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	return $False
 }
 
 # Stop the running VM so we can create New VM from this parent disk.
 # Shutdown gracefully so we dont corrupt VHD.
-Stop-VM -Name $vmName 
+Stop-VM -Name $vmName
 if (-not $?)
     {
-       Write-Output "Error: Unable to Shut Down VM" 
+       Write-Output "Error: Unable to Shut Down VM"
        return $False
     }
 
@@ -240,25 +240,26 @@ if (-not $sts[-1])
     return $False
 }
 
-# Get Parent VHD 
+# Get Parent VHD
 $ParentVHD = GetParentVHD $vmName $hvServer
 if(-not $ParentVHD)
 {
     "Error: Error getting Parent VHD of VM $vmName"
     return $False
-} 
+}
 
 Write-Output "INFO: Successfully Got Parent VHD"
 
-# Create Child and Grand-Child VHD
-$childVhd = "${driveletter}\\vssVhd"
+# Create Child and Grand-Child VHD, use temp path to avoid use same disk with backup drive
+
+$childVhd = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(),"vssVhd")
 
 $CreateVHD = CreateChildVHD $ParentVHD $childVhd $hvServer
 if(-not $CreateVHD)
 {
     Write-Output "Error: Error Creating Child and Grand Child VHD of VM $vmName"
     return $False
-} 
+}
 
 Write-Output "INFO: Successfully created GrandChild VHD"
 
@@ -266,14 +267,14 @@ Write-Output "INFO: Successfully created GrandChild VHD"
 # New VM is static hardcoded since we do not need it to be dynamic
 $GChildVHD = $CreateVHD
 
-# Get-VM 
+# Get-VM
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
 
 # Get the VM Network adapter so we can attach it to the new VM
 $VMNetAdapter = Get-VMNetworkAdapter $vmName
 if (-not $?)
     {
-       Write-Output "Error: Get-VMNetworkAdapter" 
+       Write-Output "Error: Get-VMNetworkAdapter"
        return $false
     }
 
@@ -283,7 +284,7 @@ $vm_gen = $vm.Generation
 $newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
     {
-       Write-Output "Error: Creating New VM" 
+       Write-Output "Error: Creating New VM"
        return $False
     }
 
@@ -302,7 +303,7 @@ echo "Successfully created new 3 Chain VHD VM $vmName1" >> $summaryLog
 Write-Output "INFO: New 3 Chain VHD VM $vmName1 created"
 
 $timeout = 600
-$sts = Start-VM -Name $vmName1 -ComputerName $hvServer 
+$sts = Start-VM -Name $vmName1 -ComputerName $hvServer
 $logMsg = Get-VM -Name $vmName1
 Write-Output $logMsg
 if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout ))
@@ -313,10 +314,8 @@ if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout ))
 
 Write-Output "INFO: New VM $vmName1 started"
 
-echo "`n"
-
 $sts = startBackup $vmName1 $driveletter
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	Write-Output "INFO: Failed backup"
 	return $False
@@ -325,19 +324,19 @@ if (-not $sts[-1])
 }
 
 $sts = restoreBackup $backupLocation
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	Write-Output "INFO: Failed restore"
 	return $False
 }
 
 $sts = checkResults $vmName1 $hvServer
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	Write-Output "INFO: Failed result"
 	$retVal = $False
 }
-else 
+else
 {
 	$retVal = $True
     $results = $sts
@@ -352,7 +351,7 @@ if (-not $?)
        $retVal= $False
     }
 
-Write-Output "INFO: New VM's IP is $ipv4" 
+Write-Output "INFO: New VM's IP is $ipv4"
 
 
 
@@ -361,18 +360,18 @@ Write-Output "INFO: Test ${results}"
 $sts = Stop-VM -Name $vmName1 -TurnOff
 if (-not $?)
     {
-       Write-Output "Error: Unable to Shut Down VM $vmName1" 
-       
+       Write-Output "Error: Unable to Shut Down VM $vmName1"
+
     }
 
 runCleanup $backupLocation
 
-# Clean Delete New VM created 
+# Clean Delete New VM created
 $sts = Remove-VM -Name $vmName1 -Confirm:$false -Force
 if (-not $?)
 {
-    Write-Output "Error: Deleting New VM $vmName1"  
-} 
+    Write-Output "Error: Deleting New VM $vmName1"
+}
 
 Write-Output "INFO: Deleted VM $vmName1"
 
