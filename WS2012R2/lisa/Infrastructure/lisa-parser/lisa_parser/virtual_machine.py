@@ -153,7 +153,7 @@ class VirtualMachine(object):
         elif cmd_type == 'get':
             cmd_args[1] = 'get-vm'
         elif cmd_type == 'stop':
-            cmd_args[1] = 'stop-vm'
+            cmd_args[1] = 'stop-vm -turnoff'
         elif cmd_type == 'check':
             cmd_args[1] = 'get-vm'
             cmd_args.insert(1, '(')
