@@ -53,7 +53,7 @@ sudo rm -rf ${hadoop_store}
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
+    sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
     sudo apt-get install -y zip maven libssl-dev build-essential rsync pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk bc >> ${LOG_FILE}
     LogMsg "Upgrading procps - Azure issue."
     sudo apt-get upgrade -y procps >> ${LOG_FILE}
@@ -171,7 +171,7 @@ do
     LogMsg "Configuring hadoop on: ${slave}"
     if [[ ${distro} == *"Ubuntu"* ]]
     then
-        ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq" >> ${LOG_FILE}
         ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get install -y maven libssl-dev rsync build-essential pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk bc" >> ${LOG_FILE}
         ssh -T -o StrictHostKeyChecking=no ${USER}@${slave} "sudo apt-get upgrade -y procps" >> ${LOG_FILE}
     elif [[ ${distro} == *"Amazon"* ]]

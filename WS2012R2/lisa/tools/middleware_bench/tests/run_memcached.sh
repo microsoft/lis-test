@@ -43,11 +43,11 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
+    sudo apt-get update && ssudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
     sudo apt-get -y install libaio1 sysstat zip memcached libmemcached-tools >> ${LOG_FILE}
     sudo apt-get -y install build-essential autoconf automake libpcre3-dev libevent-dev pkg-config zlib1g-dev >> ${LOG_FILE}
 
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip memcached" >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
