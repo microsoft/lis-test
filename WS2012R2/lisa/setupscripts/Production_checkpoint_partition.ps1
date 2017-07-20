@@ -192,7 +192,7 @@ Start-Sleep -seconds 30
 
 #Check if we can set the Production Checkpoint as default
 if ($vm.CheckpointType -ne "ProductionOnly"){
-    Set-VM -Name $vmName -CheckpointType ProductionOnly
+    Set-VM -Name $vmName -CheckpointType ProductionOnly -ComputerName $hvServer
     if (-not $?)
     {
        Write-Output "Error: Could not set Production as Checkpoint type"  | Out-File -Append $summaryLog
