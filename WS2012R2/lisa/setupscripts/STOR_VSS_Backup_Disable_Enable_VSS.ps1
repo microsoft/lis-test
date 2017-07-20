@@ -24,7 +24,7 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will set IntegrationServices "Backup (volume checkpoint) - VSS as disabled, then do offline backup, set VSS as enabled, then do online backup.
+    This script will set Integration Services "Backup (volume checkpoint)" -VSS as disabled, then do offline backup, set VSS as enabled, then do online backup.
 
     A typical XML definition for this test case would look similar
     to the following:
@@ -142,9 +142,9 @@ else {
 	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
 	return $false
 }
-# set the backup type array, if set VSSD as disabled, it
-# exectes offline backup, if VSSD is enabled and
-# hypervvssd is running, it executes online backup.
+# set the backup type array, if set Integration Service VSS
+# as disabled/unchecked, it exectes offline backup, if VSS is
+# enabled/checked and hypervvssd is running, it executes online backup.
 $backupTypes = @("offline","online")
 
 # checkVSSD uses to set integration service,
@@ -172,7 +172,7 @@ for ($i = 0; $i -le 1; $i++ )
 
    if (-not $sts[-1])
    {
-       Write-Output "ERROR: ${vmName} failed to set IntegrationService" >> $summaryLog
+       Write-Output "ERROR: ${vmName} failed to set Integration Service" >> $summaryLog
        return $False
    }
 
@@ -205,9 +205,8 @@ for ($i = 0; $i -le 1; $i++ )
         $backupLocation = $sts
     }
 
-    # check the backup type, if VSS service is disable,
-    # it executes offline backup, otherwise, it executes
-    # online backup.
+    # check the backup type, if VSS integration service is disabled,
+    # it executes offline backup, otherwise, it executes online backup.
     $sts = getBackupType
 
     $temp = $backupTypes[$i]

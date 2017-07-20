@@ -24,15 +24,17 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will stop hypervvssd daemons then do backup. For older hyperv-daemons version, it will get backup error, for latest version, it will do offline backup.
+    This script will stop hypervvssd daemons then do offline backup, then start hypervvssd again to do online backup.
 
     A typical XML definition for this test case would look similar
     to the following:
 
     <test>
-        <testName>STOR_VSS_Backup_Stop_VSSD</testName>
+        <testName>STOR_VSS_Backup_Change_Hypervvssd</testName>
         <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-        <testScript>setupscripts\STOR_VSS_Backup_Stop_VSSD.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh</files>
+        <testScript>setupscripts\STOR_VSS_Backup_Change_Hypervvssd.ps1</testScript>
+
         <testParams>
             <param>TC_COVERED=VSS-22</param>
         </testParams>
@@ -51,7 +53,7 @@
 
 .Example
 
-    .\setupscripts\STOR_VSS_Backup_Stop_VSSD.ps1 -hvServer localhost -vmName vm_name -testParams 'driveletter=D:;RootDir=path/to/testdir;sshKey=sshKey;ipv4=ipaddress'
+    .\setupscripts\STOR_VSS_Backup_Change_Hypervvssd.ps1 -hvServer localhost -vmName vm_name -testParams 'driveletter=D:;RootDir=path/to/testdir;sshKey=sshKey;ipv4=ipaddress'
 
 #>
 
@@ -148,37 +150,34 @@ if (-not $sts[-1])
     return $False
 }
 
-# Stop hypervvssd daemons
-$retVal = SendCommandToVM $ipv4 $sshKey "service hypervvssd stop"
-if ($retVal -eq $False)
+# set the backup type array, if stop hypervvssd, it exectes offline backup, if start hypervvssd, it executes online backup
+$backupTypes = @("offline","online")
+
+# setVSSD uses to set hypervvssd status, firstly stop, then start
+$setVSSD= @($false,$true)
+
+for ($i = 0; $i -le 1; $i++ )
 {
-    "Error: Failed to stop the hypervvssd server!"
-    return $false
-}
-Start-Sleep -s 1
-# After stop hypervvssd,if hyperv-daemons version is smaller than 0.0.30,it gets error when do backup, otherwise it executes offline backup.
-$supportHypervDaemons = "hyperv-daemons-0-0.30.20171211git.el7"
-$supportStatus = GetHypervDaemonsSupportStatus $ipv4 $sshKey $supportHypervDaemons
-
-$stsBackUp = startBackup $vmName $driveLetter
-
-if ( -not $supportStatus)
-{   # when stop hypervvssd, backup gets failure
-    if ( $stsBackUp[-1])
-     {
-         "ERROR: Backup still could complete even not support" >> $summaryLog
-         return $False
-     }
-     else
-     {
-         "Info: Get failed backup as expected when hypervvssd stopped" >> $summaryLog
-     }
-}
-else
-{  # execute offline backup when stop hyperv-vssd
-    if (-not $stsBackUp[-1])
+    if ( $setVSSD[$i] -eq $false)
+    {# stop hypervvssd daemons then do backup
+        $retVal = SendCommandToVM $ipv4 $sshKey "service hypervvssd stop"
+    }
+    else
     {
-        "Failed: Failed to do offline backup"
+        $retVal = SendCommandToVM $ipv4 $sshKey "service hypervvssd start"
+    }
+    if ($retVal -eq $False)
+    {
+        "Error: Failed to set the hypervvssd service !"
+        return $false
+    }
+
+    Start-Sleep -s 3
+    $stsBackUp = startBackup $vmName $driveLetter
+
+    # when stop hypervvssd, backup offline backup
+    if ( -not $stsBackUp[-1])
+    {
         return $False
     }
     else
@@ -186,14 +185,15 @@ else
         $backupLocation = $stsBackUp
         # if stop hypervvssd, vm does offline backup
         $bkType = getBackupType
-        if  ( $bkType -ne "offline" )
+        $temp = $backupTypes[$i]
+        if  ( $bkType -ne $temp )
         {
-            "Failed: Not get expected offline backup type"  >> $summaryLog
+            "Failed: Not get expected backup type as $temp"  >> $summaryLog
             return $False
         }
         else
         {
-            "Info: Get expected offline backup type" >> $summaryLog
+            "Info: Get expected backup type $temp" >> $summaryLog
         }
         runCleanup $backupLocation
     }

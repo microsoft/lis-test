@@ -1889,9 +1889,9 @@ function SetIntegrationService([string] $vmName, [string] $hvServer, [string] $s
 {
     <#
     .Synopsis
-        Set the Integraiton Service status.
+        Set the Integration Service status.
     .Description
-        Set the Integraiton Service status based on service name and expected service status.
+        Set the Integration Service status based on service name and expected service status.
     .Parameter vmName
         Name of the VM
     .Parameter hvServer
@@ -1997,37 +1997,5 @@ function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$su
 			return $false
 		}
 	}
-	return $true
-}
-
-function GetHypervDaemonsSupportStatus([String] $ipv4, [String] $sshKey, [String]$supportHypervDaemons)
-{
-    <#
-    .Synopsis
-        Check Hyperv-daemons supports one feature or not.
-    .Description
-        Check hyperv-daemons supports one feature or not by comparing curent hyperv-daemons version with feature supported version.
-        If the current version is lower than feature supported version, return false, otherwise return true.
-    .Parameter ipv4
-        IPv4 address of the Linux VM.
-    .Parameter sshKey
-        SSH key used to connect to the Linux VM
-    .Parameter supportHypervDaemons
-        Hyperv-daemons version starts to support this feature, e.g. supportHypervDaemons = "hyperv-daemons-0-0.30.20171211git.el7"
-    .Example
-        GetHypervDaemonsSupportStatus $ipv4 $sshKey $supportHypervDaemons
-    #>
-	$currentHypervDaemons = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rpm -qa | grep -i hyperv-daemons | head -n 1"
-	if( $? -eq $false){
-		write-output "WARNING: Could not get hyperv-vssd version".
-	}
-
-	$sHD =$supportHypervDaemons.replace("-",".").split(".")
-	$cHD =$currentHypervDaemons.replace("-",".").split(".")
-    for ($i=2; $i -le 4; $i++) {
-    	if ($cHD[$i] -lt $sHD[$i] ) {
-    			return $false
-    	}
-    }
 	return $true
 }
