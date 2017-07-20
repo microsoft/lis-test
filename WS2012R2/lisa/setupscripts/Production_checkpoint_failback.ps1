@@ -159,7 +159,7 @@ Write-Output "VSS Daemon was successfully stopped" >> $summaryLog
 
 #Check if we can set the Production Checkpoint as default
 if ($vm.CheckpointType -ne "Production"){
-    Set-VM -Name $vmName -CheckpointType Production
+    Set-VM -Name $vmName -CheckpointType Production -ComputerName $hvServer
     if (-not $?)
     {
        Write-Output "Error: Could not set Production as Checkpoint type"  | Out-File -Append $summaryLog
