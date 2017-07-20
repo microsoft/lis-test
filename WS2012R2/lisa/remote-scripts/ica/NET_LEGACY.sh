@@ -71,6 +71,8 @@ dos2unix utils.sh
 	exit 2
 }
 
+GetDistro
+
 # Source constants file and initialize most common variables
 UtilsInit
 # In case of error
@@ -231,7 +233,6 @@ else
 
 		# work-around for suse where the network gets restarted in order to shutdown networkmanager.
 		declare __orig_netmask
-		GetDistro
 		case "$DISTRO" in
 			suse*)
 				__orig_netmask=$(ip -o addr show | grep "$ipv4" | cut -d '/' -f2 | cut -d ' ' -f1)
@@ -428,6 +429,18 @@ while [ $__synth_iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
 		LogMsg "Trying to ping $REMOTE_SERVER from synthetic interface ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
 		UpdateSummary "Trying to ping $REMOTE_SERVER from synthetic interface ${SYNTH_NET_INTERFACES[$__synth_iterator]}"
 
+        # In some cases eth1 and eth2 would fail to ping6, restarting the network solves the issue
+        if [ "$pingVersion" == "ping6" ] && [ ${#SYNTH_NET_INTERFACES[@]} -ge 1 ]; then
+            if [[ "$DISTRO" == "redhat"* || "$DISTRO" == "centos"* ]]; then
+                service network restart
+                if [ $? -ne 0 ]; then
+                    msg="Unable to restart network service."
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                fi
+            fi
+        fi
+
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`syn`null`dhcp`null`
 		"$pingVersion" -I "${SYNTH_NET_INTERFACES[$__synth_iterator]}" -c 10 -p "cafed00d0073796e006468637000" "$REMOTE_SERVER" >/dev/null 2>&1
 		if [ 0 -eq $? ]; then
@@ -469,6 +482,18 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq $__synth_iterator ]; then
 					LogMsg "Warning! Failed to set default gateway!"
 				fi
 			fi
+
+        # In some cases eth1 and eth2 would fail to ping6, restarting the network solves the issue
+        if [ "$pingVersion" == "ping6" ] && [ ${#SYNTH_NET_INTERFACES[@]} -ge 1 ]; then
+            if [[ "$DISTRO" == "redhat"* || "$DISTRO" == "centos"* ]]; then
+                service network restart
+                if [ $? -ne 0 ]; then
+                    msg="Unable to restart network service."
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                fi
+            fi
+        fi
 
 			LogMsg "Trying to ping $REMOTE_SERVER"
 			UpdateSummary "Trying to ping $REMOTE_SERVER"
@@ -515,6 +540,18 @@ while [ $__legacy_iterator -lt ${#LEGACY_NET_INTERFACES[@]} ]; do
 
 		LogMsg "Trying to ping $REMOTE_SERVER from legacy interface ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
 		UpdateSummary "Trying to ping $REMOTE_SERVER from legacy interface ${LEGACY_NET_INTERFACES[$__legacy_iterator]}"
+
+        # In some cases eth1 and eth2 would fail to ping6, restarting the network solves the issue
+        if [ "$pingVersion" == "ping6" ] && [ ${#SYNTH_NET_INTERFACES[@]} -ge 1 ]; then
+            if [[ "$DISTRO" == "redhat"* || "$DISTRO" == "centos"* ]]; then
+                service network restart
+                if [ $? -ne 0 ]; then
+                    msg="Unable to restart network service."
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                fi
+            fi
+        fi
 
 		# ping the remote host using an easily distinguishable pattern 0xcafed00d`null`leg`null`dhcp`null`
 		"$pingVersion" -I "${LEGACY_NET_INTERFACES[$__legacy_iterator]}" -c 10 -p "cafed00d006c6567006468637000" "$REMOTE_SERVER" >/dev/null 2>&1
