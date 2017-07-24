@@ -32,8 +32,8 @@ kdump_sysconfig=/etc/sysconfig/kdump
 #
 dos2unix utils.sh
 . utils.sh || {
-	echo "Error: unable to source utils.sh!"
-	exit 1
+    echo "Error: unable to source utils.sh!"
+    exit 1
 }
 
 #
@@ -204,12 +204,13 @@ ConfigRhel()
     if [ $vm2ipv4 != "" ]; then
         yum install -y nfs-utils
         if [ $? -ne 0 ]; then
-                LogMsg "ERROR: Failed to install nfs."
-                UpdateSummary "ERROR: Failed to configure nfs."
-                SetTestStateAborted
-                exit 1
+            LogMsg "ERROR: Failed to install nfs."
+            UpdateSummary "ERROR: Failed to configure nfs."
+            SetTestStateAborted
+            exit 1
         fi
-        echo "nfs $vm2ipv4:/mnt" >> /etc/kdump.conf
+        echo "dracut_args --mount \"$vm2ipv4:/mnt /var/crash nfs defaults\"" >> /etc/kdump.conf
+        service kdump restart
     fi
 }
 
@@ -290,7 +291,8 @@ ConfigSles()
             SetTestStateAborted
             exit 1
         fi
-        sed -i 's\KDUMP_SAVEDIR="/var/crash"\KDUMP_SAVEDIR="nfs://'"$vm2ipv4"'/mnt"\g' /etc/sysconfig/kdump
+        sed -i 's\KDUMP_SAVEDIR="/var/crash"\KDUMP_SAVEDIR="nfs://'"$vm2ipv4"':/mnt"\g' /etc/sysconfig/kdump
+        service kdump restart
     fi
 
 }
@@ -337,6 +339,9 @@ ConfigUbuntu()
     sed -i 's/LOAD_KEXEC=true/LOAD_KEXEC=false/g' /etc/default/kexec
 
     # Configure to dump file on nfs server if it is the case
+    apt-get update -y
+    sleep 10
+
     if [ $vm2ipv4 != "" ]; then
         apt-get install -y nfs-kernel-server
         if [ $? -ne 0 ]; then
@@ -345,7 +350,16 @@ ConfigUbuntu()
             SetTestStateAborted
             exit 1
         fi
-        echo 'NFS="'"$vm2ipv4"':/mnt"' >> /etc/default/kdump-tools
+
+        apt-get install nfs-common -y
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Failed to install nfs-common."
+            echo "ERROR: Failed to configure nfs-common." >> summary.log
+            UpdateTestState "TestAborted"
+            exit 1
+        fi
+        echo "NFS=\"$vm2ipv4:/mnt\"" >> /etc/default/kdump-tools
+        service kexec restart
     fi
 }
 
@@ -371,6 +385,7 @@ fi
 #
 # Configure kdump - this has distro specific behaviour
 #
+GetDistro
 case $DISTRO in
     centos* | redhat*)
         ConfigRhel
