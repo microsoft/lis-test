@@ -95,13 +95,13 @@ foreach($p in $params)
     "ipv4"    { $ipv4 = $val }
     "rootdir" { $rootDir = $val }
     "tc_covered" { $tcCovered = $val }
-    "vmState" { $vmState = $val.toLower() }
-    "testDelay"  {$testDelay = $val}
-    "chrony_state"  {$chrony_state = $val}
+    "vmstate" { $vmState = $val.toLower() }
+    "testdelay"  {$testDelay = $val}
+    "chrony"  {$chrony_state = $val}
     default  { continue }
     }
 }
-
+"Info: testDelay = $testDelay; chrony_state = $chrony_state;"
 #
 # Make sure the required testParams were found
 #
@@ -162,18 +162,17 @@ else
 
 if ($chrony_state -eq "off")
 {
-    "Turn off chrony in vm"
+    "Info: Turn off chrony in vm"
     $cmd = "service chronyd stop; service ntpd stop"
     $retVal = SendCommandToVM $ipv4 $sshKey "$cmd"
     if ($retVal -eq $False)
     {
-        Write-Output "Error: Failed to turn off chrony. Check logs for details."
+        Write-Output "Error: Failed to turn off chrony."
         return $False
     }
 }
 
 Start-Sleep -S 10
-
 #
 # Pause/Save the VM state and wait for 10 mins.
 #
