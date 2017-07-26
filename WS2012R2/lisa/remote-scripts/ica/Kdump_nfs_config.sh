@@ -28,8 +28,8 @@ dos2unix utils.sh
 # Get $DISTRO, LogMsg directly from utils.sh
 #
 . utils.sh || {
-	echo "Error: unable to source utils.sh!"
-	exit 1
+    echo "Error: unable to source utils.sh!"
+    exit 1
 }
 
 #
@@ -55,13 +55,25 @@ ConfigRhel()
         exit 1
     fi
 
-    echo "/mnt *(rw,no_root_squash,sync)" >> /etc/exports
+    grep "/mnt \*" /etc/exports
+    if [ $? -ne 0 ]; then
+        echo "/mnt *(rw,no_root_squash,sync)" >> /etc/exports
+    fi
+
     service nfs restart
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to restart nfs service."
         UpdateSummary "ERROR: Failed to restart nfs service."
         SetTestStateAborted
         exit 1
+    fi
+
+    #disable firewall in case it is running
+    ls -l /sbin/init | grep systemd
+    if [ $? -ne 0 ]; then
+        service iptables stop
+    else
+        systemctl stop firewalld
     fi
 }
 
@@ -83,7 +95,11 @@ ConfigSles()
         exit 1
     fi
 
-    echo "/mnt *(rw,no_root_squash,sync)" >> /etc/exports
+    grep "/mnt \*" /etc/exports
+    if [ $? -ne 0 ]; then
+        echo "/mnt *(rw,no_root_squash,sync)" >> /etc/exports
+    fi
+
     systemctl enable rpcbind.service
     systemctl restart rpcbind.service
     systemctl enable nfsserver.service
@@ -114,7 +130,11 @@ ConfigUbuntu()
         exit 1
     fi
 
-    echo "/mnt *(rw,no_root_squash,sync)" >> /etc/exports
+    grep "/mnt \*" /etc/exports
+    if [ $? -ne 0 ]; then
+        echo "/mnt *(rw,no_root_squash,sync)" >> /etc/exports
+    fi
+
     service nfs-kernel-server restart
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Failed to restart nfs service."
@@ -133,6 +153,8 @@ ConfigUbuntu()
 #
 # Configure kdump - this has distro specific behaviour
 #
+GetDistro
+
 case $DISTRO in
     centos* | redhat*)
         ConfigRhel

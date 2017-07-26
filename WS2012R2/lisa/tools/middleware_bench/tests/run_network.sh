@@ -43,9 +43,9 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo apt-get upgrade -y >> ${LOG_FILE}
+    sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
     sudo apt-get -y install sysstat zip bc build-essential >> ${LOG_FILE}
-    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo apt-get upgrade -y" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq" >> ${LOG_FILE}
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install sysstat zip bc build-essential" >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
@@ -62,7 +62,7 @@ mkdir -p /tmp/network${PROTO}
 cd /tmp
 if [[ ${PROTO} == "TCP" ]]
 then
-    TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024 2048 3072 6144 10240)
+    TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024 2048 4096 6144 8192 10240)
     cd /tmp; git clone https://github.com/Microsoft/ntttcp-for-linux
     cd /tmp/ntttcp-for-linux/src; sudo make && sudo make install
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "cd /tmp; git clone https://github.com/Microsoft/ntttcp-for-linux" >> ${LOG_FILE}
@@ -129,7 +129,7 @@ function run_lagscope()
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f lagscope"
     ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo lagscope -r${SERVER}"
     sleep 5
-    sudo lagscope -s${SERVER} -n1000000 -V > "/tmp/network${PROTO}/lagscope.log"
+    sudo lagscope -s${SERVER} -n1000000 -i0 -V > "/tmp/network${PROTO}/lagscope.log"
     sleep 5
     sudo pkill -f lagscope
 }
