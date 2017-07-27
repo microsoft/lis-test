@@ -1132,7 +1132,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                             LogMsg 0 "Error: VM $($vm.vmName) setup script ${script} for test ${testName} failed"
                             $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - setup script failed")
                             #$vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
-                            SetTestResult $vm.currentTest $Aborted
+                            SetTestResult $vm.currentTest $Aborted $xmlData
                             SetRunningTime $vm.currentTest $vm
                             if ($abortOnError)
                             {
@@ -1162,7 +1162,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                         LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test ${testName} failed"
                         #$vm.emailSummary += "    Test $($vm.currentTest) : Failed - setup script failed<br />"
                         $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - setup script failed")
-                        SetTestResult $vm.currentTest $Aborted
+                        SetTestResult $vm.currentTest $Aborted $xmlData
                         SetRunningTime $vm.currentTest $vm
 
                         if ($abortOnError)
@@ -1520,20 +1520,20 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     $BMPName = (pwd).Path + "\" + "${testDir}\$($vm.currentTest)_ConsoleScreenShot.bmp"
     Add-Type -AssemblyName "System.Drawing"
- 
-    $VMCS = Get-WmiObject -Namespace root\virtualization\v2 -Class Msvm_ComputerSystem -Filter "ElementName='$($VMName)'" 
+
+    $VMCS = Get-WmiObject -Namespace root\virtualization\v2 -Class Msvm_ComputerSystem -Filter "ElementName='$($VMName)'"
 
     # This is the default resolution in most cases
     [int]$xResolution = 1152
     [int]$yResolution = 864
     LogMsg 0 "Info: Screenshot was captured on this location $BMPName "
 
-    try 
+    try
     {
         # This will capture a screenshot at the default resolution of 1152*864
         (TakeConsoleScreenShot $VMCS $xResolution $yResolution).Save($BMPName)
     }
-    catch 
+    catch
     {
         # Sometimes 1152*864 resolution is not available on VM Console
         # In this case a screenshot with 640*480 resolution will be taken
@@ -1545,7 +1545,7 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # Proceed with restarting the VM
     #
-    Start-Sleep -s 5    
+    Start-Sleep -s 5
     $timeout = 60
     Stop-VM -Name $vm.vmName -ComputerName $vm.hvServer -Force -TurnOff
 
@@ -1576,7 +1576,7 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $hasBooted = $false
             [int]$timeoutBoot = 25
             # Update the vm.ipv4 value if the VMs IP address changed
-            while (($hasBooted -eq $false) -and ($timeoutBoot -ge 0)) 
+            while (($hasBooted -eq $false) -and ($timeoutBoot -ge 0))
             {
                 Start-Sleep -s 1
                 $ipv4 = GetIPv4 $vm.vmName $vm.hvServer
@@ -1598,13 +1598,13 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 UpdateState $vm $SystemUp
             }
-            else 
+            else
             {
                 $completionCode = $Aborted
                 LogMsg 0 "Error: $($vm.vmName) did not boot after second try for test $($vm.currentTest)"
                 LogMsg 0 "Info : $($vm.vmName) Status for test $($vm.currentTest) = ${completionCode}"
 
-                SetTestResult $currentTest $completionCode
+                SetTestResult $currentTest $completionCode $xmlData
                 $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $($vm.currentTest), $completionCode)
                 UpdateState $vm $ForceShutdown
             }
@@ -1678,7 +1678,7 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
         if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
             $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus 2> /dev/null | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"
             if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
-                $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_netvsc 2> /dev/null | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"   
+                $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_netvsc 2> /dev/null | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"
             }
         }
     }
@@ -2034,7 +2034,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                                 LogMsg 0 "Error: $($vm.vmName) PreTest script ${script} for test $($testData.testName) failed"
                                 $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - pretest script failed")
 
-                                SetTestResult $vm.currentTest $Aborted
+                                SetTestResult $vm.currentTest $Aborted $xmlData
                                 SetRunningTime $vm.currentTest $vm
 
                                 UpdateState $vm $DetermineReboot
@@ -2052,7 +2052,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                             LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
                             $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - pretest script failed")
 
-                            SetTestResult $vm.currentTest $Aborted
+                            SetTestResult $vm.currentTest $Aborted $xmlData
                             SetRunningTime $vm.currentTest $vm
                             UpdateState $vm $DetermineReboot
                             return
@@ -2552,7 +2552,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData, [string]
         $iterationMsg = "($($vm.iteration))"
     }
 
-    SetTestResult $currentTest $completionCode
+    SetTestResult $currentTest $completionCode $xmlData
 
     $vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
 
@@ -3558,7 +3558,7 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     LogMsg 0 "Info : ${vmName} Status for test $($vm.currentTest) = ${completionCode}"
 
-    SetTestResult $currentTest $completionCode
+    SetTestResult $currentTest $completionCode $xmlData
     #
     # Update e-mail summary
     #
