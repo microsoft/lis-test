@@ -63,7 +63,7 @@ function GetJUnitXML()
     <skipped/>
     <failure type=""></failure>
     <properties>
-        <property name="TC_COVERED" value="" />
+        <property name="tc_covered" value="" />
     </properties>
 </testcase>
 </testsuite>
@@ -262,6 +262,7 @@ function SetTestResult([String] $testName, [String] $completionCode, [xml] $xmlD
     }
 
     $testID = GetTestID $testName $xmlData
+
     foreach ($property in $newTestCase.properties.property)
     {
         if ($property.name -eq "TC_COVERED")
@@ -639,7 +640,7 @@ function GetTestID([String] $testName, [xml] $xmlData)
     #>
     LogMsg 6 ("Info :    GetTestID($($testName))")
 
-    $idString = $null
+    $idString = ""
 
     foreach ($test in $xmlData.config.testCases.test)
     {
