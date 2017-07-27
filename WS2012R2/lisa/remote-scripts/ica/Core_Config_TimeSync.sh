@@ -109,7 +109,7 @@ ConfigPtp4l()
 InstallChrony()
 {
     case $1 in
-    "CENTOS" | "RHEL")
+    "CENTOS" | "RHEL" | "FEDORA")
         yum install chrony -y
     ;;
     "UBUNTU")
