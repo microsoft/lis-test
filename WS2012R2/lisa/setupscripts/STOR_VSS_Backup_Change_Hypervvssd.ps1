@@ -59,6 +59,7 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$remoteScript = "STOR_VSS_Set_VSS_Daemon.sh"
 #######################################################################
 #
 # Main script body
@@ -86,6 +87,7 @@ foreach ($p in $params)
     "ipv4" { $ipv4 = $fields[1].Trim() }
     "rootdir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
+    "TestLogDir" { $TestLogDir = $fields[1].Trim() }
      default  {}
     }
 }
@@ -143,33 +145,36 @@ else {
 	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
 	return $false
 }
-## run set up
+# run set up
 $sts = runSetup $vmName $hvServer $driveletter
 if (-not $sts[-1])
 {
     return $False
 }
 
-# set the backup type array, if stop hypervvssd, it exectes offline backup, if start hypervvssd, it executes online backup
+# set the backup type array, if stop hypervvssd, it executes offline backup, if start hypervvssd, it executes online backup
 $backupTypes = @("offline","online")
 
-# setVSSD uses to set hypervvssd status, firstly stop, then start
-$setVSSD= @($false,$true)
+# set hypervvssd status, firstly stop, then start
+$setAction= @("stop","start")
 
 for ($i = 0; $i -le 1; $i++ )
 {
-    if ( $setVSSD[$i] -eq $false)
-    {# stop hypervvssd daemons then do backup
-        $retVal = SendCommandToVM $ipv4 $sshKey "service hypervvssd stop"
+    $serviceAction = $setAction[$i]
+    $sts = SendCommandToVM $ipv4 $sshkey "echo serviceAction=$serviceAction  >> /root/constants.sh"
+    if (-not $sts[-1]){
+        Write-Output "Error: Could not echo serviceAction to vm's constants.sh."
+        return $False
     }
-    else
+    "Info: $serviceAction hyperv backup service" >> $summaryLog
+
+     # Run the remote script
+    $sts = RunRemoteScript $remoteScript
+    if (-not $sts[-1])
     {
-        $retVal = SendCommandToVM $ipv4 $sshKey "service hypervvssd start"
-    }
-    if ($retVal -eq $False)
-    {
-        "Error: Failed to set the hypervvssd service !"
-        return $false
+        "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
+        "ERROR: Running $remoteScript script failed on VM!"
+        return $False
     }
 
     Start-Sleep -s 3
@@ -189,11 +194,13 @@ for ($i = 0; $i -le 1; $i++ )
         if  ( $bkType -ne $temp )
         {
             "Failed: Not get expected backup type as $temp"  >> $summaryLog
+            "Failed: Not get expected backup type as $temp"
             return $False
         }
         else
         {
-            "Info: Get expected backup type $temp" >> $summaryLog
+             "Info: Get expected backup type $temp" >> $summaryLog
+             "Info: Get expected backup type $temp"
         }
         runCleanup $backupLocation
     }
