@@ -527,7 +527,7 @@ if is_fedora ; then
     done
     yum groups mark install "Development Tools"
     yum groups mark convert "Development Tools"
-    yum groupinstall "Development Tools"
+    yum -y groupinstall "Development Tools"
     verify_install $? "Development Tools"
     
     if [ ! -d $work_directory ] ; then
