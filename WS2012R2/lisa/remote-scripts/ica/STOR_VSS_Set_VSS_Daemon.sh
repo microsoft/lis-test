@@ -39,10 +39,10 @@ SetTestStateRunning
 serviceName="hypervvssd"
 
 if [[ $serviceAction == "start" ]] || [[ $serviceAction == "stop" ]]; then
-    LogMsg "Info: service action is $action"
+    LogMsg "Info: service action is $serviceAction"
 else
-    LogMsg "Info: invalid service action $action"
-    UpdateSummary "Info: invalid action $action, only support stop and start"
+    LogMsg "Info: invalid service action $serviceAction"
+    UpdateSummary "Info: invalid action $serviceAction, only support stop and start"
     SetTestStateAborted
     exit 1
 fi
