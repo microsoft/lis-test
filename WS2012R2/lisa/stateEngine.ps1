@@ -3574,6 +3574,15 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
         del $summaryLog
     }
 
-    UpdateState $vm $DetermineReboot
+    # UpdateState $vm $DetermineReboot
+    $testData = GetTestData $currentTest $xmlData
+    if ( $($testData.postTest) )
+    {
+        UpdateState $vm $RunPostTestScript
+    }
+    else
+    {
+        UpdateState $vm $DetermineReboot
+    }
 }
 0
