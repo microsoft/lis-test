@@ -206,7 +206,7 @@ $cmd = "`"" + "setsid ./${netcatScriptPath} >/dev/null 2>&1 < /dev/null &" + "`"
 bin\plink.exe -i ssh\${sshKey} root@${ipv4}  $cmd
 
 $jobName = "ReceiveJob"
-$ipAddr = (Get-VMNetworkAdapter -VMName ${vmName})[1].IPAddresses[0]
+$ipAddr = (Get-VMNetworkAdapter -VMName ${vmName} -ComputerName $hvServer)[1].IPAddresses[0]
 $cmd = "cmd.exe /C " + "'" + "${netcatBinPath} -v -w 2 ${ipAddr} ${port} > ${destionationFilePath}" + "'"
 "Info: Running command ${cmd}"
 $cmd | Out-File ./nccmd.ps1
