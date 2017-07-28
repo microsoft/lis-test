@@ -47,6 +47,8 @@
 		<suiteTest>TimeSync_NTP</suiteTest>
 		<suiteTest>TimeSync_SavedVM</suiteTest>
 		<suiteTest>TimeSync_PausedVM</suiteTest>
+		<suiteTest>TimeSync_SavedVM_ChronyOff</suiteTest>
+		<suiteTest>TimeSync_PausedVM_ChronyOff</suiteTest>
 		<suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
 		<suiteTest>FloppyDisk</suiteTest>
 
