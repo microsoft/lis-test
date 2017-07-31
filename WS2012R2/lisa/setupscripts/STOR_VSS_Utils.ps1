@@ -29,14 +29,13 @@
     commonly used by PowerShell scripts in VSS tests.
 #>
 
-
-function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter) 
-{	
+function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter, [boolean] $check_vssd = $True)
+{
 	$sts = Test-Path $driveletter
 	if (-not $sts)
 	{
 		Write-Output "Error: Drive ${driveletter} does not exist"
-		return $False	
+		return $False
 	}
 	Write-Output "Info: Removing old backups"
 	try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
@@ -59,33 +58,32 @@ function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter)
 			return $False
 		}
 	}
-
-	# Check to see Linux VM is running VSS backup daemon
-	$sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"		 
-	if (-not $sts[-1])		
-    {
-		Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog		
-		Write-Output "ERROR: Running $remoteScript script failed on VM!"		
-		return $False		
+	if ($check_vssd)
+	{
+		# Check to see Linux VM is running VSS backup daemon
+		$sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
+		if (-not $sts[-1])
+		{
+			Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
+			Write-Output "ERROR: Running $remoteScript script failed on VM!"
+			return $False
+		}
+			Write-Output "Info: VSS Daemon is running" >> $summaryLog
 	}
-	
 
-	Write-Output "Info: VSS Daemon is running" >> $summaryLog
+	# Create a file on the VM before backup
+ 	$sts = CreateFile "/root/1"
+ 	if (-not $sts[-1])
+	{
+		Write-Output "ERROR: Cannot create test file"
+		return $False
+ 	}
 
-	# Create a file on the VM before backup		
- 	$sts = CreateFile "/root/1"		
- 	if (-not $sts[-1])		
-	{		
- 	  Write-Output "ERROR: Cannot create test file"		
-     	return $False		
- 	}		
- 
  	Write-Output "File created on VM: $vmname" >> $summaryLog
 	return $True
 }
 
-
-function startBackup([string] $vmName, [string] $driveletter) 
+function startBackup([string] $vmName, [string] $driveletter)
 {
     # Remove Existing Backup Policy
 	try { Remove-WBPolicy -all -force }
@@ -94,7 +92,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 	# Set up a new Backup Policy
 	$policy = New-WBPolicy
 
-	# Set the backup backup location
+	# Set the backup location
 	$backupLocation = New-WBBackupTarget -VolumePath $driveletter
 
 	# Define VSS WBBackup type
@@ -127,15 +125,15 @@ function startBackup([string] $vmName, [string] $driveletter)
 	# Let's wait a few Seconds
 	Start-Sleep -Seconds 70
 
-	# Delete file on the VM	
+	# Delete file on the VM
 	$vmState = $(Get-VM -name $vmName -ComputerName $hvServer).state
-    if (-not $vmState) {			
-		$sts = DeleteFile		
-		if (-not $sts[-1])		
-		{		
+    if (-not $vmState) {
+		$sts = DeleteFile
+		if (-not $sts[-1])
+		{
 			Write-Output "ERROR: Cannot delete test file!" >> $summaryLog
-			return $False		
-		}		
+			return $False
+		}
 		Write-Output "File deleted on VM: $vmname" >> $summaryLog
 	}
 	return $backupLocation
@@ -161,7 +159,7 @@ function restoreBackup([string] $backupLocation)
 	return $True
 }
 
-function checkResults([string] $vmName, [string] $hvServer) 
+function checkResults([string] $vmName, [string] $hvServer)
 {
    # Review the results
 	$RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
@@ -181,14 +179,13 @@ function checkResults([string] $vmName, [string] $hvServer)
 	if (-not $vm.state) {
 		Write-Output "Waiting for vm to turn off"
 		Start-Sleep -Seconds 60
-		
+
 		if ( $vm.state -ne "Off" )
 		{
 			Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state >> $summaryLog
 			return $False
 		}
 	}
-	
 
 	# Now Start the VM
 	$timeout = 300
@@ -204,6 +201,45 @@ function checkResults([string] $vmName, [string] $hvServer)
 	}
 
 	Start-Sleep -s 60
+
+	# Now Check the boot logs in VM to verify if there is no Recovering journals in it .
+
+	$sts= GetSelinuxAVCLog
+	if ($sts[-1])
+    {
+        $logMessage = "ERROR: There is selinux avc denied log in audit log: Failed"
+        Write-Output $logMessage >> $summaryLog
+        return $False
+    }
+    else
+    {
+        $logMessage = "INFO: no selinux avc deny log in audit logs"
+        Write-Output $logMessage
+    }
+	# only check restore file when ip available
+	#$ipv4 = GetIPv4 $vmName $hvServer
+	$stsipv4 = Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue
+	if ($stsipv4.PingSucceeded)
+	{
+		$sts= CheckFile "/root/1"
+		if (-not $sts[-1])
+		{
+			$logMessage = "ERROR: No /root/1 file after restore "
+			Write-Output $logMessage
+			$logMessage >> $summaryLog
+			return $False
+		}
+		else
+		{
+			$logMessage = "INFO: there is /root/1 file after restore"
+			Write-Output $logMessage
+		}
+	}
+	else
+	{
+		Write-Output "INFO: Ignore checking file /root/1 when no network"
+	}
+
 	# Now Check the boot logs in VM to verify if there is no Recovering journals in it .
 	$sts=CheckRecoveringJ
     if ($sts[-1])
@@ -225,10 +261,39 @@ function checkResults([string] $vmName, [string] $hvServer)
     }
 }
 
-function runCleanup([string] $backupLocation) 
+function runCleanup([string] $backupLocation)
 {
     # Remove Created Backup
     Write-Output "Removing old backups from $backupLocation"
     try { Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
     Catch { Write-Output "No existing backup's to remove"}
+}
+
+function getBackupType()
+{
+	# check the latest successful job backup type, "online" or "offline"
+	$backupType = $null
+	$sts = Get-WBJob -Previous 1
+	if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
+	{
+		Write-Output "ERROR: VSS Backup failed " >> $summaryLog
+		return $backupType
+	}
+
+	$contents = get-content $sts.SuccessLogPath
+	foreach ($line in $contents )
+	{
+		if ( $line -match "Caption" -and $line -match "online")
+		{
+			Write-Output "VSS Backup type is online" >> $summaryLog
+			$backupType = "online"
+
+		}
+		elseif ($line -match "Caption" -and $line -match "offline")
+		{
+			Write-Output "VSS Backup type is offline" >> $summaryLog
+			$backupType = "offline"
+		}
+	}
+	return $backupType
 }

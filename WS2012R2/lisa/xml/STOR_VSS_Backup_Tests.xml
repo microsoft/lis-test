@@ -51,6 +51,9 @@
                 <suiteTest>STOR_VSS_BackupRestore_DiskStress</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_Mount_Multi_Paths</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_Mount_Squashfs</suiteTest>
+                <suiteTest>STOR_VSS_Backup_Disable_Enable_VSS</suiteTest>
+                <suiteTest>STOR_VSS_Backup_Change_Hypervvssd</suiteTest>
+
                 <!-- Live backup operations can fail silently if the VM has an
                 attached iSCSI device or direct-attached storage (pass-through disk)
                 <suiteTest>STOR_VSS_BackupRestore_PassTru</suiteTest> -->
@@ -272,6 +275,31 @@
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
+
+        <test>
+            <testName>STOR_VSS_Backup_Disable_Enable_VSS</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\STOR_VSS_Backup_Disable_Enable_VSS.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=VSS-21</param>
+            </testParams>
+            <timeout>2400</timeout>
+            <OnError>Continue</OnError>
+        </test>
+
+        <test>
+            <testName>STOR_VSS_Backup_Change_Hypervvssd</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <testScript>setupscripts\STOR_VSS_Backup_Change_Hypervvssd.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=VSS-22</param>
+            </testParams>
+            <timeout>2400</timeout>
+            <OnError>Continue</OnError>
+        </test>
+
     </testCases>
 
     <VMs>

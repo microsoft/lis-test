@@ -1307,6 +1307,7 @@ function CheckRecoveringJ()
     return $retValue
 }
 
+
 #######################################################################
 # Create a file on the VM.
 #######################################################################
@@ -1605,6 +1606,8 @@ function GetNumaSupportStatus([string] $kernel)
     return $true
 }
 
+
+
 #####################################################################
 #
 # GetHostBuildNumber
@@ -1879,4 +1882,120 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
         "Info : Controller successfully added"
     }
     return $True
+}
+
+
+function SetIntegrationService([string] $vmName, [string] $hvServer, [string] $serviceName, [boolean] $serviceStatus)
+{
+    <#
+    .Synopsis
+        Set the Integration Service status.
+    .Description
+        Set the Integration Service status based on service name and expected service status.
+    .Parameter vmName
+        Name of the VM
+    .Parameter hvServer
+        Name of the server hosting the VM
+    .Parameter serviceName
+        Service name, e.g. VSS, Guest Service Interface
+    .Parameter serviceStatus
+        Expected servcie status, $true is enabled, $false is disabled
+    .Example
+        SetIntegrationService $vmName $hvServer $serviceName $true
+    #>
+    if (@("Guest Service Interface", "Time Synchronization", "Heartbeat", "Key-Value Pair Exchange", "Shutdown","VSS") -notcontains $serviceName)
+    {
+        "Error: Unknown service type: $serviceName"
+        return $false
+    }
+
+    "Info: Set the Integrated Services $serviceName as $serviceStatus"
+    if ($serviceStatus -eq $false)
+    {
+        Disable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $serviceName
+    }
+    else
+    {
+        Enable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $serviceName
+    }
+
+    $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $serviceName
+    if ($status.Enabled -ne $serviceStatus)
+    {
+        "Error: The $serviceName service could not be set as $serviceStatus"
+        return $False
+    }
+    return $True
+}
+
+function GetSelinuxAVCLog([String] $ipv4, [String] $sshKey)
+{
+    <#
+    .Synopsis
+        Check selinux audit.log in Linux VM for avc denied log.
+    .Description
+        Check audit.log in Linux VM for avc denied log.
+        If get avc denied log for hyperv daemons, return $true, else return $false.
+    .Parameter ipv4
+        IPv4 address of the Linux VM.
+    .Parameter sshKey
+        SSH key used to connect to the Linux VM
+    .Example
+        GetSelinuxAVCLog $ipv4 $sshKey
+    #>
+    $filename = ".\audit.log"
+    $text_hv = "hyperv"
+    $text_avc = "type=avc"
+    echo y | .\bin\pscp -i ssh\${sshKey}  root@${ipv4}:/var/log/audit.log $filename
+
+    if (-not $?) {
+        Write-Output "ERROR: Unable to copy audit.log from the VM"
+        return $False
+    }
+
+    $file = Get-Content $filename
+    if (-not $file) {
+        Write-Error -Message "Error: Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+     foreach ($line in $file) {
+        if ($line -match $text_hv -and $line -match $text_avc){
+            write-output "Warning: get the avc denied log: $line"
+            return $True
+        }
+    }
+    del $filename
+    return $False
+}
+
+function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$supportKernel)
+{
+    <#
+    .Synopsis
+        Check vm supports one feature or not.
+    .Description
+        Check vm supports one feature or not based on comare curent kernel version with feature supported kernel version. If the current version is lower than feature supported version, return false, otherwise return true
+    .Parameter ipv4
+        IPv4 address of the Linux VM.
+    .Parameter sshKey
+        SSH key used to connect to the Linux VM
+    .Parameter supportkernel
+        the kernel version number starts to support this feature, e.g. supportkernel = "3.10.0.383"
+    .Example
+        GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
+    #>
+	$currentKernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
+	if( $? -eq $false){
+		write-output "WARNING: Could not get kernel version".
+	}
+	$sKernel = $supportKernel.split(".")
+	$cKernel = $currentKernel.replace("-",".").split(".")
+
+	for ($i=0; $i -le 3; $i++) {
+		if ($ckernel[$i] -lt $sKernel[$i] ) {
+			return $false
+		}
+	}
+	return $true
 }
