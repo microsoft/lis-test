@@ -33,6 +33,7 @@ COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            {'name': 'ClusterSetup', 'type': NVARCHAR(25)},
            {'name': 'HadoopVersion', 'type': NVARCHAR(12)},
            {'name': 'Threads', 'type': DECIMAL(4, 0)},
+           {'name': 'BufferSize', 'type': DECIMAL(5, 0)},
            {'name': 'TestConnections', 'type': DECIMAL(4, 0)},
            {'name': 'NumberOfConnections', 'type': INT},
            {'name': 'TestPipelines', 'type': DECIMAL(4, 0)},
@@ -96,6 +97,10 @@ COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            {'name': 'MinLatency_us', 'type': DECIMAL(9, 3)},
            {'name': 'Latency95Percentile_us', 'type': DECIMAL(9, 3)},
            {'name': 'Latency99Percentile_us', 'type': DECIMAL(9, 3)},
+           {'name': 'RxThroughput_Gbps', 'type': DECIMAL(5, 3)},
+           {'name': 'TxThroughput_Gbps', 'type': DECIMAL(5, 3)},
+           {'name': 'RetransmittedSegments', 'type': DECIMAL(6, 0)},
+           {'name': 'CongestionWindowSize_KB', 'type': DECIMAL(4, 0)},
            {'name': 'seq_read_iops', 'type': DECIMAL(8, 1)},
            {'name': 'seq_read_lat_usec', 'type': DECIMAL(10, 2)},
            {'name': 'rand_read_iops', 'type': DECIMAL(8, 1)},
@@ -142,7 +147,7 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
               *(Column(column['name'], column['type']) for column in table_columns))
 
     # When creating db is also necessary
-    # metadata.create_all(checkfirst=True)
+    metadata.create_all(checkfirst=True)
 
     mapper(TestResults, t)
     session = create_session(bind=e, autocommit=False, autoflush=True)

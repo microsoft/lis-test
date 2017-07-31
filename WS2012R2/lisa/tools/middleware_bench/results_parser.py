@@ -26,6 +26,7 @@ import time
 import zipfile
 import shutil
 import csv
+import decimal
 
 from datetime import datetime
 
@@ -41,9 +42,10 @@ class BaseLogsReader(object):
     UNIT = {'us': 10 ** -6,
             'ms': 10 ** -3,
             's': 1}
-    BitUNIT = {'K': 1,
-               'M': 2 ** 10,
-               'G': 2 ** 100}
+    BitUNIT = {'b': 1,
+               'K': 2 ** 10,
+               'M': 2 ** 20,
+               'G': 2 ** 30}
 
     def __init__(self, log_path):
         """
@@ -62,7 +64,7 @@ class BaseLogsReader(object):
         Convert units.
         :return: converted unit
         """
-        return value * self.UNIT[unit_from] / self.UNIT[unit_to]
+        return value * unit_from / unit_to
 
     def process_log_path(self, log_path):
         """
@@ -354,8 +356,8 @@ class SysbenchLogsReader(BaseLogsReader):
                                            f_lines[x])
                             if lat:
                                 unit = lat.group(2).strip()
-                                log_dict[key] = self._convert(float(lat.group(1).strip()), unit,
-                                                              'ms')
+                                log_dict[key] = self._convert(float(lat.group(1).strip()),
+                                                              self.UNIT[unit], self.UNIT['ms'])
                         elif 'Requests' in key:
                             req = re.match('\s*([0-9.]+)\s*Requests/sec\s*executed', f_lines[x])
                             if req:
@@ -958,8 +960,8 @@ class TCPLogsReader(BaseLogsReader):
                 latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
                 if latency:
                     unit = latency.group(2).strip()
-                    log_dict['Latency_ms'] = self._convert(float(latency.group(1).strip()), unit,
-                                                           'ms')
+                    log_dict['Latency_ms'] = self._convert(float(latency.group(1).strip()),
+                                                           self.UNIT[unit], self.UNIT['ms'])
         return log_dict
 
 
@@ -1022,17 +1024,93 @@ class LatencyLogsReader(BaseLogsReader):
                 if min_latency:
                     unit = min_latency.group(2).strip()
                     log_dict['MinLatency_us'] = self._convert(float(min_latency.group(1).strip()),
-                                                              unit, 'us')
+                                                              self.UNIT[unit], self.UNIT['us'])
                 avg_latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
                 if avg_latency:
                     unit = avg_latency.group(2).strip()
                     log_dict['AverageLatency_us'] = self._convert(
-                            float(avg_latency.group(1).strip()), unit, 'us')
+                            float(avg_latency.group(1).strip()), self.UNIT[unit], self.UNIT['us'])
                 max_latency = re.match('.+Maximum\s*=\s*([0-9.]+)\s*([a-z]+)', x)
                 if max_latency:
                     unit = max_latency.group(2).strip()
                     log_dict['MaxLatency_us'] = self._convert(float(max_latency.group(1).strip()),
-                                                              unit, 'us')
+                                                              self.UNIT[unit], self.UNIT['us'])
+        return log_dict
+
+
+class VariableTCPBufferLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing iperf 3 for variable TCP buffer log files e.g.
+    lagscope.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
+                 region=None, host_type=None, instance_size=None):
+        super(VariableTCPBufferLogsReader, self).__init__(log_path)
+        self.headers = ['RxThroughput_Gbps', 'TxThroughput_Gbps', 'RetransmittedSegments',
+                        'CongestionWindowSize_KB']
+        self.sorter = ['BufferSize']
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.provider = provider
+        self.region = region
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.log_matcher = '([0-9]+)-iperf3.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for variable TCP buffer test case.
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
+        log_dict['HostBy'] = self.region
+        log_dict['HostOS'] = self.host_type
+        log_dict['HostType'] = self.provider
+        log_dict['GuestSize'] = self.instance_size
+        log_dict['BufferSize'] = f_match.group(1).strip()
+        log_dict['RxThroughput_Gbps'] = 0
+        log_dict['TxThroughput_Gbps'] = 0
+        log_dict['RetransmittedSegments'] = 0
+        log_dict['CongestionWindowSize_KB'] = 0
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestDistro'] = summary['guest_os']
+        log_dict['GuestOSType'] = 'Linux'
+
+        with open(log_file, 'r') as fl:
+            read_rx = False
+            digit_3 = decimal.Decimal(10) ** -3
+            for x in fl:
+                tx_values = re.match('\[\s*[0-9]\]\s*0[.]00-60[.]00\s*'
+                                     'sec\s*([0-9.]+)\s*([A-Za-z]+)\s*'
+                                     '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
+                                     '([0-9]+)\s*([0-9.]+)\s*([A-Z])*Bytes', x)
+                if tx_values is not None:
+                    log_dict['RetransmittedSegments'] = tx_values.group(5).strip()
+                    log_dict['CongestionWindowSize_KB'] = self._convert(
+                            float(tx_values.group(6).strip()),
+                            self.BitUNIT[tx_values.group(7).strip()], self.BitUNIT['K'])
+                    log_dict['TxThroughput_Gbps'] = decimal.Decimal(self._convert(
+                            float(tx_values.group(3).strip()),
+                            self.BitUNIT[tx_values.group(4).strip()[0]],
+                            self.BitUNIT['G'])).quantize(digit_3)
+                if 'Server output:' in x:
+                    read_rx = True
+                if read_rx:
+                    rx_values = re.match('\[\s*[0-9]\]\s*0[.]00-60[.]00\s*'
+                                         'sec\s*([0-9.]+)\s*([A-Za-z]+)\s*'
+                                         '([0-9.]+)\s*([A-Za-z]+)/sec\s*', x)
+                    if rx_values is not None:
+                        log_dict['RxThroughput_Gbps'] = decimal.Decimal(self._convert(
+                                float(rx_values.group(3).strip()),
+                                self.BitUNIT[rx_values.group(4).strip()[0]],
+                                self.BitUNIT['G'])).quantize(digit_3)
         return log_dict
 
 
@@ -1072,8 +1150,9 @@ class StorageLogsReader(BaseLogsReader):
         log_dict['HostType'] = self.provider
         log_dict['GuestSize'] = self.instance_size
         log_dict['DiskSetup'] = self.disk_setup
-        log_dict['BlockSize_KB'] = \
-            int(f_match.group(1)) * self.BitUNIT[f_match.group(2).strip()]
+        log_dict['BlockSize_KB'] = self._convert(int(f_match.group(1)),
+                                                 self.BitUNIT[f_match.group(2).strip()],
+                                                 self.BitUNIT['K'])
         log_dict['QDepth'] = int(f_match.group(3))
         log_dict['seq_read_iops'] = 0
         log_dict['seq_read_lat_usec'] = 0
@@ -1108,7 +1187,7 @@ class StorageLogsReader(BaseLogsReader):
                         if lat:
                             unit = lat.group(1).strip()
                             log_dict[lat_key] = self._convert(float(lat.group(2).strip()),
-                                                              unit[:2], 'us')
+                                                              self.UNIT[unit[:2]], self.UNIT['us'])
                     if not log_dict.get(iops_key, None):
                         if 'Ubuntu' in log_dict['GuestDistro']:
                             iops = re.match('.+iops=([0-9. ]+),', f_line)
