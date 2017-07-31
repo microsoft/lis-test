@@ -139,6 +139,7 @@ function create_file($filename, $filesize){
 
     $filePath = $vhd_path + $filename
     $file_path_formatted = $vhd_path_formatted + $filename
+    $fullFilePath = "\\" + $hvServer + "\" + $file_path_formatted
 
     # Create a 10GB sample file
     $createfile = fsutil file createnew \\$hvServer\$file_path_formatted $filesize
@@ -147,7 +148,7 @@ function create_file($filename, $filesize){
         "Error: Could not create the sample test file in the working directory! $file_path_formatted" | Tee-Object -Append -file $summaryLog
         exit -1
     }
-    return $filePath, $file_path_formatted
+    return $filePath, $file_path_formatted, $fullFilePath
 }
 
 #######################################################################
@@ -257,11 +258,11 @@ if (-not (Test-Path -Path ".\bin\pscp.exe"))
 
 # Define the file-name to use with the current time-stamp
 $testfile1 = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
-$filePath1, $file_path_formatted1 = create_file $testfile1 $filesize1
+$filePath1, $file_path_formatted1, $fullFilePath1 = create_file $testfile1 $filesize1
 
 # Define the second file-name to use with the current time-stamp
 $testfile2 = "testfile-2-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
-$filePath2, $file_path_formatted2 = create_file $testfile2 $filesize2
+$filePath2, $file_path_formatted2, $fullFilePath2 = create_file $testfile2 $filesize2
 
 # mount disk
 $sts = mount_disk
@@ -270,18 +271,18 @@ if (-not $sts[-1]) {
     return $false
 }
 
-$localChksum1 = compute_local_md5 $filePath1
-$localChksum2 = compute_local_md5 $filePath2
+$localChksum1 = compute_local_md5 $fullFilePath1
+$localChksum2 = compute_local_md5 $fullFilePath2
 
 #
 # Copy the file to the Linux guest VM
 #
 $Error.Clear()
-$command = "${rootDir}\bin\pscp -i ${rootDir}\ssh\${sshKey} '${filePath2}' root@${ipv4}:/mnt/"
+$command = "${rootDir}\bin\pscp -i ${rootDir}\ssh\${sshKey} '${fullFilePath2}' root@${ipv4}:/mnt/"
 
 $job = Start-Job -ScriptBlock  {Invoke-Expression $args[0]} -ArgumentList $command
 
-$copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${filePath1} root@${ipv4}:/mnt/ }).TotalMinutes
+$copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${fullFilePath1} root@${ipv4}:/mnt/ }).TotalMinutes
 
 while ($True){
     if ($job.state -eq "Completed"){
