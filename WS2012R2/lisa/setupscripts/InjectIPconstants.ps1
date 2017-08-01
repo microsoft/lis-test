@@ -182,7 +182,7 @@ if($switchs){
 }
 
 if($AddressFamily -eq "IPv4"){
-    $externalIP = "8.8.4.4"
+    $externalIP = "8.8.8.8"
     $privateIP = "10.10.10.5"
 }else{
     $externalIP = "2001:4860:4860::8888"
