@@ -362,7 +362,7 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
     }
 }
 
-$timeout = 200 # seconds
+$timeout = 250 # seconds
 if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout)) {
     "Error: $vm2Name never started KVP" | Tee-Object -Append -file $summaryLog
     return $false
@@ -407,7 +407,7 @@ $vm="local"
 $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix NET_Configure_Vxlan.sh && chmod u+x NET_Configure_Vxlan.sh && ./NET_Configure_Vxlan.sh $vm1StaticIP $vm"
 
 $first_result = CheckResults $sshKey $ipv4
-if (-not $first_result) {
+if (-not $first_result[-1]) {
     "Error: Results are not as expected in configuration. Test failed. Check logs for more details." | Tee-Object -Append -file $summaryLog
     bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
     Rename-Item $logdir\summary.log "${vmname}_Vxlan_Hang.log"
@@ -468,7 +468,7 @@ Rename-Item $logdir\summary.log "${vmname}_Vxlan_Hang.log"
 
 # Checking results to see if we can go further
 $check = CheckResults $sshKey $vm2ipv4
-if (-not $check) {
+if (-not $check[-1]) {
     "Error: rsync failed on VM1" | Tee-Object -Append -file $summaryLog
     return $false
 }
@@ -537,7 +537,8 @@ Rename-Item $logdir\summary.log "${vm2Name}_Vxlan_Hang.log"
 
 $second_result = CheckResults $sshKey $vm2ipv4
 Stop-VM -Name $vm2Name -ComputerName $hvServer -Force
-if (-not $second_result) {
+
+if (-not $second_result[-1]) {
     "Error: rsync failed on VM2" | Tee-Object -Append -file $summaryLog
     return $false
 }
