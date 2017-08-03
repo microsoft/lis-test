@@ -98,6 +98,7 @@ $tpEnabled = $null
 [int64]$tPmaxMem = 0
 [int64]$tPstartupMem = 0
 [int64]$tPmemWeight = -1
+$bootLargeMem = $false
 
 # Source TCUtils.ps1
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
@@ -143,6 +144,17 @@ foreach ($p in $params)
       "dm enabled: $tpEnabled"
 
     }
+
+	elseif ($temp[0].Trim() -eq "bootLargeMem")
+	{
+		if ($temp[1].Trim() -ilike "yes")
+		{
+		  $bootLargeMem = $true
+		}
+
+    "BootLargeMemory: $bootLargeMem"
+	}
+
     elseif($temp[0].Trim() -eq "minMem")
     {
 
@@ -198,7 +210,7 @@ foreach ($p in $params)
       }
 
       "memWeight: $tPmemWeight"
- }
+	}
 
     # check if we have all variables set
     if ( $vmName -and ($tpEnabled -eq $false -or $tpEnabled -eq $true) -and $tPstartupMem -and ([int64]$tPmemWeight -ge [int64]0) )
@@ -232,7 +244,16 @@ foreach ($p in $params)
 
       }
 
-      if ($tpEnabled)
+	  if ($bootLargeMem) {
+		$osInfo = Get-WMIObject Win32_OperatingSystem -ComputerName $hvServer
+		$freeMem = $OSInfo.FreePhysicalMemory * 1KB
+		if ($tPstartupMem -le $freeMem) {
+		  Set-VMMemory -vmName $vmName -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $tPstartupMem
+		} else {
+		  "Error: Insufficient memory to run test. Skipping test."
+			return $Skipped
+		}
+	  } elseif ($tpEnabled)
       {
         Set-VMMemory -vmName $vmName -ComputerName $hvServer -DynamicMemoryEnabled $tpEnabled `
                       -MinimumBytes $tPminMem -MaximumBytes $tPmaxMem -StartupBytes $tPstartupMem `

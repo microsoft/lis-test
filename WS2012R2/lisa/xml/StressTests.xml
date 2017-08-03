@@ -22,6 +22,7 @@
                 <suiteTest>Stress_IOzone</suiteTest>
                 <suiteTest>Sysbench</suiteTest>
                 <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
+                <suiteTest>BootVM_LargeMemory</suiteTest>
                 <!-- Obsolete test cases
                 <suiteTest>Stress_Kernbench</suiteTest>
                 <suiteTest>Stress_Dynamo</suiteTest>
@@ -84,6 +85,22 @@
             <onError>Continue</onError>
         </test>
 
+        <test>
+            <testName>BootVM_LargeMemory</testName>
+            <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+            <testScript>SetupScripts\STRESS_BootLargeMemory.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=Stress-05</param>
+                <param>bootLargeMem=yes</param>
+                <param>vmName=VMName</param>
+                <param>enableDM=no</param>
+                <param>startupMem=69632MB</param>
+                <param>staticMem=69632MB</param>
+                <param>memWeight=100</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+        </test>
 <!-- Obsolete test case
         <test>
             <testName>Stress_Kernbench</testName>
