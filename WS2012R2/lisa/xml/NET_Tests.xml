@@ -80,6 +80,7 @@ permissions and limitations under the License.
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-02,NET-07</param>
                 <param>TestMAC=yes</param>
+                <param>REMOTE_SERVER=8.8.4.4</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
@@ -96,6 +97,7 @@ permissions and limitations under the License.
             <testParams>
                 <param>NIC=NetworkAdapter,Internal,Internal</param>
                 <param>TC_COVERED=NET-03</param>
+                <param>REMOTE_SERVER=8.8.4.4</param>
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
@@ -136,6 +138,7 @@ permissions and limitations under the License.
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-05</param>
+                <param>REMOTE_SERVER=8.8.4.4</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
             </testParams>
             <testScript>NET_TEST_NETWORK.sh</testScript>
@@ -205,6 +208,7 @@ permissions and limitations under the License.
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>SWITCH=NetworkAdapter,Internal,Internal</param>
+                <param>REMOTE_SERVER=8.8.4.4</param>
                 <param>TC_COVERED=NET-09</param>
             </testParams>
             <timeout>800</timeout>

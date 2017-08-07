@@ -137,7 +137,8 @@ $nic = $False
 $switchs = $False
 $AddressFamily = "IPv4"
 $testMAC = "no"
-
+# default remote ping server
+$remote_Server = "8.8.8.4"
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -151,6 +152,7 @@ foreach ($p in $params)
     "SWITCH"        { $switchs = $fields[1].Trim() }
     "NIC"           { $nic     = $fields[1].Trim() }
     "TestMAC"       { $testMAC     = $fields[1].Trim() }
+    "Remote_Server" { $remote_Server = $fields[1].Trim() }
     default         {}  # unknown param - just ignore it
     }
 }
@@ -182,7 +184,7 @@ if($switchs){
 }
 
 if($AddressFamily -eq "IPv4"){
-    $externalIP = "8.8.4.4"
+    $externalIP = $remote_Server
     $privateIP = "10.10.10.5"
 }else{
     $externalIP = "2001:4860:4860::8888"
@@ -242,18 +244,18 @@ $cmd+="echo `"PING_FAIL2=$($PING_FAIL2)`" >> ~/constants.sh;";
 if ($testMAC -eq "yes"){
     # Get the MAC that was generated
     $CurrentDir= "$pwd\"
-    $testfile = "macAddress.file" 
-    $pathToFile="$CurrentDir"+"$testfile" 
+    $testfile = "macAddress.file"
+    $pathToFile="$CurrentDir"+"$testfile"
     $streamReader = [System.IO.StreamReader] $pathToFile
     $macAddress = $streamReader.ReadLine()
-    $streamReader.close() 
+    $streamReader.close()
 
     for ($i = 2 ; $i -le 14 ; $i += 3) {
         $macAddress = $macAddress.insert($i,':')
     }
 
     # Send the MAC address to the VM
-    $cmd+="echo `"MAC=$($macAddress)`" >> ~/constants.sh;";    
+    $cmd+="echo `"MAC=$($macAddress)`" >> ~/constants.sh;";
 }
 
 "PING_SUCC=$PING_SUCC"
