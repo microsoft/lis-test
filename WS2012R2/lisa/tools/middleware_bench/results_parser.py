@@ -1038,17 +1038,17 @@ class LatencyLogsReader(BaseLogsReader):
         return log_dict
 
 
-class VariableTCPBufferLogsReader(BaseLogsReader):
+class SingleTCPLogsReader(BaseLogsReader):
     """
     Subclass for parsing iperf 3 for variable TCP buffer log files e.g.
     lagscope.log
     """
     def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
                  region=None, host_type=None, instance_size=None):
-        super(VariableTCPBufferLogsReader, self).__init__(log_path)
+        super(SingleTCPLogsReader, self).__init__(log_path)
         self.headers = ['RxThroughput_Gbps', 'TxThroughput_Gbps', 'RetransmittedSegments',
                         'CongestionWindowSize_KB']
-        self.sorter = ['BufferSize']
+        self.sorter = ['BufferSize_Bytes']
         self.test_case_name = test_case_name
         self.data_path = data_path
         self.provider = provider
@@ -1071,7 +1071,9 @@ class VariableTCPBufferLogsReader(BaseLogsReader):
         log_dict['HostOS'] = self.host_type
         log_dict['HostType'] = self.provider
         log_dict['GuestSize'] = self.instance_size
-        log_dict['BufferSize'] = f_match.group(1).strip()
+        log_dict['BufferSize_Bytes'] = f_match.group(1).strip()
+        log_dict['IPVersion'] = 'IPv4'
+        log_dict['ProtocolType'] = 'TCP'
         log_dict['RxThroughput_Gbps'] = 0
         log_dict['TxThroughput_Gbps'] = 0
         log_dict['RetransmittedSegments'] = 0

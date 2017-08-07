@@ -33,8 +33,7 @@ from cmdshell import SSHClient
 from db_utils import upload_results
 from results_parser import OrionLogsReader, SysbenchLogsReader, MemcachedLogsReader,\
     RedisLogsReader, ApacheLogsReader, MariadbLogsReader, MongodbLogsReader, ZookeeperLogsReader,\
-    TerasortLogsReader, TCPLogsReader, LatencyLogsReader, StorageLogsReader,\
-    VariableTCPBufferLogsReader
+    TerasortLogsReader, TCPLogsReader, LatencyLogsReader, StorageLogsReader, SingleTCPLogsReader
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -1443,9 +1442,8 @@ def test_network_latency(provider, keyid, secret, token, imageid, subscription, 
                        host_type=utils.host_type(provider), instance_size=instancetype)
 
 
-def test_network_variable_tcp_buffer(provider, keyid, secret, token, imageid, subscription, tenant,
-                                     projectid, instancetype, user, localpath, region, zone, sriov,
-                                     kernel):
+def test_network_single_tcp(provider, keyid, secret, token, imageid, subscription, tenant,
+                            projectid, instancetype, user, localpath, region, zone, sriov, kernel):
     """
     Run variable TCP buffer network profile for a single connection.
     :param provider Service provider to be used e.g. azure, aws, gce.
@@ -1488,7 +1486,7 @@ def test_network_variable_tcp_buffer(provider, keyid, secret, token, imageid, su
                                    '/tmp/run_network.sh')
             ssh_client[1].run('chmod +x /tmp/run_network.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_network.sh")
-            cmd = '/tmp/run_network.sh {} {} {}'.format(vm_ips[2], user, 'variable_tcp_buffer')
+            cmd = '/tmp/run_network.sh {} {} {}'.format(vm_ips[2], user, 'single_tcp')
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd)
             results_path = os.path.join(localpath, 'network{}_{}.zip'.format(str(time.time()),
@@ -1502,9 +1500,9 @@ def test_network_variable_tcp_buffer(provider, keyid, secret, token, imageid, su
             connector.teardown()
     if results_path:
         upload_results(localpath=localpath,
-                       table_name='Perf_{}_Network_Variable_TCP_Buffer'.format(provider),
-                       results_path=results_path, parser=VariableTCPBufferLogsReader,
-                       test_case_name='{}_Network_Variable_TCP_Buffer_perf_tuned'.format(provider),
+                       table_name='Perf_{}_Network_Single_TCP'.format(provider),
+                       results_path=results_path, parser=SingleTCPLogsReader,
+                       test_case_name='{}_Network_Single_TCP_perf_tuned'.format(provider),
                        provider=provider, region=region, data_path=utils.data_path(sriov),
                        host_type=utils.host_type(provider), instance_size=instancetype)
 

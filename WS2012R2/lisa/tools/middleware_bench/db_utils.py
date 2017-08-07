@@ -33,7 +33,7 @@ COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            {'name': 'ClusterSetup', 'type': NVARCHAR(25)},
            {'name': 'HadoopVersion', 'type': NVARCHAR(12)},
            {'name': 'Threads', 'type': DECIMAL(4, 0)},
-           {'name': 'BufferSize', 'type': DECIMAL(5, 0)},
+           {'name': 'BufferSize_Bytes', 'type': DECIMAL(5, 0)},
            {'name': 'TestConnections', 'type': DECIMAL(4, 0)},
            {'name': 'NumberOfConnections', 'type': INT},
            {'name': 'TestPipelines', 'type': DECIMAL(4, 0)},
@@ -147,7 +147,7 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
               *(Column(column['name'], column['type']) for column in table_columns))
 
     # When creating db is also necessary
-    metadata.create_all(checkfirst=True)
+    # metadata.create_all(checkfirst=True)
 
     mapper(TestResults, t)
     session = create_session(bind=e, autocommit=False, autoflush=True)

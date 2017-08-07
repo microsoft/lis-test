@@ -90,7 +90,7 @@ then
     else
         LogMsg "Unsupported distribution: ${distro}."
     fi
-elif [[ ${TEST_TYPE} == "variable_tcp_buffer" ]]
+elif [[ ${TEST_TYPE} == "single_tcp" ]]
 then
     TEST_BUFFERS=(32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536)
     if [[ ${distro} == *"Ubuntu"* ]]
@@ -213,7 +213,7 @@ function run_iperf_udp()
     fi
 }
 
-function run_variable_tcp_buffer()
+function run_single_tcp()
 {
     current_test_buffer=$1
     LogMsg "======================================"
@@ -243,11 +243,11 @@ then
     do
         run_iperf_udp ${thread}
     done
-elif [[ ${TEST_TYPE} == "variable_tcp_buffer" ]]
+elif [[ ${TEST_TYPE} == "single_tcp" ]]
 then
     for packet in "${TEST_BUFFERS[@]}"
     do
-        run_variable_tcp_buffer ${packet}
+        run_single_tcp ${packet}
     done
 else
     LogMsg "Unsupported test type: ${TEST_TYPE}."
