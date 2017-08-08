@@ -39,9 +39,9 @@
       Private
       None
 
-	  The Network Type is ignored by this script, but is still necessary, in order to have the same 
+	  The Network Type is ignored by this script, but is still necessary, in order to have the same
 	  parameters as the NET_ADD_NIC_MAC script.
-	  
+
    Network Name is the name of a existing network.
 
    This script will make sure the network exists before removing the NIC.
@@ -52,7 +52,7 @@
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
 	Name of the VM to remove NIC from .
 
@@ -90,7 +90,7 @@ $isDynamic = $false
 $params = $testParams.Split(';')
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    switch ($fields[0].Trim()) { 
+    switch ($fields[0].Trim()) {
         "NIC"
         {
             $nicArgs = $fields[1].Split(',')
@@ -98,13 +98,30 @@ foreach ($p in $params) {
                 $isDynamic = $true
             }
         }
+        "rootDIR"  { $rootDir = $fields[1].Trim() }
     }
+}
+
+
+if (-not $rootDir){
+    "Error: no rootdir was specified"
+    return $False
+}
+
+cd $rootDir
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1"){
+    . .\setupScripts\TCUtils.ps1
+}
+else{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 if ($isDynamic -eq $true) {
     $CurrentDir= "$pwd\"
-    $testfile = "macAddress.file" 
-    $pathToFile="$CurrentDir"+"$testfile" 
+    $testfile = "macAddress.file"
+    $pathToFile="$CurrentDir"+"$testfile"
     $streamReader = [System.IO.StreamReader] $pathToFile
     $vm1MacAddress = $null
 }
@@ -115,13 +132,13 @@ if ($isDynamic -eq $true) {
 foreach ($p in $params)
 {
     $temp = $p.Trim().Split('=')
-    
+
     if ($temp.Length -ne 2)
     {
         # Ignore and move on to the next parameter
         continue
     }
-    
+
     #
     # Is this a NIC=* parameter
     #
@@ -129,14 +146,14 @@ foreach ($p in $params)
     {
         $macAddress = $null
         $nicArgs = $temp[1].Split(',')
-        
+
         if ($nicArgs.Length -lt 3)
         {
             "Error: Incorrect number of arguments for NIC test parameter: $p"
             return $false
 
         }
-        
+
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
         $networkName = $nicArgs[2].Trim()
@@ -144,7 +161,7 @@ foreach ($p in $params)
             $macAddress = $nicArgs[3].Trim()
         }
         $legacy = $false
-        
+
         #
         # Validate the network adapter type
         #
@@ -154,10 +171,16 @@ foreach ($p in $params)
             "       Must be either 'NetworkAdapter' or 'LegacyNetworkAdapter'"
             return $false
         }
-        
+
         if ($nicType -eq "LegacyNetworkAdapter")
         {
             $legacy = $true
+            $vmGeneration = GetVMGeneration $vmName $hvServer
+            if ($vmGeneration -eq 2 )
+            {
+                LogMsg 0 "Warning: Generation 2 VM does not support LegacyNetworkAdapter, please skip this case in the test script"
+                return $True
+            }
         }
 
         #
@@ -196,7 +219,7 @@ foreach ($p in $params)
         # Validate the MAC is the correct length
         #
         if ($isDynamic -eq $true) {
-            $macAddress = $streamReader.ReadLine()   
+            $macAddress = $streamReader.ReadLine()
         }
         else {
             if ($macAddress.Length -ne 12)
@@ -204,7 +227,7 @@ foreach ($p in $params)
                "Error: Invalid mac address: $p"
                  return $false
             }
-            
+
             #
             # Make sure each character is a hex digit
             #
@@ -216,9 +239,9 @@ foreach ($p in $params)
                     "Error: MAC address contains non hexidecimal characters: $c"
                    return $false
                 }
-            }   
+            }
         }
-        
+
         #
         # Get Nic with given MAC Address
         #
@@ -226,7 +249,7 @@ foreach ($p in $params)
         if ($nic)
         {
                 $nic |  Remove-VMNetworkAdapter -Confirm:$false
-            
+
             $retVal = $True
         }
         else
