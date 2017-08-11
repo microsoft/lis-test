@@ -225,6 +225,11 @@ else {
         "Kdump will be triggered on VCPU 3 of 4"
         $retVal = SendCommandToVM $ipv4 $sshKey "taskset -c 2 echo c > /proc/sysrq-trigger 2>/dev/null &"
     }
+    elseif ($vcpu -eq 1){
+        # if vcpu=1, direclly use plink to trigger kdump, command fails to exit, so use start-process
+        $tmpCmd = "echo c > /proc/sysrq-trigger 2>/dev/null &"
+         Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${ipv4} ${tmpCmd}" -NoNewWindow
+    }
     else {
         $retVal = SendCommandToVM $ipv4 $sshKey "echo c > /proc/sysrq-trigger 2>/dev/null &"
     }
