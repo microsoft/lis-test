@@ -62,22 +62,6 @@ function AddGateway
 	done
 }
 
-function TestConnection
-{
-	if ping -q -c 3 -I ${2} -W 1 ${1} >/dev/null; then
-		msg="Info : Successfully pinged ${1} on interface ${2}"
-		LogMsg "${msg}"
-		UpdateSummary "${msg}"
-		SetTestStateRunning
-		return 0
-	else
-		msg="Info : Failed to ping ${1} on inteface ${2}"
-		LogMsg "${msg}"
-		UpdateSummary "${msg}"
-		return 1
-	fi
-}
-
 function ConfigureInterfaces
 {
 	for IFACE in ${IFACES[@]}; do
@@ -124,14 +108,7 @@ function ConfigureInterfaces
 				UpdateSummary "${msg}"
 			fi
 		fi
-
-		LogMsg "Checking external connection"
-		TestConnection $SUCCESS_PING $IFACE
-		if [ $? -ne 0 ]; then
-			return 1
-		fi
 	done
-
 	return 0
 }
 
@@ -253,7 +230,6 @@ fi
 
 GetOSVersion
 DEFAULT_GATEWAY=($(route -n | grep 'UG[ \t]' | awk '{print $2}'))
-SUCCESS_PING="8.8.4.4"
 
 IFACES=($(ifconfig -s -a | awk '{print $1}'))
 # Delete first element from the list - iface
@@ -285,7 +261,7 @@ if [ ${#IFACES[@]} -ne ${EXPECTED_INTERFACES_NO} ]; then
 fi
 
 #
-# Bring interfaces up, using dhcp, and check connection for each one
+# Bring interfaces up, using dhcp
 #
 UpdateSummary "Info : Bringing up interfaces using DHCP"
 ConfigureInterfaces
@@ -316,18 +292,6 @@ if [ ${#GATEWAY_IF[@]} -ne $EXPECTED_INTERFACES_NO ]; then
 		fi
 	done
 fi
-
-#
-# Check to see if all raised interfaces work
-#
-UpdateSummary "Info : All interfaces are up - Testing connection for each of them"
-for IFACE in ${IFACES[@]}; do
-	TestConnection $SUCCESS_PING $IFACE
-	if [ $? -ne 0 ]; then
-		SetTestStateFailed
-		exit 1
-	fi
-done
 
 LogMsg "Test run completed"
 UpdateSummary "Test run completed"
