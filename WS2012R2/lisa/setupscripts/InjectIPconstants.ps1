@@ -138,7 +138,7 @@ $switchs = $False
 $AddressFamily = "IPv4"
 $testMAC = "no"
 # default remote ping server
-$remote_Server = "8.8.8.4"
+$remote_Server = "8.8.4.4"
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
