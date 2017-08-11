@@ -21,6 +21,14 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$retVal = $false
+$TC_COVERED = $null
+$sshKey = $null
+$ipv4 = $null
+$nmi = $null
+# variable to define if a NFS location should be used for the crash files
+$use_nfs = $null
+
 #
 # Check input arguments
 #
@@ -42,14 +50,6 @@ if ($testParams -eq $null)
 #
 # Parse test parameters
 #
-$retVal = $false
-$TC_COVERED = $null
-$sshKey = $null
-$ipv4 = $null
-$nmi = $null
-# variable to define if a NFS location should be used for the crash files
-$use_nfs = $null
-
 $params = $testParams.Split(";")
 foreach ($p in $params) {
     $fields = $p.Split("=")
@@ -226,9 +226,9 @@ else {
         $retVal = SendCommandToVM $ipv4 $sshKey "taskset -c 2 echo c > /proc/sysrq-trigger 2>/dev/null &"
     }
     elseif ($vcpu -eq 1){
-        # if vcpu=1, direclly use plink to trigger kdump, command fails to exit, so use start-process
+        # if vcpu=1, directly use plink to trigger kdump, command fails to exit, so use start-process
         $tmpCmd = "echo c > /proc/sysrq-trigger 2>/dev/null &"
-         Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${ipv4} ${tmpCmd}" -NoNewWindow
+        Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${ipv4} ${tmpCmd}" -NoNewWindow
     }
     else {
         $retVal = SendCommandToVM $ipv4 $sshKey "echo c > /proc/sysrq-trigger 2>/dev/null &"
@@ -250,13 +250,13 @@ Write-Output "Info: VM Heartbeat is OK"
 #
 # Waiting the VM to have a connection
 #
-Write-Output "Checking the VM connection after kernel panic..."
+Write-Output "Info: Checking the VM connection after kernel panic"
 $sts = WaitForVMToStartSSH $ipv4 100
 if (-not $sts[-1]){
     Write-Output "Error: $vmName didn't restart after triggering the crash" | Tee-Object -Append -file $summaryLog
     return $false
 }
-Write-Output "Connection to VM is good. Checking the results..."
+Write-Output "Info: Connection to VM is good. Checking the results..."
 
 #
 # Verifying if the kernel panic process creates a vmcore file of size 10M+
@@ -275,8 +275,9 @@ if ($retVal -ne $true)
     return $false
 }
 $result = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "find /var/crash/ -name vmcore -type f -size +10M"
-Write-Output "PASS: Get vmcore, and result is $result"
+Write-Output "Test passed: crash file $result is present"
 bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_results_pass_summary.log
+
 #
 # Stop NFS server VM
 #
