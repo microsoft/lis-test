@@ -142,6 +142,13 @@ else
 fi
 
 IFS=',' read -a networkType <<< "$NIC"
+if [[ ${networkType[0]} == Legacy* ]] && [ -d /sys/firmware/efi ]; then
+	msg="Generation 2 VM does not support LegacyNetworkAdapter, skip test "
+	LogMsg "$msg"
+	UpdateSummary "$msg"
+	SetTestStateSkipped
+	exit 0
+fi
 
 # Parameter provided in constants file
 if [ "${SYNTH_NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then

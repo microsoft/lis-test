@@ -38,7 +38,7 @@
       Internal
       Private
       None
-	  
+
    Network Name is the name of a existing network. If Network Type is set to None however, the NIC is not connected to any switch.
 
    This script will make sure the network switch exists before adding the NIC (test is disabled in case of None switch type).
@@ -49,7 +49,7 @@
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
 	Name of the VM to add NIC to .
 
@@ -87,7 +87,7 @@ $isDynamic = $false
 $params = $testParams.Split(';')
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    switch ($fields[0].Trim()) { 
+    switch ($fields[0].Trim()) {
         "NIC"
         {
             $nicArgs = $fields[1].Split(',')
@@ -95,42 +95,62 @@ foreach ($p in $params) {
                 $isDynamic = $true
             }
         }
+        "rootDIR"   { $rootDir = $fields[1].Trim() }
     }
 }
+
+
+if (-not $rootDir){
+    "Error: no rootdir was specified"
+    return $False
+}
+
+cd $rootDir
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1"){
+    . .\setupScripts\TCUtils.ps1
+}
+else{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+}
+
 if ($isDynamic -eq $true) {
     $CurrentDir= "$pwd\"
-    $testfile = "macAddress.file" 
-    $pathToFile="$CurrentDir"+"$testfile" 
+    $testfile = "macAddress.file"
+    $pathToFile="$CurrentDir"+"$testfile"
     $streamWrite = [System.IO.StreamWriter] $pathToFile
     $macAddress = $null
 }
+
 #
 # Parse the testParams string, then process each parameter
 #
+
 foreach ($p in $params)
 {
     $temp = $p.Trim().Split('=')
-    
+
     if ($temp.Length -ne 2)
     {
         # Ignore and move on to the next parameter
         continue
     }
-    
+
     #
     # Is this a NIC=* parameter
     #
     if ($temp[0].Trim() -eq "NIC")
     {
         $nicArgs = $temp[1].Split(',')
-        
+
         if ($nicArgs.Length -lt 3)
         {
             "Error: Incorrect number of arguments for NIC test parameter: $p"
             return $false
 
         }
-        
+
         $nicType = $nicArgs[0].Trim()
         $networkType = $nicArgs[1].Trim()
         $networkName = $nicArgs[2].Trim()
@@ -138,7 +158,7 @@ foreach ($p in $params)
             $macAddress = $nicArgs[3].Trim()
         }
         $legacy = $false
-        
+
         #
         # Validate the network adapter type
         #
@@ -148,10 +168,16 @@ foreach ($p in $params)
             "       Must be either 'NetworkAdapter' or 'LegacyNetworkAdapter'"
             return $false
         }
-        
+
         if ($nicType -eq "LegacyNetworkAdapter")
         {
             $legacy = $true
+            $vmGeneration = GetVMGeneration $vmName $hvServer
+            if ($vmGeneration -eq 2 )
+            {
+                LogMsg 0 "Warning: Generation 2 VM does not support LegacyNetworkAdapter, please skip this case in the test script"
+                return $True
+            }
         }
 
         #
@@ -176,17 +202,17 @@ foreach ($p in $params)
     				"       The network does not exist"
     				return $false
     			}
-    			
+
     			# make sure network is of stated type
     			if ($vmSwitch.SwitchType -notlike $networkType)
     			{
     				"Error: Switch $networkName is type $vmSwitch.SwitchType (not $networkType)"
     				return $false
     			}
-    			
+
     		}
 
-		
+
         if ($isDynamic -eq $true){
           # Source NET_UTILS.ps1 for network functions
           if (Test-Path ".\setupScripts\NET_UTILS.ps1")
@@ -198,7 +224,7 @@ foreach ($p in $params)
               "ERROR: Could not find setupScripts\NET_Utils.ps1"
               return $false
           }
-          $macAddress = getRandUnusedMAC $hvServer 
+          $macAddress = getRandUnusedMAC $hvServer
           "Info: Generated MAC address: $macAddress"
 
           $streamWrite.WriteLine($macAddress)
@@ -212,7 +238,7 @@ foreach ($p in $params)
              "Error: Invalid mac address: $p"
                return $false
           }
-          
+
           #
           # Make sure each character is a hex digit
           #
@@ -238,7 +264,7 @@ foreach ($p in $params)
 		{
 			Add-VMNetworkAdapter -VMName $vmName -StaticMacAddress $macAddress -IsLegacy:$legacy -ComputerName $hvServer
 		}
-		
+
         if ($? -ne "True")
         {
             "Error: Add-VmNic failed"

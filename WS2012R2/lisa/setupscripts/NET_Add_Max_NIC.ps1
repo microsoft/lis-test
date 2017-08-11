@@ -184,20 +184,22 @@ if (-not $?)
 # Check if legacy test is run for gen 2 vm
 if ($vm.Generation -eq 2)
 {
+	$msg = "Warning: Generation 2 VM does not support LegacyNetworkAdapter, please skip this case in the test script"
+
 	if ($test_type.Length -eq 2)
 	{
 		if ($test_type[0] -eq "legacy" -or $test_type[1] -eq "legacy")
 		{
-			LogMsg 0 "Error: Unable to add legacy NIC to Gen 2 VM"
-			return $false
+			LogMsg 0 $msg
+			return $true
 		}
 	}
 	else
 	{
 		if ($test_type -eq "legacy")
 		{
-			LogMsg 0 "Error: Unable to add legacy NIC to Gen 2 VM"
-			return $false
+			LogMsg 0 $msg
+			return $true
 		}
 	}
 }
