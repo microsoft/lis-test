@@ -86,7 +86,7 @@ GetDistro
 case $DISTRO in
     centos* | redhat*)
         if [[ $vm2ipv4 != "" ]]; then
-            status=`ssh -i /root/.ssh/${ssh_key} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/var/crash/*/vmcore -type f -size +10M; echo $?"`
+            status=`ssh -i /root/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/var/crash/*/vmcore -type f -size +10M; echo $?"`
             VerifyRemoteStatus
         else
             CheckVmcore
@@ -94,7 +94,7 @@ case $DISTRO in
     ;;
     ubuntu*)
         if [[ $vm2ipv4 != "" ]]; then
-            status=`ssh -i /root/.ssh/${ssh_key} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/* -type f -size +10M; echo $?"`
+            status=`ssh -i /root/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/* -type f -size +10M; echo $?"`
             VerifyRemoteStatus
         else
             if ! [[ $(find /var/crash/2* -type f -size +10M) ]]; then
@@ -111,7 +111,7 @@ case $DISTRO in
     ;;
   suse*)
         if [[ $vm2ipv4 != "" ]]; then
-            status=`ssh -i /root/.ssh/${ssh_key} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/* -type f -size +10M; echo $?"`
+            status=`ssh -i /root/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/* -type f -size +10M; echo $?"`
             VerifyRemoteStatus
         else
             CheckVmcore
