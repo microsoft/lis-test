@@ -21,6 +21,10 @@
 #
 ########################################################################
 
+kdump_conf=/etc/kdump.conf
+dump_path=/var/crash
+sys_kexec_crash=/sys/kernel/kexec_crash_loaded
+
 dos2unix utils.sh
 
 #
@@ -37,10 +41,6 @@ dos2unix utils.sh
 #
 UtilsInit
 
-kdump_conf=/etc/kdump.conf
-dump_path=/var/crash
-sys_kexec_crash=/sys/kernel/kexec_crash_loaded
-
 #######################################################################
 #
 # Rhel()
@@ -53,7 +53,7 @@ Rhel()
     sleep 50
 
     case $DISTRO in
-    redhat_6)
+    "redhat_6" | "centos_6")
         #
         # RHEL6, kdump status has "operational" and "not operational"
         # So, select "not operational" to check inactive
@@ -70,7 +70,7 @@ Rhel()
             UpdateSummary "Success: kdump service is active after reboot."
         fi
         ;;
-    redhat_7)
+    "redhat_7" | "centos_7")
         #
         # RHEL7, kdump status has "Active: active" and "Active: inactive"
         # So, select "Active: active" to check active
