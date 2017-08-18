@@ -26,7 +26,7 @@
 
 .Description
     Save the gcov data to nfs when test is completed, the saved path is:
-    /mnt/gcov/${hvServer}_${vmName}_${current_day}/${TestName}
+    /mnt/gcov/${hvServer}_${vmName}_${linux_version}/${TestName}
 
 .Parameter vmName
     Name of the test VM.
