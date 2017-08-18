@@ -489,7 +489,7 @@ SetIPfromDHCP()
 
 	GetDistro
 	case $DISTRO in
-		redhat*)
+		redhat*|fedora*)
 			dhclient -r "$1" ; dhclient "$1"
 			if [ 0 -ne $? ]; then
 				LogMsg "Unable to get dhcpd address for interface $1"
@@ -1094,7 +1094,7 @@ RemoveVlanConfig()
 
 	GetDistro
 	case $DISTRO in
-		redhat*)
+		redhat*|fedora*)
 			__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface.$__vlanID"
 			if [ -e "$__file_path" ]; then
 				LogMsg "RemoveVlanConfig: found $__file_path ."
@@ -1302,7 +1302,7 @@ CreateIfupConfigFile()
 				ifup "$__interface_name"
 
 				;;
-			redhat_7|centos_7)
+			redhat_7|centos_7|fedora*)
 				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
@@ -1479,7 +1479,7 @@ CreateIfupConfigFile()
 				ifdown "$__interface_name"
 				ifup "$__interface_name"
 				;;
-			redhat*|centos*)
+			redhat*|centos*|fedora*)
 				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
@@ -1593,7 +1593,7 @@ ControlNetworkManager()
 
 	GetDistro
 	case $DISTRO in
-		redhat*)
+		redhat*|fedora*)
 			# check that we have a NetworkManager service running
 			service NetworkManager status
 			if [ 0 -ne $? ]; then
@@ -1943,7 +1943,7 @@ function GetOSVersion {
             os_VENDOR=""
         done
         os_PACKAGE="rpm"
-        
+
     elif [[ -x $(which lsb_release 2>/dev/null) ]]; then
         os_VENDOR=$(lsb_release -i -s)
         os_RELEASE=$(lsb_release -r -s)
