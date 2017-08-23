@@ -83,15 +83,23 @@ UpdateTestState $ICA_TESTRUNNING
 if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
+touch ~/summary.log
 
 dos2unix utils.sh
 
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
+    UpdateTestState "TestAborted" 
     exit 2
 }
+
+# Source constants.sh
+if [ -e $HOME/constants.sh ]; then
+    . $HOME/constants.sh
+    UpdateSummary "Covers: $TC_COVERED"
+fi
+
 
 # Try to restart NTP. If it fails we try to install it.
 if is_fedora ; then
@@ -102,6 +110,7 @@ if is_fedora ; then
         yum install -y ntp ntpdate
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to install ntpd. Aborting"
+            UpdateSummary "ERROR: Unable to install ntpd. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
@@ -109,6 +118,7 @@ if is_fedora ; then
         chkconfig ntpd on
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to chkconfig ntpd on. Aborting"
+            UpdateSummary "ERROR: Unable to chkconfig ntpd on. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
@@ -116,6 +126,7 @@ if is_fedora ; then
         ntpdate pool.ntp.org
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to set ntpdate. Aborting"
+            UpdateSummary "ERROR: Unable to set ntpdate. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
@@ -123,6 +134,7 @@ if is_fedora ; then
         service ntpd start
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to start ntpd. Aborting"
+            UpdateSummary "ERROR: Unable to start ntpd. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
@@ -133,6 +145,7 @@ if is_fedora ; then
     hwclock --systohc 
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateSummary "ERROR: Unable to sync RTC clock to system time. Aborting"
         UpdateTestState $ICA_TESTABORTED
         exit 10
     fi
@@ -140,6 +153,7 @@ if is_fedora ; then
     service ntpd restart
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to start ntpd. Aborting"
+        UpdateSummary "ERROR: Unable to start ntpd. Aborting"
         UpdateTestState $ICA_TESTABORTED
         exit 10
     fi
@@ -152,6 +166,7 @@ elif is_ubuntu ; then
         apt-get install ntp -y
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to install ntp. Aborting"
+            UpdateSummary "ERROR: Unable to install ntp. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
@@ -162,6 +177,7 @@ elif is_ubuntu ; then
     hwclock --systohc 
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateSummary "ERROR: Unable to sync RTC clock to system time. Aborting"
         UpdateTestState $ICA_TESTABORTED
         exit 10
     fi
@@ -169,6 +185,7 @@ elif is_ubuntu ; then
     service ntp restart
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to restart ntpd. Aborting"
+        UpdateSummary "ERROR: Unable to restart ntpd. Aborting"
         UpdateTestState $ICA_TESTABORTED
         exit 10
     fi
@@ -188,6 +205,7 @@ elif is_suse ; then
         zypper --non-interactive install ntp
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to install ntp. Aborting"
+            UpdateSummary "ERROR: Unable to install ntp. Aborting"
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
@@ -206,6 +224,7 @@ elif is_suse ; then
     " >> /etc/ntp.conf
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateSummary "ERROR: Unable to sync RTC clock to system time. Aborting"
         UpdateTestState $ICA_TESTABORTED
         exit 10
     fi
@@ -214,6 +233,7 @@ elif is_suse ; then
     hwclock --systohc 
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
+        UpdateSummary "ERROR: Unable to sync RTC clock to system time. Aborting"
         UpdateTestState $ICA_TESTABORTED
         exit 10
     fi
@@ -222,12 +242,14 @@ elif is_suse ; then
     service $srv restart
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to restart ntpd. Aborting"
+        UpdateSummary "ERROR: Unable to restart ntpd. Aborting"
         UpdateTestState $ICA_TESTABORTED
         exit 10
     fi
 
 else # other distro
     LogMsg "Warning: Distro not suported. Aborting"
+    UpdateSummary "Warning: Distro not suported. Aborting"
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
@@ -236,6 +258,7 @@ fi
 ntpq -p
 if [[ $? -ne 0 ]]; then
     LogMsg "Error: Unable to query NTP deamon!"
+    UpdateSummary "Error: Unable to query NTP deamon!"
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
@@ -281,11 +304,14 @@ while [ $isOver == false ]; do
         if [[ $checkzero -eq 0 ]]; then
             # If delay is 0, something is wrong, so we abort.
             LogMsg "ERROR: Delay cannot be 0.000; Please check NTP sync manually."
+            UpdateSummary "ERROR: Delay cannot be 0.000; Please check NTP sync manually."
             UpdateTestState $ICA_TESTABORTED
             exit 10
         elif [[ 0 -ne $check ]] ; then    
             LogMsg "ERROR: NTP Time out of sync. Test Failed"
+            UpdateSummary "ERROR: NTP Time out of sync. Test Failed"
             LogMsg "NTP offset is $delay seconds."
+            UpdateSummary "NTP offset is $delay seconds."
             UpdateTestState $ICA_TESTFAILED
             exit 10
         fi
@@ -295,6 +321,7 @@ done
 
 # If we reached this point, time is synced.
 LogMsg "Test passed. NTP offset is $delay seconds."
+UpdateSummary "Test passed. NTP offset is $delay seconds."
 
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
