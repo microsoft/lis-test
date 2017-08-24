@@ -160,11 +160,9 @@ ConfigRhel()
             UpdateSummary "Success: updated the crashkernel value to: $crashkernel."
         fi
 
-        if [[ -d /sys/firmware/efi ]]; then
-            grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
-        else
-            grub2-mkconfig -o /boot/grub2/grub.cfg
-        fi
+        grub_config=$(find /boot -name grub.cfg)
+        grub2-mkconfig -o $grub_config
+
     else
         if [ -x "/sbin/grubby" ]; then
             if grep -iq "crashkernel=" /boot/grub/grub.conf
@@ -368,9 +366,16 @@ ConfigUbuntu()
 # Main script body
 #
 #######################################################################
-crashkernel=$1
-vm2ipv4=$2
-
+#crashkernel=$1
+#vm2ipv4=$2
+if [ "$crashkernel" == "" ];then
+    LogMsg "ERROR: crashkernel parameter is null."
+    UpdateSummary "ERROR: crashkernel parameter is null."
+    SetTestStateAborted
+    exit 1
+fi
+LogMsg "INFO: crashkernel=$crashkernel; vm2ipv4=$vm2ipv4"
+UpdateSummary "INFO: crashkernel=$crashkernel; vm2ipv4=$vm2ipv4"
 #
 # Checking the negotiated VMBus version
 #
@@ -410,6 +415,16 @@ case $DISTRO in
             ConfigSles
         fi
     ;;
+    fedora*)
+        if [ "$crashkernel" == "auto" ]; then
+            LogMsg "WARNING: crashkernel=auto doesn't work for Fedora. Please use this pattern: crashkernel=X@Y."
+            UpdateSummary "WARNING: crashkernel=auto doesn't work for Fedora. Please use this pattern: crashkernel=X@Y."
+            SetTestStateSkipped
+            exit 1
+        else
+            ConfigRhel
+        fi
+    ;;
      *)
         msg="WARNING: Distro '${distro}' not supported, defaulting to RedHat"
         LogMsg "${msg}"
@@ -421,3 +436,4 @@ esac
 # Cleaning up any previous crash dump files
 mkdir -p /var/crash
 rm -rf /var/crash/*
+SetTestStateCompleted

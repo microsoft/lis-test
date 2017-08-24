@@ -156,6 +156,13 @@ if ($vm2Name -And $use_nfs -eq "yes")
         return $false
     }
 
+    $retVal = SendCommandToVM $ipv4 $sshKey "echo 'vm2ipv4=$vm2ipv4' >> ~/constants.sh"
+    if ($retVal -eq $false)
+    {
+        Write-Output "Error: Failed to echo $vm2ipv4 to constants.sh" | Tee-Object -Append -file $summaryLog
+        bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_config_fail_summary.log
+        return $false
+    }
     # Configure NFS for kdump
     SendFileToVM $vm2ipv4 $sshKey "remote-scripts/ica/utils.sh" "/root/utils.sh"
     SendFileToVM $vm2ipv4 $sshKey "remote-scripts/ica/kdump_nfs_config.sh" "/root/kdump_nfs_config.sh"
@@ -176,12 +183,20 @@ if ($vm2Name -And $use_nfs -eq "yes")
 #
 # Configure kdump on the VM
 #
-$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh && chmod u+x kdump_config.sh && ./kdump_config.sh $crashkernel $vm2ipv4"
-if ($retVal -eq $false)
+$retVal = RunRemoteScript "kdump_config.sh"
+#$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh && chmod u+x kdump_config.sh && ./kdump_config.sh $crashkernel $vm2ipv4"
+if ($retVal[-1] -eq $false )
 {
     Write-Output "Error: Failed to configure kdump. Check logs for details." | Tee-Object -Append -file $summaryLog
     bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_config_fail_summary.log
     return $false
+}
+
+if ($Skipped -eq $retVal[-1])
+{
+    Write-Output "Info: This distro does not support crashkernel=$crashkernel." | Tee-Object -Append -file $summaryLog
+    bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_config_skip_summary.log
+    return $Skipped
 }
 bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_config_pass_summary.log
 
