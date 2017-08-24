@@ -70,13 +70,24 @@ Rhel()
             UpdateSummary "Success: kdump service is active after reboot."
         fi
         ;;
-    "redhat_7" | "centos_7")
+    "redhat_7" | "centos_7" | fedora*)
         #
         # RHEL7, kdump status has "Active: active" and "Active: inactive"
         # So, select "Active: active" to check active
         #
-        service kdump status | grep "Active: active"
-        if  [ $? -eq 0 ]
+        timeout=50
+        while [ $timeout -ge 0 ]; do
+            service kdump status | grep "Active: active" &>/dev/null
+            if [ $? -eq 0 ];then
+                break
+            else
+                LogMsg "Wait for kdump service to be active."
+                UpdateSummary "Info: Wait for kdump service to be active."
+                timeout=$((timeout-5))
+                sleep 5
+            fi
+        done
+        if  [ $timeout -ne 0 ]
         then
             LogMsg "Kdump is active after reboot."
             UpdateSummary "Success: kdump service is active after reboot."
@@ -204,7 +215,7 @@ ConfigureNMI
 #
 GetDistro
 case $DISTRO in
-    centos* | redhat*)
+    centos* | redhat* | fedora*)
         kdump_loaded
         Rhel
     ;;
