@@ -156,7 +156,7 @@ ConfigUbuntu()
 GetDistro
 
 case $DISTRO in
-    centos* | redhat*)
+    centos* | redhat* | fedora*)
         ConfigRhel
     ;;
     ubuntu*)
