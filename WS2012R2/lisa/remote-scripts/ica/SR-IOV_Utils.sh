@@ -78,7 +78,7 @@ case $? in
 esac
 
 # Declare global variables
-declare -i bondCount
+declare -i vfCount
 
 #
 # VerifyVF - check if the VF driver is use
@@ -159,17 +159,15 @@ VerifyVF()
 		fi
 	fi
 
-	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo' | head -1)
-	if [[ is_fedora || is_ubuntu ]]; then
-        ifconfig -a | grep $interface
-   		if [ $? -ne 0 ]; then
-		    msg="ERROR: VF device, $interface , was not found!"
-		    LogMsg "$msg"                                                             
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    exit 1
-		fi
-    fi
+	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo' | head -1)
+    ifconfig -a | grep $interface
+		if [ $? -ne 0 ]; then
+	    msg="ERROR: VF device, $interface , was not found!"
+	    LogMsg "$msg"                                                             
+	    UpdateSummary "$msg"
+	    SetTestStateFailed
+	    exit 1
+	fi
 
 	return 0
 }
@@ -183,16 +181,16 @@ Check_SRIOV_Parameters()
 	# Parameter provided in constants file
 	declare -a STATIC_IPS=()
 
-	if [ "${BOND_IP1:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="ERROR: The test parameter BOND_IP1 is not defined in constants file. Will try to set addresses via dhcp"
+	if [ "${VF_IP1:-UNDEFINED}" = "UNDEFINED" ]; then
+	    msg="ERROR: The test parameter VF_IP1 is not defined in constants file. Will try to set addresses via dhcp"
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
 	    SetTestStateAborted
 	    exit 1
 	fi
 
-	if [ "${BOND_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="ERROR: The test parameter BOND_IP2 is not defined in constants file. No network connectivity test will be performed."
+	if [ "${VF_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
+	    msg="ERROR: The test parameter VF_IP2 is not defined in constants file. No network connectivity test will be performed."
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
@@ -262,120 +260,74 @@ Create1Gfile()
 }
 
 #
-# RunBondingScript - it will run the bonding script. Acceptance criteria is the
-# presence of the bond between VF and eth after the bonding script ran.
-# NOTE: function returns the number of bonds present on VM, not "0"
+# ConfigureVF - will set the given VF_IP(s) (from constants file) 
+# for each vf present 
 #
-RunBondingScript()
+ConfigureVF()
 {
-	if is_ubuntu ; then
-	    bash /usr/src/linux-headers-*/tools/hv/bondvf.sh
-
-	    # Verify if bond0 was created
-	    bondCount=$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
-	    if [ 0 -eq $bondCount ]; then
-	        msg="ERROR: Bonding script failed. No bond was created"
-		    LogMsg "$msg"
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    return 99
-	    fi
-
-	elif is_suse ; then
-	    bash /usr/src/linux-*/tools/hv/bondvf.sh
-
-	    # Verify if bond0 was created
-	    bondCount=$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
-	    if [ 0 -eq $bondCount ]; then
-	        msg="ERROR: Bonding script failed. No bond was created"
-		    LogMsg "$msg"
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    return 99
-	    fi
-
-	elif is_fedora ; then
-	    ./bondvf.sh
-
-	    # Verify if bond0 was created
-	    bondCount=$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
-	    if [ 0 -eq $bondCount ]; then
-	        msg="ERROR: Bonding script failed. No bond was created"
-		    LogMsg "$msg"
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    return 99
-	    fi
+	vfCount=$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
+	if [ $vfCount -eq 0 ]; then
+    	msg="ERROR: No VFs are present in the Guest VM!"
+	    LogMsg "$msg"
+	    UpdateSummary "$msg"
+	    SetTestStateFailed
+	    exit 1	
 	fi
 
-	LogMsg "Successfully ran the bonding script"
-	return $bondCount
-}
-
-#
-# ConfigureBond - will set the given BOND_IP(s) (from constants file) 
-# for each bond present 
-#
-ConfigureBond()
-{
-	__iterator=0
+	__iterator=1
 	__ipIterator=1
 	LogMsg "Iterator: $__iterator"
-	LogMsg "BondCount: $bondCount"
+	# LogMsg "vfCount: $vfCount"
 
-	# Set static IPs for each bond created
-	while [ $__iterator -lt $bondCount ]; do
+	# Set static IPs for each vf created
+	while [ $__iterator -le $vfCount ]; do
 	    LogMsg "Network config will start"
 
-        # Extract bondIP value from constants.sh
+        # Extract vfIP value from constants.sh
 		staticIP=$(cat constants.sh | grep IP$__ipIterator | head -1 | tr = " " | awk '{print $2}')
 
 	    if is_ubuntu ; then
 	        __file_path="/etc/network/interfaces"
 	        # Change /etc/network/interfaces 
-	        sed -i "s/bond$__iterator inet dhcp/bond$__iterator inet static/g" $__file_path
-	        sed -i "/bond$__iterator inet static/a address $staticIP" $__file_path
-	        sed -i "/address ${staticIP}/a netmask $NETMASK" $__file_path
+	        echo "auto eth$__iterator" >> $__file_path
+	        echo "iface eth$__iterator inet static" >> $__file_path
+	        echo "address $staticIP" >> $__file_path
+	        echo "netmask $NETMASK" >> $__file_path
+	        ifup eth$__iterator
 
 	    elif is_suse ; then
-	        __file_path="/etc/sysconfig/network/ifcfg-bond$__iterator"
-	        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-	        sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" $__file_path
-	        cat <<-EOF >> $__file_path
-	        BOOTPROTO=static
-	        IPADDR=$staticIP
-	        NETMASK=$NETMASK
-	EOF
+	        __file_path="/etc/sysconfig/network/ifcfg-eth$__iterator"
+	        rm -f $__file_path
+
+	        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+	        echo "DEVICE=eth$__iterator" >> $__file_path
+	        echo "NAME=eth$__iterator" >> $__file_path
+	        echo "BOOTPROTO=static" >> $__file_path
+	        echo "IPADDR=$staticIP" >> $__file_path
+	        echo "NETMASK=$NETMASK" >> $__file_path
+	        echo "STARTMODE=auto" >> $__file_path
+
+	        ifup eth$__iterator
 
 	    elif is_fedora ; then
-	        __file_path="/etc/sysconfig/network-scripts/ifcfg-bond$__iterator"
+	        __file_path="/etc/sysconfig/network-scripts/ifcfg-eth$__iterator"
+	        rm -f $__file_path
+
 	        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-	        sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" $__file_path
-	        cat <<-EOF >> $__file_path
-	        BOOTPROTO=static
-	        IPADDR=$staticIP
-	        NETMASK=$NETMASK
-	EOF
+	        echo "DEVICE=eth$__iterator" >> $__file_path
+	        echo "NAME=eth$__iterator" >> $__file_path
+	        echo "BOOTPROTO=static" >> $__file_path
+	        echo "IPADDR=$staticIP" >> $__file_path
+	        echo "NETMASK=$NETMASK" >> $__file_path
+	        echo "ONBOOT=yes" >> $__file_path
+
+	        ifup eth$__iterator
 	    fi
 	    LogMsg "Network config file path: $__file_path"
-
-	    # Add some interface output
-	    LogMsg "$(ip -o addr show bond$__iterator | grep -vi inet6)"
 
 		__ipIterator=$(($__ipIterator + 2))
 	    : $((__iterator++))
 	done
-
-    # Get everything up & running
-    if is_ubuntu ; then
-        service networking restart
-
-    elif is_suse ; then
-        service network restart
-
-    elif is_fedora ; then
-        service network restart
-    fi
 
 	return 0
 }

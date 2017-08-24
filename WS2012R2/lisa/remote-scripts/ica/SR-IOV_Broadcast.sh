@@ -25,7 +25,7 @@
 #   Basic SR-IOV test that checks if VF can send and receive broadcast packets
 # Steps:
 #    Use ping for testing & tcpdump to check if the packets were received
-#    On the 2nd VM – tcpdump -i bond0 -c 10 ip proto \\icmp > out.client
+#    On the 2nd VM – tcpdump -i eth1 -c 10 ip proto \\icmp > out.client
 #    On the TEST VM – ping -b $broadcastAddress -c 13 &
 #    On the 2nd VM – cat out.client | grep $broadcastAddress
 #    If $?=0 test passed!
@@ -35,7 +35,7 @@
 dos2unix SR-IOV_Utils.sh
 
 # Source SR-IOV_Utils.sh. This is the script that contains all the 
-# SR-IOV basic functions (checking drivers, making de bonds, assigning IPs)
+# SR-IOV basic functions (checking drivers, checking VFs, assigning IPs)
 . SR-IOV_Utils.sh || {
     echo "ERROR: unable to source SR-IOV_Utils.sh!"
     echo "TestAborted" > state.txt
@@ -60,24 +60,10 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-# Run the bonding script. Make sure you have this already on the system
-# Note: The location of the bonding script may change in the future
-RunBondingScript
-bondCount=$?
-if [ $bondCount -eq 99 ]; then
-    msg="ERROR: Running the bonding script failed. Please double check if it is present on the system"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-
-else
-    LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"   
-fi
-
-# Set static IP to the bond
-ConfigureBond
+# Set static IP to eth1
+ConfigureVF
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not set a static IP to the bond!"
+    msg="ERROR: Could not set a static IP to the eth1!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
@@ -96,18 +82,18 @@ else
 fi
 
 # Broadcast testing
-broadcastAddress=$(ip a s dev bond0 | awk '/inet / {print $4}')
+broadcastAddress=$(ip a s dev eth1 | awk '/inet / {print $4}')
 ping -b $broadcastAddress -c 13 &
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not ping to broadcast address on VM1 (BOND_IP: ${BOND_IP1})"
+    msg="ERROR: Could not ping to broadcast address on VM1 (VF_IP: ${VF_IP1})"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
-ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" 'tcpdump -i bond0 -c 10 ip proto \\icmp > out.client'
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" 'tcpdump -i eth1 -c 10 ip proto \\icmp > out.client'
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not start tcpdump on VM2 (BOND_IP: ${BOND_IP2})"
+    msg="ERROR: Could not start tcpdump on VM2 (VF_IP: ${VF_IP2})"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
@@ -116,7 +102,7 @@ else
     sleep 20
 fi
 
-ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" cat out.client | grep $broadcastAddress
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" cat out.client | grep $broadcastAddress
 if [ $? -ne 0 ]; then
     msg="ERROR: VM2 didn't receive any packets from the broadcast address"
     LogMsg "$msg"

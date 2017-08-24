@@ -25,13 +25,13 @@
 
 .Description
     a. Configure/enable SR-IOV on the vSwitch and on the VMs synthetic NIC (or NICs).
-    b. Run the bonding script to create the bond0 device.
-    c. Reboot and verify the bond devices are up and working.
+    b. Configure VF
+    c. Verify the VF devices are up and working.
     d. Migrate the VM to another host in the cluster which has a NIC with SR-IOV support.
     e. Copy a file to or from the VM.
  Acceptance Criteria
     a. After migrating the VM, the VM has network connectivity.
-    b. The VMs bond0 device should continue to work.
+    b. The VFs should continue to work.
 
     
 .Parameter vmName
@@ -57,8 +57,8 @@
         <testParams>
             <param>NIC_sriov_name=SRIOV</param>
             <param>TC_COVERED=??</param>
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
         </testParams>
         <timeout>600</timeout>
@@ -72,7 +72,7 @@ param ([String] $vmName, [String] $hvServer, [string] $testParams)
 # Main script body
 #
 #############################################################
-$retVal = $False
+$retVal = $True
 
 #
 # Check the required input args are present
@@ -140,7 +140,7 @@ else
     "ERROR: Could not find setupScripts\NET_Utils.ps1"
     return $false
 }
-
+$disableVF = "no"
 # Process the test params
 $params = $testParams.Split(';')
 foreach ($p in $params)
@@ -150,10 +150,10 @@ foreach ($p in $params)
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
-        "BOND_IP3" { $vmBondIP3 = $fields[1].Trim() }
-        "BOND_IP4" { $vmBondIP4 = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
+        "VF_IP3" { $vmVF_IP3 = $fields[1].Trim() }
+        "VF_IP4" { $vmVF_IP4 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
         "VM2NAME" { $vm2Name = $fields[1].Trim() }
         "MigrationType" { $migrationType    = $fields[1].Trim() }
@@ -171,14 +171,14 @@ $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 "$vm2Name IPADDRESS: $vm2ipv4"
 
 #
-# Configure the bond on test VM
+# Configure the VF on test VM
 #
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
 if (-not $retVal) {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to configure VF on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
-"Bond configured successfully"
+"VF configured successfully"
 
 #
 # Create an 1 GB file on test VM
@@ -186,22 +186,10 @@ if (-not $retVal) {
 Start-Sleep -s 3
 $retVal = CreateFileOnVM $ipv4 $sshKey 1024
 if (-not $retVal) {
-    "ERROR: Failed to create a file on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to create a file on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $False
 }
 "File created successfully"
-
-#
-# Send the file from the test VM to the dependency VM
-#
-Start-Sleep -s 3
-$retVal = SRIOV_SendFile $ipv4 $sshKey 7000
-if (-not $retVal) {
-    "ERROR: Failed to send the file from vm $vmName to $vm2Name"
-    return $False
-}
-"File sent successfully before migration"
-"File sent successfully before migration" | Tee-Object -Append -file $summaryLog
 
 #
 # Start the VM migration
@@ -224,20 +212,6 @@ if ($error.Count -gt 0) {
     return $False
 }
 
-Move-ClusterVirtualMachineRole -name $vm2Name -node $destinationNode -MigrationType $migrationType
-if ($error.Count -gt 0) {
-    "Error: Unable to move the VM"
-    $error
-    return $False
-}
-
-# Restart VF
-Start-Sleep -s 10
-if ($disableVF -ne "yes") {
-    RestartVF $ipv4 $sshKey
-    RestartVF $vm2ipv4 $sshKey
-}
-
 #
 # Send the file from the test VM to the dependency VM
 #
@@ -245,9 +219,8 @@ Start-Sleep -s 10
 $retVal = SRIOV_SendFile $ipv4 $sshKey 7000
 if (-not $retVal) {
     "ERROR: Failed to send the file from vm $vmName to $vm2Name"
-    return $False
+    $retVal = $False
 }
-"File sent successfully after migration"
 "File sent successfully after migration" | Tee-Object -Append -file $summaryLog
 
 # Return the VMs
@@ -256,14 +229,8 @@ Move-ClusterVirtualMachineRole -name $vmName -node $currentNode -MigrationType $
 if ($error.Count -gt 0) {
     "Error: Unable to move the VM"
     $error
-    return $False
+    $retVal = $False
 }
 
-Move-ClusterVirtualMachineRole -name $vm2Name -node $currentNode -MigrationType $migrationType
-if ($error.Count -gt 0) {
-    "Error: Unable to move the VM"
-    $error
-    return $False
-}
 Start-Sleep -s 30
 return $retVal
