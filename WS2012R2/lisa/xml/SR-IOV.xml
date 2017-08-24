@@ -104,6 +104,7 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
+                <file>setupScripts\SR-IOV_GetMLNXInfo.ps1</file>
             </setupScript> 
             <noReboot>False</noReboot>
             <testParams>
