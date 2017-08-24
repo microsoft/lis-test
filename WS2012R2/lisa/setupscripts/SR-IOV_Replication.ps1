@@ -29,7 +29,7 @@
     3. Failover to another host
     3. Start both VMs to Replica host
     4. Transfer again an 1GB file
-    Acceptance: In both cases, the network traffic goes through bond0
+    Acceptance: In both cases, the network traffic goes through VF
     
 .Parameter vmName
     Name of the test VM.
@@ -54,8 +54,8 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
             <param>TC_COVERED=??</param>                                   
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <param>REMOTE_USER=root</param>
             <param>ReplicationServer=ReplicaServer</param>
@@ -288,10 +288,10 @@ foreach ($p in $params)
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
-        "BOND_IP3" { $vmBondIP3 = $fields[1].Trim() }
-        "BOND_IP4" { $vmBondIP4 = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
+        "VF_IP3" { $vmVF_IP3 = $fields[1].Trim() }
+        "VF_IP4" { $vmVF_IP4 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() } 
         "REMOTE_USER" { $remoteUser = $fields[1].Trim() }
         "VM2NAME" { $vm2Name = $fields[1].Trim() }
@@ -303,15 +303,15 @@ foreach ($p in $params)
 }
 
 #
-# Configure the bond on test VM
+# Configure the VF on test VM
 #
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to configure VF on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
-"Bond configured successfully"
+"VF configured successfully"
 
 #
 # Create an 1 GB file on test VM
@@ -320,7 +320,7 @@ Start-Sleep -s 3
 $retVal = CreateFileOnVM $ipv4 $sshKey 1024
 if (-not $retVal)
 {
-    "ERROR: Failed to create a file on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to create a file on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
 "File created successfully"
@@ -441,8 +441,8 @@ if (-not $?) {
 }
 
 
-# Add another pair of SRIOV NICs for multiple bonding TCs
-if ($vmBondIP4) {
+# Add another pair of SRIOV
+if ($vmVF_IP4) {
     Add-VMNetworkAdapter -VMName $vmName -SwitchName "SRIOV" -ComputerName $vmOwner
     if (-not $?) {
         "ERROR: Failed to attach an SRIOV adapter to $vmName"
@@ -586,13 +586,13 @@ else {
 Start-Sleep -s 180
 # Enable VF again if needed
 if ($enableVF -eq "yes") {
-    $commandToSend = "cd ~ && ./CreateBond.sh"
+    $commandToSend = "cd ~ && ./ConfigureVF.sh"
 
     # Start VF on VM1 on Replication Server
     $retVal = SendCommandToVM "$replicaIP1" "$sshKey" $commandToSend
     if (-not $retVal)
     {
-        "ERROR: Failed to configure bond on vm $vmName (IP: $$replicaIP1), by setting a static IP of $vmBondIP1 , netmask $netmask"
+        "ERROR: Failed to configure VF on vm $vmName (IP: $$replicaIP1), by setting a static IP of $vmVF_IP1 , netmask $netmask"
         CleanReplication
         return $false
     }
@@ -600,7 +600,7 @@ if ($enableVF -eq "yes") {
     $retVal = SendCommandToVM "$replicaIP2" "$sshKey" $commandToSend
     if (-not $retVal)
     {
-        "ERROR: Failed to configure bond on vm $vm2Name (IP: $replicaIP2), by setting a static IP of $vmBondIP2 , netmask $netmask"
+        "ERROR: Failed to configure VF on vm $vm2Name (IP: $replicaIP2), by setting a static IP of $vmVF_IP2 , netmask $netmask"
         CleanReplication
         return $false
     }

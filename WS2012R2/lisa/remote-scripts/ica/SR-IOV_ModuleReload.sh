@@ -27,7 +27,7 @@
 #   Steps:
 #   1. Verify/install pciutils package
 #   2. Using the lspci command, examine the NIC with SR-IOV support
-#   3. Run bondvf.sh
+#   3. Configure VF
 #   4. Check network capability
 #   5. Unload module(s) (ixgbevf for Intel or mlx4_core and mlx_en for Mellanox)
 #   6. Check network capability
@@ -40,7 +40,7 @@
 dos2unix SR-IOV_Utils.sh
 
 # Source SR-IOV_Utils.sh. This is the script that contains all the 
-# SR-IOV basic functions (checking drivers, making de bonds, assigning IPs)
+# SR-IOV basic functions (checking drivers, checking VFs, assigning IPs)
 . SR-IOV_Utils.sh || {
     echo "ERROR: unable to source SR-IOV_Utils.sh!"
     echo "TestAborted" > state.txt
@@ -66,22 +66,10 @@ if [ $? -ne 0 ]; then
 fi
 UpdateSummary "VF is present on VM!"
 
-# Run the bonding script. Make sure you have this already on the system
-# Note: The location of the bonding script may change in the future
-RunBondingScript
-bondCount=$?
-if [ $bondCount -eq 99 ]; then
-    msg="ERROR: Running the bonding script failed. Please double check if it is present on the system"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-fi
-LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"
-
-# Set static IP to the bond
-ConfigureBond
+# Set static IP to the VF
+ConfigureVF
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not set a static IP to the bond!"
+    msg="ERROR: Could not set a static IP to the VF!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
@@ -97,20 +85,20 @@ if [ $? -ne 0 ]; then
 fi
 
 # Ping Dependency VM
-ping -I bond0 -c 10 "$BOND_IP2" >/dev/null 2>&1
+ping -I eth1 -c 10 "$VF_IP2" >/dev/null 2>&1
 if [ 0 -eq $? ]; then
-    msg="Successfully pinged $BOND_IP2 through bond0 with before unloading the VF module"
+    msg="Successfully pinged $VF_IP2 through eth1 with before unloading the VF module"
     LogMsg "$msg"
     UpdateSummary "$msg"
 else
-    msg="ERROR: Unable to ping $BOND_IP2 through bond0 with VF up. Further testing will be stopped"
+    msg="ERROR: Unable to ping $VF_IP2 through eth1 with VF up. Further testing will be stopped"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
-# Extract VF name that is bonded
-interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo')
+# Extract VF name
+interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo')
 
 # Shut down interface
 LogMsg "Unloading the module(s)"
@@ -123,12 +111,13 @@ fi
 lsmod | grep mlx4_en
 if [ $? -eq 0 ]; then
     modprobe -r mlx4_en
+    moduleName="mlx4"
 fi
 
 lsmod | grep mlx4_core
 if [ $? -eq 0 ]; then
     modprobe -r mlx4_core
-    moduleName='mlx4'
+    moduleName="mlx4"
 fi
 
 ifconfig $interface
@@ -140,37 +129,37 @@ if [ 0 -eq $? ]; then
 fi
 
 # Ping the remote host after bringing down the VF
-ping -I "bond0" -c 10 "$BOND_IP2" >/dev/null 2>&1
+ping -I "eth1" -c 10 "$VF_IP2" >/dev/null 2>&1
 if [ 0 -eq $? ]; then
-    msg="Successfully pinged $BOND_IP2 through bond0 after unloading VF module"
+    msg="Successfully pinged $VF_IP2 through eth1 after unloading VF module"
     LogMsg "$msg"
     UpdateSummary "$msg"
 else
-    msg="ERROR: Unable to ping $BOND_IP2 through bond0 after unloading VF module"
+    msg="ERROR: Unable to ping $VF_IP2 through eth1 after unloading VF module"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
 # Get TX value before sending the file
-txValueBefore=$(ifconfig bond0 | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
+txValueBefore=$(ifconfig eth1 | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
 LogMsg "TX value before sending file: $txValueBefore"
 
 # Send the file
-scp -i "$HOME"/.ssh/"$sshKey" -o BindAddress=$BOND_IP1 -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@"$BOND_IP2":/tmp/"$output_file"
+scp -i "$HOME"/.ssh/"$sshKey" -o BindAddress=$VF_IP1 -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@"$VF_IP2":/tmp/"$output_file"
 if [ 0 -ne $? ]; then
-    msg="ERROR: Unable to send the file from VM1 to VM2 using bond0"
+    msg="ERROR: Unable to send the file from VM1 to VM2 using eth1"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
     exit 10
 else
-    msg="Successfully sent $output_file to $BOND_IP2"
+    msg="Successfully sent $output_file to $VF_IP2"
     LogMsg "$msg"
 fi
 
 # Get TX value after sending the file
-txValueAfter=$(ifconfig bond0 | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
+txValueAfter=$(ifconfig eth1 | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
 LogMsg "TX value after sending the file: $txValueAfter"
 
 # Compare the values to see if TX increased as expected
@@ -184,13 +173,13 @@ if [ $txValueAfter -lt $txValueBefore ]; then
     exit 10
 fi            
 
-msg="Successfully sent file from VM1 to VM2 through bond0 after unloading VF modules"
+msg="Successfully sent file from VM1 to VM2 through eth1 after unloading VF modules"
 LogMsg "$msg"
 UpdateSummary "$msg"
 
 # Load modules again
 LogMsg "Loading the module(s)"
-if [ $moduleName == 'ixgbevf' ]; then
+if [ $moduleName == "ixgbevf" ]; then
     modprobe ixgbevf
     if [ $? -ne 0 ]; then
         msg="ERROR: failed to load ixgbevf"
@@ -198,7 +187,7 @@ if [ $moduleName == 'ixgbevf' ]; then
         UpdateSummary "$msg"
         SetTestStateFailed
     fi
-elif [ $moduleName == 'mlx4' ]; then
+elif [ $moduleName == "mlx4" ]; then
     modprobe mlx4_core
     if [ $? -ne 0 ]; then
         msg="ERROR: failed to load mlx4_core"
@@ -218,6 +207,8 @@ fi
 
 # Verify if VF is up
 sleep 5
+# Extract VF name
+interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo')
 ifconfig $interface
 if [ 0 -ne $? ]; then
     msg="ERROR: VF has not restarted from ifconfig after the module was loaded"
@@ -227,14 +218,14 @@ if [ 0 -ne $? ]; then
 fi
 
 # Ping the remote host after bringing down the VF
-ping -I "bond0" -c 10 "$BOND_IP2" >/dev/null 2>&1
+ping -I "eth1" -c 10 "$VF_IP2" >/dev/null 2>&1
 if [ 0 -eq $? ]; then
-    msg="Successfully pinged $BOND_IP2 through bond0 after VF module was loaded"
+    msg="Successfully pinged $VF_IP2 through eth1 after VF module was loaded"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateCompleted
 else
-    msg="ERROR: Unable to ping $BOND_IP2 through bond0 after VF module was loaded"
+    msg="ERROR: Unable to ping $VF_IP2 through eth1 after VF module was loaded"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed

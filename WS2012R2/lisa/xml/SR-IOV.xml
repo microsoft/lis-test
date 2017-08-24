@@ -69,7 +69,7 @@
                 <!-- Mellanox specific -->
                 <suiteTest>Upgrade_Downgrade_PF</suiteTest>
                 
-                <!-- Multiple NIC Bonding tests -->
+                <!-- Multiple VFs tests -->
                 <suiteTest>Multiple_basic</suiteTest>
                 <suiteTest>Multiple_fileCopy</suiteTest>
                 <suiteTest>MaxNICS</suiteTest>
@@ -421,8 +421,8 @@
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
                 <param>TC_COVERED=SRIOV-24</param>
-                <param>BOND_IP3=10.12.12.33</param>
-                <param>BOND_IP4=10.12.12.34</param>
+                <param>VF_IP3=10.12.12.33</param>
+                <param>VF_IP4=10.12.12.34</param>
                 <param>Clean_Dependency=yes</param>
             </testParams>
             <timeout>1000</timeout>
@@ -441,8 +441,8 @@
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
                 <param>TC_COVERED=SRIOV-25</param>
-                <param>BOND_IP3=10.12.12.33</param>
-                <param>BOND_IP4=10.12.12.34</param>
+                <param>VF_IP3=10.12.12.33</param>
+                <param>VF_IP4=10.12.12.34</param>
             </testParams>
             <timeout>1000</timeout>
         </test>
@@ -479,6 +479,7 @@
                 <param>MAX_NICS=yes</param>
                 <param>Clean_Dependency=yes</param>
                 <!-- This is based on the physical CPU hardware topology -->
+                <param>vCPU=max</param>
                 <param>numaNodes=36</param>
             </testParams>
             <timeout>1600</timeout>
@@ -584,8 +585,8 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>TC_COVERED=SRIOV-32</param>
-                <param>VM3BOND_IP=10.11.12.63</param>
-                <param>VM4BOND_IP=10.11.12.64</param>
+                <param>VM3VF_IP=10.11.12.63</param>
+                <param>VM4VF_IP=10.11.12.64</param>
                 <param>VM3NAME=VM3_Name_HOST1</param>
                 <param>VM4NAME=VM4_Name_HOST1</param>
             </testParams>
@@ -605,8 +606,8 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>TC_COVERED=SRIOV-33</param>
-                <param>VM3BOND_IP=10.11.12.63</param>
-                <param>VM4BOND_IP=10.11.12.64</param>
+                <param>VM3VF_IP=10.11.12.63</param>
+                <param>VM4VF_IP=10.11.12.64</param>
                 <param>VM3NAME=VM3_Name_HOST1</param>
                 <param>VM4NAME=VM4_Name_HOST2</param>
             </testParams>
@@ -671,8 +672,8 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>TC_COVERED=SRIOV-36</param>
-                <param>BOND_IP3=10.12.12.33</param>
-                <param>BOND_IP4=10.12.12.34</param>
+                <param>VF_IP3=10.12.12.33</param>
+                <param>VF_IP4=10.12.12.34</param>
                 <param>ReplicationServer=ReplicaServer</param>
                 <param>ReplicationPort=80</param>
                 <param>enableVF=yes</param>
@@ -695,8 +696,8 @@
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
                 <param>TC_COVERED=SRIOV-37</param>
-                <param>BOND_IP3=10.12.12.33</param>
-                <param>BOND_IP4=10.12.12.34</param>
+                <param>VF_IP3=10.12.12.33</param>
+                <param>VF_IP4=10.12.12.34</param>
                 <param>ReplicationServer=ReplicaServer</param>
                 <param>ReplicationPort=80</param>
                 <param>enableVF=no</param>
@@ -720,8 +721,8 @@
                 <param>SnapshotName=ICABase</param>
                 <param>sshKey=linux_id_rsa</param>
                 <param>REMOTE_USER=root</param>
-                <param>BOND_IP1=10.11.12.31</param>
-                <param>BOND_IP2=10.11.12.32</param>
+                <param>VF_IP1=10.11.12.31</param>
+                <param>VF_IP2=10.11.12.32</param>
                 <param>NETMASK=255.255.255.0</param>
             </testParams>
             <suite>SR-IOV</suite>

@@ -207,8 +207,8 @@ for($i=0; $i -lt $vmNumber; $i++) {
     $childVMName = "SRIOV_Child${i}"
     New-Variable -Name "ChildVM${i}" -Value $childVMName
 
-    $childBondIP = "10.11.12.1${i}"
-    New-Variable -Name "ChildBondIP${i}" -Value $childBondIP
+    $childVF_IP = "10.11.12.1${i}"
+    New-Variable -Name "ChildVF_IP${i}" -Value $childVF_IP
 
     $newVm = New-VM -Name $childVMName -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
     if (-not $?) {
@@ -226,13 +226,13 @@ for($i=0; $i -lt $vmNumber; $i++) {
         }
     }
 
-    ConfigureVMandBond $childVMName $hvServer $sshKey $childBondIP $netmask
+    ConfigureVMandVF $childVMName $hvServer $sshKey $childVF_IP $netmask
 }
 
 Write-Output "Child VMs were started and configured " | Tee-Object -Append -file $summaryLog
 
 # Start again main VM and configure it
-ConfigureVMandBond $vmName $hvServer $sshKey "10.11.12.1" $netmask
+ConfigureVMandVF $vmName $hvServer $sshKey "10.11.12.1" $netmask
 
 $ipv4 = GetIPv4 $vmName $hvServer 
 Write-Output "$vmName IPADDRESS: $ipv4"
@@ -250,7 +250,7 @@ if (-not $retVal)
 
 # For SRIOV_SendFile function to work, constants.sh needs to contain specific information
 # This info is appended to constants.sh from here
-SendCommandToVM "$ipv4" "$sshKey" "echo 'BOND_IP1=10.11.12.1' >> constants.sh"
+SendCommandToVM "$ipv4" "$sshKey" "echo 'VF_IP1=10.11.12.1' >> constants.sh"
 SendCommandToVM "$ipv4" "$sshKey" "echo 'sshKey=$sshKey' >> constants.sh"
 SendCommandToVM "$ipv4" "$sshKey" "sed -i 's/.ppk//' constants.sh"
 SendCommandToVM "$ipv4" "$sshKey" "echo 'REMOTE_USER=$remoteUser' >> constants.sh"
@@ -260,9 +260,9 @@ Start-Sleep -s 10
 $failedToSendCount = 0
 for($i=0; $i -lt $vmNumber; $i++) {
     $transferStatus = $null
-    $childBondIP = Get-Variable -Name "ChildBondIP${i}" -ValueOnly
+    $childVF_IP = Get-Variable -Name "ChildVF_IP${i}" -ValueOnly
 
-    SendCommandToVM "$ipv4" "$sshKey" "echo 'BOND_IP2=$childBondIP' >> constants.sh"
+    SendCommandToVM "$ipv4" "$sshKey" "echo 'VF_IP2=$childVF_IP' >> constants.sh"
     $retVal = SRIOV_SendFile $ipv4 $sshKey 1400
     if (-not $retVal)
     {

@@ -55,8 +55,8 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
             <param>TC_COVERED=SRIOV-12</param>
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <param>REMOTE_SERVER=remoteHostName</param>
         </testParams>
@@ -150,8 +150,8 @@ foreach ($p in $params)
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
         "VM2NAME" { $vm2Name = $fields[1].Trim() }
         "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
@@ -170,12 +170,12 @@ $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "${vm2Name} IPADDRESS: ${vm2ipv4}"
 
 #
-# Configure the bond on test VM
+# Configure eth1 on test VM
 #
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to configure eth1 on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
 
@@ -195,11 +195,13 @@ if (-not $retVal)
 #
 # Start the client side
 "Start Client"
+.\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "kill `$(ps aux | grep iperf | head -1 | awk '{print `$2}')"
+Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4}  "iperf3 -s > client.out &"
 
 "Start Server"
 # Start iPerf3 testing
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 600 -c `$BOND_IP2 --logfile PerfResults.log &' > runIperf.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 600 -c `$VF_IP2 --logfile PerfResults.log &' > runIperf.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
 
@@ -230,9 +232,13 @@ if (-not $?) {
     return $false 
 }
 
-# Check if bond is still up & running
+# Check if VF is still up & running
 Start-Sleep -s 30
-$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep bond0"
+$vfName = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep -v 'eth0\|eth1\|lo'"
+if (-not $vfName) {
+    "INFO: Could not extract VF name from VM" | Tee-Object -Append -file $summaryLog
+}
+$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep $vfName"
 if (-not $status) {
     "ERROR: The VF is down after changing RSS profile!" | Tee-Object -Append -file $summaryLog
     Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
@@ -252,14 +258,6 @@ if (-not $vfFinalThroughput) {
     return $false 
 }
 
-# Check for Call Traces in VM system logs
-Start-Sleep -s 60
-$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "grep 'Call Trace' /var/log/* --exclude-dir=*"
-if ($status) {
-    "ERROR: System logs shows Call Traces. Please check the VM for further info" | Tee-Object -Append -file $summaryLog
-    Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
-    return $false    
-}
 # Change back the RSS profile
 Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
 
