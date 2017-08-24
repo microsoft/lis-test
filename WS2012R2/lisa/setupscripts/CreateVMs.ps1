@@ -249,7 +249,8 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
     }
 
     $vhdName = "${vmName}.vhdx"
-    $vhdFilename = Join-Path $vhdDir $vhdName
+    $vhdFilename = "\\" + $hvServer + "\" + $vhdDir + $vhdName
+    $vhdFilename = $vhdFilename.Replace(":","$")
     DeleteVmAndVhd $vmName $hvServer $vhdFilename 
 
     #
@@ -698,7 +699,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
                 }
             }
-            $dstPath = Join-Path $vhdDir "${vmName}${extension}"
+            $dstPath = $vhdDir + "${vmName}${extension}"
             $dstDrive = $dstPath.Substring(0,1)
             $dstlocalPath = $dstPath.Substring(3)
             $dstPathNetwork = "\\${hvServer}\${dstDrive}$\${dstlocalPath}"
@@ -718,8 +719,13 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             #
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
             $vhdName = "${vmName}_diff.vhdx"
-            $vhdFilename = Join-Path $vhdDir $vhdName
+            $vhdFilename = $vhdDir + $vhdName
+            $vhdFilenameNetPath = "\\" + $hvServer + "\" + $vhdFilename.Replace(":","$")
 
+            # Check if differencing boot disk exists, and if yes, delete it
+            if(Test-Path $vhdFilenameNetPath) {
+                Remove-Item -Path $vhdFilenameNetPath -Force
+            }
             #
             #Create the boot .vhd
             #
