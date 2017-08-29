@@ -699,7 +699,11 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
                 }
             }
-            $dstPath = $vhdDir + "${vmName}${extension}"
+            # If the path has the ending backslash, remove it
+            if($vhdDir.EndsWith("\")) {
+                $vhdDir = $vhdDir.Substring(0,$vhdDir.Length -1)
+            }
+            $dstPath = $vhdDir + "\" + "${vmName}${extension}"
             $dstDrive = $dstPath.Substring(0,1)
             $dstlocalPath = $dstPath.Substring(3)
             $dstPathNetwork = "\\${hvServer}\${dstDrive}$\${dstlocalPath}"
