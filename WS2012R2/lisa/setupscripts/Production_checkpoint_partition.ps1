@@ -96,6 +96,7 @@ foreach ($p in $params)
     "sshKey"      { $sshKey = $fields[1].Trim() }
     "ipv4"        { $ipv4 = $fields[1].Trim() }
     "rootdir"     { $rootDir = $fields[1].Trim() }
+    "IDE"         { $IDEDisk = $fields[1].Trim() }
      default  {}
     }
 }
@@ -134,8 +135,17 @@ if ($BuildNumber -eq 0) {
     return $False
 }
 elseif ($BuildNumber -lt 10500) {
-	"Info: Feature supported only on WS2016 and newer"
+    "Info: Feature supported only on WS2016 and newer"
     return $Skipped
+}
+
+# Check if AddVhdxHardDisk doesn't add a VHD disk to Gen2 VM
+if ($IDEDisk) {
+    $vmGen = GetVMGeneration $vmName $hvServer
+    if ($vmGen -eq 2) {
+        Write-Output "Info: Cannot add VHD file to Gen2 VM. Skipping." | Tee-Object -Append -file $summaryLog
+        return $Skipped
+    }
 }
 
 # Check if the Vm VHD in not on the same drive as the backup destination
