@@ -26,6 +26,7 @@ function InstallNetcat
     LogMsg "Installing netcat"
     SetTestStateRunning
     if [[ "$os_VENDOR" == "Red Hat" ]] || \
+    [[ "$os_VENDOR" == "Fedora" ]] || \
     [[ "$os_VENDOR" == "CentOS" ]]; then
         yum install nc -y
     elif [ "$os_VENDOR" == "SUSE LINUX" ]; then
@@ -66,7 +67,7 @@ function ConfigInterface
     # Disable tcp segmentation offload
     ethtool -K eth1 tso off
     ethtool -K eth1 gso off
-    
+
     return 0
 }
 
@@ -80,6 +81,7 @@ function AddNIC
     LogMsg "os_VENDOR=$os_VENDOR"
     SetTestStateRunning
     if [[ "$os_VENDOR" == "Red Hat" ]] || \
+    [[ "$os_VENDOR" == "Fedora" ]] || \
     [[ "$os_VENDOR" == "CentOS" ]]; then
         LogMsg "Info : Creating ifcfg-${ifName}"
         cp /etc/sysconfig/network-scripts/ifcfg-eth0 /etc/sysconfig/network-scripts/ifcfg-${ifName}
