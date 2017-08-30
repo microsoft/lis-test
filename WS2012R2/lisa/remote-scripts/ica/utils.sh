@@ -807,7 +807,7 @@ CreateVlanConfig()
 
 	GetDistro
 	case $DISTRO in
-		redhat*|centos*)
+		redhat*|centos*|fedora*)
 			__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface"
 			if [ -e "$__file_path" ]; then
 				LogMsg "CreateVlanConfig: warning, $__file_path already exists."

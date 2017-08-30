@@ -487,14 +487,14 @@ $isDynamic = $false
 $params = $testParams.Split(';')
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    switch ($fields[0].Trim()) { 
+    switch ($fields[0].Trim()) {
         "NIC"
         {
             $nicArgs = $fields[1].Split(',')
             if ($nicArgs.Length -eq 3) {
                 $CurrentDir= "$pwd\"
-                $testfile = "macAddress.file" 
-                $pathToFile="$CurrentDir"+"$testfile" 
+                $testfile = "macAddress.file"
+                $pathToFile="$CurrentDir"+"$testfile"
                 $isDynamic = $true
             }
         }
@@ -571,7 +571,7 @@ foreach ($p in $params)
         }
 
         if ($isDynamic -eq $true){
-            $vm1MacAddress = $streamReader.ReadLine() 
+            $vm1MacAddress = $streamReader.ReadLine()
         }
         else {
             $retVal = isValidMAC $vm1MacAddress
@@ -580,7 +580,7 @@ foreach ($p in $params)
             {
                 "Invalid Mac Address $vm1MacAddress"
                 return $false
-            }  
+            }
         }
 
         #
@@ -601,7 +601,7 @@ foreach ($p in $params)
     }
 }
 
-if ($isDynamic -eq $true) 
+if ($isDynamic -eq $true)
 {
     $streamReader.close()
 }
@@ -641,10 +641,10 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 #
 # Check if the distro version is unsupported
 #
-$sts = SendCommandToVM $ipv4 $sshKey "cat /etc/redhat-release | grep -v '7.\|6.[7-9]'"
+$sts = SendCommandToVM $ipv4 $sshKey "cat /etc/redhat-release | grep -v '7.\|6.[7-9]\|Fedora'"
 if ($sts[-1]){
     Write-Output "VLAN Trunking is not supported on RHEL/CentOS 6.x and below" | Tee-Object -Append -file $summaryLog
-    return $Skipped    
+    return $Skipped
 }
 
 #set the parameter for the snapshot
@@ -1196,7 +1196,7 @@ if (-not $retVal)
 
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm1Nic -Untagged
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $vm2Nic -Untagged
-	
+
     RemoveVlanInterfaceConfig $vm2ipv4 $sshKey $vm2MacAddress $vlanID
 
     Stop-VM -VMName $vm2name -ComputerName $hvServer -force
