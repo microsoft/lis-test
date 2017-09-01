@@ -190,7 +190,7 @@ function checkResults([string] $vmName, [string] $hvServer)
 	# Now Start the VM
 	$timeout = 300
 	$sts = Start-VM -Name $vmName -ComputerName $hvServer
-	if (-not (WaitForVMToStartSSH $vmName $hvServer $timeout ))
+	if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
 	{
 		Write-Output "ERROR: ${vmName} failed to start" >> $summaryLog
 		return $False
