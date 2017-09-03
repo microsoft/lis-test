@@ -22,149 +22,194 @@
 ########################################################################
 
 ICA_TESTRUNNING="TestRunning"
+ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
-
-#
-# Functions definitions
-#
-LogMsg()
-{
-    # To add the time-stamp to the log file
-    echo `date "+%a %b %d %T %Y"` ": ${1}"
-}
+ICA_TESTFAILED="TestFailed"
 
 UpdateTestState()
 {
     echo $1 >> ~/state.txt
 }
 
-#######################################################################
-#
-# LinuxRelease()
-#
-#######################################################################
-LinuxRelease()
-{
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
 
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        *Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-    esac
+dos2unix utils.sh
+
+#
+# Source utils.sh to get more utils
+# Get $DISTRO, LogMsg directly from utils.sh
+#
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    exit 1
 }
+
+#
+# Source constants file and initialize most common variables
+#
+. constants.sh || {
+    echo "Error: unable to source constants.sh!"
+    exit 1
+}
+
+UtilsInit
 
 CheckPTPSupport()
 {
     # Check for ptp support
     ptp=$(cat /sys/class/ptp/ptp0/clock_name)
     if [ "$ptp" != "hyperv" ]; then
-        msg="PTP not supported for current distro."
-        LogMsg $msg
-        echo $msg >> summary.log
-        exit 0
+        LogMsg "PTP not supported for current distro."
+        UpdateSummary "PTP not supported for current distro."
+        ptp="off"
     fi
 }
-#######################################################################
-#
-# ConfigRhel()
-#
-#######################################################################
-ConfigChrony()
+
+ConfigRhel()
 {
-    echo "refclock PHC /dev/ptp0 poll 3 dpoll -2 offset 0" >> /etc/chrony.conf
+    yum install chrony -y
+    if [ $? -ne 0 ]; then
+        LogMsg "ERROR: Failed to install chrony"
+        UpdateSummary "ERROR: Failed to install chrony"
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
+    
+    CheckPTPSupport
+    if [[ $ptp == "hyperv" ]]; then
+        grep "refclock PHC /dev/ptp0 poll 3 dpoll -2 offset 0" /etc/chrony.conf
+        if [ $? -ne 0 ]; then
+            echo "refclock PHC /dev/ptp0 poll 3 dpoll -2 offset 0" >> /etc/chrony.conf
+        fi
+    fi
+
+    service chronyd restart
+    if [ $? -ne 0 ]; then
+        LogMsg "ERROR: Chronyd service failed to restart"
+        UpdateSummary "ERROR: Chronyd service failed to restart"
+    fi
+    
+    if [[ $Chrony == "off" ]]; then
+        service chronyd stop
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Unable to stop chronyd"
+            UpdateSummary "ERROR: Unable to stop chronyd"
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+        service ntpd stop
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Unable to stop NTPD"
+            UpdateSummary "ERROR: Unable to stop NTPD"
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+    fi    
+}
+
+ConfigSles()
+{
+    zypper install -y chrony
+    if [ $? -ne 0 ]; then
+        LogMsg "ERROR: Failed to install chrony"
+        UpdateSummary "ERROR: Failed to install chrony"
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
+
+    CheckPTPSupport
+    if [[ $ptp == "hyperv" ]]; then
+        grep "refclock PHC /dev/ptp0 poll 3 dpoll -2 offset 0" /etc/chrony.conf
+        if [ $? -ne 0 ]; then
+            echo "refclock PHC /dev/ptp0 poll 3 dpoll -2 offset 0" >> /etc/chrony.conf
+        fi
+    fi
+
     systemctl restart chronyd
     if [ $? -ne 0 ]; then
-        msg="ERROR: Chronyd service failed to restart"
-        LogMsg $msg
-        echo $msg >> summary.log
-        UpdateTestState "TestAborted"
+        LogMsg "ERROR: Chronyd service failed to restart"
+        UpdateSummary "ERROR: Chronyd service failed to restart"
+        UpdateTestState $ICA_TESTFAILED
         exit 1
     fi
+
+    if [[ $Chrony == "off" ]]; then
+        service chronyd stop
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Unable to stop chronyd"
+            UpdateSummary "ERROR: Unable to stop chronyd"
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+        service ntpd stop
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Unable to stop NTPD"
+            UpdateSummary "ERROR: Unable to stop NTPD"
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+    fi    
 }
 
-ConfigPtp4l()
+ConfigUbuntu()
 {
-    sed -i "s/time_stamping=\S*/time_stamping     software/g" /etc/ptp4l.conf
-    systemctl enable ptp4l
-    systemctl start ptp4l
+    apt-get install chrony -y
     if [ $? -ne 0 ]; then
-        msg="ERROR: Failed to config ptp4l"
-        LogMsg $msg
-        echo $msg >> summary.log
-        UpdateTestState "TestAborted"
+        LogMsg "ERROR: Failed to install chrony"
+        UpdateSummary "ERROR: Failed to install chrony"
+        UpdateTestState $ICA_TESTFAILED
         exit 1
     fi
-}
 
-InstallChrony()
-{
-    case $1 in
-    "CENTOS" | "RHEL" | "FEDORA")
-        yum install chrony -y
-    ;;
-    "UBUNTU")
-        apt-get install -y chrony
-    ;;
-    "SLES")
-        zypper install -y chrony
-    ;;
-    *)
-        msg="ERROR: Distro '${distro}' not supported"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState "TestAborted"
-        exit 1
-    ;;
-    esac
-    
-    if [ $? -ne 0]; then
-        msg="ERROR: Unable to install chrony"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState "TestAborted"
+    CheckPTPSupport
+    if [[ $ptp == "hyperv" ]]; then
+        grep "refclock PHC /dev/ptp0 poll 3 dpoll -2 offset 0" /etc/chrony/chrony.conf
+        if [ $? -ne 0 ]; then
+            echo "refclock PHC /dev/ptp0 poll 3 dpoll -2 offset 0" >> /etc/chrony/chrony.conf
+        fi
+    fi
+
+    systemctl restart chrony
+    if [ $? -ne 0 ]; then
+        LogMsg "ERROR: Chronyd service failed to restart"
+        UpdateSummary "ERROR: Chronyd service failed to restart"
+        UpdateTestState $ICA_TESTFAILED
         exit 1
     fi
-}
-#######################################################################
-#
-# Main script body
-#
-#######################################################################
-UpdateTestState $ICA_TESTRUNNING
-cd ~
-# Delete any old summary.log file
-if [ -e ~/summary.log ]; then
-    rm -f ~/summary.log
-fi
 
-touch ~/summary.log
+    if [[ $Chrony == "off" ]]; then
+        service chrony stop
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Unable to stop chrony"
+            UpdateSummary "ERROR: Unable to stop chrony"
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
 
-dos2unix utils.sh
-
-# Source utils.sh
-. utils.sh || {
-    echo "Error: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
-    exit 1
+        service ntp stop
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Unable to stop NTP"
+            UpdateSummary "ERROR: Unable to stop NTP"
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+    fi    
 }
 
-#
-# Configure ptp - this has distro specific behaviour
-#
-distro=`LinuxRelease`
-CheckPTPSupport
-InstallChrony $distro
-ConfigChrony
-exit 0
+GetDistro
+case $DISTRO in
+    centos* | redhat* | fedora*)
+        ConfigRhel
+    ;;
+    ubuntu*)
+        ConfigUbuntu
+    ;;
+    suse*)
+        ConfigSles
+    ;;
+     *)
+        LogMsg "WARNING: Distro '${distro}' not supported."
+        UpdateSummary "WARNING: Distro '${distro}' not supported."
+    ;;
+esac
 
-
+UpdateTestState $ICA_TESTCOMPLETED

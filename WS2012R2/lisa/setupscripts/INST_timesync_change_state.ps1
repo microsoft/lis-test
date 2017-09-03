@@ -162,15 +162,8 @@ else
 
 if ($chrony_state -eq "off")
 {
-    "Info: Turn off chrony in vm"
-    $cmd = "service chronyd stop; service ntpd stop"
-    $retVal = SendCommandToVM $ipv4 $sshKey "$cmd"
-    if ($retVal -eq $False)
-    {
-        Write-Output "Error: Failed to turn off chrony."
-        return $False
-    }
-}
+    Write-Output "Info: Chrony has been turned off by shell script."
+} 
 
 Start-Sleep -S 10
 #
