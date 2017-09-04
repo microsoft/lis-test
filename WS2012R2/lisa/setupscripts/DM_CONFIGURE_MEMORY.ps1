@@ -172,6 +172,7 @@ foreach ($p in $params)
 
     elseif($temp[0].Trim() -eq "maxMem")
     {
+      $maxMem_xmlValue = $temp[1].Trim()
       $tPmaxMem = ConvertToMemSize $temp[1].Trim() $hvServer
 
       if ($tPmaxMem -le 0)
@@ -181,12 +182,11 @@ foreach ($p in $params)
       }
 
       "maxMem: $tPmaxMem"
-
     }
 
     elseif($temp[0].Trim() -eq "startupMem")
     {
-
+      $startupMem_xmlValue = $temp[1].Trim()
       $tPstartupMem = ConvertToMemSize $temp[1].Trim() $hvServer
 
       if ($tPstartupMem -le 0)
@@ -196,7 +196,6 @@ foreach ($p in $params)
       }
 
       "startupMem: $tPstartupMem"
-
     }
 
     elseif($temp[0].Trim() -eq "memWeight")
@@ -210,8 +209,8 @@ foreach ($p in $params)
       }
 
       "memWeight: $tPmemWeight"
-	}
-
+	  }
+ 
     # check if we have all variables set
     if ( $vmName -and ($tpEnabled -eq $false -or $tpEnabled -eq $true) -and $tPstartupMem -and ([int64]$tPmemWeight -ge [int64]0) )
     {
@@ -255,6 +254,10 @@ foreach ($p in $params)
 		}
 	  } elseif ($tpEnabled)
       {
+        if ($maxMem_xmlValue -eq $startupMem_xmlValue) 
+        {
+          $tPstartupMem = $tPmaxMem
+        }
         Set-VMMemory -vmName $vmName -ComputerName $hvServer -DynamicMemoryEnabled $tpEnabled `
                       -MinimumBytes $tPminMem -MaximumBytes $tPmaxMem -StartupBytes $tPstartupMem `
                       -Priority $tPmemWeight

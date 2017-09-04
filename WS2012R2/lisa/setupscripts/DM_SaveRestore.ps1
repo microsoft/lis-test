@@ -19,7 +19,6 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
  Perform Save/Start operations on VMs with Dynamic Memory enabled.
@@ -65,16 +64,13 @@
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
 Set-PSDebug -Strict
-
 
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 #
 # Check input arguments
 #
@@ -105,9 +101,6 @@ $sshKey = $null
 # IP Address of first VM
 $ipv4 = $null
 
-# IP Address of second VM
-$vm2ipv4 = $null
-
 # Name of first VM
 $vm1Name = $null
 
@@ -127,36 +120,36 @@ Set-Variable defaultTries -option Constant -value 3
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
 {
-  "Mandatory param RootDir=Path; not found!"
-  return $false
+    "Mandatory param RootDir=Path; not found!"
+    return $false
 }
 $rootDir = $Matches[1]
 
 if (Test-Path $rootDir)
 {
-  Set-Location -Path $rootDir
-  if (-not $?)
-  {
-    "Error: Could not change directory to $rootDir !"
-    return $false
-  }
-  "Changed working directory to $rootDir"
+    Set-Location -Path $rootDir
+    if (-not $?)
+    {
+        "Error: Could not change directory to $rootDir !"
+        return $false
+    }
+    "Changed working directory to $rootDir"
 }
 else
 {
-  "Error: RootDir = $rootDir is not a valid path"
-  return $false
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
 }
 
 # Source TCUitls.ps1 for getipv4 and other functions
 if (Test-Path ".\setupScripts\TCUtils.ps1")
 {
-  . .\setupScripts\TCUtils.ps1
+    . .\setupScripts\TCUtils.ps1
 }
 else
 {
-  "Error: Could not find setupScripts\TCUtils.ps1"
-  return $false
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 # iterator for vmName= parameters. Only 2 are taken into consideration
@@ -173,84 +166,83 @@ foreach ($p in $params)
       "ipv4"    { $ipv4    = $fields[1].Trim() }
       "sshKey"  { $sshKey  = $fields[1].Trim() }
       "tries"  { $tries  = $fields[1].Trim() }
-
-    }
-    
+      "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
+    } 
 }
+
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 if ($tries -le 0)
 {
-  $tries = $defaultTries
+    $tries = $defaultTries
 }
 
 if ($vmNames.count -lt 2)
 {
-  "Error: two VMs are necessary for the StartupLowCompete test."
-  return $false
+    "Error: two VMs are necessary for the StartupLowCompete test." | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 $vm1Name = $vmNames[0]
 $vm2Name = $vmNames[1]
-
 if ($vm1Name -notlike $vmName)
 {
-  if ($vm2Name -like $vmName)
-  {
-    # switch vm1Name with vm2Name
-    $vm1Name = $vmNames[1]
-    $vm2Name = $vmNames[0]
-  }
-  else 
-  {
-    "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml."
-    return $false
-  }
+    if ($vm2Name -like $vmName)
+    {
+        # switch vm1Name with vm2Name
+        $vm1Name = $vmNames[1]
+        $vm2Name = $vmNames[0]
+    }
+    else 
+    {
+        "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml." | Tee-Object -Append -file $summaryLog
+        return $false
+    }
 }
 
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $vm1)
 {
-  "Error: VM $vm1Name does not exist"
-  return $false
+    "Error: VM $vm1Name does not exist" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 $vm2 = Get-VM -Name $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $vm2)
 {
-  "Error: VM $vm2Name does not exist"
-  return $false
+    "Error: VM $vm2Name does not exist" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 # sleep 1 minute for VM to start reporting demand
 $sleepPeriod = 60
-
 while ($sleepPeriod -gt 0) 
 {
-  # get VM1's Memory
-  [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/[int64]1048576)
-  [int64]$vm1BeforeDemand = ($vm1.MemoryDemand/[int64]1048576)
+    # get VM1's Memory
+    [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/[int64]1048576)
+    [int64]$vm1BeforeDemand = ($vm1.MemoryDemand/[int64]1048576)
 
-  if ($vm1BeforeAssigned -gt 0 -and $vm1BeforeDemand -gt 0)
-  {
-    break
-  }
+    if ($vm1BeforeAssigned -gt 0 -and $vm1BeforeDemand -gt 0)
+    {
+        break
+    }
 
-  $sleepPeriod -= 5
-  start-sleep -s 5
+    $sleepPeriod -= 5
+    Start-Sleep -s 5
 }
 
 if ($vm1BeforeAssigned -le 0)
 {
-  "Error: $vm1Name Assigned memory is 0"
-  return $false
+    "Error: $vm1Name Assigned memory is 0" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 if ($vm1BeforeDemand -le 0)
 {
-  "Error: $vm1Name Memory demand is 0"
-  return $false
+    "Error: $vm1Name Memory demand is 0" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 "VM1 $vm1Name before assigned memory : $vm1BeforeAssigned"
@@ -259,74 +251,39 @@ if ($vm1BeforeDemand -le 0)
 #
 # LIS Started VM1, so start VM2
 #
-
-if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
-{
-
-  [int]$i = 0
-  # try to start VM2
-  for ($i=0; $i -lt $tries; $i++)
-  {
-
-    Start-VM -Name $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-    if (-not $?)
-    {
-      "Warning: Unable to start VM ${vm2Name} on attempt $i"
-    }
-    else 
-    {
-      $i = 0
-      break   
-    }
-
-    Start-sleep -s 30
-  }
-
-  if ($i -ge $tries)
-  {
-    "Error: Unable to start VM2 after $tries attempts"
-    return $false
-  }
-
-}
-
-# just to make sure vm2 started
-if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
-{
-  "Error: $vm2Names never started."
-  return $false
-}
+$timeout = 120
+StartDependencyVM $vm2Name $hvServer $tries
+WaitForVMToStartKVP $vm2Name $hvServer $timeout 
 
 # sleep another 2 minute trying to get VM2's memory demand 
 $sleepPeriod = 120 #seconds
 # get VM2's Memory
 while ($sleepPeriod -gt 0)
 {
-  [int64]$vm2BeforeAssigned = ($vm2.MemoryAssigned/[int64]1048576)
-  [int64]$vm2BeforeDemand = ($vm2.MemoryDemand/[int64]1048576)
+    [int64]$vm2BeforeAssigned = ($vm2.MemoryAssigned/[int64]1048576)
+    [int64]$vm2BeforeDemand = ($vm2.MemoryDemand/[int64]1048576)
 
-  if ($vm2BeforeAssigned -gt 0 -and $vm2BeforeDemand -gt 0)
-  {
-    break
-  }
+    if ($vm2BeforeAssigned -gt 0 -and $vm2BeforeDemand -gt 0)
+    {
+        break
+    }
 
-  $sleepPeriod-= 5
-  start-sleep -s 5
-
+    $sleepPeriod-= 5
+    Start-Sleep -s 5
 }
 
 if ($vm2BeforeAssigned -le 0)
 {
-  "Error: $vm2Name Assigned memory is 0"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm2Name Assigned memory is 0" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 if ($vm2BeforeDemand -le 0)
 {
-  "Error: $vm2Name Memory demand is 0"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm2Name Memory demand is 0" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 "VM2 $vm2Name before assigned memory : $vm2BeforeAssigned"
@@ -334,38 +291,36 @@ if ($vm2BeforeDemand -le 0)
 
 # Save VM2
 Save-VM $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $?)
 {
-  "Error: Unable to save vm2 $vm2Name on $hvServer"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: Unable to save vm2 $vm2Name on $hvServer" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 Start-VM -Name $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $?)
 {
-  "Error: Unable to start VM2 $vm2Name after saving it"
-  return $false
+    "Error: Unable to start VM2 $vm2Name after saving it" | Tee-Object -Append -file $summaryLog
+    return $false
 }
-start-sleep -s 60
+
+Start-Sleep -s 60
 # get VM2's Memory
 [int64]$vm2AfterAssigned = ($vm2.MemoryAssigned/[int64]1048576)
 [int64]$vm2AfterDemand = ($vm2.MemoryDemand/[int64]1048576)
-
 if ($vm2AfterAssigned -le 0)
 {
-  "Error: $vm2Name Assigned memory is 0 after it started from save"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm2Name Assigned memory is 0 after it started from save" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 if ($vm2AfterDemand -le 0)
 {
-  "Error: $vm2Name Memory demand is $vm2AfterDemand after it started from save."
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm2Name Memory demand is $vm2AfterDemand after it started from save." | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 "VM2 $vm2Name after assigned memory : $vm2AfterAssigned"
@@ -373,109 +328,103 @@ if ($vm2AfterDemand -le 0)
 
 # Save VM1
 Save-VM $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $?)
 {
-  "Error: Unable to save VM1 $vm1Name"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: Unable to save VM1 $vm1Name" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 Start-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $?)
 {
-  "Error: Unable to start VM1 $vm1Name after saving it"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: Unable to start VM1 $vm1Name after saving it" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
-start-sleep -s 60
+
+Start-Sleep -s 60
 # get VM1's Memory
 [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/[int64]1048576)
 [int64]$vm1AfterDemand = ($vm1.MemoryDemand/[int64]1048576)
-
 if ($vm1AfterAssigned -le 0)
 {
-  "Error: $vm1Name Assigned memory is 0 after it started from save"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm1Name Assigned memory is 0 after it started from save" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 if ($vm1AfterDemand -le 0)
 {
-  "Error: $vm1Name Memory demand is 0 after it started from save"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm1Name Memory demand is 0 after it started from save" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 "VM1 $vm1Name after assigned memory : $vm1AfterAssigned"
 "VM1 $vm1Name after memory demand: $vm1AfterDemand"
-
 # save VM1 and VM2
 Save-VM $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
-  "Error: Unable to save VM1 $vm1Name the second time"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: Unable to save VM1 $vm1Name the second time" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 Save-VM $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
-  "Error: Unable to save VM2 $vm2Name the second time"
-  Start-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-  if (-not $?)
-  {
-    "Warning: Unable to start VM1 $vm1Name before exiting script."
-  }
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: Unable to save VM2 $vm2Name the second time" | Tee-Object -Append -file $summaryLog
+    Start-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
+    if (-not $?)
+    {
+        "Warning: Unable to start VM1 $vm1Name before exiting script."
+    }
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 Start-VM -Name $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $?)
 {
-  "Error: Unable to start VM2 $vm2Name after saving it the second time"
-  Start-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-  {
-    "Warning: Unable to start VM1 $vm1Name before exiting script."
-  }
-  return $false
+    "Error: Unable to start VM2 $vm2Name after saving it the second time" | Tee-Object -Append -file $summaryLog
+    Start-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
+    {
+      "Warning: Unable to start VM1 $vm1Name before exiting script."
+    }
+    return $false
 }
 
 Start-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $?)
 {
-  "Error: Unable to start VM1 $vm1Name after saving it the second time"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: Unable to start VM1 $vm1Name after saving it the second time" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
-start-sleep -s 60
+Start-Sleep -s 60
 # get VM1's Memory
 [int64]$vm1EndAssigned = ($vm1.MemoryAssigned/[int64]1048576)
 [int64]$vm1EndDemand = ($vm1.MemoryDemand/[int64]1048576)
 
 if ($vm1EndAssigned -le 0)
 {
-  "Error: $vm1Name Assigned memory is 0 after last round of saving"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm1Name Assigned memory is 0 after last round of saving" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 if ($vm1EndDemand -le 0)
 {
-  "Error: $vm1Name Memory demand is 0 after last round of saving"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm1Name Memory demand is 0 after last round of saving" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 "VM1 $vm1Name end assigned memory : $vm1EndAssigned"
 "VM1 $vm1Name end memory demand: $vm1EndDemand"
-
 
 # get VM2's Memory
 [int64]$vm2EndAssigned = ($vm2.MemoryAssigned/[int64]1048576)
@@ -483,16 +432,16 @@ if ($vm1EndDemand -le 0)
 
 if ($vm2EndAssigned -le 0)
 {
-  "Error: $vm2Name Assigned memory is 0 after last round of saving"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm2Name Assigned memory is 0 after last round of saving" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 if ($vm2EndDemand -le 0)
 {
-  "Error: $vm2Name Memory demand is 0 after last round of saving"
-  Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
-  return $false
+    "Error: $vm2Name Memory demand is 0 after last round of saving" | Tee-Object -Append -file $summaryLog
+    Stop-VM -vmName $vm2Name -ComputerName $hvServer -force
+    return $false
 }
 
 "VM2 $vm2Name end assigned memory : $vm2EndAssigned"
