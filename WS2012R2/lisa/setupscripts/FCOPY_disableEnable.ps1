@@ -74,25 +74,25 @@ function Mount-Disk()
     $sts = SendCommandToVM $ipv4 $sshKey "(echo d;echo;echo w)|fdisk ${driveName}"
     if (-not $sts) {
         Write-Output "ERROR: Failed to format the disk in the VM $vmName."
-        return $False
+        return $Failed
     }
 
     $sts = SendCommandToVM $ipv4 $sshKey "(echo n;echo p;echo 1;echo;echo;echo w)|fdisk ${driveName}"
     if (-not $sts) {
         Write-Output "ERROR: Failed to format the disk in the VM $vmName."
-        return $False
+        return $Failed
     }
 
     $sts = SendCommandToVM $ipv4 $sshKey "mkfs.ext4 ${driveName}1"
     if (-not $sts) {
         Write-Output "ERROR: Failed to make file system in the VM $vmName."
-        return $False
+        return $Failed
     }
 
     $sts = SendCommandToVM $ipv4 $sshKey "mount ${driveName}1 /mnt"
     if (-not $sts) {
         Write-Output "ERROR: Failed to mount the disk in the VM $vmName."
-        return $False
+        return $Failed
     }
 
     "Info: $driveName has been mounted to /mnt in the VM $vmName."
@@ -119,7 +119,7 @@ function Check-Systemd()
     if (($check1 -and $check2) -eq $true) {
         return $true
     } else {
-        return $false
+        return $Failed
     }
 }
 
@@ -149,17 +149,17 @@ foreach ($p in $params) {
 # Validate parameters
 if (-not $vmName) {
     Write-Output "Error: VM name is null!"
-    $retVal = $false
+    return $Failed
 }
 
 if (-not $hvServer) {
     Write-Output "Error: hvServer is null!"
-    $retVal = $false
+    return $Failed
 }
 
 if (-not $testParams) {
     Write-Output"Error: No testParams provided!"
-    $retVal = $false
+    return $Failed
 }
 
 # Change directory
@@ -176,7 +176,7 @@ if (Test-Path ".\setupScripts\TCUtils.ps1") {
 $BuildNumber = GetHostBuildNumber $hvServer
 if ($BuildNumber -eq 0)
 {
-    return $false
+    return $Failed
 }
 elseif ($BuildNumber -lt 9600)
 {
@@ -195,7 +195,7 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 $currentState = CheckVMState $vmName $hvServer
 if ($? -ne "True") {
     Write-Output "Error: Cannot check VM state" | Tee-Object -Append -file $summaryLog
-    $retVal = $false
+    return $Failed
 }
 
 # If the VM is in any state other than running power it ON
@@ -204,7 +204,7 @@ if ($currentState -ne "Running") {
     Start-VM $vmName
     if ($? -ne "True") {
         Write-Output "Error: Unable to Power ON the VM" | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
     Start-Sleep 60
 }
@@ -216,7 +216,7 @@ if ($checkVM -eq "True") {
     $gsi = Get-VMIntegrationService -vmName $vmName -ComputerName $hvServer -Name "Guest Service Interface"
     if ($? -ne "True") {
             Write-Output "Error: Unable to run Get-VMIntegrationService on $vmName ($hvServer)" | Tee-Object -Append -file $summaryLog
-            $retVal = $false
+            return $Failed
     }
 
     # If guest services are not enabled, enable them
@@ -224,7 +224,7 @@ if ($checkVM -eq "True") {
         Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
         if ($? -ne "True") {
             Write-Output "Error: Unable to enable VMIntegrationService on $vmName ($hvServer)" | Tee-Object -Append -file $summaryLog
-            $retVal = $false
+            return $Failed
         }
     }
 
@@ -234,14 +234,14 @@ if ($checkVM -eq "True") {
         Disable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
         if ($? -ne "True") {
             Write-Output "Error: Unable to disable VMIntegrationService on $vmName ($hvServer) on $counter run" | Tee-Object -Append -file $summaryLog
-            $retVal = $false
+            return $Failed
         }
         Start-Sleep 5
 
         Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
         if ($? -ne "True") {
             Write-Output "Error: Unable to enable VMIntegrationService on $vmName ($hvServer) on $counter run" | Tee-Object -Append -file $summaryLog
-            $retVal = $false
+            return $Failed
         }
         Start-Sleep 5
         $counter += 1
@@ -253,7 +253,7 @@ if ($checkVM -eq "True") {
     $hvPath = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
     if ($? -ne "True") {
         Write-Output "Error: Unable to get VM host" | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
 
     # Fix path format if it's broken
@@ -284,7 +284,7 @@ if ($checkVM -eq "True") {
     Write-Output "Current Integration Services PrimaryStatusDescription is: $operStatus"
     if ($operStatus -ne "Ok") {
         Write-Output "Error: The Guest services are not working properly for VM $vmName!" | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
     else {
         . .\setupscripts\STOR_VHDXResize_Utils.ps1
@@ -294,7 +294,7 @@ if ($checkVM -eq "True") {
         $createFile = fsutil.exe file createnew \\$hvServer\$filePathFormatted $fileToCopySize
         if ($createFile -notlike "File *testfile-*.file is created") {
             Write-Output "Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
-            $retVal = $false
+            return $Failed
         }
     }
 
@@ -302,7 +302,7 @@ if ($checkVM -eq "True") {
     $sts = Mount-Disk
     if (-not $sts[-1]) {
         Write-Output "Error: Failed to mount the disk in the VM." | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
 
     $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active *fcopy*"
@@ -314,14 +314,14 @@ if ($checkVM -eq "True") {
     $gsi = Get-VMIntegrationService -vmName $vmName -ComputerName $hvServer -Name "Guest Service Interface"
     if ($gsi.Enabled -ne "True") {
         Write-Output "Error: FCopy Integration Service is not enabled" | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
 
     # Check for the file to be copied
     Test-Path $filePathFormatted
     if ($? -ne "True") {
         Write-Output "Error: File to be copied not found." | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
 
     $Error.Clear()
@@ -332,7 +332,7 @@ if ($checkVM -eq "True") {
         Write-Output "Info: File has been successfully copied to guest VM '${vmName}'" | Tee-Object -Append -file $summaryLog
     } else {
         Write-Output "Error: File could not be copied!" | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
 
     [int]$copyDuration = [math]::floor($copyDuration)
@@ -342,22 +342,22 @@ if ($checkVM -eq "True") {
     $sts = CheckFile /mnt/$testfile
     if (-not $sts[-1]) {
         Write-Output "Error: File is not present on the guest VM" | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
     elseif ($sts[0] -eq $fileToCopySize) {
         Write-Output "Info: The file copied matches the $FcopyFileSize size." | Tee-Object -Append -file $summaryLog
-        $retVal = $true
+        return $true
     }
     else {
         Write-Output "Error: The file copied doesn't match the $FcopyFileSize size!" | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
 
     # Removing the temporary test file
     Remove-Item -Path \\$hvServer\$filePathFormatted -Force
     if (-not $?) {
         Write-Output "Error: Cannot remove the test file '${testfile}'!" | Tee-Object -Append -file $summaryLog
-        $retVal = $false
+        return $Failed
     }
 
     # Check if there were call traces during the test
@@ -376,7 +376,7 @@ if ($checkVM -eq "True") {
     if ($sts -eq $NULL) {
         Write-Output "Info: No Call traces have been found on VM" | Tee-Object -Append -file $summaryLog
     }
-    return $retVal
+    return $Passed
 }
 else {
     Write-Output "Systemd is not being used. Test Skipped" | Tee-Object -Append -file $summaryLog
