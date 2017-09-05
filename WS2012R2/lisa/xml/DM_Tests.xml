@@ -35,7 +35,8 @@
 
 				<!-- Stress Hot Add tests -->
 				<suiteTest>Stress_HotAdd_5seconds</suiteTest>
-				<suiteTest>Stress_HotAdd_1second</suiteTest> 
+				<suiteTest>Stress_HotAdd_1second</suiteTest>
+				<suiteTest>Stress_Large_Chunk</suiteTest>
 
 				<!-- Dynamic Memory – Ballooning-->
 				<suiteTest>StartupLowCompete</suiteTest>
@@ -383,6 +384,29 @@
 				<param>enableDM=yes</param>
 				<param>minMem=1024MB</param>
 				<param>maxMem=4GB</param>
+				<param>startupMem=1024MB</param>
+				<param>memWeight=100</param>
+				<param>staticMem=1024MB</param>
+			</testParams>
+			<testScript>setupScripts\DM_HotAdd_Stress_ng.ps1</testScript>
+			<files>remote-scripts/ica/check_traces.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>1200</timeout>
+		</test>
+
+		<test>
+			<testName>Stress_Large_Chunk</testName>
+			<setupScript>
+				<file>setupscripts\RevertSnapshot.ps1</file>
+				<file>SetupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+			</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-15</param>
+				<param>Stress_Level=3</param>
+				<param>vmName=VMName</param>
+				<param>enableDM=yes</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=8GB</param>
 				<param>startupMem=1024MB</param>
 				<param>memWeight=100</param>
 				<param>staticMem=1024MB</param>
