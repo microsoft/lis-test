@@ -79,11 +79,12 @@ dos2unix utils.sh
 
 UtilsInit
 
-if ! [ -d /sys/firmware/efi ]; then
-    msg="Info: Test not available for Gen2 VMs."
+if [ ! -d /sys/firmware/efi ]; then
+    msg="Info: Test not available for Gen1 VMs."
     LogMsg "$msg"
     echo $msg >> ~/summary.log
     SetTestStateSkipped
+    exit 0
 fi
 
 if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
