@@ -55,7 +55,7 @@ if (Test-Path $summaryLog) {
     del $summaryLog
 }
 
-$checkModule = Get-Module | Select-String -Pattern MLNXProvider -quiet
+$checkModule = Get-Module -ListAvailable | Select-String -Pattern MLNXProvider -quiet
 if ($checkModule) {
     Import-Module MLNXProvider
 } else {
