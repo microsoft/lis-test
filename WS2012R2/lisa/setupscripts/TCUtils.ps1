@@ -1999,3 +1999,154 @@ function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$su
 	}
 	return $true
 }
+
+# Function for starting dependency VMs used by test scripts
+function StartDependencyVM([String] $dep_vmName, [String] $server, [int]$tries)
+{
+    if (Get-VM -Name $dep_vmName -ComputerName $server |  Where { $_.State -notlike "Running" })
+    {
+        [int]$i = 0
+        # Try to start dependency VM
+        for ($i=0; $i -lt $tries; $i++)
+        {
+            Start-VM -Name $dep_vmName -ComputerName $server -ErrorAction SilentlyContinue
+            if (-not $?)
+            {
+                "Warning: Unable to start VM $dep_vmName on attempt $i"
+            }
+            else
+            {
+                $i = 0
+                break
+            }
+
+            Start-Sleep -s 30
+        }
+
+        if ($i -ge $tries)
+        {
+            "Error: Unable to start VM $dep_vmName after $tries attempts" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+    }
+
+    # just to make sure vm2 started
+    if (Get-VM -Name $dep_vmName -ComputerName $server |  Where { $_.State -notlike "Running" })
+    {
+        "Error: $dep_vmName never started."
+        return $false
+    }
+}
+
+# ScriptBlock used for Dynamic Memory test cases
+$DM_scriptBlock = {
+  # function for starting stresstestapp
+  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir, [int]$timeoutStress, [int64]$memMB, [int]$duration, [int64]$chunk)
+  {
+
+  # because function is called as job, setup rootDir and source TCUtils again
+  if (Test-Path $rootDir)
+  {
+    Set-Location -Path $rootDir
+    if (-not $?)
+    {
+    "Error: Could not change directory to $rootDir !"
+    return $false
+    }
+    "Changed working directory to $rootDir"
+  }
+  else
+  {
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
+  }
+
+  # Source TCUitls.ps1 for getipv4 and other functions
+  if (Test-Path ".\setupScripts\TCUtils.ps1")
+  {
+    . .\setupScripts\TCUtils.ps1
+    "Sourced TCUtils.ps1"
+  }
+  else
+  {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+  }
+
+      $cmdToVM = @"
+#!/bin/bash
+        if [ ! -e /proc/meminfo ]; then
+          echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/HotAdd.log 2>&1
+          exit 100
+        fi
+
+        rm ~/HotAddErrors.log -f
+        dos2unix check_traces.sh
+        chmod +x check_traces.sh
+        ./check_traces.sh ~/HotAddErrors.log &
+
+        __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
+        __totalMem=`$((__totalMem/1024))
+        echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1
+        declare -i __chunks
+        declare -i __threads
+        declare -i duration
+        declare -i timeout
+        if [ $chunk -le 0 ]; then
+            __chunks=128
+        else
+            __chunks=512
+        fi   
+        __threads=`$(($memMB/__chunks))
+        if [ $timeoutStress -eq 0 ]; then
+            timeout=10000000
+            duration=`$((10*__threads))
+        elif [ $timeoutStress -eq 1 ]; then
+            timeout=5000000
+            duration=`$((5*__threads))
+        elif [ $timeoutStress -eq 2 ]; then
+            timeout=1000000
+            duration=`$__threads
+        else
+            timeout=1
+            duration=30
+            __threads=4
+            __chunks=2048
+        fi
+
+        if [ $duration -ne 0 ]; then
+            duration=$duration
+        fi
+        echo "Stress-ng info: `$__threads threads :: `$__chunks MB chunk size :: `$((`$timeout/1000000)) seconds between chunks :: `$duration seconds total stress time" >> /root/HotAdd.log 2>&1
+        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t `$duration --backoff `$timeout
+        echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
+        wait
+        exit 0
+"@
+
+    #"pingVMs: sendig command to vm: $cmdToVM"
+    $filename = "ConsumeMem.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+      Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal[-1])
+    {
+      return $false
+    }
+
+    # execute command as job
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+  }
+}
