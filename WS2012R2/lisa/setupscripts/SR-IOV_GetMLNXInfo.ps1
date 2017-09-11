@@ -50,7 +50,7 @@ foreach ($p in $params) {
 # Change directory
 cd $rootDir
 
-$summaryLog = $rootDir + "\" + $logPath + "\" + "HostMellanoxInfo.log"
+$summaryLog = $logPath + "\" + "HostMellanoxInfo.log"
 if (Test-Path $summaryLog) {
     del $summaryLog
 }
