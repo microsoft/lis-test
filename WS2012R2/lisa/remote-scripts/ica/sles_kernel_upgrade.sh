@@ -80,21 +80,20 @@ function verfKernel {
         fi				
 	    version=$(zypper info kernel-default | grep -i version | awk '{print $3}')
 		version=${version::-2}
-		sles_version=$(cat /etc/os-release | grep -w VERSION | cut -c 10-)
-		sles_version=${sles_version::-1}
-	    LogMsg "Set to boot the proposed kernel ........"
+		sles_version=$(awk -F' *= *' '$1=="VERSION"{gsub(/"/,"",$2); print $2 }' /etc/os-release)
+	    LogMsg "Set to boot the proposed kernel..."
 	    LogMsg "Advanced options for SLES $sles_version>SLES $sles_version, with Linux $version-default"
 	    grub2-set-default "Advanced options for SLES $sles_version>SLES $sles_version, with Linux $version-default"
 	    grub2-mkconfig -o /boot/grub2/grub.cfg
 		if [[ $? -ne 0 ]]; then
-		    msg="Error: Could not set to boot the proposed kernel"
+		    msg="Error: Could not set to boot the new kernel"
 			LogMsg "$msg"
 			UpdateSummary "$msg"
 			SetTestStateFailed
 			exit 1
 		else
 		    UpdateSummary "Found a new kernel : ${version}"
-			UpdateSummary "Kernel proposed has been successfully installed and set to boot!"
+			UpdateSummary "New kernel has been successfully installed and set to boot!"
 		fi		
 	else
 	    msg="Kernel up-to-date! Nothing to do!"
@@ -107,7 +106,7 @@ function verfKernel {
 #check if exist updates LIS hyper-v modules and installing if exist
 #
 function verfHyper {
-    LogMsg "Installing the last version of Hyper-V tools..."
+    LogMsg "Checking for the latest version of Hyper-V tools..."
 	status=$(zypper info hyper-v | grep -i status | awk '{print $3}')
     if [[ $status == 'out-of-date' ]]; then
 	    zypper -n update hyper-v
