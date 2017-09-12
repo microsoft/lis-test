@@ -47,8 +47,7 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
-    sudo apt-get -y install libaio1 sysstat zip default-jdk git python-dev libzookeeper-mt-dev python-pip >> ${LOG_FILE}
+    sudo apt -y install libaio1 sysstat zip default-jdk git python-dev libzookeeper-mt-dev python-pip >> ${LOG_FILE}
     sudo -H pip install zkpython >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
@@ -89,8 +88,8 @@ do
     LogMsg "Configuring zookeeper server on: ${server}"
     if [[ ${distro} == *"Ubuntu"* ]]
     then
-        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq" >> ${LOG_FILE}
-        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt-get -y install libaio1 sysstat default-jdk" >> ${LOG_FILE}
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt update" >> ${LOG_FILE}
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo apt -y install libaio1 sysstat default-jdk" >> ${LOG_FILE}
     elif [[ ${distro} == *"Amazon"* ]]
     then
         ssh -T -o StrictHostKeyChecking=no ${USER}@${server} "sudo yum clean dbcache" >> ${LOG_FILE}

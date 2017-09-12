@@ -45,11 +45,9 @@ distro="$(head -1 /etc/issue)"
 web_server="nginx"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
-    sudo apt-get -y install libaio1 sysstat zip nginx apache2-utils >> ${LOG_FILE}
+    sudo apt -y install libaio1 sysstat zip nginx apache2-utils >> ${LOG_FILE}
 
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install sysstat zip nginx apache2-utils" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install sysstat zip nginx apache2-utils" >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache>> ${LOG_FILE}

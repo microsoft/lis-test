@@ -100,7 +100,9 @@ COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            {'name': 'RxThroughput_Gbps', 'type': DECIMAL(5, 3)},
            {'name': 'TxThroughput_Gbps', 'type': DECIMAL(5, 3)},
            {'name': 'RetransmittedSegments', 'type': DECIMAL(6, 0)},
-           {'name': 'CongestionWindowSize_KB', 'type': DECIMAL(4, 0)},
+           {'name': 'CongestionWindowSize_KB', 'type': DECIMAL(6, 0)},
+           {'name': 'SendBufSize_KBytes', 'type': DECIMAL(9, 0)},
+           {'name': 'DatagramLoss', 'type': DECIMAL(5, 3)},
            {'name': 'seq_read_iops', 'type': DECIMAL(8, 1)},
            {'name': 'seq_read_lat_usec', 'type': DECIMAL(10, 2)},
            {'name': 'rand_read_iops', 'type': DECIMAL(8, 1)},
@@ -135,6 +137,9 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
 
     test_results = parser(log_path=results_path, **kwargs).process_logs()
 
+    import pprint
+    pprint.pprint(test_results)
+
     e = create_engine('mssql+pyodbc://{}:{}@{}/{}?driver={}'.format(
             config.get('Credentials', 'User'), config.get('Credentials', 'Password'),
             config.get('Credentials', 'Server'), config.get('Credentials', 'Database'),
@@ -147,7 +152,7 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
               *(Column(column['name'], column['type']) for column in table_columns))
 
     # When creating db is also necessary
-    # metadata.create_all(checkfirst=True)
+    metadata.create_all(checkfirst=True)
 
     mapper(TestResults, t)
     session = create_session(bind=e, autocommit=False, autoflush=True)

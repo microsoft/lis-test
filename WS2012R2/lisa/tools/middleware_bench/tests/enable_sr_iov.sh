@@ -35,8 +35,8 @@ INSTANCETYPE="$1"
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
-    sudo apt-get install -y build-essential rpm dkms >> ${LOG_FILE}
+    sudo apt update
+    sudo apt install -y build-essential rpm dkms >> ${LOG_FILE}
     if [[ ${INSTANCETYPE} == *"p2."* ]] || [[ ${INSTANCETYPE} == *"m4."* ]]; then
         cd /tmp
         git clone https://github.com/amzn/amzn-drivers

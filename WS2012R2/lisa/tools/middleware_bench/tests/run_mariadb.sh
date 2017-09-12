@@ -60,11 +60,9 @@ escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
-    sudo apt-get -y install libaio1 sysstat zip sysbench mysql-client* >> ${LOG_FILE}
+    sudo apt -y install libaio1 sysstat zip sysbench mysql-client* >> ${LOG_FILE}
 
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mariadb-server" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install libaio1 sysstat zip mariadb-server" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mysql stop" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/datadir/c\datadir = ${escaped_path}' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/bind-address/c\bind-address = 0\.0\.0\.0' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}

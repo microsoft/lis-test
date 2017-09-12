@@ -29,9 +29,9 @@
     1. Add new NICs to VMs
     2. Configure/enable SR-IOV on VMs settings via cmdlet Set-VMNetworkAdapter
     3. Run bondvf.sh on VM2
-    4. Set up SR-IOV on VM2 
+    4. Set up SR-IOV on VM2
     Optional: Set up an internal network on VM2
-    
+
 .Parameter vmName
     Name of the test VM.
 
@@ -46,11 +46,11 @@
     <test>
         <testName>VerifyVF_basic</testName>
         <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
-        <files>remote-scripts\ica\SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh</files> 
+        <files>remote-scripts\ica\SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh</files>
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
-        </setupScript> 
+        </setupScript>
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC_sriov_name=SRIOV</param>
@@ -136,14 +136,14 @@ function ConfigureBondSecondVM([String]$conIpv4,[String]$sshKey,[String]$netmask
 
             if is_ubuntu ; then
                 __file_path="/etc/network/interfaces"
-                # Change /etc/network/interfaces 
+                # Change /etc/network/interfaces
                 sed -i "s/bond`$__iterator inet dhcp/bond`$__iterator inet static/g"` `$__file_path
                 sed -i "/bond`$__iterator inet static/a address `$staticIP" `$__file_path
                 sed -i "/address `$staticIP/a netmask $netmask" `$__file_path
 
             elif is_suse ; then
                 __file_path="/etc/sysconfig/network/ifcfg-bond`$__iterator"
-                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
+                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
                 sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
                 cat <<-EOF >> `$__file_path
                 BOOTPROTO=static
@@ -153,7 +153,7 @@ EOF
 
             elif is_fedora ; then
                 __file_path="/etc/sysconfig/network-scripts/ifcfg-bond`$__iterator"
-                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
+                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
                 sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
                 cat <<-EOF >> `$__file_path
                 BOOTPROTO=static
@@ -176,13 +176,13 @@ EOF
 
         elif is_fedora ; then
             service network restart
-        fi  
-    
+        fi
+
         # to be Changed, some bug bypass
         if [ -f CreateInterfaceConfigEth.sh ] ; then
             bash CreateInterfaceConfigEth.sh
             ifup bond0
-        fi 
+        fi
 
         echo CreateBond: returned `$__retVal >> /root/SR-IOV_enable.log 2>&1
         exit `$__retVal
@@ -293,19 +293,19 @@ foreach ($p in $params)
     "VM2NAME" { $vm2Name = $fields[1].Trim() }
     "SshKey"  { $sshKey  = $fields[1].Trim() }
     "ipv4"    { $ipv4    = $fields[1].Trim() }
-    "BOND_IP1" { 
+    "BOND_IP1" {
         $vmBondIP1 = $fields[1].Trim()
         $vmBondIP += ($vmBondIP1)
         $bondIterator++ }
-    "BOND_IP2" { 
+    "BOND_IP2" {
         $vmBondIP2 = $fields[1].Trim()
         $vmBondIP += ($vmBondIP2)
         $bondIterator++ }
-    "BOND_IP3" { 
+    "BOND_IP3" {
         $vmBondIP3 = $fields[1].Trim()
         $vmBondIP += ($vmBondIP3)
         $bondIterator++ }
-    "BOND_IP4" { 
+    "BOND_IP4" {
         $vmBondIP4 = $fields[1].Trim()
         $vmBondIP += ($vmBondIP4)
         $bondIterator++ }
@@ -327,7 +327,7 @@ foreach ($p in $params)
                 "Error: Incorrect number of arguments for NIC test parameter: $p"
                 return $false
             }
-            
+
             $nicType = $nicArgs[0].Trim()
             $networkType = $nicArgs[1].Trim()
             $networkName = $nicArgs[2].Trim()
@@ -337,7 +337,7 @@ foreach ($p in $params)
             $nicValues += ($nicType,$networkType,$networkName,$macAddress,$legacy)
             # Increment nicIterator for every NIC declared
             $nicIterator++
-            
+
             # Validate the network adapter type
             if (@("NetworkAdapter", "LegacyNetworkAdapter") -notcontains $nicType)
             {
@@ -345,7 +345,7 @@ foreach ($p in $params)
                 "       Must be either 'NetworkAdapter' or 'LegacyNetworkAdapter'"
                 return $false
             }
-            
+
             if ($nicType -eq "LegacyNetworkAdapter")
             {
                 $legacy = $true
@@ -369,13 +369,13 @@ foreach ($p in $params)
                     "       The network does not exist"
                     return $false
                 }
-                
+
                 # make sure network is of stated type
                 if ($vmSwitch.SwitchType -notlike $networkType)
                 {
                     "Error: Switch $networkName is type $vmSwitch.SwitchType (not $networkType)"
                     return $false
-                }             
+                }
             }
 
             # Validate the MAC is the correct length
@@ -384,7 +384,7 @@ foreach ($p in $params)
                "Error: Invalid mac address: $p"
                  return $false
             }
-            
+
             # Make sure each character is a hex digit
             $ca = $macAddress.ToCharArray()
             foreach ($c in $ca)
@@ -436,7 +436,7 @@ if (-not $remoteServer) {
 $vm2 = Get-VM -Name $vm2Name -ComputerName $remoteServer -ERRORAction SilentlyContinue
 if (-not $vm2) {
     "ERROR: VM ${vm2Name} does not exist"
-    return $False    
+    return $False
 }
 
 # Verify if VM2 is already configured
@@ -457,10 +457,10 @@ if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like 
         $retval = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "ifconfig | grep $vmBondIP4"
         if ($retVal) {
             $vm2_is_configured = $true
-        } 
+        }
         else {
-            $vm2_is_configured = $false    
-        }  
+            $vm2_is_configured = $false
+        }
     }
 
 }
@@ -468,7 +468,7 @@ if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like 
 # There are some tests that require a clean dependency VM
 if ($cleanDependency -ne $null) {
     if ($cleanDependency -eq 'yes'){
-        $vm2_is_configured = $false   
+        $vm2_is_configured = $false
     }
 }
 
@@ -513,7 +513,7 @@ for ($i=0; $i -lt $nicIterator; $i++){
         $macSubstring=[convert]::ToInt32($macAddress.Substring(9))
         $macSubstring = $macSubstring + 10
         $macAddress = $macAddress -replace $macAddress.Substring(9), "$macSubstring"
-        
+
         Add-VMNetworkAdapter -VMName $vmName -SwitchName $nicValues[$i*5+2] -StaticMacAddress $macAddress -IsLegacy:$nicValues[$i*5+4] -ComputerName $hvServer
         if ($? -ne "True") {
             "Error: Add-VmNic to $vmName failed"
@@ -524,7 +524,7 @@ for ($i=0; $i -lt $nicIterator; $i++){
         }
 
         if ($vm2_is_configured -eq $false) {
-            Add-VMNetworkAdapter -VMName $vm2Name -SwitchName $nicValues[$i*5+2] -StaticMacAddress $nicValues[$i*5+3] -IsLegacy:$nicValues[$i*5+4] -ComputerName $remoteServer 
+            Add-VMNetworkAdapter -VMName $vm2Name -SwitchName $nicValues[$i*5+2] -StaticMacAddress $nicValues[$i*5+3] -IsLegacy:$nicValues[$i*5+4] -ComputerName $remoteServer
             if ($? -ne "True") {
                 "Error: Add-VmNic to $vm2Name failed"
                 $retVal = $False
@@ -544,7 +544,7 @@ for ($i=0; $i -lt $nicIterator; $i++){
             $retVal = $True
         }
 
-        Add-VMNetworkAdapter -VMName $vm2Name -SwitchName "SRIOV" -IsLegacy:$false -ComputerName $remoteServer 
+        Add-VMNetworkAdapter -VMName $vm2Name -SwitchName "SRIOV" -IsLegacy:$false -ComputerName $remoteServer
         if ($? -ne "True") {
             "Error: Add-VmNic to $vm2Name failed"
             $retVal = $False
@@ -639,7 +639,7 @@ if ($vm2_is_configured -eq $false) {
         if ($maxNICs -eq "yes") {
             $ipToSend = "10.1${nicIterator}.12.${j}"
             if ($j % 2 -eq 0) {
-                $nicIterator++  
+                $nicIterator++
             }
         }
         else {
@@ -653,7 +653,7 @@ if ($vm2_is_configured -eq $false) {
             "Failed appending $ipToSend to constants.sh"
             return $False
         }
-        "Successfully appended $ipToSend to constants.sh"   
+        "Successfully appended $ipToSend to constants.sh"
     }
 
     if ($maxNICs -eq "yes") {

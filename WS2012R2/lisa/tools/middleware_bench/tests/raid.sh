@@ -35,8 +35,8 @@ declare -a devices=("${@:3}")
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update >> ${LOG_FILE}
-    sudo apt-get install -y mdadm >> ${LOG_FILE}
+    sudo apt update
+    sudo apt install -y mdadm >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache>> ${LOG_FILE}
