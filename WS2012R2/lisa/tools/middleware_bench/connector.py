@@ -33,7 +33,7 @@ from cmdshell import SSHClient
 from db_utils import upload_results
 from results_parser import OrionLogsReader, SysbenchLogsReader, MemcachedLogsReader,\
     RedisLogsReader, ApacheLogsReader, MariadbLogsReader, MongodbLogsReader, ZookeeperLogsReader,\
-    TerasortLogsReader, TCPLogsReader, LatencyLogsReader, StorageLogsReader
+    TerasortLogsReader, TCPLogsReader, LatencyLogsReader, StorageLogsReader, SingleTCPLogsReader
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -1440,3 +1440,128 @@ def test_network_latency(provider, keyid, secret, token, imageid, subscription, 
                        test_case_name='{}_Network_Latency_perf_tuned'.format(provider),
                        provider=provider, region=region, data_path=utils.data_path(sriov),
                        host_type=utils.host_type(provider), instance_size=instancetype)
+
+
+def test_network_single_tcp(provider, keyid, secret, token, imageid, subscription, tenant,
+                            projectid, instancetype, user, localpath, region, zone, sriov, kernel):
+    """
+    Run variable TCP buffer network profile for a single connection.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    :param sriov: Enable or disable SR-IOV
+    :param kernel: custom kernel name provided in localpath
+    """
+    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
+                                                      test_type=None, disk_size=None, raid=False,
+                                                      keyid=keyid, secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone, sriov=sriov, kernel=kernel)
+    results_path = None
+    try:
+        if all(client for client in ssh_client.values()):
+            # enable key auth between instances
+            ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
+                                   '/home/{}/.ssh/id_rsa'.format(user))
+            ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
+
+            current_path = os.path.dirname(os.path.realpath(__file__))
+            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_network.sh'),
+                                   '/tmp/run_network.sh')
+            ssh_client[1].run('chmod +x /tmp/run_network.sh')
+            ssh_client[1].run("sed -i 's/\r//' /tmp/run_network.sh")
+            cmd = '/tmp/run_network.sh {} {} {}'.format(vm_ips[2], user, 'single_tcp')
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd)
+            results_path = os.path.join(localpath, 'network{}_{}.zip'.format(str(time.time()),
+                                                                             instancetype))
+            ssh_client[1].get_file('/tmp/network.zip', results_path)
+    except Exception as e:
+        log.error(e)
+        raise
+    finally:
+        if connector:
+            connector.teardown()
+    if results_path:
+        upload_results(localpath=localpath,
+                       table_name='Perf_{}_Network_Single_TCP'.format(provider),
+                       results_path=results_path, parser=SingleTCPLogsReader,
+                       test_case_name='{}_Network_Single_TCP_perf_tuned'.format(provider),
+                       provider=provider, region=region, data_path=utils.data_path(sriov),
+                       host_type=utils.host_type(provider), instance_size=instancetype)
+
+
+def test_sql_server(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                    instancetype, user, localpath, region, zone, sriov, kernel):
+    """
+    Run FIO storage profile.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    :param sriov: Enable or disable SR-IOV
+    :param kernel: custom kernel name provided in localpath
+    """
+    disk_size = 0
+    if provider == constants.AWS:
+        disk_size = 100
+    elif provider == constants.AZURE:
+        disk_size = 513
+    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
+                                                      test_type=constants.VM_DISK,
+                                                      disk_size=disk_size, raid=False, keyid=keyid,
+                                                      secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone, sriov=sriov, kernel=kernel)
+
+    try:
+        if all(client for client in ssh_client.values()):
+            current_path = os.path.dirname(os.path.realpath(__file__))
+            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_storage.sh'),
+                                   '/tmp/run_storage.sh')
+            # ssh_client[1].run('chmod +x /tmp/run_storage.sh')
+            # ssh_client[1].run("sed -i 's/\r//' /tmp/run_storage.sh")
+            # cmd = '/tmp/run_storage.sh {}'.format(device)
+            # log.info('Running command {}'.format(cmd))
+            # ssh_client[1].run(cmd)
+            # ssh_client[1].get_file('/tmp/storage.zip',
+            #                        os.path.join(localpath,
+            #                                     'storage{}_{}.zip'.format(str(time.time()),
+            #                                                               instancetype)))
+    except Exception as e:
+        log.error(e)
+        raise
+    # finally:
+    #     if connector:
+    #         connector.teardown()

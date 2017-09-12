@@ -33,8 +33,7 @@ fi
 
 SERVER="$1"
 USER="$2"
-PROTO="$3"
-TEST_THREADS=
+TEST_TYPE="$3"
 
 if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
@@ -58,9 +57,9 @@ else
 fi
 sudo iptables -F >> ${LOG_FILE}
 ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo iptables -F" >> ${LOG_FILE}
-mkdir -p /tmp/network${PROTO}
+mkdir -p /tmp/network${TEST_TYPE}
 cd /tmp
-if [[ ${PROTO} == "TCP" ]]
+if [[ ${TEST_TYPE} == "TCP" ]]
 then
     TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024 2048 4096 6144 8192 10240)
     cd /tmp; git clone https://github.com/Microsoft/ntttcp-for-linux
@@ -71,13 +70,13 @@ then
     cd /tmp/lagscope/src; sudo make && sudo make install
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "cd /tmp; git clone https://github.com/Microsoft/lagscope" >> ${LOG_FILE}
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "cd /tmp/lagscope/src; sudo make && sudo make install" >> ${LOG_FILE}
-elif [[ ${PROTO} == "latency" ]]
+elif [[ ${TEST_TYPE} == "latency" ]]
 then
     cd /tmp; git clone https://github.com/Microsoft/lagscope
     cd /tmp/lagscope/src; sudo make && sudo make install
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "cd /tmp; git clone https://github.com/Microsoft/lagscope" >> ${LOG_FILE}
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "cd /tmp/lagscope/src; sudo make && sudo make install" >> ${LOG_FILE}
-elif [[ ${PROTO} == "UDP" ]]
+elif [[ ${TEST_TYPE} == "UDP" ]]
 then
     TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
     if [[ ${distro} == *"Ubuntu"* ]]
@@ -91,8 +90,22 @@ then
     else
         LogMsg "Unsupported distribution: ${distro}."
     fi
+elif [[ ${TEST_TYPE} == "single_tcp" ]]
+then
+    TEST_BUFFERS=(32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536)
+    if [[ ${distro} == *"Ubuntu"* ]]
+    then
+        sudo apt-get -y install iperf3 >> ${LOG_FILE}
+        ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install iperf3" >> ${LOG_FILE}
+    elif [[ ${distro} == *"Amazon"* ]]
+    then
+        cd /tmp; wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm; sudo rpm -ivh iperf3-3.1.3-1.fc24.x86_64.rpm >> ${LOG_FILE}
+        ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "cd /tmp; wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm; sudo rpm -ivh iperf3-3.1.3-1.fc24.x86_64.rpm" >> ${LOG_FILE}
+    else
+        LogMsg "Unsupported distribution: ${distro}."
+    fi
 else
-    LogMsg "Unsupported test type: ${PROTO}."
+    LogMsg "Unsupported test type: ${TEST_TYPE}."
 fi
 
 function get_tx_bytes(){
@@ -119,7 +132,7 @@ function get_tx_pkts(){
     echo ${Tx_pkts}
 }
 
-ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir /tmp/network${PROTO}"
+ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir /tmp/network${TEST_TYPE}"
 
 function run_lagscope()
 {
@@ -129,7 +142,7 @@ function run_lagscope()
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f lagscope"
     ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo lagscope -r${SERVER}"
     sleep 5
-    sudo lagscope -s${SERVER} -n1000000 -i0 -V > "/tmp/network${PROTO}/lagscope.log"
+    sudo lagscope -s${SERVER} -n1000000 -i0 -V > "/tmp/network${TEST_TYPE}/lagscope.log"
     sleep 5
     sudo pkill -f lagscope
 }
@@ -150,21 +163,21 @@ function run_ntttcp ()
     fi
     sudo pkill -f ntttcp
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f ntttcp"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo ntttcp -r${SERVER} -P $num_threads_P -t 60 -e > /tmp/network${PROTO}/${current_test_threads}_ntttcp-receiver.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo ntttcp -r${SERVER} -P $num_threads_P -t 60 -e > /tmp/network${TEST_TYPE}/${current_test_threads}_ntttcp-receiver.log"
     sudo pkill -f lagscope
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f lagscope"
     ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo lagscope -r${SERVER}"
     sleep 5
     previous_tx_bytes=$(get_tx_bytes)
     previous_tx_pkts=$(get_tx_pkts)
-    sudo lagscope -s${SERVER} -t 60 -V 4 > "/tmp/network${PROTO}/${current_test_threads}_lagscope.log"
-    sudo ntttcp -s${SERVER} -P ${num_threads_P} -n ${num_threads_n} -t 60  > "/tmp/network${PROTO}/${current_test_threads}_ntttcp-sender.log"
+    sudo lagscope -s${SERVER} -t 60 -V 4 > "/tmp/network${TEST_TYPE}/${current_test_threads}_lagscope.log"
+    sudo ntttcp -s${SERVER} -P ${num_threads_P} -n ${num_threads_n} -t 60  > "/tmp/network${TEST_TYPE}/${current_test_threads}_ntttcp-sender.log"
     current_tx_bytes=$(get_tx_bytes)
     current_tx_pkts=$(get_tx_pkts)
     bytes_new=`(expr ${current_tx_bytes} - ${previous_tx_bytes})`
     pkts_new=`(expr ${current_tx_pkts} - ${previous_tx_pkts})`
     avg_pkt_size=$(echo "scale=2;${bytes_new}/${pkts_new}/1024" | bc)
-    echo "Average Package Size: ${avg_pkt_size}" >> /tmp/network${PROTO}/${current_test_threads}_ntttcp-sender.log
+    echo "Average Package Size: ${avg_pkt_size}" >> /tmp/network${TEST_TYPE}/${current_test_threads}_ntttcp-sender.log
     sleep 10
     sudo pkill -f ntttcp
     sudo pkill -f lagscope
@@ -172,7 +185,7 @@ function run_ntttcp ()
     previous_tx_pkts=${current_tx_pkts}
 }
 
-function run_iperf()
+function run_iperf_udp()
 {
     current_test_threads=$1
     LogMsg "======================================"
@@ -181,7 +194,7 @@ function run_iperf()
     port=8001
     sudo pkill -f iperf3
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iperf3" >> ${LOG_FILE}
-
+    sleep 10
     server_iperf_instances=$((current_test_threads/4+port))
     for ((i=port; i<=server_iperf_instances; i++))
     do
@@ -191,40 +204,58 @@ function run_iperf()
 
     while [ ${current_test_threads} -gt 64 ]; do
         number_of_connections=$(($number_of_connections-64))
-        sudo iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l 1k -P 64 -t 60 --get-server-output -i 60 > /tmp/network${PROTO}/${current_test_threads}-iperf3.log
+        sudo iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l 1k -P 64 -t 60 --get-server-output -i 60 > /tmp/network${TEST_TYPE}/${current_test_threads}-iperf3.log
         port=$(($port + 1))
     done
     if [ ${number_of_connections} -gt 0 ]
     then
-        sudo iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l 1k -P ${number_of_connections} -t 60 --get-server-output -i 60 > /tmp/network${PROTO}/${current_test_threads}-iperf3.log
+        sudo iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l 1k -P ${number_of_connections} -t 60 --get-server-output -i 60 > /tmp/network${TEST_TYPE}/${current_test_threads}-iperf3.log
     fi
-    sleep 10
-    sudo pkill -f iperf3
-    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iperf3" >> ${LOG_FILE}
 }
 
-if [[ ${PROTO} == "TCP" ]]
+function run_single_tcp()
+{
+    current_test_buffer=$1
+    LogMsg "======================================"
+    LogMsg "Running iPerf3 variable packet size = ${current_test_buffer}"
+    LogMsg "======================================"
+    port=8001
+    sudo pkill -f iperf3
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iperf3" >> ${LOG_FILE}
+    sleep 10
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo iperf3 -s 4 -p ${port} -i 60 -D" >> ${LOG_FILE}
+    sleep 3
+    sudo iperf3 -c ${SERVER} -p ${port} -4 -b 0 -l ${current_test_buffer} -P 1 -t 60 --get-server-output -i 60 > /tmp/network${TEST_TYPE}/${current_test_buffer}-iperf3.log
+}
+
+if [[ ${TEST_TYPE} == "TCP" ]]
 then
     for thread in "${TEST_THREADS[@]}"
     do
         run_ntttcp ${thread}
     done
-elif [[ ${PROTO} == "latency" ]]
+elif [[ ${TEST_TYPE} == "latency" ]]
 then
     run_lagscope
-elif [[ ${PROTO} == "UDP" ]]
+elif [[ ${TEST_TYPE} == "UDP" ]]
 then
     for thread in "${TEST_THREADS[@]}"
     do
-        run_iperf ${thread}
+        run_iperf_udp ${thread}
+    done
+elif [[ ${TEST_TYPE} == "single_tcp" ]]
+then
+    for packet in "${TEST_BUFFERS[@]}"
+    do
+        run_single_tcp ${packet}
     done
 else
-    LogMsg "Unsupported test type: ${PROTO}."
+    LogMsg "Unsupported test type: ${TEST_TYPE}."
 fi
 
 LogMsg "Kernel Version : `uname -r`"
 LogMsg "Guest OS : ${distro}"
 
 cd /tmp
-zip -r network.zip . -i network${PROTO}/* >> ${LOG_FILE}
+zip -r network.zip . -i network${TEST_TYPE}/* >> ${LOG_FILE}
 zip -r network.zip . -i summary.log >> ${LOG_FILE}
