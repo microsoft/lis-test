@@ -34,23 +34,26 @@
 # (this is not a permanent change - on reboot it needs to be reapplied)
 #   3. setup_ntttcp - downlload and install ntttcp-for-linux
 #   4. setup_lagscope - download an install lagscope to monitoring latency
-# 
 ########################################################################
 
-declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
-                           ["net.core.rmem_max"]="67108864"
-                           ["net.core.wmem_max"]="67108864"
-                           ["net.ipv4.tcp_wmem"]="4096 12582912 33554432"
-                           ["net.ipv4.tcp_rmem"]="4096 12582912 33554432"
-                           ["net.ipv4.tcp_max_syn_backlog"]="80960"
-                           ["net.ipv4.tcp_slow_start_after_idle"]="0"
-                           ["net.ipv4.tcp_tw_reuse"]="1"
-                           ["net.ipv4.ip_local_port_range"]="10240 65535"
-                           ["net.ipv4.tcp_abort_on_overflow"]="1"
-                          )
+declare -A sysctl_tcp_params=( ["net.core.netdev_max_backlog"]="30000"
+                               ["net.core.rmem_default"]="67108864"
+                               ["net.core.rmem_max"]="67108864"
+                               ["net.core.wmem_default"]="67108864"
+                               ["net.core.wmem_max"]="67108864"
+                               ["net.ipv4.tcp_wmem"]="4096 12582912 33554432"
+                               ["net.ipv4.tcp_rmem"]="4096 12582912 33554432"
+                               ["net.ipv4.tcp_max_syn_backlog"]="80960"
+                               ["net.ipv4.tcp_slow_start_after_idle"]="0"
+                               ["net.ipv4.tcp_tw_reuse"]="1"
+                               ["net.ipv4.tcp_abort_on_overflow"]="1"
+                               ["net.ipv4.ip_local_port_range"]="10240 65535" )
+declare -g -A sysctl_udp_params=( ["net.core.rmem_default"]="67108864"
+                               ["net.core.rmem_max"]="67108864" )
 sysctl_file="/etc/sysctl.conf"
 
 function setup_sysctl {
+    eval "declare -A sysctl_params="${1#*=}
     for param in "${!sysctl_params[@]}"; do
         grep -q "$param" ${sysctl_file} && \
         sed -i 's/^'"$param"'.*/'"$param"' = '"${sysctl_params[$param]}"'/' \
@@ -60,6 +63,18 @@ function setup_sysctl {
     sysctl -p ${sysctl_file}
     return $?
 }
+
+function setup_sysctl {
+    for param in "${!sysctl_tcp_params[@]}"; do
+        grep -q "$param" ${sysctl_file} && \
+        sed -i 's/^'"$param"'.*/'"$param"' = '"${sysctl_tcp_params[$param]}"'/' \
+            ${sysctl_file} || \
+        echo "$param = ${sysctl_tcp_params[$param]}" >> ${sysctl_file} || return 1
+    done
+    sysctl -p ${sysctl_file}
+    return $?
+}
+setup_sysctl
 
 # change i/o scheduler to noop on each disk - does not persist after reboot
 function setup_io_scheduler {
@@ -76,7 +91,7 @@ function setup_io_scheduler {
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     echo "###Setting sysctl params###"
-    setup_sysctl
+    setup_sysctl "$(declare -p sysctl_tcp_params)"
     if [[ $? -ne 0 ]]
     then
         echo "ERROR: Unable to set sysctl params" >> ~/summary.log
@@ -476,4 +491,200 @@ function fio_raid {
 
     cd /root
     zip -r ${LOG_FOLDER}.zip ${LOG_FOLDER}/*
+}
+
+perf_ConfigureBond()
+{
+    LogMsg "BondCount: $bondCount"
+    ip_to_set=$1
+    # Set static IPs for each bond created
+    staticIP=$(cat constants.sh | grep ${ip_to_set} | head -1 | tr = " " | awk '{print $2}')
+
+    if is_ubuntu ; then
+        __file_path="/etc/network/interfaces"
+        # Change /etc/network/interfaces
+        sed -i "s/bond0 inet dhcp/bond0 inet static/g" $__file_path
+        sed -i "/bond0 inet static/a address $staticIP" $__file_path
+        sed -i "/address ${staticIP}/a netmask $NETMASK" $__file_path
+
+    elif is_suse ; then
+        __file_path="/etc/sysconfig/network/ifcfg-bond0"
+        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+        sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" $__file_path
+        cat <<-EOF >> $__file_path
+        BOOTPROTO=static
+        IPADDR=$staticIP
+        NETMASK=$NETMASK
+EOF
+
+    elif is_fedora ; then
+        __file_path="/etc/sysconfig/network-scripts/ifcfg-bond0"
+        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+        sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" $__file_path
+        cat <<-EOF >> $__file_path
+        BOOTPROTO=static
+        IPADDR=$staticIP
+        NETMASK=$NETMASK
+EOF
+    fi
+    LogMsg "Network config file path: $__file_path"
+
+    # Add some interface output
+    LogMsg "$(ip -o addr show bond0 | grep -vi inet6)"
+
+    # Get everything up & running
+    if is_ubuntu ; then
+        service networking restart
+
+    elif is_suse ; then
+        service network restart
+
+    elif is_fedora ; then
+        service network restart
+    fi
+}
+
+#
+# VerifyVF - check if the VF driver is use
+#
+VerifyVF()
+{
+	# Check for pciutils. If it's not on the system, install it
+	lspci --version
+	if [ $? -ne 0 ]; then
+	    msg="INFO: pciutils not found. Trying to install it"
+	    LogMsg "$msg"
+
+	    GetDistro
+	    case "$DISTRO" in
+	        suse*)
+	            zypper --non-interactive in pciutils
+	            if [ $? -ne 0 ]; then
+	                msg="ERROR: Failed to install pciutils"
+	                LogMsg "$msg"
+	                UpdateSummary "$msg"
+	                SetTestStateFailed
+	                exit 1
+	            fi
+	            ;;
+	        ubuntu*)
+	            apt-get install pciutils -y
+	            if [ $? -ne 0 ]; then
+	                msg="ERROR: Failed to install pciutils"
+	                LogMsg "$msg"
+	                UpdateSummary "$msg"
+	                SetTestStateFailed
+	                exit 1
+	            fi
+	            ;;
+	        redhat*|centos*)
+	            yum install pciutils -y
+	            if [ $? -ne 0 ]; then
+	                msg="ERROR: Failed to install pciutils"
+	                LogMsg "$msg"
+	                UpdateSummary "$msg"
+	                SetTestStateFailed
+	                exit 1
+	            fi
+	            ;;
+	            *)
+	                msg="ERROR: OS Version not supported"
+	                LogMsg "$msg"
+	                UpdateSummary "$msg"
+	                SetTestStateFailed
+	                exit 1
+	            ;;
+	    esac
+	fi
+
+	# Using lsmod command, verify if driver is loaded
+	lsmod | grep ixgbevf
+	if [ $? -ne 0 ]; then
+	    lsmod | grep mlx4_core
+	    if [ $? -ne 0 ]; then
+	  		msg="ERROR: Neither mlx4_core or ixgbevf drivers are in use!"
+	  		LogMsg "$msg"
+		    UpdateSummary "$msg"
+		    SetTestStateFailed
+		    exit 1
+		fi
+	fi
+
+	# Using the lspci command, verify if NIC has SR-IOV support
+	lspci -vvv | grep ixgbevf
+	if [ $? -ne 0 ]; then
+		lspci -vvv | grep mlx4_core
+		if [ $? -ne 0 ]; then
+		    msg="No NIC with SR-IOV support found!"
+		    LogMsg "$msg"
+		    UpdateSummary "$msg"
+		    SetTestStateFailed
+		    exit 1
+		fi
+	fi
+
+	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo' | head -1)
+	if [[ is_fedora || is_ubuntu ]]; then
+        ifconfig -a | grep $interface
+   		if [ $? -ne 0 ]; then
+		    msg="ERROR: VF device, $interface , was not found!"
+		    LogMsg "$msg"
+		    UpdateSummary "$msg"
+		    SetTestStateFailed
+		    exit 1
+		fi
+    fi
+
+	return 0
+}
+
+#
+# RunBondingScript - it will run the bonding script. Acceptance criteria is the
+# presence of the bond between VF and eth after the bonding script ran.
+# NOTE: function returns the number of bonds present on VM, not "0"
+#
+RunBondingScript()
+{
+	if is_ubuntu ; then
+	    bash /usr/src/linux-headers-*/tools/hv/bondvf.sh
+
+	    # Verify if bond0 was created
+	    bondCount=$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
+	    if [ 0 -eq $bondCount ]; then
+	        msg="ERROR: Bonding script failed. No bond was created"
+		    LogMsg "$msg"
+		    UpdateSummary "$msg"
+		    SetTestStateFailed
+		    return 99
+	    fi
+
+	elif is_suse ; then
+	    bash /usr/src/linux-*/tools/hv/bondvf.sh
+
+	    # Verify if bond0 was created
+	    bondCount=$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
+	    if [ 0 -eq $bondCount ]; then
+	        msg="ERROR: Bonding script failed. No bond was created"
+		    LogMsg "$msg"
+		    UpdateSummary "$msg"
+		    SetTestStateFailed
+		    return 99
+	    fi
+
+	elif is_fedora ; then
+	    ./bondvf.sh
+
+	    # Verify if bond0 was created
+	    bondCount=$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
+	    if [ 0 -eq $bondCount ]; then
+	        msg="ERROR: Bonding script failed. No bond was created"
+		    LogMsg "$msg"
+		    UpdateSummary "$msg"
+		    SetTestStateFailed
+		    return 99
+	    fi
+	fi
+
+	LogMsg "Successfully ran the bonding script"
+	return $bondCount
 }

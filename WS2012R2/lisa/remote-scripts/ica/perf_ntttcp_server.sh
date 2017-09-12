@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ########################################################################
 #
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
@@ -74,15 +73,13 @@ touch ~/summary.log
 
 # Convert eol
 dos2unix utils.sh
-dos2unix perf_utils.sh
-
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
     echo "TestAborted" > state.txt
     exit 2
 }
-
+dos2unix perf_utils.sh
 # Source perf_utils.sh
 . perf_utils.sh || {
     echo "Error: unable to source perf_utils.sh!"
@@ -92,15 +89,6 @@ dos2unix perf_utils.sh
 
 # Source constants file and initialize most common variables
 UtilsInit
-
-#Apling performance parameters
-setup_sysctl
-if [ $? -ne 0 ]; then
-    echo "Unable to add performance parameters."
-    LogMsg "Unable to add performance parameters."
-    UpdateTestState $ICA_TESTABORTED
-fi
-
 # In case of error
 case $? in
     0)
@@ -136,17 +124,10 @@ case $? in
         ;;
 esac
 
-#
 # Make sure the required test parameters are defined
-#
-
-#Get test synthetic interface
-declare __iface_ignore
-
 # Parameter provided in constants file
-#   ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
-#   it is not touched during this test (no dhcp or static ip assigned to it)
-
+#  ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
+#  it is not touched during this test (no dhcp or static ip assigned to it)
 if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter STATIC_IP2 is not defined in constants file! Make sure you are using the latest LIS code."
     LogMsg "$msg"
@@ -154,9 +135,7 @@ if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
     SetTestStateAborted
     exit 30
 else
-
     CheckIP "$STATIC_IP2"
-
     if [ 0 -ne $? ]; then
         msg="Test parameter STATIC_IP2 = $STATIC_IP2 is not a valid IP Address"
         LogMsg "$msg"
@@ -164,14 +143,14 @@ else
         SetTestStateAborted
         exit 10
     fi
-
-    # Get the interface associated with the given ipv4
-    __iface_ignore=$(ip -o addr show | grep "$STATIC_IP2" | cut -d ' ' -f2)
 fi
 
+#Get test synthetic interface
+declare __iface_ignore
+# Get the interface associated with the given ipv4
+__iface_ignore=$(ip -o addr show | grep "$STATIC_IP2" | cut -d ' ' -f2)
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
-
 if [ 0 -ne $? ]; then
     msg="No synthetic network interfaces found"
     LogMsg "$msg"
@@ -179,10 +158,8 @@ if [ 0 -ne $? ]; then
     SetTestStateFailed
     exit 10
 fi
-
 # Remove interface if present
 SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
-
 if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
     msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
     LogMsg "$msg"
@@ -191,8 +168,21 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
     exit 10
 fi
 
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+# SRIOV setup (transparent VF)
+if [ "${SRIOV}" = "yes" ]; then
+    # Check if the SR-IOV driver is in use
+    VerifyVF
+    if [ $? -ne 0 ]; then
+        msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
+    __vf_ignore='enP2p0s2'
+    SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__vf_ignore/})
+fi
 
+LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 # Test interfaces
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
@@ -206,25 +196,63 @@ for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
     fi
 done
 
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
-
-#
-# Check for internet protocol version
-#
-CheckIPV6 "$SERVER_IP"
-if [[ $? -eq 0 ]]; then
-    ipVersion="-6"
-else
-    ipVersion=$null
+# Config static IP - with transparent-vf it is not necessary to run bondvf.sh
+if [[ "${SRIOV}" = "yes" ]] || [[ "${SRIOV}" = "no" ]]; then
+    #Config static ip on the client side.
+    config_staticip ${SERVER_IP} ${NETMASK}
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Function config_staticip failed."
+        LogMsg "ERROR: Function config_staticip failed."
+        UpdateTestState $ICA_TESTABORTED
+    fi
+fi
+# Config static IP - using bondvf.sh
+if [ "${SRIOV}" = "bond" ]; then
+    # Check if the SR-IOV driver is in use
+    VerifyVF
+    if [ $? -ne 0 ]; then
+        msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
+    # Run bondvf.sh platform specific script
+    RunBondingScript
+    bondCount=$?
+    if [ $bondCount -eq 99 ]; then
+        msg="ERROR: Running the bonding script failed. Please double check if it is present on the system"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    else
+        LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"
+    fi
+    # Set static IP to the bond
+    perf_ConfigureBond ${SERVER_IP}
+    if [ $? -ne 0 ]; then
+        msg="ERROR: Could not set a static IP to the bond!"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
 fi
 
-#
-# Distro specific setup
-#
+# Flushing firewall rules
 iptables -F
+if [ $? -ne 0 ]; then
+    msg="ERROR: Failed to flush iptables rules. Continuing"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
 ip6tables -F
-GetDistro
+if [ $? -ne 0 ]; then
+    msg="ERROR: Failed to flush ip6tables rules. Continuing"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
 
+#Check distro
+GetDistro
 case "$DISTRO" in
 debian*|ubuntu*)
     disable_firewall
@@ -235,25 +263,21 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 1
     fi
-    LogMsg "Installing sar on Ubuntu"
-    apt-get install sysstat -y
+    LogMsg "Installing dependency tools on Ubuntu"
+    apt-get update && apt-get install build-essential git sysstat dstat -y
     if [ $? -ne 0 ]; then
-        msg="Error: sysstat failed to install"
+        msg="ERROR: dependencies failed to install"
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 85
-    fi
-    apt-get install build-essential git -y
-    if [ $? -ne 0 ]; then
-        msg="Error: Build essential failed to install"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 85
     fi
     ;;
 redhat_5|redhat_6|centos_6|centos_5)
+    yum install -y bc sysstat dstat
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
     LogMsg "Check irqbalance status on RHEL 5/6.x."
     service irqbalance status
     if [ $? -eq 3 ]; then
@@ -266,6 +290,7 @@ redhat_5|redhat_6|centos_6|centos_5)
             UpdateTestState $ICA_TESTFAILED
             exit 1
         fi
+        service irqbalance status
     fi
     disable_firewall
     if [[ $? -ne 0 ]]; then
@@ -277,6 +302,12 @@ redhat_5|redhat_6|centos_6|centos_5)
     fi
     ;;
 redhat_7|centos_7)
+    yum install -y bc sysstat dstat
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
     LogMsg "Check irqbalance status on RHEL 7.xx."
     systemctl status irqbalance
     if [ $? -eq 3 ]; then
@@ -289,22 +320,15 @@ redhat_7|centos_7)
             UpdateTestState $ICA_TESTFAILED
             exit 1
         fi
+        systemctl status irqbalance
     fi
-    LogMsg "Check iptables status on RHEL"
-	systemctl status firewalld
+    LogMsg "Check firewalld status on RHEL 7.xx."
+    systemctl status firewalld
     if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Redhat 7"
-        systemctl disable firewalld
+        LogMsg "Disabling firewall on Redhat 7.x"
+        systemctl stop firewalld && systemctl disable firewalld
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop firewalld"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        systemctl stop firewalld
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off firewalld. Continuing"
+            msg="ERROR: Failed to turn off firewalld. Continuing"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
         fi
@@ -319,18 +343,18 @@ redhat_7|centos_7)
     fi
     ;;
 suse_12)
+    zypper -n in dstat sysstat gcc
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
     LogMsg "Check iptables status on SLES 12"
     service SuSEfirewall2 status
     if [ $? -ne 3 ]; then
-        iptables -F;
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
         service SuSEfirewall2 stop
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
+            msg="ERROR: Failed to stop iptables"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
@@ -338,7 +362,7 @@ suse_12)
         fi
         chkconfig SuSEfirewall2 off
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
+            msg="ERROR: Failed to turn off iptables. Continuing"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
         fi
@@ -353,6 +377,14 @@ if [ $DISTRO -eq "suse_12" ]; then
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
     fi
+fi
+
+#Apling performance parameters
+setup_sysctl "$(declare -p sysctl_tcp_params)"
+if [ $? -ne 0 ]; then
+    echo "Unable to add performance parameters."
+    LogMsg "Unable to add performance parameters."
+    UpdateTestState $ICA_TESTABORTED
 fi
 
 setup_lagscope
@@ -371,21 +403,14 @@ if [ $? -ne 0 ]; then
 fi
 
 LogMsg "Enlarging the system limit"
-ulimit -n 30480
+ulimit -n 20480
 if [ $? -ne 0 ]; then
     LogMsg "Error: Unable to enlarged system limit"
     UpdateTestState $ICA_TESTABORTED
 fi
 
-# set static ips for test interfaces
- config_staticip ${SERVER_IP} ${NETMASK}
-if [ $? -ne 0 ]; then
-    echo "ERROR: Function config_staticip failed."
-    LogMsg "ERROR: Function config_staticip failed."
-    UpdateTestState $ICA_TESTABORTED
-fi
+mkdir /root/$log_folder
 
-# Start ntttcp server instances
 sleep 3
 UpdateTestState $ICA_NTTTCPRUNNING
 LogMsg "Ntttcp server instances are now ready to run"

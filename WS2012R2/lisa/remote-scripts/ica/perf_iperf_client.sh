@@ -82,10 +82,16 @@ touch ~/summary.log
 
 # Convert eol
 dos2unix utils.sh
-
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+dos2unix perf_utils.sh
+# Source perf_utils.sh
+. perf_utils.sh || {
+    echo "Error: unable to source perf_utils.sh!"
     echo "TestAborted" > state.txt
     exit 2
 }
@@ -95,7 +101,6 @@ sleep 60
 
 # Source constants file and initialize most common variables
 UtilsInit
-
 # In case of error
 case $? in
     0)
@@ -131,9 +136,7 @@ case $? in
         ;;
 esac
 
-#
 # Make sure the required test parameters are defined
-#
 if [ "${IPERF_PACKAGE:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the IPERF_PACKAGE test parameter is missing"
     LogMsg "${msg}"
@@ -166,9 +169,15 @@ if [ "${IPERF3_SERVER_IP:="UNDEFINED"}" = "UNDEFINED" ]; then
 fi
 
 if [ "${IPERF3_PROTOCOL:="UNDEFINED"}" = "UNDEFINED" ]; then
+    IPERF3_PROTOCOL="TCP"
+    PROTOCOL=
     msg="Info: no IPERF3_PROTOCOL was specified, assuming default TCP"
     LogMsg "${msg}"
     echo "${msg}" >> ~/summary.log
+else
+    if [[ ${IPERF3_PROTOCOL} == "UDP" ]]; then
+        PROTOCOL="--udp"
+    fi
 fi
 
 if [ "${IPERF3_BUFFER:="UNDEFINED"}" = "UNDEFINED" ]; then
@@ -233,13 +242,8 @@ if [ "${IPERF3_TEST_CONNECTION_POOL:="UNDEFINED"}" = "UNDEFINED" ]; then
     echo "${msg}" >> ~/summary.log
 fi
 
-#Get test synthetic interface
-declare __iface_ignore
-
-# Parameter provided in constants file
 #   ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
 #   it is not touched during this test (no dhcp or static ip assigned to it)
-
 if [ "${ipv4:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter ipv4 is not defined in constants file! Make sure you are using the latest LIS code."
     LogMsg "$msg"
@@ -247,9 +251,7 @@ if [ "${ipv4:-UNDEFINED}" = "UNDEFINED" ]; then
     SetTestStateAborted
     exit 30
 else
-
     CheckIP "$ipv4"
-
     if [ 0 -ne $? ]; then
         msg="Test parameter ipv4 = $ipv4 is not a valid IP Address"
         LogMsg "$msg"
@@ -257,14 +259,14 @@ else
         SetTestStateAborted
         exit 10
     fi
-
-    # Get the interface associated with the given ipv4
-    __iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
 fi
 
+#Get test synthetic interface
+declare __iface_ignore
+# Get the interface associated with the given ipv4
+__iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
-
 if [ 0 -ne $? ]; then
     msg="No synthetic network interfaces found"
     LogMsg "$msg"
@@ -272,10 +274,8 @@ if [ 0 -ne $? ]; then
     SetTestStateFailed
     exit 10
 fi
-
 # Remove interface if present
 SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
-
 if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
     msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
     LogMsg "$msg"
@@ -283,9 +283,70 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
     SetTestStateAborted
     exit 10
 fi
+# SRIOV setup (transparent VF)
+if [ "${SRIOV}" = "yes" ]; then
+    dos2unix SR-IOV_Utils.sh
+    # Source perf_utils.sh
+    . SR-IOV_Utils.sh || {
+        echo "ERROR: Unable to source SR-IOV_Utils.sh!"
+        echo "TestAborted" > state.txt
+        exit 2
+    }
+    # Check if the SR-IOV driver is in use
+    VerifyVF
+    if [ $? -ne 0 ]; then
+        msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
+    __vf_ignore='enP2p0s2'
+    SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__vf_ignore/})
+    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ~/SR-IOV_Utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+fi
+# Config static IP - with transparent-vf it is not necessary to run bondvf.sh
+if [[ "${SRIOV}" = "yes" ]] || [[ "${SRIOV}" = "no" ]]; then
+    #Config static ip on the client side.
+    config_staticip ${STATIC_IP} ${NETMASK}
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Function config_staticip failed."
+        LogMsg "ERROR: Function config_staticip failed."
+        UpdateTestState $ICA_TESTABORTED
+    fi
+fi
+# Config static IP - using bondvf.sh
+if [ "${SRIOV}" = "bond" ]; then
+    # Check if the SR-IOV driver is in use
+    VerifyVF
+    if [ $? -ne 0 ]; then
+        msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
+    # Run bondvf.sh platform specific script
+    RunBondingScript
+    bondCount=$?
+    if [ $bondCount -eq 99 ]; then
+        msg="ERROR: Running the bonding script failed. Please double check if it is present on the system"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    else
+        LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"
+    fi
+    # Set static IP to the bond
+    perf_ConfigureBond ${STATIC_IP}
+    if [ $? -ne 0 ]; then
+        msg="ERROR: Could not set a static IP to the bond!"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
+    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ~/SR-IOV_Utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+fi
 
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
-
 # Test interfaces
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
@@ -313,10 +374,15 @@ echo "test signal file      = ${TEST_SIGNAL_FILE}"
 echo "test run log folder       = ${TEST_RUN_LOG_FOLDER}"
 echo "iperf3 test connection pool   = ${IPERF3_TEST_CONNECTION_POOL}"
 
-#
-# Check for internet protocol version
-#
+#Apling performance parameters
+setup_sysctl "$(declare -p sysctl_udp_params)"
+if [ $? -ne 0 ]; then
+    echo "Unable to add performance parameters."
+    LogMsg "Unable to add performance parameters."
+    UpdateTestState $ICA_TESTABORTED
+fi
 
+# Check for internet protocol version
 CheckIPV6 "$STATIC_IP"
 if [[ $? -eq 0 ]]; then
     CheckIPV6 "$IPERF3_SERVER_IP"
@@ -333,74 +399,47 @@ else
     ipVersion="-4"
 fi
 
-#
-# Extract the files from the IPerf tar package
-#
-tar -xzf ./${IPERF_PACKAGE}
-if [ $? -ne 0 ]; then
-    msg="Error: Unable extract ${IPERF_PACKAGE}"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 70
-fi
-
-#
-# Get the root directory of the tarball
-#
-rootDir=`tar -tzf ${IPERF_PACKAGE} | sed -e 's@/.*@@' | uniq`
-if [ -z ${rootDir} ]; then
-    msg="Error: Unable to determine root directory if ${IPERF_PACKAGE} tarball"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 80
-fi
-
-LogMsg "rootDir = ${rootDir}"
-cd ${rootDir}
-
+# Flushing firewall rules
 iptables -F
+if [ $? -ne 0 ]; then
+    msg="ERROR: Failed to flush iptables rules. Continuing"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
 ip6tables -F
-#
-# Distro specific setup
-#
-GetDistro
+if [ $? -ne 0 ]; then
+    msg="ERROR: Failed to flush ip6tables rules. Continuing"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
 
+#Check distro
+GetDistro
 case "$DISTRO" in
 debian*|ubuntu*)
-    LogMsg "Updating apt repositories"
-    apt-get update & wait
-
-    LogMsg "Installing sar on Ubuntu"
-    apt-get install sysstat -y
-    if [ $? -ne 0 ]; then
-        msg="Error: sysstat failed to install"
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
-        exit 85
+        exit 1
     fi
-    apt-get install zip build-essential -y
+    LogMsg "Installing dependency tools on Ubuntu"
+    apt-get update && apt-get install build-essential git sysstat dstat -y
     if [ $? -ne 0 ]; then
-        msg="Error: Build essential failed to install"
+        msg="ERROR: dependencies failed to install"
         LogMsg "${msg}"
         echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 85
-    fi
-    service ufw status
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Ubuntu"
-        service ufw stop
-        if [ $? -ne 0 ]; then
-                msg="Error: Failed to stop ufw"
-                LogMsg "${msg}"
-                echo "${msg}" >> ~/summary.log
-        fi
     fi
     ;;
 redhat_5|redhat_6|centos_6|centos_5)
+    yum install -y bc sysstat dstat
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
     LogMsg "Check irqbalance status on RHEL 5/6.x."
     service irqbalance status
     if [ $? -eq 3 ]; then
@@ -413,6 +452,7 @@ redhat_5|redhat_6|centos_6|centos_5)
             UpdateTestState $ICA_TESTFAILED
             exit 1
         fi
+        service irqbalance status
     fi
     disable_firewall
     if [[ $? -ne 0 ]]; then
@@ -424,6 +464,12 @@ redhat_5|redhat_6|centos_6|centos_5)
     fi
     ;;
 redhat_7|centos_7)
+    yum install -y bc sysstat dstat
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
     LogMsg "Check irqbalance status on RHEL 7.xx."
     systemctl status irqbalance
     if [ $? -eq 3 ]; then
@@ -436,119 +482,78 @@ redhat_7|centos_7)
             UpdateTestState $ICA_TESTFAILED
             exit 1
         fi
+        systemctl status irqbalance
     fi
-    LogMsg "Check iptables status on RHEL"
+    LogMsg "Check firewalld status on RHEL 7.xx."
     systemctl status firewalld
     if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Redhat 7"
-        systemctl disable firewalld
+        LogMsg "Disabling firewall on Redhat 7.x"
+        systemctl stop firewalld && systemctl disable firewalld
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop firewalld"
+            msg="ERROR: Failed to turn off firewalld. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+    fi
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
+    ;;
+suse_12)
+    zypper -n in dstat sysstat gcc
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
+    LogMsg "Check iptables status on SLES 12"
+    service SuSEfirewall2 status
+    if [ $? -ne 3 ]; then
+        service SuSEfirewall2 stop
+        if [ $? -ne 0 ]; then
+            msg="ERROR: Failed to stop iptables"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
             exit 85
         fi
-        systemctl stop firewalld
+        chkconfig SuSEfirewall2 off
         if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off firewalld. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-    fi
-
-    LogMsg "Check iptables status on RHEL7"
-    service iptables status
-    if [ $? -ne 3 ]; then
-        iptables -F;
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service iptables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        chkconfig iptables off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-    fi
-
-    LogMsg "Check ip6tables status on RHEL7"
-    service ip6tables status
-    if [ $? -ne 3 ]; then
-        ip6tables -F;
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush ip6tables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service ip6tables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop ip6tables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        chkconfig ip6tables off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
+            msg="ERROR: Failed to turn off iptables. Continuing"
             LogMsg "${msg}"
             echo "${msg}" >> ~/summary.log
         fi
     fi
     ;;
-
-    suse_12)
-        # Install gcc which is required to build iperf3
-        zypper --non-interactive install gcc
-
-        #Check if sysstat package is installed
-        command -v sar
-        if [ $? -ne 0 ]; then
-            msg="Error: Sysstat (sar) is not installed. Please install it before running the performance tests!"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 82
-        fi
-
-        LogMsg "Check iptables status on SLES"
-        service SuSEfirewall2 status
-        if [ $? -ne 3 ]; then
-            iptables -F;
-            if [ $? -ne 0 ]; then
-                msg="Error: Failed to flush iptables rules. Continuing"
-                LogMsg "${msg}"
-                echo "${msg}" >> ~/summary.log
-            fi
-            service SuSEfirewall2 stop
-            if [ $? -ne 0 ]; then
-                msg="Error: Failed to stop iptables"
-                LogMsg "${msg}"
-                echo "${msg}" >> ~/summary.log
-                UpdateTestState $ICA_TESTFAILED
-                exit 85
-            fi
-            chkconfig SuSEfirewall2 off
-            if [ $? -ne 0 ]; then
-                msg="Error: Failed to turn off iptables. Continuing"
-                LogMsg "${msg}"
-                echo "${msg}" >> ~/summary.log
-            fi
-        fi
-    ;;
-
 esac
 
-#
+# Extract the files from the IPerf tar package
+tar -xzf ./${IPERF_PACKAGE}
+if [ $? -ne 0 ]; then
+    msg="Error: Unable extract ${IPERF_PACKAGE}"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 70
+fi
+# Get the root directory of the tarball
+rootDir=`tar -tzf ${IPERF_PACKAGE} | sed -e 's@/.*@@' | uniq`
+if [ -z ${rootDir} ]; then
+    msg="Error: Unable to determine root directory if ${IPERF_PACKAGE} tarball"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+    UpdateTestState $ICA_TESTFAILED
+    exit 80
+fi
+
+LogMsg "rootDir = ${rootDir}"
+cd ${rootDir}
 # Build iperf
-#
 ./configure
 if [ $? -ne 0 ]; then
     msg="Error: ./configure failed"
@@ -557,7 +562,6 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 90
 fi
-
 make
 if [ $? -ne 0 ]; then
     msg="Error: Unable to build iperf"
@@ -566,7 +570,6 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 100
 fi
-
 make install
 if [ $? -ne 0 ]; then
     msg="Error: Unable to install iperf"
@@ -615,31 +618,8 @@ function get_tx_pkts(){
     echo $Tx_pkts
 }
 
-# set static IPs for test interfaces
-declare -i __iterator=0
-
-while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
-
-    LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-    CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $STATIC_IP $NETMASK
-
-    if [ 0 -ne $? ]; then
-        msg="Unable to set address for ${SYNTH_NET_INTERFACES[$__iterator]} through static"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 10
-    fi
-
-    : $((__iterator++))
-
-done
-
-# Waiting for VM2 to boot
-sleep 30
-
 LogMsg "Copy files to server: ${STATIC_IP2}"
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/perf_iperf_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no ~/perf_iperf_server.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
     msg="Error: Unable to copy test scripts to target server machine: ${STATIC_IP2}. scp command failed."
     LogMsg "${msg}"
@@ -647,16 +627,14 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 130
 fi
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no ~/constants.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no ~/utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no ~/perf_utils.sh ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:
 
-
-#
 # Start iPerf in server mode on the Target server side
-#
 LogMsg "Starting iPerf in server mode on ${STATIC_IP2}"
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo '~/perf_iperf_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
+ssh -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "~/perf_iperf_server.sh > iPerf3_Panorama_ServerSideScript.log"
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf3 server scripts on the target server machine"
     LogMsg "${msg}"
@@ -665,87 +643,67 @@ if [ $? -ne 0 ]; then
     exit 130
 fi
 
-#
-# Wait for server to be ready
-#
-wait_for_server=600
-server_state_file=serverstate.txt
-while [ $wait_for_server -gt 0 ]; do
-    # Try to copy and understand server state
-    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
-
-    if [ -f ~/${server_state_file} ];
-    then
-        server_state=$(head -n 1 ~/${server_state_file})
-        echo $server_state
-        rm -rf ~/${server_state_file}
-        if [ "$server_state" == "iPerf3Running" ];
-        then
-            break
-        fi
-    fi
-    sleep 5
-    wait_for_server=$(($wait_for_server - 5))
-done
-
-if [ $wait_for_server -eq 0 ] ;
-then
-    msg="Error: iperf3 server script has been triggered but not iperf3 are not in running state within ${wait_for_server} seconds."
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
-    exit 135
-else
-    LogMsg "iPerf3 servers are ready."
-fi
-#
+sleep 10
 # Start iPerf3 client instances
-#
 LogMsg "Starting iPerf3 in client mode"
 
 previous_tx_bytes=$(get_tx_bytes)
 previous_tx_pkts=$(get_tx_pkts)
 
-i=0
 mkdir -p ./${TEST_RUN_LOG_FOLDER}
-while [ "x${IPERF3_TEST_CONNECTION_POOL[$i]}" != "x" ]
+for number_of_connections in "${IPERF3_TEST_CONNECTION_POOL[@]}"
 do
     port=8001
     echo "================================================="
-    echo "Running Test: ${IPERF3_TEST_CONNECTION_POOL[$i]}"
+    echo "Running Test: ${number_of_connections}"
     echo "================================================="
-
-    touch ${TEST_SIGNAL_FILE}
-    echo ${IPERF3_TEST_CONNECTION_POOL[$i]} > ${TEST_SIGNAL_FILE}
-    scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${TEST_SIGNAL_FILE} $server_username@${STATIC_IP2}:
-    sleep 15
-
-    number_of_connections=${IPERF3_TEST_CONNECTION_POOL[$i]}
-    bash ./perf_capturer.sh $INDIVIDUAL_TEST_DURATION ${TEST_RUN_LOG_FOLDER}/$number_of_connections &
+    server_iperf_instances=$((number_of_connections/4+port))
+    for ((i=port; i<=server_iperf_instances; i++))
+    do
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "/root/${rootDir}/src/iperf3 -s ${ipVersion} -p $i -i ${INDIVIDUAL_TEST_DURATION} -D"
+        sleep 1
+    done
 
     rm -rf the_generated_client.sh
     echo "./perf_run_parallelcommands.sh " > the_generated_client.sh
-
-    while [ $number_of_connections -gt $CONNECTIONS_PER_IPERF3 ]; do
-        number_of_connections=$(($number_of_connections-$CONNECTIONS_PER_IPERF3))
-        echo " \"/root/${rootDir}/src/iperf3 -u ${IPERF3_PROTOCOL} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P $CONNECTIONS_PER_IPERF3 -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
+    remaining_connections=${number_of_connections}
+    while [ ${remaining_connections} -gt ${CONNECTIONS_PER_IPERF3} ]; do
+        remaining_connections=$((${remaining_connections}-${CONNECTIONS_PER_IPERF3}))
+        echo " \"/root/${rootDir}/src/iperf3 ${PROTOCOL} -c ${IPERF3_SERVER_IP} -p $port ${ipVersion} ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P ${CONNECTIONS_PER_IPERF3} -t ${INDIVIDUAL_TEST_DURATION} --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
         port=$(($port + 1))
     done
 
-    if [ $number_of_connections -gt 0 ]
+    if [ ${remaining_connections} -gt 0 ]
     then
-        echo " \"/root/${rootDir}/src/iperf3 -u ${IPERF3_PROTOCOL} -c $IPERF3_SERVER_IP -p $port $ipVersion ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P $number_of_connections  -t $INDIVIDUAL_TEST_DURATION --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
+        echo " \"/root/${rootDir}/src/iperf3 ${PROTOCOL} -c ${IPERF3_SERVER_IP} -p $port ${ipVersion} ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P ${remaining_connections} -t ${INDIVIDUAL_TEST_DURATION} --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
     fi
 
     sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
     chmod 755 the_generated_client.sh
-
     cat ./the_generated_client.sh
-    ./the_generated_client.sh > ${TEST_RUN_LOG_FOLDER}/${IPERF3_TEST_CONNECTION_POOL[$i]}-iperf3.log
-    i=$(($i + 1))
 
-    echo "Clients test just finished. Sleep 10 seconds for next test..."
-    sleep 60
+    sar -n DEV 1 ${INDIVIDUAL_TEST_DURATION} > "${TEST_RUN_LOG_FOLDER}/sar-sender-${number_of_connections}.log" &
+    dstat -dam > "${TEST_RUN_LOG_FOLDER}/dstat-sender-${number_of_connections}.log" &
+    mpstat -P ALL 1 ${INDIVIDUAL_TEST_DURATION} > "${TEST_RUN_LOG_FOLDER}/mpstat-sender-${number_of_connections}.log" &
+
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "sar -n DEV 1 ${INDIVIDUAL_TEST_DURATION} > ${TEST_RUN_LOG_FOLDER}/sar-receiver-${number_of_connections}.log"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "dstat -dam > ${TEST_RUN_LOG_FOLDER}/dstat-receiver-${number_of_connections}.log"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "mpstat -P ALL 1 ${INDIVIDUAL_TEST_DURATION} > ${TEST_RUN_LOG_FOLDER}/mpstat-receiver-${number_of_connections}.log"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "for ((i=1;i<=${INDIVIDUAL_TEST_DURATION};i++)); do netstat -nat | grep ESTABLISHED | wc -l >> ./${TEST_RUN_LOG_FOLDER}/receiver-${number_of_connections}-connections.log; sleep 1; done"
+
+    ./the_generated_client.sh > ${TEST_RUN_LOG_FOLDER}/${number_of_connections}-iperf3.log
+    sleep 5
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "netstat -su > ${TEST_RUN_LOG_FOLDER}/receiver-${number_of_connections}-udp-tatistics.log"
+    pkill -f iperf3
+    pkill -f ESTABLISHED
+    pkill -x sar
+    pkill -x dstat
+    pkill -x mpstat
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -f iperf3"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x sar"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x dstat"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x mpstat"
+    sleep 55
 done
 current_tx_bytes=$(get_tx_bytes)
 current_tx_pkts=$(get_tx_pkts)
@@ -758,16 +716,21 @@ then
     rm -f iPerf3_Client_Logs.zip
 fi
 # Test Finished. Collect logs, zip client side logs
-sleep 60
+sleep 30
 
+ethtool -S eth1 > ${TEST_RUN_LOG_FOLDER}/sender-ethtool-eth1.log
+ethtool -S enP2p0s2 > ${TEST_RUN_LOG_FOLDER}/sender-ethtool-enP2p0s2.log
+ssh -i "$HOME"/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S eth1 > ~/${TEST_RUN_LOG_FOLDER}/receiver-ethtool-eth1.log"
+ssh -i "$HOME"/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S enP2p0s2 > ~/${TEST_RUN_LOG_FOLDER}/receiver-ethtool-enP2p0s2.log"
+scp -i "$HOME"/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:/root/${TEST_RUN_LOG_FOLDER}/*receiver* /root/${TEST_RUN_LOG_FOLDER}
 zip -r iPerf3_Client_Logs.zip ${TEST_RUN_LOG_FOLDER}/*
 
 # Get logs from server side
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'if [ -f iPerf3_Server_Logs.zip  ]; then rm -f iPerf3_Server_Logs.zip; fi' | at now"
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}' | at now"
-sleep 60
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
-scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
+ssh -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'if [ -f iPerf3_Server_Logs.zip  ]; then rm -f iPerf3_Server_Logs.zip; fi' | at now"
+ssh -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}/*' | at now"
+sleep 30
+scp -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
+scp -i "$HOME"/.ssh/"${SSH_PRIVATE_KEY}" -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
 
 UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"
@@ -775,19 +738,7 @@ UpdateSummary "Test Protocol: ${IPERF3_PROTOCOL}"
 UpdateSummary "Packet size: $avg_pkt_size"
 UpdateSummary "IPERF3_BUFFER: ${IPERF3_BUFFER}"
 
-
-#
-# If we made it here, everything worked
-#
-
-#Shut down dependency VM
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "reboot | at now"
-if [ $? -ne 0 ]; then
-    msg="Warning: Unable to shut down target server machine"
-    LogMsg "${msg}"
-    echo "${msg}" >> ~/summary.log
-fi
-
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
 exit 0
+
