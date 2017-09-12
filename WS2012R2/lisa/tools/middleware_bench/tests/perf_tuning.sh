@@ -20,7 +20,7 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-LOG_FILE=/tmp/perf_tunning.log
+LOG_FILE=/tmp/perf_tuning.log
 function LogMsg() {
     echo $(date "+%a %b %d %T %Y") : ${1} >> ${LOG_FILE}
 }
@@ -36,10 +36,13 @@ if [ ! -z "$2" ]; then
 fi
 
 declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
-                           ["net.core.rmem_max"]="67108864"
-                           ["net.core.wmem_max"]="67108864"
-                           ["net.ipv4.tcp_wmem"]="4096 12582912 33554432"
-                           ["net.ipv4.tcp_rmem"]="4096 12582912 33554432"
+                           ["net.core.rmem_default"]="134217728"
+                           ["net.core.rmem_max"]="134217728"
+                           ["net.core.wem_default"]="134217728"
+                           ["net.core.wmem_max"]="134217728"
+                           ["net.ipv4.tcp_wmem"]="4096 87380 67108864"
+                           ["net.ipv4.tcp_rmem"]="4096 87380 67108864"
+                           ["net.ipv4.tcp_congestion_control"]="htcp"
                            ["net.ipv4.tcp_max_syn_backlog"]="80960"
                            ["net.ipv4.tcp_slow_start_after_idle"]="0"
                            ["net.ipv4.tcp_tw_reuse"]="1"
@@ -47,6 +50,20 @@ declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
                            ["net.ipv4.tcp_abort_on_overflow"]="1"
                           )
 sysctl_file="/etc/sysctl.conf"
+
+distro="$(head -1 /etc/issue)"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt update
+    if [ -z ${KERNEL} ]; then
+        sudo DEBIAN_FRONTEND='noninteractive' apt full-upgrade -yq >> ${LOG_FILE}
+    fi
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum -y update kernel>> ${LOG_FILE}
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
 
 function setup_sysctl {
     for param in "${!sysctl_params[@]}"; do
@@ -67,7 +84,7 @@ function setup_cpu_sched_domain {
 }
 
 function install_kernel {
-    sudo apt-get install -y dpkg
+    sudo apt install -y dpkg
     sudo dpkg -i ${KERNEL}
     sudo update-grub
 }

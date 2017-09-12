@@ -61,10 +61,8 @@ escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
-    sudo apt-get -y install libaio1 sysstat zip curl python default-jdk >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
+    sudo apt -y install libaio1 sysstat zip curl python default-jdk >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
     db_conf="/etc/mongodb.conf"
     db_service="mongodb"
 elif [[ ${distro} == *"Amazon"* ]]

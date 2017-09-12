@@ -313,6 +313,19 @@ class AWSConnector:
             client = None
         return client
 
+    def restart_vm(self, instance):
+        """
+        Restart instances VM.
+        :param instance instance obj to restart
+        :return SSHClient
+        """
+        conn = self.conn or self.vpc_conn
+        conn.reboot_instances(instance_ids=[instance.id])
+        self.wait_for_state(instance, 'state', 'running')
+
+        log.info('Rebooting VM: {}'.format(instance.id))
+        return self.wait_for_ping(instance)
+
     def teardown(self, instance=None, device=None):
         """
         Cleanup created instances and devices.

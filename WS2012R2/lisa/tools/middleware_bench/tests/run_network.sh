@@ -42,10 +42,9 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq >> ${LOG_FILE}
-    sudo apt-get -y install sysstat zip bc build-essential >> ${LOG_FILE}
-    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq" >> ${LOG_FILE}
-    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install sysstat zip bc build-essential" >> ${LOG_FILE}
+    sudo apt -y install sysstat zip bc build-essential >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update" >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install sysstat zip bc build-essential" >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache >> ${LOG_FILE}
@@ -79,10 +78,12 @@ then
 elif [[ ${TEST_TYPE} == "UDP" ]]
 then
     TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
+    MAX_STREAMS=128
+    BUFFER="1k"
     if [[ ${distro} == *"Ubuntu"* ]]
     then
-        sudo apt-get -y install iperf3 >> ${LOG_FILE}
-        ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install iperf3" >> ${LOG_FILE}
+        sudo apt -y install iperf3 >> ${LOG_FILE}
+        ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install iperf3" >> ${LOG_FILE}
     elif [[ ${distro} == *"Amazon"* ]]
     then
         cd /tmp; wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm; sudo rpm -ivh iperf3-3.1.3-1.fc24.x86_64.rpm >> ${LOG_FILE}
@@ -95,8 +96,8 @@ then
     TEST_BUFFERS=(32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536)
     if [[ ${distro} == *"Ubuntu"* ]]
     then
-        sudo apt-get -y install iperf3 >> ${LOG_FILE}
-        ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install iperf3" >> ${LOG_FILE}
+        sudo apt -y install iperf3 >> ${LOG_FILE}
+        ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install iperf3" >> ${LOG_FILE}
     elif [[ ${distro} == *"Amazon"* ]]
     then
         cd /tmp; wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm; sudo rpm -ivh iperf3-3.1.3-1.fc24.x86_64.rpm >> ${LOG_FILE}
@@ -109,25 +110,27 @@ else
 fi
 
 function get_tx_bytes(){
+    local eth=`ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}'`
     # RX bytes:66132495566 (66.1 GB)  TX bytes:3067606320236 (3.0 TB)
-    local Tx_bytes=`ifconfig eth0 | grep "TX bytes"   | awk -F':' '{print $3}' | awk -F' ' ' {print $1}'`
+    local Tx_bytes=`ifconfig ${eth} | grep "TX bytes"   | awk -F':' '{print $3}' | awk -F' ' ' {print $1}'`
 
     if [ "x$Tx_bytes" == "x" ]
     then
         #TX packets 223558709  bytes 15463202847 (14.4 GiB)
-        Tx_bytes=`ifconfig eth0| grep "TX packets"| awk '{print $5}'`
+        Tx_bytes=`ifconfig ${eth}| grep "TX packets"| awk '{print $5}'`
     fi
     echo ${Tx_bytes}
 }
 
 function get_tx_pkts(){
+    local eth=`ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}'`
     # TX packets:543924452 errors:0 dropped:0 overruns:0 carrier:0
-    local Tx_pkts=`ifconfig eth0 | grep "TX packets" | awk -F':' '{print $2}' | awk -F' ' ' {print $1}'`
+    local Tx_pkts=`ifconfig ${eth} | grep "TX packets" | awk -F':' '{print $2}' | awk -F' ' ' {print $1}'`
 
     if [ "x$Tx_pkts" == "x" ]
     then
         #TX packets 223558709  bytes 15463202847 (14.4 GiB)
-        Tx_pkts=`ifconfig eth0| grep "TX packets"| awk '{print $3}'`
+        Tx_pkts=`ifconfig ${eth}| grep "TX packets"| awk '{print $3}'`
     fi
     echo ${Tx_pkts}
 }
@@ -163,7 +166,7 @@ function run_ntttcp ()
     fi
     sudo pkill -f ntttcp
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f ntttcp"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo ntttcp -r${SERVER} -P $num_threads_P -t 60 -e > /tmp/network${TEST_TYPE}/${current_test_threads}_ntttcp-receiver.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo ntttcp -r${SERVER} -P $num_threads_P -e > /tmp/network${TEST_TYPE}/${current_test_threads}_ntttcp-receiver.log"
     sudo pkill -f lagscope
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f lagscope"
     ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo lagscope -r${SERVER}"
@@ -185,6 +188,28 @@ function run_ntttcp ()
     previous_tx_pkts=${current_tx_pkts}
 }
 
+function run_iperf_parallel(){
+    current_test_threads=$1
+    port=8001
+    number_of_connections=${current_test_threads}
+    while [ ${number_of_connections} -gt ${MAX_STREAMS} ]; do
+        number_of_connections=$(($number_of_connections - $MAX_STREAMS))
+        logfile="/tmp/network${TEST_TYPE}/${current_test_threads}-p${port}-iperf3.log"
+        iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l ${BUFFER} -P ${MAX_STREAMS} -t 60 --get-server-output -i 60 > ${logfile} 2>&1 & pid=$!
+        port=$(($port + 1))
+        PID_LIST+=" $pid"
+    done
+    if [ ${number_of_connections} -gt 0 ]
+    then
+        logfile="/tmp/network${TEST_TYPE}/${current_test_threads}-p${port}-iperf3.log"
+        iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l ${BUFFER} -P ${number_of_connections} -t 60 --get-server-output -i 60 > ${logfile} 2>&1 & pid=$!
+        PID_LIST+=" $pid"
+    fi
+
+    trap "sudo kill ${PID_LIST}" SIGINT
+    wait ${PID_LIST}
+}
+
 function run_iperf_udp()
 {
     current_test_threads=$1
@@ -192,25 +217,19 @@ function run_iperf_udp()
     LogMsg "Running iPerf3 thread= ${current_test_threads}"
     LogMsg "======================================"
     port=8001
-    sudo pkill -f iperf3
-    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iperf3" >> ${LOG_FILE}
-    sleep 10
-    server_iperf_instances=$((current_test_threads/4+port))
+    server_iperf_instances=$((current_test_threads/${MAX_STREAMS}+port))
     for ((i=port; i<=server_iperf_instances; i++))
     do
-        ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo iperf3 -s 4 -p $i -i 60 -D" >> ${LOG_FILE}
+        ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "iperf3 -s -4 -p $i -i 60 -D"
         sleep 1
     done
 
-    while [ ${current_test_threads} -gt 64 ]; do
-        number_of_connections=$(($number_of_connections-64))
-        sudo iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l 1k -P 64 -t 60 --get-server-output -i 60 > /tmp/network${TEST_TYPE}/${current_test_threads}-iperf3.log
-        port=$(($port + 1))
-    done
-    if [ ${number_of_connections} -gt 0 ]
-    then
-        sudo iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l 1k -P ${number_of_connections} -t 60 --get-server-output -i 60 > /tmp/network${TEST_TYPE}/${current_test_threads}-iperf3.log
-    fi
+    run_iperf_parallel ${current_test_threads}
+
+    sleep 5
+    sudo pkill -f iperf3
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iperf3" >> ${LOG_FILE}
+    sleep 5
 }
 
 function run_single_tcp()
@@ -255,6 +274,10 @@ fi
 
 LogMsg "Kernel Version : `uname -r`"
 LogMsg "Guest OS : ${distro}"
+if [[ ${TEST_TYPE} == "UDP" ]]
+then
+    LogMsg "UDP Buffer : ${BUFFER}"
+fi
 
 cd /tmp
 zip -r network.zip . -i network${TEST_TYPE}/* >> ${LOG_FILE}

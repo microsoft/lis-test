@@ -126,6 +126,10 @@ class BaseLogsReader(object):
                                               line)
                     if hadoop_version:
                         log_dict['hadoop_version'] = hadoop_version.group(1).strip()
+                if not log_dict.get('udp_buffer', None):
+                    udp_buffer = re.match('.+:\s*UDP\s*Buffer\s*:\s*([0-9. ]+)', line)
+                    if udp_buffer:
+                        log_dict['udp_buffer'] = udp_buffer.group(1).strip()
         return log_dict
 
     def teardown(self):
@@ -1035,6 +1039,104 @@ class LatencyLogsReader(BaseLogsReader):
                     unit = max_latency.group(2).strip()
                     log_dict['MaxLatency_us'] = self._convert(float(max_latency.group(1).strip()),
                                                               self.UNIT[unit], self.UNIT['us'])
+        return log_dict
+
+
+class UDPLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing iperf 3 for iperf3 UDP log files e.g.
+    lagscope.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
+                 region=None, host_type=None, instance_size=None):
+        super(UDPLogsReader, self).__init__(log_path)
+        self.headers = ['NumberOfConnections', 'RxThroughput_Gbps', 'TxThroughput_Gbps',
+                        'SendBufSize_KBytes', 'DatagramLoss', 'PacketSize_KBytes']
+        self.sorter = ['NumberOfConnections']
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.provider = provider
+        self.region = region
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.log_matcher = '([0-9]+)-p8001-iperf3.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for variable TCP buffer test case.
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
+        log_dict['HostBy'] = self.region
+        log_dict['HostOS'] = self.host_type
+        log_dict['HostType'] = self.provider
+        log_dict['GuestSize'] = self.instance_size
+        log_dict['NumberOfConnections'] = f_match.group(1).strip()
+        log_dict['IPVersion'] = 'IPv4'
+        log_dict['ProtocolType'] = 'UDP'
+        log_dict['RxThroughput_Gbps'] = 0
+        log_dict['TxThroughput_Gbps'] = 0
+        log_dict['SendBufSize_KBytes'] = 0
+        log_dict['DatagramLoss'] = 0
+        log_dict['PacketSize_KBytes'] = 0
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestDistro'] = summary['guest_os']
+        log_dict['GuestOSType'] = 'Linux'
+        log_dict['SendBufSize_KBytes'] = summary['udp_buffer']
+
+        lost_datagrams = 0
+        total_datagrams = 0
+        log_files = [os.path.join(os.path.dirname(log_file), f)
+                     for f in os.listdir(os.path.dirname(log_file))
+                     if log_dict['NumberOfConnections'] + '-p' in f]
+        for log_f in log_files:
+            with open(log_f, 'r') as fl:
+                read_client = True
+                for line in fl:
+                    if 'Server output:' in line:
+                        read_client = False
+                    if int(log_dict['NumberOfConnections']) == 1:
+                        iperf_values = re.match('\[\s*[0-9]\]\s*0[.]00-60[.]00\s*'
+                                                'sec\s*([0-9.]+)\s*([A-Za-z]+)\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)\s*'
+                                                '([0-9]+)/([0-9]+)\s*'
+                                                '\(([a-z\-0-9.]+)%\)', line)
+                    else:
+                        iperf_values = re.match('\[SUM\]\s*0[.]00-60[.]00\s*sec\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)\s*'
+                                                '([0-9]+)/([0-9]+)\s*'
+                                                '\(([a-z\-+0-9.]+)%\)', line)
+                    if iperf_values is not None:
+                        if read_client:
+                            key = 'TxThroughput_Gbps'
+                            lost_datagrams += float(iperf_values.group(7).strip())
+                            total_datagrams += float(iperf_values.group(8).strip())
+                        else:
+                            key = 'RxThroughput_Gbps'
+                        digit_3 = decimal.Decimal(10) ** -3
+                        log_dict[key] += decimal.Decimal(
+                                self._convert(float(iperf_values.group(3).strip()),
+                                              self.BitUNIT[iperf_values.group(4).strip()[0]],
+                                              self.BitUNIT['G'])).quantize(digit_3)
+        try:
+            log_dict['DatagramLoss'] = round(
+                lost_datagrams / total_datagrams * 100, 2)
+        except ZeroDivisionError:
+            log_dict['DatagramLoss'] = 0
+
+        if not log_dict.get('PacketSize_KBytes', None):
+            log_dict['PacketSize_KBytes'] = 0
+            # TODO read compute and parse PacketSize_KBytes
         return log_dict
 
 

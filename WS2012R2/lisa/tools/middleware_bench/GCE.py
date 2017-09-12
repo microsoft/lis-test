@@ -271,6 +271,19 @@ class GCEConnector:
             raise
         return client
 
+    def restart_vm(self, instance):
+        """
+        Restart instances VM.
+        :param instance instance obj to restart
+        :return SSHClient
+        """
+        reset_vm = self.compute.instances().reset(instance=instance['name'],
+                                                  project=self.projectid, zone=self.zone).execute()
+        self.wait_for_operation(reset_vm['name'], zone=self.zone)
+
+        log.info('Rebooting VM: {}'.format(instance['name']))
+        return self.wait_for_ping(instance)
+
     def teardown(self):
         """
         Cleanup created instances and devices.
