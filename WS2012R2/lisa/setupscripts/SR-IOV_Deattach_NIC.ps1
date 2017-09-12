@@ -51,8 +51,8 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
             <param>TC_COVERED=SRIOV-8</param>
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <param>REMOTE_SERVER=remoteHostName</param>
         </testParams>
@@ -146,8 +146,8 @@ foreach ($p in $params)
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
         "VM2NAME" { $vm2Name = $fields[1].Trim() }
         "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
@@ -166,35 +166,21 @@ $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "${vm2Name} IPADDRESS: ${vm2ipv4}"
 
 #
-# Configure the bond on test VM
+# Configure VF on test VM
 #
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
+Start-Sleep -s 5
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to configure VF on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
-Start-Sleep -s 5
-
-#
-# Reboot VM
-#
-Restart-VM -VMName $vmName -ComputerName $hvServer -Force
-$sts = WaitForVMToStartSSH $ipv4 200
-if( -not $sts[-1]){
-    "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
-    return $false    
-}
-
-# Get IPs
-Start-Sleep -s 5
-$ipv4 = GetIPv4 $vmName $hvServer
-"${vmName} IP Address: ${ipv4}"
+Start-Sleep -s 10
 
 #
 # Run Ping with SR-IOV enabled
 #
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 600 -I bond0 `$BOND_IP2 > PingResults.log &' > runPing.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 600 -I eth1 `$VF_IP2 > PingResults.log &' > runPing.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
 
@@ -233,7 +219,7 @@ if ($?) {
 }
 
 # Check if the VF is available in sys/class/net
-.\bin\plink.exe -i .\ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep -v 'eth0\|eth1\|lo\|bond*'"
+.\bin\plink.exe -i .\ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep -v 'eth0\|eth1\|lo'"
 if ($?) {
     "ERROR: VF is still available in sys/class/net " | Tee-Object -Append -file $summaryLog
     return $false 

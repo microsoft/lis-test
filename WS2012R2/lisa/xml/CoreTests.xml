@@ -47,6 +47,8 @@
 		<suiteTest>TimeSync_NTP</suiteTest>
 		<suiteTest>TimeSync_SavedVM</suiteTest>
 		<suiteTest>TimeSync_PausedVM</suiteTest>
+		<suiteTest>TimeSync_SavedVM_ChronyOff</suiteTest>
+		<suiteTest>TimeSync_PausedVM_ChronyOff</suiteTest>
 		<suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
 		<suiteTest>FloppyDisk</suiteTest>
 
@@ -112,10 +114,37 @@
             <testparams>
                 <param>TC_COVERED=CORE-06</param>
                 <param>vmState=Save</param>
+                <param>TestDelay=600</param>
             </testparams>
             <timeout>800</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
+        </test>
+        <test>
+                <testName>TimeSync_SavedVM_ChronyOff</testName>
+                <testScript>SetupScripts\INST_timesync_change_state.ps1</testScript>
+                <testparams>
+                    <param>TC_COVERED=CORE-33</param>
+                    <param>vmState=Save</param>
+                    <param>TestDelay=120</param>
+                    <param>Chrony=off</param>
+                </testparams>
+                <timeout>800</timeout>
+                <onError>Continue</onError>
+                <noReboot>True</noReboot>
+        </test>
+        <test>
+                  <testName>TimeSync_PausedVM_ChronyOff</testName>
+                  <testScript>SetupScripts\INST_timesync_change_state.ps1</testScript>
+                  <testparams>
+                      <param>TC_COVERED=CORE-34</param>
+                      <param>vmState=Pause</param>
+                      <param>TestDelay=120</param>
+                      <param>Chrony=off</param>
+                  </testparams>
+                  <timeout>1000</timeout>
+                  <onError>Continue</onError>
+                  <noReboot>True</noReboot>
         </test>
 
 	<test>
@@ -343,6 +372,7 @@
             <testparams>
                 <param>TC_COVERED=CORE-27</param>
                 <param>vmState=Pause</param>
+                <param>TestDelay=600</param>
             </testparams>
             <timeout>1000</timeout>
             <onError>Continue</onError>

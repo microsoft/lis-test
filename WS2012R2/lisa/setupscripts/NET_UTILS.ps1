@@ -449,12 +449,15 @@ function CIDRtoNetmask([int]$cidr){
 
 #######################################################################
 #
-# SR-IOV NIC bonding function on test VM
+# SR-IOV VF config function
 #
 #######################################################################
-function ConfigureBond([String]$conIpv4,[String]$sshKey,[String]$netmask)
+function ConfigureVF([String]$conIpv4,[String]$sshKey,[String]$netmask)
 {
-        # Send utils.sh on VM
+    # Transform netmask for RHEL/CentOS distro
+    $netmaskCIDR = netmaskToCIDR $netmask
+
+    # Send utils.sh on VM
     "Sending .\remote-scripts\ica\utils.sh to $conIpv4, authenticating with $sshKey"
     $retVal = SendFileToVM "$conIpv4" "$sshKey" ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
 
@@ -479,77 +482,51 @@ function ConfigureBond([String]$conIpv4,[String]$sshKey,[String]$netmask)
         # Install dependencies needed for testing
         InstallDependencies
 
-        # Make sure we have synthetic network adapters present
-        GetSynthNetInterfaces
-        if [ 0 -ne `$? ]; then
-            exit 2
-        fi
-
-        #
-        # Run bondvf.sh script and configure interfaces properly
-        #
-        # Run bonding script from default location - CAN BE CHANGED IN THE FUTURE
-        if is_ubuntu ; then
-            bash /usr/src/linux-headers-*/tools/hv/bondvf.sh
-
-            # Verify if bond0 was created
-            __bondCount=`$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
-
-        elif is_suse ; then
-            bash /usr/src/linux-*/tools/hv/bondvf.sh
-
-            # Verify if bond0 was created
-            __bondCount=`$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
-
-        elif is_fedora ; then
-            bash bondvf.sh
-
-            # Verify if bond0 was created
-            __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
-        fi
-
-        __iterator=0
+        __vfCount=`$(ls /sys/class/net/ | grep -v 'eth0\|enP*\|lo' | wc -l) 
+        __iterator=1
         __ipIterator=1
-        # Set static IPs for each bond created
-        while [ `$__iterator -lt `$__bondCount ]; do
-            # Extract bondIP value from constants.sh
+        # Set static IPs for each vf available
+        while [ `$__iterator -le `$__vfCount ]; do
+            # Extract vfIP value from constants.sh
             staticIP=`$(cat constants.sh | grep IP`$__ipIterator | tr = " " | awk '{print `$2}')
 
             if is_ubuntu ; then
                 __file_path="/etc/network/interfaces"
                 # Change /etc/network/interfaces 
-                sed -i "s/bond`$__iterator inet dhcp/bond`$__iterator inet static/g"` `$__file_path
-                sed -i "/bond`$__iterator inet static/a address `$staticIP" `$__file_path
-                sed -i "/address `$staticIP/a netmask `$NETMASK" `$__file_path
+                echo "auto eth`$__iterator" >> `$__file_path
+                echo "iface eth`$__iterator inet static" >> `$__file_path
+                echo "address `$staticIP" >> `$__file_path
+                echo "netmask `$NETMASK" >> `$__file_path
+
+                ifup eth`$__iterator
 
             elif is_suse ; then
-                __file_path="/etc/sysconfig/network/ifcfg-bond`$__iterator"
-                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-                sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
-                cat <<-EOF >> `$__file_path
-                BOOTPROTO=static
-                IPADDR=`$staticIP
-                NETMASK=`$NETMASK
-EOF
+                __file_path="/etc/sysconfig/network/ifcfg-eth`$__iterator"
+
+                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+                rm -f `$__file_path
+                echo "DEVICE=eth`$__iterator" >> `$__file_path
+                echo "NAME=eth`$__iterator" >> `$__file_path
+                echo "BOOTPROTO=static" >> `$__file_path
+                echo "IPADDR=`$staticIP" >> `$__file_path
+                echo "NETMASK=`$NETMASK" >> `$__file_path
+                echo "STARTMODE=auto" >> `$__file_path
+
+                ifup eth`$__iterator
 
             elif is_fedora ; then
-                __file_path="/etc/sysconfig/network-scripts/ifcfg-bond`$__iterator"
-                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-                sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
-                cat <<-EOF >> `$__file_path
-                BOOTPROTO=static
-                IPADDR=`$staticIP
-                NETMASK=`$NETMASK
-EOF
+                __file_path="/etc/sysconfig/network-scripts/ifcfg-eth`$__iterator"
+
+                # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+                rm -f `$__file_path
+                echo "DEVICE=eth`$__iterator" >> `$__file_path
+                echo "NAME=eth`$__iterator" >> `$__file_path
+                echo "BOOTPROTO=static" >> `$__file_path
+                echo "IPADDR=`$staticIP" >> `$__file_path
+                echo "NETMASK=`$NETMASK" >> `$__file_path
+                echo "ONBOOT=yes" >> `$__file_path
+
+                ifup eth`$__iterator
             fi
             LogMsg "Network config file path: `$__file_path"
 
@@ -557,22 +534,11 @@ EOF
             : `$((__iterator++))
         done
 
-        # Get everything up & running
-        if is_ubuntu ; then
-            service networking restart
-
-        elif is_suse ; then
-            service network restart
-
-        elif is_fedora ; then
-            service network restart
-        fi     
-
-        echo CreateBond: returned `$__retVal >> /root/SR-IOV_enable.log 2>&1
+        echo ConfigureVF: returned `$__retVal >> /root/SR-IOV_enable.log 2>&1
         exit `$__retVal
 "@
 
-    $filename = "CreateBond.sh"
+    $filename = "ConfigureVF.sh"
 
     # check for file
     if (Test-Path ".\${filename}")
@@ -767,7 +733,7 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey, [String]$bootpr
 
 #######################################################################
 #
-# Function that sends a file through the bond interface/interfaces
+# Function that sends a file
 #
 #######################################################################
 function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPacketSize)
@@ -792,52 +758,35 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
         cd /root
 
         #
-        # Count the bonds; By doing this, we can re-use the code with multiple bonds
+        # Count the VFs; By doing this, we can re-use the code with multiple VFss
         #
-        if is_ubuntu ; then
-            __bondCount=`$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
-
-        elif is_suse ; then
-            __bondCount=`$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
-
-        elif is_fedora ; then
-            __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
-        fi
+        __vfCount=`$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
 
         #
-        # Run file copy tests for each bond interface 
+        # Run file copy tests for each VF
         #
-        `$__retVal=0
+        __retVal=0
         output_file=large_file
-        __iterator=0
+        __iterator=1
         __ipIterator1=1
         __ipIterator2=2
-        while [ `$__iterator -lt `$__bondCount ]; do
-            # Extract bondIP value from constants.sh
+        while [ `$__iterator -le `$__vfCount ]; do
+            # Extract vfIP value from constants.sh
             staticIP1=`$(cat constants.sh | grep IP`$__ipIterator1 | tr = " " | awk '{print `$2}')
             staticIP2=`$(cat constants.sh | grep IP`$__ipIterator2 | tr = " " | awk '{print `$2}')
 
-            # Send the file from VM1 to VM2 via bond0
+            # Send the file from VM1 to VM2
             scp -i "`$HOME"/.ssh/"`$sshKey" -o BindAddress=`$staticIP1 -o StrictHostKeyChecking=no "`$output_file" "`$REMOTE_USER"@"`$staticIP2":/tmp/"`$output_file"
             if [ 0 -ne `$? ]; then
-                echo "ERROR: Unable to send the file from VM1 to VM2 using bond`$__iterator" >> SRIOV_SendFile.log
-                `$__retVal=1
+                echo "ERROR: Unable to send the file from VM1 to VM2 using eth`$__iterator" >> SRIOV_SendFile.log
+                __retVal=1
                 exit 10
             else
                 echo "Successfully sent `$output_file to `$staticIP2" >> SRIOV_SendFile.log
             fi
 
-            # Verify both bond0 on VM1 and VM2 to see if file was sent between them
-            txValue=`$(ifconfig bond`$__iterator | grep "TX packets" | sed 's/:/ /' |  awk '{print `$3}')
+            # Verify both VFs on VM1 and VM2 to see if file was sent between them
+            txValue=`$(ifconfig eth`$__iterator | grep "TX packets" | sed 's/:/ /' |  awk '{print `$3}')
             echo "TX Value: `$txValue" >> SRIOV_SendFile.log
             if [ `$txValue -lt $MinimumPacketSize ]; then
                 echo "ERROR: TX packets insufficient" >> SRIOV_SendFile.log
@@ -845,7 +794,8 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
                 exit 10
             fi
 
-            rxValue=`$(ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$BOND_IP2" ifconfig bond`$__iterator | grep "RX packets" | sed 's/:/ /' | awk '{print `$3}')
+            vfName=`$(ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$VF_IP2" ls /sys/class/net | grep -v 'eth0\|eth1\|lo')
+            rxValue=`$(ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$VF_IP2" ifconfig `$vfName | grep "RX packets" | sed 's/:/ /' | awk '{print `$3}')
             echo "RX Value: `$rxValue" >> SRIOV_SendFile.log
             if [ `$rxValue -lt $MinimumPacketSize ]; then
                 echo "ERROR: RX packets insufficient" >> SRIOV_SendFile.log
@@ -854,20 +804,12 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
             fi
 
             # Verify that the data was sent over the VF
-            # extract VF name that is bonded
-            if is_ubuntu ; then
-                vfInterface=`$(grep bond-primary /etc/network/interfaces | awk '{print `$2}')
-
-            elif is_suse ; then
-                vfInterface=`$(grep BONDING_SLAVE_0 /etc/sysconfig/network/ifcfg-bond`${__iterator} | sed 's/=/ /' | awk '{print `$2}')
-
-            elif is_fedora ; then
-                vfInterface=`$(grep primary /etc/sysconfig/network-scripts/ifcfg-bond`${__iterator} | awk '{print substr(`$3,9,12)}')
-            fi
+            # extract VF name
+            vfInterface=`$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo')
 
             txValueVF=`$(ifconfig `$vfInterface | grep "TX packets" | sed 's/:/ /' | awk '{print `$3}')
             echo "Virtual Function TX Value: `$txValueVF" >> SRIOV_SendFile.log
-            if [ `$txValueVF -lt 7000 ]; then
+            if [ `$txValueVF -lt 6000 ]; then
                 echo "ERROR: Virtual Function TX packets insufficient. Make sure VF is up & running" >> SRIOV_SendFile.log
                 `$__retVal=1
                 exit 10
@@ -877,7 +819,7 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
             # Remove file from VM2
             ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$staticIP2" rm -f /tmp/"`$output_file"
 
-            echo "Successfully sent file from VM1 to VM2 through bond`${__iterator}" >> SRIOV_SendFile.log
+            echo "Successfully sent file from VM1 to VM2 through eth`${__iterator}" >> SRIOV_SendFile.log
             __ipIterator1=`$((`$__ipIterator1 + 2))
             __ipIterator2=`$((`$__ipIterator2 + 2))
             : `$((__iterator++))
@@ -917,266 +859,12 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
     return $retVal
 }
 
-function RestartVF ([String]$conIpv4, [String]$sshKey)
-{
-    # Create command to be sent to VM. This determines the interface based on the MAC Address.
-    $cmdToVM = @"
-#!/bin/bash
-
-        # Convert eol
-        dos2unix utils.sh
-
-        # Source utils.sh
-        . utils.sh || {
-            echo "ERROR: unable to source utils.sh!" >> SRIOV_SendFile.log
-            exit 2
-        }
-
-        # Source constants file and initialize most common variables
-        UtilsInit
-
-        cd /root
-
-        #
-        # Count the bonds; By doing this, we can re-use the code with multiple bonds
-        #
-        if is_ubuntu ; then
-            # Verify if bond0 was created
-            __bondCount=`$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
-
-
-        elif is_suse ; then
-            # Verify if bond0 was created
-            __bondCount=`$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
-
-        elif is_fedora ; then
-            # Verify if bond0 was created
-            __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
-        fi
-
-        #
-        # Restart Virtual Function(s)
-        #
-        __iterator=0
-        while [ `$__iterator -lt `$__bondCount ]; do
-            # extract VF name that is bonded
-            if is_ubuntu ; then
-                vfInterface=`$(grep bond-primary /etc/network/interfaces | awk '{print `$2}')
-
-            elif is_suse ; then
-                vfInterface=`$(grep BONDING_SLAVE_1 /etc/sysconfig/network/ifcfg-bond`${__iterator} | sed 's/=/ /' | awk '{print `$2}')
-
-            elif is_fedora ; then
-                vfInterface=`$(grep primary /etc/sysconfig/network-scripts/ifcfg-bond`${__iterator} | awk '{print substr(`$3,9,12)}')
-            fi
-
-            ifdown `$vfInterface && ifup `$vfInterface
-
-            : `$((__iterator++))
-        done
-
-        ifconfig | grep `$vfInterface
-        __retVal=`$?
-
-        exit `$__retVal
-"@
-
-    $filename = "RestartVF.sh"
-
-    # check for file
-    if (Test-Path ".\${filename}")
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    Add-Content $filename "$cmdToVM"
-
-    # send file
-    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
-    # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
-        return $false
-    }
-
-    # execute sent file
-    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
-    return $retVal
-}
-
-function iPerfInstall ([String]$conIpv4, [String]$sshKey)
-{
-    # Create command to be sent to VM. This determines the interface based on the MAC Address.
-    $cmdToVM = @"
-#!/bin/bash
-
-        # Convert eol
-        dos2unix utils.sh
-
-        # Source utils.sh
-        . utils.sh || {
-            echo "ERROR: unable to source utils.sh!" >> SRIOV_SendFile.log
-            exit 2
-        }
-
-        # Source constants file and initialize most common variables
-        UtilsInit
-
-        cd /root
-
-        #
-        # Install iPerf for every distro
-        #
-        if is_ubuntu ; then
-            # Disable firewall 
-            ufw disable
-
-            # Download and install dependencies first
-            apt-get install wget -y
-            wget https://iperf.fr/download/ubuntu/libiperf0_3.1.3-1_amd64.deb
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to download libiperf" >> SRIOV_iPerfInstall.log
-                exit 2
-            fi
-
-            dpkg -i libiperf*
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
-                exit 2
-            fi
-
-            # Download and install iPerf 3
-            wget https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to download iPerf 3" >> SRIOV_iPerfInstall.log
-                exit 2
-            fi
-
-            # Install iPerf 3
-            dpkg -i iperf3*
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
-                exit 2
-            fi
-
-        elif is_suse ; then
-            # Disable firewall
-            service rcSuSEfirewall2 stop
-
-            # Download and install dependencies first
-            zypper in wget -y
-            wget http://widehat.opensuse.org/repositories/network:/utilities/openSUSE_Factory/x86_64/libiperf0-3.1.3-50.3.x86_64.rpm
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to download libiperf" >> SRIOV_iPerfInstall.log
-                exit 2
-            fi
-
-            rpm -i libiperf*
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
-                # Check will fail if the package already exists, removing the exit condition
-		# exit 2
-            fi
-
-            # Download and install iPerf 3
-            wget http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2/x86_64/iperf-3.1.3-50.1.x86_64.rpm
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to download iPerf 3" >> SRIOV_iPerfInstall.log
-                exit 2
-            fi
-
-            # Install iPerf 3
-            rpm -i iperf*
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
-                # Check will fail if the package already exists, removing the exit condition
-		# exit 2
-            fi
-
-        elif is_fedora ; then
-            # Disable firewall
-            service firewalld stop
-
-            # Download iPerf 3
-            yum install wget -y
-            wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to download iPerf 3" >> SRIOV_iPerfInstall.log
-                exit 2
-            fi
-
-            # Install iPerf 3
-            rpm -i iperf3*
-            if [ `$? -ne 0 ]; then
-                echo "ERROR: unable to install iPerf 3" >> SRIOV_iPerfInstall.log
-                # Check will fail if the package already exists, removing the exit condition
-		# exit 2
-            fi
-        fi
-
-        __retvVal=`$(iperf3 -v)
-        if [ `$? -ne 0 ]; then
-            echo "ERROR: unable to start iPerf 3" >> SRIOV_iPerfInstall.log
-            exit 2
-        fi
-
-        exit `$__retVal
-"@
-
-    $filename = "iPerfInstall.sh"
-
-    # check for file
-    if (Test-Path ".\${filename}")
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    Add-Content $filename "$cmdToVM"
-
-    # send file
-    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
-    # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
-        Remove-Item ".\${filename}"
-    }
-
-    # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
-        return $false
-    }
-
-    # execute sent file
-    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && dos2unix iPerfInstall.sh && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
-    return $retVal   
-}
-
 #######################################################################
 #
-# SR-IOV configure VM and bond
+# SR-IOV configure VM and VF
 #
 #######################################################################
-function ConfigureVMandBond([String]$vmName,[String]$hvServer,[String]$sshKey,[String]$bondIP,[String]$netmask)
+function ConfigureVMandVF([String]$vmName,[String]$hvServer,[String]$sshKey,[String]$vfIP,[String]$netmask)
 {
     # Source TCUitls.ps1 for getipv4 and other functions
     if (Test-Path ".\setupScripts\TCUtils.ps1") {
@@ -1186,6 +874,9 @@ function ConfigureVMandBond([String]$vmName,[String]$hvServer,[String]$sshKey,[S
         "ERROR: Could not find setupScripts\TCUtils.ps1"
         return $false
     }
+
+    # Transform netmask for RHEL/CentOS distro
+    $netmaskCIDR = netmaskToCIDR $netmask
 
     # Verify VM2 exists
     $vm = Get-VM -Name $vmName -ComputerName $hvServer -ERRORAction SilentlyContinue
@@ -1290,81 +981,57 @@ function ConfigureVMandBond([String]$vmName,[String]$hvServer,[String]$sshKey,[S
         # Install dependencies needed for testing
         InstallDependencies
 
-        #
-        # Run bondvf.sh script and configure interfaces properly
-        #
-        # Run bonding script from default location - CAN BE CHANGED IN THE FUTURE
-        if is_ubuntu ; then
-            bash /usr/src/linux-headers-*/tools/hv/bondvf.sh
+        __vfCount=`$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo' | wc -l) 
 
-            # Verify if bond0 was created
-            __bondCount=`$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
+        if is_ubuntu ; then
 
             __file_path="/etc/network/interfaces"
             # Change /etc/network/interfaces 
-            sed -i "s/bond0 inet dhcp/bond0 inet static/g"` `$__file_path
-            sed -i "/bond0 inet static/a address $bondIP" `$__file_path
-            sed -i "/address $bondIP/a netmask $netmask" `$__file_path
+
+            echo "auto eth1" >> `$__file_path
+            echo "iface eth1 inet static" >> `$__file_path
+            echo "address $vfIP" >> `$__file_path
+            echo "netmask $netmask" >> `$__file_path
+
+            ifup eth1
 
         elif is_suse ; then
-            bash /usr/src/linux-*/tools/hv/bondvf.sh
+            __file_path="/etc/sysconfig/network/ifcfg-eth1"
 
-            # Verify if bond0 was created
-            __bondCount=`$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
+            # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+            rm -f `$__file_path
+            echo "DEVICE=eth1" >> `$__file_path
+            echo "NAME=eth1" >> `$__file_path
+            echo "BOOTPROTO=static" >> `$__file_path
+            echo "IPADDR=$vfIP" >> `$__file_path
+            echo "NETMASK=$netmask" >> `$__file_path
+            echo "STARTMODE=auto" >> `$__file_path
 
-            __file_path="/etc/sysconfig/network/ifcfg-bond0"
-            # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-            sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
-            cat <<-EOF >> `$__file_path
-            BOOTPROTO=static
-            IPADDR=$bondIP
-            NETMASK=$netmask
-EOF
+            ifup eth1
 
         elif is_fedora ; then
-            bash bondvf.sh
+            __file_path="/etc/sysconfig/network-scripts/ifcfg-eth1"
 
-            # Verify if bond0 was created
-            __bondCount=`$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
-            if [ 0 -eq `$__bondCount ]; then
-                exit 2
-            fi
+            # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+            rm -f `$__file_path
+            echo "DEVICE=eth1" >> `$__file_path
+            echo "NAME=eth1" >> `$__file_path
+            echo "BOOTPROTO=static" >> `$__file_path
+            echo "IPADDR=$vfIP" >> `$__file_path
+            echo "NETMASK=$netmask" >> `$__file_path
+            echo "ONBOOT=yes" >> `$__file_path
 
-            __file_path="/etc/sysconfig/network-scripts/ifcfg-bond0"
-            # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-            sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" `$__file_path
-            cat <<-EOF >> `$__file_path
-            BOOTPROTO=static
-            IPADDR=$bondIP
-            NETMASK=$netmask
-EOF
+            ifup eth1
         fi
 
-        echo "Network config file path: `$__file_path" >> ConfigureVMandBond.log
-
-        # Get everything up & running
-        if is_ubuntu ; then
-            service networking restart
-
-        elif is_suse ; then
-            service network restart
-
-        elif is_fedora ; then
-            service network restart
-        fi
+        echo "Network config file path: `$__file_path" >> ConfigureVMandVF.log
 
         __retVal=0
-        echo CreateBond: returned `$__retVal >> ConfigureVMandBond.log 2>&1
+        echo ConfigureVF: returned `$__retVal >> ConfigureVMandVF.log 2>&1
         exit `$__retVal
 "@
 
-    $filename = "CreateBond.sh"
+    $filename = "ConfigureVF.sh"
 
     # check for file
     if (Test-Path ".\${filename}") {

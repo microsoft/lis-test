@@ -28,8 +28,8 @@
        and  VM3 and VM4 on the second Hyper-V host.
     b. Configure each VM with a synthetic NIC with SR-IOV enabled on
        the vSwitch and the VMs NIC.
-    c. On each Linux VM, run the bonding script to create the bond0 device.
-    d. Verify the bond0 device is working on each VM.
+    c. On each Linux VM, configure the VF.
+    d. Verify VF device is working on each VM.
     e. Run iPerf from VM1 to VM3 and from VM2 to VM4 simultaneously
  Acceptance Criteria
     a. iPerf completes.
@@ -59,8 +59,8 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
             <param>TC_COVERED=??</param>                                   
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <param>REMOTE_USER=root</param>
             <!-- VM_STATE has to be 'pause' or 'save' -->
@@ -182,16 +182,16 @@ foreach ($p in $params)
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
         "VM2NAME" { $vm2Name = $fields[1].Trim() }
         "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
         "VM3NAME" { $vm3name = $fields[1].Trim() }
         "VM4NAME" { $vm4name = $fields[1].Trim() }
-        "VM3BOND_IP" { $vm3bondIP = $fields[1].Trim() }
-        "VM4BOND_IP" { $vm4bondIP = $fields[1].Trim() }
+        "VM3VF_IP" { $vm3VF_IP = $fields[1].Trim() }
+        "VM4VF_IP" { $vm4VF_IP = $fields[1].Trim() }
     }
 }
 
@@ -200,25 +200,25 @@ del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
-# Configure the bond on test VM
+# Configure eth1 on test VM
 #
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to configure VF on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
 
 #
 # Start VM3 and VM4 and configure them
 #
-$retVal = ConfigureVMandBond $vm3Name $hvServer $sshKey $vm3bondIP $netmask
+$retVal = ConfigureVMandVF $vm3Name $hvServer $sshKey $vm3VF_IP $netmask
 if (-not $retVal)
 {
     "ERROR: Failed to configure vm $vm3Name on $hvServer"
     return $false
 }
-$retVal = ConfigureVMandBond $vm4Name $hvServer $sshKey $vm4bondIP $netmask
+$retVal = ConfigureVMandVF $vm4Name $hvServer $sshKey $vm4VF_IP $netmask
 if (-not $retVal)
 {
     "ERROR: Failed to configure vm $vm4Name on $remoteServer"
@@ -237,8 +237,8 @@ $vm3ipv4 = GetIPv4 $vm3Name $hvServer
 $vm4ipv4 = GetIPv4 $vm4Name $hvServer
 "$vm4Name IPADDRESS: $vm4ipv4"
 
-# Send BOND_IP2 to VM3 and VM4. This ip will be used by iPerf
-$commandToSend = "echo -e BOND_IP2=${vmBondIP2} >> constants.sh"
+# Send VF_IP2 to VM3 and VM4. This ip will be used by iPerf
+$commandToSend = "echo -e VF_IP2=${vmVF_IP2} >> constants.sh"
 $retVal = SendCommandToVM "$vm3ipv4" "$sshKey" $commandToSend
 if (-not $retVal)
 {
@@ -268,9 +268,9 @@ Start-Sleep -s 5
 Start-Sleep -s 5
 # Start iPerf3 testing
 "Start Servers"
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -c `$BOND_IP2 -p 5201 -u -t 100 --logfile PerfResults.log &' > runIperf.sh"
-.\bin\plink.exe -i ssh\$sshKey root@${vm3ipv4} "echo 'source constants.sh && iperf3 -c `$BOND_IP2 -p 5202 -u -t 100 --logfile PerfResults.log &' > runIperf.sh"
-.\bin\plink.exe -i ssh\$sshKey root@${vm4ipv4} "echo 'source constants.sh && iperf3 -c `$BOND_IP2 -p 5203 -u -t 100 --logfile PerfResults.log &' > runIperf.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -c `$VF_IP2 -p 5201 -u -t 100 --logfile PerfResults.log &' > runIperf.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${vm3ipv4} "echo 'source constants.sh && iperf3 -c `$VF_IP2 -p 5202 -u -t 100 --logfile PerfResults.log &' > runIperf.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${vm4ipv4} "echo 'source constants.sh && iperf3 -c `$VF_IP2 -p 5203 -u -t 100 --logfile PerfResults.log &' > runIperf.sh"
 
 
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"

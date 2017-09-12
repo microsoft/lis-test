@@ -147,14 +147,14 @@ $isDynamic = $false
 $params = $testParams.Split(';')
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    switch ($fields[0].Trim()) { 
+    switch ($fields[0].Trim()) {
         "NIC"
         {
             $nicArgs = $fields[1].Split(',')
             if ($nicArgs.Length -eq 3) {
                 $CurrentDir= "$pwd\"
-                $testfile = "macAddress.file" 
-                $pathToFile="$CurrentDir"+"$testfile" 
+                $testfile = "macAddress.file"
+                $pathToFile="$CurrentDir"+"$testfile"
                 $isDynamic = $true
             }
         }
@@ -181,6 +181,7 @@ foreach ($p in $params)
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
     "TestLogDir" {$logdir = $fields[1].Trim()}
     "TC_COVERED" {$tc_covered = $fields[1].Trim()}
+    "SSH_PRIVATE_KEY" {$SSH_PRIVATE_KEY = $fields[1].Trim()}
     "NIC"
     {
         $nicArgs = $fields[1].Split(',')
@@ -230,7 +231,7 @@ $sts = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "dos2unix ~/utils.sh"
 [int]$minorVersion = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} ". utils.sh && GetOSVersion && echo `$os_UPDATE"
 if ((($majorVersion -le 6) -and ($minorVersion -le 4)) -or $majorVersion -le 5) {
     "Error: RHEL ${majorVersion}.${minorVersion} doesn't support vxlan" | Tee-Object -Append -file $summaryLog
-    return $false    
+    return $false
 }
 
 $kernel = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "uname -a | grep 'i686\|i386'"
@@ -251,7 +252,7 @@ else {
     {
         "Invalid Mac Address $vm1MacAddress" | Tee-Object -Append -file $summaryLog
         return $false
-    }  
+    }
 }
 
 if (-not $vm1MacAddress) {
@@ -280,6 +281,10 @@ if (-not $ipv4) {
     return $False
 }
 
+if (-not $SSH_PRIVATE_KEY) {
+    "Error: test parameter SSH_PRIVATE_KEY was not specified" | Tee-Object -Append -file $summaryLog
+    return $False
+}
 # Set the parameter for the snapshot
 $snapshotParam = "SnapshotName = ${SnapshotName}"
 
@@ -305,7 +310,7 @@ $vm2testParam = "NIC=NetworkAdapter,$networkType,$networkName,$vm2MacAddress"
 if ( Test-Path ".\setupscripts\NET_ADD_NIC_MAC.ps1") {
     # Make sure VM2 is shutdown
     if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -like "Running" }) {
-        
+
         Stop-VM $vm2Name -force
         if (-not $?) {
             "Error: Unable to shut $vm2Name down (in order to add a new network Adapter)" | Tee-Object -Append -file $summaryLog
@@ -315,7 +320,7 @@ if ( Test-Path ".\setupscripts\NET_ADD_NIC_MAC.ps1") {
         # wait for VM to finish shutting down
         $timeout = 60
         while (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Off" }) {
-            
+
             if ($timeout -le 0) {
                 "Error: Unable to shutdown $vm2Name" | Tee-Object -Append -file $summaryLog
                 return $false
@@ -357,7 +362,7 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
     }
 }
 
-$timeout = 200 # seconds
+$timeout = 250 # seconds
 if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout)) {
     "Error: $vm2Name never started KVP" | Tee-Object -Append -file $summaryLog
     return $false
@@ -402,7 +407,7 @@ $vm="local"
 $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix NET_Configure_Vxlan.sh && chmod u+x NET_Configure_Vxlan.sh && ./NET_Configure_Vxlan.sh $vm1StaticIP $vm"
 
 $first_result = CheckResults $sshKey $ipv4
-if (-not $first_result) {
+if (-not $first_result[-1]) {
     "Error: Results are not as expected in configuration. Test failed. Check logs for more details." | Tee-Object -Append -file $summaryLog
     bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir
     Rename-Item $logdir\summary.log "${vmname}_Vxlan_Hang.log"
@@ -424,7 +429,7 @@ Start-Sleep -S 10
 
 $cmdToVM = @"
 #!/bin/bash
-
+    . /root/constants.sh
     ping -I vxlan0 242.0.0.11 -c 3
     if [ `$? -ne 0 ]; then
         echo "Failed to ping the second vm through vxlan0 after configurations." >> summary.log
@@ -432,7 +437,8 @@ $cmdToVM = @"
     else
         echo "Successfuly pinged the second vm through vxlan0 after configurations, connection is good." >> summary.log
         echo "Starting to transfer files with rsync" >> summary.log
-        echo "rsync -e 'ssh -o StrictHostKeyChecking=no -i /root/.ssh/rhel5_id_rsa' -avz /root/test root@242.0.0.11:/root" | at now +1 minutes
+        rsyncPara="ssh -o StrictHostKeyChecking=no -i /root/.ssh/`$SSH_PRIVATE_KEY"
+        echo "rsync -e '`$rsyncPara' -avz /root/test root@242.0.0.11:/root" | at now +1 minutes
     fi
 
 "@
@@ -462,7 +468,7 @@ Rename-Item $logdir\summary.log "${vmname}_Vxlan_Hang.log"
 
 # Checking results to see if we can go further
 $check = CheckResults $sshKey $vm2ipv4
-if (-not $check) {
+if (-not $check[-1]) {
     "Error: rsync failed on VM1" | Tee-Object -Append -file $summaryLog
     return $false
 }
@@ -531,7 +537,8 @@ Rename-Item $logdir\summary.log "${vm2Name}_Vxlan_Hang.log"
 
 $second_result = CheckResults $sshKey $vm2ipv4
 Stop-VM -Name $vm2Name -ComputerName $hvServer -Force
-if (-not $second_result) {
+
+if (-not $second_result[-1]) {
     "Error: rsync failed on VM2" | Tee-Object -Append -file $summaryLog
     return $false
 }

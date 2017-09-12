@@ -1307,6 +1307,7 @@ function CheckRecoveringJ()
     return $retValue
 }
 
+
 #######################################################################
 # Create a file on the VM.
 #######################################################################
@@ -1605,6 +1606,8 @@ function GetNumaSupportStatus([string] $kernel)
     return $true
 }
 
+
+
 #####################################################################
 #
 # GetHostBuildNumber
@@ -1879,4 +1882,271 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
         "Info : Controller successfully added"
     }
     return $True
+}
+
+
+function SetIntegrationService([string] $vmName, [string] $hvServer, [string] $serviceName, [boolean] $serviceStatus)
+{
+    <#
+    .Synopsis
+        Set the Integration Service status.
+    .Description
+        Set the Integration Service status based on service name and expected service status.
+    .Parameter vmName
+        Name of the VM
+    .Parameter hvServer
+        Name of the server hosting the VM
+    .Parameter serviceName
+        Service name, e.g. VSS, Guest Service Interface
+    .Parameter serviceStatus
+        Expected servcie status, $true is enabled, $false is disabled
+    .Example
+        SetIntegrationService $vmName $hvServer $serviceName $true
+    #>
+    if (@("Guest Service Interface", "Time Synchronization", "Heartbeat", "Key-Value Pair Exchange", "Shutdown","VSS") -notcontains $serviceName)
+    {
+        "Error: Unknown service type: $serviceName"
+        return $false
+    }
+
+    "Info: Set the Integrated Services $serviceName as $serviceStatus"
+    if ($serviceStatus -eq $false)
+    {
+        Disable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $serviceName
+    }
+    else
+    {
+        Enable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $serviceName
+    }
+
+    $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $serviceName
+    if ($status.Enabled -ne $serviceStatus)
+    {
+        "Error: The $serviceName service could not be set as $serviceStatus"
+        return $False
+    }
+    return $True
+}
+
+function GetSelinuxAVCLog([String] $ipv4, [String] $sshKey)
+{
+    <#
+    .Synopsis
+        Check selinux audit.log in Linux VM for avc denied log.
+    .Description
+        Check audit.log in Linux VM for avc denied log.
+        If get avc denied log for hyperv daemons, return $true, else return $false.
+    .Parameter ipv4
+        IPv4 address of the Linux VM.
+    .Parameter sshKey
+        SSH key used to connect to the Linux VM
+    .Example
+        GetSelinuxAVCLog $ipv4 $sshKey
+    #>
+    $filename = ".\audit.log"
+    $text_hv = "hyperv"
+    $text_avc = "type=avc"
+    echo y | .\bin\pscp -i ssh\${sshKey}  root@${ipv4}:/var/log/audit.log $filename
+
+    if (-not $?) {
+        Write-Output "ERROR: Unable to copy audit.log from the VM"
+        return $False
+    }
+
+    $file = Get-Content $filename
+    if (-not $file) {
+        Write-Error -Message "Error: Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+     foreach ($line in $file) {
+        if ($line -match $text_hv -and $line -match $text_avc){
+            write-output "Warning: get the avc denied log: $line"
+            return $True
+        }
+    }
+    del $filename
+    return $False
+}
+
+function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$supportKernel)
+{
+    <#
+    .Synopsis
+        Check vm supports one feature or not.
+    .Description
+        Check vm supports one feature or not based on comare curent kernel version with feature supported kernel version. If the current version is lower than feature supported version, return false, otherwise return true
+    .Parameter ipv4
+        IPv4 address of the Linux VM.
+    .Parameter sshKey
+        SSH key used to connect to the Linux VM
+    .Parameter supportkernel
+        the kernel version number starts to support this feature, e.g. supportkernel = "3.10.0.383"
+    .Example
+        GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
+    #>
+	$currentKernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
+	if( $? -eq $false){
+		write-output "WARNING: Could not get kernel version".
+	}
+	$sKernel = $supportKernel.split(".")
+	$cKernel = $currentKernel.replace("-",".").split(".")
+
+	for ($i=0; $i -le 3; $i++) {
+		if ($ckernel[$i] -lt $sKernel[$i] ) {
+			return $false
+		}
+	}
+	return $true
+}
+
+# Function for starting dependency VMs used by test scripts
+function StartDependencyVM([String] $dep_vmName, [String] $server, [int]$tries)
+{
+    if (Get-VM -Name $dep_vmName -ComputerName $server |  Where { $_.State -notlike "Running" })
+    {
+        [int]$i = 0
+        # Try to start dependency VM
+        for ($i=0; $i -lt $tries; $i++)
+        {
+            Start-VM -Name $dep_vmName -ComputerName $server -ErrorAction SilentlyContinue
+            if (-not $?)
+            {
+                "Warning: Unable to start VM $dep_vmName on attempt $i"
+            }
+            else
+            {
+                $i = 0
+                break
+            }
+
+            Start-Sleep -s 30
+        }
+
+        if ($i -ge $tries)
+        {
+            "Error: Unable to start VM $dep_vmName after $tries attempts" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+    }
+
+    # just to make sure vm2 started
+    if (Get-VM -Name $dep_vmName -ComputerName $server |  Where { $_.State -notlike "Running" })
+    {
+        "Error: $dep_vmName never started."
+        return $false
+    }
+}
+
+# ScriptBlock used for Dynamic Memory test cases
+$DM_scriptBlock = {
+  # function for starting stresstestapp
+  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir, [int]$timeoutStress, [int64]$memMB, [int]$duration, [int64]$chunk)
+  {
+
+  # because function is called as job, setup rootDir and source TCUtils again
+  if (Test-Path $rootDir)
+  {
+    Set-Location -Path $rootDir
+    if (-not $?)
+    {
+    "Error: Could not change directory to $rootDir !"
+    return $false
+    }
+    "Changed working directory to $rootDir"
+  }
+  else
+  {
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
+  }
+
+  # Source TCUitls.ps1 for getipv4 and other functions
+  if (Test-Path ".\setupScripts\TCUtils.ps1")
+  {
+    . .\setupScripts\TCUtils.ps1
+    "Sourced TCUtils.ps1"
+  }
+  else
+  {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+  }
+
+      $cmdToVM = @"
+#!/bin/bash
+        if [ ! -e /proc/meminfo ]; then
+          echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/HotAdd.log 2>&1
+          exit 100
+        fi
+
+        rm ~/HotAddErrors.log -f
+        dos2unix check_traces.sh
+        chmod +x check_traces.sh
+        ./check_traces.sh ~/HotAddErrors.log &
+
+        __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
+        __totalMem=`$((__totalMem/1024))
+        echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1
+        declare -i __chunks
+        declare -i __threads
+        declare -i duration
+        declare -i timeout
+        if [ $chunk -le 0 ]; then
+            __chunks=128
+        else
+            __chunks=512
+        fi   
+        __threads=`$(($memMB/__chunks))
+        if [ $timeoutStress -eq 0 ]; then
+            timeout=10000000
+            duration=`$((10*__threads))
+        elif [ $timeoutStress -eq 1 ]; then
+            timeout=5000000
+            duration=`$((5*__threads))
+        elif [ $timeoutStress -eq 2 ]; then
+            timeout=1000000
+            duration=`$__threads
+        else
+            timeout=1
+            duration=30
+            __threads=4
+            __chunks=2048
+        fi
+
+        if [ $duration -ne 0 ]; then
+            duration=$duration
+        fi
+        echo "Stress-ng info: `$__threads threads :: `$__chunks MB chunk size :: `$((`$timeout/1000000)) seconds between chunks :: `$duration seconds total stress time" >> /root/HotAdd.log 2>&1
+        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t `$duration --backoff `$timeout
+        echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
+        wait
+        exit 0
+"@
+
+    #"pingVMs: sendig command to vm: $cmdToVM"
+    $filename = "ConsumeMem.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+      Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal[-1])
+    {
+      return $false
+    }
+
+    # execute command as job
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+  }
 }

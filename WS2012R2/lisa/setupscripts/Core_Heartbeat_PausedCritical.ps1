@@ -137,6 +137,12 @@ $VHDSize = (Get-VHD -Path $ParentVHD -ComputerName $hvServer).FileSize
 [uint64]$newsize = [math]::round($VHDSize /1Gb, 1)
 $newsize = ($newsize * 1GB) + 1GB
 
+Get-Partition -DriveLetter $driveletter[0] -ErrorAction SilentlyContinue
+if ($?)
+{
+    Dismount-VHD -Path $vhdpath -ComputerName $hvServer -ErrorAction SilentlyContinue 
+}
+
 if ( Test-Path $vhdpath )
 {
     Write-Host "Deleting existing VHD $vhdpath"

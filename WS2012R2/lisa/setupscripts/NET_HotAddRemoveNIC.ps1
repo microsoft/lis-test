@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -40,8 +40,8 @@
                 Bring eth1 online and acquire a DHCP address
             if "removed"
                 Verify this is only one eth device.
-        Hot remove the NIC 
-        Check VM log for errors 
+        Hot remove the NIC
+        Check VM log for errors
 
     A sample LISA test case definition would look similar to the following:
 
@@ -110,9 +110,9 @@ try
         {
             continue   # Just ignore the parameter
         }
-    
+
         $val = $tokens[1].Trim()
-    
+
         switch($tokens[0].Trim().ToLower())
         {
         "ipv4"          { $ipv4        = $val }
@@ -183,7 +183,7 @@ try
     #
     # Source the utility functions so we have access to them
     #
-    #. .\setupscripts\TCUtils.ps1
+    . .\setupscripts\TCUtils.ps1
 
     #
     # Eat any Putty prompts asking to save the server key
@@ -202,22 +202,25 @@ try
 
     if ($vm.Generation -ne 2)
     {
-        Throw "Error: This test requires a Gen 2 VM. VM '${vmName}' is not a Gen2 VM"
+        Write-Output "Info: This test requires a Gen 2 VM. VM '${vmName}' is not a Gen2 VM" | Tee-Object -Append -file $summaryLog
+        return $Skipped
     }
 
     #
     # Verify Windows Server version
     #
-    $osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
+    $osInfo = GetHostBuildNumber $hvServer
     if (-not $osInfo)
     {
-        Throw "Error: Unable to collect Operating System information"
+        "Error: Unable to collect Operating System information"
+        return $False
     }
-    if ($osInfo.BuildNumber -le 10000)
+    if ($osInfo -le 9600)
     {
-        Throw "Error: This test requires Windows Server 2016 or higher"
+        Write-Output "Info: This test requires Windows Server 2016 or higher" | Tee-Object -Append -file $summaryLog
+        return $Skipped
     }
-    
+
     #
     # Verify the target VM does not have a Hot Add NIC.  If it does, then assume
     # there is a test configuration or setup issue, and fail the test.
@@ -246,7 +249,7 @@ try
     {
         Throw "Error: Unable to Hot Add NIC to VM '${vmName}' on server '${hvServer}'"
     }
-
+    start-sleep -s 3
     #
     # Run the NET_VerifyHotAddSyntheticNIC.sh on the SUT VM to verify the VM detected the hot add
     #

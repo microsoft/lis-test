@@ -23,17 +23,57 @@ from __future__ import print_function
 
 import logging
 import sys
-
+import json
 from envparse import env
 
 import sql_utils
 import config
 from test_run import PerfTestRun
 from test_run import TestRun
+from monitor import MonitorRuns
 
 logger = logging.getLogger(__name__)
 
+def parse_results(xml_file, log_file, perf_flag, skip_kvp_flag, snapshot_name):
+    logger.info('Initializing TestRun object')
+    if perf_flag:
+        test_run = PerfTestRun(perf_flag, skip_kvp_flag, snapshot_name)
+    else:
+        test_run = TestRun(skip_vm_check=skip_kvp_flag, checkpoint_name=snapshot_name)
 
+    logger.info('Parsing XML file - %s', xml_file)
+    test_run.update_from_xml(xml_file)
+
+    logger.info('Parsing log file - %s', log_file)
+    test_run.update_from_ica(log_file)
+
+    if not skip_kvp_flag:
+        logger.info('Getting KVP values from VM')
+        test_run.update_from_vm([
+            'OSBuildNumber', 'OSName', 'OSMajorVersion'
+        ], stop_vm=True)
+
+    # Parse values to be inserted
+    logger.info('Parsing test run for database insertion')
+    return test_run
+
+def commit_results(insert_values, config_file_path):
+    env.read_envfile(config_file_path)
+    # Connect to db and insert values in the table
+    logger.info('Initializing database connection')
+    db_connection, db_cursor = sql_utils.init_connection()
+
+    logger.info('Executing insertion commands')
+    for table_line in insert_values:
+        sql_utils.insert_values(db_cursor, table_line)
+
+    logger.info('Committing changes to the database')
+    db_connection.commit()
+
+    logger.info("Checking insert validity")
+    sql_utils.check_insert(db_cursor, insert_values)
+
+    
 def main(args):
     """The main entry point of the application
 
@@ -48,60 +88,35 @@ def main(args):
     """
     # Parse arguments and check if they exist
     arg_parser = config.init_arg_parser()
-    parsed_arguments = arg_parser.parse_args(args)
+    parsed_arguments = arg_parser.parse_args(args)    
+    config.setup_logging(
+        default_level=int(parsed_arguments.loglevel)
+    )
 
+    print(parsed_arguments)
     path_validation = config.validate_input(parsed_arguments)
     if isinstance(path_validation, list):
         print("\n%s \n" % path_validation[1])
         print(arg_parser.parse_args(['-h']))
         sys.exit(0)
-
-    config.setup_logging(
-        default_level=int(parsed_arguments.loglevel)
-    )
-
-    logger.debug('Parsing env variables')
-    env.read_envfile(parsed_arguments.config)
-
-    logger.info('Initializing TestRun object')
-    if parsed_arguments.perf:
-        test_run = PerfTestRun(parsed_arguments.perf,
-                               parsed_arguments.skipkvp,
-                               parsed_arguments.snapshot)
-    else:
-        test_run = TestRun(
-            skip_vm_check=parsed_arguments.skipkvp,
-            checkpoint_name=parsed_arguments.snapshot
+    test_run = parse_results(
+        parsed_arguments.xml_file_path,
+        parsed_arguments.log_file_path,
+        parsed_arguments.perf,
+        parsed_arguments.skipkvp,
+        parsed_arguments.snapshot
         )
 
-    logger.info('Parsing XML file - %s', parsed_arguments.xml_file_path)
-    test_run.update_from_xml(parsed_arguments.xml_file_path)
+    insert_list = test_run.parse_for_db_insertion()
+    if not parsed_arguments.nodbcommit:
+        if test_run: commit_results(insert_list, parsed_arguments.config)
+        else: logger.warning('Results need to be parsed first.')
+    else:
+        logger.info('Skipping db insertion.') 
+    
 
-    logger.info('Parsing log file - %s', parsed_arguments.log_file_path)
-    test_run.update_from_ica(parsed_arguments.log_file_path)
-
-    if not parsed_arguments.skipkvp:
-        logger.info('Getting KVP values from VM')
-        test_run.update_from_vm([
-            'OSBuildNumber', 'OSName', 'OSMajorVersion'
-        ], stop_vm=True)
-
-    # Parse values to be inserted
-    logger.info('Parsing test run for database insertion')
-    insert_values = test_run.parse_for_db_insertion()
-    # Connect to db and insert values in the table
-    logger.info('Initializing database connection')
-    db_connection, db_cursor = sql_utils.init_connection()
-
-    logger.info('Executing insertion commands')
-    for table_line in insert_values:
-        sql_utils.insert_values(db_cursor, table_line)
-
-    logger.info('Committing changes to the database')
-    db_connection.commit()
-
-    logger.info("Checking insert validity")
-    sql_utils.check_insert(db_cursor, insert_values)
+    if parsed_arguments.report: MonitorRuns.write_json(parsed_arguments.report,  MonitorRuns.get_test_summary(insert_list))
+    if parsed_arguments.summary: MonitorRuns(parsed_arguments.summary)()
 
 if __name__ == '__main__':
     main(sys.argv[1:])

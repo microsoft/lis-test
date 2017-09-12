@@ -58,8 +58,8 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
             <param>TC_COVERED=SRIOV-25</param>                                   
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <!-- VM_STATE has to be 'pause' or 'save' -->
             <param>VM_STATE=save</param>
@@ -154,8 +154,8 @@ foreach ($p in $params)
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK"  { $netmask = $fields[1].Trim() }
         "REMOTE_USER" { $remoteUser = $fields[1].Trim() }
         "REMOTE_SERVER" { $remoteServer = $fields[1].Trim() }
@@ -193,20 +193,20 @@ else {
 }
 
 #
-# Configure the bond on test VM
+# Configure eth1 on test VM
 #
 Start-Sleep -s 5
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to configure eth1 on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
 
 #
 # Install iPerf3 on VM1
 #
-Start-Sleep -s 5
+Start-Sleep -s 10
 "Installing iPerf3 on ${vmName}"
 $retval = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "dos2unix SR-IOV_Utils.sh && source SR-IOV_Utils.sh && InstallDependencies"
 if (-not $retVal)
@@ -214,20 +214,6 @@ if (-not $retVal)
     "ERROR: Failed to install iPerf3 on vm $vmName (IP: ${ipv4})"
     return $false
 }
-
-#
-# Reboot VM
-#
-Start-Sleep -s 5
-Restart-VM -VMName $vmName -ComputerName $hvServer -Force
-$sts = WaitForVMToStartSSH $ipv4 200
-if( -not $sts[-1]){
-    "ERROR: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
-    return $false    
-}
-# Get IPs
-$ipv4 = GetIPv4 $vmName $hvServer
-"${vmName} IP Address: ${ipv4}"
 
 #
 # Start iPerf3 on both VMs
@@ -240,7 +226,7 @@ Start-Sleep -s 5
 
 "Start Server"
 # Start iPerf3 testing
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 1800 -c `$BOND_IP2 --logfile PerfResults.log &' > runIperf.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 1800 -c `$VF_IP2 --logfile PerfResults.log &' > runIperf.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
 
@@ -322,7 +308,8 @@ while ($isDone -eq $False)
         # If more than 5 seconds passed and also VF is not running, fail the test
         else {  
             if ($timeToSwitch -gt 5){
-                $interfaceOutput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep enP"
+                $vfName = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep -v 'eth0\|eth1\|lo'"
+                $interfaceOutput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep $vfName"
                 if ($interfaceOutput -and ($vfAfterThroughput -gt 0)){
                     "Info: On run $counter, the throughput did not increase enough ($vfAfterThroughput gbps), but VF is up" | Tee-Object -Append -file $summaryLog
                     $hasSwitched = $true

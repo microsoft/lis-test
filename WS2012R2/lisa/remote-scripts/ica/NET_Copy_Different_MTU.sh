@@ -24,7 +24,7 @@
 # Description:
 #   This script verifies that the network doesn't
 #   lose connection by copying a large file(~1GB)file
-#   between two VM's when MTU is set to 9000 on the network 
+#   between two VM's when MTU is set to 9000 on the network
 #   adapters.
 #
 #   Parameters required:
@@ -169,7 +169,7 @@ if [ $? -ne 0 ]; then
                 exit 10
             fi
             ;;
-        redhat*|centos*)
+        redhat*|centos*|fedora*)
             yum install expect -y
             if [ $? -ne 0 ]; then
                 msg="ERROR: Failed to install expect"
@@ -438,7 +438,7 @@ declare -i __file_size
 
 if [ "${FILE_SIZE_GB:-UNDEFINED}" = "UNDEFINED" ]; then
     # Default size 1 GB
-    __file_size=$((1024*1024*1024))                      
+    __file_size=$((1024*1024*1024))
 else
     __file_size=$((FILE_SIZE_GB*1024*1024*1024))
 fi

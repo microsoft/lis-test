@@ -42,6 +42,10 @@ ICA_TESTFAILED="TestFailed"        # Error while performing the test
 
 CONSTANTS_FILE="constants.sh"
 
+# define regular stable releases in order to avoid unstable builds
+# https://github.com/linux-test-project/ltp/tags
+ltp_version="20170516"
+
 TOP_BUILDDIR="/opt/ltp"
 TOP_SRCDIR="$HOME/src"
 LTP_RESULTS="/root/ltp-results.log"
@@ -205,11 +209,15 @@ test -d "$TOP_SRCDIR" || mkdir -p "$TOP_SRCDIR"
 cd $TOP_SRCDIR
 
 LogMsg "Cloning LTP"
-git clone --depth 1 https://github.com/linux-test-project/ltp.git
+git clone https://github.com/linux-test-project/ltp.git
 TOP_SRCDIR="$HOME/src/ltp"
 
-LogMsg "Configuring LTP..."
 cd $TOP_SRCDIR
+git -c advice.detachedHead=false checkout tags/$ltp_version
+
+LogMsg "Configuring LTP..."
+# use autoreconf to match the installed package versions
+autoreconf -f
 make autotools
 
 test -d "$TOP_BUILDDIR" || mkdir -p "$TOP_BUILDDIR"
@@ -240,7 +248,6 @@ cd $TOP_BUILDDIR
 LogMsg "Running LTP..."
 ./runltplite.sh -c 4 -p -q -l $LTP_RESULTS -o $LTP_OUTPUT
 
-LogMsg "Updating summary log"
 grep -A 5 "Total Tests" $LTP_RESULTS >> ~/summary.log
 if grep FAIL $LTP_OUTPUT ; then
 	echo "Failed Tests:" >> ~/summary.log

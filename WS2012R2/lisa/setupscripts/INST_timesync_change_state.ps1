@@ -22,7 +22,7 @@
 .Synopsis
     Verify the time sync after VM state change
 .Description
-    This test will check the time sync of guest OS with the host. It will save/pause the VM, wait for 10 mins, 
+    This test will check the time sync of guest OS with the host. It will save/pause the VM, wait for 10 mins,
     resume/start the VM and re-check the time sync.
 
 .Parameter vmName
@@ -44,6 +44,8 @@ param ([String] $vmName, [String] $hvServer, [String] $testParams)
 $sshKey = $null
 $ipv4 = $null
 $rootDir = $null
+$testDelay = 600
+$chrony_state = $null
 
 #####################################################################
 #
@@ -93,11 +95,13 @@ foreach($p in $params)
     "ipv4"    { $ipv4 = $val }
     "rootdir" { $rootDir = $val }
     "tc_covered" { $tcCovered = $val }
-    "vmState" { $vmState = $val.toLower() }
+    "vmstate" { $vmState = $val.toLower() }
+    "testdelay"  {$testDelay = $val}
+    "chrony"  {$chrony_state = $val}
     default  { continue }
     }
 }
-
+"Info: testDelay = $testDelay; chrony_state = $chrony_state;"
 #
 # Make sure the required testParams were found
 #
@@ -139,7 +143,7 @@ del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "Covers ${tcCovered}" | Out-File -Append $summaryLog
 
 $retVal = ConfigTimeSync -sshKey $sshKey -ipv4 $ipv4
-if (-not $retVal) 
+if (-not $retVal)
 {
     Write-Output "Error: Failed to config time sync."
     return $False
@@ -156,6 +160,19 @@ else
     return $False
 }
 
+if ($chrony_state -eq "off")
+{
+    "Info: Turn off chrony in vm"
+    $cmd = "service chronyd stop; service ntpd stop"
+    $retVal = SendCommandToVM $ipv4 $sshKey "$cmd"
+    if ($retVal -eq $False)
+    {
+        Write-Output "Error: Failed to turn off chrony."
+        return $False
+    }
+}
+
+Start-Sleep -S 10
 #
 # Pause/Save the VM state and wait for 10 mins.
 #
@@ -178,7 +195,11 @@ if ($? -ne "True")
   return $false
 }
 
-Start-Sleep -seconds 600
+#
+# If the test delay was specified, sleep for a bit
+#
+"Sleeping for ${testDelay} seconds"
+Start-Sleep -S $testDelay
 
 #
 # After 10 mins resume the VM and check the time sync.

@@ -339,7 +339,7 @@ if (-not $?)
 # Disable secure boot
 if ($vm_gen -eq 2)
 {
-    Set-VMFirmware -VMName $vmNameChild -EnableSecureBoot Off
+    Set-VMFirmware -VMName $vmNameChild -EnableSecureBoot Off -ComputerName $hvServer
     if(-not $?)
     {
         Write-Output "Error: Unable to disable secure boot"
@@ -363,7 +363,7 @@ Write-Output "INFO: New VM $vmNameChild started"
 #Check if we can set the Production Checkpoint as default
 $vmChild = Get-VM -Name $vmNameChild -ComputerName $hvServer
 if ($vmChild.CheckpointType -ne "ProductionOnly"){
-    Set-VM -Name $vmNameChild -CheckpointType ProductionOnly
+    Set-VM -Name $vmNameChild -CheckpointType ProductionOnly -ComputerName $hvServer
     if (-not $?)
     {
        Write-Output "Error: Could not set Production as Checkpoint type"  | Out-File -Append $summaryLog
