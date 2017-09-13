@@ -1545,6 +1545,7 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # Proceed with restarting the VM
     #
+    $currentTest = GetTestData $($vm.currentTest) $xmlData
     Start-Sleep -s 5
     $timeout = 60
     Stop-VM -Name $vm.vmName -ComputerName $vm.hvServer -Force -TurnOff
@@ -1600,12 +1601,21 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
             else
             {
+                $testName = $($vm.currentTest)
+                $testData = GetTestData $testName  $xmlData
                 $completionCode = $Aborted
-                LogMsg 0 "Error: $($vm.vmName) did not boot after second try for test $($vm.currentTest)"
-                LogMsg 0 "Info : $($vm.vmName) Status for test $($vm.currentTest) = ${completionCode}"
+                
+                LogMsg 0 "Error: $($vm.vmName) did not boot after second try for test $testName "
+                LogMsg 0 "Info : $($vm.vmName) Status for test $testName  = ${completionCode}"
 
+                if ($testData.OnError -eq "Abort") {
+                    LogMsg 0 "Warn : Test is set to abort on error. Exiting"
+                    $vm.currentTest = "done"
+                    # UpdateState $vm $ForceShutdown
+                    UpdateState $vm $Disabled
+                }
                 SetTestResult $currentTest $completionCode $xmlData
-                $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $($vm.currentTest), $completionCode)
+                $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
                 UpdateState $vm $ForceShutdown
             }
     }
