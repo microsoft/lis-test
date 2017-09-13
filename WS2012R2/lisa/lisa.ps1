@@ -986,7 +986,7 @@ switch ($cmdVerb)
         # we need to check the last one which is the final
         if (!$sts[-1])
         {
-            $lisaExitCode = 0
+            $lisaExitCode = 2
         }
     }
 "validate" {
