@@ -163,6 +163,7 @@ elif is_ubuntu ; then
     service ntp restart
     if [[ $? -ne 0 ]]; then
         LogMsg "NTP is not installed. Trying to install..."
+        apt-get update
         apt-get install ntp -y
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to install ntp. Aborting"

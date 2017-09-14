@@ -1817,20 +1817,20 @@ function ConfigTimeSync([String] $sshKey, [String] $ipv4)
     $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\Core_Config_TimeSync.sh" "/root/config_timesync.sh"
 
     # check the return Value of SendFileToVM
-    if (-not $retVal)
+    if ($? -ne "True")
     {
         Write-Output "Error: Failed to send config file to VM."
-        return $False
+        $retVal = $False
     }
 
     $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix config_timesync.sh && chmod u+x config_timesync.sh && ./config_timesync.sh"
-    if ($retVal -eq $False)
+    if ($? -ne "True")
     {
         Write-Output "Error: Failed to configure time sync. Check logs for details."
-        return $False
+        $retVal = $False
     }
 
-    return $True
+    return $retVal
 }
 
 function CheckVMState([String] $vmName, [String] $hvServer)
