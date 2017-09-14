@@ -3,15 +3,18 @@
 <!--
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
+
     All rights reserved.
     Licensed under the Apache License, Version 2.0 (the ""License"");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
         http://www.apache.org/licenses/LICENSE-2.0
+
     THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
     ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
     PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
     See the Apache Version 2.0 License for specific language governing
     permissions and limitations under the License.
 -->
@@ -46,6 +49,7 @@
                 <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
                 <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
                 <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
+                <suiteTest>GCOVR</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -54,24 +58,28 @@
         <test>
             <testName>SQM_Basic</testName>
             <testScript>SetupScripts\SQM_Basic.ps1</testScript>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
             <testparams>
                 <param>TC_COVERED=SQM-01</param>
+                <param>SourcePath=/root/linux-next</param>
             </testparams>
         </test>
         
         <test>
             <testName>KVP_Basic</testName>
             <testScript>SetupScripts\KVP_Basic.ps1</testScript>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=KVP-01</param>
 		<!-- toggle disable/enable the Data Exchange integration service -->
-                <param>DE_change=yes</param>
+                <param>DE_change=no</param>
+                <param>SourcePath=/root/linux-next</param>
             </testparams>
         </test>
 
@@ -81,6 +89,7 @@
             <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
                 tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
             <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
@@ -89,6 +98,7 @@
                 <param>Key=EEE</param>
                 <param>Value=555</param>
                 <param>Pool=0</param>
+                <param>SourcePath=/root/linux-next</param>
             </testparams>
         </test>
 
@@ -98,6 +108,7 @@
             <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
                 tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
             <preTest>setupscripts\ModifyKeyValue.ps1</preTest>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
@@ -106,12 +117,14 @@
                 <param>Key=EEE</param>
                 <param>Value=999</param>
                 <param>Pool=0</param>
+                <param>SourcePath=/root/linux-next</param>
             </testparams>
         </test>
 
         <test>
             <testName>KVP_Remove_Key_Values</testName>
             <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
@@ -120,6 +133,7 @@
                 <param>Key=EEE</param>
                 <param>Value=999</param>
                 <param>Pool=0</param>
+                <param>SourcePath=/root/linux-next</param>
             </testparams>
         </test>
 
@@ -127,6 +141,7 @@
             <testName>KVP_Push_Key_Values</testName>
             <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
             <files>tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
             <timeout>600</timeout>
             <onError>Abort</onError>
             <noReboot>True</noReboot>
@@ -134,12 +149,14 @@
                 <param>TC_COVERED=KVP-05</param>
                 <param>Key=BBB</param>
                 <param>Value=111</param>
+                <param>SourcePath=/root/linux-next</param>
             </testparams>
         </test>
 		
     	<test>
     		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
     		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
     		<timeout>600</timeout>
     		<onError>Abort</onError>
     		<noReboot>True</noReboot>
@@ -148,12 +165,14 @@
     			<param>Key=AAA</param>
     			<param>Value=000</param>
     			<param>Pool=0</param>
+                <param>SourcePath=/root/linux-next</param>
     		</testparams>
     	</test>	
     		
     	<test>
     		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
     		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
     		<timeout>600</timeout>
     		<onError>Abort</onError>
     		<noReboot>True</noReboot>
@@ -162,6 +181,7 @@
     			<param>Key=AAA</param>
     			<param>Value=000</param>
     			<param>Pool=0</param>
+                <param>SourcePath=/root/linux-next</param>
     		</testparams>
     	</test>
 
@@ -170,6 +190,7 @@
             <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
             <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,
                 tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
             <timeout>600</timeout>
             <onError>Abort</onError>
             <noReboot>True</noReboot>
@@ -177,6 +198,16 @@
                 <param>TC_COVERED=KVP-10</param>
                 <param>Pool=3</param>
                 <param>Items=11</param>
+                <param>SourcePath=/root/linux-next</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>GCOVR</testName>
+            <testScript>setupscripts\GCOV_Data_Group.ps1</testScript>>
+            <timeout>3600</timeout>
+            <testparams>
+                <param>GcovGroupFile=gcov_group</param>
+                <param>Python2=C:\Python27</param>
             </testparams>
         </test>
     </testCases>

@@ -1007,6 +1007,7 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     $params += "scriptMode=${scriptMode};"
     $params += "TestLogDir=${testDir};"
     $params += "sshKey=$($vm.sshKey);"
+    $params += "ipv4=$($vm.ipv4);"
 
     #
     # Invoke the setup/cleanup script
