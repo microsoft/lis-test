@@ -1516,11 +1516,17 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
     LogMsg 0 "Warn : $($vm.vmName) never booted for test $($vm.currentTest) on first try"
 
     # Take a Console Screenshot
-    $VMName = $vm.vmName
-
-    $BMPName = (pwd).Path + "\" + "${testDir}\$($vm.currentTest)_ConsoleScreenShot.bmp"
+    if (($testDir.Contains("\\")) -or ($testDir.Contains(":\")))
+    {
+        $BMPName = "${testDir}\$($vm.currentTest)_ConsoleScreenShot.bmp"
+    }
+    else 
+    {
+        $BMPName = (pwd).Path + "\" + "${testDir}\$($vm.currentTest)_ConsoleScreenShot.bmp"
+    }
+    
+    $VMName = $vm.vmName 
     Add-Type -AssemblyName "System.Drawing"
-
     $VMCS = Get-WmiObject -Namespace root\virtualization\v2 -Class Msvm_ComputerSystem -Filter "ElementName='$($VMName)'"
 
     # This is the default resolution in most cases
