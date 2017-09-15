@@ -59,12 +59,12 @@ function checkActive {
 #
 function verfKernel {
     LogMsg "Refreshing repositories....."
-    zypper refresh 
+    # zypper behavior is to abort if there are problems with a repo
+    zypper --non-interactive refresh
 	if [[ $? -ne 0 ]]; then
-	    msg="Error: Could not refresh repositories"
+	    msg="Error: Could not refresh all repositories. Kernel update might fail"
 		LogMsg "$msg"
 		UpdateSummary "$msg"
-		SetTestStateAborted
 	fi	
     status=$(zypper info kernel-default | grep -i status | awk '{print $3}')
     if [[ $status == 'out-of-date' ]]; then
