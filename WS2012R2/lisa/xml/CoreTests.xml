@@ -166,7 +166,7 @@
             <files>remote-scripts/ica/LIS_VerifyHyperVIC.sh</files>
             <testParams>
                 <param>TC_COVERED=CORE-09,CORE-10</param>
-                <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc)</param>
+                <param>HYPERV_MODULES=(hyperv_keyboard hv_netvsc hid_hyperv hv_util hv_storvsc)</param>
             </testParams>
             <timeout>600</timeout>
             <onError>Continue</onError>
