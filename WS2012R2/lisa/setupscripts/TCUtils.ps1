@@ -148,6 +148,40 @@ function GetIPv4([String] $vmName, [String] $server)
 
 #######################################################################
 #
+# Logger
+#
+#######################################################################
+class Logger {
+  [String] $LogFile
+  Logger($logFile='./default.log') {
+    $this.LogFile = $logFile
+  }
+  [void] info($message) {
+    $this.logMessage("Info: ${message}")
+  }
+
+  [void] error($message) {
+    $this.logMessage("Error: ${message}")
+  }
+
+  [void] debug($message) {
+    $this.logMessage("Debug: ${message}")
+  }
+
+  [void] warning($message) {
+     $this.logMessage("Warning: ${message}")
+  }
+
+  [void] logMessage($message) {
+    $timestamp = $(Get-Date -Format G)
+    $finalMessage = "${timestamp} - ${message}"
+    Write-Host $finalMessage
+    $finalMessage | Add-Content $this.LogFile
+  }
+}
+
+#######################################################################
+#
 # GetIPv4ViaHyperV()
 #
 #######################################################################
