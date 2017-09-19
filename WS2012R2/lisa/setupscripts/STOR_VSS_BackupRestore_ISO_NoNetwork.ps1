@@ -128,10 +128,22 @@ function RunRemoteScriptNoState($remoteScript)
 #
 #######################################################################
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
+
+$global:logger = [Logger]::new('default.log')
+
 # Check input arguments
 if ($vmName -eq $null)
 {
-    Write-Output "ERROR: VM name is null"
+    $logger.error("VM name is null")
     return $retVal
 }
 
@@ -152,28 +164,27 @@ foreach ($p in $params)
         default  {}
         }
 }
-
 if ($null -eq $sshKey)
 {
-    Write-Output "ERROR: Test parameter sshKey was not specified"
+    $logger.error("Test parameter sshKey was not specified")
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-    Write-Output "ERROR: Test parameter ipv4 was not specified"
+    $logger.error("Test parameter ipv4 was not specified")
     return $False
 }
 
 if ($null -eq $rootdir)
 {
-    Write-Output "ERROR: Test parameter rootdir was not specified"
+    $logger.error("Test parameter rootdir was not specified")
     return $False
 }
 
 if ($null -eq $driveletter)
 {
-    Write-Output "ERROR: Test parameter driveletter was not specified."
+    $logger.error("Backup driveletter is not specified.")
     return $False
 }
 
@@ -185,30 +196,23 @@ if ($null -eq $TestLogDir)
 # Change the working directory to where we need to be
 cd $rootDir
 
+
 #
 # Delete any summary.log from a previous test run, then create a new file
 #
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+$logger.LogFile = $summaryLog
+$logger.info("This script covers test case: ${TC_COVERED}")
 
-# Source TCUtils.ps1 for common functions
-if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
-	"Info: Sourced TCUtils.ps1"
-}
-else {
-	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
-}
 
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
 
@@ -229,8 +233,8 @@ if (-not ([System.IO.Path]::IsPathRooted($isoFilename)))
 
     if (-not $defaultVhdPath)
     {
-        "Error: Unable to determine VhdDefaultPath on HyperV server ${hvServer}"
-        $error[0].Exception
+        $logger.error("Unable to determine VhdDefaultPath on HyperV server ${hvServer}")
+        $logger.error($error[0].Exception)
         return $False
     }
 
@@ -245,7 +249,7 @@ if (-not ([System.IO.Path]::IsPathRooted($isoFilename)))
 $isoFileInfo = GetRemoteFileInfo $isoFilename $hvServer
 if (-not $isoFileInfo)
 {
-    "Error: The .iso file $isoFilename does not exist on HyperV server ${hvServer}"
+    $logger.error("The .iso file $isoFilename does not exist on HyperV server ${hvServer}")
     return $False
 }
 
@@ -253,11 +257,11 @@ if (-not $isoFileInfo)
 Set-VMDvdDrive -VMName $vmName -ComputerName $hvServer -Path $isoFilename
 if (-not $?)
 {
-        "Error: Unable to Add ISO $isoFilename"
+        $logger.error("Unable to Add ISO $isoFilename")
         return $False
 }
 
-Write-Output "Attached DVD: Success" >> $summaryLog
+$logger.info("Attached DVD: Success")
 
 # Bring down the network.
 RunRemoteScriptNoState $remoteScript
@@ -279,16 +283,14 @@ foreach ($line in $sts)
 }
 
 if ($pingresult)
-   {
-       Write-Output "Network Down: Success"
-       Write-Output "Network Down: Success" >> $summaryLog
-   }
-   else
-   {
-       Write-Output "Network Down: Failed" >> $summaryLog
-       Write-Output "ERROR: Running $remoteScript script failed on VM!"
-       return $False
-   }
+{
+    $logger.info("Network Down: Success")
+}
+else
+{
+    $logger.error("Network Down: Failed")
+    return $False
+}
 
 $sts = startBackup $vmName $driveletter
 if (-not $sts[-1])
@@ -319,5 +321,5 @@ else
 
 runCleanup $backupLocation
 
-Write-Output "INFO: Test ${results}"
+$logger.info("Test ${results}")
 return $retVal
