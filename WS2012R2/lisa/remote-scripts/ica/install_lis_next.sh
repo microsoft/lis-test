@@ -92,20 +92,27 @@ chmod +x utils.sh
 #
 # Removing existing folder if present.
 #
+
 if [ -e ./lis-next ]; then
     LogMsg "Info : Removing an old lis-next directory"
     rm -rf ./lis-next
 fi
 
-#
-# Clone lis-next
-#
-LogMsg "Info : Cloning lis-next"
-git clone https://github.com/LIS/lis-next
-if [ $? -ne 0 ]; then
-    LogMsg "Error: unable to clone lis-next"
-    UpdateTestState $ICA_TESTFAILED
-    exit 1
+lis_next_path="./lis-next"
+if [ ! ${custom_lis_next} ]; then 
+    #
+    # Clone lis-next
+    #
+
+    LogMsg "Info : Cloning lis-next"
+    git clone https://github.com/LIS/lis-next
+    if [ $? -ne 0 ]; then
+        LogMsg "Error: unable to clone lis-next"
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
+else
+    lis_next_path=$custom_lis_next
 fi
 
 if [ ! ${branch} ]; then
@@ -114,7 +121,7 @@ if [ ! ${branch} ]; then
     branch="master"
 fi
 
-cd ./lis-next
+cd $lis_next_path
 git checkout $branch
 cd ..
 
@@ -158,7 +165,7 @@ if [[ ${lis_cleanup} -eq "yes" ]]; then
 fi
 
 LogMsg "Info : Building ${rhel_version}.x source tree"
-cd lis-next/hv-rhel${rhel_version}.x/hv
+cd "${lis_next_path}/hv-rhel${rhel_version}.x/hv"
 
 # Defining a custom LIS version string in order to acknoledge the use of these drivers
 sed --in-place -e s:"#define HV_DRV_VERSION.*":"#define HV_DRV_VERSION "'"'$branch'-'$build_date'"'"": include/linux/hv_compat.h
@@ -173,7 +180,7 @@ fi
 echo "Info: Successfully built lis-next from the hv-rhel-${rhel_version}.x code" > ~/summary.log
 
 # Compiling LIS daemons
-cd ~/lis-next/hv-rhel${rhel_version}.x/hv/tools
+cd "${lis_next_path}/hv-rhel${rhel_version}.x/hv/tools"
 
 make
 if [ $? -ne 0 ]; then
