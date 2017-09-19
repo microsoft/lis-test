@@ -1042,8 +1042,9 @@ function RunRemoteScript($remoteScript)
     $TestRunning   = "TestRunning"
     $TestSkipped   = "TestSkipped"
     $timeout       = 6000
+    $params        = $scriptParam
 
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
+    "./${remoteScript} ${params} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
 
     .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)

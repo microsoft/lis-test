@@ -52,6 +52,7 @@
 #                 <param>SOURCE_TYPE=ONLINE</param>
 #                 <param>LINUX_KERNEL_LOCATION=https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git</param>
 #                 <param>KERNEL_VERSION=linux-next</param>
+#                 <param>ACTIVATE_GCOV=yes</param>
 #             </testParams>
 #             <uploadFiles>
 #                 <file>Perf_BuildKernel_make.log</file>
@@ -77,6 +78,23 @@ cd ~
 #
 
 source ./constants.sh
+
+function EnableGcov()
+{
+    FILE=`readlink -e $1`
+    NR_GCOV=`grep -n "GCOV-based" newconf | grep -Eo '^[^:]+'`
+    NR_GCOV=$(($NR_GCOV + 2))
+
+    GCOV_LINES="CONFIG_GCOV_KERNEL=y\n\
+CONFIG_ARCH_HAS_GCOV_PROFILE_ALL=y\n\
+CONFIG_GCOV_PROFILE_ALL=y\n\
+CONFIG_GCOV_FORMAT_AUTODETECT=y\n\
+# CONFIG_GCOV_FORMAT_3_4 is not set\n\
+# CONFIG_GCOV_FORMAT_4_7 is not set"
+
+    sed -i '/.*_GCOV_.*/ d' $FILE
+    sed -i "${NR_GCOV}i ${GCOV_LINES}" $FILE
+}
 
 dbgprint()
 {
@@ -135,7 +153,39 @@ if [ -e ${KERNEL_VERSION} ]; then
     rm -rf ${KERNEL_VERSION}
 fi
 
-if [ "${SOURCE_TYPE}" == "TARBALL" ]; then
+if [ "${SOURCE_TYPE}" == "ONLINE_TAR" ]; then
+    
+    wget ${LINUX_KERNEL_LOCATION}
+    sts=$?
+    if [ 0 -ne ${sts} ]; then
+        dbgprint 0 "wget failed to download the kernel from the link: ${sts}" 
+        dbgprint 0 "Aborting test."
+        UpdateTestState "TestAborted"
+        exit 40
+    fi
+    HTTP_TAR="${KERNEL_VERSION}.tar.xz"
+    if [ -e "${HTTP_TAR}" ];then
+        tar -xf ${HTTP_TAR}
+        sts=$?
+        if [ 0 -ne ${sts} ]; then
+            dbgprint 0 "tar failed to extract the kernel from the tarball: ${sts}" 
+            dbgprint 0 "Aborting test."
+            UpdateTestState "TestAborted"
+            exit 40
+        fi
+    else
+        dbgprint 0 "the scrpit cannot find the tarball"
+        UpdateTestState "TestAborted"
+        exit 40
+    fi
+    
+    if [ ! -e ${KERNEL_VERSION} ]; then
+        dbgprint 0 "The tar file did not create the directory: ${KERNEL_VERSION}"
+        dbgprint 0 "Aborting the test."
+        UpdateTestState "TestAborted"
+        exit 50
+    fi
+elif [ "${SOURCE_TYPE}" == "TARBALL" ]; then
     dbgprint 1 "Building linux kernel from tarball..."
     #
     # Make sure we were given the $TARBALL file
@@ -274,7 +324,11 @@ else
     # network adapter provided by Hyper-V
     #
     sed --in-place -e s:"# CONFIG_TULIP is not set":"CONFIG_TULIP=y\nCONFIG_TULIP_MMIO=y": ${CONFIG_FILE}
-
+    
+    if [ "${ACTIVATE_GCOV}" == "yes" ];then
+        EnableGcov "${CONFIG_FILE}"
+    fi
+    
     yes "" | make oldconfig
 fi
 UpdateSummary "make oldconfig: Success"
