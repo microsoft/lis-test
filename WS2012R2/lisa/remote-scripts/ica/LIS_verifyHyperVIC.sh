@@ -65,34 +65,34 @@ fi
 echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 
 ### Display info on the Hyper-V modules that are loaded ###
-LogMsg "#### Status of Hyper-V Kernel Modules ####\n"
+LogMsg "#### Status of Hyper-V Kernel Modules ####"
 
+#Check if VMBus module exist and if exist continue checking the other modules
+hv_string=$(dmesg | grep "Vmbus version:")
+if [[ ( $hv_string == "" ) || !( $hv_string == *"hv_vmbus:"*"Vmbus version:"* ) ]]; then
+    LogMsg "Error! Could not find the VMBus protocol string in dmesg."
+	echo "Error! Could not find the VMBus protocol string in dmesg." >> ~/summary.log
+	LogMsg "Exiting with state: TestAborted."
+	UpdateTestState $ICA_TESTABORTED
+	exit 1
+fi
+# Check to see if each module is loaded.
 for module in ${HYPERV_MODULES[@]}; do
-	LogMsg "Module: $module"
-	module_alt=`echo $module|sed -n s/-/_/p`
-	load_status=$( lsmod | grep $module 2>&1)
-        module_name=$module
-	if [ "$module_alt" != "" ]; then
-		# Some of our drivers, such as hid-hyperv.ko, is shown as
-		# "hid_hyperv" from lsmod output. We have to replace all
-		# "-" to "_".
-		load_status=$( lsmod | grep $module_alt 2>&1)
-		module_name=$module_alt
-	fi
-
-	# Check to see if the module is loaded.  It is if module name 
-	# contained in the output.
-	if [[ $load_status =~ $module_name ]]; then
-		LogMsg "Status: loaded"
-		LogMsg "$load_status"
-		echo  " $module : Success" >> ~/summary.log
+    LogMsg "Module: $module"
+	load_module=$(dmesg | grep "hv_vmbus: registering driver $module")
+	if [[ $load_module == "" ]];then
+		echo LogMsg "ERROR: Status: $module is not loaded"
+	    PASS="1"
+		echo "$module : Failed" >> ~/summary.log
 	else
-		LogMsg "ERROR: Status: module '$module' is not loaded"
-		PASS="1"
-		echo  " $module : Failed" >> ~/summary.log
-	fi
+		LogMsg "$load_module"
+	    LogMsg "Status: $module loaded!"
+		echo "$module : Succes" >> ~/summary.log
+    fi
 	echo -ne "\n\n"
 done
+
+
 
 #
 # Let the caller know everything worked
