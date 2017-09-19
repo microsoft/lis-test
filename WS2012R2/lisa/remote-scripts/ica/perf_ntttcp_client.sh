@@ -577,23 +577,26 @@ do
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x mpstat"
 done
 
+ethtool -S eth1 > $HOME/$log_folder/sender-ethtool-eth1.log
+ethtool -S enP2p0s2 > $HOME/$log_folder/sender-ethtool-enP2p0s2.log
+ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S eth1 > $HOME/$log_folder/receiver-ethtool-eth1.log"
+ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S enP2p0s2 > $HOME/$log_folder/receiver-ethtool-enP2p0s2.log"
+LogMsg "Ntttcp succeeded with all connections."
+echo "Ntttcp succeeded with all connections." >> ~/summary.log
+cd $HOME
+scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:/root/$log_folder/* /root/$log_folder
+if [ $? -ne 0 ]; then
+    echo "ERROR: Unable to transfer server side logs."
+    UpdateTestState $ICA_TESTFAILED
+fi
+zip -r $log_folder.zip $log_folder/*
+
 if [ $sts -eq 0 ]; then
-    ethtool -S eth1 > $HOME/$log_folder/sender-ethtool-eth1.log
-    ethtool -S enP2p0s2 > $HOME/$log_folder/sender-ethtool-enP2p0s2.log
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S eth1 > $HOME/$log_folder/receiver-ethtool-eth1.log"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S enP2p0s2 > $HOME/$log_folder/receiver-ethtool-enP2p0s2.log"
-    LogMsg "Ntttcp succeeded with all connections."
-    echo "Ntttcp succeeded with all connections." >> ~/summary.log
-    cd $HOME
-    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:/root/$log_folder/* /root/$log_folder
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Unable to transfer server side logs."
-        UpdateTestState $ICA_TESTFAILED
-    fi
-    zip -r $log_folder.zip $log_folder/*
+    LogMsg "Test completed"
+    echo "Test completed" >> ~/summary.log
     UpdateTestState $ICA_TESTCOMPLETED
 else
-    LogMsg "Something gone wrong. Please re-run.."
-    echo "Something gone wrong. Please re-run.." >> ~/summary.log
+    LogMsg "NTTTCP failed to run"
+    echo "NTTTCP failed to run" >> ~/summary.log
     UpdateTestState $ICA_TESTFAILED
 fi

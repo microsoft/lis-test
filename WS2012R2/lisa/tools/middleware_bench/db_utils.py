@@ -152,7 +152,7 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
               *(Column(column['name'], column['type']) for column in table_columns))
 
     # When creating db is also necessary
-    metadata.create_all(checkfirst=True)
+    # metadata.create_all(checkfirst=True)
 
     mapper(TestResults, t)
     session = create_session(bind=e, autocommit=False, autoflush=True)

@@ -48,7 +48,7 @@ declare -A sysctl_tcp_params=( ["net.core.netdev_max_backlog"]="30000"
                                ["net.ipv4.tcp_tw_reuse"]="1"
                                ["net.ipv4.tcp_abort_on_overflow"]="1"
                                ["net.ipv4.ip_local_port_range"]="10240 65535" )
-declare -g -A sysctl_udp_params=( ["net.core.rmem_default"]="67108864"
+declare -A sysctl_udp_params=( ["net.core.rmem_default"]="67108864"
                                ["net.core.rmem_max"]="67108864" )
 sysctl_file="/etc/sysctl.conf"
 
