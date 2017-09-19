@@ -127,7 +127,7 @@ echo "Kernel version: $(uname -r)" >> ~/summary.log
 case $(LinuxRelease) in
     "UBUNTU")
         LogMsg "Run test on Ubuntu. Install dependencies..."
-        apt-get -y install make gcc mdadm libaio-dev        
+        apt-get -y install make gcc mdadm libaio-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the dependencies.!" >> ~/summary.log
