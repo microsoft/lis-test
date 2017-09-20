@@ -106,9 +106,6 @@ for module in ${HYPERV_MODULES[@]}; do
 			UpdateTestState $ICA_TESTABORTED
 			exit 10
 		fi
-	else
-		LogMsg "Error: LIS module $module is not loaded or present!"
-		echo "Error: LIS module $module is not loaded or present!" >> ~/summary.log
 	fi
 done
 
