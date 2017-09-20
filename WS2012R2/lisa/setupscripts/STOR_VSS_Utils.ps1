@@ -34,18 +34,18 @@ function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter, [
 	$sts = Test-Path $driveletter
 	if (-not $sts)
 	{
-		Write-Output "Error: Drive ${driveletter} does not exist"
+		$logger.error("Error: Drive ${driveletter} does not exist")
 		return $False
 	}
-	Write-Output "Info: Removing old backups"
+	$logger.info("Removing old backups")
 	try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
-	Catch { Write-Output "No existing backup's to remove"}
+	Catch { $logger.info("No existing backup's to remove") }
 
 	# Check if the Vm VHD in not on the same drive as the backup destination
 	$vm = Get-VM -Name $vmName -ComputerName $hvServer
 	if (-not $vm)
 	{
-		"Error: VM '${vmName}' does not exist"
+		$logger.error("VM ${vmName} does not exist")
 		return $False
 	}
 
@@ -53,8 +53,7 @@ function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter, [
 	{
 		if ( $drive.Path.StartsWith("${driveLetter}"))
 		{
-			"Error: Backup partition '${driveLetter}' is same as partition hosting the VMs disk"
-			"       $($drive.Path)"
+			$logger.error("Backup partition ${driveLetter} is same as partition hosting the VMs disk $($drive.Path)")
 			return $False
 		}
 	}
@@ -64,22 +63,21 @@ function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter, [
 		$sts = RunRemoteScript "STOR_VSS_Check_VSS_Daemon.sh"
 		if (-not $sts[-1])
 		{
-			Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-			Write-Output "ERROR: Running $remoteScript script failed on VM!"
+			$logger.error("Executing $remoteScript on VM. Exiting test case!")
 			return $False
 		}
-			Write-Output "Info: VSS Daemon is running" >> $summaryLog
+			$logger.info("VSS Daemon is running")
 	}
 
 	# Create a file on the VM before backup
  	$sts = CreateFile "/root/1"
  	if (-not $sts[-1])
 	{
-		Write-Output "ERROR: Cannot create test file"
+		$logger.error("Cannot create test file")
 		return $False
  	}
 
- 	Write-Output "File created on VM: $vmname" >> $summaryLog
+	$logger.info("File created on VM: $vmname")
 	return $True
 }
 
@@ -87,7 +85,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 {
     # Remove Existing Backup Policy
 	try { Remove-WBPolicy -all -force }
-	Catch { Write-Output "No existing backup policy to remove"}
+	Catch { $logger.info("No existing backup policy to remove")}
 
 	# Set up a new Backup Policy
 	$policy = New-WBPolicy
@@ -109,19 +107,17 @@ function startBackup([string] $vmName, [string] $driveletter)
 
 	# Review the results
 	$BackupTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
-	Write-Output "Backup duration: $BackupTime minutes"
-	"Backup duration: $BackupTime minutes" >> $summaryLog
+	$logger.info("Backup duration: $BackupTime minutes")
 
 	$sts=Get-WBJob -Previous 1
 	if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 	{
-		Write-Output "ERROR: VSS Backup failed" >> $summaryLog
-		Write-Output $sts.ErrorDescription
-		$retVal = $false
-		return $retVal
+		$logger.error("VSS Backup failed")
+		$logger.error($sts.ErrorDescription)
+		return $False
 	}
 
-	Write-Output "`nInfo: Backup successful!`n"
+	$logger.info(":Backup successful!")
 	# Let's wait a few Seconds
 	Start-Sleep -Seconds 70
 
@@ -131,10 +127,10 @@ function startBackup([string] $vmName, [string] $driveletter)
 		$sts = DeleteFile
 		if (-not $sts[-1])
 		{
-			Write-Output "ERROR: Cannot delete test file!" >> $summaryLog
+			$logger.error("Cannot delete test file!")
 			return $False
 		}
-		Write-Output "File deleted on VM: $vmname" >> $summaryLog
+		$logger.info("File deleted on VM: $vmname")
 	}
 	return $backupLocation
 }
@@ -142,7 +138,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 function restoreBackup([string] $backupLocation)
 {
     # Start the Restore
-	Write-Output "`nNow let's restore the VM from backup...`n"
+	$logger.info("Now let's restore the VM from backup.")
 
 	# Get BackupSet
 	$BackupSet = Get-WBBackupSet -BackupTarget $backupLocation
@@ -152,8 +148,8 @@ function restoreBackup([string] $backupLocation)
 	$sts=Get-WBJob -Previous 1
 	if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 	{
-		Write-Output "ERROR: VSS Restore failed" >> $summaryLog
-		Write-Output $sts.ErrorDescription
+		$logger.error("VSS Restore failed")
+		$logger.error($sts.ErrorDescription)
 		return $False
 	}
 	return $True
@@ -163,26 +159,25 @@ function checkResults([string] $vmName, [string] $hvServer)
 {
    # Review the results
 	$RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
-	Write-Output "Restore duration: $RestoreTime minutes"
-	"Restore duration: $RestoreTime minutes" >> $summaryLog
+	$logger.error("Restore duration: $RestoreTime minutes")
 
 	# Make sure VM exists after VSS backup/restore operation
 	$vm = Get-VM -Name $vmName -ComputerName $hvServer
 		if (-not $vm)
 		{
-			Write-Output "ERROR: VM ${vmName} does not exist after restore" >> $summaryLog
+			$logger.error("VM ${vmName} does not exist after restore")
 			return $False
 		}
-	Write-Output "Restore success!"
+	$logger.info("Restore success!")
 
 	# After Backup Restore VM must be off make sure that.
 	if (-not $vm.state) {
-		Write-Output "Waiting for vm to turn off"
+		$logger.info("Waiting for vm to turn off")
 		Start-Sleep -Seconds 60
 
 		if ( $vm.state -ne "Off" )
 		{
-			Write-Output "ERROR: VM is not in OFF state, current state is " + $vm.state >> $summaryLog
+			$logger.error("VM is not in OFF state, current state is " + $vm.state)
 			return $False
 		}
 	}
@@ -192,12 +187,12 @@ function checkResults([string] $vmName, [string] $hvServer)
 	$sts = Start-VM -Name $vmName -ComputerName $hvServer
 	if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
 	{
-		Write-Output "ERROR: ${vmName} failed to start" >> $summaryLog
+		$logger.error("${vmName} failed to start")
 		return $False
 	}
 	else
 	{
-		Write-Output "INFO: Started VM ${vmName}"
+		$logger.info("Started VM ${vmName}")
 	}
 
 	Start-Sleep -s 60
@@ -207,14 +202,12 @@ function checkResults([string] $vmName, [string] $hvServer)
 	$sts= GetSelinuxAVCLog
 	if ($sts[-1])
     {
-        $logMessage = "ERROR: There is selinux avc denied log in audit log: Failed"
-        Write-Output $logMessage >> $summaryLog
+        $logger.error("There is selinux avc denied log in audit log")
         return $False
     }
     else
     {
-        $logMessage = "INFO: no selinux avc deny log in audit logs"
-        Write-Output $logMessage
+        $logger.info("no selinux avc deny log in audit logs")
     }
 	# only check restore file when ip available
 	#$ipv4 = GetIPv4 $vmName $hvServer
@@ -224,39 +217,32 @@ function checkResults([string] $vmName, [string] $hvServer)
 		$sts= CheckFile "/root/1"
 		if (-not $sts[-1])
 		{
-			$logMessage = "ERROR: No /root/1 file after restore "
-			Write-Output $logMessage
-			$logMessage >> $summaryLog
+			$logger.error("No /root/1 file after restore")
 			return $False
 		}
 		else
 		{
-			$logMessage = "INFO: there is /root/1 file after restore"
+			$logger.info("there is /root/1 file after restore")
 			Write-Output $logMessage
 		}
 	}
 	else
 	{
-		Write-Output "INFO: Ignore checking file /root/1 when no network"
+		$logger.info("Ignore checking file /root/1 when no network")
 	}
 
 	# Now Check the boot logs in VM to verify if there is no Recovering journals in it .
 	$sts=CheckRecoveringJ
     if ($sts[-1])
     {
-        $logMessage = "ERROR: No Recovering Journal in boot logs: Failed"
-        Write-Output "ERROR: Recovering Journals in Boot log File, VSS Backup/restore is Failed "
-        Write-Output $logMessage
-		$logMessage >> $summaryLog
+        $logger.error("No Recovering Journal in boot logs")
         return $False
     }
     else
     {
         $results = "Passed"
-		$logMessage = "INFO: VSS Back/Restore: Success"
-        Write-Output $logMessage
-        Write-Output "Recovering Journal in boot msg: Success"
-		$logMessage >> $summaryLog
+        $logger.info("Recovering Journal in boot msg: Success")
+		$logger.info("INFO: VSS Back/Restore: Success")
         return $results
     }
 }
@@ -264,9 +250,9 @@ function checkResults([string] $vmName, [string] $hvServer)
 function runCleanup([string] $backupLocation)
 {
     # Remove Created Backup
-    Write-Output "Removing old backups from $backupLocation"
+    $logger.info("Removing old backups from $backupLocation")
     try { Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
-    Catch { Write-Output "No existing backup's to remove"}
+    Catch { $logger.info("No existing backup's to remove")}
 }
 
 function getBackupType()
@@ -276,7 +262,7 @@ function getBackupType()
 	$sts = Get-WBJob -Previous 1
 	if ($sts.JobState -ne "Completed" -or $sts.HResult -ne 0)
 	{
-		Write-Output "ERROR: VSS Backup failed " >> $summaryLog
+		$logger.error("VSS Backup failed ")
 		return $backupType
 	}
 
@@ -285,13 +271,13 @@ function getBackupType()
 	{
 		if ( $line -match "Caption" -and $line -match "online")
 		{
-			Write-Output "VSS Backup type is online" >> $summaryLog
+			$logger.info("VSS Backup type is online")
 			$backupType = "online"
 
 		}
 		elseif ($line -match "Caption" -and $line -match "offline")
 		{
-			Write-Output "VSS Backup type is offline" >> $summaryLog
+			$logger.info("VSS Backup type is offline")
 			$backupType = "offline"
 		}
 	}

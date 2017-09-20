@@ -75,10 +75,22 @@ $remoteScript = "PartitionDisks.sh"
 # 
 #######################################################################
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
+
+$global:logger = [Logger]::new("${vmName}_summary.log")
+
 # Check input arguments
 if ($vmName -eq $null)
 {
-    "ERROR: VM name is null"
+    $logger.error("VM name is null")
     return $retVal
 }
 
@@ -102,63 +114,48 @@ foreach ($p in $params)
 
 if ($null -eq $sshKey)
 {
-    "ERROR: Test parameter sshKey was not specified"
+    $logger.error("Test parameter sshKey was not specified")
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-    "ERROR: Test parameter ipv4 was not specified"
+    $logger.error("Test parameter ipv4 was not specified")
     return $False
 }
 
 if ($null -eq $rootdir)
 {
-    "ERROR: Test parameter rootdir was not specified"
+    $logger.error("Test parameter rootdir was not specified")
     return $False
 }
 
 if ($null -eq $driveletter)
 {
-    "ERROR: Test parameter driveletter was not specified."
+    $logger.error("Backup driveletter is not specified.")
     return $False
 }
 
 if ($null -eq $FILESYS)
 {
-    "ERROR: Test parameter FILESYS was not specified"
+    $logger.error("Test parameter FILESYS was not specified")
     return $False
 }
 
 # Change the working directory to where we need to be
 cd $rootDir
-
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
-# Source TCUtils.ps1 for common functions
-if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
-	"Info: Sourced TCUtils.ps1"
-}
-else {
-	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
-}
+$logger.info("This script covers test case: ${TC_COVERED}")
 
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
+
 
 $sts = runSetup $vmName $hvServer $driveletter
 if (-not $sts[-1]) 
@@ -170,21 +167,13 @@ if (-not $sts[-1])
 $sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
 {
-    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-    Write-Output "ERROR: Running $remoteScript script failed on VM!"
-    Write-Output "Here are the remote logs:`n`n###################"
-    $logfilename = ".\$remoteScript.log"
-    Get-Content $logfilename >> $summaryLog
-    Write-Output "###################`n"
+    $logger.error("Running $remoteScript script failed on VM!")
     return $False
 }
 
-#Write-Output "$remoteScript execution on VM: Success"
-Write-Output "Here are the remote logs:`n`n###################"
 $logfilename = ".\$remoteScript.log"
-Get-Content $logfilename
-Write-Output "###################`n"
-Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
+$logger.info("Here are the remote logs:")
+$logger.info($(Get-Content $logfilename))
 del $remoteScript.log
 
 $sts = startBackup $vmName $driveletter
@@ -198,14 +187,14 @@ if (-not $sts[-1])
 $sts = restoreBackup $backupLocation
 if (-not $sts[-1]) 
 {
-	write-output "Restore backup action failed" >> $summaryLog
+	$logger.error("Restore backup action failed")
 	return $False
 }
 
 $sts = checkResults $vmName $hvServer
 if (-not $sts[-1]) 
 {
-	write-output "Backup evaluation failed" >> $summaryLog
+	$logger.error("Backup evaluation failed")
 	$retVal = $False
 }
 else 
@@ -216,5 +205,5 @@ else
 
 runCleanup $backupLocation
 
-Write-Output "INFO: Test ${results}"
+$logger.info("Test ${results}")
 return $retVal

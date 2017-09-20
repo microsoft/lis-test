@@ -107,10 +107,22 @@ function ChangeVMState($vmState,$vmName)
 #
 #######################################################################
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
+
+$global:logger = [Logger]::new("${vmName}_summary.log")
+
 # Check input arguments
 if ($vmName -eq $null)
 {
-    "ERROR: VM name is null"
+    $logger.error("VM name is null")
     return $retVal
 }
 
@@ -135,62 +147,46 @@ foreach ($p in $params)
 
 if ($null -eq $sshKey)
 {
-    "ERROR: Test parameter sshKey was not specified"
+    $logger.error("Test parameter sshKey was not specified")
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-    "ERROR: Test parameter ipv4 was not specified"
+    $logger.error("Test parameter ipv4 was not specified")
     return $False
 }
 
 if ($null -eq $rootdir)
 {
-    "ERROR: Test parameter rootdir was not specified"
+    $logger.error("Test parameter rootdir was not specified")
     return $False
 }
 
 if ($null -eq $driveletter)
 {
-    "ERROR: Backup driveletter is not specified."
+    $logger.error("Backup driveletter is not specified.")
     return $False
 }
 
 if ($null -eq $vmState)
 {
-    "ERROR: vmState param is not specified."
+    $logger.error("vmState param is not specified.")
     return $False
 }
 
 # Change the working directory to where we need to be
 cd $rootDir
 
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
-# Source TCUtils.ps1 for common functions
-if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
-	"Info: Sourced TCUtils.ps1"
-}
-else {
-	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
-}
-
+$logger.info("This script covers test case: ${TC_COVERED}")
 
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
 
@@ -208,7 +204,7 @@ $currentState=$vm.state
 
 if ( $currentState -ne "Running" )
 {
-    Write-Output "ERROR: $vmName is not started."
+    $logger.error("$vmName is not started.")
     return $False
 }
 
@@ -216,17 +212,17 @@ if ( $currentState -ne "Running" )
 $sts = ChangeVMState $vmState $vmName
 if (-not $sts[-1])
 {
-    Write-Output "ERROR: vmState param is wrong. Available options are `'Off`', `'Saved`'' and `'Paused`'."
+    $logger.error("vmState param is wrong. Available options are `'Off`', `'Saved`'' and `'Paused`'.")
     return $false
 }
 
 elseif ( $sts -ne $vmState )
 {
-    Write-Output "ERROR: Failed to put $vmName in $vmState state."
+    $logger.error("Failed to put $vmName in $vmState state.")
     return $False
 }
 
-Write-Output "State change of $vmName to $vmState : Success."
+$logger.info("State change of $vmName to $vmState : Success.")
 
 
 $sts = startBackup $vmName $driveLetter
@@ -259,5 +255,5 @@ else
 
 runCleanup $backupLocation
 
-Write-Output "INFO: Test ${results}"
+$logger.info("Test ${results}")
 return $retVal

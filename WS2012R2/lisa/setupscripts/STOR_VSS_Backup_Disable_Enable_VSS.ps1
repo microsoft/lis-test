@@ -64,13 +64,24 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 #
 #######################################################################
 
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
+
+$global:logger = [Logger]::new("${vmName}_summary.log")
+
 # Check input arguments
 if ($vmName -eq $null)
 {
-    "ERROR: VM name is null"
-    return $False
+    $logger.error("VM name is null")
+    return $retVal
 }
-
 # Check input params
 $params = $testParams.Split(";")
 
@@ -88,58 +99,43 @@ foreach ($p in $params)
      default  {}
     }
 }
-
 if ($null -eq $sshKey)
 {
-    "ERROR: Test parameter sshKey was not specified"
+    $logger.error("Test parameter sshKey was not specified")
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-    "ERROR: Test parameter ipv4 was not specified"
+    $logger.error("Test parameter ipv4 was not specified")
     return $False
 }
 
 if ($null -eq $rootdir)
 {
-    "ERROR: Test parameter rootdir was not specified"
+    $logger.error("Test parameter rootdir was not specified")
     return $False
 }
 
 if ($null -eq $driveletter)
 {
-    "ERROR: Backup driveletter is not specified."
+    $logger.error("Backup driveletter is not specified.")
     return $False
 }
 
 # Change the working directory to where we need to be
 cd $rootDir
 
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+$logger.info("This script covers test case: ${TC_COVERED}")
 
-# Source TCUtils.ps1 for common functions
-if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
-	"Info: Sourced TCUtils.ps1"
-}
-else {
-	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
-}
 
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
 # set the backup type array, if set Integration Service VSS
@@ -172,7 +168,7 @@ for ($i = 0; $i -le 1; $i++ )
 
    if (-not $sts[-1])
    {
-       Write-Output "ERROR: ${vmName} failed to set Integration Service" >> $summaryLog
+       $logger.error("${vmName} failed to set Integration Service")
        return $False
    }
 
@@ -183,7 +179,7 @@ for ($i = 0; $i -le 1; $i++ )
        $sts = Start-VM -Name $vmName -ComputerName $hvServer
        if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
        {
-           Write-Output "ERROR: ${vmName} failed to start" >> $summaryLog
+           $logger.error("${vmName} failed to start")
            return $False
        }
        	Start-Sleep -s 3
@@ -212,12 +208,12 @@ for ($i = 0; $i -le 1; $i++ )
     $temp = $backupTypes[$i]
     if  ( $sts -ne $temp )
     {
-        Write-output "Failed: Not get expected backup type"
+        $logger.error("Didn't get expected backup type")
         return $False
     }
     else
     {
-        Write-output "Info: get expected backup type $temp"
+        $logger.info("Received expected backup type $temp")
     }
     runCleanup $backupLocation
 }
