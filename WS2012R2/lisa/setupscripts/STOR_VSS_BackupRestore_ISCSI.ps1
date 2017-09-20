@@ -81,7 +81,7 @@ else {
 	return $false
 }
 
-$global:logger = [Logger]::new('default.log')
+$global:logger = [Logger]::new("${vmName}_summary.log")
 
 # Check input arguments
 if ($vmName -eq $null)
@@ -148,14 +148,6 @@ if ($null -eq $TargetIP)
 
 # Change the working directory to where we need to be
 cd $rootDir
-
-
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-$logger.LogFile = $summaryLog
 $logger.info("This script covers test case: ${TC_COVERED}")
 
 

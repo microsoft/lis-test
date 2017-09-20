@@ -153,26 +153,29 @@ function GetIPv4([String] $vmName, [String] $server)
 #######################################################################
 class Logger {
   [String] $LogFile
-  Logger($logFile='./default.log') {
+
+  Logger([String] $logFile='default.log') {
+    del $logFile -ErrorAction SilentlyContinue
     $this.LogFile = $logFile
   }
-  [void] info($message) {
+
+  [void] info([String] $message) {
     $this.logMessage("Info: ${message}")
   }
 
-  [void] error($message) {
+  [void] error([String] $message) {
     $this.logMessage("Error: ${message}")
   }
 
-  [void] debug($message) {
+  [void] debug([String] $message) {
     $this.logMessage("Debug: ${message}")
   }
 
-  [void] warning($message) {
+  [void] warning([String] $message) {
      $this.logMessage("Warning: ${message}")
   }
 
-  [void] logMessage($message) {
+  [void] logMessage([String] $message) {
     $timestamp = $(Get-Date -Format G)
     $finalMessage = "${timestamp} - ${message}"
     Write-Host $finalMessage
