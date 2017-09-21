@@ -87,8 +87,7 @@ Rhel()
                 sleep 5
             fi
         done
-        if  [ $timeout -lt 0 ]
-        then
+        if  [ $timeout -gt 0 ]; then
             LogMsg "Kdump is active after reboot."
             UpdateSummary "Success: kdump service is active after reboot."
         else

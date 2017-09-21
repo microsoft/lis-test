@@ -141,6 +141,29 @@ ConfigRhel()
         RhelExtraSettings
     fi
 
+    GetGuestGeneration
+
+    # Config grub gen2 VM for older kernels
+    if [ -d /boot/efi/EFI/BOOT ] && [ $os_RELEASE -eq 6 ]; then
+        LogMsg "Updating grub for gen2 VM..."
+        if grep -iq "crashkernel=" /boot/efi/EFI/BOOT/bootx64.conf
+        then
+            sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/efi/EFI/BOOT/bootx64.conf
+        else
+            sed -i "s/^GRUB_CMDLINE_LINUX=\"/GRUB_CMDLINE_LINUX=\"crashkernel=$crashkernel /g" /boot/efi/EFI/BOOT/bootx64.conf
+        fi
+        grep -iq "crashkernel=$crashkernel" /boot/efi/EFI/BOOT/bootx64.conf
+        if [ $? -ne 0 ]; then
+            LogMsg "FAILED: Could not set the new crashkernel value in /boot/efi/EFI/BOOT/bootx64.conf."
+            UpdateSummary "FAILED: Could not set the new crashkernel value in /boot/efi/EFI/BOOT/bootx64.conf."
+            SetTestStateAborted
+            exit 1
+        else
+            LogMsg "Success: updated the crashkernel value to: $crashkernel."
+            UpdateSummary "Success: updated the crashkernel value to: $crashkernel."
+        fi
+    fi
+
     if [[ -d /boot/grub2 ]]; then
         LogMsg "Update grub"
         if grep -iq "crashkernel=" /etc/default/grub
@@ -164,7 +187,7 @@ ConfigRhel()
         grub2-mkconfig -o $grub_config
 
     else
-        if [ -x "/sbin/grubby" ]; then
+        if [ -x "/sbin/grubby"] && [ $os_GENERATION -eq 1 ]; then
             if grep -iq "crashkernel=" /boot/grub/grub.conf
             then
                 sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/grub/grub.conf
@@ -207,8 +230,32 @@ ConfigRhel()
             SetTestStateAborted
             exit 1
         fi
-        echo "dracut_args --mount \"$vm2ipv4:/mnt /var/crash nfs defaults\"" >> /etc/kdump.conf
+        # Kdump configuration differs from RHEL 6 to RHEL 7
+        if [ $os_RELEASE -le 6 ]; then
+            echo "nfs $vm2ipv4:/mnt" >> /etc/kdump.conf
+            if [ $? -ne 0 ]; then
+                LogMsg "ERROR: Failed to configure kdump to use nfs."
+                UpdateSummary "ERROR: Failed to configure kdump to use nfs."
+                SetTestStateAborted
+                exit 1
+            fi
+        else
+            echo "dracut_args --mount \"$vm2ipv4:/mnt /var/crash nfs defaults\"" >> /etc/kdump.conf
+            if [ $? -ne 0 ]; then
+                LogMsg "ERROR: Failed to configure kdump to use nfs."
+                UpdateSummary "ERROR: Failed to configure kdump to use nfs."
+                SetTestStateAborted
+                exit 1
+            fi
+        fi
+
         service kdump restart
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Failed to restart Kdump."
+            UpdateSummary "ERROR: Failed to restart Kdump."
+            SetTestStateAborted
+            exit 1
+        fi
     fi
 }
 
