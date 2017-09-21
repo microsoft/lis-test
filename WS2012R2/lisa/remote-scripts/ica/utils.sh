@@ -2040,3 +2040,12 @@ function is_ubuntu {
     fi
     [ "$os_PACKAGE" = "deb" ]
 }
+
+GetGuestGeneration()
+{
+    if [ -d /sys/firmware/efi/ ]; then
+        os_GENERATION=2
+    else
+        os_GENERATION=1
+    fi
+}
