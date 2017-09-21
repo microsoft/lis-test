@@ -36,6 +36,7 @@ ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
 build_date=$(date "+%d-%b")
+lis_next_path="/root/lis-next"
 
 LogMsg() {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
@@ -92,18 +93,15 @@ chmod +x utils.sh
 #
 # Removing existing folder if present.
 #
-
 if [ -e ./lis-next ]; then
     LogMsg "Info : Removing an old lis-next directory"
     rm -rf ./lis-next
 fi
 
-lis_next_path="./lis-next"
 if [ ! ${custom_lis_next} ]; then 
     #
     # Clone lis-next
     #
-
     LogMsg "Info : Cloning lis-next"
     git clone https://github.com/LIS/lis-next
     if [ $? -ne 0 ]; then
@@ -128,7 +126,6 @@ cd ..
 #
 # Detect the version of CentOS/RHEL we are running
 #
-rhel_version=0
 GetDistro
 LogMsg "Info : Detected OS distro/version ${DISTRO}"
 
