@@ -119,6 +119,8 @@ permissions and limitations under the License.
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
+				<param>PING_FAIL=8.8.4.4</param>
+                <param>PING_FAIL2=192.168.0.1</param>
             </testParams>
             <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
