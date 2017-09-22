@@ -345,6 +345,7 @@ foreach ($p in $params)
     "STATIC_IP2" { $vm2StaticIP = $fields[1].Trim() }
     "PING_FAIL" { $failIP1 = $fields[1].Trim() }
     "PING_FAIL2" { $failIP2 = $fields[1].Trim() }
+	"TC_COVERED" { $tc_covered = $fields[1].Trim() }
     "SWITCH" { $switch_nic = $fields[1].Trim() }
     "NETMASK" { $netmask = $fields[1].Trim() }
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
@@ -459,6 +460,11 @@ if (-not $ipv4)
     return $False
 }
 
+
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${tc_covered}" | Tee-Object -Append -file $summaryLog
+
 #set the parameter for the snapshot
 $snapshotParam = "SnapshotName = ${SnapshotName}"
 
@@ -506,7 +512,7 @@ for ($i = 0 ; $i -lt 3; $i++)
 $retVal = isValidMAC $vm2MacAddress
 if (-not $retVal)
 {
-    "Could not find a valid MAC for $vm2Name. Received $vm2MacAddress"
+    Write-Output "Could not find a valid MAC for $vm2Name. Received $vm2MacAddress" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -546,13 +552,13 @@ if ( Test-Path ".\setupscripts\NET_ADD_NIC_MAC.ps1")
 }
 else
 {
-    "Error: Could not find setupScripts\NET_ADD_NIC_MAC.ps1 ."
+    Write-Output "Error: Could not find setupScripts\NET_ADD_NIC_MAC.ps1 ."| Tee-Object -Append -file $summaryLog
     return $false
 }
 
 if (-Not $?)
 {
-    "Error: Cannot add new NIC to $vm2Name"
+    Write-Output "Error: Cannot add new NIC to $vm2Name" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -561,7 +567,7 @@ $vm2nic = Get-VMNetworkAdapter -VMName $vm2Name -ComputerName $hvServer -IsLegac
 
 if (-not $vm2nic)
 {
-    "Error: Could not retrieve the newly added NIC to VM2"
+    Write-Output "Error: Could not retrieve the newly added NIC to VM2" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -680,21 +686,21 @@ if (-not $retVal)
 #switch network connection type in case is needed
 if ($switch_nic)
 {
-    $retVal = .\setupscripts\NET_SWITCH_NIC_MAC.ps1 -vmName $vmName -hvServer $hvServer -testParams "SWITCH=$switch_nic"
-    if (-not $retVal)
+    $retVal1 = .\setupscripts\NET_SWITCH_NIC_MAC.ps1 -vmName $vmName -hvServer $hvServer -testParams "SWITCH=$switch_nic"
+    if (-not $retVal1)
     {
-        "Failed to switch connection type for $vmName on $hvServer with $switch_nic"
+        Write-Output "Failed to switch connection type for $vmName on $hvServer with $switch_nic" | Tee-Object -Append -file $summaryLog
         return $False
     }
 
-    $retVal = .\setupscripts\NET_SWITCH_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams "SWITCH=NetworkAdapter,Private,Private,$vm2MacAddress"
-    if (-not $retVal)
+    $retVal2 = .\setupscripts\NET_SWITCH_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams "SWITCH=NetworkAdapter,Private,Private,$vm2MacAddress"
+    if (-not $retVal2)
     {
-        "Failed to switch connection type for $vm2Name"
+        Write-Output "Failed to switch connection type for $vm2Name" | Tee-Object -Append -file $summaryLog
         return $False
     }
-
-    "Successfully switched connection type for both VMs"
+	if ($retVal1 -and $retVal2)
+    { Write-Output "Successfully switched connection type for both VMs." | Tee-Object -Append -file $summaryLog}
 }
 
 "Configuring test interface (${vm1MacAddress}) on $vmName (${ipv4}) "
@@ -703,7 +709,7 @@ if ($switch_nic)
 $retVal = CreateInterfaceConfig $ipv4 $sshKey 'static' $vm1MacAddress $vm1StaticIP $netmask
 if (-not $retVal)
 {
-    "Failed to create Interface-File on vm $ipv4 for interface with mac $vm1MacAddress, by setting a static IP of $vm1StaticIP netmask $netmask"
+    Write-Output "Failed to create Interface-File on vm $ipv4 for interface with mac $vm1MacAddress, by setting a static IP of $vm1StaticIP netmask $netmask" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -713,7 +719,7 @@ if (-not $retVal)
 $retVal = CreateInterfaceConfig $vm2ipv4 $sshKey 'static' $vm2MacAddress $vm2StaticIP $netmask
 if (-not $retVal)
 {
-    "Failed to create Interface File on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $vm2StaticIP netmask $netmask"
+    Write-Output "Failed to create Interface File on vm $vm2ipv4 for interface with mac $vm2MacAddress, by setting a static IP of $vm2StaticIP netmask $netmask" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -738,22 +744,22 @@ $retVal = pingVMs $ipv4 $vm2StaticIP $sshKey 10 $vm1MacAddress
 
 if (-not $retVal)
 {
-    "Unable to ping $vm2StaticIP from $vm1StaticIP with MAC $vm1MacAddress"
+    Write-Output "Unable to ping $vm2StaticIP from $vm1StaticIP with MAC $vm1MacAddress." | Tee-Object -Append -file $summaryLog
     return $false
 }
+else{Write-Output "Successfully pinged $vm2StaticIP from $vm1StaticIP with MAC $vm1MacAddress." | Tee-Object -Append -file $summaryLog}
 
-"Successfully pinged"
 
 "Trying to ping from vm2 with mac $vm2MacAddress to $vm1StaticIP "
 $retVal = pingVMs $vm2ipv4 $vm1StaticIP $sshKey 10 $vm2MacAddress
 
 if (-not $retVal)
 {
-    "Unable to ping $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress"
+    Write-Output "Unable to ping $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress." | Tee-Object -Append -file $summaryLog
     return $false
 }
+else { Write-Output "Successfully pinged $vm1StaticIP from $vm2StaticIP with MAC $vm2MacAddress." | Tee-Object -Append -file $summaryLog}
 
-"Successfully pinged"
 
 # Try to ping external network with the private network interfaces. This should fail
 "Trying to ping from vm1 with mac $vm1MacAddress to $failIP1 "
@@ -762,23 +768,23 @@ $retVal = pingVMs $ipv4 $failIP1 $sshKey 10 $vm1MacAddress
 
 if ($retVal)
 {
-    "Ping from vm1: Able to ping $failIP1 from $vm1StaticIP with MAC $vm2MacAddress although it should not have worked!"
+    Write-Output "Ping from vm1: Able to ping $failIP1 from $vm1StaticIP, although it should not have worked!" | Tee-Object -Append -file $summaryLog
     return $false
 }
+else {Write-Output "Failed to ping $failIP1 from $vm1StaticIP(as expected)." | Tee-Object -Append -file $summaryLog}
 
-"Failed to ping (as expected)"
 
-"Trying to ping from vm1 with mac $vm2MacAddress to $failIP2 "
+"Trying to ping from vm1 with mac $vm1MacAddress to $failIP2 "
 # try to ping
-$retVal = pingVMs $vm2ipv4 $failIP2 $sshKey 10 $vm1MacAddress
+$retVal = pingVMs $ipv4 $failIP2 $sshKey 10 $vm1MacAddress
 
 if ($retVal)
 {
-    "Ping from vm2: Able to ping $failIP2 from $vm2StaticIP with MAC $vm2MacAddress although it should not have worked!"
+    Write-Output "Ping from vm1: Able to ping $failIP2 from $vm1StaticIP, although it should not have worked!" | Tee-Object -Append -file $summaryLog
     return $false
 }
+else{ Write-Output "Failed to ping $failIP2 from $vm1StaticIP(as expected)."| Tee-Object -Append -file $summaryLog}
 
-"Failed to ping (as expected)"
 
 "Stopping $vm2Name"
 Stop-VM -Name $vm2Name -ComputerName $hvServer -force
