@@ -156,7 +156,7 @@ class Logger {
     [Boolean] $AddTimestamp
 
     Logger([String] $logFile, [Boolean] $addTimestamp) {
-        $this.SummaryLogFile = $logFile
+        $this.LogFile = $logFile
         $this.AddTimestamp = $addTimestamp 
     }
 
@@ -193,7 +193,7 @@ class Logger {
 
 #######################################################################
 #
-# Logger
+# LoggerManager
 #
 #######################################################################
 class LoggerManager {
@@ -205,7 +205,7 @@ class LoggerManager {
         $this.TestCase = $testCaseLogger 
     }
 
-    [LoggerManager] GetLoggerManager([String] $vmName, [String] $testParams) {
+    [LoggerManager] static GetLoggerManager([String] $vmName, [String] $testParams) {
         $params = $testParams.Split(";")
         $testLogDir = $null
         $testName = $null
@@ -231,7 +231,6 @@ class LoggerManager {
         return [LoggerManager]::new($summaryLogger, $testLogger)
     }
 }
-
 #######################################################################
 #
 # GetIPv4ViaHyperV()
