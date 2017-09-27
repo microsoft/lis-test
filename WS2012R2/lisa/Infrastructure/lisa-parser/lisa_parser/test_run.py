@@ -272,7 +272,7 @@ class PerfTestRun(TestRun):
                 column['ProtocolType'], column['NumberOfConnections']))
         elif self.suite.lower() == 'iperf':
             insertion_list = sorted(insertion_list, key=lambda column: (
-                column['NumberOfConnections']))
+                column['NumberOfConnections'], column['SendBufSize_KBytes']))
 
         return insertion_list
 
