@@ -66,7 +66,7 @@
                 <param>TC_COVERED=Stress-03</param>
             </testParams>
             <timeout>800</timeout>
-            <OnError>Abort</OnError>
+            <OnError>Continue</OnError>
         </test>
 
         <test>
