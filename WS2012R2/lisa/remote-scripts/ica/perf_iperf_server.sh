@@ -220,7 +220,7 @@ fi
 
 # SRIOV setup (transparent VF)
 if [ "${SRIOV}" = "yes" ]; then
-    # Check if the SR-IOV driver is in use
+    # Check if the SRIOV driver is in use
     VerifyVF
     if [ $? -ne 0 ]; then
         msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
@@ -232,26 +232,6 @@ if [ "${SRIOV}" = "yes" ]; then
     SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__vf_ignore/})
 fi
 
-# SRIOV setup (transparent VF)
-if [ "${SRIOV}" = "yes" ]; then
-    dos2unix SR-IOV_Utils.sh
-    # Source perf_utils.sh
-    . SR-IOV_Utils.sh || {
-        echo "ERROR: Unable to source SR-IOV_Utils.sh!"
-        echo "TestAborted" > state.txt
-        exit 2
-    }
-    # Check if the SR-IOV driver is in use
-    VerifyVF
-    if [ $? -ne 0 ]; then
-        msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi
-    __vf_ignore='enP2p0s2'
-    SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__vf_ignore/})
-fi
 # Config static IP - with transparent-vf it is not necessary to run bondvf.sh
 if [[ "${SRIOV}" = "yes" ]] || [[ "${SRIOV}" = "no" ]]; then
     #Config static ip on the client side.
@@ -264,14 +244,7 @@ if [[ "${SRIOV}" = "yes" ]] || [[ "${SRIOV}" = "no" ]]; then
 fi
 # Config static IP - using bondvf.sh
 if [ "${SRIOV}" = "bond" ]; then
-    dos2unix SR-IOV_Utils.sh
-    # Source perf_utils.sh
-    . SR-IOV_Utils.sh || {
-        echo "ERROR: Unable to source SR-IOV_Utils.sh!"
-        echo "TestAborted" > state.txt
-        exit 2
-    }
-    # Check if the SR-IOV driver is in use
+    # Check if the SRIOV driver is in use
     VerifyVF
     if [ $? -ne 0 ]; then
         msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
@@ -288,7 +261,7 @@ if [ "${SRIOV}" = "bond" ]; then
         UpdateSummary "$msg"
         SetTestStateFailed
     else
-        LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"
+        LogMsg "BondCount returned Utils: $bondCount"
     fi
     # Set static IP to the bond
     perf_ConfigureBond ${IPERF3_SERVER_IP}
@@ -512,7 +485,7 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
-if [ $DISTRO -eq "suse_12" ]; then
+if [ $DISTRO == "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
         msg="Warning: Couldn't run ldconfig, there might be shared library errors"

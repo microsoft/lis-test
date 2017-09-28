@@ -285,14 +285,7 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
 fi
 # SRIOV setup (transparent VF)
 if [ "${SRIOV}" = "yes" ]; then
-    dos2unix SR-IOV_Utils.sh
-    # Source perf_utils.sh
-    . SR-IOV_Utils.sh || {
-        echo "ERROR: Unable to source SR-IOV_Utils.sh!"
-        echo "TestAborted" > state.txt
-        exit 2
-    }
-    # Check if the SR-IOV driver is in use
+    # Check if the SRIOV driver is in use
     VerifyVF
     if [ $? -ne 0 ]; then
         msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
@@ -302,7 +295,6 @@ if [ "${SRIOV}" = "yes" ]; then
     fi
     __vf_ignore='enP2p0s2'
     SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__vf_ignore/})
-    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ~/SR-IOV_Utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
 fi
 # Config static IP - with transparent-vf it is not necessary to run bondvf.sh
 if [[ "${SRIOV}" = "yes" ]] || [[ "${SRIOV}" = "no" ]]; then
@@ -316,7 +308,7 @@ if [[ "${SRIOV}" = "yes" ]] || [[ "${SRIOV}" = "no" ]]; then
 fi
 # Config static IP - using bondvf.sh
 if [ "${SRIOV}" = "bond" ]; then
-    # Check if the SR-IOV driver is in use
+    # Check if the SRIOV driver is in use
     VerifyVF
     if [ $? -ne 0 ]; then
         msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
@@ -333,7 +325,7 @@ if [ "${SRIOV}" = "bond" ]; then
         UpdateSummary "$msg"
         SetTestStateFailed
     else
-        LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"
+        LogMsg "BondCount returned: $bondCount"
     fi
     # Set static IP to the bond
     perf_ConfigureBond ${STATIC_IP}
@@ -343,7 +335,6 @@ if [ "${SRIOV}" = "bond" ]; then
         UpdateSummary "$msg"
         SetTestStateFailed
     fi
-    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ~/SR-IOV_Utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
 fi
 
 LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
@@ -579,7 +570,7 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
-if [ $DISTRO -eq "suse_12" ]; then
+if [ $DISTRO == "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
         msg="Warning: Couldn't run ldconfig, there might be shared library errors"
@@ -644,58 +635,56 @@ if [ $? -ne 0 ]; then
 fi
 
 sleep 10
-# Start iPerf3 client instances
-LogMsg "Starting iPerf3 in client mode"
 
-previous_tx_bytes=$(get_tx_bytes)
-previous_tx_pkts=$(get_tx_pkts)
-
-mkdir -p ./${TEST_RUN_LOG_FOLDER}
-for number_of_connections in "${IPERF3_TEST_CONNECTION_POOL[@]}"
-do
+function run_iperf_parallel(){
+    current_test_threads=$1
     port=8001
-    echo "================================================="
-    echo "Running Test: ${number_of_connections}"
-    echo "================================================="
-    server_iperf_instances=$((number_of_connections/4+port))
+    number_of_connections=${current_test_threads}
+    while [ ${number_of_connections} -gt ${CONNECTIONS_PER_IPERF3} ]; do
+        number_of_connections=$(($number_of_connections - $CONNECTIONS_PER_IPERF3))
+        logfile="/${HOME}/${TEST_RUN_LOG_FOLDER}/${current_test_threads}-p${port}-l${IPERF3_BUFFER}-iperf3.log"
+        iperf3 ${PROTOCOL} -c ${IPERF3_SERVER_IP} -p ${port} ${ipVersion} ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P ${CONNECTIONS_PER_IPERF3} -t ${INDIVIDUAL_TEST_DURATION} --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > ${logfile} 2>&1 & pid=$!
+        port=$(($port + 1))
+        PID_LIST+=" $pid"
+    done
+    if [ ${number_of_connections} -gt 0 ]
+    then
+        logfile="/${HOME}/${TEST_RUN_LOG_FOLDER}/${current_test_threads}-p${port}-l${IPERF3_BUFFER}-iperf3.log"
+        iperf3 ${PROTOCOL} -c ${IPERF3_SERVER_IP} -p ${port} ${ipVersion} ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P ${number_of_connections} -t ${INDIVIDUAL_TEST_DURATION} --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > ${logfile} 2>&1 & pid=$!
+        PID_LIST+=" $pid"
+    fi
+
+    trap "sudo kill ${PID_LIST}" SIGINT
+    wait ${PID_LIST}
+}
+
+function run_iperf_udp()
+{
+    current_test_threads=$1
+    LogMsg "======================================"
+    LogMsg "Running iPerf3 thread= ${current_test_threads}"
+    LogMsg "======================================"
+    port=8001
+    server_iperf_instances=$((current_test_threads/${CONNECTIONS_PER_IPERF3}+port))
     for ((i=port; i<=server_iperf_instances; i++))
     do
-        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "/root/${rootDir}/src/iperf3 -s ${ipVersion} -p $i -i ${INDIVIDUAL_TEST_DURATION} -D"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "iperf3 -s ${ipVersion} -p $i -i ${INDIVIDUAL_TEST_DURATION} -D"
         sleep 1
     done
 
-    rm -rf the_generated_client.sh
-    echo "./perf_run_parallelcommands.sh " > the_generated_client.sh
-    remaining_connections=${number_of_connections}
-    while [ ${remaining_connections} -gt ${CONNECTIONS_PER_IPERF3} ]; do
-        remaining_connections=$((${remaining_connections}-${CONNECTIONS_PER_IPERF3}))
-        echo " \"/root/${rootDir}/src/iperf3 ${PROTOCOL} -c ${IPERF3_SERVER_IP} -p $port ${ipVersion} ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P ${CONNECTIONS_PER_IPERF3} -t ${INDIVIDUAL_TEST_DURATION} --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
-        port=$(($port + 1))
-    done
+    sar -n DEV 1 ${INDIVIDUAL_TEST_DURATION} > "${TEST_RUN_LOG_FOLDER}/sar-sender-${current_test_threads}.log" &
+    dstat -dam > "${TEST_RUN_LOG_FOLDER}/dstat-sender-${current_test_threads}.log" &
+    mpstat -P ALL 1 ${INDIVIDUAL_TEST_DURATION} > "${TEST_RUN_LOG_FOLDER}/mpstat-sender-${current_test_threads}.log" &
 
-    if [ ${remaining_connections} -gt 0 ]
-    then
-        echo " \"/root/${rootDir}/src/iperf3 ${PROTOCOL} -c ${IPERF3_SERVER_IP} -p $port ${ipVersion} ${BANDWIDTH+-b ${BANDWIDTH}} -l ${IPERF3_BUFFER} -P ${remaining_connections} -t ${INDIVIDUAL_TEST_DURATION} --get-server-output -i ${INDIVIDUAL_TEST_DURATION} > /dev/null \" " >> the_generated_client.sh
-    fi
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "sar -n DEV 1 ${INDIVIDUAL_TEST_DURATION} > ${TEST_RUN_LOG_FOLDER}/sar-receiver-${current_test_threads}.log"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "dstat -dam > ${TEST_RUN_LOG_FOLDER}/dstat-receiver-${current_test_threads}.log"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "mpstat -P ALL 1 ${INDIVIDUAL_TEST_DURATION} > ${TEST_RUN_LOG_FOLDER}/mpstat-receiver-${current_test_threads}.log"
 
-    sed -i ':a;N;$!ba;s/\n/ /g'  ./the_generated_client.sh
-    chmod 755 the_generated_client.sh
-    cat ./the_generated_client.sh
+    run_iperf_parallel ${current_test_threads}
 
-    sar -n DEV 1 ${INDIVIDUAL_TEST_DURATION} > "${TEST_RUN_LOG_FOLDER}/sar-sender-${number_of_connections}.log" &
-    dstat -dam > "${TEST_RUN_LOG_FOLDER}/dstat-sender-${number_of_connections}.log" &
-    mpstat -P ALL 1 ${INDIVIDUAL_TEST_DURATION} > "${TEST_RUN_LOG_FOLDER}/mpstat-sender-${number_of_connections}.log" &
-
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "sar -n DEV 1 ${INDIVIDUAL_TEST_DURATION} > ${TEST_RUN_LOG_FOLDER}/sar-receiver-${number_of_connections}.log"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "dstat -dam > ${TEST_RUN_LOG_FOLDER}/dstat-receiver-${number_of_connections}.log"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "mpstat -P ALL 1 ${INDIVIDUAL_TEST_DURATION} > ${TEST_RUN_LOG_FOLDER}/mpstat-receiver-${number_of_connections}.log"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "for ((i=1;i<=${INDIVIDUAL_TEST_DURATION};i++)); do netstat -nat | grep ESTABLISHED | wc -l >> ./${TEST_RUN_LOG_FOLDER}/receiver-${number_of_connections}-connections.log; sleep 1; done"
-
-    ./the_generated_client.sh > ${TEST_RUN_LOG_FOLDER}/${number_of_connections}-iperf3.log
     sleep 5
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "netstat -su > ${TEST_RUN_LOG_FOLDER}/receiver-${number_of_connections}-udp-tatistics.log"
     pkill -f iperf3
-    pkill -f ESTABLISHED
     pkill -x sar
     pkill -x dstat
     pkill -x mpstat
@@ -703,8 +692,20 @@ do
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x sar"
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x dstat"
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x mpstat"
-    sleep 55
+    sleep 5
+}
+
+# Start iPerf3 client instances
+LogMsg "Starting iPerf3 in client mode"
+previous_tx_bytes=$(get_tx_bytes)
+previous_tx_pkts=$(get_tx_pkts)
+mkdir ${TEST_RUN_LOG_FOLDER}
+for number_of_connections in "${IPERF3_TEST_CONNECTION_POOL[@]}"
+do
+    run_iperf_udp ${number_of_connections}
+    sleep 15
 done
+
 current_tx_bytes=$(get_tx_bytes)
 current_tx_pkts=$(get_tx_pkts)
 bytes_new=`(expr $current_tx_bytes - $previous_tx_bytes)`

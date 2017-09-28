@@ -1095,7 +1095,7 @@ class UDPLogsReader(BaseLogsReader):
         total_datagrams = 0
         log_files = [os.path.join(os.path.dirname(log_file), f)
                      for f in os.listdir(os.path.dirname(log_file))
-                     if log_dict['NumberOfConnections'] + '-p' in f]
+                     if f.startswith(log_dict['NumberOfConnections'] + '-p')]
         for log_f in log_files:
             with open(log_f, 'r') as fl:
                 read_client = True
