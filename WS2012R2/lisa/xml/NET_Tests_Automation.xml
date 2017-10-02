@@ -49,7 +49,6 @@
                 <suiteTest>GuestOnlyNetwork</suiteTest>
                 <suiteTest>MultipleNIC</suiteTest>
                 <suiteTest>LegacySyntheticNetwork</suiteTest>
-                <suiteTest>StaticMAC</suiteTest>
                 <suiteTest>NetworkMode</suiteTest>
                 <suiteTest>ChangeNetTypeInternal</suiteTest>
                 <suiteTest>ChangeNetTypeGuest</suiteTest>
@@ -75,8 +74,8 @@
             <testName>External</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>TC_COVERED=NET-02</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>TC_COVERED=NET-02,NET-07</param>
                 <param>PING_SUCC=8.8.4.4</param>
                 <param>PING_FAIL=192.168.2.1</param>
                 <param>PING_FAIL2=10.10.10.5</param>
@@ -86,13 +85,14 @@
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
             <testName>InternalNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,Internal,Internal,001600112200</param>
+                <param>NIC=NetworkAdapter,Internal,Internal</param>
                 <param>TC_COVERED=NET-03</param>
                 <param>STATIC_IP=192.168.0.2</param>
                 <param>NETMASK=255.255.255.0</param>
@@ -104,6 +104,7 @@
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
@@ -114,16 +115,19 @@
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-04</param>
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
+				<param>PING_FAIL=8.8.4.4</param>
+                <param>PING_FAIL2=192.168.0.1</param>
             </testParams>
             <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
          <test>
@@ -133,8 +137,8 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>NIC=NetworkAdapter,External,External,001600112201</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-05</param>
                 <!-- <param>NETMASK=255.255.255.0</param> -->
                 <param>PING_SUCC=8.8.4.4</param>
@@ -146,6 +150,7 @@
             <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
@@ -156,8 +161,8 @@
                 <file>setupscripts\ChangeCPU.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>NIC=LegacyNetworkAdapter,External,External,001600112201</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>NIC=LegacyNetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-06</param>
                 <param>REMOTE_SERVER=8.8.4.4</param>
                 <param>LO_IGNORE=yes</param>
@@ -168,23 +173,7 @@
             <files>remote-scripts/ica/NET_LEGACY.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
-        </test>
-
-        <test>
-            <testName>StaticMAC</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112233</param>
-                <param>TC_COVERED=NET-07</param>
-                <param>MAC=00:16:00:11:22:33</param>
-                <param>REMOTE_SERVER=8.8.4.4</param>
-                <param>LO_IGNORE=yes</param>
-                <!-- <param>GATEWAY=192.168.0.1</param> -->
-            </testParams>
-            <testScript>NET_STATIC_MAC.sh</testScript>
-            <files>remote-scripts/ica/NET_STATIC_MAC.sh,remote-scripts/ica/utils.sh</files>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
@@ -196,7 +185,7 @@
             <testScript>NET_PROMISC.sh</testScript>
             <files>remote-scripts/ica/NET_PROMISC.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-08</param>
                 <param>REMOTE_SERVER=8.8.4.4</param>
                 <!-- <param>GATEWAY=192.168.0.1</param> -->
@@ -204,6 +193,7 @@
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <noReboot>False</noReboot>
             <timeout>600</timeout>
+			<onError>Continue</onError>
         </test>
 
         <!-- The following two tests are actually one single TC -->
@@ -213,8 +203,8 @@
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <pretest>setupScripts\NET_SWITCH_NIC_MAC.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>SWITCH=NetworkAdapter,Internal,Internal,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>SWITCH=NetworkAdapter,Internal,Internal</param>
                 <param>TC_COVERED=NET-09</param>
                 <param>STATIC_IP=192.168.0.2</param>
                 <param>NETMASK=255.255.255.0</param>
@@ -237,8 +227,8 @@
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
-                <param>SWITCH=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>SWITCH=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-09</param>
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
@@ -251,6 +241,7 @@
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
@@ -262,7 +253,7 @@
             </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testparams>
-                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-10</param>
                 <param>STATIC_IP=10.10.10.10</param>
                 <param>STATIC_IP2=10.10.10.20</param>
@@ -285,13 +276,14 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,None,None,001600112200</param>
+                <param>NIC=NetworkAdapter,None,None</param>
                 <param>TC_COVERED=NET-11</param>
             </testParams>
             <testScript>NET_OPERSTATE.sh</testScript>
             <files>remote-scripts/ica/NET_OPERSTATE.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
@@ -303,7 +295,7 @@
             </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-12</param>
                 <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
@@ -314,6 +306,7 @@
             <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>8000</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
@@ -325,7 +318,7 @@
             </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testParams>
-                <param>NIC=NetworkAdapter,External,External,001600112200</param>
+                <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-13</param>
                 <param>MAC=001600112233</param>
                 <param>ZERO_FILE=yes</param>
@@ -336,6 +329,7 @@
             <files>remote-scripts/ica/NET_Copy_Different_MTU.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>1800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
@@ -345,7 +339,7 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-            <param>NIC=NetworkAdapter,External,External,001600112200</param>
+            <param>NIC=NetworkAdapter,External,External</param>
             <param>TC_COVERED=NET-14</param>
             <!-- <param>STATIC_IP=10.10.10.1</param> -->
             <!-- <param>STATIC_IP2=10.10.10.2</param> -->
@@ -356,6 +350,7 @@
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>1000</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
@@ -365,7 +360,7 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-15</param>
                 <!-- <param>STATIC_IP=10.10.10.1</param> -->
                 <!-- <param>STATIC_IP2=10.10.10.2</param> -->
@@ -377,13 +372,14 @@
             <files>remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
             <testName>Network_Hang_Vxlan</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,Private,Private,001600112200</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>STATIC_IP1=10.10.10.10</param>
                 <param>STATIC_IP2=10.10.10.20</param>
                 <param>NETMASK=255.255.255.0</param>
@@ -391,13 +387,13 @@
             <testScript>setupscripts\NET_Hang_Vxlan.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <test>
             <testName>CopyFileScp</testName>
             <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
             <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
-            <files>remote-Scripts/ica/NET_scp_check_md5.sh</files>
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>3000</timeout>
             <testParams>
@@ -408,6 +404,7 @@
                     <param>DefaultSize=25GB</param>
                     <param>ControllerType=SCSI</param>
             </testParams>
+			<onError>Continue</onError>
         </test>
 
         <test>
@@ -417,13 +414,14 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testParams>
-                <param>NIC=NetworkAdapter,None,None,001600112200</param>
+                <param>NIC=NetworkAdapter,None,None</param>
                 <param>TC_COVERED=NET-20</param>
             </testParams>
             <testScript>NET_ETHTOOLS.sh</testScript>
             <files>remote-scripts/ica/NET_ETHTOOLS.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
+			<onError>Continue</onError>
         </test>
 
         <!-- The following test requires a Gen 2 VM -->
@@ -507,10 +505,13 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>ppk_id_rsa.ppk</sshKey>
+			<role>SUT</role>
             <testParams>
                 <param>VM2NAME=Network_Second</param>
                 <param>SSH_PRIVATE_KEY=ppk_id_rsa</param>
                 <param>revert_dependency_vms=yes</param>
+				<param>SnapshotName=ICABase</param>
+				<param>REMOTE_USER=root</param>
             </testParams>
             <suite>Network</suite>
             <hardware>
