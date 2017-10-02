@@ -152,37 +152,85 @@ function GetIPv4([String] $vmName, [String] $server)
 #
 #######################################################################
 class Logger {
-  [String] $LogFile
+    [String] $LogFile
+    [Boolean] $AddTimestamp
 
-  Logger([String] $logFile='default.log') {
-    del $logFile -ErrorAction SilentlyContinue
-    $this.LogFile = $logFile
-  }
+    Logger([String] $logFile, [Boolean] $addTimestamp) {
+        $this.LogFile = $logFile
+        $this.AddTimestamp = $addTimestamp 
+    }
 
-  [void] info([String] $message) {
-    $this.logMessage("Info: ${message}")
-  }
+    [void] info([String] $message) {
+        $color = "white"
+        $this.logMessage("Info: ${message}", $color)
+    }
 
-  [void] error([String] $message) {
-    $this.logMessage("Error: ${message}")
-  }
+    [void] error([String] $message) {
+        $color = "Red"
+        $this.logMessage("Error: ${message}", $color)
+    }
 
-  [void] debug([String] $message) {
-    $this.logMessage("Debug: ${message}")
-  }
+    [void] debug([String] $message) {
+        $color = "Gray"
+        $this.logMessage("Debug: ${message}", $color)
+    }
 
-  [void] warning([String] $message) {
-     $this.logMessage("Warning: ${message}")
-  }
+    [void] warning([String] $message) {
+        $color = "Yellow" 
+        $this.logMessage("Warning: ${message}", $color)
+    }
 
-  [void] logMessage([String] $message) {
-    $timestamp = $(Get-Date -Format G)
-    $finalMessage = "${timestamp} - ${message}"
-    Write-Host $finalMessage
-    $finalMessage | Add-Content $this.LogFile
-  }
+    [void] logMessage([String] $message, [String] $color) {
+        if ($this.AddTimestamp) {
+            $timestamp = $(Get-Date -Format G)
+            $message = "${timestamp} - ${message}"
+        }
+        Write-Host $message -ForegroundColor $color
+        $message | Add-Content $this.LogFile
+    }
 }
 
+
+#######################################################################
+#
+# LoggerManager
+#
+#######################################################################
+class LoggerManager {
+    [Logger] $Summary
+    [Logger] $TestCase
+
+    LoggerManager([Logger] $summaryLogger, [Logger] $testCaseLogger) {
+        $this.Summary = $summaryLogger
+        $this.TestCase = $testCaseLogger 
+    }
+
+    [LoggerManager] static GetLoggerManager([String] $vmName, [String] $testParams) {
+        $params = $testParams.Split(";")
+        $testLogDir = $null
+        $testName = $null
+        foreach ($p in $params) {
+            $fields = $p.Split("=")
+            if ($fields[0].Trim() -eq "TestLogDir") {
+                $testLogDir = $fields[1].Trim()
+            } elseif ($fields[0].Trim() -eq "TestName") {
+                $testName = $fields[1].Trim()
+            }
+        }
+
+        if ((-not $testLogDir) -or (-not $testName)) {
+            throw [System.ArgumentException] "TestLogDir or TestName not found."
+        }
+
+        $summaryLog = "${vmName}_summary.log"
+        Remove-Item $summaryLog -ErrorAction SilentlyContinue
+        $testLog = "${testLogDir}\${vmName}_${testName}_ps.log"
+
+        $summaryLogger = [Logger]::new($summaryLog, $False)
+        $testLogger = [Logger]::new($testLog, $True)
+        return [LoggerManager]::new($summaryLogger, $testLogger)
+    }
+}
 #######################################################################
 #
 # GetIPv4ViaHyperV()

@@ -74,22 +74,10 @@ $retVal = $false
 #
 #######################################################################
 
-# Source TCUtils.ps1 for common functions
-if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
-	"Info: Sourced TCUtils.ps1"
-}
-else {
-	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
-}
-
-$global:logger = [Logger]::new("${vmName}_summary.log")
-
 # Check input arguments
 if ($vmName -eq $null)
 {
-    $logger.error("VM name is null")
+    Write-Output "ERROR: VM name is null"
     return $retVal
 }
 
@@ -114,31 +102,31 @@ foreach ($p in $params)
 
 if ($null -eq $sshKey)
 {
-    $logger.error("Test parameter sshKey was not specified")
+    Write-Output "ERROR: Test parameter sshKey was not specified"
     return $False
 }
 
 if ($null -eq $ipv4)
 {
-    $logger.error("Test parameter ipv4 was not specified")
+    Write-Output "ERROR: Test parameter ipv4 was not specified"
     return $False
 }
 
 if ($null -eq $rootdir)
 {
-    $logger.error("Test parameter rootdir was not specified")
+    Write-Output "ERROR: Test parameter rootdir was not specified"
     return $False
 }
 
 if ($null -eq $driveletter)
 {
-    $logger.error("Backup driveletter is not specified.")
+    Write-Output "ERROR: Test parameter driveletter was not specified."
     return $False
 }
 
 if ($null -eq $FILESYS)
 {
-    $logger.error("Test parameter FILESYS was not specified.")
+    Write-Output "ERROR: Test parameter FILESYS was not specified."
     return $False
 }
 
@@ -150,8 +138,20 @@ if ($null -eq $TestLogDir)
 # Change the working directory to where we need to be
 cd $rootDir
 
-$logger.info("This script covers test case: ${TC_COVERED}")
+# Source TCUtils.ps1 for common functions
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+	. .\setupScripts\TCUtils.ps1
+	"Info: Sourced TCUtils.ps1"
+}
+else {
+	"Error: Could not find setupScripts\TCUtils.ps1"
+	return $false
+}
 
+$loggerManager = [LoggerManager]::GetLoggerManager($vmName, $testParams)
+$global:logger = $loggerManager.TestCase
+
+$logger.info("This script covers test case: ${TC_COVERED}")
 
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
