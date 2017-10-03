@@ -29,8 +29,5 @@ Download Putty executables from http://www.putty.org and keep them in the `.\bin
 
 Additional details can be found in the Quick Start Guide and the LIS Users Guide, please visit [https://github.com/LIS/lis-test/tree/master/WS2012R2/lisa/docs](https://github.com/LIS/lis-test/tree/master/WS2012R2/lisa/docs)
 
-```
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/)
-or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-```
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
