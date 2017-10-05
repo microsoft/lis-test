@@ -545,7 +545,6 @@ if is_fedora ; then
         mkdir /boot/efi/EFI/boot/
         cp /boot/efi/EFI/redhat/grub.efi /boot/efi/EFI/boot/bootx64.efi
         cp /boot/efi/EFI/redhat/grub.conf /boot/efi/EFI/boot/bootx64.conf
-        
     fi
 
 elif is_ubuntu ; then
@@ -554,18 +553,16 @@ elif is_ubuntu ; then
     echo "Acquire::ForceIPv4 "true";" > /etc/apt/apt.conf.d/99force-ipv4
     
     #
-    # Removing /var/log/syslog
-    #
-    rm -f /var/log/syslog*
-
-    #
     # Because Ubuntu has a 100 seconds delay waiting for a new network interface,
     # we're disabling the delays in order to not conflict with the automation
     #
-    sed -i -e 's/sleep 40/#sleep 40/g' /etc/init/failsafe.conf
-    sed -i -e 's/sleep 59/#sleep 59/g' /etc/init/failsafe.conf
+    if [ -e /etc/init/failsafe.conf ]; then
+        sed -i -e 's/sleep 40/#sleep 40/g' /etc/init/failsafe.conf
+        sed -i -e 's/sleep 59/#sleep 59/g' /etc/init/failsafe.conf
+    fi
+
     PACK_LIST=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 at autoconf 
-    multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm automake libtool pkg-config
+    multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm automake libtool pkg-config ifupdown
     bridge-utils btrfs-tools libkeyutils-dev xfsprogs reiserfsprogs sysstat build-essential bc numactl python3 pciutils
     nfs-client parted netcat squashfs-tools linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r`)
     for item in ${PACK_LIST[*]}
@@ -588,6 +585,11 @@ elif is_ubuntu ; then
             mv /boot/efi/EFI/boot/grubx64.efi /boot/efi/EFI/boot/bootx64.efi
         fi
     fi
+    
+    #
+    # Removing /var/log/syslog
+    #
+    rm -f /var/log/syslog*
     
 elif is_suse ; then
 
@@ -684,5 +686,5 @@ remove_udev
 
 #remove files from /tmp after install is complete
 if [[ $(check_exec stressapptest) -eq 0 && $(check_exec stress-ng) -eq 0 && $(check_exec bzip2) -eq 0 ]] ; then
-        rm -rf $work_directory/
+    rm -rf $work_directory/
 fi
