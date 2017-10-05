@@ -133,6 +133,17 @@ if (-not $hostInfo) {
 	return $False
 }
 
+# Check for floppy support. If it's not present, test will be skipped
+
+$sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /boot/config-`$(uname -r) | grep '# CONFIG_BLK_DEV_FD is not set'"
+if ($sts){
+    $msg = "Warning: Support for floppy does not exist! Test skipped!"
+    Write-Output $msg | Tee-Object -Append -file $summaryLog
+    return $Skipped
+}
+
+# Skip test for generation 2 VM
+
 $vmGeneration = GetVMGeneration $vmName $hvServer
 if ( $vmGeneration -eq 2 ) {
 	Write-Output "Info: Generation 2 VM does not support floppy disks."
