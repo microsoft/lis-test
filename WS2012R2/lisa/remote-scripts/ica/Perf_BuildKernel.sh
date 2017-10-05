@@ -327,6 +327,41 @@ else
     
     if [ "${ACTIVATE_GCOV}" == "yes" ];then
         EnableGcov "${CONFIG_FILE}"
+
+        #compile daemons with gcov flags and point systemd to the right ones
+        pushd /root/${KERNEL_VERSION}/tools/hv
+        if [ -f Makefile ]; then
+            sed -i '/CFLAGS +=/a CFLAGS += -O0 -fprofile-arcs -ftest-coverage' Makefile
+            make
+        else
+            dbgprint 0 "Hyper-V daemons Makefile not found."
+            dbgprint 0 "Aborting the test."
+            UpdateTestState "TestAborted"
+            exit 120
+        fi
+
+        DAEMON_BASE_PATH=$(pwd)/hv_
+        for i in fcopy kvp vss;
+        do
+            SERV_FILE=/usr/lib/systemd/system/hyperv"$i"d.service
+            if [ -f $SERV_FILE ]; then
+                DAEMON_PATH="$DAEMON_BASE_PATH$i"_daemon
+                if [ -f $DAEMON_PATH ]; then
+                    sed -i "/^ExecStart=/c\ExecStart=$DAEMON_PATH -n" $SERV_FILE
+                else
+                    dbgprint 0 "Hyper-v daemon file $DAEMON_PATH not found."
+                    dbgprint 0 "Aborting the test."
+                    UpdateTestState "TestAborted"
+                    exit 120
+                fi
+            else
+                dbgprint 0 "Hyper-V daemon service file $SERV_FILE not found."
+                dbgprint 0 "Aborting the test."
+                UpdateTestState "TestAborted"
+                exit 120
+            fi
+        done
+        popd
     fi
     
     yes "" | make oldconfig
@@ -416,6 +451,8 @@ else
         echo "grub v1 files does not appear to be installed on this system. it should use grub v2."
         # the new kernel is the default one to boot next time
         grubversion=2
+        grub2-mkconfig -o /boot/grub2/grub.cfg
+        grub2-set-default 0
 fi
 
 if [ 1 -eq ${grubversion} ]; then
