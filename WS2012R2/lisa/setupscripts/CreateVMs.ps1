@@ -168,8 +168,26 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     if ($?){
         $group = Get-ClusterGroup -ErrorAction SilentlyContinue
         $vm_matches = $group -match $vmName
-        foreach( $vm_match in $vm_matches){
+        foreach ($vm_match in $vm_matches){
             Remove-ClusterGroup -Name $vm_match.name -RemoveResources -Force
+            if (-not $?)
+            {
+                "Error: Failed to remove Cluster Role for VM $vmName"
+                return $False
+            }
+
+            "Cleanup was successful for $vmName"
+        }
+
+        # Also remove VM from second node if it's located there
+        $currentNode = (Get-Clusternode -Name $env:computername).Name.ToLower()
+        $clusterNodes = Get-ClusterNode
+        if ($currentNode -eq $clusterNodes[0].Name.ToLower()) {
+            $destinationNode = $clusterNodes[1].Name.ToLower()
+        }
+
+        if (Get-VM -Name $vmName -ComputerName $destinationNode -ErrorAction SilentlyContinue) {
+            Remove-VM $vmName -ComputerName $destinationNode -Force   
         }
     }
 
