@@ -46,6 +46,7 @@
                 <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
                 <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
                 <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
+                <suiteTest>KVP_TestRescind</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -70,8 +71,6 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=KVP-01</param>
-		<!-- toggle disable/enable the Data Exchange integration service -->
-                <param>DE_change=yes</param>
             </testparams>
         </test>
 
@@ -177,6 +176,19 @@
                 <param>TC_COVERED=KVP-10</param>
                 <param>Pool=3</param>
                 <param>Items=11</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_TestRescind</testName>
+            <testScript>SetupScripts\KVP_TestRescind.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-11</param>
+                <!-- Number of times to disable and reenable the KVP service -->
+                <param>CycleCount=20</param>
             </testparams>
         </test>
     </testCases>
