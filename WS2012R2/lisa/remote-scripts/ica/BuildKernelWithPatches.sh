@@ -306,6 +306,7 @@ if is_fedora ; then
         #UpdateTestState $TestAborted
     fi
 elif is_ubuntu ; then
+    apt update
     apt-get -y install nfs-common libssl-dev bc
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Unable to install libssl-devel. Aborting..."
