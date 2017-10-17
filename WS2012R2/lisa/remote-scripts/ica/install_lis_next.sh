@@ -98,7 +98,16 @@ if [ -e ./lis-next ]; then
     rm -rf ./lis-next
 fi
 
-if [ ! ${custom_lis_next} ]; then 
+if [[ $lis_source ]]; then
+	scp -r -i .ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${lis_source} ${custom_build}
+	if [ $? -ne 0]; then
+        LogMsg "Error: unable to copy remote lis next build"
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+	fi
+		
+fi
+if [ ! ${custom_build} ]; then 
     #
     # Clone lis-next
     #
@@ -110,7 +119,7 @@ if [ ! ${custom_lis_next} ]; then
         exit 1
     fi
 else
-    lis_next_path=$custom_lis_next
+    lis_next_path=$custom_build
 fi
 
 if [ ! ${branch} ]; then
