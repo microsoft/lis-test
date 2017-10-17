@@ -196,7 +196,7 @@ if ($checkVM -eq "True") {
         return $Failed
     } else {
         #If the KVP service is OK, check the KVP daemon on the VM
-        $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active *kvp*"
+        $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active '*kvp*'"
         if ($checkProcess -ne "active") {
              Write-Output "Error: KVP daemon is not running on $vmName after disable/enable cycle" | Tee-Object -Append -file $summaryLog
              return $Failed
