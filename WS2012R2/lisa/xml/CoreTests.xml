@@ -212,7 +212,6 @@
             <testScript>SetupScripts\CORE_RebootDiffMemory.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=CORE-17</param>
-                <param>MemSize=6GB,1GB,4GB</param>
             </testParams>
             <timeout>600</timeout>
             <onError>Continue</onError>

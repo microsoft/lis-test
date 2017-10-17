@@ -56,7 +56,6 @@ $sshKey = $null
 $ipv4 = $null
 $rootDir = $null
 $TC_COVERED = "Undefined"
-$memArgs = $null
 
 ######################################################################
 #
@@ -82,7 +81,7 @@ function get_vmip()
 
     if($timeout -le 0)
     {
-        Write-output "VM timeout at GetIPv4 operation with memory size $memory" | Tee-Object -Append -file $summaryLog
+        Write-output "VM timeout at GetIPv4 operation with memory size $memory GB" | Tee-Object -Append -file $summaryLog
         return $False
     }
     else
@@ -132,7 +131,6 @@ foreach ($p in $params)
     "ipv4"       { $ipv4      = $fields[1].Trim() }
     "rootdir"    { $rootDir   = $fields[1].Trim() }
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
-    "MemSize" { $memArgs      = $fields[1].Split(',') }
     default   {}
     }
 }
@@ -164,12 +162,6 @@ if (-not $rootDir)
     return $False
 }
 
-if (-not $memArgs)
-{
-    Write-output "Error: Test parameter MemSize was not specified" | Tee-Object -Append -file $summaryLog
-    return $False
-}
-
 #
 # Change the working directory to where we need to be
 #
@@ -191,7 +183,17 @@ Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 # Save current memory
 $currentMemory = (Get-VMMemory -VMName $vmName -ComputerName $hvServer).startup / 1GB
 
-ForEach ($memory in $memArgs)
+# Get free memory from server
+$osInfo = Get-WMIObject Win32_OperatingSystem -ComputerName $hvServer
+$freeMem = [int]$($OSInfo.FreePhysicalMemory) / 1MB
+
+#Array of memory size to boot( total available memory, 70% of available memory, 40% of available memory)
+$mem100 = "{0:N0}" -f $($freeMem - 2)
+$mem70 = "{0:N0}" -f $($freeMem * 0.7)
+$mem40 = "{0:N0}" -f $($freeMem * 0.4)
+$memArray = $mem100, $mem70, $mem40
+
+ForEach ($memory in $memArray)
 {
     #
     # Shutdown VM.
@@ -217,15 +219,15 @@ ForEach ($memory in $memArgs)
         }
     }
     
-    $memoryParam = "VMMemory = ${memory}"
+    $memoryParam = "VMMemory = ${memory}GB"
     $sts = .\setupScripts\SetVMMemory.ps1 -vmName $vmName -hvServer $hvServer -testParams $memoryParam
     if ($sts[-1] -eq "True")
     {
-        Write-output "VM memory count updated to $memory" | Tee-Object -Append -file $summaryLog
+        Write-output "VM memory count updated to $memory GB RAM" | Tee-Object -Append -file $summaryLog
     }
     else
     {
-        Write-output "Error: Unable to update VM memory to $memory. Consider changing the value." | Tee-Object -Append -file $summaryLog
+        Write-output "Error: Unable to update VM memory to $memory GB RAM. Consider changing the value." | Tee-Object -Append -file $summaryLog
         $retVal = $False
         break
     }
@@ -234,20 +236,20 @@ ForEach ($memory in $memArgs)
     Start-VM -Name $vmName -ComputerName $hvServer  -ErrorAction SilentlyContinue
     if ( $Error[0] -and $Error[0].Exception.Message.Contains("Not enough memory") )
     {
-        Write-output "Error: Not enough memory ($memory) to start VM. Consider changing the value." | Tee-Object -Append -file $summaryLog
+        Write-output "Error: Not enough memory ($memory) GB to start VM. Consider changing the value." | Tee-Object -Append -file $summaryLog
         $retVal = $False
         break
     }
     $Error.Clear()
     $sts = get_vmip
     if (-not $sts[-1]) {
-        Write-output "Error: VM timeout at GetIPv4 operation with memory size $memory" | Tee-Object -Append -file $summaryLog
+        Write-output "Error: VM timeout at GetIPv4 operation with memory size $memory GB" | Tee-Object -Append -file $summaryLog
         $retVal = $False
         break
     }
     else
     {
-        Write-output "VM started with $memory" | Tee-Object -Append -file $summaryLog
+        Write-output "VM started with $memory GB RAM" | Tee-Object -Append -file $summaryLog
     }
 
     #
@@ -267,14 +269,15 @@ ForEach ($memory in $memArgs)
 
     # If the VM has no IP it means it rebooted
     $sts = GetIPv4 $vmName $hvServer
-    if (-not $sts[-1]) {
+
+    if (-not $?) {
 		Write-Output "ERROR: Failed to reboot VM" | Tee-Object -Append -file $summaryLog
 		$retVal = $False
         break
     }
 
     $sts = get_vmip
-    if (-not $sts[-1]) {
+    if (-not $?) {
         Write-output "Error: VM timeout at GetIPv4 operation after rebooting" | Tee-Object -Append -file $summaryLog
         $retVal = $False
         break
