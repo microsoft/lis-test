@@ -300,14 +300,14 @@ fi
 
 #
 if is_fedora ; then
-    yum install openssl-devel bc nfs-utils -y
+    yum install openssl-devel bc nfs-utils elfutils-devel -y
     if [ $? -ne 0 ]; then
         LogMsg "Error: Unable to install required packages. Kernel compilation might fail."
         #UpdateTestState $TestAborted
     fi
 elif is_ubuntu ; then
     apt update
-    apt-get -y install nfs-common libssl-dev bc
+    apt-get -y install nfs-common libssl-dev bc elfutils libelf-dev
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Unable to install libssl-devel. Aborting..."
         UpdateTestState $TestAborted
