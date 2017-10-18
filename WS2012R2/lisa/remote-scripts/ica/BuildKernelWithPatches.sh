@@ -89,7 +89,9 @@ UpdateSummary() {
 # Source the constants.sh file so we know what files to operate on.
 #
 cd ~
+dos2unix ./utils.sh
 source ./constants.sh
+source ./utils.sh
 
 dbgprint() {
     if [ $1 -le $DEBUG_LEVEL ]; then
