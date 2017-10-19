@@ -447,7 +447,7 @@ suse_12)
 esac
 
 LogMsg "Enlarging the system limit"
-ulimit -n 20480
+ulimit -n 204800
 if [ $? -ne 0 ]; then
     LogMsg "ERROR: Unable to enlarged system limit"
     UpdateTestState $ICA_TESTABORTED
@@ -508,6 +508,8 @@ echo "#test_connections    throughput_gbps    average_packet_size" > $eth_log
 
 sleep 10
 #Starting test
+cat /proc/interrupts > $HOME/$log_folder/sender-interrupts-start.log
+ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "cat /proc/interrupts > $HOME/$log_folder/receiver-interrupts-start.log"
 previous_tx_bytes=$(get_tx_bytes $ETH_NAME)
 previous_tx_pkts=$(get_tx_pkts $ETH_NAME)
 port_change=false
@@ -533,7 +535,7 @@ do
     echo "======================================"
     echo "Running Test: $num_threads_P X $num_threads_n"
     echo "======================================"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ulimit -n 20480 && ntttcp -r${SERVER_IP} -P $num_threads_P -e ${ipVersion} > $HOME/$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ulimit -n 204800 && ntttcp -r${SERVER_IP} -P $num_threads_P -e ${ipVersion} > $HOME/$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log"
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "lagscope -r${SERVER_IP} ${ipVersion}"
     sleep 1
     ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "for ((i=1;i<=$TEST_DURATION;i++)); do ss -ta | grep ESTA | grep -v ssh | wc -l >> $HOME/$log_folder/tcp-connections-p${current_test_threads}.log; sleep 1; done"
@@ -581,6 +583,8 @@ ethtool -S eth1 > $HOME/$log_folder/sender-ethtool-eth1.log
 ethtool -S enP2p0s2 > $HOME/$log_folder/sender-ethtool-enP2p0s2.log
 ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S eth1 > $HOME/$log_folder/receiver-ethtool-eth1.log"
 ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S enP2p0s2 > $HOME/$log_folder/receiver-ethtool-enP2p0s2.log"
+cat /proc/interrupts > $HOME/$log_folder/sender-interrupts-end.log
+ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "cat /proc/interrupts > $HOME/$log_folder/receiver-interrupts-end.log"
 LogMsg "Ntttcp succeeded with all connections."
 echo "Ntttcp succeeded with all connections." >> ~/summary.log
 cd $HOME
@@ -594,9 +598,9 @@ zip -r $log_folder.zip $log_folder/*
 if [ $sts -eq 0 ]; then
     LogMsg "Test completed"
     echo "Test completed" >> ~/summary.log
-    UpdateTestState $ICA_TESTCOMPLETED
 else
-    LogMsg "NTTTCP failed to run"
-    echo "NTTTCP failed to run" >> ~/summary.log
-    UpdateTestState $ICA_TESTFAILED
+    LogMsg "Some NTTTCP connections failed to run."
+    echo "Some NTTTCP connections failed to run." >> ~/summary.log
 fi
+
+UpdateTestState $ICA_TESTCOMPLETED
