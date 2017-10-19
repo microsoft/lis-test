@@ -34,7 +34,7 @@ from db_utils import upload_results
 from results_parser import OrionLogsReader, SysbenchLogsReader, MemcachedLogsReader,\
     RedisLogsReader, ApacheLogsReader, MariadbLogsReader, MongodbLogsReader, ZookeeperLogsReader,\
     TerasortLogsReader, TCPLogsReader, LatencyLogsReader, StorageLogsReader, SingleTCPLogsReader,\
-    UDPLogsReader
+    UDPLogsReader, SQLServerLogsReader
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -96,8 +96,9 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
 
             for i in xrange(1, vm_count + 1):
                 ssh_client[i] = connector.wait_for_ping(vms[i])
-                if sriov == constants.ENABLED:
-                    ssh_client[i] = connector.enable_sr_iov(vms[i], ssh_client[i])
+                # SRIOV is enabled by default on AWS for the tested platforms
+                # if sriov == constants.ENABLED:
+                #     ssh_client[i] = connector.enable_sr_iov(vms[i], ssh_client[i])
                 vms[i].update()
                 vm_ips[i] = vms[i].private_ip_address
 
@@ -319,7 +320,7 @@ def test_orion(provider, keyid, secret, token, imageid, subscription, tenant, pr
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
             cmd = '/tmp/run_orion.sh {}'.format(device)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 4)
             results_path = os.path.join(localpath, 'orion{}_{}.zip'.format(str(time.time()),
                                                                            instancetype))
             ssh_client[1].get_file('/tmp/orion.zip', results_path)
@@ -389,7 +390,7 @@ def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenan
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
             cmd = '/tmp/run_orion.sh {}'.format(' '.join(device))
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 4)
             results_path = os.path.join(localpath, 'orion{}_{}.zip'.format(str(time.time()),
                                                                            instancetype))
             ssh_client[1].get_file('/tmp/orion.zip', results_path)
@@ -457,7 +458,7 @@ def test_sysbench(provider, keyid, secret, token, imageid, subscription, tenant,
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_sysbench.sh")
             cmd = '/tmp/run_sysbench.sh {}'.format(device)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 5)
             results_path = os.path.join(localpath, 'sysbench{}_{}.zip'.format(str(time.time()),
                                                                               instancetype))
             ssh_client[1].get_file('/tmp/sysbench.zip', results_path)
@@ -529,7 +530,7 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_sysbench.sh")
             cmd = '/tmp/run_sysbench.sh {}'.format(constants.RAID_DEV)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 5)
             results_path = os.path.join(localpath, 'sysbench{}_{}.zip'.format(str(time.time()),
                                                                               instancetype))
             ssh_client[1].get_file('/tmp/sysbench.zip', results_path)
@@ -593,8 +594,7 @@ def test_memcached(provider, keyid, secret, token, imageid, subscription, tenant
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_memcached.sh")
             cmd = '/tmp/run_memcached.sh {} {}'.format(vm_ips[2], user)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
-            log.info(ssh_client[1].run('uname -r'))
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'memcached{}_{}.zip'.format(str(time.time()),
                                                                                instancetype))
             ssh_client[1].get_file('/tmp/memcached.zip', results_path)
@@ -658,7 +658,7 @@ def test_redis(provider, keyid, secret, token, imageid, subscription, tenant, pr
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_redis.sh")
             cmd = '/tmp/run_redis.sh {} {}'.format(vm_ips[2], user)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'redis{}_{}.zip'.format(str(time.time()),
                                                                            instancetype))
             ssh_client[1].get_file('/tmp/redis.zip', results_path)
@@ -723,7 +723,7 @@ def test_apache_bench(provider, keyid, secret, token, imageid, subscription, ten
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_apache_bench.sh")
             cmd = '/tmp/run_apache_bench.sh {} {}'.format(vm_ips[2], user)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'apache_bench{}_{}.zip'.format(str(time.time()),
                                                                                   instancetype))
             ssh_client[1].get_file('/tmp/apache_bench.zip', results_path)
@@ -788,7 +788,7 @@ def test_nginx_bench(provider, keyid, secret, token, imageid, subscription, tena
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_nginx_bench.sh")
             cmd = '/tmp/run_nginx_bench.sh {} {}'.format(vm_ips[2], user)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'nginx_bench{}_{}.zip'.format(str(time.time()),
                                                                                  instancetype))
             ssh_client[1].get_file('/tmp/nginx_bench.zip', results_path)
@@ -860,7 +860,7 @@ def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, 
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_mariadb.sh")
             cmd = '/tmp/run_mariadb.sh {} {} {}'.format(vm_ips[2], user, device)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'mariadb{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/mariadb.zip', results_path)
@@ -937,7 +937,7 @@ def test_mariadb_raid(provider, keyid, secret, token, imageid, subscription, ten
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_mariadb.sh")
             cmd = '/tmp/run_mariadb.sh {} {} {}'.format(vm_ips[2], user, constants.RAID_DEV)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'mariadb{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/mariadb.zip', results_path)
@@ -1010,7 +1010,7 @@ def test_mongodb(provider, keyid, secret, token, imageid, subscription, tenant, 
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_mongodb.sh")
             cmd = '/tmp/run_mongodb.sh {} {} {}'.format(vm_ips[2], user, device)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'mongodb{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/mongodb.zip', results_path)
@@ -1086,7 +1086,7 @@ def test_mongodb_raid(provider, keyid, secret, token, imageid, subscription, ten
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_mongodb.sh")
             cmd = '/tmp/run_mongodb.sh {} {} {}'.format(vm_ips[2], user, constants.RAID_DEV)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'mongodb{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/mongodb.zip', results_path)
@@ -1155,7 +1155,7 @@ def test_zookeeper(provider, keyid, secret, token, imageid, subscription, tenant
             zk_servers = ' '.join([vm_ips[i] for i in range(2, 7)])
             cmd = '/tmp/run_zookeeper.sh {} {}'.format(user, zk_servers)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'zookeeper{}_{}.zip'.format(str(time.time()),
                                                                                instancetype))
             ssh_client[1].get_file('/tmp/zookeeper.zip', results_path)
@@ -1225,7 +1225,7 @@ def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant,
             slaves = ' '.join([vm_ips[i] for i in range(2, 7)])
             cmd = '/tmp/run_terasort.sh {} {} {}'.format(user, device, slaves)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'terasort{}_{}.zip'.format(str(time.time()),
                                                                               instancetype))
             ssh_client[1].get_file('/tmp/terasort.zip', results_path)
@@ -1298,7 +1298,7 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_storage.sh")
             cmd = '/tmp/run_storage.sh {}'.format(constants.RAID_DEV)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'storage{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/storage.zip', results_path)
@@ -1363,7 +1363,7 @@ def test_network_tcp(provider, keyid, secret, token, imageid, subscription, tena
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_network.sh")
             cmd = '/tmp/run_network.sh {} {} {}'.format(vm_ips[2], user, 'TCP')
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'network{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/network.zip', results_path)
@@ -1427,7 +1427,7 @@ def test_network_udp(provider, keyid, secret, token, imageid, subscription, tena
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_network.sh")
             cmd = '/tmp/run_network.sh {} {} {}'.format(vm_ips[2], user, 'UDP')
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'network{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/network.zip', results_path)
@@ -1491,7 +1491,7 @@ def test_network_latency(provider, keyid, secret, token, imageid, subscription, 
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_network.sh")
             cmd = '/tmp/run_network.sh {} {} {}'.format(vm_ips[2], user, 'latency')
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'network{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/network.zip', results_path)
@@ -1555,7 +1555,7 @@ def test_network_single_tcp(provider, keyid, secret, token, imageid, subscriptio
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_network.sh")
             cmd = '/tmp/run_network.sh {} {} {}'.format(vm_ips[2], user, 'single_tcp')
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'network{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/network.zip', results_path)
@@ -1574,10 +1574,13 @@ def test_network_single_tcp(provider, keyid, secret, token, imageid, subscriptio
                        host_type=utils.host_type(provider), instance_size=instancetype)
 
 
-def test_sql_server(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
-                    instancetype, user, localpath, region, zone, sriov, kernel):
+def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscription, tenant,
+                            projectid, instancetype, user, localpath, region, zone, sriov, kernel):
     """
-    Run FIO storage profile.
+    Run SQLServer Benchcraft profiling. The test assumes the existence of a *.vm config file and an
+    Azure windows image prepared with all benchcraft prerequisites (sql scripts, ps scripts and
+    db flat files). The setup creates a windows and a linux VM for testing specific InMemDB
+    performance.
     :param provider Service provider to be used e.g. azure, aws, gce.
     :param keyid: user key for executing remote connection
     :param secret: user secret for executing remote connection
@@ -1611,24 +1614,87 @@ def test_sql_server(provider, keyid, secret, token, imageid, subscription, tenan
                                                       instancetype=instancetype, user=user,
                                                       localpath=localpath, region=region,
                                                       zone=zone, sriov=sriov, kernel=kernel)
-
+    results_path = None
     try:
+        # TODO add Windows VM support for the other cloud providers
+        win_user, password, win_vm = connector.azure_create_vm(config_file=localpath)
+        log.info(win_vm)
         if all(client for client in ssh_client.values()):
             current_path = os.path.dirname(os.path.realpath(__file__))
-            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_storage.sh'),
-                                   '/tmp/run_storage.sh')
-            ssh_client[1].run('chmod +x /tmp/run_storage.sh')
-            ssh_client[1].run("sed -i 's/\r//' /tmp/run_storage.sh")
-            cmd = '/tmp/run_storage.sh {}'.format(device)
+            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_sqlserver.sh'),
+                                   '/tmp/run_sqlserver.sh')
+            ssh_client[1].run('chmod +x /tmp/run_sqlserver.sh')
+            ssh_client[1].run("sed -i 's/\r//' /tmp/run_sqlserver.sh")
+            log.info(
+                ssh_client[1].run('sudo cat /var/opt/mssql/mssql.conf', timeout=constants.TIMEOUT))
+            cmd = '/tmp/run_sqlserver.sh {} {}'.format(password, constants.DEVICE_AZURE)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd)
-            ssh_client[1].get_file('/tmp/storage.zip',
-                                   os.path.join(localpath,
-                                                'storage{}_{}.zip'.format(str(time.time()),
-                                                                          instancetype)))
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
+            results_path = os.path.join(localpath, 'sqlserver{}_{}.zip'.format(str(time.time()),
+                                                                               instancetype))
+            ssh_client[1].get_file('/tmp/sqlserver.zip', results_path)
+        sqlserver_ip = vm_ips[1]
+
+        host = win_vm.name + connector.dns_suffix
+        settings = []
+        sql_sps = []
+
+        settings.append('Set-Content -Value ($(Get-Content {ps_path}Settings.ps1 -raw) -replace \'\$SQLServer = \\\".+\\\"\',\'$SQLServer = \\\"{ip}\\\"\') -Path {ps_path}Settings.ps1'.format(
+                ps_path=constants.PS_PATH, ip=sqlserver_ip))
+        settings.append('Set-Content -Value ($(Get-Content {ps_path}Settings.ps1 -raw) -replace \'\$SQLPwd = \\\".+\\\"\',\'$SQLPwd = \\\"{passwd}\\\"\') -Path {ps_path}Settings.ps1'.format(
+                ps_path=constants.PS_PATH, passwd=password))
+
+        settings.append('Set-Content -Value ($(Get-Content {bc_path}{bc_profile} -raw) -replace \'(?:sqlserver_ip)\',\'{ip}\') -Path {bc_path}{bc_profile}'.format(
+                bc_path=constants.BC_PATH, bc_profile=constants.BC_PROFILE, ip=sqlserver_ip))
+        settings.append('Set-Content -Value ($(Get-Content {bc_path}{bc_profile} -raw) -replace \'(?:sqlserver_pass)\',\'{passwd}\') -Path {bc_path}{bc_profile}'.format(
+                bc_path=constants.BC_PATH, bc_profile=constants.BC_PROFILE, passwd=password))
+        for setting in settings:
+            log.info(setting)
+            utils.run_win_command(cmd=setting, host=host, user=win_user, password=password,
+                                  ps=True)
+
+        log.info('Creating database.')
+        utils.run_win_command(cmd=utils.run_sql('{}Create_Database_InMem.sql'.format(
+                constants.DB_SQL_PATH), sqlserver_ip, password=password),
+                              host=host, user=win_user, password=password, ps=True)
+        log.info('Creating InMemDb tables.')
+        utils.run_win_command(cmd=utils.run_sql('{}Create_Tables_InMem.sql'.format(
+                constants.DB_SQL_PATH), sqlserver_ip, password=password, db='InMemDb'),
+                              host=host, user=win_user, password=password, ps=True)
+        log.info('Loading data into tables.')
+        utils.run_win_command(cmd='{}Load_HK_DB_BCP.ps1'.format(constants.PS_PATH), host=host,
+                              user=win_user, password=password, ps=True)
+
+        sql_sps.append('{}InMem_FulfillOrders.sql'.format(constants.SP_SQL_PATH))
+        sql_sps.append('{}InMem_GetOrdersByCustomerID.sql'.format(constants.SP_SQL_PATH))
+        sql_sps.append('{}InMem_GetProductsByType.sql'.format(constants.SP_SQL_PATH))
+        sql_sps.append('{}InMem_GetProductsPriceByPK.sql'.format(constants.SP_SQL_PATH))
+        sql_sps.append('{}InMem_InsertOrder.sql'.format(constants.SP_SQL_PATH))
+        sql_sps.append('{}InMem_ProductSelectionCriteria.sql'.format(constants.SP_SQL_PATH))
+        sql_sps.append('{}optimize_memory.sql'.format(constants.DB_SCRIPTS_PATH))
+        for sql_sp in sql_sps:
+            log.info(sql_sp)
+            utils.run_win_command(
+                    cmd=utils.run_sql(sql_sp, sqlserver_ip, password=password, db='InMemDb'),
+                    host=host, user=win_user, password=password, ps=True)
+
+        cmd = '{bc_path}start.ps1'.format(bc_path=constants.BC_PATH)
+        log.info(cmd)
+        utils.run_win_command(cmd=cmd, host=host, user=win_user, password=password, ps=True)
+
+        cmd = 'type {}Report1.log'.format(constants.BC_PATH)
+        report = utils.run_win_command(cmd=cmd, host=host, user=win_user, password=password,
+                                       ps=True)
     except Exception as e:
         log.error(e)
         raise
     finally:
         if connector:
             connector.teardown()
+    if results_path:
+        upload_results(localpath=localpath, table_name='Perf_{}_SQLServer'.format(provider),
+                       results_path=results_path, parser=SQLServerLogsReader,
+                       test_case_name='{}_SQLServer_perf_tuned'.format(provider),
+                       provider=provider, region=region, data_path=utils.data_path(sriov),
+                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       disk_setup='1 x SSD {}GB'.format(disk_size), report=report)

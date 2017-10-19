@@ -59,7 +59,8 @@ class BaseLogsReader(object):
         self.log_base_path = log_path
         self.sorter = []
 
-    def _convert(self, value, unit_from, unit_to):
+    @staticmethod
+    def _convert(value, unit_from, unit_to):
         """
         Convert units.
         :return: converted unit
@@ -130,6 +131,12 @@ class BaseLogsReader(object):
                     udp_buffer = re.match('.+:\s*UDP\s*Buffer\s*:\s*([0-9. ]+)', line)
                     if udp_buffer:
                         log_dict['udp_buffer'] = udp_buffer.group(1).strip()
+                if not log_dict.get('sql_server_version', None):
+                    sql_server_version = re.match('.+:\s*SQLServer\s*Version\s*:\s*.+\s*-'
+                                                  '\s*([0-9.]+)\s*', line)
+                    if sql_server_version:
+                        log_dict['sql_server_version'] = sql_server_version.group(1).strip()
+
         return log_dict
 
     def teardown(self):
@@ -1302,4 +1309,62 @@ class StorageLogsReader(BaseLogsReader):
                             if 'k' in iops_digit:
                                 iops_digit = float(iops_digit.split('k')[0]) * 1000
                             log_dict[iops_key] = iops_digit
+        return log_dict
+
+
+class SQLServerLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing FIO log files e.g.
+    FIOLog-XXXq.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
+                 region=None, host_type=None, instance_size=None, disk_setup=None, report=None):
+        super(SQLServerLogsReader, self).__init__(log_path)
+        self.headers = ['TestMode', 'ScaleFactor', 'SQLServerVersion', 'TxnPerSec',
+                        'ResponseTime95thPercentile']
+        self.sorter = []
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.region = region
+        self.provider = provider
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.disk_setup = disk_setup
+        self.report = report
+        self.log_matcher = 'summary.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for FIO test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['HostType'] = self.host_type
+        log_dict['InstanceSize'] = self.instance_size
+        log_dict['DiskSetup'] = self.disk_setup
+        log_dict['DataPath'] = self.data_path
+        # TODO read scale from Benchcraft settings
+        log_dict['ScaleFactor'] = 400
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestOS'] = summary['guest_os']
+        log_dict['SQLServerVersion'] = summary['sql_server_version']
+
+        for line in self.report.splitlines():
+            mode = re.match('([a-zA-Z]+)\s*Transaction\s*Report', line)
+            if mode:
+                if not log_dict.get('TxnPerSec', None):
+                    log_dict['TestMode'] = mode.group(1).strip()
+            txn = re.match('.+All\s*[0-9]+\s*([0-9.]+)\s*[0-9.]+\s*[0-9.]+\s*[0-9.]+\s*[0-9.]+'
+                           '\s*[0-9.]+\s*[0-9.]+\s*[0-9.]+\s*([0-9.]+)\s*[0-9.]+', line)
+            if txn:
+                if not log_dict.get('TxnPerSec', None):
+                    log_dict['TxnPerSec'] = txn.group(1).strip()
+                if not log_dict.get('ResponseTime95thPercentile', None):
+                    log_dict['ResponseTime95thPercentile'] = txn.group(2).strip()
         return log_dict

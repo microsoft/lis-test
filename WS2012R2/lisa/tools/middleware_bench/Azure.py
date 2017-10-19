@@ -23,6 +23,7 @@ import os
 import time
 import logging
 import constants
+import ConfigParser
 
 from azure.common.credentials import ServicePrincipalCredentials
 from azure.mgmt.resource import ResourceManagementClient
@@ -131,40 +132,50 @@ class AzureConnector:
                 {'address_prefix': '10.10.10.0/24'})
         self.subnet = create_subnet.result()
 
-    def azure_create_vm(self):
+    def azure_create_windows_vm(self, config_file=None):
         """
-        Create an Azure VM instance.
+        Create an Azure Windows VM instance.
         :return: VirtualMachine object
         """
-        log.info('Creating VM: {}'.format(self.imageid))
-        vm_name = self.imageid['offer'].lower() + str(time.time()).replace('.', '')
+        if config_file:
+            log.info('Looking up Windows VM credentials in {}.'.format(config_file))
+            db_creds_file = [os.path.join(config_file, c) for c in os.listdir(config_file)
+                             if c.endswith('.windows')][0]
+            # read credentials from file - should be present in the localpath provided to runner
+            config = ConfigParser.ConfigParser()
+            config.read(db_creds_file)
+        else:
+            log.error('No credentials file path provided for Windows VM.')
+            return None
+        if 'Image' not in config.sections():
+            imageid = {'publisher': 'MicrosoftWindowsServer',
+                       'offer': 'WindowsServer',
+                       'sku': '2016-Datacenter',
+                       'version': 'latest'}
+        else:
+            imageid = {'publisher': config.get('Image', 'publisher'),
+                       'offer': config.get('Image', 'offer'),
+                       'sku': config.get('Image', 'sku'),
+                       'version': config.get('Image', 'version')}
+        vm_name = config.get('Windows', 'Name')
+        log.info('Creating Windows VM: {}'.format(vm_name))
         nic = self.create_nic(vm_name)
-        with open(os.path.join(self.localpath, self.key_name + '.pub'), 'r') as f:
-            key_data = f.read()
         vm_parameters = {
             'location': self.location,
             'os_profile': {
                 'computer_name': vm_name,
-                'admin_username': self.user,
-                'linux_configuration': {
-                    'disable_password_authentication': True,
-                    'ssh': {
-                        'public_keys': [{
-                            'path': '/home/{}/.ssh/authorized_keys'.format(self.user),
-                            'key_data': key_data}]}}},
+                'admin_username': config.get('Windows', 'User'),
+                'admin_password': config.get('Windows', 'Password'),
+                'windows_configuration': {'provision_vm_agent': True,
+                                          'enable_automatic_updates': False}},
             'hardware_profile': {'vm_size': self.instancetype},
             'storage_profile': {
-                'image_reference': {
-                    'publisher': self.imageid['publisher'],
-                    'offer': self.imageid['offer'],
-                    'sku': self.imageid['sku'],
-                    'version': self.imageid['version']},
+                'image_reference': imageid,
                 'os_disk': {
+                    'os_type': 'Windows',
                     'name': self.os_disk_name,
-                    'caching': 'None',
-                    'create_option': 'fromImage',
-                    'vhd': {'uri': 'https://{}.blob.core.windows.net/vhds/{}.vhd'.format(
-                            self.storage_account, self.vmnet_name + str(time.time()))}}},
+                    'caching': 'ReadWrite',
+                    'create_option': 'fromImage'}},
             'network_profile': {'network_interfaces': [{'id': nic.id}]}
         }
         vm_creation = self.compute_client.virtual_machines.create_or_update(
@@ -182,9 +193,115 @@ class AzureConnector:
 
         return vm_instance
 
-    def create_nic(self, vm_name):
+    def azure_create_vm(self, config_file=None):
+        """
+        Create an Azure VM instance.
+        :return: VirtualMachine object
+        or
+        :return: user, pass, VirtualMachine object in case of windows machine
+        """
+        config = None
+        if config_file:
+            log.info('Assuming Windows Vm creation')
+            log.info('Looking up Windows VM credentials in {}.'.format(config_file))
+            vm_file = [os.path.join(config_file, c) for c in os.listdir(config_file)
+                       if c.endswith('.windows')][0]
+            # read credentials from file - should be present in the localpath provided to runner
+            config = ConfigParser.ConfigParser()
+            config.read(vm_file)
+            if 'Image' not in config.sections():
+                imageid = {'publisher': 'MicrosoftWindowsServer',
+                           'offer': 'WindowsServer',
+                           'sku': '2016-Datacenter',
+                           'version': 'latest'}
+            else:
+                private_image = self.compute_client.images.get(
+                        config.get('Image', 'resource_group'), config.get('Image', 'name'))
+                imageid = {'id': private_image.id}
+            vm_name = config.get('Windows', 'name')
+            log.info('Creating Windows VM: {}'.format(vm_name))
+            nic = self.create_nic(vm_name, nsg=True)
+            vm_parameters = {
+                'location': self.location,
+                'os_profile': {
+                    'computer_name': vm_name,
+                    'admin_username': config.get('Windows', 'user'),
+                    'admin_password': config.get('Windows', 'password'),
+                    'windows_configuration': {'provision_vm_agent': True,
+                                              'enable_automatic_updates': False}
+                },
+                'hardware_profile': {'vm_size': self.instancetype},
+                'storage_profile': {
+                    'image_reference': imageid,
+                    'os_disk': {
+                        'os_type': 'Windows',
+                        'name': self.os_disk_name,
+                        'caching': 'ReadWrite',
+                        'create_option': 'fromImage'}},
+                'network_profile': {'network_interfaces': [{'id': nic.id}]}
+            }
+        else:
+            log.info('Creating VM: {}'.format(self.imageid))
+            vm_name = self.imageid['offer'].lower() + str(time.time()).replace('.', '')
+            nic = self.create_nic(vm_name)
+            with open(os.path.join(self.localpath, self.key_name + '.pub'), 'r') as f:
+                key_data = f.read()
+            vm_parameters = {
+                'location': self.location,
+                'os_profile': {
+                    'computer_name': vm_name,
+                    'admin_username': self.user,
+                    'linux_configuration': {
+                        'disable_password_authentication': True,
+                        'ssh': {
+                            'public_keys': [{
+                                'path': '/home/{}/.ssh/authorized_keys'.format(self.user),
+                                'key_data': key_data}]}}},
+                'hardware_profile': {'vm_size': self.instancetype},
+                'storage_profile': {
+                    'image_reference': self.imageid,
+                    'os_disk': {
+                        'name': self.os_disk_name,
+                        'caching': 'None',
+                        'create_option': 'fromImage',
+                        'vhd': {'uri': 'https://{}.blob.core.windows.net/vhds/{}.vhd'.format(
+                                self.storage_account, self.vmnet_name + str(time.time()))}}},
+                'network_profile': {'network_interfaces': [{'id': nic.id}]}
+            }
+        vm_creation = self.compute_client.virtual_machines.create_or_update(
+                self.group_name, vm_name, vm_parameters)
+        vm_creation.wait()
+        vm_instance = self.compute_client.virtual_machines.get(self.group_name, vm_name)
+        log.info('Created VM: {}'.format(vm_instance))
+        vm_start = self.compute_client.virtual_machines.start(self.group_name, vm_name)
+        vm_start.wait()
+        log.info('Started VM: {}'.format(vm_name))
+        self.vms.append(vm_instance)
+
+        if config_file:
+            ext = self.compute_client.virtual_machine_extensions.create_or_update(
+                    self.group_name, vm_name, 'custom_extension_script',
+                    {'location': self.location,
+                     'publisher': 'Microsoft.Compute',
+                     'virtual_machine_extension_type': 'CustomScriptExtension',
+                     'type_handler_version': '1.7',
+                     'auto_upgrade_minor_version': True,
+                     'settings': {
+                         'fileUris': ['https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vm-winrm-windows/ConfigureWinRM.ps1',
+                                      'https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vm-winrm-windows/makecert.exe',
+                                      'https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vm-winrm-windows/winrmconf.cmd'],
+                         'commandToExecute': 'powershell -ExecutionPolicy Unrestricted -file ConfigureWinRM.ps1 {vm}'.format(vm=vm_name)}
+                     })
+            log.info('Ran custom script on VM: {}'.format(ext.result()))
+            return config.get('Windows', 'user'), config.get('Windows', 'password'), vm_instance
+        else:
+            return vm_instance
+
+    def create_nic(self, vm_name, nsg=None):
         """
         Create an VM Network interface.
+        :param vm_name VM name
+        :param nsg <dict> containing security rules {}
         :return: NetworkInterface ClientRawResponse
         """
         log.info('Creating VM network interface: {}'.format(self.nic_name))
@@ -203,8 +320,38 @@ class AzureConnector:
                                                  'public_ip_address': {'id': public_ip.id}}]
                           }
         if self.sriov == constants.ENABLED:
-                log.info('Adding Accelerated Networking')
-                nic_parameters['enable_accelerated_networking'] = True
+            log.info('Adding Accelerated Networking')
+            nic_parameters['enable_accelerated_networking'] = True
+        if nsg:
+            log.info('Creating network security group')
+            create_nsg = self.network_client.network_security_groups.create_or_update(
+                    self.group_name, vm_name + '-nsg',
+                    {'location': self.location})
+            log.info(create_nsg.result())
+            log.info('Creating rdp security rule')
+            self.network_client.security_rules.create_or_update(
+                    self.group_name, create_nsg.result().name, 'default-allow-rdp',
+                    {'protocol': 'Tcp',
+                     'source_address_prefix': '*',
+                     'destination_address_prefix': '*',
+                     'access': 'Allow',
+                     'direction': 'Inbound',
+                     'source_port_range': '*',
+                     'destination_port_range': '3389',
+                     'priority': 1000})
+            log.info('Creating wsman https security rule')
+            self.network_client.security_rules.create_or_update(
+                    self.group_name, create_nsg.result().name, 'wsman-https',
+                    {'protocol': 'Tcp',
+                     'source_address_prefix': '*',
+                     'destination_address_prefix': '*',
+                     'access': 'Allow',
+                     'direction': 'Inbound',
+                     'source_port_range': '*',
+                     'destination_port_range': '5986',
+                     'priority': 1001})
+            log.info('Adding custom security group to NIC')
+            nic_parameters['network_security_group'] = create_nsg.result()
         nic_op = self.network_client.network_interfaces.create_or_update(
                 self.group_name, self.nic_name + str(time.time()), nic_parameters)
         log.info(nic_op.result())

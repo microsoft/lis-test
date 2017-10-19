@@ -88,3 +88,15 @@ RAID_DEV = '/dev/md0'
 ENABLED = 'enabled'
 SRIOV = 'SRIOV'
 SYNTHETIC = 'Synthetic'
+
+# timeout in seconds; default 3h
+TIMEOUT = 3 * 60 * 60
+
+# SQL Server constants
+MSSQL_USER = 'sa'
+PS_PATH = 'C:\\\\inmemdb\\\\Data_Generator\\\\PS_scripts\\\\'
+BC_PATH = 'C:\\\\inmemdb\\\\Benchcraft\\\\'
+DB_SCRIPTS_PATH = 'C:\\inmemdb\\Database_Scripts\\'
+DB_SQL_PATH = DB_SCRIPTS_PATH + 'create-database-and-tables\\In-Memory\\'
+SP_SQL_PATH = DB_SCRIPTS_PATH + 'stored-procedures\\Native\\'
+BC_PROFILE = 'inmemdb.bp'

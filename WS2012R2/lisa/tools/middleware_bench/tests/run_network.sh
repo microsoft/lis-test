@@ -42,8 +42,15 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt -y install sysstat zip bc build-essential >> ${LOG_FILE}
-    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update" >> ${LOG_FILE}
+    sudo apt update
+    # solving gce ubuntu kernel package upgrades and dependencies
+    sudo apt install -y aptitude
+    printf '.\n.\n.\n.\nY\nY\n' |sudo aptitude install build-essential >> ${LOG_FILE}
+    sudo apt -y install build-essential >> ${LOG_FILE}
+    sudo apt -y install sysstat zip bc >> ${LOG_FILE}
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update"
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt install -y aptitude"
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "printf '.\n.\n.\n.\nY\nY\n' |sudo aptitude install build-essential"
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install sysstat zip bc build-essential" >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then
@@ -249,6 +256,8 @@ function run_single_tcp()
 
 if [[ ${TEST_TYPE} == "TCP" ]]
 then
+    ulimit -n 204800
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo ulimit -n 204800"
     for thread in "${TEST_THREADS[@]}"
     do
         run_ntttcp ${thread}
