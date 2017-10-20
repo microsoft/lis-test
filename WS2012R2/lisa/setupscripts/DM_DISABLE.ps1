@@ -42,7 +42,7 @@
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
     Name of the VM to configure.
 
@@ -53,7 +53,7 @@
     Test data for this test case
 
     .Example
-    setupScripts\DM_DISABLE.ps1 -vmName vm -hvServer localhost -testParams "vmName=vm;enableDM=no;staticMem=512MB;memWeight=50"
+    setupScripts\DM_DISABLE.ps1 -vmName vm -hvServer localhost -testParams "enableDM=no;staticMem=512MB;memWeight=50"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -109,7 +109,7 @@ else
 # call DM_CONFIGURE_MEMORY.ps1
 if (Test-Path ".\setupScripts\DM_CONFIGURE_MEMORY.ps1")
 {
-    #nothing to do 
+    #nothing to do
 }
 else
 {
@@ -117,84 +117,36 @@ else
     return $false
 }
 
-[string]$tPvmName = ""
-[string]$tPMem = ""
-[string]$tPmemWeight = ""
 [string]$dmTestParam = ""
-#
-# Parse the testParams string, then process each parameter
-#
+$tpEnabled = $null
+#Parse the testParams string
 $params = $testParams.Split(';')
 
 foreach ($p in $params)
 {
     $temp = $p.Trim().Split('=')
-    
+
     if ($temp.Length -ne 2)
     {
         # Ignore and move on to the next parameter
         continue
     }
-    
-    $vm = $null
 
-    if ($temp[0].Trim() -eq "vmName")
+    if($temp[0].Trim() -eq "enableDM")
     {
-        $tPvmName = $temp[1]
-
-        $vm = Get-VM -Name $tPvmName -ComputerName $hvServer -ErrorAction SilentlyContinue
-
-        if (-not $vm)
-        {
-            "Error: VM ${tPvmName} does not exist"
-            return $False
-        }
-        
-    }
-    elseif($temp[0].Trim() -eq "staticMem")
-    {
-      $tpMem = $temp[1].Trim()
-
-      if (-not $tpMem)
-      {
-        "Error: no memory value received."
-        return $false
-      }
-
-    }
-	
-	elseif($temp[0].Trim() -eq "memWeight")
-    {
-      $tPmemWeight = $temp[1].Trim()
-
-      if (-not $tPmemWeight)
-      {
-        "Error: no memory weight value received."
-        return $false
-      }
-
-    }
-    if (-not $tPvmName)
-    {
-        $tPvmName = $vmName
-    }
-
-    if ($tPvmName -and $tpMem -and $tPmemWeight)
-    {
-        "Got params vmName: $tpvmName and memory: $tpMem with memory weight: $tPmemWeight"
-        $dmTestParam += "vmName=$tPvmName;enableDM=no;startupMem=$tpMem;memWeight=$tPmemWeight;"
-
-        [string]$tPvmName = ""
-        [string]$tPMem = ""
-        [string]$tPmemWeight = ""
+      $tpEnabled = $temp[1].Trim()
     }
 }
-
-if (-not $dmTestParam)
+# if no enableDM parameter, raise error
+if (-not $tpEnabled)
 {
-    "Error: not enough parameters received!"
-    return $false
+  "Error: no enableDM value received."
+  return $false
 }
+
+#if there is enableDM=yes, replace as enableDM=no
+$dmTestParam = $testParams.replace("enableDM=yes","enableDM=no")
+"Got params $dmTestParam"
 
 $res = .\setupScripts\DM_CONFIGURE_MEMORY.ps1 -vmName $vmName -hvServer $hvServer -testParams $dmTestParam
 

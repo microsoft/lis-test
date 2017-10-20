@@ -152,7 +152,6 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-        "vmName"  { $vm1Name =$fields[1].Trim() }
         "ipv4"    { $ipv4    = $fields[1].Trim() }
         "sshKey"  { $sshKey  = $fields[1].Trim() }
         "tries"  { $tries  = $fields[1].Trim() }
@@ -175,12 +174,7 @@ if ($tries -le 0)
     $tries = $defaultTries
 }
 
-if ($vmName -notlike $vm1Name)
-{
-    "Error: the VMName testParam needs to be the same as the VMName from the global setting" | Tee-Object -Append -file $summaryLog
-    return $false
-}
-
+$vm1Name = $vmName
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $vm1)
 {

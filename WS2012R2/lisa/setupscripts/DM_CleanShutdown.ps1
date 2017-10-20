@@ -44,8 +44,8 @@
 
    The following is an example of a testParam for configuring Dynamic Memory
 
-       "Tries=3;vmName=sles11x64sp3;enable=yes;minMem=512MB;maxMem=80%;startupMem=80%;memWeight=0;
-       vmName=sles11x64sp3_2;enable=yes;minMem=512MB;maxMem=25%;startupMem=25%;memWeight=0"
+       "Tries=3;enable=yes;minMem=512MB;maxMem=80%;startupMem=80%;memWeight=0;
+       enable=yes;minMem=512MB;maxMem=25%;startupMem=25%;memWeight=0"
 
    All scripts must return a boolean to indicate if the script completed successfully or not.
 
@@ -59,7 +59,7 @@
     Test data for this test case
 
     .Example
-    setupscripts\DM_CleanShutdown.ps1 -vmName nameOfVM -hvServer localhost -testParams 'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir;vmName=NameOfVM1;vmName=NameOfVM2'
+    setupscripts\DM_CleanShutdown.ps1 -vmName nameOfVM -hvServer localhost -testParams 'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir;vm2Name=NameOfVM2'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -105,9 +105,6 @@ $vm1Name = $null
 
 # Name of second VM
 $vm2Name = $null
-
-# string array vmNames
-[String[]]$vmNames = @()
 
 # number of tries
 [int]$tries = 0
@@ -161,11 +158,12 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-      "vmName"  { $vmNames = $vmNames + $fields[1].Trim() }
+
       "ipv4"    { $ipv4    = $fields[1].Trim() }
       "sshKey"  { $sshKey  = $fields[1].Trim() }
       "tries"  { $tries  = $fields[1].Trim() }
       "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
+      "VM2NAME"    { $vm2Name = $fields[1].Trim() }
     }
 }
 
@@ -178,28 +176,7 @@ if ($tries -le 0)
     $tries = $defaultTries
 }
 
-if ($vmNames.count -lt 2)
-{
-    "Error: two VMs are necessary for the DM_CleanShutdown test." | Tee-Object -Append -file $summaryLog
-    return $false
-}
-
-$vm1Name = $vmNames[0]
-$vm2Name = $vmNames[1]
-if ($vm1Name -notlike $vmName)
-{
-    if ($vm2Name -like $vmName)
-    {
-        # switch vm1Name with vm2Name
-        $vm1Name = $vmNames[1]
-        $vm2Name = $vmNames[0]
-    }
-    else
-    {
-        "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml." | Tee-Object -Append -file $summaryLog
-        return $false
-    }
-}
+$vm1Name = $vmName
 
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $vm1)
