@@ -168,7 +168,7 @@ ifdown eth0
 ifup eth0
 VerifyModules
 
-ipAddress=$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | cut -d: -f2 | cut -d' ' -f1)
+ipAddress=$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | cut -d: -f2 | cut -d' ' -f1 | sed -n 1p)
 if [[ ${ipAddress} -eq '' ]]; then
     LogMsg "Info: Waiting for interface to receive an IP"
     sleep 30

@@ -103,7 +103,6 @@ foreach ($p in $params)
     "nonintrinsic" { $intrinsic = $False }
     "rootdir"      { $rootDir   = $fields[1].Trim() }
     "TC_COVERED"   { $tcCovered = $fields[1].Trim() }
-    "DE_change"   { $deChanged = $fields[1].Trim() }
     default  {}       
     }
 }
@@ -121,12 +120,12 @@ echo "Covers: ${tcCovered}" >> $summaryLog
 
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
-	"Info: Sourced TCUtils.ps1"
+    . .\setupScripts\TCUtils.ps1
+    "Info: Sourced TCUtils.ps1"
 }
 else {
-	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 #
@@ -154,52 +153,7 @@ if (-not $serviceEnabled)
     "Error: The Data Exchange Service is not enabled for VM '${vmName}'"
     return $False
 }
-#
-#Verify if the DE_Changed is set 
-#
-if ($deChanged -eq "yes")
-{
-    
-    #
-    #Disable the Key-Value Pair Exchange
-    #
-    "Info: Disabling the Integrated Services Shutdown Service"
 
-    Disable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Key-Value Pair Exchange"
-    $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Key-Value Pair Exchange"
-    if ($status.Enabled -ne $False)
-    {
-        "Error: Key-Value Pair Exchange could not be disabled"
-         return $False
-    }
-
-    if ($status.PrimaryOperationalStatus -ne "Ok")
-    {
-    "Error: Incorrect Operational Status for Key-Value Pair Exchange Service: $($status.PrimaryOperationalStatus)"
-        return $False
-    }
-    "Info: Integrated Key-Value Pair Exchange Service successfully disabled"
-
-    #
-    # Enable the Shutdown service
-    #
-    "Info: Enabling the Integrated Services Key-Value Pair Exchange Service"
-
-    Enable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Key-Value Pair Exchange"
-    $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Key-Value Pair Exchange"
-    if ($status.Enabled -ne $True)
-    {
-        "Error: Integrated Key-Value Pair Exchange Service could not be enabled"
-         return $False
-    }
-
-    if ($status.PrimaryOperationalStatus -ne "Ok")
-    {
-        "Error: Incorrect Operational Status for Key-Value Pair Exchange Service: $($status.PrimaryOperationalStatus)"
-            return $False
-    }
-    "Info: Integrated Key-Value Pair Exchange Service successfully Enabled"
-}
 #
 # Create a data exchange object and collect KVP data from the VM
 #
@@ -259,16 +213,16 @@ if ($Intrinsic)
 }
 else #Non-Intrinsic
 {
-	if ($dict.length -gt 0)
-	{
-		"Info: $($dict.length) non-intrinsic KVP items found"
-		$testPassed = $True
-	}
-	else
-	{
-		"Error: No non-intrinsic KVP items found"
-		$testPassed = $False
-	}
+    if ($dict.length -gt 0)
+    {
+        "Info: $($dict.length) non-intrinsic KVP items found"
+        $testPassed = $True
+    }
+    else
+    {
+        "Error: No non-intrinsic KVP items found"
+        $testPassed = $False
+    }
 }
 
 return $testPassed

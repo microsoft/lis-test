@@ -122,14 +122,6 @@ if ($null -eq $TestLogDir)
 
 # Change the working directory to where we need to be
 cd $rootDir
-
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
@@ -140,13 +132,18 @@ else {
 	return $false
 }
 
+$loggerManager = [LoggerManager]::GetLoggerManager($vmName, $testParams)
+$global:logger = $loggerManager.TestCase
+
+$logger.info("This script covers test case: ${TC_COVERED}")
+
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.errror("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
 
@@ -160,13 +157,10 @@ if (-not $sts[-1])
 $sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
 {
-    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-    Write-Output "ERROR: Running $remoteScript script failed on VM!"
+    $logger.error("executing $remoteScript on VM. Exiting test case!")
     return $sts[-1]
 }
-Write-Output "$remoteScript execution on VM: Success"
-Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
-
+$logger.info("$remoteScript execution on VM: Success")
 
 $sts = startBackup $vmName $driveletter
 if (-not $sts[-1])
@@ -197,5 +191,5 @@ else
 
 runCleanup $backupLocation
 
-Write-Output "INFO: Test ${results}"
+$logger.info("Test ${results}")
 return $retVal

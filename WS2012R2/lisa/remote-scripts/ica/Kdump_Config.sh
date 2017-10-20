@@ -25,6 +25,7 @@ kdump_conf=/etc/kdump.conf
 dump_path=/var/crash
 sys_kexec_crash=/sys/kernel/kexec_crash_loaded
 kdump_sysconfig=/etc/sysconfig/kdump
+boot_filepath=""
 
 #
 # Source utils.sh to get more utils
@@ -141,47 +142,15 @@ ConfigRhel()
         RhelExtraSettings
     fi
 
-    if [[ -d /boot/grub2 ]]; then
-        LogMsg "Update grub"
-        if grep -iq "crashkernel=" /etc/default/grub
-        then
-            sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /etc/default/grub
-        else
-            sed -i "s/^GRUB_CMDLINE_LINUX=\"/GRUB_CMDLINE_LINUX=\"crashkernel=$crashkernel /g" /etc/default/grub
-        fi
-        grep -iq "crashkernel=$crashkernel" /etc/default/grub
-        if [ $? -ne 0 ]; then
-            LogMsg "FAILED: Could not set the new crashkernel value in /etc/default/grub."
-            UpdateSummary "FAILED: Could not set the new crashkernel value in /etc/default/grub."
-            SetTestStateAborted
-            exit 1
-        else
-            LogMsg "Success: updated the crashkernel value to: $crashkernel."
-            UpdateSummary "Success: updated the crashkernel value to: $crashkernel."
-        fi
-
-        grub_config=$(find /boot -name grub.cfg)
-        grub2-mkconfig -o $grub_config
-
-    else
-        if [ -x "/sbin/grubby" ]; then
-            if grep -iq "crashkernel=" /boot/grub/grub.conf
-            then
-                sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/grub/grub.conf
-            else
-                sed -i "s/rootdelay=300/rootdelay=300 crashkernel=$crashkernel/g" /boot/grub/grub.conf
-            fi
-            grep -iq "crashkernel=$crashkernel" /boot/grub/grub.conf
-            if [ $? -ne 0 ]; then
-                LogMsg "ERROR: Could not set the new crashkernel value."
-                UpdateSummary "ERROR: Could not set the new crashkernel value."
-                SetTestStateAborted
-                exit 1
-            else
-                LogMsg "Success: updated the crashkernel value to: $crashkernel."
-                UpdateSummary "Success: updated the crashkernel value to: $crashkernel."
-            fi
-        fi
+    GetGuestGeneration
+    if [ $os_GENERATION -eq 2 ] && [ $os_RELEASE -eq 6 ]; then
+        boot_filepath=/boot/efi/EFI/BOOT/bootx64.conf
+    elif [ $os_GENERATION -eq 1 ] && [ $os_RELEASE -eq 6 ]; then
+        boot_filepath=/boot/grub/grub.conf
+    elif [ $os_GENERATION -eq 1 ] && [ $os_RELEASE -eq 7 ]; then
+        boot_filepath=/boot/grub2/grub.cfg
+    elif [ $os_GENERATION -eq 2 ] && [ $os_RELEASE -eq 7 ]; then
+        boot_filepath=/boot/efi/EFI/redhat/grub.cfg
     fi
 
     # Enable kdump service
@@ -207,11 +176,34 @@ ConfigRhel()
             SetTestStateAborted
             exit 1
         fi
-        echo "dracut_args --mount \"$vm2ipv4:/mnt /var/crash nfs defaults\"" >> /etc/kdump.conf
+        # Kdump configuration differs from RHEL 6 to RHEL 7
+        if [ $os_RELEASE -le 6 ]; then
+            echo "nfs $vm2ipv4:/mnt" >> /etc/kdump.conf
+            if [ $? -ne 0 ]; then
+                LogMsg "ERROR: Failed to configure kdump to use nfs."
+                UpdateSummary "ERROR: Failed to configure kdump to use nfs."
+                SetTestStateAborted
+                exit 1
+            fi
+        else
+            echo "dracut_args --mount \"$vm2ipv4:/mnt /var/crash nfs defaults\"" >> /etc/kdump.conf
+            if [ $? -ne 0 ]; then
+                LogMsg "ERROR: Failed to configure kdump to use nfs."
+                UpdateSummary "ERROR: Failed to configure kdump to use nfs."
+                SetTestStateAborted
+                exit 1
+            fi
+        fi
+
         service kdump restart
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Failed to restart Kdump."
+            UpdateSummary "ERROR: Failed to restart Kdump."
+            SetTestStateAborted
+            exit 1
+        fi
     fi
 }
-
 
 #######################################################################
 #
@@ -224,42 +216,9 @@ ConfigSles()
     UpdateSummary "Configuring kdump (Sles)..."
 
     if [[ -d /boot/grub2 ]]; then
-        if grep -iq "crashkernel=" /etc/default/grub
-        then
-            sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /etc/default/grub
-        else
-            sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"crashkernel=$crashkernel /g" /etc/default/grub
-        fi
-        grep -iq "crashkernel=$crashkernel" /etc/default/grub
-        if [ $? -ne 0 ]; then
-            LogMsg "ERROR: Could not set the new crashkernel value in /etc/default/grub."
-            UpdateSummary "ERROR: Could not set the new crashkernel value in /etc/default/grub."
-            SetTestStateAborted
-            exit 1
-        else
-            LogMsg "Success: updated the crashkernel value to: $crashkernel."
-            UpdateSummary "Success: updated the crashkernel value to: $crashkernel."
-        fi
-        grub2-mkconfig -o /boot/grub2/grub.cfg
-    fi
-
-    if [[ -d /boot/grub ]]; then
-        if grep -iq "crashkernel=" /boot/grub/menu.lst
-        then
-            sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/grub/menu.lst
-        else
-            sed -i "s/rootdelay=300/rootdelay=300 crashkernel=$crashkernel/g" /boot/grub/menu.lst
-        fi
-        grep -iq "crashkernel=$crashkernel" /boot/grub/menu.lst
-        if [ $? -ne 0 ]; then
-            LogMsg "ERROR: Could not configure set the new crashkernel value in /etc/default/grub."
-            UpdateSummary "ERROR: Could not configure set the new crashkernel value in /etc/default/grub."
-            SetTestStateAborted
-            exit 1
-        else
-            LogMsg "Success: updated the crashkernel value to: $crashkernel."
-            UpdateSummary "Success: updated the crashkernel value to: $crashkernel."
-        fi
+        boot_filepath='/boot/grub2/grub.cfg'
+    elif [[ -d /boot/grub ]]; then
+        boot_filepath='/boot/grub/menu.lst'
     fi
 
     LogMsg "Enabling kdump"
@@ -292,7 +251,6 @@ ConfigSles()
         sed -i 's\KDUMP_SAVEDIR="/var/crash"\KDUMP_SAVEDIR="nfs://'"$vm2ipv4"':/mnt"\g' /etc/sysconfig/kdump
         service kdump restart
     fi
-
 }
 
 #######################################################################
@@ -302,6 +260,7 @@ ConfigSles()
 #######################################################################
 ConfigUbuntu()
 {
+    boot_filepath="/boot/grub/grub.cfg"
     LogMsg "Configuring kdump (Ubuntu)..."
     UpdateSummary "Configuring kdump (Ubuntu)..."
     sed -i 's/USE_KDUMP=0/USE_KDUMP=1/g' /etc/default/kdump-tools
@@ -312,28 +271,8 @@ ConfigUbuntu()
         SetTestStateAborted
         exit 1
     fi
-    sed -i "s/crashkernel=\S*/crashkernel=$crashkernel/g" /boot/grub/grub.cfg
-    grep -q "crashkernel=$crashkernel" /boot/grub/grub.cfg
-    if [ $? -ne 0 ]; then
-        LogMsg "WARNING: Could not configure set the new crashkernel value in /etc/default/grub. Maybe the default value is wrong. We try other configure."
-        UpdateSummary "WARNING: Could not configure set the new crashkernel value in /etc/default/grub. Maybe the default value is wrong. We try other configure."
 
-        sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"crashkernel=$crashkernel /g" /etc/default/grub
-        grep -q "crashkernel=$crashkernel" /etc/default/grub
-        if [ $? -ne 0 ]; then
-            LogMsg "ERROR: Failed to configure the new crashkernel."
-            UpdateSummary "ERROR: Failed to configure the new crashkernel."
-            SetTestStateAborted
-            exit 1
-        else
-            update-grub
-            LogMsg "Succesfully updated the crashkernel value to: $crashkernel."
-            UpdateSummary "Succesfully updated the crashkernel value to: $crashkernel."
-        fi
-    else
-        LogMsg "Success: updated the crashkernel value to: $crashkernel."
-        UpdateSummary "Success: updated the crashkernel value to: $crashkernel."
-    fi
+    # Additional params needed
     sed -i 's/LOAD_KEXEC=true/LOAD_KEXEC=false/g' /etc/default/kexec
 
     # Configure to dump file on nfs server if it is the case
@@ -432,6 +371,24 @@ case $DISTRO in
         ConfigRhel
     ;;
 esac
+
+# Remove old crashkernel params
+sed -i "s/crashkernel=\S*//g" $boot_filepath
+
+# Remove console params; It could interfere with the testing
+sed -i "s/console=\S*//g" $boot_filepath
+
+# Add the crashkernel param
+sed -i "/vmlinuz-`uname -r`/ s/$/ crashkernel=$crashkernel/" $boot_filepath
+if [ $? -ne 0 ]; then
+    LogMsg "ERROR: Could not set the new crashkernel value in $boot_filepath"
+    UpdateSummary "ERROR: Could not set the new crashkernel value in $boot_filepath"
+    SetTestStateAborted
+    exit 1
+else
+    LogMsg "Success: updated the crashkernel value to: $crashkernel."
+    UpdateSummary "Success: updated the crashkernel value to: $crashkernel."
+fi
 
 # Cleaning up any previous crash dump files
 mkdir -p /var/crash

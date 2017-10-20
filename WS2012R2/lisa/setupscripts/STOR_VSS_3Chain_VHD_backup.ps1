@@ -178,14 +178,6 @@ if (-not (Test-Path $rootDir))
 $vmName1 = "${vmName}_ChildVM"
 
 cd $rootDir
-
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
@@ -196,13 +188,18 @@ else {
 	return $false
 }
 
+$loggerManager = [LoggerManager]::GetLoggerManager($vmName, $testParams)
+$global:logger = $loggerManager.TestCase
+
+$logger.info("This script covers test case: ${TC_COVERED}")
+
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
 
@@ -218,7 +215,7 @@ if (-not $sts[-1])
 Stop-VM -Name $vmName
 if (-not $?)
     {
-       Write-Output "Error: Unable to Shut Down VM"
+       $logger.error("Unable to Shut Down VM")
        return $False
     }
 
@@ -227,16 +224,16 @@ $timeout = 50
 $sts = WaitForVMToStop $vmName $hvServer $timeout
 if (-not $sts)
     {
-       Write-Output "Error: Unable to Shut Down VM"
+       $logger.error("Unable to Shut Down VM")
        return $False
     }
 
 # Clean snapshots
-Write-Output "INFO: Cleaning up snapshots..."
+$logger.info("Cleaning up snapshots")
 $sts = FixSnapshots $vmName $hvServer
 if (-not $sts[-1])
 {
-    Write-Output "Error: Cleaning snapshots on $vmname failed."
+    $logger.error("Cleaning snapshots on $vmname failed.")
     return $False
 }
 
@@ -244,11 +241,11 @@ if (-not $sts[-1])
 $ParentVHD = GetParentVHD $vmName $hvServer
 if(-not $ParentVHD)
 {
-    "Error: Error getting Parent VHD of VM $vmName"
+    $logger.error("Unable to get parent VHD of VM $vmName")
     return $False
 }
 
-Write-Output "INFO: Successfully Got Parent VHD"
+$logger.info("Successfully Got Parent VHD")
 
 # Create Child and Grand-Child VHD, use temp path to avoid using same disk with backup drive
 
@@ -257,11 +254,11 @@ $childVhd = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(),"vssVhd")
 $CreateVHD = CreateChildVHD $ParentVHD $childVhd $hvServer
 if(-not $CreateVHD)
 {
-    Write-Output "Error: Error Creating Child and Grand Child VHD of VM $vmName"
+    $logger.error("Unable to create Child and Grand Child VHD of VM $vmName")
     return $False
 }
 
-Write-Output "INFO: Successfully created GrandChild VHD"
+$logger.info("Successfully created GrandChild VHD")
 
 # Now create New VM out of this VHD.
 # New VM is static hardcoded since we do not need it to be dynamic
@@ -274,7 +271,7 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
 $VMNetAdapter = Get-VMNetworkAdapter $vmName
 if (-not $?)
     {
-       Write-Output "Error: Get-VMNetworkAdapter"
+       $logger.error("Unable to get network adapter")
        return $false
     }
 
@@ -284,7 +281,7 @@ $vm_gen = $vm.Generation
 $newVm = New-VM -Name $vmName1 -VHDPath $GChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
     {
-       Write-Output "Error: Creating New VM"
+       $logger.error("Creating New VM")
        return $False
     }
 
@@ -294,13 +291,12 @@ if ($vm_gen -eq 2)
     Set-VMFirmware -VMName $vmName1 -EnableSecureBoot Off
     if(-not $?)
     {
-        Write-Output "Error: Unable to disable secure boot"
+        $logger.error("Unable to disable secure boot")
         return $false
     }
 }
 
-echo "Successfully created new 3 Chain VHD VM $vmName1" >> $summaryLog
-Write-Output "INFO: New 3 Chain VHD VM $vmName1 created"
+$logger.info("New 3 Chain VHD VM $vmName1 created")
 
 $timeout = 600
 $sts = Start-VM -Name $vmName1 -ComputerName $hvServer
@@ -308,16 +304,16 @@ $logMsg = Get-VM -Name $vmName1
 Write-Output $logMsg
 if (-not (WaitForVMToStartKVP $vmName1 $hvServer $timeout ))
 {
-    Write-Output "Error: ${vmName1} failed to start"
-     return $False
+    $logger.error("${vmName1} failed to start")
+    return $False
 }
 
-Write-Output "INFO: New VM $vmName1 started"
+$logger.info("New VM $vmName1 started")
 
 $sts = startBackup $vmName1 $driveletter
 if (-not $sts[-1])
 {
-	Write-Output "INFO: Failed backup"
+	$logger.error("Failed backup")
 	return $False
 } else {
 	$backupLocation = $sts
@@ -326,14 +322,14 @@ if (-not $sts[-1])
 $sts = restoreBackup $backupLocation
 if (-not $sts[-1])
 {
-	Write-Output "INFO: Failed restore"
+	$logger.error("Failed restore")
 	return $False
 }
 
 $sts = checkResults $vmName1 $hvServer
 if (-not $sts[-1])
 {
-	Write-Output "INFO: Failed result"
+	$logger.error("Failed result")
 	$retVal = $False
 }
 else
@@ -347,22 +343,19 @@ else
 $ipv4 =  GetIPv4 $vmName1 $hvServer
 if (-not $?)
     {
-       Write-Output "Error: Getting IPV4 of New VM"
+       $logger.error("Getting IPV4 of New VM")
        $retVal= $False
     }
 
-Write-Output "INFO: New VM's IP is $ipv4"
-
-
-
-Write-Output "INFO: Test ${results}"
+$logger.info("New VM's IP is $ipv4")
+$logger.info("Test ${results}")
 
 $sts = Stop-VM -Name $vmName1 -TurnOff
 if (-not $?)
-    {
-       Write-Output "Error: Unable to Shut Down VM $vmName1"
+{
+    $logger.error("Unable to Shut Down VM $vmName1")
 
-    }
+}
 
 runCleanup $backupLocation
 
@@ -370,9 +363,9 @@ runCleanup $backupLocation
 $sts = Remove-VM -Name $vmName1 -Confirm:$false -Force
 if (-not $?)
 {
-    Write-Output "Error: Deleting New VM $vmName1"
+    $logger.error("Unable to delete New VM $vmName1")
 }
 
-Write-Output "INFO: Deleted VM $vmName1"
+$logger.info("Deleted VM $vmName1")
 
 return $retVal

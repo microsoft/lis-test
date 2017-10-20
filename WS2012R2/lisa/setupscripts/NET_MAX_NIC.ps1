@@ -248,6 +248,16 @@ if ($legacyNICs -ge 1 -and $vmGeneration -eq 2 )
      return $Skipped
 }
 
+# Check for tulip driver. If it's not preset test will be skipped
+if ($legacyNICs -ge 1)
+{
+    $sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /boot/config-`$(uname -r) | grep 'CONFIG_NET_TULIP=y\|CONFIG_TULIP=m'"
+    if (-not $sts){
+        $msg = "Warning: Tulip driver is not configured! Test skipped"
+        Write-Output $msg | Tee-Object -Append -file $summaryLog
+        return $Skipped   
+    }
+}
 
 "Info : Executing bash script"
 [int]$hostBuildNumber = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $hvServer).BuildNumber

@@ -1,0 +1,4 @@
+#Daemons
+hv_kvp_daemon.c
+hv_vss_daemon.c
+hv_fcopy_daemon.c

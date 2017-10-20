@@ -42,6 +42,9 @@ ICA_TESTFAILED="TestFailed"                                        # Error while
 CONSTANTS_FILE="constants.sh"
 ROOT_DIR="/root"
 
+# For changing Sysbench version only the following parameter has to be changed
+Sysbench_Version=1.0.9
+
 #######################################################################
 # Keeps track of the state of the test
 #######################################################################
@@ -143,13 +146,21 @@ else
     exit 10
 fi
 
-# Clone sysbench repository
+# Download sysbench
 pushd $ROOT_DIR
 LogMsg "Cloning sysbench"
-git clone https://github.com/akopytov/sysbench.git
+wget https://github.com/akopytov/sysbench/archive/$Sysbench_Version.zip
 if [ $? -gt 0 ]; then
-    LogMsg "Failed to clone sysbench."
-    UpdateSummary "Failed to clone sysbench."
+    LogMsg "Failed to download sysbench."
+    UpdateSummary "Failed to download sysbench."
+    UpdateTestState $ICA_TESTFAILED
+    exit 10
+fi
+
+unzip $Sysbench_Version.zip
+if [ $? -gt 0 ]; then
+    LogMsg "Failed to unzip sysbench."
+    UpdateSummary "Failed to unzip sysbench."
     UpdateTestState $ICA_TESTFAILED
     exit 10
 fi
@@ -177,7 +188,7 @@ if is_fedora ; then
     yum install libtool -y
     yum install vim -y
 
-    pushd "$ROOT_DIR/sysbench"
+    pushd "$ROOT_DIR/sysbench-$Sysbench_Version"
     bash ./autogen.sh
     bash ./configure --without-mysql
     make
@@ -195,7 +206,7 @@ elif is_ubuntu ; then
     apt-get install libtool -y
     apt-get install pkg-config -y
 
-    pushd "$ROOT_DIR/sysbench"
+    pushd "$ROOT_DIR/sysbench-$Sysbench_Version"
     bash ./autogen.sh
     bash ./configure --without-mysql
     make
@@ -210,7 +221,7 @@ elif is_ubuntu ; then
     LogMsg "Sysbench installed successfully!"
 
 elif is_suse ; then
-    pushd "$ROOT_DIR/sysbench"
+    pushd "$ROOT_DIR/sysbench-$Sysbench_Version"
     bash ./autogen.sh
     bash ./configure --without-mysql
     make

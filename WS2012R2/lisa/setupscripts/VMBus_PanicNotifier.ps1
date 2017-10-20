@@ -190,6 +190,9 @@ if (-not $sts) {
 
 Start-Sleep -S 9
 
+# enable the sysrq handle
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sysctl -w kernel.sysrq=1"
+
 #
 # Note the current time, then panic the VM
 #

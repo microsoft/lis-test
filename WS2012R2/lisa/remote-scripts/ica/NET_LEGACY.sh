@@ -109,6 +109,16 @@ case $? in
 		;;
 esac
 
+# Check for tulip driver. If it's not present, test will be skipped
+cat /boot/config-`uname -r` | grep "CONFIG_NET_TULIP=y\|CONFIG_TULIP=m"
+if [ $? -ne 0 ]; then
+	msg="Tulip driver is not configured. Test skipped"
+	LogMsg "$msg"
+	UpdateSummary "$msg"
+	SetTestStateSkipped
+	exit 30
+fi
+
 # Parameter provided in constants file
 if [ "${SYNTH_STATIC_IP:-UNDEFINED}" = "UNDEFINED" ]; then
 	msg="The test parameter SYNTH_STATIC_IP is not defined in constants file"

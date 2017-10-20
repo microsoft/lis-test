@@ -148,6 +148,91 @@ function GetIPv4([String] $vmName, [String] $server)
 
 #######################################################################
 #
+# Logger
+#
+#######################################################################
+class Logger {
+    [String] $LogFile
+    [Boolean] $AddTimestamp
+
+    Logger([String] $logFile, [Boolean] $addTimestamp) {
+        $this.LogFile = $logFile
+        $this.AddTimestamp = $addTimestamp 
+    }
+
+    [void] info([String] $message) {
+        $color = "white"
+        $this.logMessage("Info: ${message}", $color)
+    }
+
+    [void] error([String] $message) {
+        $color = "Red"
+        $this.logMessage("Error: ${message}", $color)
+    }
+
+    [void] debug([String] $message) {
+        $color = "Gray"
+        $this.logMessage("Debug: ${message}", $color)
+    }
+
+    [void] warning([String] $message) {
+        $color = "Yellow" 
+        $this.logMessage("Warning: ${message}", $color)
+    }
+
+    [void] logMessage([String] $message, [String] $color) {
+        if ($this.AddTimestamp) {
+            $timestamp = $(Get-Date -Format G)
+            $message = "${timestamp} - ${message}"
+        }
+        Write-Host $message -ForegroundColor $color
+        $message | Add-Content $this.LogFile
+    }
+}
+
+
+#######################################################################
+#
+# LoggerManager
+#
+#######################################################################
+class LoggerManager {
+    [Logger] $Summary
+    [Logger] $TestCase
+
+    LoggerManager([Logger] $summaryLogger, [Logger] $testCaseLogger) {
+        $this.Summary = $summaryLogger
+        $this.TestCase = $testCaseLogger 
+    }
+
+    [LoggerManager] static GetLoggerManager([String] $vmName, [String] $testParams) {
+        $params = $testParams.Split(";")
+        $testLogDir = $null
+        $testName = $null
+        foreach ($p in $params) {
+            $fields = $p.Split("=")
+            if ($fields[0].Trim() -eq "TestLogDir") {
+                $testLogDir = $fields[1].Trim()
+            } elseif ($fields[0].Trim() -eq "TestName") {
+                $testName = $fields[1].Trim()
+            }
+        }
+
+        if ((-not $testLogDir) -or (-not $testName)) {
+            throw [System.ArgumentException] "TestLogDir or TestName not found."
+        }
+
+        $summaryLog = "${vmName}_summary.log"
+        Remove-Item $summaryLog -ErrorAction SilentlyContinue
+        $testLog = "${testLogDir}\${vmName}_${testName}_ps.log"
+
+        $summaryLogger = [Logger]::new($summaryLog, $False)
+        $testLogger = [Logger]::new($testLog, $True)
+        return [LoggerManager]::new($summaryLogger, $testLogger)
+    }
+}
+#######################################################################
+#
 # GetIPv4ViaHyperV()
 #
 #######################################################################
@@ -1042,8 +1127,9 @@ function RunRemoteScript($remoteScript)
     $TestRunning   = "TestRunning"
     $TestSkipped   = "TestSkipped"
     $timeout       = 6000
+    $params        = $scriptParam
 
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
+    "./${remoteScript} ${params} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
 
     .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)
@@ -1817,20 +1903,20 @@ function ConfigTimeSync([String] $sshKey, [String] $ipv4)
     $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\Core_Config_TimeSync.sh" "/root/config_timesync.sh"
 
     # check the return Value of SendFileToVM
-    if (-not $retVal)
+    if ($? -ne "True")
     {
         Write-Output "Error: Failed to send config file to VM."
-        return $False
+        $retVal = $False
     }
 
     $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix config_timesync.sh && chmod u+x config_timesync.sh && ./config_timesync.sh"
-    if ($retVal -eq $False)
+    if ($? -ne "True")
     {
         Write-Output "Error: Failed to configure time sync. Check logs for details."
-        return $False
+        $retVal = $False
     }
 
-    return $True
+    return $retVal
 }
 
 function CheckVMState([String] $vmName, [String] $hvServer)

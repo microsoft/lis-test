@@ -118,14 +118,6 @@ if ($null -eq $driveletter)
 
 # Change the working directory to where we need to be
 cd $rootDir
-
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
@@ -136,13 +128,18 @@ else {
 	return $false
 }
 
+$loggerManager = [LoggerManager]::GetLoggerManager($vmName, $testParams)
+$global:logger = $loggerManager.TestCase
+
+$logger.info("This script covers test case: ${TC_COVERED}")
+
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
 # run set up
@@ -163,17 +160,16 @@ for ($i = 0; $i -le 1; $i++ )
     $serviceAction = $setAction[$i]
     $sts = SendCommandToVM $ipv4 $sshkey "echo serviceAction=$serviceAction  >> /root/constants.sh"
     if (-not $sts[-1]){
-        Write-Output "Error: Could not echo serviceAction to vm's constants.sh."
+        $logger.error("Could not echo serviceAction to vm's constants.sh.")
         return $False
     }
-    "Info: $serviceAction hyperv backup service" >> $summaryLog
+    $logger.info("$serviceAction hyperv backup service")
 
      # Run the remote script
     $sts = RunRemoteScript $remoteScript
     if (-not $sts[-1])
     {
-        "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-        "ERROR: Running $remoteScript script failed on VM!"
+        $logger.error("Running $remoteScript script failed on VM!")
         return $False
     }
 
@@ -193,18 +189,16 @@ for ($i = 0; $i -le 1; $i++ )
         $temp = $backupTypes[$i]
         if  ( $bkType -ne $temp )
         {
-            "Failed: Not get expected backup type as $temp"  >> $summaryLog
-            "Failed: Not get expected backup type as $temp"
+            $logger.error("Failed: Not get expected backup type as $temp")
             return $False
         }
         else
         {
-             "Info: Get expected backup type $temp" >> $summaryLog
-             "Info: Get expected backup type $temp"
+             $logger.info("Got expected backup type $temp")
         }
         runCleanup $backupLocation
     }
 }
 
-"Info: Test successful"
+$logger.info("Test successful")
 return $True

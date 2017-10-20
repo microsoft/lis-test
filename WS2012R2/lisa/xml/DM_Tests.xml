@@ -398,7 +398,7 @@
 			<testName>Stress_Large_Chunk</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
-				<param>TC_COVERED=DM-15</param>
+				<param>TC_COVERED=DM-16</param>
 				<param>Stress_Level=3</param>
 				<param>vmName=VMName</param>
 				<param>enableDM=yes</param>

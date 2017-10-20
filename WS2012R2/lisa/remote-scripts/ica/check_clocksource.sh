@@ -93,3 +93,4 @@ CheckSource
 echo "Test passed: the current_clocksource is not null and value is right." >> ~/summary.log
 LogMsg "Test completed successfully"
 SetTestStateCompleted
+exit 0

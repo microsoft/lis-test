@@ -1007,6 +1007,7 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     $params += "scriptMode=${scriptMode};"
     $params += "TestLogDir=${testDir};"
     $params += "sshKey=$($vm.sshKey);"
+    $params += "ipv4=$($vm.ipv4);"
 
     #
     # Invoke the setup/cleanup script
@@ -1171,7 +1172,11 @@ function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [strin
     #bin\pscp -q -i ssh\${sshKey} root@${hostname}:${remoteFile} $localFile
     #if ($?)
 
-    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} root@${hostname}:${remoteFile} ${localFile}" -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} root@${hostname}:${remoteFile} ${localFile}" -PassThru -NoNewWindow -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process | Wait-process -timeout 4 -ErrorAction 0 -ErrorVariable hangFlag
+    if ($hangFlag) {
+        $process | kill
+    }
     if ($process.ExitCode -eq 0)
     {
         $retVal = $True

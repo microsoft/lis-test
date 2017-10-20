@@ -137,13 +137,6 @@ if ($null -eq $TestLogDir)
 # Change the working directory to where we need to be
 cd $rootDir
 
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
@@ -154,13 +147,18 @@ else {
 	return $false
 }
 
+$loggerManager = [LoggerManager]::GetLoggerManager($vmName, $testParams)
+$global:logger = $loggerManager.TestCase
+
+$logger.info("This script covers test case: ${TC_COVERED}")
+
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
 
@@ -183,14 +181,10 @@ $scriptBlock = [scriptblock]::Create($scriptString)
 $stress_job = Start-Job -Name $stressJobName -ScriptBlock $scriptBlock
 if ($stress_job.state -eq "Failed")
 {
-    $msg =  "ERROR: Unable to run background stress job" 
-	$msg >> $summaryLog
-    Write-Output $msg
+    $logger.error("Unable to run background stress job")
     return $False
 }
-$msg = "Started stress background job"
-$msg
-$msg >> $summaryLog
+$logger.info("Started stress background job")
 
 # Wait 5 seconds for stress action to start on the VM
 Start-Sleep -s 5
@@ -225,5 +219,5 @@ else
 
 runCleanup $backupLocation
 
-Write-Output "INFO: Test ${results}"
+$logger.info("Test ${results}")
 return $retVal
