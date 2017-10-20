@@ -302,7 +302,7 @@ fi
 
 #
 if is_fedora ; then
-    yum install openssl-devel bc nfs-utils elfutils-devel -y
+    yum install openssl-devel bc nfs-utils elfutils-devel elfutils-libelf-devel -y
     if [ $? -ne 0 ]; then
         LogMsg "Error: Unable to install required packages. Kernel compilation might fail."
         #UpdateTestState $TestAborted
