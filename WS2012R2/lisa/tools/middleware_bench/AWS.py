@@ -26,7 +26,7 @@ import constants
 
 from boto import ec2
 from boto import vpc
-from boto.manage.cmdshell import sshclient_from_instance
+from cmdshell import SSHClient
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -304,10 +304,9 @@ class AWSConnector:
             # artificial wait for ssh service up status
             time.sleep(60)
             open(host_key_file, 'w').close()
-            client = sshclient_from_instance(instance, os.path.join(self.localpath,
-                                                                    self.key_name + '.pem'),
-                                             host_key_file=host_key_file,
-                                             user_name=user or self.user)
+            client = SSHClient(server=instance.ip_address, host_key_file=host_key_file,
+                               user=user or self.user,
+                               ssh_key_file=os.path.join(self.localpath, self.key_name + '.pem'))
         except Exception as e:
             log.error(e)
             client = None

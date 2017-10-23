@@ -29,7 +29,6 @@ class SSHClient(object):
     This class creates a paramiko.SSHClient() object that represents
     a session with an SSH server. You can use the SSHClient object to send
     commands to the remote host and manipulate files on the remote host.
-
     :param server: A server hostname or ip.
     :param host_key_file: The path to the user's .ssh key files.
     :param user: The username for the SSH connection. Default = 'root'.
@@ -38,7 +37,6 @@ class SSHClient(object):
                     unlocking the private key.
     :param ssh_key_file: SSH key pem data
     """
-
     def __init__(self, server, host_key_file='~/.ssh/known_hosts', user='root', timeout=None,
                  ssh_pwd=None, ssh_key_file=None):
         self.server = server
@@ -61,13 +59,11 @@ class SSHClient(object):
         retry = 0
         while retry < num_retries:
             try:
-                self._ssh_client.connect(self.server,
-                                         username=self.user,
-                                         pkey=self._pkey,
+                self._ssh_client.connect(self.server, username=self.user, pkey=self._pkey,
                                          timeout=self._timeout)
                 return
-            except socket.error as xxx_todo_changeme:
-                (value, message) = xxx_todo_changeme.args
+            except socket.error as se:
+                (value, message) = se.args
                 if value in (51, 61, 111):
                     print('SSH Connection refused, will retry in 5 seconds')
                     time.sleep(5)
@@ -77,8 +73,6 @@ class SSHClient(object):
             except paramiko.BadHostKeyException:
                 print("{} has an entry in ~/.ssh/known_hosts and it doesn't match".format(
                         self.server))
-                print('Edit that file to remove the entry and then hit return to try again')
-                raw_input('Hit Enter when ready')
                 retry += 1
             except EOFError:
                 print('Unexpected Error from SSH Connection, retry in 5 seconds')
@@ -100,10 +94,8 @@ class SSHClient(object):
         the remote host to the specified path on the local host.
         :type src: string
         :param src: The path to the target file on the remote host.
-
         :type dst: string
-        :param dst: The path on your local host where you want to
-                    store the file.
+        :param dst: The path on your local host where you want to store the file.
         """
         sftp_client = self.open_sftp()
         sftp_client.get(src, dst)
@@ -114,100 +106,26 @@ class SSHClient(object):
         the local host to the specified path on the remote host.
         :type src: string
         :param src: The path to the target file on your local host.
-
         :type dst: string
-        :param dst: The path on the remote host where you want to store
-                    the file.
+        :param dst: The path on the remote host where you want to store the file.
         """
         sftp_client = self.open_sftp()
         sftp_client.put(src, dst)
 
-    def open(self, filename, mode='r', bufsize=-1):
-        """
-        Open an SFTP session to the remote host, and open a file on
-        that host.
-        :type filename: string
-        :param filename: The path to the file on the remote host.
-
-        :type mode: string
-        :param mode: The file interaction mode.
-
-        :type bufsize: integer
-        :param bufsize: The file buffer size.
-
-        :rtype: :class:`paramiko.sftp_file.SFTPFile`
-        :return: A paramiko proxy object for a file on the remote server.
-        """
-        sftp_client = self.open_sftp()
-        return sftp_client.open(filename, mode, bufsize)
-
-    def listdir(self, path):
-        """
-        List all of the files and subdirectories at the specified path
-        on the remote host.
-
-        :type path: string
-        :param path: The base path from which to obtain the list.
-
-        :rtype: list
-        :return: A list of files and subdirectories at the specified path.
-        """
-        sftp_client = self.open_sftp()
-        return sftp_client.listdir(path)
-
-    def isdir(self, path):
-        """
-        Check the specified path on the remote host to determine if
-        it is a directory.
-
-        :type path: string
-        :param path: The path to the directory that you want to check.
-
-        :rtype: integer
-        :return: If the path is a directory, the function returns 1.
-                If the path is a file or an invalid path, the function
-                returns 0.
-        """
-        status = self.run('[ -d %s ] || echo "FALSE"' % path)
-        if status[1].startswith('FALSE'):
-            return 0
-        return 1
-
-    def exists(self, path):
-        """
-        Check the remote host for the specified path, or a file
-        at the specified path. This function returns 1 if the
-        path or the file exist on the remote host, and returns 0 if
-        the path or the file does not exist on the remote host.
-        :type path: string
-        :param path: The path to the directory or file that you want to check.
-
-        :rtype: integer
-        :return: If the path or the file exist, the function returns 1.
-                If the path or the file do not exist on the remote host,
-                the function returns 0.
-        """
-        status = self.run('[ -a %s ] || echo "FALSE"' % path)
-        if status[1].startswith('FALSE'):
-            return 0
-        return 1
-
-    def run(self, command):
+    def run(self, command, timeout=None):
         """
         Run a command on the remote host.
-
         :type command: string
         :param command: The command that you want to send to the remote host.
-
+        :param timeout: pass timeout along the line.
         :rtype: tuple
         :return: This function returns a tuple that contains an integer status,
                 the stdout from the command, and the stderr from the command.
-
         """
         status = 0
         t = []
         try:
-            t = self._ssh_client.exec_command(command)
+            t = self._ssh_client.exec_command(command, timeout=timeout)
         except paramiko.SSHException:
             status = 1
         std_out = t[1].read()
@@ -219,11 +137,9 @@ class SSHClient(object):
 
     def run_pty(self, command):
         """
-        Request a pseudo-terminal from a server, and execute a command on that
-        server.
+        Request a pseudo-terminal from a server, and execute a command on that server.
         :type command: string
         :param command: The command that you want to run on the remote host.
-
         :rtype: :class:`paramiko.channel.Channel`
         :return: An open channel object.
         """

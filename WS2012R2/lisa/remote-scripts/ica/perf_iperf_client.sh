@@ -417,7 +417,7 @@ debian*|ubuntu*)
         exit 1
     fi
     LogMsg "Installing dependency tools on Ubuntu"
-    apt-get update && apt-get install build-essential git sysstat dstat -y
+    apt-get update && apt-get install build-essential git sysstat dstat lib32z1 -y
     if [ $? -ne 0 ]; then
         msg="ERROR: dependencies failed to install"
         LogMsg "${msg}"
@@ -570,7 +570,7 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
-if [ $DISTRO == "suse_12" ]; then
+if [[ ${DISTRO} == *"suse"* || ${DISTRO} == *"ubuntu"* ]]; then
     ldconfig
     if [ $? -ne 0 ]; then
         msg="Warning: Couldn't run ldconfig, there might be shared library errors"

@@ -111,6 +111,10 @@ COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            {'name': 'seq_write_lat_usec', 'type': DECIMAL(10, 2)},
            {'name': 'rand_write_iops', 'type': DECIMAL(8, 1)},
            {'name': 'rand_write_lat_usec', 'type': DECIMAL(10, 2)},
+           {'name': 'ScaleFactor', 'type': DECIMAL(4, 0)},
+           {'name': 'SQLServerVersion', 'type': NVARCHAR(20)},
+           {'name': 'ResponseTime95thPercentile', 'type': DECIMAL(8, 3)},
+           {'name': 'TxnPerSec', 'type': DECIMAL(10, 2)},
            ]
 
 
