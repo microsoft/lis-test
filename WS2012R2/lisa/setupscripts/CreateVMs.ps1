@@ -180,14 +180,16 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
         }
 
         # Also remove VM from second node if it's located there
-        $currentNode = (Get-Clusternode -Name $env:computername).Name.ToLower()
-        $clusterNodes = Get-ClusterNode
-        if ($currentNode -eq $clusterNodes[0].Name.ToLower()) {
-            $destinationNode = $clusterNodes[1].Name.ToLower()
-        }
+        if (Get-ClusterGroup -ErrorAction SilentlyContinue){
+            $currentNode = (Get-Clusternode -Name $env:computername).Name.ToLower()
+            $clusterNodes = Get-ClusterNode
+            if ($currentNode -eq $clusterNodes[0].Name.ToLower()) {
+                $destinationNode = $clusterNodes[1].Name.ToLower()
+            }
 
-        if (Get-VM -Name $vmName -ComputerName $destinationNode -ErrorAction SilentlyContinue) {
-            Remove-VM $vmName -ComputerName $destinationNode -Force   
+            if (Get-VM -Name $vmName -ComputerName $destinationNode -ErrorAction SilentlyContinue) {
+                Remove-VM $vmName -ComputerName $destinationNode -Force   
+            }
         }
     }
 
