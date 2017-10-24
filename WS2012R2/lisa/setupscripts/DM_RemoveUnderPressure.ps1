@@ -61,8 +61,8 @@
     Test data for this test case
 
     .Example
-    setupscripts\DM_RemoveUnderPressure.ps1 -vmName nameOfVM -hvServer localhost -testParams 'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir;vmName=NameOfVM1
-        vmName=NameOfVM2;vmName=NameOfVM3'
+    setupscripts\DM_RemoveUnderPressure.ps1 -vmName nameOfVM -hvServer localhost -testParams 'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir;
+        vm2Name=NameOfVM2;vm3Name=NameOfVM3'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)

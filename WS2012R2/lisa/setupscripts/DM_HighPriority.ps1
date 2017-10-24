@@ -316,7 +316,6 @@ while ($timeout -gt 0)
         {
             "Error: Consume Memory script returned false on VM1 $vm1Name" | Tee-Object -Append -file $summaryLog
             Stop-VM -VMName $vm2name -ComputerName $hvServer -force
-            Stop-VM -VMName $vm3name -ComputerName $hvServer -force
             return $false
         }
         $diff = $totalTimeout - $timeout
@@ -331,7 +330,6 @@ while ($timeout -gt 0)
         {
             "Error: Consume Memory script returned false on VM2 $vm2Name" | Tee-Object -Append -file $summaryLog
             Stop-VM -VMName $vm2name -ComputerName $hvServer -force
-            Stop-VM -VMName $vm3name -ComputerName $hvServer -force
             return $false
         }
         $diff = $totalTimeout - $timeout

@@ -186,7 +186,6 @@
 				<param>startupMem=40%</param>
 				<param>memWeight=0</param>
 				<param>staticMem=1024MB</param>
-				<param>vm3Name=VM3Name</param>
 				<param>enableDM=yes</param>
 				<param>minMem=1024MB</param>
 				<param>maxMem=25%</param>
@@ -400,7 +399,8 @@
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
-                <param>VM2NAME=vm2Name</param>
+                <param>VM2Name=vm2Name</param>
+                <param>VM3Name=vm3Name</param>
                 <param>SnapshotName=ICABase</param>
             </testParams>
             <suite>DM</suite>
