@@ -30,7 +30,7 @@
 
    The testParams have the format of:
 
-      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%],
+       enableDM=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%],
       startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100)
 
    Only the vmName param is taken into consideration. This needs to appear at least twice for
@@ -109,9 +109,6 @@ $vm1Name = $null
 # Name of second VM
 $vm2Name = $null
 
-# string array vmNames
-[String[]]$vmNames = @()
-
 # number of tries
 [int]$tries = 0
 
@@ -161,7 +158,7 @@ foreach ($p in $params)
 
       switch ($fields[0].Trim())
       {
-        "vmName"  { $vmNames = $vmNames + $fields[1].Trim() }
+        "VM2NAME" { $vm2Name = $fields[1].Trim() }
         "ipv4"    { $ipv4    = $fields[1].Trim() }
         "sshKey"  { $sshKey  = $fields[1].Trim() }
         "tries"  { $tries  = $fields[1].Trim() }
@@ -184,28 +181,7 @@ if ($tries -le 0)
     $tries = $defaultTries
 }
 
-if ($vmNames.count -lt 2)
-{
-    "Error: two VMs are necessary for the High Priority test." | Tee-Object -Append -file $summaryLog
-    return $false
-}
-
-$vm1Name = $vmNames[0]
-$vm2Name = $vmNames[1]
-if ($vm1Name -notlike $vmName)
-{
-    if ($vm2Name -like $vmName)
-    {
-        # switch vm1Name with vm2Name
-        $vm1Name = $vmNames[1]
-        $vm2Name = $vmNames[0]
-    }
-    else
-    {
-      "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml." | Tee-Object -Append -file $summaryLog
-      return $false
-    }
-}
+$vm1Name = $vmName
 
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $vm1)
@@ -237,7 +213,7 @@ if (-not $retVal)
 #
 $timeout = 120
 StartDependencyVM $vm2Name $hvServer $tries
-WaitForVMToStartKVP $vm2Name $hvServer $timeout 
+WaitForVMToStartKVP $vm2Name $hvServer $timeout
 $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
 $timeoutStress = 0
@@ -340,7 +316,6 @@ while ($timeout -gt 0)
         {
             "Error: Consume Memory script returned false on VM1 $vm1Name" | Tee-Object -Append -file $summaryLog
             Stop-VM -VMName $vm2name -ComputerName $hvServer -force
-            Stop-VM -VMName $vm3name -ComputerName $hvServer -force
             return $false
         }
         $diff = $totalTimeout - $timeout
@@ -355,7 +330,6 @@ while ($timeout -gt 0)
         {
             "Error: Consume Memory script returned false on VM2 $vm2Name" | Tee-Object -Append -file $summaryLog
             Stop-VM -VMName $vm2name -ComputerName $hvServer -force
-            Stop-VM -VMName $vm3name -ComputerName $hvServer -force
             return $false
         }
         $diff = $totalTimeout - $timeout

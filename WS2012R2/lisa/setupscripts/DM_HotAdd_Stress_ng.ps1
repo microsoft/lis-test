@@ -101,7 +101,7 @@ $sshKey = $null
 $ipv4 = $null
 
 # Name of first VM
-$vm1Name = $null
+$vm1Name = $vmName
 
 # Number of tries
 [int]$tries = 0
@@ -152,7 +152,6 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-        "vmName"  { $vm1Name =$fields[1].Trim() }
         "ipv4"    { $ipv4    = $fields[1].Trim() }
         "sshKey"  { $sshKey  = $fields[1].Trim() }
         "tries"  { $tries  = $fields[1].Trim() }
@@ -173,11 +172,6 @@ if ($tries -le 0)
     $tries = $defaultTries
 }
 
-if ($vmName -notlike $vm1Name)
-{
-    "Error: the VMName testParam needs to be the same as the VMName from the global setting"
-    return $false
-}
 
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
@@ -194,6 +188,7 @@ if (-not $vm1)
 "Checking if stress-ng is installed"
 
 $retVal = check_app "stress-ng"
+
 if (-not $retVal)
 {
     "stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog

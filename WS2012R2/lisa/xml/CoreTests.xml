@@ -304,6 +304,7 @@
             <onError>Continue</onError>
             <testParams>
                 <param>TC_COVERED=CORE-23</param>
+                <param>enableDM=no</param>
                 <param>VCPU=8</param>
                 <param>NumaNodes=4</param>
                 <param>Sockets=2</param>
