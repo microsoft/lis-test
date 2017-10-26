@@ -71,6 +71,7 @@
 
         <test>
             <testName>PXE_install_singleCpu</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
                     Infrastructure\PXE\routingScript.sh</files>
             <testScript>setupscripts\pxe_install.ps1</testScript>
@@ -91,6 +92,7 @@
 
         <test>
             <testName>PXE_install_SMP</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
             <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
                     Infrastructure\PXE\routingScript.sh</files>
             <testScript>setupscripts\pxe_install.ps1</testScript>
@@ -119,6 +121,9 @@
             <ipv4></ipv4>
             <sshKey>key.ppk</sshKey>
             <suite>PXE</suite>
+            <testParams>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
         </vm>
 
         <vm>
@@ -127,7 +132,6 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>key.ppk</sshKey>
-            <role>nonSUT</role>
             <hardware>
                <create>true</create>
                <numCPUs>1</numCPUs>
