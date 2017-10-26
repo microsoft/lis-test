@@ -277,10 +277,11 @@ if (-not $vm1)
     return $false
 }
 
-# Check if stressapptest is installed
+# Install Stressapptest if not installed
 "Checking if Stressapptest is installed"
 
-$retVal = check_app "stressapptest"
+$retVal = install_app "stressapptest"
+
 if (-not $retVal)
 {
     "Stressapptest is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog

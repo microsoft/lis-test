@@ -1311,10 +1311,61 @@ function check_app([string]$app_name, [string]$custom_ip)
     }
     .\bin\plink -i ssh\${sshKey} root@${target_ip} "command -v ${app_name}"
     if (-not $?) {
-        Write-Output "ERROR: ${app_name} is not installed on the VM" -ErrorAction SilentlyContinue | Out-File -Append $summaryLog
         return $False
     }
+    return $True
 }
+
+#######################################################################
+#
+# install application on VM
+#
+#######################################################################
+
+function install_app([string]$app_name, [string]$custom_ip, [string]$app_githubLink, [string]$app_version)
+{
+    if ($app_name -eq $null -and $app_githubLink -eq $null)
+    {
+        Write-Output "ERROR: ${app_name} or $app_githubLink is not set" -ErrorAction SilentlyContinue | Out-File -Append $summaryLog
+        return $False
+    }
+
+    If([string]::IsNullOrWhiteSpace($custom_ip)) {
+        $target_ip = $ipv4
+    }
+    else {
+        $target_ip = $custom_ip
+    }
+    # check whether app is already installed
+    $retVal = check_app $app_name $target_ip
+    if ($retVal)
+    {
+        return $True
+    }
+
+    # app is not insalled, install it
+    if ($app_name -eq "stress-ng")
+    {
+        $app_githubLink="https://github.com/ColinIanKing/stress-ng"
+        $app_version="V0.07.16"
+    }
+    elseif ($app_name -eq "stressapptest")
+    {
+        $app_githubLink="https://github.com/stressapptest/stressapptest.git"
+    }
+
+    .\bin\plink -i ssh\${sshKey} root@${target_ip} "cd /root; git clone $app_githubLink $app_name"
+
+    if ($app_version)
+    {
+        .\bin\plink -i ssh\${sshKey} root@${target_ip} "cd  /root/$app_name; git checkout tags/$app_version;"
+    }
+    .\bin\plink -i ssh\${sshKey} root@${target_ip} "cd /root/$app_name; ./configure > /dev/null 2>&1; make > /dev/null 2>&1; make install > /dev/null 2>&1"
+
+    $retVal = check_app $app_name $target_ip
+    return $retVal
+}
+
 
 ########################################################################
 #

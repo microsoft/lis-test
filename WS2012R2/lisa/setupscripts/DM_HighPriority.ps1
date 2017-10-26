@@ -197,10 +197,10 @@ if (-not $vm2)
     return $false
 }
 
-# Check if stress-ng is installed
+#Install stress-ng if not installed
 "Checking if stress-ng is installed"
 
-$retVal = check_app "stress-ng"
+$retVal = install_app "stress-ng"
 if (-not $retVal)
 {
     "stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
@@ -246,10 +246,10 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm2BeforeAssigned -
 "  ${vm1Name}: assigned - $vm1BeforeAssigned | demand - $vm1BeforeDemand"
 "  ${vm2Name}: assigned - $vm2BeforeAssigned | demand - $vm2BeforeDemand"
 
-# Check if stress-ng is installed
+# Install stress-ng if not installed
 "Checking if stress-ng is installed"
 
-$retVal = check_app "stress-ng" $vm2ipv4
+$retVal = install_app "stress-ng" $vm2ipv4
 if (-not $retVal)
 {
     "stress-ng is not installed on $vm2Name! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog

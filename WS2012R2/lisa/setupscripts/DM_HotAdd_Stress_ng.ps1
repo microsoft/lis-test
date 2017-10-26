@@ -184,10 +184,10 @@ if (-not $vm1)
     return $false
 }
 
-# Check if stress-ng is installed
+# Install stress-ng if not installed
 "Checking if stress-ng is installed"
 
-$retVal = check_app "stress-ng"
+$retVal = install_app "stress-ng"
 
 if (-not $retVal)
 {
