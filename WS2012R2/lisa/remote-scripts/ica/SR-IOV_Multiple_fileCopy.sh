@@ -109,9 +109,8 @@ while [ $__iterator -le $vfCount ]; do
     fi
 
     # Verify both interfaces on VM1 and VM2 to see if file was sent between them
-    txValue=$(ifconfig eth$__iterator | grep "TX packets" | sed 's/:/ /' | awk '{print $3}')
-    LogMsg "TX Value: $txValue"
-    if [ $txValue -lt 50000 ]; then
+    txInterfaceCount=$(cat /proc/net/dev | tail -n +3 | awk {'if ($11 >= 100000) print $11'} | wc -l)
+    if [ $txInterfaceCount -lt $__iterator ]; then
         msg="ERROR: TX packets insufficient"
         LogMsg "$msg"
         UpdateSummary "$msg"
@@ -119,9 +118,8 @@ while [ $__iterator -le $vfCount ]; do
         exit 10
     fi
 
-    rxValue=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" ifconfig | grep $staticIP2 -A 7 | grep "RX packets" | sed 's/:/ /' | awk '{print $3}')
-    LogMsg "RX Value: $rxValue"
-    if [ $rxValue -lt 50000 ]; then
+    rxInterfaceCount=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" cat /proc/net/dev | tail -n +3 | awk {'if ($3 >= 100000) print $3'} | wc -l)
+    if [ $rxInterfaceCount -lt $__iterator ]; then
         msg="ERROR: RX packets insufficient"
         LogMsg "$msg"
         UpdateSummary "$msg"
