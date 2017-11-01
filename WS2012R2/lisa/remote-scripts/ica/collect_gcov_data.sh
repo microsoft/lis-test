@@ -22,7 +22,6 @@
 ########################################################################
 
 declare -a drivers_loc=( 'drivers/hv/channel.c'
-                         # af_hvsock.c - not found on upstream
                          'drivers/hv/channel_mgmt.c'
                          'drivers/hv/connection.c'
                          'drivers/hid/hid-core.c'
@@ -30,39 +29,26 @@ declare -a drivers_loc=( 'drivers/hv/channel.c'
                          'drivers/hid/hid-hyperv.c'
                          'drivers/hid/hid-input.c'
                          'drivers/hid/hv.c'
-                         #'drivers/hv/hv_balloon.c' - not instrumented
-                         #'drivers/hv/hv_compat.c' - not instrumented
+                         'drivers/hv/hv_balloon.c'
+                         'drivers/hv/hv_compat.c'
                          'drivers/hv/hv_fcopy.c'
                          'drivers/hv/hv_kvp.c'
                          'drivers/hv/hv_snapshot.c'
                          'drivers/hv/hv_util.c'
                          'drivers/hv/hv_utils_transport.c'
-                         # hvnd_addr.c - not found on upstream
                          'drivers/input/serio/hyperv-keyboard.c'
                          'drivers/video/fbdev/hyperv_fb.c'
                          'drivers/net/hyperv/netvsc.c'
                          'drivers/net/hyperv/netvsc_drv.c'
-                         # 'drivers/infiniband/hw/cxgb4/provider.c' - not instrumented
                          'drivers/hv/ring_buffer.c'
                          'drivers/net/hyperv/rndis_filter.c'
                          'drivers/scsi/storvsc_drv.c'
-                         # vmbus_rdma.c - not found on upstream )
                          'drivers/hv/vmbus_drv.c' )
 
-declare -a drivers_mlx=( 'drivers/net/ethernet/mellanox/mlx4/mlx4_en.h'
-                         'drivers/net/ethernet/mellanox/mlx4/mlx4_core.mod.c'
-                         'drivers/net/ethernet/mellanox/mlx4/mlx4_en.mod.c' )
-
-declare -a lib_files=( 'hyperv.h' 'mshyperv.h' 'sync_bitops.h'
-                       'access_ok.h' 'be_byteshift.h' 'be_memmove.h'
-                       'be_struct.h' 'generic.h' 'le_byteshift.h' 'le_memmove.h'
-                       'le_struct.h' 'memmove.h' 'packed_struct.h'
-                       'af_hvsock.h' 'atomic.h' 'export.h' 'hid-debug.h' 'hid.h'
-                       'hidraw.h' 'hv_compat.h' 'rndis.h' 'hid-uuid.h'
-                       'hid.h' )
+declare -a lib_files=( 'hyperv.h' 'mshyperv.h' 'hv_compat.h' )
 
 SOURCE_LOC="$1"
-DRIVER_GCOV_LOC="/sys/kernel/debug/gcov/${SOURCE_LOC}"
+DRIVER_GCOV_LOC="/sys/kernel/debug/gcov/${SOURCE_LOC}"/
 DAEMON_GCOV_LOC="${SOURCE_LOC}/tools/hv/"
 
 declare -a daemons=( 'hv_kvp_daemon' 'hv_vss_daemon' 'hv_fcopy_daemon' )
@@ -126,13 +112,6 @@ ZipAllGcov()
             zip ~/gcov_data.zip $(basename "${daemon}")_${index}.gcov
         fi
     done
-    for mlx_driver in "${drivers_mlx[@]}"
-    do
-        if [ -f $(basename "${mlx_driver}").gcov ]; then
-            ln $(basename "${mlx_driver}").gcov $(basename "${mlx_driver}")_${index}.gcov
-            zip ~/gcov_data.zip $(basename "${mlx_driver}")_${index}.gcov
-        fi
-    done
 }
 
 rm -f ~/gcov_data.zip
@@ -142,7 +121,7 @@ i=1
 for daemon in "${daemons_loc[@]}"
 do
     rm -rf *.gcov
-    gcov ${SOURCE_LOC}${daemon} -o ${DAEMON_GCOV_LOC} 2> /dev/null
+    gcov ${SOURCE_LOC}/${daemon} -o ${DAEMON_GCOV_LOC} 2> /dev/null
     ZipAllGcov "${i}"
     i=$(($i+1))
 done
@@ -151,7 +130,7 @@ cd ${SOURCE_LOC}
 for driver in "${drivers_loc[@]}"
 do
     rm -rf *.gcov
-    gcov ${SOURCE_LOC}${driver} -o ${DRIVER_GCOV_LOC}$(dirname "${driver}") 2> /dev/null
+    gcov ${SOURCE_LOC}/${driver} -o ${DRIVER_GCOV_LOC}$(dirname "${driver}") 2> /dev/null
     ZipAllGcov "${i}"
     i=$(($i+1))
 done
@@ -159,4 +138,5 @@ done
 cd ~
 echo "TestCompleted" > state.txt
 
-#gcovr -g -k -r . --html --html-details -o /tmp/kvp_normal.html
+# How to generate gcov report
+#gcovr -g -k -r . --html --html-details -o /tmp/report.html
