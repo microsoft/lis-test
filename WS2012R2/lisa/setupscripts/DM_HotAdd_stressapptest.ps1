@@ -280,7 +280,7 @@ if (-not $vm1)
 }
 
 # Install Stressapptest if not installed
-"Checking if Stressapptest is installed  $ipv4 $appGitURL $appGitTag"
+"Checking if Stressapptest is installed"
 
 $retVal = installApp "stressapptest" $ipv4 $appGitURL $appGitTag
 
