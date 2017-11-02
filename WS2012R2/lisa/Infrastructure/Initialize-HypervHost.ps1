@@ -320,6 +320,9 @@ function InstallGitClient()
 
     if ($GitNotInstalled)
     {
+        # hide download progress
+        $progressPreference = 'silentlyContinue'
+
         Invoke-WebRequest "${GitUrl}" -OutFile ".\git-installer.exe"
         if (-not $?)
         {
@@ -327,7 +330,6 @@ function InstallGitClient()
         }
 
         Start-Process -FilePath ".\git-installer.exe" -ArgumentList "/VERYSILENT" -Wait -NoNewWindow
-
         if (-not $?)
         {
             Throw "Error: Unable to install the git client"
@@ -339,7 +341,7 @@ function InstallGitClient()
         # Verify Git was installed in the default directory
         #
         $systemDrive = $env:SystemDrive
-        $gitPath = "${systemDrive}\Program Files (x86)\Git\cmd"
+        $gitPath = "${systemDrive}\Program Files\Git\cmd"
         if (-not (Test-Path "${gitPath}\git.exe"))
         {
             Throw "Error: Git was not installed into the default location of '${gitPath}'"
