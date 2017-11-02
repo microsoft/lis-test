@@ -155,6 +155,8 @@ foreach ($p in $params)
         "ipv4"    { $ipv4    = $fields[1].Trim() }
         "sshKey"  { $sshKey  = $fields[1].Trim() }
         "tries"  { $tries  = $fields[1].Trim() }
+        "appGitURL"  { $appGitURL  = $fields[1].Trim() }
+        "appGitTag"  { $appGitTag  = $fields[1].Trim() }
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
         "Stress_Level" { $timeoutStress = $fields[1].Trim() }
     }
@@ -187,7 +189,7 @@ if (-not $vm1)
 # Install stress-ng if not installed
 "Checking if stress-ng is installed"
 
-$retVal = install_app "stress-ng"
+$retVal = installApp "stress-ng" $ipv4 $appGitURL $appGitTag
 
 if (-not $retVal)
 {

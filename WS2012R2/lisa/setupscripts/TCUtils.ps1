@@ -1301,15 +1301,15 @@ function check_kernel
 # Check for application on VM
 #
 #######################################################################
-function check_app([string]$app_name, [string]$custom_ip)
+function checkApp([string]$appName, [string]$customIP)
 {
-    IF([string]::IsNullOrWhiteSpace($custom_ip)) {
-        $target_ip = $ipv4
+    IF([string]::IsNullOrWhiteSpace($customIP)) {
+        $targetIP = $ipv4
     }
     else {
-        $target_ip = $custom_ip
+        $targetIP = $customIP
     }
-    .\bin\plink -i ssh\${sshKey} root@${target_ip} "command -v ${app_name}"
+    .\bin\plink -i ssh\${sshKey} root@${targetIP} "command -v ${appName} > /dev/null 2>&1"
     if (-not $?) {
         return $False
     }
@@ -1322,50 +1322,31 @@ function check_app([string]$app_name, [string]$custom_ip)
 #
 #######################################################################
 
-function install_app([string]$app_name, [string]$custom_ip, [string]$app_githubLink, [string]$app_version)
+function installApp([string]$appName, [string]$customIP, [string]$appGitURL, [string]$appGitTag)
 {
-    if ($app_name -eq $null -and $app_githubLink -eq $null)
-    {
-        Write-Output "ERROR: ${app_name} or $app_githubLink is not set" -ErrorAction SilentlyContinue | Out-File -Append $summaryLog
-        return $False
-    }
-
-    If([string]::IsNullOrWhiteSpace($custom_ip)) {
-        $target_ip = $ipv4
-    }
-    else {
-        $target_ip = $custom_ip
-    }
     # check whether app is already installed
-    $retVal = check_app $app_name $target_ip
+    $retVal = checkApp $appName $customIP
     if ($retVal)
     {
         return $True
     }
-
-    # app is not insalled, install it
-    if ($app_name -eq "stress-ng")
+    if ($appGitURL -eq $null)
     {
-        $app_githubLink="https://github.com/ColinIanKing/stress-ng"
-        $app_version="V0.07.16"
+        Write-Output "ERROR: $appGitURL is not set" -ErrorAction SilentlyContinue | Out-File -Append $summaryLog
+        return $False
     }
-    elseif ($app_name -eq "stressapptest")
+    # app is not installed, install it
+    .\bin\plink -i ssh\${sshKey} root@${customIP} "cd /root; git clone $appGitURL $appName > /dev/null 2>&1"
+
+    if ($appGitTag)
     {
-        $app_githubLink="https://github.com/stressapptest/stressapptest.git"
+        .\bin\plink -i ssh\${sshKey} root@${customIP} "cd  /root/$appName; git checkout tags/$appGitTag > /dev/null 2>&1"
     }
+    .\bin\plink -i ssh\${sshKey} root@${customIP} "cd /root/$appName; ./configure > /dev/null 2>&1; make > /dev/null 2>&1; make install > /dev/null 2>&1"
 
-    .\bin\plink -i ssh\${sshKey} root@${target_ip} "cd /root; git clone $app_githubLink $app_name"
-
-    if ($app_version)
-    {
-        .\bin\plink -i ssh\${sshKey} root@${target_ip} "cd  /root/$app_name; git checkout tags/$app_version;"
-    }
-    .\bin\plink -i ssh\${sshKey} root@${target_ip} "cd /root/$app_name; ./configure > /dev/null 2>&1; make > /dev/null 2>&1; make install > /dev/null 2>&1"
-
-    $retVal = check_app $app_name $target_ip
+    $retVal = checkApp $appName $customIP
     return $retVal
 }
-
 
 ########################################################################
 #
