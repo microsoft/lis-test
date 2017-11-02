@@ -46,10 +46,10 @@ distro="$(head -1 /etc/issue)"
 web_server=
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install libaio1 sysstat zip apache2 apache2-utils" >> ${LOG_FILE}
 
-    sudo apt update && sudo DEBIAN_FRONTEND=noninteractive apt upgrade -yq >> ${LOG_FILE}
+    sudo apt update
     sudo apt -y install libaio1 sysstat zip apache2-utils >> ${LOG_FILE}
     web_server="apache2"
 elif [[ ${distro} == *"Amazon"* ]]
