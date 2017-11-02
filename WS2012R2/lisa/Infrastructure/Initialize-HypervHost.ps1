@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0 
 # Copyright (c) Microsoft Corporation 
 # 
-# All rights reserved.  
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License""); 
 # you may not use this file except in compliance with the License. 
 # You may obtain a copy of the License at 
-#     http://www.apache.org/licenses/LICENSE-2.0   
+#     http://www.apache.org/licenses/LICENSE-2.0
 # 
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS 
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION 
@@ -419,7 +419,7 @@ function InstallPutty()
     #
     if (-not (Test-Path ".\lis-test\WS2012R2\lisa"))
     {
-        Throw "Error: The directory '.\lis-test\WS2012R2\lisa' directory does not exist"
+        Throw "Error: The directory '.\lis-test\WS2012R2\lisa' does not exist"
     }
 
     if (-not (Test-Path ".\lis-test\WS2012R2\lisa\Bin"))
@@ -437,7 +437,7 @@ function InstallPutty()
     foreach ($util in $puttyUtils)
     {
         Write-Host "Info : downloading ${util}"
-        $url = "${puttyBaseUrl}/x86/${util}"
+        $url = "${puttyBaseUrl}/w32/${util}"
         Invoke-WebRequest "${url}" -OutFile ".\lis-test\WS2012R2\lisa\Bin\${util}"
         if (-not $?)
         {
@@ -479,7 +479,7 @@ function InstallPutty()
         Write-Host "Info : Verifying sha256sum for ${util}"
 
         $filesum = Get-FileHash -Algorithm SHA256 -Path ".\lis-test\WS2012R2\lisa\Bin\${util}"
-        if ($filesum.Hash -ne $sums[ "x86/${util}" ])
+        if ($filesum.Hash -ne $sums[ "w32/${util}" ])
         {
             Throw "Error: sha256sum mismatch for ${util}"
         }
