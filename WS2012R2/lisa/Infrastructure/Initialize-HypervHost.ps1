@@ -137,7 +137,8 @@ param ([Switch] $HyperV,
        [String] $VmPath,
        [String] $ExternalFolderSync )
 
-
+# hide cmdlets progress bar
+$progressPreference = 'silentlyContinue'
 
 $internalSwitchName = "Internal"
 $externalSwitchName = "External"
@@ -320,9 +321,6 @@ function InstallGitClient()
 
     if ($GitNotInstalled)
     {
-        # hide download progress
-        $progressPreference = 'silentlyContinue'
-
         Invoke-WebRequest "${GitUrl}" -OutFile ".\git-installer.exe"
         if (-not $?)
         {
