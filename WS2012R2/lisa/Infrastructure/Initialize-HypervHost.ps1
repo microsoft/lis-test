@@ -247,7 +247,9 @@ function CreateInternalSwitch()
         {
             Throw "Error: Unable to create Internal switch"
         }
-        Write-Host "Info: Internal vSwitch '${internalSwitchName}' was created"
+        
+        Get-NetAdapter -Name "${internalSwitchName}" | New-NetIPAddress -AddressFamily ipv4 -IPAddress 192.168.0.1 -PrefixLength 24
+        Write-Host "Info: Internal vSwitch '${internalSwitchName}' was created with IP range 192.168.0.1/24"
     }
     else
     {
@@ -310,12 +312,10 @@ function InstallGitClient()
 {
     $GitNotInstalled = $False
 
-    try
-    {
-       git
+    try {
+       git | Out-Null
     }
-    catch
-    {
+    catch {
        $GitNotInstalled = $True 
     }
 
