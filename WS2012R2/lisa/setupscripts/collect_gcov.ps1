@@ -175,33 +175,37 @@ if ($retVal -eq $False)
 }
 
 # get linux version
-$cmd = "ls /root/linux*.tar.gz"
+$cmd = "uname -r | sed s/.`$(arch)//g"
 $linux_version = ""
-$linux_file = bin\plink -i ssh\${sshKey} root@${ipv4} ${cmd}
-if($linux_file.StartsWith("/root/linux"))
+$linux_version = bin\plink -i ssh\${sshKey} root@${ipv4} "${cmd}"
+if( $linux_version )
 {
-    "Info: Get $linux_file"
-    $linux_version = $linux_file.Split("/-.")[3]
+    "Info: Get linux version '$linux_version'"
 }
 else
 {
-    "Warnning: Can not get linux-x.tar.gz from $vmName"
-}
-if (-not $linux_version)
-{
-    $linux_version = (Get-Date).ToString("yyyyMMdd")
-}
-else
-{
-    "Info: Linux version is $linux_version"
+    "Warnning: Can not get linux version on $vmName through '$cmd'"
+    return $False
 }
 
 # use lcov to collect gcov data
-$dir = ${hvServer} + "_" + ${vmName} + "_" + ${linux_version}
+if ( $vmName.Contains($linux_version) -eq $true )
+{
+    $dir = ${hvServer} + "_" + ${vmName}
+}
+else
+{
+    $dir = ${hvServer} + "_" + ${vmName} + "_" + ${linux_version}
+}
+if (  $dir -eq $null )
+{
+    "Error: Can not get directory to save coverage report"
+    return $false
+}
 $dir = $dir.ToUpper()
 $gcovDir = "/mnt/GCOV/$dir"
 $outfile = "$gcovDir/$TestName"
-$cmd = "[[ -d $gcovDir ]] || mkdir -p $gcovDir; (lcov -c -b $source_path -o $outfile) && (ls $outfile)"
+$cmd = "[[ -d $gcovDir ]] || mkdir -p $gcovDir; (lcov -c -b $source_path -o $outfile) && [[ -s $outfile ]]"
 $retVal = SendCommandToVM $ipv4 $sshKey "$cmd"
 if ($retVal -eq $False)
 {
