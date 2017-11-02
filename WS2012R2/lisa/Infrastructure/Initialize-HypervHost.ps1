@@ -144,8 +144,7 @@ $externalSwitchName = "External"
 $privateSwitchName1 = "Private"
 $privateSwitchName2 = "Private2"
 
-$GitVersion = "1.9.4-preview20140929"
-$GitUrl     = "https://github.com/msysgit/msysgit/releases/download"
+$GitUrl     = "https://github.com/git-for-windows/git/releases/download/v2.15.0.windows.1/Git-2.15.0-64-bit.exe"
 
 $lisTestUrl = "https://github.com/LIS/lis-test"
 
@@ -321,23 +320,20 @@ function InstallGitClient()
 
     if ($GitNotInstalled)
     {
-        $url = "${GitUrl}/Git-${GitVersion}/Git-${GitVersion}.exe"
-
-        Invoke-WebRequest "${url}" -OutFile ".\Git-${GitVersion}.exe"
+        Invoke-WebRequest "${GitUrl}" -OutFile ".\git-installer.exe"
         if (-not $?)
         {
             Throw "Error: Unable to download the git client"
         }
 
-        $cmd = ".\Git-${GitVersion}.exe"
-        & $cmd /VERYSILENT
+        Start-Process -FilePath ".\git-installer.exe" -ArgumentList "/VERYSILENT" -Wait -NoNewWindow
 
         if (-not $?)
         {
             Throw "Error: Unable to install the git client"
         }
 
-        del ".\Git-${GitVersion}.exe" -ErrorAction SilentlyContinue
+        del ".\git-installer.exe" -ErrorAction SilentlyContinue
 
         #
         # Verify Git was installed in the default directory
