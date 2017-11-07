@@ -47,6 +47,7 @@
                 <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
                 <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
                 <suiteTest>KVP_TestRescind</suiteTest>
+                <suiteTest>KVP_Max_Read</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -189,6 +190,20 @@
                 <param>TC_COVERED=KVP-11</param>
                 <!-- Number of times to disable and reenable the KVP service -->
                 <param>CycleCount=20</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Max_Read</testName>
+            <testScript>SetupScripts\Kvp_Max_Read.ps1</testScript>
+            <files>tools/KVP/kvp_client64, tools/KVP/kvp_client32</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-01</param>
+                <param>Pool=1</param>
+                <param>Entries=150</param>
             </testparams>
         </test>
     </testCases>
