@@ -122,12 +122,12 @@ function run_nginx_bench ()
     LogMsg "Running nginx_bench test with current concurrency: ${current_concurrency}"
     LogMsg "======================================"
 
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/nginx_bench/${current_concurrency}.sar.netio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/nginx_bench/${current_concurrency}.iostat.diskio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/nginx_bench/${current_concurrency}.vmstat.memory.cpu.log"
-    sar -n DEV 1 900   2>&1 > /tmp/nginx_bench/${current_concurrency}.sar.netio.log &
-    iostat -x -d 1 900 2>&1 > /tmp/nginx_bench/${current_concurrency}.iostat.netio.log &
-    vmstat 1 900       2>&1 > /tmp/nginx_bench/${current_concurrency}.vmstat.netio.log &
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 2>&1 > /tmp/nginx_bench/${current_concurrency}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 2>&1 > /tmp/nginx_bench/${current_concurrency}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 2>&1 > /tmp/nginx_bench/${current_concurrency}.vmstat.memory.cpu.log"
+    sar -n DEV 1 2>&1 > /tmp/nginx_bench/${current_concurrency}.sar.netio.log &
+    iostat -x -d 1 2>&1 > /tmp/nginx_bench/${current_concurrency}.iostat.netio.log &
+    vmstat 1 2>&1 > /tmp/nginx_bench/${current_concurrency}.vmstat.netio.log &
 
     run_ab ${current_concurrency} > /tmp/nginx_bench/${current_concurrency}.apache.bench.log
 

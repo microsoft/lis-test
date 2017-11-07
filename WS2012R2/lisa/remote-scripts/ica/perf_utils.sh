@@ -56,8 +56,7 @@ function setup_sysctl {
     eval "declare -A sysctl_params="${1#*=}
     for param in "${!sysctl_params[@]}"; do
         grep -q "$param" ${sysctl_file} && \
-        sed -i 's/^'"$param"'.*/'"$param"' = '"${sysctl_params[$param]}"'/' \
-            ${sysctl_file} || \
+        sed -i 's/^'"$param"'.*/'"$param"' = '"${sysctl_params[$param]}"'/' ${sysctl_file} || \
         echo "$param = ${sysctl_params[$param]}" >> ${sysctl_file} || return 1
     done
     sysctl -p ${sysctl_file}

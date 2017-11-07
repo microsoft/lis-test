@@ -115,12 +115,12 @@ function run_mongodb ()
     LogMsg "Running mongodb test with current threads: ${threads}"
     LogMsg "======================================"
 
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/mongodb/${threads}.sar.netio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/mongodb/${threads}.iostat.diskio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/mongodb/${threads}.vmstat.memory.cpu.log"
-    sar -n DEV 1 900   2>&1 > /tmp/mongodb/${threads}.sar.netio.log &
-    iostat -x -d 1 900 2>&1 > /tmp/mongodb/${threads}.iostat.netio.log &
-    vmstat 1 900       2>&1 > /tmp/mongodb/${threads}.vmstat.netio.log &
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 2>&1 > /tmp/mongodb/${threads}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 2>&1 > /tmp/mongodb/${threads}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 2>&1 > /tmp/mongodb/${threads}.vmstat.memory.cpu.log"
+    sar -n DEV 1 2>&1 > /tmp/mongodb/${threads}.sar.netio.log &
+    iostat -x -d 1 2>&1 > /tmp/mongodb/${threads}.iostat.netio.log &
+    vmstat 1 2>&1 > /tmp/mongodb/${threads}.vmstat.netio.log &
 
     ${ycsb} run mongodb-async -s -P ${workload} -p mongodb.url=mongodb://${SERVER}:27017/ycsb?w=0 -threads ${threads} > /tmp/mongodb/${threads}.ycsb.run.log
 

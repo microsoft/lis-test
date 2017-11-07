@@ -135,16 +135,16 @@ do
         LogMsg "Waiting zookeeper to start on server ${server}"
         sleep 20
         ssh -o StrictHostKeyChecking=no ${USER}@${server} "mkdir -p /tmp/zookeeper"
-        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "sar -n DEV 1 900   2>&1 > /tmp/zookeeper/${threads}.sar.netio.log"
-        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "iostat -x -d 1 900 2>&1 > /tmp/zookeeper/${threads}.iostat.diskio.log"
-        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "vmstat 1 900       2>&1 > /tmp/zookeeper/${threads}.vmstat.memory.cpu.log"
-        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "mpstat -P ALL 1 900 2>&1 > /tmp/zookeeper/${threads}.mpstat.cpu.log"
+        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "sar -n DEV 1 2>&1 > /tmp/zookeeper/${threads}.sar.netio.log"
+        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "iostat -x -d 1 2>&1 > /tmp/zookeeper/${threads}.iostat.diskio.log"
+        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "vmstat 1 2>&1 > /tmp/zookeeper/${threads}.vmstat.memory.cpu.log"
+        ssh -f -o StrictHostKeyChecking=no ${USER}@${server} "mpstat -P ALL 1 2>&1 > /tmp/zookeeper/${threads}.mpstat.cpu.log"
     done
 
-    sar -n DEV 1 900   2>&1 > /tmp/zookeeper/${threads}.sar.netio.log &
-    iostat -x -d 1 900 2>&1 > /tmp/zookeeper/${threads}.iostat.netio.log &
-    vmstat 1 900       2>&1 > /tmp/zookeeper/${threads}.vmstat.netio.log &
-    mpstat -P ALL 1 900 2>&1 > /tmp/zookeeper/${threads}.mpstat.cpu.log &
+    sar -n DEV 1 2>&1 > /tmp/zookeeper/${threads}.sar.netio.log &
+    iostat -x -d 1 2>&1 > /tmp/zookeeper/${threads}.iostat.netio.log &
+    vmstat 1 2>&1 > /tmp/zookeeper/${threads}.vmstat.netio.log &
+    mpstat -P ALL 1 2>&1 > /tmp/zookeeper/${threads}.mpstat.cpu.log &
     LogMsg  "Running zookeeper with ${threads} parallel client(s)."
     run_zk ${threads} > /tmp/zookeeper/${threads}.zookeeper.latency.log
     sudo pkill -f sar

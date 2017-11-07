@@ -211,6 +211,42 @@ ApplyPatchesAndCompile() {
         if [[ ! -z ${ACTIVATE_GCOV+x} && "${ACTIVATE_GCOV}" == "yes" ]]; then
             dbgprint 3 "Enabling GCOV profile"
             EnableGcov "${CONFIG_FILE}"
+            #compile daemons with gcov flags and point systemd to the right ones
+            dbgprint 3 "Adding daemons GCOV flags"
+            pushd ${KERNEL_VERSION}/tools/hv
+            if [ -f Makefile ]; then
+                sed -i '/CFLAGS +=/a CFLAGS += -O0 -fprofile-arcs -ftest-coverage' Makefile
+                make
+            else
+                dbgprint 0 "Hyper-V daemons Makefile not found."
+                dbgprint 0 "Aborting the test."
+                UpdateTestState "TestAborted"
+                exit 120
+            fi
+            # update daemons location for fedora
+            dbgprint 3 "Updated daemons service location to GCOV enabled"
+            DAEMON_BASE_PATH=$(pwd)/hv_
+            for i in fcopy kvp vss;
+            do
+                SERV_FILE=/usr/lib/systemd/system/hyperv"$i"d.service
+                if [ -f ${SERV_FILE} ]; then
+                    DAEMON_PATH="$DAEMON_BASE_PATH$i"_daemon
+                    if [ -f ${DAEMON_PATH} ]; then
+                        sed -i "/^ExecStart=/c\ExecStart=$DAEMON_PATH -n" ${SERV_FILE}
+                    else
+                        dbgprint 0 "Hyper-v daemon file ${DAEMON_PATH} not found."
+                        dbgprint 0 "Aborting the test."
+                        UpdateTestState "TestAborted"
+                        exit 120
+                    fi
+                else
+                    dbgprint 0 "Hyper-V daemon service file ${SERV_FILE} not found."
+                    dbgprint 0 "Aborting the test."
+                    UpdateTestState "TestAborted"
+                    exit 120
+                fi
+            done
+            popd
         fi
 
         yes "" | make oldconfig

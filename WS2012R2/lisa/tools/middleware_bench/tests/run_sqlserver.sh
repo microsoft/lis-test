@@ -57,7 +57,7 @@ escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
-    sudo apt install -y zip
+    sudo apt install -y zip sysstat
     sudo curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
     repoargs="$(curl https://packages.microsoft.com/config/ubuntu/16.04/mssql-server-2017.list)"
     sudo add-apt-repository "${repoargs}"

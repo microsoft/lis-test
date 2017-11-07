@@ -1201,7 +1201,7 @@ def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant,
     vm_count = 6
     connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=vm_count,
                                                       test_type=constants.CLUSTER_DISK,
-                                                      disk_size=50, raid=False, keyid=keyid,
+                                                      disk_size=100, raid=False, keyid=keyid,
                                                       secret=secret, token=token,
                                                       subscriptionid=subscription, tenantid=tenant,
                                                       projectid=projectid, imageid=imageid,
@@ -1625,14 +1625,14 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
                                    '/tmp/run_sqlserver.sh')
             ssh_client[1].run('chmod +x /tmp/run_sqlserver.sh')
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_sqlserver.sh")
-            log.info(
-                ssh_client[1].run('sudo cat /var/opt/mssql/mssql.conf', timeout=constants.TIMEOUT))
             cmd = '/tmp/run_sqlserver.sh {} {}'.format(password, constants.DEVICE_AZURE)
             log.info('Running command {}'.format(cmd))
             ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
             results_path = os.path.join(localpath, 'sqlserver{}_{}.zip'.format(str(time.time()),
                                                                                instancetype))
             ssh_client[1].get_file('/tmp/sqlserver.zip', results_path)
+            log.info(ssh_client[1].run('sudo cat /var/opt/mssql/mssql.conf',
+                                       timeout=constants.TIMEOUT))
         sqlserver_ip = vm_ips[1]
 
         host = win_vm.name + connector.dns_suffix
@@ -1678,9 +1678,26 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
                     cmd=utils.run_sql(sql_sp, sqlserver_ip, password=password, db='InMemDb'),
                     host=host, user=win_user, password=password, ps=True)
 
+        # start server collect
+        ssh_client[1].run('mkdir /tmp/sqlserver_stats', timeout=constants.TIMEOUT)
+        ssh_client[1].run('nohup sar -n DEV 1 > /tmp/sqlserver_stats/sar.netio.log 2>&1 &',
+                          timeout=constants.TIMEOUT)
+        ssh_client[1].run('nohup iostat -x -d 1 > /tmp/sqlserver_stats/iostat.diskio.log 2>&1 &',
+                          timeout=constants.TIMEOUT)
+        ssh_client[1].run('nohup vmstat 1 > /tmp/sqlserver_stats/vmstat.memory.cpu.log 2>&1 &',
+                          timeout=constants.TIMEOUT)
+
         cmd = '{bc_path}start.ps1'.format(bc_path=constants.BC_PATH)
         log.info(cmd)
         utils.run_win_command(cmd=cmd, host=host, user=win_user, password=password, ps=True)
+
+        # collect server stats
+        ssh_client[1].run('pkill -f sar; pkill -f vmstat; pkill -f iostat',
+                          timeout=constants.TIMEOUT)
+        ssh_client[1].run('cd /tmp; zip -r sqlserver_stats.zip . -i sqlserver_stats/*',
+                          timeout=constants.TIMEOUT)
+        ssh_client[1].get_file('/tmp/sqlserver_stats.zip', os.path.join(
+                localpath, 'sqlserver_stats{}_{}.zip'.format(str(time.time()), instancetype)))
 
         cmd = 'type {}Report1.log'.format(constants.BC_PATH)
         report = utils.run_win_command(cmd=cmd, host=host, user=win_user, password=password,
