@@ -86,7 +86,7 @@ elif [[ ${TEST_TYPE} == "UDP" ]]
 then
     TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
     MAX_STREAMS=128
-    BUFFER="1k"
+    TEST_BUFFERS=('1k' '8k')
     if [[ ${distro} == *"Ubuntu"* ]]
     then
         sudo apt -y install iperf3 >> ${LOG_FILE}
@@ -197,19 +197,20 @@ function run_ntttcp ()
 
 function run_iperf_parallel(){
     current_test_threads=$1
+    buffer=$2
     port=8001
     number_of_connections=${current_test_threads}
     while [ ${number_of_connections} -gt ${MAX_STREAMS} ]; do
         number_of_connections=$(($number_of_connections - $MAX_STREAMS))
-        logfile="/tmp/network${TEST_TYPE}/${current_test_threads}-p${port}-iperf3.log"
-        iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l ${BUFFER} -P ${MAX_STREAMS} -t 60 --get-server-output -i 60 > ${logfile} 2>&1 & pid=$!
+        logfile="/tmp/network${TEST_TYPE}/${current_test_threads}-p${port}-l${buffer}-iperf3.log"
+        iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l ${buffer} -P ${MAX_STREAMS} -t 60 --get-server-output -i 60 > ${logfile} 2>&1 & pid=$!
         port=$(($port + 1))
         PID_LIST+=" $pid"
     done
     if [ ${number_of_connections} -gt 0 ]
     then
-        logfile="/tmp/network${TEST_TYPE}/${current_test_threads}-p${port}-iperf3.log"
-        iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l ${BUFFER} -P ${number_of_connections} -t 60 --get-server-output -i 60 > ${logfile} 2>&1 & pid=$!
+        logfile="/tmp/network${TEST_TYPE}/${current_test_threads}-p${port}-l${buffer}-iperf3.log"
+        iperf3 -u -c ${SERVER} -p ${port} -4 -b 0 -l ${buffer} -P ${number_of_connections} -t 60 --get-server-output -i 60 > ${logfile} 2>&1 & pid=$!
         PID_LIST+=" $pid"
     fi
 
@@ -220,6 +221,7 @@ function run_iperf_parallel(){
 function run_iperf_udp()
 {
     current_test_threads=$1
+    buffer=$2
     LogMsg "======================================"
     LogMsg "Running iPerf3 thread= ${current_test_threads}"
     LogMsg "======================================"
@@ -231,7 +233,7 @@ function run_iperf_udp()
         sleep 1
     done
 
-    run_iperf_parallel ${current_test_threads}
+    run_iperf_parallel ${current_test_threads} ${buffer}
 
     sleep 5
     sudo pkill -f iperf3
@@ -267,9 +269,14 @@ then
     run_lagscope
 elif [[ ${TEST_TYPE} == "UDP" ]]
 then
-    for thread in "${TEST_THREADS[@]}"
+    for buffer in "${TEST_BUFFERS[@]}"
     do
-        run_iperf_udp ${thread}
+        for thread in "${TEST_THREADS[@]}"
+        do
+            run_iperf_udp ${thread} ${buffer}
+        done
+        # Wait a while before running next buffer size
+        sleep 300
     done
 elif [[ ${TEST_TYPE} == "single_tcp" ]]
 then
@@ -283,10 +290,6 @@ fi
 
 LogMsg "Kernel Version : `uname -r`"
 LogMsg "Guest OS : ${distro}"
-if [[ ${TEST_TYPE} == "UDP" ]]
-then
-    LogMsg "UDP Buffer : ${BUFFER}"
-fi
 
 cd /tmp
 zip -r network.zip . -i network${TEST_TYPE}/* >> ${LOG_FILE}

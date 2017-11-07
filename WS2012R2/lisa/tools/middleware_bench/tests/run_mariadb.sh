@@ -120,14 +120,14 @@ function run_mariadb ()
     LogMsg "Running mariadb test with current threads: ${threads}"
     LogMsg "======================================"
 
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/mariadb/${threads}.sar.netio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/mariadb/${threads}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 2>&1 > /tmp/mariadb/${threads}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 2>&1 > /tmp/mariadb/${threads}.iostat.diskio.log"
     ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/mariadb/${threads}.vmstat.memory.cpu.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "mpstat -P ALL 1 900 2>&1 > /tmp/mariadb/${threads}.mpstat.cpu.log"
-    sar -n DEV 1 900   2>&1 > /tmp/mariadb/${threads}.sar.netio.log &
-    iostat -x -d 1 900 2>&1 > /tmp/mariadb/${threads}.iostat.netio.log &
-    vmstat 1 900       2>&1 > /tmp/mariadb/${threads}.vmstat.netio.log &
-    mpstat -P ALL 1 900 2>&1 > /tmp/mariadb/${threads}.mpstat.cpu.log &
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "mpstat -P ALL 1 2>&1 > /tmp/mariadb/${threads}.mpstat.cpu.log"
+    sar -n DEV 1 2>&1 > /tmp/mariadb/${threads}.sar.netio.log &
+    iostat -x -d 1 2>&1 > /tmp/mariadb/${threads}.iostat.netio.log &
+    vmstat 1 2>&1 > /tmp/mariadb/${threads}.vmstat.netio.log &
+    mpstat -P ALL 1 2>&1 > /tmp/mariadb/${threads}.mpstat.cpu.log &
 
     sudo sysbench --test=oltp --mysql-host=${SERVER} --mysql-user=${USER} --mysql-password=lisapassword --mysql-db=sbtest --max-time=300 --oltp-test-mode=complex --mysql-table-engine=innodb --oltp-read-only=off --max-requests=100000000 --num-threads=${threads} run > /tmp/mariadb/${threads}.sysbench.mariadb.run.log
 

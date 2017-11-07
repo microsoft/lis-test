@@ -77,7 +77,7 @@ TEMP_DEVICE_GCE = '/dev/sdb'
 
 AWS_P28XLARGE = 'p2.8xlarge'
 AWS_D24XLARGE = 'd2.4xlarge'
-AWS_M416XLARGE= 'm4.16xlarge'
+AWS_M416XLARGE = 'm4.16xlarge'
 
 VM_DISK = 'vm_disk'
 DB_DISK = 'db_disk'

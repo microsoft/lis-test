@@ -93,15 +93,15 @@ function run_redis ()
     LogMsg "Running Redis Test with pipelines: ${pipeline}"
     LogMsg "======================================"
 
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/redis/${pipeline}.sar.netio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/redis/${pipeline}.iostat.diskio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/redis/${pipeline}.vmstat.memory.cpu.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 2>&1 > /tmp/redis/${pipeline}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 2>&1 > /tmp/redis/${pipeline}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 2>&1 > /tmp/redis/${pipeline}.vmstat.memory.cpu.log"
     LogMsg "Starting redis server on ${SERVER}"
     ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo redis-server ${redis_conf} > /dev/null"
 
-    sar -n DEV 1 900   2>&1 > /tmp/redis/${pipeline}.sar.netio.log &
-    iostat -x -d 1 900 2>&1 > /tmp/redis/${pipeline}.iostat.netio.log &
-    vmstat 1 900       2>&1 > /tmp/redis/${pipeline}.vmstat.netio.log &
+    sar -n DEV 1 2>&1 > /tmp/redis/${pipeline}.sar.netio.log &
+    iostat -x -d 1 2>&1 > /tmp/redis/${pipeline}.iostat.netio.log &
+    vmstat 1 2>&1 > /tmp/redis/${pipeline}.vmstat.netio.log &
 
     sleep 20
     redis-benchmark -h ${SERVER} -c 1000 -P ${pipeline} -t ${redis_test_suites} -d 4000 -n 10000000 > /tmp/redis/${pipeline}.redis.set.get.log

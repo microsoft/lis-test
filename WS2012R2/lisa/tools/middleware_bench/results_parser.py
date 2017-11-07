@@ -1059,14 +1059,14 @@ class UDPLogsReader(BaseLogsReader):
         super(UDPLogsReader, self).__init__(log_path)
         self.headers = ['NumberOfConnections', 'RxThroughput_Gbps', 'TxThroughput_Gbps',
                         'SendBufSize_KBytes', 'DatagramLoss', 'PacketSize_KBytes']
-        self.sorter = ['NumberOfConnections']
+        self.sorter = ['SendBufSize_KBytes', 'NumberOfConnections']
         self.test_case_name = test_case_name
         self.data_path = data_path
         self.provider = provider
         self.region = region
         self.host_type = host_type
         self.instance_size = instance_size
-        self.log_matcher = '([0-9]+)-p8001-iperf3.log'
+        self.log_matcher = '([0-9]+)-p8001-l([0-9]+)k-iperf3.log'
 
     def collect_data(self, f_match, log_file, log_dict):
         """
@@ -1083,11 +1083,11 @@ class UDPLogsReader(BaseLogsReader):
         log_dict['HostType'] = self.provider
         log_dict['GuestSize'] = self.instance_size
         log_dict['NumberOfConnections'] = f_match.group(1).strip()
+        log_dict['SendBufSize_KBytes'] = f_match.group(2).strip()
         log_dict['IPVersion'] = 'IPv4'
         log_dict['ProtocolType'] = 'UDP'
         log_dict['RxThroughput_Gbps'] = 0
         log_dict['TxThroughput_Gbps'] = 0
-        log_dict['SendBufSize_KBytes'] = 0
         log_dict['DatagramLoss'] = 0
         log_dict['PacketSize_KBytes'] = 0
 
@@ -1096,13 +1096,13 @@ class UDPLogsReader(BaseLogsReader):
         log_dict['TestDate'] = summary['date']
         log_dict['GuestDistro'] = summary['guest_os']
         log_dict['GuestOSType'] = 'Linux'
-        log_dict['SendBufSize_KBytes'] = summary['udp_buffer']
 
         lost_datagrams = 0
         total_datagrams = 0
         log_files = [os.path.join(os.path.dirname(log_file), f)
                      for f in os.listdir(os.path.dirname(log_file))
-                     if f.startswith(log_dict['NumberOfConnections'] + '-p')]
+                     if f.startswith(log_dict['NumberOfConnections'] + '-p') and
+                     '-l{}k-'.format(log_dict['SendBufSize_KBytes']) in f]
         for log_f in log_files:
             with open(log_f, 'r') as fl:
                 read_client = True

@@ -80,12 +80,12 @@ function run_memcached ()
     LogMsg "Running Test: ${thread} = ${num_threads} X ${num_client_per_thread}"
     LogMsg "======================================"
 
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/memcached/${thread}.sar.netio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/memcached/${thread}.iostat.diskio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/memcached/${thread}.vmstat.memory.cpu.log"
-    sar -n DEV 1 900   2>&1 > /tmp/memcached/${thread}.sar.netio.log &
-    iostat -x -d 1 900 2>&1 > /tmp/memcached/${thread}.iostat.netio.log &
-    vmstat 1 900       2>&1 > /tmp/memcached/${thread}.vmstat.netio.log &
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 2>&1 > /tmp/memcached/${thread}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 2>&1 > /tmp/memcached/${thread}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 2>&1 > /tmp/memcached/${thread}.vmstat.memory.cpu.log"
+    sar -n DEV 1 2>&1 > /tmp/memcached/${thread}.sar.netio.log &
+    iostat -x -d 1 2>&1 > /tmp/memcached/${thread}.iostat.netio.log &
+    vmstat 1 2>&1 > /tmp/memcached/${thread}.vmstat.netio.log &
 
     memtier_benchmark -s ${SERVER} -p 11211 -P memcache_text -x 3 -n ${total_request} -t ${num_threads} -c ${num_client_per_thread} -d 4000 --ratio 1:1 --key-pattern S:S > /tmp/memcached/${thread}.memtier_benchmark.run.log
 
