@@ -201,9 +201,10 @@
             <onError>Continue</onError>
             <noReboot>True</noReboot>
             <testparams>
-                <param>TC_COVERED=KVP-01</param>
+                <param>TC_COVERED=KVP-12</param>
                 <param>Pool=1</param>
-                <param>Entries=150</param>
+                <!-- Number of key pairs to be added in the kvp pool -->  
+                <param>Entries=250</param>
             </testparams>
         </test>
     </testCases>
