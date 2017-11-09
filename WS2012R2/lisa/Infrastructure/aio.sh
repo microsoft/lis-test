@@ -130,6 +130,11 @@ function GetOSVersion {
             os_VENDOR=""
         done
         os_PACKAGE="rpm"
+
+    elif [[ -r /etc/SuSE-brand || -r /etc/SUSE-brand ]]; then
+        os_VENDOR=`head -1 /etc/S*SE-brand`
+        os_VERSION=`cat /etc/S*SE-brand | awk '/VERSION/ {print $NF}'`
+
     elif [[ -r /etc/SuSE-release ]]; then
         for r in openSUSE "SUSE Linux"; do
             if [[ "$r" = "SUSE Linux" ]]; then
@@ -184,7 +189,9 @@ function is_suse {
         GetOSVersion
     fi
 
-    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ]
+    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ] || \
+    [ "$os_VENDOR" = "SUSE" ] || [ "$os_VENDOR" = "SLE" ] || \
+    [ "$os_VENDOR" = "SLES" ]
 }
 
 ########################################################################
