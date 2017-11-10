@@ -1520,12 +1520,12 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
     {
         $BMPName = "${testDir}\$($vm.currentTest)_ConsoleScreenShot.bmp"
     }
-    else 
+    else
     {
         $BMPName = (pwd).Path + "\" + "${testDir}\$($vm.currentTest)_ConsoleScreenShot.bmp"
     }
-    
-    $VMName = $vm.vmName 
+
+    $VMName = $vm.vmName
     Add-Type -AssemblyName "System.Drawing"
     $VMCS = Get-WmiObject -Namespace root\virtualization\v2 -Class Msvm_ComputerSystem -Filter "ElementName='$($VMName)'"
 
@@ -1610,7 +1610,7 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 $testName = $($vm.currentTest)
                 $testData = GetTestData $testName  $xmlData
                 $completionCode = $Aborted
-                
+
                 LogMsg 0 "Error: $($vm.vmName) did not boot after second try for test $testName "
                 LogMsg 0 "Info : $($vm.vmName) Status for test $testName  = ${completionCode}"
 
@@ -2713,10 +2713,7 @@ function DoRunPostTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 if (-not $sts)
                 {
                     LogMsg 0 "Error: VM $($vm.vmName) postTest script for test $($testData.testName) failed"
-                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - post script failed")
-                    $vm.currentTest = "done"
-                    UpdateState $vm $finished
-                    return
+                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f $($testData.testName), "Failed - post script failed")
                 }
             }
         }
