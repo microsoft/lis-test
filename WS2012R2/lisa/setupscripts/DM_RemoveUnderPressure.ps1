@@ -168,6 +168,8 @@ foreach ($p in $params)
         "ipv4"    { $ipv4    = $fields[1].Trim() }
         "sshKey"  { $sshKey  = $fields[1].Trim() }
         "tries"  { $tries  = $fields[1].Trim() }
+        "appGitURL"  { $appGitURL  = $fields[1].Trim() }
+        "appGitTag"  { $appGitTag  = $fields[1].Trim() }
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     }
 }
@@ -256,10 +258,10 @@ if ($vm3MemWeight -lt $vm2MemWeight)
     }
 }
 
-# Check if stress-ng is installed
+# Install stress-ng if not installed
 "Checking if stress-ng is installed"
 
-$retVal = check_app "stress-ng"
+$retVal = installApp "stress-ng" $ipv4 $appGitURL $appGitTag
 if (-not $retVal)
 {
     "stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
@@ -305,10 +307,10 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0)
 "  ${vm1Name}: assigned - $vm1BeforeAssigned | demand - $vm1BeforeDemand"
 "  ${vm2Name}: assigned - $vm2BeforeAssigned | demand - $vm2BeforeDemand"
 
-# Check if stress-ng is installed
+# Install stress-ng if not installed
 "Checking if stress-ng is installed"
 
-$retVal = check_app "stress-ng" $vm2ipv4
+$retVal = installApp "stress-ng" $vm2ipv4 $appGitURL $appGitTag
 if (-not $retVal)
 {
     "stress-ng is not installed on $vm2Name! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
