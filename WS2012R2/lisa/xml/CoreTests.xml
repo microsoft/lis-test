@@ -284,7 +284,6 @@
             <testParams>
                 <param>TC_COVERED=CORE-22</param>
                 <param>enableDM=no</param>
-                <param>staticMem=2048MB</param>
                 <param>memWeight=0</param>
                 <param>VCPU=4</param>
                 <param>NumaNodes=1</param>
@@ -296,7 +295,7 @@
         <test>
             <testName>CheckNuma_Maximum</testName>
             <setupScript>
-            	<file>setupScripts\DM_DISABLE.ps1</file>
+            	<file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
             	<file>setupScripts\ChangeCPU.ps1</file>
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
@@ -309,8 +308,8 @@
                 <param>NumaNodes=4</param>
                 <param>Sockets=2</param>
                 <param>MemSize=1024MB</param>
-		<param>staticMem=2048MB</param>
-		<param>memWeight=0</param>
+                <param>startupMem=2048MB</param>
+                <param>memWeight=0</param>
             </testParams>
             <timeout>600</timeout>
         </test>
