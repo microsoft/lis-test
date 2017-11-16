@@ -1966,6 +1966,7 @@ function GetOSVersion {
     elif [[ -r /etc/SuSE-brand || -r /etc/SUSE-brand ]]; then
         os_VENDOR=`head -1 /etc/S*SE-brand`
         os_VERSION=`cat /etc/S*SE-brand | awk '/VERSION/ {print $NF}'`
+        os_PACKAGE="rpm"
 
     elif [[ -r /etc/SuSE-release ]]; then
         for r in openSUSE "SUSE Linux"; do
