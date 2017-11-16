@@ -7,6 +7,7 @@ d-i netcfg/choose_interface select auto
 
 d-i netcfg/get_hostname string unassigned-hostname
 d-i netcfg/get_domain string unassigned-domain
+d-i	base-installer/kernel/override-image string linux-server
 
 # If you want to force a hostname, regardless of what either the DHCP
 # server returns or what the reverse DNS entry for the IP is, uncomment
@@ -69,9 +70,17 @@ d-i partman-partitioning/confirm_write_new_label boolean true
 d-i partman/choose_partition select finish
 d-i partman/confirm boolean true
 d-i partman/confirm_nooverwrite boolean true
-
+d-i pkgsel/include string linux-cloud-tools
+d-i pkgsel/include string linux-tools
+d-i pkgsel/include string linux-cloud-tools-common
+d-i	pkgsel/install-language-support	boolean false
 d-i grub-installer/only_debian boolean true
+d-i	debian-installer/quiet	boolean false
+d-i	debian-installer/splash	boolean false
+
 
 d-i grub-installer/with_other_os boolean true
+d-i debian-installer/add-kernel-opts string vga=normal console=tty0 console=ttyS1
+d-i debian-installer/exit/poweroff boolean true
 d-i finish-install/reboot_in_progress note
 
