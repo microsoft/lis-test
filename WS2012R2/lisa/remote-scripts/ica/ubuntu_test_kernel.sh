@@ -55,7 +55,6 @@ cd ~
 UpdateTestState $ICA_TESTRUNNING
 
 if [ -e ~/summary.log ]; then
-    LogMsg "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
 fi
 
@@ -74,11 +73,6 @@ else
     UpdateSummary $msg
     UpdateTestState $ICA_TESTABORTED
     exit 1
-fi
-
-if [ -e ~/summary.log ]; then
-    echo "Cleaning up previous copies of summary.log"
-    rm -rf ~/summary.log
 fi
 
 # Convert eol
@@ -125,6 +119,10 @@ if is_ubuntu ; then
 	fi
 	UpdateSummary "Info: Kernel package has been successfully installed!"
 	
+	if [ -e linux-azure-edge-cloud-tools* ]; then
+		dpkg -i linux-azure-edge-cloud-tools*
+	fi
+
 	dpkg -i linux-tools*
 	dpkg -i linux-cloud-tools*
 	if [[ $? -ne 0 ]]; then
@@ -133,6 +131,10 @@ if is_ubuntu ; then
 		exit 1
 	fi
 	UpdateSummary "Info: linux-tools and linux-cloud-tools have been successfully installed!"
+
+	if [ -e linux-azure-edge-headers* ]; then
+		dpkg -i linux-azure-edge-headers*
+	fi
 
 	dpkg -i linux-headers*
 	if [[ $? -ne 0 ]]; then
