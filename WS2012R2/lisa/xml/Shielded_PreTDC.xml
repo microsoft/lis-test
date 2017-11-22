@@ -48,8 +48,11 @@
                 <suiteTest>Verify_dependencies</suiteTest>
                 <suiteTest>Verify_lsvmprep</suiteTest>
                 <suiteTest>Verify_not_encrypted</suiteTest>
-                <suiteTest>Verify_passphrase</suiteTest> 
-                <suiteTest>Verify_insufficient_space</suiteTest> 
+                <suiteTest>Verify_passphrase</suiteTest>
+                <suiteTest>Verify_insufficient_space</suiteTest>
+
+                <!-- Post testing preparation -->
+                <suiteTest>Prepare_VM_for_TDC</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -173,6 +176,26 @@
                 <param>fill_disk=yes</param>
             </testParams>
             <cleanupScript>setupScripts\Shielded_Remove_DecryptVHD.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>Prepare_VM_for_TDC</testName>
+            <testScript>shielded_verify_lsvmprep.sh</testScript>
+            <files>remote-scripts/ica/shielded_verify_lsvmprep.sh,remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Shielded_Add_DecryptVHD.ps1</file>
+            </setupScript> 
+            <testParams>
+                <param>TC_COVERED=LSVM-Prepare_TDC</param>
+            </testParams>
+            <cleanupScript>
+                <file>setupScripts\Shielded_Remove_DecryptVHD.ps1</file>
+                <file>setupScripts\Shielded_template_prepare.ps1</file>
+            </cleanupScript>
             <timeout>600</timeout>
             <onError>Abort</onError>
             <noReboot>False</noReboot>
