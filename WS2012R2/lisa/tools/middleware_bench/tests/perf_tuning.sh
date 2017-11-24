@@ -48,6 +48,7 @@ declare -A sysctl_params=( ["net.core.netdev_max_backlog"]="30000"
                            ["net.ipv4.tcp_tw_reuse"]="1"
                            ["net.ipv4.ip_local_port_range"]="10240 65535"
                            ["net.ipv4.tcp_abort_on_overflow"]="1"
+                           ["vm.overcommit_memory"]="2"
                           )
 sysctl_file="/etc/sysctl.conf"
 

@@ -9,3 +9,5 @@ pyOpenSSL<=16.2.0
 SQLAlchemy<=1.1.16
 pyodbc<=3.0.10
 pywinrm<=0.2.2
+msrest<=2.14
+msrestzure<=0.4.17
