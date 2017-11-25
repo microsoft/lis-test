@@ -115,6 +115,13 @@ COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            {'name': 'SQLServerVersion', 'type': NVARCHAR(20)},
            {'name': 'ResponseTime95thPercentile', 'type': DECIMAL(8, 3)},
            {'name': 'TxnPerSec', 'type': DECIMAL(10, 2)},
+           {'name': 'PostgreSQLVersion', 'type': NVARCHAR(20)},
+           {'name': 'TransactionType', 'type': NVARCHAR(50)},
+           {'name': 'TestClients', 'type': DECIMAL(3, 0)},
+           {'name': 'ScalingFactor', 'type': DECIMAL(5, 0)},
+           {'name': 'TestDuration_s', 'type': DECIMAL(5, 0)},
+           {'name': 'TransactionsPerSecIncEstablishing', 'type': DECIMAL(8, 3)},
+           {'name': 'TransactionsPerSecExcEstablishing', 'type': DECIMAL(8, 3)},
            ]
 
 

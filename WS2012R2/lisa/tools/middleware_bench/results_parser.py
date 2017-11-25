@@ -136,6 +136,11 @@ class BaseLogsReader(object):
                                                   '\s*([0-9.]+)\s*', line)
                     if sql_server_version:
                         log_dict['sql_server_version'] = sql_server_version.group(1).strip()
+                if not log_dict.get('postgresql_version', None):
+                    postgresql_version = re.match('.+:\s*PostgreSQL\s*Version\s*:\s*.+\s*'
+                                                  'PostgreSQL\s*([0-9.]+)\s*', line)
+                    if postgresql_version:
+                        log_dict['postgresql_version'] = postgresql_version.group(1).strip()
 
         return log_dict
 
@@ -1367,4 +1372,86 @@ class SQLServerLogsReader(BaseLogsReader):
                     log_dict['TxnPerSec'] = txn.group(1).strip()
                 if not log_dict.get('ResponseTime95thPercentile', None):
                     log_dict['ResponseTime95thPercentile'] = txn.group(2).strip()
+        return log_dict
+
+
+class PostgreSQLLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing FIO log files e.g.
+    FIOLog-XXXq.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
+                 region=None, host_type=None, instance_size=None, disk_setup=None):
+        super(PostgreSQLLogsReader, self).__init__(log_path)
+        self.headers = ['TestMode', 'ScalingFactor', 'TransactionType', 'PostgreSQLVersion',
+                        'TestClients', 'Threads', 'TestDuration_s',
+                        'TransactionsPerSecIncEstablishing', 'TransactionsPerSecExcEstablishing',
+                        'AverageLatency_ms']
+        self.sorter = []
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.region = region
+        self.provider = provider
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.disk_setup = disk_setup
+        self.log_matcher = '([a-z_]+).([a-z_]+).log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for FIO test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['HostType'] = self.host_type
+        log_dict['InstanceSize'] = self.instance_size
+        log_dict['DiskSetup'] = self.disk_setup
+        log_dict['DataPath'] = self.data_path
+        log_dict['TestMode'] = f_match.group(2).strip()
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestOS'] = summary['guest_os']
+        log_dict['PostgreSQLVersion'] = summary['postgresql_version']
+
+        with open(log_file, 'r') as fl:
+            for f_line in fl:
+                if not log_dict.get('TransactionType', None):
+                    transaction = re.match('\s*transaction\s*type:\s*(.+)', f_line)
+                    if transaction:
+                        log_dict['TransactionType'] = transaction.group(1).strip()
+                if not log_dict.get('ScalingFactor', None):
+                    scale = re.match('\s*scaling\s*factor:\s*([0-9.]+)', f_line)
+                    if scale:
+                        log_dict['ScalingFactor'] = int(scale.group(1).strip())
+                if not log_dict.get('TestClients', None):
+                    test_clients = re.match('\s*number\s*of\s*clients:\s*([0-9]+)', f_line)
+                    if test_clients:
+                        log_dict['TestClients'] = int(test_clients.group(1).strip())
+                if not log_dict.get('Threads', None):
+                    threads = re.match('\s*number\s*of\s*threads:\s*([0-9]+)', f_line)
+                    if threads:
+                        log_dict['Threads'] = int(threads.group(1).strip())
+                if not log_dict.get('TestDuration_s', None):
+                    duration = re.match('\s*duration:\s*([0-9]+)\s*s', f_line)
+                    if duration:
+                        log_dict['TestDuration_s'] = int(duration.group(1).strip())
+                if not log_dict.get('AverageLatency_ms', None):
+                    lat = re.match('\s*latency\s*average\s*=\s*([0-9.]+)\s*ms', f_line)
+                    if lat:
+                        log_dict['AverageLatency_ms'] = float(lat.group(1).strip())
+                if not log_dict.get('TransactionsPerSecIncEstablishing', None):
+                    tps = re.match('\s*tps\s*=\s*([0-9.]+)\s*'
+                                   '\(including connections establishing\)', f_line)
+                    if tps:
+                        log_dict['TransactionsPerSecIncEstablishing'] = float(tps.group(1).strip())
+                if not log_dict.get('TransactionsPerSecExcEstablishing', None):
+                    tps = re.match('\s*tps\s*=\s*([0-9.]+)\s*'
+                                   '\(excluding connections establishing\)', f_line)
+                    if tps:
+                        log_dict['TransactionsPerSecExcEstablishing'] = float(tps.group(1).strip())
         return log_dict

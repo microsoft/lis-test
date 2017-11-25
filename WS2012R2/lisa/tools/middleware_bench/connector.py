@@ -34,7 +34,7 @@ from db_utils import upload_results
 from results_parser import OrionLogsReader, SysbenchLogsReader, MemcachedLogsReader,\
     RedisLogsReader, ApacheLogsReader, MariadbLogsReader, MongodbLogsReader, ZookeeperLogsReader,\
     TerasortLogsReader, TCPLogsReader, LatencyLogsReader, StorageLogsReader, SingleTCPLogsReader,\
-    UDPLogsReader, SQLServerLogsReader
+    UDPLogsReader, SQLServerLogsReader, PostgreSQLLogsReader
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -108,13 +108,13 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                     device = []
                     for i in xrange(raid):
                         dev = '/dev/sd{}'.format(chr(120 - i))
-                        connector.attach_ebs_volume(vms[1], size=disk_size, iops=50 * disk_size,
+                        connector.attach_ebs_volume(vms[1], size=disk_size, iops=5000,
                                                     volume_type=connector.volume_type['ssd_io1'],
                                                     device=dev)
                         device.append(dev.replace('sd', 'xvd'))
                         time.sleep(3)
                 else:
-                    connector.attach_ebs_volume(vms[1], size=disk_size, iops=50 * disk_size,
+                    connector.attach_ebs_volume(vms[1], size=disk_size, iops=5000,
                                                 volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
             elif test_type == constants.DB_DISK:
@@ -122,22 +122,21 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                     device = []
                     for i in xrange(raid):
                         dev = '/dev/sd{}'.format(chr(120 - i))
-                        connector.attach_ebs_volume(vms[2], size=disk_size, iops=50 * disk_size,
+                        connector.attach_ebs_volume(vms[2], size=disk_size, iops=5000,
                                                     volume_type=connector.volume_type['ssd_io1'],
                                                     device=dev)
                         device.append(dev.replace('sd', 'xvd'))
                         time.sleep(3)
                 else:
-                    connector.attach_ebs_volume(vms[2], size=disk_size, iops=50 * disk_size,
+                    connector.attach_ebs_volume(vms[2], size=disk_size, iops=5000,
                                                 volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
             elif test_type == constants.CLUSTER_DISK:
-                connector.attach_ebs_volume(vms[1], size=disk_size + 200,
-                                            iops=50 * (disk_size + 200),
+                connector.attach_ebs_volume(vms[1], size=disk_size + 200, iops=5000,
                                             volume_type=connector.volume_type['ssd_io1'],
                                             device=constants.DEVICE_AWS)
                 for i in xrange(2, vm_count + 1):
-                    connector.attach_ebs_volume(vms[i], size=disk_size, iops=50 * disk_size,
+                    connector.attach_ebs_volume(vms[i], size=disk_size, iops=5000,
                                                 volume_type=connector.volume_type['ssd_io1'],
                                                 device=constants.DEVICE_AWS)
                     time.sleep(3)
@@ -1103,6 +1102,78 @@ def test_mongodb_raid(provider, keyid, secret, token, imageid, subscription, ten
                        data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
                        instance_size=instancetype,
                        disk_setup='{} x SSD {}GB RAID0'.format(raid, disk_size))
+
+
+def test_postgresql(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                    instancetype, user, localpath, region, zone, sriov, kernel):
+    """
+    Run Pgbench benchmark on PostgreSQL server with a dedicated client.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    :param sriov: Enable or disable SR-IOV
+    :param kernel: custom kernel name provided in localpath
+    """
+    disk_size = 0
+    if provider == constants.AWS:
+        disk_size = 300
+    elif provider == constants.AZURE:
+        disk_size = 513
+    elif provider == constants.GCE:
+        disk_size = 167
+    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
+                                                      test_type=constants.DB_DISK,
+                                                      disk_size=disk_size, raid=False, keyid=keyid,
+                                                      secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone, sriov=sriov, kernel=kernel)
+    results_path = None
+    try:
+        if all(client for client in ssh_client.values()):
+            # enable key auth between instances
+            ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
+                                   '/home/{}/.ssh/id_rsa'.format(user))
+            ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
+
+            current_path = os.path.dirname(os.path.realpath(__file__))
+            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_postgresql.sh'),
+                                   '/tmp/run_postgresql.sh')
+            ssh_client[1].run('chmod +x /tmp/run_postgresql.sh')
+            ssh_client[1].run("sed -i 's/\r//' /tmp/run_postgresql.sh")
+            cmd = '/tmp/run_postgresql.sh {} {} {}'.format(vm_ips[2], user, device)
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 3)
+            results_path = os.path.join(localpath, 'postgresql{}_{}.zip'.format(str(time.time()),
+                                                                                instancetype))
+            ssh_client[1].get_file('/tmp/postgresql.zip', results_path)
+    except Exception as e:
+        log.error(e)
+        raise
+    finally:
+        if connector:
+            connector.teardown()
+    if results_path:
+        upload_results(localpath=localpath, table_name='Perf_{}_PostgreSQL'.format(provider),
+                       results_path=results_path, parser=PostgreSQLLogsReader,
+                       test_case_name='{}_PostgreSQL_perf_tuned'.format(provider),
+                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       instance_size=instancetype, disk_setup='1 x SSD {}GB'.format(disk_size))
 
 
 def test_zookeeper(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
