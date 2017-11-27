@@ -585,7 +585,7 @@ def test_memcached(provider, keyid, secret, token, imageid, subscription, tenant
             ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
                                    '/home/{}/.ssh/id_rsa'.format(user))
             ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
-    
+
             current_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_memcached.sh'),
                                    '/tmp/run_memcached.sh')
@@ -649,7 +649,7 @@ def test_redis(provider, keyid, secret, token, imageid, subscription, tenant, pr
             ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
                                    '/home/{}/.ssh/id_rsa'.format(user))
             ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
-    
+
             current_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_redis.sh'),
                                    '/tmp/run_redis.sh')
@@ -714,7 +714,7 @@ def test_apache_bench(provider, keyid, secret, token, imageid, subscription, ten
             ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
                                    '/home/{}/.ssh/id_rsa'.format(user))
             ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
-    
+
             current_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_apache_bench.sh'),
                                    '/tmp/run_apache_bench.sh')
@@ -851,7 +851,7 @@ def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, 
             ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
                                    '/home/{}/.ssh/id_rsa'.format(user))
             ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
-    
+
             current_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_mariadb.sh'),
                                    '/tmp/run_mariadb.sh')
@@ -924,7 +924,7 @@ def test_mariadb_raid(provider, keyid, secret, token, imageid, subscription, ten
             ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
                                    '/home/{}/.ssh/id_rsa'.format(user))
             ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
-    
+
             current_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client[2].put_file(os.path.join(current_path, 'tests', 'raid.sh'), '/tmp/raid.sh')
             ssh_client[2].run('chmod +x /tmp/raid.sh')
@@ -1001,7 +1001,7 @@ def test_mongodb(provider, keyid, secret, token, imageid, subscription, tenant, 
             ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
                                    '/home/{}/.ssh/id_rsa'.format(user))
             ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
-    
+
             current_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_mongodb.sh'),
                                    '/tmp/run_mongodb.sh')
@@ -1217,7 +1217,7 @@ def test_zookeeper(provider, keyid, secret, token, imageid, subscription, tenant
                 ssh_client[i].put_file(os.path.join(localpath, connector.key_name + '.pem'),
                                        '/home/{}/.ssh/id_rsa'.format(user))
                 ssh_client[i].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
-    
+
             current_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_zookeeper.sh'),
                                    '/tmp/run_zookeeper.sh')
