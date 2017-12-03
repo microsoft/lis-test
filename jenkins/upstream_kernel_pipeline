@@ -1,0 +1,18 @@
+# placeholder for upstream kernel pipeline build
+pipeline {
+  parameters {
+    string(name: 'TEST_PARAM', defaultValue: 'My value is null', description: 'I should be changed')
+  }
+  agent {
+    node {
+      label 'master'
+    }
+  }
+  stages {
+          stage('Test params') {
+              steps {
+                  echo "${params.TEST_PARAM}"
+              }
+          }
+  }
+}
