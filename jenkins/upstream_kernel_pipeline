@@ -28,11 +28,12 @@ pipeline {
       parallel {
           stage('Build Ubuntu deb') {
               agent {
-                node ('ubuntu_kernel_builder') {
-                  git url: 'https://github.com/LIS/lis-pipeline.git'
+                node {
+                  label 'ubuntu_kernel_builder'
                 }
               }
               steps {
+                  checkout scm
                   sh '''#!/bin/bash
                     set -xe
                     echo "Building artifacts..."
@@ -62,11 +63,12 @@ pipeline {
 
           stage('Build CentOS rpm') {
               agent {
-                node ('centos_kernel_builder') {
-                  git url: 'https://github.com/LIS/lis-pipeline.git'
+                node {
+                  label 'centos_kernel_builder'
                 }
               }
               steps {
+                  checkout scm
                   sh '''#!/bin/bash
                     set -xe
                     echo "Building artifacts..."
