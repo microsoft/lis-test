@@ -1,7 +1,22 @@
-# placeholder for upstream kernel pipeline build
+#!/usr/bin/env groovy
+
+def PowerShellWrapper(psCmd) {
+    bat "powershell.exe -NonInteractive -ExecutionPolicy Bypass -Command \"\$ErrorActionPreference='Stop';[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;$psCmd;EXIT \$global:LastExitCode\""
+}
+
 pipeline {
   parameters {
-    string(name: 'TEST_PARAM', defaultValue: 'My value is null', description: 'I should be changed')
+    string(defaultValue: "git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git", description: 'Kernel tree repo', name: 'KERNEL_GIT_URL')
+    string(defaultValue: "master", description: 'Branch to be built', name: 'KERNEL_GIT_BRANCH')
+  }
+  environment {
+    KERNEL_ARTIFACTS_PATH = 'upstream-kernel-artifacts'
+    UBUNTU_VERSION = '16'
+    BUILD_PATH = '/mnt/tmp/upstream-kernel-build-folder'
+    CLEAN_ENV = 'False'
+    USE_CCACHE = 'False'
+    AZURE_MAX_RETRIES = '60'
+    BUILD_NAME = 'upstream_kernel'
   }
   agent {
     node {
@@ -9,10 +24,75 @@ pipeline {
     }
   }
   stages {
-          stage('Test params') {
+      parallel {
+          stage('Build deb packages') {
+              agent {
+                node {
+                  label 'ubuntu_kernel_builder'
+                }
+              }
               steps {
-                  echo "${params.TEST_PARAM}"
+                  sh '''#!/bin/bash
+                    set -xe
+                    echo "Building artifacts..."
+                    pushd "$WORKSPACE/scripts/package_building"
+                    JOB_KERNEL_ARTIFACTS_PATH="${BUILD_NUMBER}-${KERNEL_ARTIFACTS_PATH}"
+                    bash build_artifacts.sh \\
+                        --git_url ${KERNEL_GIT_URL} \\
+                        --git_branch ${KERNEL_GIT_BRANCH} \\
+                        --destination_path ${JOB_KERNEL_ARTIFACTS_PATH} \\
+                        --install_deps False \\
+                        --thread_number ${THREAD_NUMBER} \\
+                        --debian_os_version ${UBUNTU_VERSION} \\
+                        --build_path ${BUILD_PATH} \\
+                        --kernel_config ${KERNEL_CONFIG} \\
+                        --clean_env ${CLEAN_ENV} \\
+                        --use_ccache ${USE_CCACHE}
+                    popd
+                    '''
+
+                stash includes: ('scripts/package_building/' + "${env.BUILD_NUMBER}-${env.KERNEL_ARTIFACTS_PATH}" + '/**/deb/**'), name: "${env.KERNEL_ARTIFACTS_PATH}"
+                sh '''
+                    set -xe
+                    rm -rf "scripts/package_building/${BUILD_NUMBER}-${KERNEL_ARTIFACTS_PATH}"
+                '''
               }
           }
-  }
+
+          stage('Build rpm packages') {
+              agent {
+                node {
+                  label 'centos_kernel_builder'
+                }
+              }
+              steps {
+                  sh '''#!/bin/bash
+                    set -xe
+                    echo "Building artifacts..."
+                    pushd "$WORKSPACE/scripts/package_building"
+                    JOB_KERNEL_ARTIFACTS_PATH="${BUILD_NUMBER}-${KERNEL_ARTIFACTS_PATH}"
+                    exit 0
+                    bash build_artifacts.sh \\
+                        --git_url ${KERNEL_GIT_URL} \\
+                        --git_branch ${KERNEL_GIT_BRANCH} \\
+                        --destination_path ${JOB_KERNEL_ARTIFACTS_PATH} \\
+                        --install_deps False \\
+                        --thread_number ${THREAD_NUMBER} \\
+                        --debian_os_version ${UBUNTU_VERSION} \\
+                        --build_path ${BUILD_PATH} \\
+                        --kernel_config ${KERNEL_CONFIG} \\
+                        --clean_env ${CLEAN_ENV} \\
+                        --use_ccache ${USE_CCACHE}
+                    popd
+                    '''
+
+                stash includes: ('scripts/package_building/' + "${env.BUILD_NUMBER}-${env.KERNEL_ARTIFACTS_PATH}" + '/**/rpm/**'), name: "${env.KERNEL_ARTIFACTS_PATH}"
+                sh '''
+                    set -xe
+                    rm -rf "scripts/package_building/${BUILD_NUMBER}-${KERNEL_ARTIFACTS_PATH}"
+                '''
+              }
+        }
+      }
+    }
 }
