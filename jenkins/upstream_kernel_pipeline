@@ -75,7 +75,6 @@ pipeline {
                     echo "Building artifacts..."
                     pushd "$WORKSPACE/scripts/package_building"
                     JOB_KERNEL_ARTIFACTS_PATH="${BUILD_NUMBER}-${KERNEL_ARTIFACTS_PATH}"
-                    exit 0
                     bash build_artifacts.sh \\
                         --git_url ${KERNEL_GIT_URL} \\
                         --git_branch ${KERNEL_GIT_BRANCH} \\
