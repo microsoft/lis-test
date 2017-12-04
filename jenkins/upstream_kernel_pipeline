@@ -28,9 +28,8 @@ pipeline {
       parallel {
           stage('Build Ubuntu deb') {
               agent {
-                node {
+                node ('ubuntu_kernel_builder') {
                   git url: 'https://github.com/LIS/lis-pipeline.git'
-                  label 'ubuntu_kernel_builder'
                 }
               }
               steps {
@@ -63,9 +62,8 @@ pipeline {
 
           stage('Build CentOS rpm') {
               agent {
-                node {
+                node ('centos_kernel_builder') {
                   git url: 'https://github.com/LIS/lis-pipeline.git'
-                  label 'centos_kernel_builder'
                 }
               }
               steps {
