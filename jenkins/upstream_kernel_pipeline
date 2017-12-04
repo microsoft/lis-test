@@ -24,8 +24,9 @@ pipeline {
     }
   }
   stages {
+      stage('Build packages') {
       parallel {
-          stage('Build deb packages') {
+          stage('Build Ubuntu deb') {
               agent {
                 node {
                   label 'ubuntu_kernel_builder'
@@ -41,7 +42,7 @@ pipeline {
                         --git_url ${KERNEL_GIT_URL} \\
                         --git_branch ${KERNEL_GIT_BRANCH} \\
                         --destination_path ${JOB_KERNEL_ARTIFACTS_PATH} \\
-                        --install_deps False \\
+                        --install_deps True \\
                         --thread_number ${THREAD_NUMBER} \\
                         --debian_os_version ${UBUNTU_VERSION} \\
                         --build_path ${BUILD_PATH} \\
@@ -59,7 +60,7 @@ pipeline {
               }
           }
 
-          stage('Build rpm packages') {
+          stage('Build CentOS rpm') {
               agent {
                 node {
                   label 'centos_kernel_builder'
@@ -76,7 +77,7 @@ pipeline {
                         --git_url ${KERNEL_GIT_URL} \\
                         --git_branch ${KERNEL_GIT_BRANCH} \\
                         --destination_path ${JOB_KERNEL_ARTIFACTS_PATH} \\
-                        --install_deps False \\
+                        --install_deps True \\
                         --thread_number ${THREAD_NUMBER} \\
                         --debian_os_version ${UBUNTU_VERSION} \\
                         --build_path ${BUILD_PATH} \\
