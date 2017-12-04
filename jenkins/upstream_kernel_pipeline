@@ -17,6 +17,7 @@ pipeline {
     USE_CCACHE = 'False'
     AZURE_MAX_RETRIES = '60'
     BUILD_NAME = 'upstream_kernel'
+    CLONE_DEPTH = '1'
     THREAD_NUMBER = 'x2'
   }
   agent {
@@ -50,7 +51,8 @@ pipeline {
                         --build_path ${BUILD_PATH} \\
                         --kernel_config ${KERNEL_CONFIG} \\
                         --clean_env ${CLEAN_ENV} \\
-                        --use_ccache ${USE_CCACHE}
+                        --use_ccache ${USE_CCACHE} \\
+                        --clone-depth ${CLONE_DEPTH}
                     popd
                     '''
 
@@ -85,7 +87,8 @@ pipeline {
                         --build_path ${BUILD_PATH} \\
                         --kernel_config ${KERNEL_CONFIG} \\
                         --clean_env ${CLEAN_ENV} \\
-                        --use_ccache ${USE_CCACHE}
+                        --use_ccache ${USE_CCACHE} \\
+                        --clone-depth ${CLONE_DEPTH}
                     popd
                     '''
 
