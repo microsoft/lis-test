@@ -33,7 +33,7 @@ pipeline {
                 }
               }
               steps {
-                  checkout scm
+                  git url: 'https://github.com/LIS/lis-pipeline.git'
                   sh '''#!/bin/bash
                     set -xe
                     echo "Building artifacts..."
@@ -68,7 +68,7 @@ pipeline {
                 }
               }
               steps {
-                  checkout scm
+                  git url: 'https://github.com/LIS/lis-pipeline.git'
                   sh '''#!/bin/bash
                     set -xe
                     echo "Building artifacts..."
