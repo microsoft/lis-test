@@ -30,7 +30,9 @@ pipeline {
               agent {
                 node {
                   label 'ubuntu_kernel_builder'
-                  checkout scm
+                  dir('lis-pipeline') {
+                     git url: 'https://github.com/LIS/lis-pipeline.git'
+                  }
                 }
               }
               steps {
@@ -65,7 +67,9 @@ pipeline {
               agent {
                 node {
                   label 'centos_kernel_builder'
-                  checkout scm
+                  dir('lis-pipeline') {
+                     git url: 'https://github.com/LIS/lis-pipeline.git'
+                  }
                 }
               }
               steps {
