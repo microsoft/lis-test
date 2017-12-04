@@ -30,6 +30,7 @@ pipeline {
               agent {
                 node {
                   label 'ubuntu_kernel_builder'
+                  checkout scm
                 }
               }
               steps {
@@ -64,6 +65,7 @@ pipeline {
               agent {
                 node {
                   label 'centos_kernel_builder'
+                  checkout scm
                 }
               }
               steps {
