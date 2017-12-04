@@ -44,7 +44,7 @@ pipeline {
                         --git_url ${KERNEL_GIT_URL} \\
                         --git_branch ${KERNEL_GIT_BRANCH} \\
                         --destination_path ${JOB_KERNEL_ARTIFACTS_PATH} \\
-                        --install_deps True \\
+                        --install_deps False \\
                         --thread_number ${THREAD_NUMBER} \\
                         --debian_os_version ${UBUNTU_VERSION} \\
                         --build_path ${BUILD_PATH} \\
@@ -80,7 +80,7 @@ pipeline {
                         --git_url ${KERNEL_GIT_URL} \\
                         --git_branch ${KERNEL_GIT_BRANCH} \\
                         --destination_path ${JOB_KERNEL_ARTIFACTS_PATH} \\
-                        --install_deps True \\
+                        --install_deps False \\
                         --thread_number ${THREAD_NUMBER} \\
                         --debian_os_version ${UBUNTU_VERSION} \\
                         --build_path ${BUILD_PATH} \\
