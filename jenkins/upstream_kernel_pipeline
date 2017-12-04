@@ -92,8 +92,9 @@ pipeline {
                     set -xe
                     rm -rf "scripts/package_building/${BUILD_NUMBER}-${KERNEL_ARTIFACTS_PATH}"
                 '''
-              }
+                }
+            }
         }
-      }
+    }
     }
 }
