@@ -526,7 +526,7 @@ if is_fedora ; then
     PACK_LIST=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc dosfstools 
     selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake nano parted
     kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-utils omping nc 
-    pciutils squashfs-tools vim tcpdump)
+    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... "
