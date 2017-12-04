@@ -29,10 +29,8 @@ pipeline {
           stage('Build Ubuntu deb') {
               agent {
                 node {
+                  git url: 'https://github.com/LIS/lis-pipeline.git'
                   label 'ubuntu_kernel_builder'
-                  dir('lis-pipeline') {
-                     git url: 'https://github.com/LIS/lis-pipeline.git'
-                  }
                 }
               }
               steps {
@@ -66,10 +64,8 @@ pipeline {
           stage('Build CentOS rpm') {
               agent {
                 node {
+                  git url: 'https://github.com/LIS/lis-pipeline.git'
                   label 'centos_kernel_builder'
-                  dir('lis-pipeline') {
-                     git url: 'https://github.com/LIS/lis-pipeline.git'
-                  }
                 }
               }
               steps {
