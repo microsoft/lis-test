@@ -17,6 +17,7 @@ pipeline {
     USE_CCACHE = 'False'
     AZURE_MAX_RETRIES = '60'
     BUILD_NAME = 'upstream_kernel'
+    THREAD_NUMBER = 'x2'
   }
   agent {
     node {
