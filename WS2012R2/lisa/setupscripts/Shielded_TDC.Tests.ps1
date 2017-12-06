@@ -86,7 +86,7 @@ Describe "Verify the output LSVM VHDX file from the TDC Wizard" {
             Verify_TDC $vhdPath $dependencyVhdPath $sshKey | Should be $true
 			
 			# Clean the dependency VM
-			CleanupDependency
+			CleanupDependency 'TDC_Dependency'
         }
     } 
 }
