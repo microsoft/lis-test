@@ -69,13 +69,13 @@ function Get_Certificate
     return $signcert
 }
 
-function CleanupDependency
+function CleanupDependency ([string]$vmName)
 {
     # Clean up
-    $sts = Stop-VM -Name 'TDC_Dependency' -TurnOff
+    $sts = Stop-VM -Name $vmName -TurnOff
 
     # Delete New VM created
-    $sts = Remove-VM -Name 'TDC_Dependency' -Confirm:$false -Force
+    $sts = Remove-VM -Name $vmName -Confirm:$false -Force
 }
 
 function Run_TDC ([string] $vhd_path, $signcert)
