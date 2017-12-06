@@ -119,8 +119,8 @@ if is_ubuntu ; then
 	fi
 	UpdateSummary "Info: Kernel package has been successfully installed!"
 	
-	if [ -e linux-azure-edge-cloud-tools* ]; then
-		dpkg -i linux-azure-edge-cloud-tools*
+	if [ -e linux-azure-edge-cloud-tools*  || -e linux-azure-cloud-tools* ]; then
+		dpkg -i linux-azure-*cloud-tools*
 	fi
 
 	dpkg -i linux-tools*
@@ -132,8 +132,8 @@ if is_ubuntu ; then
 	fi
 	UpdateSummary "Info: linux-tools and linux-cloud-tools have been successfully installed!"
 
-	if [ -e linux-azure-edge-headers* ]; then
-		dpkg -i linux-azure-edge-headers*
+	if [ -e linux-azure-edge-headers* || -e linux-azure-headers* ]; then
+		dpkg -i linux-azure-*headers*
 	fi
 
 	dpkg -i linux-headers*
