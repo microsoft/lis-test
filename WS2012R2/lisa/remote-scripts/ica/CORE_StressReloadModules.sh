@@ -166,6 +166,17 @@ DIFF=$(echo "$END - $START" | bc)
 echo "Info: Finished testing, bringing up eth0"
 ifdown eth0
 ifup eth0
+if [[ $? -ne 0 ]]; then
+    dhclient
+    if [[ $? -ne 0 ]]; then
+        msg="Error: dhclient exited with an error"
+        LogMsg "${msg}"
+        echo "$msg" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
+fi
+
 VerifyModules
 
 ipAddress=$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | cut -d: -f2 | cut -d' ' -f1 | sed -n 1p)
