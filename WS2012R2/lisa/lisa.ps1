@@ -24,11 +24,12 @@
     Perform tests on a VM as defined in a .xml file
 
 .Description
-    This powershell script automates the tasks required to test
+    This PowerShell script automates the tasks required to test
     the Linux Integrated Services (LIS) on Windows Hyper-V Server.
     This script is the entry script into the automation.
     The basic behavior of the automation is:
-        Start a VM
+        Create a VM or multiple VMs
+	Start VM(s)
         Push files to a VM
         Start a script executing on a VM
         Collect files from a VM
@@ -194,10 +195,10 @@
     the value, the more verbose the logging of message.  Levels above 5 are
     quite chatty and are not recommended.
 .Parameter collect
-    The collect parameter is used if you want to collect a set of general information
-    from the VM (e.g kernel version, LIS version, dmesg).
-    Usage: "-collect True" if you want to get more information out, otherwise don't
-    use it.
+    The collect parameter is used if you want to collect a set of logs from the VM (e.g
+    kernel version, LIS version, dmesg log).
+    Usage: ".\lisa.ps1 run xml\kvpTests.xml -collect True"
+    Default value is to not collect these information.
 .Example
     .\lisa.ps1 run xml\myTests.xml
 
