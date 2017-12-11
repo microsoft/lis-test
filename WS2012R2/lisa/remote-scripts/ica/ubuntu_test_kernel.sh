@@ -118,13 +118,13 @@ if is_ubuntu ; then
 		exit 1
 	fi
 	UpdateSummary "Info: Kernel package has been successfully installed!"
-	
-	if [ -e linux-azure-edge-cloud-tools*  || -e linux-azure-cloud-tools* ]; then
-		dpkg -i linux-azure-*cloud-tools*
+
+	if [ -e linux-azure-edge-cloud-tools* ] || [ -e linux-azure-cloud-tools* ]; then
+		dpkg -i linux-azure*cloud-tools*
 	fi
 
-	dpkg -i linux-tools*
-	dpkg -i linux-cloud-tools*
+        dpkg -i linux-tools*
+        dpkg -i linux-cloud-tools*
 	if [[ $? -ne 0 ]]; then
 		UpdateSummary "Error: Unable to install the proposed LIS daemons packages!"
 		UpdateTestState $ICA_TESTABORTED
@@ -132,8 +132,8 @@ if is_ubuntu ; then
 	fi
 	UpdateSummary "Info: linux-tools and linux-cloud-tools have been successfully installed!"
 
-	if [ -e linux-azure-edge-headers* || -e linux-azure-headers* ]; then
-		dpkg -i linux-azure-*headers*
+	if [ -e linux-azure-edge-headers* ] || [ -e linux-azure-headers* ]; then
+		dpkg -i linux-azure*headers*
 	fi
 
 	dpkg -i linux-headers*
@@ -148,7 +148,7 @@ if is_ubuntu ; then
 	LogMsg "New kernel version: $version"
 	sed -i.bak 's/GRUB_DEFAULT=.*/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux '$version'"/g' /etc/default/grub
 	update-grub
-	
+
 	# Send the script on the secondary vm if it's the case
 	if [ $willInstall -eq 0 ]; then
 		scp -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ~/ubuntu_test_kernel.sh "$SERVER_OS_USERNAME"@"$STATIC_IP2":~/ubuntu_test_kernel.sh
