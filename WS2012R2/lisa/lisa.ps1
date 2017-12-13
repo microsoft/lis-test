@@ -897,11 +897,45 @@ function RunTests ([String] $xmlFilename )
             $initResults = RunInitShutdownScript $xmlConfig.Config.Global.LisaInitScript $xmlFilename
         }
     }
-
+    
+    # Start reading the serial output if a com2 port is configured
+    $jobs = @()
+	foreach($vm in $xmlConfig.config.VMs.vm) {
+        $portPath = $(Get-VMComPort -ComputerName $vm.hvServer -VMName $vm.vmName -Number 2).Path
+        $vmName = $vm.vmName
+        if($portPath -ne '') {
+            $portPath = $portPath.Replace('.', $vm.hvServer)
+            $jobName = "${vmName}${portPath}"
+            $jobId = $(get-job -name $jobName -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Running' }).id
+            if($jobId) {
+                stop-job -id $jobId
+            }
+            $serialOutputFile = "${testDir}\${vmName}-icaserial.log"
+            $index = 0
+            while(Test-Path $serialOutputFile) {
+                $index = $index + 1
+                $serialOutputFile = "${testDir}\${vmName}-icaserial-${index}.log"
+            }
+            $currentPath = $PSScriptRoot
+            $jobObject=$(Start-Job -Name $jobName -ScriptBlock { Set-Location $args[0]; .\bin\icaserial.exe READ $args[1] | Out-File $args[2] } -ArgumentList $currentPath, $portPath, $serialOutputFile)
+            if($jobObject.State -ne 'Running') {
+                LogMsg 2 "Error : Unable to start ${jobName} background job on the following port ${portPath}"
+            } else {
+                LogMsg 4 "Info : Started background job ${jobName} for capturing VM output"
+                $jobs += $jobObject
+            }
+        }
+    }
+    
     LogMsg 10 "Info : Calling RunICTests"
     . .\stateEngine.ps1
     RunICTests $xmlConfig $collect
 
+    # Stop icaserial jobs
+    foreach($job in $jobs) {
+		Stop-Job -Id $job.id
+    }
+    
     #
     # email the test results if requested
     #
