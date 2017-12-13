@@ -168,28 +168,8 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
     if ($?){
         $group = Get-ClusterGroup -ErrorAction SilentlyContinue
         $vm_matches = $group -match $vmName
-        foreach ($vm_match in $vm_matches){
+        foreach( $vm_match in $vm_matches){
             Remove-ClusterGroup -Name $vm_match.name -RemoveResources -Force
-            if (-not $?)
-            {
-                "Error: Failed to remove Cluster Role for VM $vmName"
-                return $False
-            }
-
-            "Cleanup was successful for $vmName"
-        }
-
-        # Also remove VM from second node if it's located there
-        if (Get-ClusterGroup -ErrorAction SilentlyContinue){
-            $currentNode = (Get-Clusternode -Name $env:computername).Name.ToLower()
-            $clusterNodes = Get-ClusterNode
-            if ($currentNode -eq $clusterNodes[0].Name.ToLower()) {
-                $destinationNode = $clusterNodes[1].Name.ToLower()
-            }
-
-            if (Get-VM -Name $vmName -ComputerName $destinationNode -ErrorAction SilentlyContinue) {
-                Remove-VM $vmName -ComputerName $destinationNode -Force   
-            }
         }
     }
 
@@ -199,12 +179,12 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
             {
                 Stop-VM $vmName -ComputerName $hvServer -TurnOff
                 if (-not $?) {
-                    LogMsg 0 "Error: Unable to turn off $vmName in order to remove it!"
+                    Write-Host "Error: Unable to turn off $vmName in order to remove it!"
                     return $False
                 }
             }
             
-	    LogMsg 0 "Info: Cleanup: Deleting existing VM.."
+        Write-Host "Cleanup: Deleting existing VM"
         Remove-VM $vmName -ComputerName $hvServer -Force
     }
 
@@ -238,13 +218,13 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
     #
     if (-not $vm.vmName)
     {
-        LogMsg 0 "Error: VM definition is missing a vmName tag"
+        "Error: VM definition is missing a vmName tag"
         return $False
     }
 
     if (-not $vm.hvServer)
     {
-        LogMsg 0 "Error: VM $($vm.vmName) is missing a hvServer tag"
+        "Error: VM $($vm.vmName) is missing a hvServer tag"
         return $False
     }
     
@@ -258,7 +238,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
     if ( $vm.hardware.isCluster -eq "True") {
         Get-Cluster 
         if ($? -eq $False){
-            LogMsg 0 "Error: Server $hvServer doesn't have a cluster set up"
+            "Error: Server $hvServer doesn't have a cluster set up"
             return $False  
         }
         $clusterDir = Get-ClusterSharedVolume
@@ -269,8 +249,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
     }
 
     $vhdName = "${vmName}.vhdx"
-    $vhdFilename = "\\" + $hvServer + "\" + $vhdDir + $vhdName
-    $vhdFilename = $vhdFilename.Replace(":","$")
+    $vhdFilename = Join-Path $vhdDir $vhdName
     DeleteVmAndVhd $vmName $hvServer $vhdFilename 
 
     #
@@ -279,7 +258,8 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
     $fileInfo = GetRemoteFileInfo $vhdFilename -server $hvServer
     if ($fileInfo)
     {
-        LogMsg 0 "Error: The boot disk .vhd file for VM ${vmName} already exists. VHD = ${vhdFilename}"
+        "Error: The boot disk .vhd file for VM ${vmName} already exists"
+        "       VHD = ${vhdFilename}"
         return $False
     }
 
@@ -305,7 +285,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
         {
             if (-not $(Test-Path $parentVhd))
             {
-                LogMsg 0 "Error: Remote parent vhd file ${parentVhd} does not exist."
+                Write-Error "Remote parent vhd file ${parentVhd} does not exist."
                 return $False
             }
         } 
@@ -314,7 +294,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
             $fileInfo = GetRemoteFileInfo $parentVhd $hvServer
             if (-not $fileInfo)
             {
-                LogMsg 0 "Error: The parent .vhd file ${parentVhd} does not exist for ${vmName}"
+                Write-Error "Error: The parent .vhd file ${parentVhd} does not exist for ${vmName}"
                 return $False
             }
         }
@@ -327,7 +307,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
         $importVmInfo = GetRemoteFileInfo $vm.hardware.importVM
         if (-not $fileInfo)
         {
-            LogMsg 0 "Error: The importVM xml file does not exist, or cannot be accessed"
+            Write-Error "Error: The importVM xml file does not exist, or cannot be accessed"
             return $False
         }
     }
@@ -344,7 +324,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
         $fileInfo = GetRemoteFileInfo $dataVhdFile $hvServer
         if (-not $fileInfo)
         {
-            LogMsg 0 "Error: The parent .vhd file ${dataVhd} does not exist for ${vmName}"
+            Write-Error "Error: The parent .vhd file ${dataVhd} does not exist for ${vmName}"
             return $False
         }
     }
@@ -360,7 +340,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
     {
         if ([int]$($vm.hardware.numCPUs) -lt 1)
         {
-            LogMsg 0 "Warn: The numCPUs for VM ${vmName} is less than 1. numCPUs has been set to 1"
+            Write-Warning "Warn : The numCPUs for VM ${vmName} is less than 1. numCPUs has been set to 1"
             $vm.hardware.numCPUs = "1"
         }
 
@@ -370,7 +350,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
         $processors = GWMI Win32_Processor -computer $hvServer
         if (-not $processors)
         {
-            LogMsg 0 "Warn: Unable to determine the number of processors on HyperV server ${hvServer}. numCPUs has been set to 1"
+            Write-Warning "Warn : Unable to determine the number of processors on HyperV server ${hvServer}. numCPUs has been set to 1"
             $vm.hardware.numCPUs = "1"
             
         }
@@ -383,7 +363,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
             
             if ($maxCPUs -and [int]$($vm.hardware.numCPUs) -gt $maxCPUs)
             {
-                LogMsg 0 "Warn: The numCPUs for VM ${vmName} is larger than the HyperV server supports (${maxCPUs}). numCPUs has been set to max"
+                Write-Warning "Warn : The numCPUs for VM ${vmName} is larger than the HyperV server supports (${maxCPUs}). numCPUs has been set to max"
                 $vm.hardware.numCPUs = $maxCPUs
             }
         }
@@ -419,13 +399,13 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
                     }
                 }
             default {
-                    LogMsg 0 "Warn: Invalid memSize. MemSize defaulting to 1024MB"
+                    Write-Warning "Invalid memSize. MemSize defaulting to 1024MB"
                 } 
             }
         }
         else
         {
-            LogMsg 0 "Warn: Invalid memSize. MemSize defaulting to 1024 MB"
+            Write-Warning "Warn: Invalid memSize. MemSize defaulting to 1024 MB"
         }
 
         $vm.hardware.memSize = $mbMemSize
@@ -437,7 +417,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
         $memSize = [Uint64] $vm.hardware.memSize
         if ($memSize -lt 512)
         {
-            LogMsg 0 "Warn: The memSize for VM ${vmName} is below the minimum of 512 MB. memSize set to the default value of 512 MB"
+            Write-Warning "The memSize for VM ${vmName} is below the minimum of 512 MB. memSize set to the default value of 512 MB"
             $vm.hardware.memSize = "512"
         }
 
@@ -457,7 +437,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
             $mbMemSize = [uint64]$mbMemSize
             if ($mbMemSize -gt $memInMB)
             {
-                LogMsg 0 "Warn : The memSize for VM ${vmName} is larger than the HyperV servers physical memory. memSize set to the default size of 512 MB"
+                Write-Warning "Warn : The memSize for VM ${vmName} is larger than the HyperV servers physical memory. memSize set to the default size of 512 MB"
                 $vm.hardware.memSize = "512"
             }
         }
@@ -475,7 +455,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
             $tokens = $nic.Trim().Split(",")
             if (-not $tokens -or $tokens.Length -lt 2 -or $tokens.Length -gt 3)
             {
-                LogMsg 0 "Error: Invalid NIC defnintion for VM ${vmName}: $nic"
+                "Error: Invalid NIC defnintion for VM ${vmName}: $nic"
                 "       Syntax is 'nic type, network name', 'MAC address'"
                 "       Valid nic types: Legacy, VMBus"
                 "       The network name must be a valid switch name on the HyperV server"
@@ -497,7 +477,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
             #
             if (@("Legacy", "VMBus") -notcontains $nicType)
             {
-                LogMsg 0 "Error: Unknown NIC adapter type: ${nicType}"
+                "Error: Unknown NIC adapter type: ${adapterType}"
                 "       The value must be one of: Legacy, VMBus"
                 "       The NIC will not be added to the VM"
                 Continue
@@ -517,7 +497,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
             }
             else
             {
-                LogMsg 0 "Error: Unable to determine available networks on HyperV server ${hvServer}"
+                "Error: Unable to determine available networks on HyperV server ${hvServer}"
                 "       The NIC will not be added (${nic})"
                 Continue
             }
@@ -527,8 +507,8 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
             #
             if ($validNetworks -notcontains $networkName)
             {
-                LogMsg 0 "Error: The network name ${networkName} is unknown on HyperV server ${hvServer}"
-                "         The NIC will not be added to the VM"
+                "Error: The network name ${$networkName} is unknown on HyperV server ${hvServer}"
+                "       The NIC will not be added to the VM"
                 Continue
             }
 
@@ -545,7 +525,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
                 #
                 if ($macAddress.Length -ne 12)
                 {
-                    LogMsg 0 "Error: The MAC address ${macAddress} has an invalid length"
+                    "Error: The MAC address ${macAddress} has an invalid length"
                     Continue
                 }
             }
@@ -579,8 +559,9 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # The create attribute is missing, or it is not true.
         # So, nothing to do
-        LogMsg 0 "Info : VM ${vmName} does not have a create attribute, or the create attribute is not set to True
-                  The VM will not be created"
+        "Info : VM ${vmName} does not have a create attribute,"
+        "       or the create attribute is not set to True"
+        "       The VM will not be created"
         return $True
     }
 
@@ -595,7 +576,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # Create the VM
         #
-        LogMsg 0 "Info: Required parameters check done, creating VM..."
+        Write-host "Required parameters check done, creating VM..."
         
         $vmGeneration = 1
         if ($vm.hardware.generation) {
@@ -633,7 +614,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
             
         if ($null -eq $newVm) {
-            LogMsg 0 "Error: Unable to create the VM named $($vm.vmName)."
+            Write-Error "Error: Unable to create the VM named $($vm.vmName)."
             return $false
         }
 
@@ -649,7 +630,23 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 Set-VMFirmware -VM $newVm -EnableSecureBoot Off
             }
-        }
+        } else {
+            # Setup an unique com port
+			$comPath = $(Get-VMComPort -ComputerName $hvServer -VMName $vmName -Number 2).Path
+			$pipeName = $(-join ((48..57) + (97..122) | Get-Random -Count 10 | % {[char]$_}))
+			$pipePath = "\\.\pipe\${pipeName}"
+			$comPorts = $(get-vm -computername $hvServer | Where-Object { $_.ComPort2.Path -ne '' } | Select -ExpandProperty ComPort2 | Select -ExpandProperty Path)
+			while (($comPorts.contains($pipePath)))
+			{
+				$pipeName = $(-join ((48..57) + (97..122) | Get-Random -Count 10 | % {[char]$_}))
+				$pipePath = "\\.\pipe\${pipeName}"
+			}
+			Set-VMComPort -ComputerName $hvServer -VMName $vmName -Number 2 -Path $pipePath -ErrorAction SilentlyContinue
+			if($? -ne 0) 
+			{
+				Write-Error "Error: Unable to set Com Port with the following path: ${pipePath}"
+			}
+		}
           
         #
         # Modify VMs CPU count if user specified a new value
@@ -709,7 +706,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 if($xmlData.Config.global.VhdPath){
                     $vhdDir = $xmlData.Config.global.VhdPath
                     if ( -not (Test-Path $vhdDir)){
-                        LogMsg 0 "Error: Path $vhdDir given as parameter does not exist"
+                        Write-host -f red "Error: Path $vhdDir given as parameter does not exist"
                         return $false
                     }
                 }
@@ -717,15 +714,11 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
                 }
             }
-            # If the path has the ending backslash, remove it
-            if($vhdDir.EndsWith("\")) {
-                $vhdDir = $vhdDir.Substring(0,$vhdDir.Length -1)
-            }
-            $dstPath = $vhdDir + "\" + "${vmName}${extension}"
+            $dstPath = Join-Path $vhdDir "${vmName}${extension}"
             $dstDrive = $dstPath.Substring(0,1)
             $dstlocalPath = $dstPath.Substring(3)
             $dstPathNetwork = "\\${hvServer}\${dstDrive}$\${dstlocalPath}"
-            LogMsg 0 "Info: Copying parent vhd from $parentVhd to $dstPathNetwork"
+            Write-Host "Copying parent vhd from $parentVhd to $dstPathNetwork"
             Copy-Item -Path $parentVhd -Destination $dstPathNetwork -Force
             $parentVhd = $dstPath
         }
@@ -741,13 +734,8 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             #
             $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
             $vhdName = "${vmName}_diff.vhdx"
-            $vhdFilename = $vhdDir + $vhdName
-            $vhdFilenameNetPath = "\\" + $hvServer + "\" + $vhdFilename.Replace(":","$")
+            $vhdFilename = Join-Path $vhdDir $vhdName
 
-            # Check if differencing boot disk exists, and if yes, delete it
-            if(Test-Path $vhdFilenameNetPath) {
-                Remove-Item -Path $vhdFilenameNetPath -Force
-            }
             #
             #Create the boot .vhd
             #
@@ -755,11 +743,11 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
             if (-not $bootVhd)
             {
-                LogMsg 0 "Error: Failed to create $vhdFilename using parent $parentVhd for VM ${vmName}"
+                "Error: Failed to create $vhdFilename using parent $parentVhd for VM ${vmName}"
                 $fileInfo = GetRemoteFileInfo $vhdFilename $hvServer
                 if ($fileInfo)
                 {
-                    LogMsg 0 "Error: The file already exists"
+                    "Error: The file already exists"
                 }
     
                 DeleteVmAndVhd $vmName $hvServer $null
@@ -780,7 +768,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             #
             # We cannot create the boot disk, so delete the VM
             #
-            LogMsg 0 "Error: VM hard disk not created"
+            Write-Host "VM hard disk not created"
             DeleteVmAndVhd $vmName $hvServer $vhdFilename
             return $false
         }
@@ -804,7 +792,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 #
                 # We cannot create the boot disk, so delete the VM
                 #
-                  LogMsg 0 "Error: Cannot attach data disk"
+                  Write-Host "Count not to attache data disk"
                   DeleteVmAndVhd $vmName $hvServer $vhdFilename
                 return $false
             }
@@ -825,7 +813,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 $tokens = $nic.Trim().Split(",")
                 if (-not $tokens -or $tokens.Length -lt 2 -or $tokens.Length -gt 3)
                 {
-                    LogMsg 0 "Error: Invalid NIC defnintion for VM ${vmName}: $nic"
+                    "Error: Invalid NIC defnintion for VM ${vmName}: $nic"
                     "       The NIC was not added to the VM"
                     Continue
                 }
@@ -858,7 +846,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                         }
                         else
                         {
-                            LogMsg 0 "Warn: Invalid MAC address for NIC ${nic}. NIC left with dynamic MAC"
+                            Write-Warning "Warn : Invalid MAC address for NIC ${nic}. NIC left with dynamic MAC"
                         }
                     }
                 }
@@ -869,13 +857,13 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 }
                 else
                 {
-                    LogMsg 0 "Warn: Unable to add legacy NIC (${nic}) to VM ${vmName}"
+                    Write-Warning "Warn : Unable to add legacy NIC (${nic}) to VM ${vmName}"
                 }
             }
 
             if (-not $nicAdded)
             {
-                LogMsg 0 "Error: no NICs were added to VM ${vmName}. The VM was not created"
+                Write-Error "Error: no NICs were added to VM ${vmName}. The VM was not created"
                 DeleteVmAndVhd $vmName $hvServer $vhdFilename
                 return $False
             } 
@@ -888,13 +876,13 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             Add-ClusterVirtualMachineRole -VirtualMachine $vmName
             if ($? -eq $False)
             {
-                LogMsg 0 "Error: High Availability configure for ${vmName} failed. The VM was not created"
+                Write-Error "Error: High Availability configure for ${vmName} failed. The VM was not created"
                 DeleteVmAndVhd $vmName $hvServer $vhdFilename
                 return $False
             }
         }
         
-        LogMsg 0 "Info: VM ${vmName} created successfully!"
+        Write-Host "Info: VM created successfully"
         $retVal = $True       
     }
 
@@ -956,8 +944,9 @@ foreach ($vm in $xmlData.Config.VMs.VM)
     #
     if ($vm.hardware)
     {
-        LogMsg 0 "Info: Creating VM: $($vm.vmName)"
+        write-host "Creating VM"
         $vmCreateStatus = CreateVM $vm $xmlData
+
         if (-not $vmCreateStatus)
         {
             exit $exitStatus
@@ -965,8 +954,8 @@ foreach ($vm in $xmlData.Config.VMs.VM)
     }
     else
     {
-        LogMsg 0 "Error : The VM $($vm.vmName) does not have a hardware definition.
-                      The VM will not be created !"
+        "Info : The VM $($vm.vmName) does not have a hardware definition."
+        "       The VM will not be created"
     }
 }
 
