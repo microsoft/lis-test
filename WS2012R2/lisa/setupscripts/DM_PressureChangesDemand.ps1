@@ -19,7 +19,6 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
  Verify that demand changes with memory pressure inside the VM.
@@ -65,120 +64,12 @@
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
 Set-PSDebug -Strict
-
-# we need a scriptblock in order to pass this function to start-job
-$scriptBlock = {
-  # function which $memMB MB of memory on VM with IP $conIpv4 with stresstestapp
-  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir,[int]$timeoutStress)
-  {
-
-  # because function is called as job, setup rootDir and source TCUtils again
-  if (Test-Path $rootDir)
-  {
-    Set-Location -Path $rootDir
-    if (-not $?)
-    {
-    "Error: Could not change directory to $rootDir !"
-    return $false
-    }
-    "Changed working directory to $rootDir"
-  }
-  else
-  {
-    "Error: RootDir = $rootDir is not a valid path"
-    return $false
-  }
-
-  # Source TCUitls.ps1 for getipv4 and other functions
-  if (Test-Path ".\setupScripts\TCUtils.ps1")
-  {
-    . .\setupScripts\TCUtils.ps1
-    "Sourced TCUtils.ps1"
-  }
-  else
-  {
-    "Error: Could not find setupScripts\TCUtils.ps1"
-    return $false
-  }
-
-
-      $cmdToVM = @"
-#!/bin/bash
-        if [ ! -e /proc/meminfo ]; then
-          echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/HotAdd.log 2>&1
-          exit 100
-        fi
-
-        rm ~/HotAddErrors.log -f
-        dos2unix check_traces.sh
-        chmod +x check_traces.sh
-        ./check_traces.sh ~/HotAddErrors.log &
-
-        __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
-        __totalMem=`$((__totalMem/1024))
-        echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1
-        __chunks=128
-        __threads=16
-        declare -i __iterations
-        declare -i duration
-        declare -i timeout
-        if [ $timeoutStress -eq 1 ]; then
-          duration=120
-          timeout=4000000
-        else
-          duration=180
-          timeout=10000000
-        fi
-        echo "Going to start `$__iterations instance(s) of stresstestapp with a duration of `$duration and a timeout of $timeoutStress each consuming 128MB memory" >> /root/HotAdd.log 2>&1
-        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t `$duration --backoff `$timeout
-        echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
-        wait
-        exit 0
-"@
-
-    #"pingVMs: sendig command to vm: $cmdToVM"
-    $filename = "ConsumeMem.sh"
-
-    # check for file
-    if (Test-Path ".\${filename}")
-    {
-      Remove-Item ".\${filename}"
-    }
-
-    Add-Content $filename "$cmdToVM"
-
-    # send file
-    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
-
-    # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
-      Remove-Item ".\${filename}"
-    }
-
-    # check the return Value of SendFileToVM
-    if (-not $retVal[-1])
-    {
-      return $false
-    }
-
-    # execute command as job
-    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
-    return $retVal
-
-  }
-}
-
-
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 #
 # Check input arguments
 #
@@ -222,36 +113,36 @@ Set-Variable defaultTries -option Constant -value 3
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
 {
-  "Mandatory param RootDir=Path; not found!"
-  return $false
+    "Mandatory param RootDir=Path; not found!"
+    return $false
 }
 $rootDir = $Matches[1]
 
 if (Test-Path $rootDir)
 {
-  Set-Location -Path $rootDir
-  if (-not $?)
-  {
-    "Error: Could not change directory to $rootDir !"
-    return $false
-  }
-  "Changed working directory to $rootDir"
+    Set-Location -Path $rootDir
+    if (-not $?)
+    {
+        "Error: Could not change directory to $rootDir !"
+        return $false
+    }
+    "Changed working directory to $rootDir"
 }
 else
 {
-  "Error: RootDir = $rootDir is not a valid path"
-  return $false
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
 }
 
 # Source TCUitls.ps1 for getipv4 and other functions
 if (Test-Path ".\setupScripts\TCUtils.ps1")
 {
-  . .\setupScripts\TCUtils.ps1
+    . .\setupScripts\TCUtils.ps1
 }
 else
 {
-  "Error: Could not find setupScripts\TCUtils.ps1"
-  return $false
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 $params = $testParams.Split(";")
@@ -261,69 +152,50 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-      "vmName"  { $vm1Name =$fields[1].Trim() }
-      "ipv4"    { $ipv4    = $fields[1].Trim() }
-      "sshKey"  { $sshKey  = $fields[1].Trim() }
-      "tries"  { $tries  = $fields[1].Trim() }
+        "ipv4"    { $ipv4    = $fields[1].Trim() }
+        "sshKey"  { $sshKey  = $fields[1].Trim() }
+        "tries"  { $tries  = $fields[1].Trim() }
+        "appGitURL"  { $appGitURL  = $fields[1].Trim() }
+        "appGitTag"  { $appGitTag  = $fields[1].Trim() }
+        "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     }
-
 }
+
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 if (-not $sshKey)
 {
-  "Error: Please pass the sshKey to the script."
-  return $false
+    "Error: Please pass the sshKey to the script." | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 if ($tries -le 0)
 {
-  $tries = $defaultTries
+    $tries = $defaultTries
 }
 
-if ($vmName -notlike $vm1Name)
-{
-  "Error: the VMName testParam needs to be the same as the VMName from the global setting"
-  return $false
-}
-
+$vm1Name = $vmName
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $vm1)
 {
-  "Error: VM $vm1Name does not exist"
-  return $false
-}
-
-# Check if stress-ng is installed
-"Checking if stress-ng is installed"
-
-$retVal = check_app "stress-ng"
-
-if (-not $retVal)
-{
-    "stress-ng is not installed! Please install it before running the memory stress tests."
+    "Error: VM $vm1Name does not exist" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
+# Install stress-ng if not installed
+"Checking if stress-ng is installed"
+
+$retVal = installApp "stress-ng" $ipv4 $appGitURL $appGitTag
+if (-not $retVal)
+{
+    "stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
+    return $false
+}
 "stress-ng is installed! Will begin running memory stress tests shortly."
 
-# Check kernel version
-$sts = check_kernel
-
-if (-not $sts) {
-  "ERROR: Could not check kernel version"
-  $retVal = $False
-}
-elseif ($sts -like '2.6*') {
-  "Info: 2.6.x kernel version detected. Higher timeout is used between stress-ng processes."
-  $timeoutStress = 8
-}
-else {
-  "Kernel version: ${sts}"
-  $timeoutStress = 1
-}
-
-
+$timeoutStress = 0
 # get memory stats from vm1
 # wait up to 2 min for it
 
@@ -331,102 +203,92 @@ $sleepPeriod = 120 #seconds
 # get VM1 and VM2's Memory
 while ($sleepPeriod -gt 0)
 {
+    [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/1MB)
+    [int64]$vm1BeforeDemand = ($vm1.MemoryDemand/1MB)
 
-  [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/1MB)
-  [int64]$vm1BeforeDemand = ($vm1.MemoryDemand/1MB)
+    if ($vm1BeforeAssigned -gt 0 -and $vm1BeforeDemand -gt 0)
+    {
+        break
+    }
 
-  if ($vm1BeforeAssigned -gt 0 -and $vm1BeforeDemand -gt 0)
-  {
-    break
-  }
-
-  $sleepPeriod-= 5
-  start-sleep -s 5
-
+    $sleepPeriod-= 5
+    Start-Sleep -s 5
 }
 
 if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0)
 {
-  "Error: vm1 $vm1Name reported 0 memory (assigned or demand)."
-  return $False
+    "Error: vm1 $vm1Name reported 0 memory (assigned or demand)." | Tee-Object -Append -file $summaryLog
+    return $False
 }
 
 "Memory stats after $vm1Name started reporting "
 "  ${vm1Name}: assigned - $vm1BeforeAssigned | demand - $vm1BeforeDemand"
 
-# Calculate the amount of memory to be consumed on VM1 and VM2 with stresstestapp
 [int64]$vm1ConsumeMem = (Get-VMMemory -VM $vm1).Maximum
-# only consume 75% of max memory
-$vm1ConsumeMem = ($vm1ConsumeMem / 4) * 3
-# transform to MB
 $vm1ConsumeMem /= 1MB
+
 # Send Command to consume
-$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $timeoutStress) ConsumeMemory $ip $sshKey $rootDir $timeoutStress } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$timeoutStress)
+$job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $timeoutStress, $vm1ConsumeMem) ConsumeMemory $ip $sshKey $rootDir $timeoutStress $vm1ConsumeMem } -InitializationScript $DM_scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$timeoutStress,$vm1ConsumeMem)
 if (-not $?)
 {
-  "Error: Unable to start job for creating pressure on $vm1Name"
-
-  return $false
+    "Error: Unable to start job for creating pressure on $vm1Name" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
-# sleep a few seconds so all stresstestapp processes start and the memory assigned/demand gets updated
-start-sleep -s 50
-# get memory stats for vm1 after stresstestapp starts
+Start-Sleep -s 120
+# get memory stats for vm1 after stress-ng starts
 [int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
 [int64]$vm1Demand = ($vm1.MemoryDemand/1MB)
 
-"Memory stats after $vm1Name started stresstestapp"
+"Memory stats after $vm1Name started stress-ng"
 "  ${vm1Name}: assigned - $vm1Assigned | demand - $vm1Demand"
 
 if ($vm1Demand -le $vm1BeforeDemand)
 {
-  "Error: Memory Demand did not increase after starting stresstestapp"
-  return $false
+    "Error: Memory Demand did not increase after starting stress-ng" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
-
 # Wait for jobs to finish now and make sure they exited successfully
-$timeout = 600
+$timeout = 300
 $firstJobStatus = $false
 while ($timeout -gt 0)
 {
-
-  if ($job1.Status -like "Completed")
-  {
-    $firstJobStatus = $true
-    $retVal = Receive-Job $job1
-    if (-not $retVal[-1])
+    if ($job1.Status -like "Completed")
     {
-      "Error: Consume Memory script returned false on VM1 $vm1Name"
-      return $false
+        $firstJobStatus = $true
+        $retVal = Receive-Job $job1
+        if (-not $retVal[-1])
+        {
+            "Error: Consume Memory script returned false on VM1 $vm1Name" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+        $diff = $totalTimeout - $timeout
+        "Job finished in $diff seconds."
     }
-    $diff = $totalTimeout - $timeout
-    "Job finished in $diff seconds."
-  }
 
-  if ($firstJobStatus)
-  {
-    break
-  }
+    if ($firstJobStatus)
+    {
+        break
+    }
 
-  $timeout -= 1
-  start-sleep -s 1
-
+    $timeout -= 1
+    Start-Sleep -s 1
 }
 
 # Verify if errors occured on guest
 $isAlive = WaitForVMToStartKVP $vm1Name $hvServer 10
 if (-not $isAlive){
-  "Error: VM is unresponsive after running the memory stress test"
-  return $false
+    "Error: VM is unresponsive after running the memory stress test" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 $errorsOnGuest = echo y | bin\plink -i ssh\${sshKey} root@$ipv4 "cat HotAddErrors.log"
 if (-not  [string]::IsNullOrEmpty($errorsOnGuest)){
-  $errorsOnGuest
-  return $false
+    $errorsOnGuest
+    return $false
 }
 
 # Everything ok
-"Success: Memory Demand changed with pressure on Linux guest"
+"Success: Memory Demand changed with pressure on Linux guest" | Tee-Object -Append -file $summaryLog
 return $true

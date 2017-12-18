@@ -116,56 +116,20 @@
     None.
 #>
 
-
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $global:MinDiskSize = "1GB"
 
-
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-
-    if (-not $filename)
-    {
-        return $null
-    }
-
-    if (-not $server)
-    {
-        return $null
-    }
-
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -ComputerName $server
-
-    return $fileInfo
-}
-
-
 ############################################################################
 #
-# CreateController
+# CreateControllerVHD
 #
 # Description
 #     Create a SCSI controller if one with the ControllerID does not
 #     already exist.
 #
 ############################################################################
-function CreateController([string] $vmName, [string] $server, [string] $controllerID)
+function CreateControllerVHD([string] $vmName, [string] $server, [string] $controllerID)
 {
     #
     # Hyper-V only allows 4 SCSI controllers - make sure the Controller ID is valid
@@ -184,7 +148,7 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
     #       SCSI controllers.
     #
     $maxControllerID = 0
-    $createController = $true
+    $CreateControllerVHD = $true
     $controllers = Get-VMScsiController -VMName $vmName -ComputerName $server
 
     if ($controllers -ne $null)
@@ -201,14 +165,14 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
         if ($controllerID -lt $maxControllerID)
         {
             "Info : Controller exists - controller not created"
-            $createController = $false
+            $CreateControllerVHD = $false
         }
     }
 
     #
     # If needed, create the controller
     #
-    if ($createController)
+    if ($CreateControllerVHD)
     {
         $ctrl = Add-VMSCSIController -VMName $vmName -ComputerName $server -Confirm:$false
         if($? -ne $true)
@@ -222,44 +186,6 @@ function CreateController([string] $vmName, [string] $server, [string] $controll
         }
     }
 }
-
-function ConvertStringToUInt64([string] $newSize)
-{
-    $uint64Size = $null
-    #
-    # Make sure we received a string to convert
-    #
-    if (-not $newSize)
-    {
-        Write-Error -Message "ConvertStringToUInt64() - input string is null" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-    if ($newSize.EndsWith("MB"))
-    {
-        $num = $newSize.Replace("MB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1MB
-    }
-    elseif ($newSize.EndsWith("GB"))
-    {
-        $num = $newSize.Replace("GB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1GB
-    }
-    elseif ($newSize.EndsWith("TB"))
-    {
-        $num = $newSize.Replace("TB","")
-        $uint64Size = ([Convert]::ToUInt64($num)) * 1TB
-    }
-    else
-    {
-        Write-Error -Message "Invalid newSize parameter: ${newSize}" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-
-    return $uint64Size
-}
-
 
 ############################################################################
 #
@@ -288,7 +214,7 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
         #
         # Create the SCSI controller if needed
         #
-        $sts = CreateController $vmName $server $controllerID
+        $sts = CreateControllerVHD $vmName $server $controllerID
 
         if (-not $sts[$sts.Length-1])
         {
@@ -317,12 +243,16 @@ function CreatePassThruDrive([string] $vmName, [string] $server, [switch] $scsi,
         }
     }
 
-    $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $server
-    if ($dvd)
+    $vmGen = GetVMGeneration $vmName $hvServer
+
+    if (($vmGen -eq 1) -and ($controllerType -eq "IDE"))
     {
-        Remove-VMDvdDrive $dvd
+        $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $server
+        if ($dvd)
+        {
+            Remove-VMDvdDrive $dvd
+        }
     }
-    
 
     # Create the .vhd file if it does not already exist, then create the drive and mount the .vhdx
     $hostInfo = Get-VMHost -ComputerName $server
@@ -406,7 +336,7 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         #
         # Create the SCSI controller if needed
         #
-        $sts = CreateController $vmName $server $controllerID
+        $sts = CreateControllerVHD $vmName $server $controllerID
         if (-not $sts[$sts.Length-1])
         {
             "Error: Unable to create SCSI controller $controllerID"
@@ -443,11 +373,17 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
         }
     }
 
-    $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer
-    if ($dvd)
+    $vmGen = GetVMGeneration $vmName $hvServer
+
+    if (($vmGen -eq 1) -and ($controllerType -eq "IDE"))
     {
-        Remove-VMDvdDrive $dvd
+        $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer
+        if ($dvd)
+        {
+            Remove-VMDvdDrive $dvd
+        }
     }
+
     #
     # Create the .vhd file if it does not already exist
     #
@@ -604,6 +540,11 @@ if ($testParams -eq $null -or $testParams.Length -lt 3)
     return $false
 }
 
+# Source TCUtils
+. .\setupScripts\TCUtils.ps1
+
+# Source STOR_VHDXResize_Utils
+. .\setupScripts\STOR_VHDXResize_Utils.ps1
 
 #
 # Parse the testParams string

@@ -23,11 +23,14 @@ $ python lisa_parser.py path_to_xml_file  path_to_ica_log_file
 
 ```
 -c | --config      Path to config file that holds values for the database connection - config/db.config default
--l | --loglevel Logging level for the script - 2 default
-                Levels: 1 - Warning, 2 - Info, 3 - Debug
--k | --skipkvp  Flag that indicates if the script searches for DistroVersion and KernelVersion from the VM - default True
--p | --perf     Attribute that indicates if a performance test is being run and the path to the test report log
--s | --snapshot Virtual Machine snapshot name - default False
+-l | --loglevel    Logging level for the script - 2 default
+                   Levels: 1 - Warning, 2 - Info, 3 - Debug
+-k | --skipkvp     Flag that indicates if the script searches for DistroVersion and KernelVersion from the VM - default False
+-p | --perf        Attribute that indicates if a performance test is being run and the path to the test report log
+-s | --snapshot    Virtual Machine snapshot name - default False
+-n | --nodbcommit  Skip inserting results into the database
+-R | --report      Get a report of the number of tests that were run and a list o issues in json format
+-S | --sumarry     Create a summary(complete coverage and a csv file with test issues) of all the previous test reports from a folder.
 ```
 
 ### Specify config file

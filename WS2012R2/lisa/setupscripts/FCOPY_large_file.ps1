@@ -145,7 +145,6 @@ function mount_disk()
     }
 
     "Info: $driveName has been mounted to /mnt in the VM $vmName."
-
     return $True
 }
 
@@ -205,6 +204,23 @@ if (-not (Test-Path $rootDir)) {
 }
 cd $rootDir
 
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+    . .\setupScripts\TCUtils.ps1
+} else {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+}
+
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
 # Delete any previous summary.log file, then create a new one
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
@@ -241,6 +257,22 @@ if (-not $gsi.Enabled) {
 	} until (Test-NetConnection $IPv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 }
 
+if ($gsi.OperationalStatus -ne "OK") {
+	"Error: The Guest services are not working properly for VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
+	$retVal = $False
+	exit 1
+}
+
+#
+# The fcopy daemon must be running on the Linux guest VM
+#
+$sts = check_fcopy_daemon
+if (-not $sts[-1]) {
+	Write-Output "ERROR: File copy daemon is not running inside the Linux guest VM!" | Tee-Object -Append -file $summaryLog
+	$retVal = $False
+	exit 1
+}
+
 # Get VHD path of tested server; file will be copied there
 $vhd_path = Get-VMHost -ComputerName $hvServer | Select -ExpandProperty VirtualHardDiskPath
 
@@ -257,34 +289,20 @@ $testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
 $filePath = $vhd_path + $testfile
 $file_path_formatted = $vhd_path_formatted + $testfile
 
-if ($gsi.OperationalStatus -ne "OK") {
-    "Error: The Guest services are not working properly for VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
+# Create a 10GB sample file
+$createfile = fsutil file createnew \\$hvServer\$file_path_formatted $filesize
+
+if ($createfile -notlike "File *testfile-*.file is created") {
+	"Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
 	$retVal = $False
 }
-else {
-	# Create a 10GB sample file
-	$createfile = fsutil file createnew \\$hvServer\$file_path_formatted $filesize
 
-	if ($createfile -notlike "File *testfile-*.file is created") {
-		"Error: Could not create the sample test file in the working directory!" | Tee-Object -Append -file $summaryLog
-		$retVal = $False
-	}
-}
 
 # Verifying if /tmp folder on guest exists; if not, it will be created
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /tmp ]"
 if (-not $?){
     Write-Output "Folder /tmp not present on guest. It will be created"
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir /tmp"
-}
-
-#
-# The fcopy daemon must be running on the Linux guest VM
-#
-$sts = check_fcopy_daemon
-if (-not $sts[-1]) {
-    Write-Output "ERROR: File copy daemon is not running inside the Linux guest VM!" | Tee-Object -Append -file $summaryLog
-    $retVal = $False
 }
 
 $sts = mount_disk

@@ -91,7 +91,7 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
-                <param>TC_COVERED=SRIOV-36</param>                                   
+                <param>TC_COVERED=SRIOV-38</param>                                   
                 <param>BOND_IP1=10.11.12.51</param>
                 <param>BOND_IP2=10.11.12.52</param>
                 <param>NETMASK=255.255.255.0</param>
@@ -111,7 +111,7 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
-                <param>TC_COVERED=SRIOV-37</param>                                   
+                <param>TC_COVERED=SRIOV-39</param>                                   
                 <param>BOND_IP1=10.11.12.51</param>
                 <param>BOND_IP2=10.11.12.52</param>
                 <param>NETMASK=255.255.255.0</param>
@@ -133,7 +133,7 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112201</param>
-                <param>TC_COVERED=SRIOV-38</param>                                   
+                <param>TC_COVERED=SRIOV-40</param>                                   
                 <param>BOND_IP1=10.11.12.51</param>
                 <param>BOND_IP2=10.11.12.52</param>
                 <param>BOND_IP3=10.11.12.53</param>
@@ -156,7 +156,7 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112201</param>
-                <param>TC_COVERED=SRIOV-39</param>                                   
+                <param>TC_COVERED=SRIOV-41</param>                                   
                 <param>BOND_IP1=10.11.12.51</param>
                 <param>BOND_IP2=10.11.12.52</param>
                 <param>BOND_IP3=10.11.12.53</param>

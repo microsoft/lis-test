@@ -243,8 +243,8 @@ elif [ $distro == "sles" ]; then
     fi    
 elif [ $distro == "ubuntu" ]; then
     # Download latest netboot files
-    wget http://archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/current/images/netboot/ubuntu-installer/amd64/initrd.gz
-    wget http://archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/current/images/netboot/ubuntu-installer/amd64/linux
+    wget http://archive.ubuntu.com/ubuntu/dists/$version/main/installer-amd64/current/images/netboot/ubuntu-installer/amd64/initrd.gz
+    wget http://archive.ubuntu.com/ubuntu/dists/$version/main/installer-amd64/current/images/netboot/ubuntu-installer/amd64/linux
     if [ $generation -eq 2 ]; then
         # Copy boot image files to tftp server
         cp linux /var/lib/tftpboot/uefi/PXE/
@@ -254,7 +254,7 @@ elif [ $distro == "ubuntu" ]; then
         if [ $willInstall == "no" ]; then
             echo "  linuxefi uefi/PXE/linux auto=true priority=critical quiet --" >> /var/lib/tftpboot/uefi/grub.cfg
         else
-            echo "  linuxefi uefi/PXE/linux auto=true priority=critical interface=auto url=http://10.10.10.10/PXE/ubuntuGen2.seed" >> /var/lib/tftpboot/uefi/grub.cfg
+            echo "  linuxefi uefi/PXE/linux auto=true console=tty0 console=ttyS1 priority=critical interface=auto url=http://10.10.10.10/PXE/ubuntuGen2.seed" >> /var/lib/tftpboot/uefi/grub.cfg
         fi
         echo "  initrdefi uefi/PXE/initrd.gz" >> /var/lib/tftpboot/uefi/grub.cfg
         echo "  }" >> /var/lib/tftpboot/uefi/grub.cfg
@@ -268,11 +268,11 @@ elif [ $distro == "ubuntu" ]; then
         echo "label Ubuntu" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         echo "  menu label ^Install Ubuntu" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         echo "  menu default" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
-        echo "  kernel PXE/linux" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+        echo "  kernel PXE/linux console=tty0 console=ttyS1" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         if [ $willInstall == "no" ]; then
-            echo "append initrd=ubuntu16/initrd.gz auto=true priority=critical quiet --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+            echo "append initrd=PXE/initrd.gz auto=true priority=critical quiet --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         else
-            echo "append initrd=ubuntu16/initrd.gz auto=true priority=critical interface=auto url=http://10.10.10.10/PXE/ubuntu.seed vga=788 quiet --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+            echo "append initrd=PXE/initrd.gz url=http://10.10.10.10/PXE/ubuntu.seed DEBCONF_DEBUG=5 debian-installer/locale=en_US console-setup/layoutcode=us keyboard-configuration/modelcode=pc105 keyboard-configuration/layoutcode=us interface=auto auto=true priority=critical --" >> /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
         fi
     fi    
 fi

@@ -21,10 +21,8 @@
                 <suiteTest>MultipleReboot</suiteTest>
                 <suiteTest>Stress_IOzone</suiteTest>
                 <suiteTest>Sysbench</suiteTest>
-                <!-- Obsolete test cases
-                <suiteTest>Stress_Kernbench</suiteTest>
-                <suiteTest>Stress_Dynamo</suiteTest>
-                -->
+                <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
+                <suiteTest>BootVM_LargeMemory</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -64,43 +62,40 @@
             <testScript>Sysbench.sh</testScript>
             <files>remote-scripts/ica/Sysbench.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
-                    <param>TEST_FILE=(seqwr seqrewr seqrd rndrd rndwr rndrw)</param>
-                    <param>TC_COVERED=Stress-03</param>
+                <param>TEST_FILE=(seqwr seqrewr seqrd rndrd rndwr rndrw)</param>
+                <param>TC_COVERED=Stress-03</param>
             </testParams>
             <timeout>800</timeout>
-            <OnError>Abort</OnError>
+            <OnError>Continue</OnError>
         </test>
 
-<!-- Obsolete test case
         <test>
-            <testName>Stress_Kernbench</testName>
-            <testScript>Stress_Kernbench.sh</testScript>
-            <files>remote-scripts/ica/Stress_Kernbench.sh</files>
-            <files>Tools/kernbench-0.50.tar.bz2</files>
-            <files>remote-scripts/ica/utils.sh</files>
-            <testParams>
-                <param>FILE_NAME=kernbench-0.50.tar.bz2</param>
-            </testParams>
-            <timeout>800</timeout>
-            <OnError>Abort</OnError>
-         </test>
+            <testName>ChangeMTU_ReloadNetvsc</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\STRESS_mtu_netvsc_reload.ps1</testScript>
+            <testparams>
+                <param>TC_COVERED=Stress-04</param>
+                <param>SnapshotName=ICABase</param>
+            </testparams>
+            <timeout>1800</timeout>
+            <onError>Continue</onError>
+        </test>
 
-	 <test>
-	    <testName>Stress_Dynamo</testName>
-	    <testScript>Stress_Dynamo.sh</testScript>
-	    <files>remote-scripts/ica/Stress_Dynamo.sh</files>
-	    <files>Tools/iometer-1.1.0-rc1-src.tar.bz2</files>
-	    <setupScript>setupScripts\AddHardDisk.ps1</setupScript>
-	    <testParams>
-	        <param>IOMETER_IP=0.0.0.0</param>
-	        <param>IDE=0,1,Fixed,2GB</param>
-	        <param>SCSI=0,0,Fixed,2GB</param>
-	        <param>FILE_NAME=iometer-1.1.0-rc1-src.tar.bz2</param>
-	    </testParams>
-	    <timeout>7200</timeout>
-	    <OnError>Abort</OnError>
-	 </test>
--->
+        <test>
+            <testName>BootVM_LargeMemory</testName>
+            <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+            <testScript>SetupScripts\STRESS_BootLargeMemory.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=Stress-05</param>
+                <param>bootLargeMem=yes</param>
+                <param>enableDM=no</param>
+                <param>startupMem=69632MB</param>
+                <param>staticMem=69632MB</param>
+                <param>memWeight=100</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+        </test>
     </testCases>
 
     <VMs>

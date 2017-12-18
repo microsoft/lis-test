@@ -36,13 +36,16 @@
 # Convert eol
 dos2unix SR-IOV_Utils.sh
 
-# Adding IPs for all bonds (VM1 and VM2) in constants.sh
-maxBondIterator=14
+# Adding IPs for all VFs (VM1 and VM2) in constants.sh
+sed --in-place '/IP1/d' constants.sh
+sed --in-place '/IP2/d' constants.sh
+
+maxVFIterator=14
 __iterator=0
 __ipIterator1=1
 __ipIterator2=1
-while [ $__iterator -lt $maxBondIterator ]; do
-    echo -e "BOND_IP${__ipIterator2}=10.1${__ipIterator1}.12.${__ipIterator2}" >> constants.sh
+while [ $__iterator -lt $maxVFIterator ]; do
+    echo -e "VF_IP${__ipIterator2}=10.1${__ipIterator1}.12.${__ipIterator2}" >> constants.sh
 
     if [ $((__iterator%2)) -eq 1 ]; then
         __ipIterator1=$(($__ipIterator1 + 1))    
@@ -54,7 +57,7 @@ done
 sleep 5
 
 # Source SR-IOV_Utils.sh. This is the script that contains all the 
-# SR-IOV basic functions (checking drivers, making de bonds, assigning IPs)
+# SR-IOV basic functions (checking drivers, checking VFs, assigning IPs)
 . SR-IOV_Utils.sh || {
     echo "ERROR: unable to source SR-IOV_Utils.sh!"
     echo "TestAborted" > state.txt
@@ -79,51 +82,40 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-# Run the bonding script. Make sure you have this already on the system
-# Note: The location of the bonding script may change in the future
-RunBondingScript
-bondCount=$?
-if [ $bondCount -eq 99 ]; then
-    msg="ERROR: Running the bonding script failed. Please double check if it is present on the system"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-
-else
-    LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"   
-fi
-
-# Set static IPs to the bond
-ConfigureBond
+# Set static IPs to the VFs
+ConfigureVF
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not set a static IP to the bond!"
+    msg="ERROR: Could not set static IPs to the VFs!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
 # Pinging
-__iterator=0
+vfCount=$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
+__iterator=1
 __ipIterator=2
-while [ $__iterator -lt $bondCount ]; do
+while [ $__iterator -le $vfCount ]; do
     staticIP=$(cat constants.sh | grep IP$__ipIterator | tr = " " | awk '{print $2}')
 
     # Ping the remote host
-    ping -I "bond$__iterator" -c 10 "$staticIP" >/dev/null 2>&1
+    ping -I "eth$__iterator" -c 10 "$staticIP" >/dev/null 2>&1
     if [ 0 -eq $? ]; then
-        msg="Successfully pinged $staticIP through bond$__iterator"
+        msg="Successfully pinged $staticIP through eth$__iterator"
         LogMsg "$msg"
         UpdateSummary "$msg"
     else
-        msg="ERROR: Unable to ping $staticIP through bond$__iterator"
+        msg="ERROR: Unable to ping $staticIP through eth$__iterator"
         LogMsg "$msg"
         UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 10
     fi
     __ipIterator=$(($__ipIterator + 2))
     : $((__iterator++))
 done
 
-msg="Pinging was successful through all bonds"
+msg="Pinging was successful through all interfaces"
 LogMsg $msg
 UpdateSummary "$msg"
 sleep 5

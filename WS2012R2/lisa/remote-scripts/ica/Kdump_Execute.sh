@@ -21,50 +21,25 @@
 #
 ########################################################################
 
-ICA_TESTABORTED="TestAborted"
-
 kdump_conf=/etc/kdump.conf
 dump_path=/var/crash
 sys_kexec_crash=/sys/kernel/kexec_crash_loaded
 
+dos2unix utils.sh
+
 #
-# Functions definitions
+# Source utils.sh to get more utils
+# Get $DISTRO, LogMsg directly from utils.sh
 #
-LogMsg()
-{
-    # To add the time-stamp to the log file
-    echo `date "+%a %b %d %T %Y"` ": ${1}"
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    exit 1
 }
 
-UpdateTestState()
-{
-    echo $1 >> ~/state.txt
-}
-
-#######################################################################
 #
-# LinuxRelease()
+# Source constants file and initialize most common variables
 #
-#######################################################################
-LinuxRelease()
-{
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
-
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        *Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-    esac
-}
+UtilsInit
 
 #######################################################################
 #
@@ -73,26 +48,62 @@ LinuxRelease()
 #######################################################################
 Rhel()
 {
-    LogMsg "Waiting 70 seconds for kdump to become active."
-    echo "Waiting 70 seconds for kdump to become active." >> summary.log
-    sleep 70
+    LogMsg "Waiting 50 seconds for kdump to become active."
+    UpdateSummary "Waiting 50 seconds for kdump to become active."
+    sleep 50
 
-    systemctl status kdump.service | grep -q "active"
-    if  [ $? -ne 0 ]; then
-        service kdump status | grep "operational"
-        if  [ $? -eq 0 ]; then
-            LogMsg "Kdump is active after reboot"
-            echo "Success: kdump service is active after reboot." >> ~/summary.log
+    case $DISTRO in
+    "redhat_6" | "centos_6")
+        #
+        # RHEL6, kdump status has "operational" and "not operational"
+        # So, select "not operational" to check inactive
+        #
+        service kdump status | grep "not operational"
+        if  [ $? -eq 0 ]
+        then
+            LogMsg "ERROR: kdump service is not active after reboot!"
+            UpdateSummary "ERROR: kdump service is not active after reboot!"
+            SetTestStateAborted
+            exit 1
+        else
+            LogMsg "Kdump is active after reboot."
+            UpdateSummary "Success: kdump service is active after reboot."
+        fi
+        ;;
+    "redhat_7" | "centos_7" | fedora*)
+        #
+        # RHEL7, kdump status has "Active: active" and "Active: inactive"
+        # So, select "Active: active" to check active
+        #
+        timeout=50
+        while [ $timeout -ge 0 ]; do
+            service kdump status | grep "Active: active" &>/dev/null
+            if [ $? -eq 0 ];then
+                break
+            else
+                LogMsg "Wait for kdump service to be active."
+                UpdateSummary "Info: Wait for kdump service to be active."
+                timeout=$((timeout-5))
+                sleep 5
+            fi
+        done
+        if  [ $timeout -gt 0 ]; then
+            LogMsg "Kdump is active after reboot."
+            UpdateSummary "Success: kdump service is active after reboot."
         else
             LogMsg "ERROR: kdump service is not active after reboot!"
-            echo "ERROR: kdump service is not active after reboot!" >> ~/summary.log
-            UpdateTestState "TestAborted"
+            UpdateSummary "ERROR: kdump service is not active after reboot!"
+            SetTestStateAborted
             exit 1
         fi
-    else
-        LogMsg "Kdump is active after reboot"
-        echo "Success: kdump service is active after reboot." >> ~/summary.log
-    fi
+        ;;
+        *)
+            LogMsg "FAIL: Unknown OS!"
+            UpdateSummary "FAIL: Unknown OS!"
+            SetTestStateAborted
+            exit 1
+        ;;
+    esac
 }
 
 #######################################################################
@@ -103,26 +114,25 @@ Rhel()
 Sles()
 {
     LogMsg "Waiting 50 seconds for kdump to become active."
-    echo "Waiting 50 seconds for kdump to become active." >> summary.log
+    UpdateSummary "Waiting 50 seconds for kdump to become active."
     sleep 50
 
     if systemctl is-active kdump.service | grep -q "active"; then
-        LogMsg "Kdump is active after reboot"
-        echo "Success: kdump service is active after reboot." >> ~/summary.log
+        LogMsg "Kdump is active after reboot."
+        UpdateSummary "Success: kdump service is active after reboot."
     else
         rckdump status | grep "running"
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: kdump service is not active after reboot!"
-            echo "ERROR: kdump service is not active after reboot!" >> ~/summary.log
-            UpdateTestState "TestAborted"
+            UpdateSummary "ERROR: kdump service is not active after reboot!"
+            SetTestStateAborted
             exit 1
         else
-            LogMsg "Kdump is active after reboot"
-            echo "Success: kdump service is active after reboot." >> ~/summary.log
+            LogMsg "Kdump is active after reboot."
+            UpdateSummary "Success: kdump service is active after reboot."
         fi
     fi
 }
-
 
 #######################################################################
 #
@@ -131,17 +141,17 @@ Sles()
 #######################################################################
 Ubuntu()
 {
-    sleep 50
     LogMsg "Waiting 50 seconds for kdump to become active."
-    echo "Waiting 50 seconds for kdump to become active." >> summary.log
+    UpdateSummary "Waiting 50 seconds for kdump to become active."
+    sleep 50
 
     if [ -e $sys_kexec_crash -a `cat $sys_kexec_crash` -eq 1 ]; then
-        LogMsg "Kdump is active after reboot"
-        echo "Success: kdump service is active after reboot." >> ~/summary.log
+        LogMsg "Kdump is active after reboot."
+        UpdateSummary "Success: kdump service is active after reboot."
     else
         LogMsg "ERROR: kdump service is not active after reboot!"
-        echo "ERROR: kdump service is not active after reboot!" >> ~/summary.log
-        UpdateTestState "TestAborted"
+        UpdateSummary "ERROR: kdump service is not active after reboot!"
+        SetTestStateAborted
         exit 1
     fi
 }
@@ -153,31 +163,36 @@ Ubuntu()
 #######################################################################
 kdump_loaded()
 {
-    echo "Checking if kdump is loaded after reboot..." >> summary.log
+    UpdateSummary "Checking if kdump is loaded after reboot..."
     CRASHKERNEL=`grep -i crashkernel= /proc/cmdline`;
 
     if [ ! -e $sys_kexec_crash ] && [ -z "$CRASHKERNEL" ] ; then
         LogMsg "FAILED: kdump is not enabled after reboot."
-        echo "FAILED: Verify the configuration settings for kdump and grub. Kdump is not enabled after reboot." >> ~/summary.log
-        UpdateTestState "TestFailed"
+        UpdateSummary "FAILED: Verify the configuration settings for kdump and grub. Kdump is not enabled after reboot."
+        SetTestStateFailed
         exit 1
     else
         LogMsg "Kdump is loaded after reboot."
-        echo "Success: Kdump is loaded after reboot." >> ~/summary.log
+        UpdateSummary "Success: Kdump is loaded after reboot."
     fi
 }
 
+#######################################################################
+#
+# ConfigureNMI()
+#
+#######################################################################
 ConfigureNMI()
 {
     sysctl -w kernel.unknown_nmi_panic=1
     if [ $? -ne 0 ]; then
         LogMsg "Failed to enable kernel to call panic when it receives a NMI."
-        echo "Failed to enable kernel to call panic when it receives a NMI." >> summary.log
-        UpdateTestState "TestAborted"
+        UpdateSummary "Failed to enable kernel to call panic when it receives a NMI."
+        SetTestStateAborted
         exit 1
     else
         LogMsg "Success: enabling kernel to call panic when it receives a NMI."
-        echo "Success: enabling kernel to call panic when it receives a NMI." >> summary.log
+        UpdateSummary "Success: enabling kernel to call panic when it receives a NMI."
     fi
 }
 
@@ -192,17 +207,22 @@ ConfigureNMI()
 #
 # Must allow some time for the kdump service to become active
 ConfigureNMI
-distro=`LinuxRelease`
-case $distro in
-    "CENTOS" | "RHEL")
+
+#
+# As $DISTRO from utils.sh get the DETAILED Disro. eg. redhat_6, redhat_7, ubuntu_13, ubuntu_14
+# So, redhat* / ubuntu* / suse*
+#
+GetDistro
+case $DISTRO in
+    centos* | redhat* | fedora*)
         kdump_loaded
         Rhel
     ;;
-    "UBUNTU")
+    ubuntu*)
         kdump_loaded
         Ubuntu
     ;;
-    "SLES")
+    suse*)
         systemctl start atd
         kdump_loaded
         Sles
@@ -216,7 +236,7 @@ esac
 #
 # Preparing for the kernel panic
 #
-echo "Preparing for kernel panic..." >> summary.log
+echo "Preparing for kernel panic..."
 sync
 sleep 6
 

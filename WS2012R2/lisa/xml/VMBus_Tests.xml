@@ -84,14 +84,15 @@
 		<noReboot>False</noReboot>
 		<testParams>
 			<param>TC_COVERED=VMBus-03</param>
-            		<param>VMMemory=2GB</param>
+            <param>VMMemory=2GB</param>
+            <param>onKdump=stop</param>
 		</testParams>
 		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
         <test>
 		<testName>VMBus_PanicNotifier_onKdump</testName>
-		<testScript>SetupScripts\VMBus_PanicNotifier_onKdump.ps1</testScript>
+		<testScript>SetupScripts\VMBus_PanicNotifier.ps1</testScript>
 		<setupScript>setupScripts\SetVMMemory.ps1</setupScript>
 		<timeout>800</timeout>
 		<onError>Continue</onError>
@@ -99,6 +100,7 @@
 		<testParams>
 			<param>TC_COVERED=VMBus-04</param>
 			<param>VMMemory=2GB</param>
+			<param>onKdump=start</param>
 		</testParams>
 		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>

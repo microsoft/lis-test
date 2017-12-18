@@ -43,32 +43,6 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $ipv4vm1 = $null
 $retVal = $true
 
-function Cleanup()
-{
-    Write-Output "Info: Starting cleanup for the child VM"
-
-    $sts = Stop-VM -Name $vmName1 -ComputerName $hvServer -TurnOff
-    if (-not $?)
-    {
-       Write-Output "Error: Unable to Shut Down VM $vmName1"
-
-    }
-
-    # Delete the child VM created
-    $sts = Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
-    if (-not $?)
-    {
-      Write-Output "Error: Cannot remove the child VM $vmName1"
-    }
-
-    # Delete partition
-    Dismount-VHD -Path $vhdpath -ComputerName $hvServer
-
-    # Delete VHD
-    del $vhdpath
-}
-
-
 #######################################################################
 #
 # Main script body
@@ -163,6 +137,12 @@ $VHDSize = (Get-VHD -Path $ParentVHD -ComputerName $hvServer).FileSize
 [uint64]$newsize = [math]::round($VHDSize /1Gb, 1)
 $newsize = ($newsize * 1GB) + 1GB
 
+Get-Partition -DriveLetter $driveletter[0] -ErrorAction SilentlyContinue
+if ($?)
+{
+    Dismount-VHD -Path $vhdpath -ComputerName $hvServer -ErrorAction SilentlyContinue 
+}
+
 if ( Test-Path $vhdpath )
 {
     Write-Host "Deleting existing VHD $vhdpath"
@@ -175,8 +155,11 @@ New-Partition -DriveLetter $driveletter[0] -UseMaximumSize | Format-Volume -File
 if (-not $?)
 {
     Write-Output "Error: Failed to create the new partition $driveletter" | Tee-Object -Append -file $summaryLog
+    return $False
 }
-
+"hvServer=$hvServer" | Out-File './heartbeat_params.info'
+$test_vhd = [regex]::escape($vhdpath)
+"test_vhd=$test_vhd" | Out-File './heartbeat_params.info' -Append
 # Copy parent VHD to partition
 $ChildVHD = CreateChildVHD $ParentVHD $driveletter $hvServer
 if(-not $ChildVHD)
@@ -184,6 +167,8 @@ if(-not $ChildVHD)
     Write-Output "Error: Creating Child VHD of VM $vmName" | Tee-Object -Append -file $summaryLog
     return $False
 }
+$child_vhd = [regex]::escape($ChildVHD)
+"child_vhd=$child_vhd" | Out-File "./heartbeat_params.info" -Append
 
 $vm = Get-VM -Name $vmName -ComputerName $hvServer
 
@@ -204,13 +189,13 @@ if ( Get-VM $vmName1 -ComputerName $hvServer -ErrorAction SilentlyContinue ) {
 }
 
 # Create the ChildVM
-$newVm = New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 1024MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
+$newVm = New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 2048MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
 {
-   Write-Output "Error: Creating New VM $vmName1" | Tee-Object -Append -file $summaryLog
+   Write-Output "Error: Creating new VM $vmName1 failed!" | Tee-Object -Append -file $summaryLog
    return $False
 }
-
+"vm_name=$vmName1" | Out-File './heartbeat_params.info' -Append
 # Disable secure boot
 if ($vm_gen -eq 2)
 {
@@ -248,7 +233,6 @@ $createfile = fsutil file createnew \\$hvServer\$file_path_formatted $filesize
 if ($createfile -notlike "File *testfile* is created")
 {
     Write-Output "Error: Could not create the sample test file in the working directory! $file_path_formatted" | Tee-Object -Append -file $summaryLog
-    Cleanup
     return $False
 }
 Write-Output "Info: Created test file on \\$hvServer\$file_path_formatted with the size $filesize"
@@ -261,7 +245,6 @@ $vm1 = Get-VM -Name $vmName1 -ComputerName $hvServer
 if ($vm1.State -ne "PausedCritical")
 {
     Write-Output "Error: VM $vmName1 is not in Paused-Critical after we filled the disk" | Tee-Object -Append -file $summaryLog
-    Cleanup
     return $False
 }
 Write-Output "Info: VM $vmName1 entered in Paused-Critical state, as expected." | Tee-Object -Append -file $summaryLog
@@ -270,7 +253,6 @@ Write-Output "Info: VM $vmName1 entered in Paused-Critical state, as expected." 
 Remove-Item -Path \\$hvServer\$file_path_formatted -Force
 if (-not $?) {
     Write-Output "ERROR: Cannot remove the test file '${testfile1}'!" | Tee-Object -Append -file $summaryLog
-    Cleanup
     return $False
 }
 Write-Output "Info: Test file deleted from mounted VHDx"
@@ -288,15 +270,10 @@ if ($vm1.Heartbeat -eq "OkApplicationsUnknown")
 {
     "Info: Heartbeat detected, status OK."
     Write-Output "Info: Test Passed. Heartbeat is again reported as OK." | Tee-Object -Append -file $summaryLog
-    $retVal = $true
+    return $true
 }
 else
 {
     Write-Output "Error: Heartbeat is not in the OK state." | Out-File -Append $summaryLog
-    Cleanup
     return $False
 }
-
-Cleanup
-
-return $retVal

@@ -327,7 +327,7 @@ GetSynthNetInterfaces()
     if [ -d '/sys/devices' ]; then
             while IFS= read -d $'\0' -r path ; do
                     __SYNTH_NET_ADAPTERS_PATHS=("${__SYNTH_NET_ADAPTERS_PATHS[@]}" "$path")
-            done < <(find /sys/devices -name $check -a -path '*vmbus*' -print0)
+            done < <(find /sys/devices -name $check -a -ipath '*vmbus*' -print0)
     else
             LogMsg "Cannot find Synthetic network interfaces. No /sys/devices directory."
             return 1
@@ -373,7 +373,7 @@ GetLegacyNetInterfaces()
 	if [ -d '/sys/devices' ]; then
 		while IFS= read -d $'\0' -r path ; do
 			__LEGACY_NET_ADAPTERS_PATHS=("${__LEGACY_NET_ADAPTERS_PATHS[@]}" "$path")
-		done < <(find /sys/devices -name net -a ! -path '*vmbus*' -print0)
+		done < <(find /sys/devices -name net -a ! -ipath '*vmbus*' -print0)
 	else
 		LogMsg "Cannot find Legacy network interfaces. No /sys/devices directory."
 		return 1

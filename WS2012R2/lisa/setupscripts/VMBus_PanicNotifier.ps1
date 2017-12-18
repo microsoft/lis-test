@@ -42,13 +42,19 @@
     Test data for this test case
 
 .Example
-    setupScripts\VMBus_PanicNotifier.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\trunk\lisa;TC_COVERED=VMBUS-03;sshKey=demo.ppk;ipv4=192.168.1.101"
+    setupScripts\VMBus_PanicNotifier.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa\;TC_COVERED=VMBUS-04;sshKey=demo.ppk;ipv4=192.168.1.101"
 
 .Link
     None.
 #>
 
 param( [String] $vmName, [String] $hvServer, [String] $testParams )
+
+$rootDir = $null
+$ip = $Null
+$ipv4 = "undefined"
+$sshKey = "undefined"
+$kdump_action = "undefined"
 
 #######################################################################
 #
@@ -78,18 +84,8 @@ if (-not $testParams)
 }
 
 #
-# DEBUG - display the test parameters so they are captured in the log file
-#
-Write-Output "TestParams : '${testParams}'"
-
-#
 # Parse the test parameters
 #
-
-$rootDir = $null
-$ipv4 = "undefined"
-$sshKey = "undefined"
-
 $params = $testParams.Split(";")
 foreach ($p in $params)
 {
@@ -99,6 +95,7 @@ foreach ($p in $params)
     "ipv4"        { $ipv4      = $fields[1].Trim() }
     "sshkey"      { $sshKey    = $fields[1].Trim() }
     "rootdir"     { $rootDir   = $fields[1].Trim() }
+    "onKdump"     { $kdump_action = $fields[1].Trim() }
     "TC_COVERED"  { $tcCovered = $fields[1].Trim() }
     default       {<# Ignore unknown test params #>}
     }
@@ -116,16 +113,34 @@ if (-not (Test-Path -Path $rootDir))
     return $False
 }
 
+if (-not $kdump_action)
+{
+    "Error : No onKdump parameter specified"
+    return $False
+}
+
 cd $rootDir
 
 $summaryLog  = "${vmName}_summary.log"
 Del $summaryLog -ErrorAction SilentlyContinue
 echo "Covers : ${tcCovered}" >> $summaryLog
 
-#
-# Source the TCUtils.ps1 file
-#
-. .\setupscripts\TCUtils.ps1
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+    . .\setupScripts\TCUtils.ps1
+} else {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+}
+
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0) {
+    return $False
+}
+elseif ($BuildNumber -lt 9600) {
+	"Info: Feature supported only on WS2012R2 and newer"
+    return $Skipped
+}
 
 #
 # Ensure required parameters were specified
@@ -164,16 +179,19 @@ if ($vm.State -ne "Running")
     return $False
 }
 
-$sts = SendCommandToVM $ipv4 $sshKey "service kdump stop"
+$sts = SendCommandToVM $ipv4 $sshKey "service kdump ${kdump_action}"
 if (-not $sts) {
-    $sts = SendCommandToVM $ipv4 $sshKey "service kdump-tools stop"
+    $sts = SendCommandToVM $ipv4 $sshKey "service kdump-tools ${kdump_action}"
     if (-not $sts) {
-        Write-Output "Kdump can't be stopped !" |Tee-Object -Append -file $summaryLog
+        Write-Output "Kdump can't be started !" |Tee-Object -Append -file $summaryLog
         return $False
     }
 }
 
 Start-Sleep -S 9
+
+# enable the sysrq handle
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sysctl -w kernel.sysrq=1"
 
 #
 # Note the current time, then panic the VM
@@ -210,7 +228,7 @@ foreach ($evt in $events)
 if (-not $testPassed)
 {
     "Error: Event 18590 was not logged by VM ${vmName}"
-    "       Make sure KDump is disabled on the VM"
+    "       Make sure KDump status is ${kdump_action} on the VM"
 }
 
 #
@@ -230,7 +248,6 @@ if ($vm.State -ne "Running")
 #
 # Wait up to 5 minutes for the VM to come up
 #
-$ip = $Null
 $timeout = 300
 
 while ($timeout -gt 0)
@@ -247,7 +264,7 @@ while ($timeout -gt 0)
 
 if ($timeout -le 0)
 {
-    "Warn : Unable to start the VM after the panic"
+    "Warn: Unable to start the VM after the panic"
 }
 
 #

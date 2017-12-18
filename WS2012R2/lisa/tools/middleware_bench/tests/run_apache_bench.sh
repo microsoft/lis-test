@@ -42,18 +42,36 @@ if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
-sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install libaio1 sysstat zip apache2-utils >> ${LOG_FILE}
+distro="$(head -1 /etc/issue)"
+web_server=
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install libaio1 sysstat zip apache2 apache2-utils" >> ${LOG_FILE}
+
+    sudo apt update
+    sudo apt -y install libaio1 sysstat zip apache2-utils >> ${LOG_FILE}
+    web_server="apache2"
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean dbcache>> ${LOG_FILE}
+    sudo yum -y install sysstat zip httpd-tools >> ${LOG_FILE}
+
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum clean dbcache" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip httpd httpd-tools" >> ${LOG_FILE}
+    web_server="httpd"
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
 
 sudo pkill -f ab
 mkdir -p /tmp/apache_bench
-
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get update" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt-get -y install libaio1 sysstat zip apache2 apache2-utils" >> ${LOG_FILE}
 LogMsg "Info: Generate test data file on the Apache server /var/www/html/test.dat"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo dd if=/dev/urandom of=/var/www/html/test.dat bs=1K count=200"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service apache2 stop" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service apache2 start" >> ${LOG_FILE}
+
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${web_server} stop" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${web_server} start" >> ${LOG_FILE}
+
 ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/apache_bench"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f ab" >> ${LOG_FILE}
 
@@ -111,12 +129,12 @@ function run_apache_bench ()
     LogMsg "Running apache_bench test with current concurrency: ${current_concurrency}"
     LogMsg "======================================"
 
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 900   2>&1 > /tmp/apache_bench/${current_concurrency}.sar.netio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 900 2>&1 > /tmp/apache_bench/${current_concurrency}.iostat.diskio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 900       2>&1 > /tmp/apache_bench/${current_concurrency}.vmstat.memory.cpu.log"
-    sar -n DEV 1 900   2>&1 > /tmp/apache_bench/${current_concurrency}.sar.netio.log &
-    iostat -x -d 1 900 2>&1 > /tmp/apache_bench/${current_concurrency}.iostat.netio.log &
-    vmstat 1 900       2>&1 > /tmp/apache_bench/${current_concurrency}.vmstat.netio.log &
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 2>&1 > /tmp/apache_bench/${current_concurrency}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 2>&1 > /tmp/apache_bench/${current_concurrency}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 2>&1 > /tmp/apache_bench/${current_concurrency}.vmstat.memory.cpu.log"
+    sar -n DEV 1 2>&1 > /tmp/apache_bench/${current_concurrency}.sar.netio.log &
+    iostat -x -d 1 2>&1 > /tmp/apache_bench/${current_concurrency}.iostat.netio.log &
+    vmstat 1 2>&1 > /tmp/apache_bench/${current_concurrency}.vmstat.netio.log &
 
     run_ab ${current_concurrency} > /tmp/apache_bench/${current_concurrency}.apache.bench.log
 
@@ -138,6 +156,7 @@ do
 done
 
 LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r apache_bench.zip . -i apache_bench/* >> ${LOG_FILE}

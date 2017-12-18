@@ -79,17 +79,22 @@ touch ~/summary.log
 
 # Convert eol
 dos2unix utils.sh
-
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
     echo "TestAborted" > state.txt
     exit 2
 }
+dos2unix perf_utils.sh
+# Source perf_utils.sh
+. perf_utils.sh || {
+    echo "Error: unable to source perf_utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
 
 # Source constants file and initialize most common variables
 UtilsInit
-
 # In case of error
 case $? in
     0)
@@ -125,9 +130,7 @@ case $? in
         ;;
 esac
 
-#
 # Make sure the required test parameters are defined
-#
 if [ "${IPERF_PACKAGE:="UNDEFINED"}" = "UNDEFINED" ]; then
     msg="Error: the IPERF_PACKAGE test parameter is missing"
     LogMsg "${msg}"
@@ -170,12 +173,9 @@ if [ "${TEST_RUN_LOG_FOLDER:="UNDEFINED"}" = "UNDEFINED" ]; then
     echo "${msg}" >> ~/summary.log
 fi
 
-#Get test synthetic interface
-declare __iface_ignore
-
 # Parameter provided in constants file
-#   ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
-#   it is not touched during this test (no dhcp or static ip assigned to it)
+# ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
+# it is not touched during this test (no dhcp or static ip assigned to it)
 
 if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter STATIC_IP2 is not defined in constants file! Make sure you are using the latest LIS code."
@@ -184,9 +184,7 @@ if [ "${STATIC_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
     SetTestStateAborted
     exit 30
 else
-
     CheckIP "$STATIC_IP2"
-
     if [ 0 -ne $? ]; then
         msg="Test parameter STATIC_IP2 = $STATIC_IP2 is not a valid IP Address"
         LogMsg "$msg"
@@ -194,14 +192,15 @@ else
         SetTestStateAborted
         exit 10
     fi
-
-    # Get the interface associated with the given ipv4
-    __iface_ignore=$(ip -o addr show | grep "$STATIC_IP2" | cut -d ' ' -f2)
 fi
 
+
+#Get test synthetic interface
+declare __iface_ignore
+# Get the interface associated with the given ipv4
+__iface_ignore=$(ip -o addr show | grep "$STATIC_IP2" | cut -d ' ' -f2)
 # Retrieve synthetic network interfaces
 GetSynthNetInterfaces
-
 if [ 0 -ne $? ]; then
     msg="No synthetic network interfaces found"
     LogMsg "$msg"
@@ -209,10 +208,8 @@ if [ 0 -ne $? ]; then
     SetTestStateFailed
     exit 10
 fi
-
 # Remove interface if present
 SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
-
 if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
     msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
     LogMsg "$msg"
@@ -221,8 +218,62 @@ if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
     exit 10
 fi
 
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+# SRIOV setup (transparent VF)
+if [ "${SRIOV}" = "yes" ]; then
+    # Check if the SRIOV driver is in use
+    VerifyVF
+    if [ $? -ne 0 ]; then
+        msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
+    __vf_ignore='enP2p0s2'
+    SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__vf_ignore/})
+fi
 
+# Config static IP - with transparent-vf it is not necessary to run bondvf.sh
+if [[ "${SRIOV}" = "yes" ]] || [[ "${SRIOV}" = "no" ]]; then
+    #Config static ip on the client side.
+    config_staticip ${IPERF3_SERVER_IP} ${NETMASK}
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Function config_staticip failed."
+        LogMsg "ERROR: Function config_staticip failed."
+        UpdateTestState $ICA_TESTABORTED
+    fi
+fi
+# Config static IP - using bondvf.sh
+if [ "${SRIOV}" = "bond" ]; then
+    # Check if the SRIOV driver is in use
+    VerifyVF
+    if [ $? -ne 0 ]; then
+        msg="ERROR: VF is not loaded! Make sure you are using compatible hardware"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
+    # Run bondvf.sh platform specific script
+    RunBondingScript
+    bondCount=$?
+    if [ $bondCount -eq 99 ]; then
+        msg="ERROR: Running the bonding script failed. Please double check if it is present on the system"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    else
+        LogMsg "BondCount returned Utils: $bondCount"
+    fi
+    # Set static IP to the bond
+    perf_ConfigureBond ${IPERF3_SERVER_IP}
+    if [ $? -ne 0 ]; then
+        msg="ERROR: Could not set a static IP to the bond!"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+    fi
+fi
+
+LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 # Test interfaces
 declare -i __iterator
 for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
@@ -236,28 +287,155 @@ for __iterator in "${!SYNTH_NET_INTERFACES[@]}"; do
     fi
 done
 
-LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
-
 echo "iPerf package name		= ${IPERF_PACKAGE}"
-echo "iPerf protocol        = ${IPERF3_PROTOCOL-TCP}"
+echo "iPerf protocol        = ${IPERF3_PROTOCOL}"
 echo "individual test duration (sec)	= ${INDIVIDUAL_TEST_DURATION}"
 echo "connections per iperf3		= ${CONNECTIONS_PER_IPERF3}"
 echo "test signal file			= ${TEST_SIGNAL_FILE}"
 echo "test run log folder		= ${TEST_RUN_LOG_FOLDER}"
 
-#
-# Check for internet protocol version
-#
-CheckIPV6 "$IPERF3_SERVER_IP"
-if [[ $? -eq 0 ]]; then
-    ipVersion="-6"
-else
-    ipVersion="-4"
+#Apling performance parameters
+setup_sysctl "$(declare -p sysctl_udp_params)"
+if [ $? -ne 0 ]; then
+    echo "Unable to add performance parameters."
+    LogMsg "Unable to add performance parameters."
+    UpdateTestState $ICA_TESTABORTED
 fi
 
-#
+# Flushing firewall rules
+iptables -F
+if [ $? -ne 0 ]; then
+    msg="ERROR: Failed to flush iptables rules. Continuing"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
+ip6tables -F
+if [ $? -ne 0 ]; then
+    msg="ERROR: Failed to flush ip6tables rules. Continuing"
+    LogMsg "${msg}"
+    echo "${msg}" >> ~/summary.log
+fi
+
+#Check distro
+GetDistro
+case "$DISTRO" in
+debian*|ubuntu*)
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
+    LogMsg "Installing dependency tools on Ubuntu"
+    apt-get update && apt-get install build-essential git sysstat dstat lib32z1 -y
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
+    ;;
+redhat_5|redhat_6|centos_6|centos_5)
+    yum install -y bc sysstat dstat
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
+    LogMsg "Check irqbalance status on RHEL 5/6.x."
+    service irqbalance status
+    if [ $? -eq 3 ]; then
+        LogMsg "Enabling irqbalance on Redhat 5/6.x"
+        service irqbalance start
+        if [ $? -ne 0 ]; then
+            msg="ERROR: Failed to start irqbalance. Failing."
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+        service irqbalance status
+    fi
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
+    ;;
+redhat_7|centos_7)
+    yum install -y bc sysstat dstat
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
+    LogMsg "Check irqbalance status on RHEL 7.xx."
+    systemctl status irqbalance
+    if [ $? -eq 3 ]; then
+        LogMsg "Enabling irqbalance on Redhat 7.x"
+        systemctl enable irqbalance && systemctl start irqbalance
+        if [ $? -ne 0 ]; then
+            msg="ERROR: Failed to start irqbalance. Failing."
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
+        systemctl status irqbalance
+    fi
+    LogMsg "Check firewalld status on RHEL 7.xx."
+    systemctl status firewalld
+    if [ $? -ne 3 ]; then
+        LogMsg "Disabling firewall on Redhat 7.x"
+        systemctl stop firewalld && systemctl disable firewalld
+        if [ $? -ne 0 ]; then
+            msg="ERROR: Failed to turn off firewalld. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+    fi
+    disable_firewall
+    if [[ $? -ne 0 ]]; then
+        msg="ERROR: Unable to disable firewall.Exiting"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
+    ;;
+suse_12)
+    zypper -n in dstat sysstat gcc
+    if [ $? -ne 0 ]; then
+        msg="ERROR: dependencies failed to install"
+        LogMsg "${msg}"
+        echo "${msg}" >> ~/summary.log
+    fi
+    LogMsg "Check iptables status on SLES 12"
+    service SuSEfirewall2 status
+    if [ $? -ne 3 ]; then
+        service SuSEfirewall2 stop
+        if [ $? -ne 0 ]; then
+            msg="ERROR: Failed to stop iptables"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+            UpdateTestState $ICA_TESTFAILED
+            exit 85
+        fi
+        chkconfig SuSEfirewall2 off
+        if [ $? -ne 0 ]; then
+            msg="ERROR: Failed to turn off iptables. Continuing"
+            LogMsg "${msg}"
+            echo "${msg}" >> ~/summary.log
+        fi
+    fi
+    ;;
+esac
+
 # Extract the files from the IPerf tar package
-#
 tar -xzf ./${IPERF_PACKAGE}
 if [ $? -ne 0 ]; then
     msg="Error: Unable extract ${IPERF_PACKAGE}"
@@ -267,9 +445,7 @@ if [ $? -ne 0 ]; then
     exit 70
 fi
 
-#
 # Get the root directory of the tarball
-#
 rootDir=`tar -tzf ${IPERF_PACKAGE} | sed -e 's@/.*@@' | uniq`
 if [ -z ${rootDir} ]; then
     msg="Error: Unable to determine iperf3's root directory"
@@ -281,162 +457,7 @@ fi
 
 LogMsg "rootDir = ${rootDir}"
 cd ${rootDir}
-
-#
-# Distro specific setup
-#
-GetDistro
-
-case "$DISTRO" in
-debian*|ubuntu*)
-    LogMsg "Updating apt repositories"
-    apt-get update & wait
-
-    LogMsg "Installing sar on Ubuntu"
-    apt-get install sysstat -y
-    if [ $? -ne 0 ]; then
-        msg="Error: sysstat failed to install"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 85
-    fi
-    apt-get install zip build-essential -y
-    if [ $? -ne 0 ]; then
-        msg="Error: Build essential failed to install"
-        LogMsg "${msg}"
-        echo "${msg}" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
-        exit 85
-    fi
-    service ufw status
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Ubuntu"
-        service ufw stop
-        if [ $? -ne 0 ]; then
-                msg="Error: Failed to stop ufw"
-                LogMsg "${msg}"
-                echo "${msg}" >> ~/summary.log
-        fi
-    fi
-    ;;
-redhat_5|redhat_6)
-    LogMsg "Check iptables status on RHEL"
-    service iptables status
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Redhat"
-        iptables -F
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service iptables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-		service ip6tables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop ip6tables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        chkconfig iptables off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-    fi
-    ;;
-redhat_7)
-    LogMsg "Check iptables status on RHEL"
-    systemctl status firewalld
-    if [ $? -ne 3 ]; then
-        LogMsg "Disabling firewall on Redhat 7"
-        systemctl disable firewalld
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop firewalld"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        systemctl stop firewalld
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off firewalld. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-    fi
-
-    LogMsg "Check iptables status on RHEL7"
-    service iptables status
-    if [ $? -ne 3 ]; then
-        iptables -F;
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service iptables stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        chkconfig iptables off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-    fi
-    ;;
-suse_12)
-	#
-	# Install gcc which is required to build iperf3
-	#
-	zypper --non-interactive install gcc
-
-    LogMsg "Check iptables status on RHEL7"
-    service SuSEfirewall2 status
-    if [ $? -ne 3 ]; then
-        iptables -F;
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to flush iptables rules. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-        service SuSEfirewall2 stop
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to stop iptables"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
-            exit 85
-        fi
-        chkconfig SuSEfirewall2 off
-        if [ $? -ne 0 ]; then
-            msg="Error: Failed to turn off iptables. Continuing"
-            LogMsg "${msg}"
-            echo "${msg}" >> ~/summary.log
-        fi
-    fi
-    ;;
-esac
-
-#
 # Build iperf
-#
 ./configure
 if [ $? -ne 0 ]; then
     msg="Error: ./configure failed"
@@ -464,7 +485,7 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
-if [ $DISTRO -eq "suse_12" ]; then
+if [[ ${DISTRO} == *"suse"* || ${DISTRO} == *"ubuntu"* ]]; then
     ldconfig
     if [ $? -ne 0 ]; then
         msg="Warning: Couldn't run ldconfig, there might be shared library errors"
@@ -476,77 +497,9 @@ fi
 # go back to test root folder
 cd ~
 
-# set static ips for test interfaces
-declare -i __iterator=0
-
-while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
-
-    LogMsg "Trying to set an IP Address via static on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
-
-    CreateIfupConfigFile "${SYNTH_NET_INTERFACES[$__iterator]}" "static" $IPERF3_SERVER_IP $NETMASK
-
-    if [ 0 -ne $? ]; then
-        msg="Unable to set address for ${SYNTH_NET_INTERFACES[$__iterator]} through static"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 10
-    fi
-
-    echo "TestInterface: ${SYNTH_NET_INTERFACES[$__iterator]}"
-    : $((__iterator++))
-
-done
-
-#
+mkdir ${TEST_RUN_LOG_FOLDER}
 # Start iPerf3 server instances
-#
 LogMsg "Starting iPerf3 in server mode"
 
 UpdateTestState $ICA_IPERF3RUNNING
 LogMsg "iperf3 server instances now are ready to run"
-
-mkdir ${TEST_RUN_LOG_FOLDER}
-#default the parameter
-number_of_connections=0
-touch ${TEST_SIGNAL_FILE}
-echo 0 > ${TEST_SIGNAL_FILE}
-
-time=0
-while true; do
-    #once received a reset/start signal from client side, do the test
-    if [ -f ${TEST_SIGNAL_FILE} ];
-    then
-        number_of_connections=$(head -n 1 ${TEST_SIGNAL_FILE})
-        rm -rf ${TEST_SIGNAL_FILE}
-        echo "Reset iperf3 server for test. Connections: ${number_of_connections} ..."
-        pkill -f iperf3
-        sleep 1
-
-        echo "Start new iperf3 instances..."
-        number_of_iperf_instances=$((number_of_connections/CONNECTIONS_PER_IPERF3+8001))
-
-        for ((i=8001; i<=$number_of_iperf_instances; i++))
-        do
-            /root/${rootDir}/src/iperf3 -s $ipVersion -p $i -i ${INDIVIDUAL_TEST_DURATION} -D
-            sleep 1
-        done
-        x=$(ps -aux | grep iperf | wc -l)
-        echo "ps -aux | grep iperf | wc -l: $x"
-
-        mkdir ./${TEST_RUN_LOG_FOLDER}/$number_of_connections
-
-        sar -n DEV 1 ${INDIVIDUAL_TEST_DURATION} 2>&1 > ./${TEST_RUN_LOG_FOLDER}/$number_of_connections/sar.log &
-    fi
-
-    top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}' >> ./${TEST_RUN_LOG_FOLDER}/$number_of_connections/top.log
-    #ifstat eth0 | grep eth0 | awk '{print $6}' >> ifstatlog.log
-    if [ $(($time % 10)) -eq 0 ];
-    then
-        echo $(netstat -nat | grep ESTABLISHED | wc -l) >> ./${TEST_RUN_LOG_FOLDER}/$number_of_connections/connections.log
-    fi
-
-    sleep 1
-    time=$(($time + 1))
-    echo "$time"
-done

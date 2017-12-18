@@ -24,19 +24,19 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will stop networking and attach a CD ISO to the vm. 
-    After that it will perform the backup/restore operation. 
-    
-    It uses a second partition as target. 
+    This script will stop networking and attach a CD ISO to the vm.
+    After that it will perform the backup/restore operation.
+
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     A typical xml entry looks like this:
 
     <test>
     <testName>VSS_BackupRestore_ISO_NoNetwork</testName>
-        <testScript>setupscripts\VSS_BackupRestore_ISO_NoNetwork.ps1</testScript> 
+        <testScript>setupscripts\VSS_BackupRestore_ISO_NoNetwork.ps1</testScript>
         <testParams>
             <param>driveletter=F:</param>
             <param>TC_COVERED=VSS-11</param>
@@ -44,8 +44,8 @@
         <timeout>1200</timeout>
         <OnERROR>Continue</OnERROR>
     </test>
-    
-    The iOzoneVers param is needed for the download of the correct iOzone version. 
+
+    The iOzoneVers param is needed for the download of the correct iOzone version.
 
 .Parameter vmName
     Name of the VM to backup/restore.
@@ -67,19 +67,19 @@ $retVal = $false
 $remoteScript = "STOR_VSS_StopNetwork.sh"
 
 ######################################################################
-# Runs a remote script on the VM without checking the log 
+# Runs a remote script on the VM without checking the log
 #######################################################################
 function RunRemoteScriptNoState($remoteScript)
 {
 
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh 
+    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
 
     .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy runtest.sh to the VM"
        return $False
-    }      
+    }
 
     .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
     if (-not $?)
@@ -98,14 +98,14 @@ function RunRemoteScriptNoState($remoteScript)
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix runtest.sh  2> /dev/null"
     if (-not $?)
     {
-        Write-Output "ERROR: Unable to run dos2unix on runtest.sh" 
+        Write-Output "ERROR: Unable to run dos2unix on runtest.sh"
         return $False
     }
-    
+
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x ${remoteScript}   2> /dev/null"
     if (-not $?)
     {
-        Write-Output "ERROR: Unable to chmod +x ${remoteScript}" 
+        Write-Output "ERROR: Unable to chmod +x ${remoteScript}"
         return $False
     }
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod +x runtest.sh  2> /dev/null"
@@ -117,20 +117,15 @@ function RunRemoteScriptNoState($remoteScript)
 
     # Run the script on the vm
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "at -f runtest.sh now + 1 minutes"
-    if (-not $?)
-    {
-        Write-Output "Error: Unable to submit runtest.sh to the vm"
-        return $False
-    }
 
     del runtest.sh
     return $True
 }
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Check input arguments
@@ -154,7 +149,7 @@ foreach ($p in $params)
         "rootdir" { $rootDir = $fields[1].Trim() }
         "driveletter" { $driveletter = $fields[1].Trim() }
         "IsoFilename" {$isoFilename = $fields[1].Trim() }
-        default  {}          
+        default  {}
         }
 }
 
@@ -189,14 +184,6 @@ if ($null -eq $TestLogDir)
 
 # Change the working directory to where we need to be
 cd $rootDir
-
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
@@ -207,20 +194,23 @@ else {
 	return $false
 }
 
+$loggerManager = [LoggerManager]::GetLoggerManager($vmName, $testParams)
+$global:logger = $loggerManager.TestCase
+
+$logger.info("This script covers test case: ${TC_COVERED}")
 
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
 
-
 $sts = runSetup $vmName $hvServer $driveletter
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
     return $False
 }
@@ -231,46 +221,45 @@ if (-not $sts[-1])
 if (-not ([System.IO.Path]::IsPathRooted($isoFilename)))
 {
     $obj = Get-WmiObject -ComputerName $hvServer -Namespace "root\virtualization\v2" -Class "MsVM_VirtualSystemManagementServiceSettingData"
-        
+
     $defaultVhdPath = $obj.DefaultVirtualHardDiskPath
-	
+
     if (-not $defaultVhdPath)
     {
-        "Error: Unable to determine VhdDefaultPath on HyperV server ${hvServer}"
-        $error[0].Exception
+        $logger.error("Unable to determine VhdDefaultPath on HyperV server ${hvServer}")
+        $logger.error($error[0].Exception)
         return $False
     }
-   
+
     if (-not $defaultVhdPath.EndsWith("\"))
     {
         $defaultVhdPath += "\"
     }
-  
+
     $isoFilename = $defaultVhdPath + $isoFilename
-   
-}   
+}
 
 $isoFileInfo = GetRemoteFileInfo $isoFilename $hvServer
 if (-not $isoFileInfo)
 {
-    "Error: The .iso file $isoFilename does not exist on HyperV server ${hvServer}"
+    $logger.error("The .iso file $isoFilename does not exist on HyperV server ${hvServer}")
     return $False
 }
 
 
 Set-VMDvdDrive -VMName $vmName -ComputerName $hvServer -Path $isoFilename
 if (-not $?)
-    {
-        "Error: Unable to Add ISO $isoFilename" 
+{
+        $logger.error("Unable to Add ISO $isoFilename")
         return $False
-    }
+}
 
-Write-Output "Attached DVD: Success" >> $summaryLog
+$logger.info("Attached DVD: Success")
 
-# Bring down the network. 
+# Bring down the network.
 RunRemoteScriptNoState $remoteScript
 
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 65
 # echo $x
 # return $False
 
@@ -279,35 +268,32 @@ $sts = ping $ipv4
 $pingresult = $False
 foreach ($line in $sts)
 {
-   if (( $line -Like "*unreachable*" ) -or ($line -Like "*timed*")) 
+   if (( $line -Like "*unreachable*" ) -or ($line -Like "*timed*"))
+
    {
        $pingresult = $True
    }
 }
 
-if ($pingresult) 
-   {
-       Write-Output "Network Down: Success"
-       Write-Output "Network Down: Success" >> $summaryLog
-   }
-   else
-   {
-       Write-Output "Network Down: Failed" >> $summaryLog
-       Write-Output "ERROR: Running $remoteScript script failed on VM!"
-       return $False
-   }
-
+if ($pingresult)
+{
+    $logger.info("Network Down: Success")
+}
+else
+{
+    $logger.error("Network Down: Failed")
+    return $False
+}
 
 $sts = startBackup $vmName $driveletter
 if (-not $sts[-1])
 {
     return $False
 }
-else 
+else
 {
     $backupLocation = $sts
 }
-
 
 $sts = restoreBackup $backupLocation
 if (-not $sts[-1])
@@ -316,18 +302,17 @@ if (-not $sts[-1])
 }
 
 $sts = checkResults $vmName $hvServer
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
     $retVal = $False
-} 
-else 
+}
+else
 {
 	$retVal = $True
     $results = $sts
 }
 
-
 runCleanup $backupLocation
 
-Write-Output "INFO: Test ${results}"
+$logger.info("Test ${results}")
 return $retVal

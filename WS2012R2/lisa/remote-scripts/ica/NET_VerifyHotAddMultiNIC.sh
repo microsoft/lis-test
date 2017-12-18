@@ -39,6 +39,7 @@ function AddedNic
     #
     echo "os_VENDOR=$os_VENDOR"
     if [[ "$os_VENDOR" == "Red Hat" ]] || \
+       [[ "$os_VENDOR" == "Fedora" ]] || \
        [[ "$os_VENDOR" == "CentOS" ]]; then
             echo "Info : Creating ifcfg-${ethName}"
             cp /etc/sysconfig/network-scripts/ifcfg-eth0 /etc/sysconfig/network-scripts/ifcfg-${ethName}
@@ -90,8 +91,9 @@ function RemovedNic
 
     # Clean up files & check linux log for errors
     if [[ "$os_VENDOR" == "Red Hat" ]] || \
+       [[ "$os_VENDOR" == "Fedora" ]] || \
        [[ "$os_VENDOR" == "CentOS" ]]; then
-            echo "Info: Cleaning up RHEL/CentOS"
+            echo "Info: Cleaning up RHEL/CentOS/Fedora"
             rm -f /etc/sysconfig/network-scripts/ifcfg-${ethName}
             cat /var/log/messages | grep "unable to close device (ret -110)"
             if [ $? -eq 0 ]; then

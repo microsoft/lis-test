@@ -154,8 +154,6 @@ if (-not $hvServer)
     return $False
 }
 
-
-
 if (-not $testParams)
 {
     "Error: testParams argument is null"
@@ -181,6 +179,8 @@ foreach($p in $params)
         "rootdir"       { $rootDir     = $val }
         "TC_COVERED"    { $tcCovered   = $val }
         "TestLogDir"    { $testLogDir  = $val }
+        "LEGACY_NICS"   { $legacyNICs  = $val }
+
         default         { continue }
     }
 }
@@ -239,7 +239,31 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "Covers: ${tcCovered}" | Tee-Object -Append -file $summaryLog
 
+#skip for generation 2
+$vmGeneration = GetVMGeneration $vmName $hvServer
+if ($legacyNICs -ge 1 -and $vmGeneration -eq 2 )
+{
+     $msg = "Warning: Generation 2 VM does not support LegacyNetworkAdapter, skip test"
+     Write-Output $msg | Tee-Object -Append -file $summaryLog
+     return $Skipped
+}
+
+# Check for tulip driver. If it's not preset test will be skipped
+if ($legacyNICs -ge 1)
+{
+    $sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /boot/config-`$(uname -r) | grep 'CONFIG_NET_TULIP=y\|CONFIG_TULIP=m'"
+    if (-not $sts){
+        $msg = "Warning: Tulip driver is not configured! Test skipped"
+        Write-Output $msg | Tee-Object -Append -file $summaryLog
+        return $Skipped   
+    }
+}
+
 "Info : Executing bash script"
+[int]$hostBuildNumber = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $hvServer).BuildNumber
+if ($hostBuildNumber -le 9200) {
+	$sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sed -i 's/NICS=7/NICS=2/g' constants.sh"
+}
 
 $sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix NET_MAX_NIC.sh 2>/dev/null"
 $sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod 755 NET_MAX_NIC.sh 2>/dev/null"

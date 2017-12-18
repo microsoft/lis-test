@@ -78,7 +78,7 @@ case $? in
 esac
 
 # Declare global variables
-declare -i bondCount
+declare -i vfCount
 
 #
 # VerifyVF - check if the VF driver is use
@@ -159,16 +159,15 @@ VerifyVF()
 		fi
 	fi
 
-	if [[is_fedora || is_ubuntu]]; then
-        ifconfig | grep enP
-   		if [ $? -ne 0 ]; then
-		    msg="ERROR: No enP2p0s2 device was found!"
-		    LogMsg "$msg"                                                             
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    exit 1
-		fi
-    fi
+	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo' | head -1)
+    ifconfig -a | grep $interface
+		if [ $? -ne 0 ]; then
+	    msg="ERROR: VF device, $interface , was not found!"
+	    LogMsg "$msg"                                                             
+	    UpdateSummary "$msg"
+	    SetTestStateFailed
+	    exit 1
+	fi
 
 	return 0
 }
@@ -182,16 +181,16 @@ Check_SRIOV_Parameters()
 	# Parameter provided in constants file
 	declare -a STATIC_IPS=()
 
-	if [ "${BOND_IP1:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="ERROR: The test parameter BOND_IP1 is not defined in constants file. Will try to set addresses via dhcp"
+	if [ "${VF_IP1:-UNDEFINED}" = "UNDEFINED" ]; then
+	    msg="ERROR: The test parameter VF_IP1 is not defined in constants file. Will try to set addresses via dhcp"
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
 	    SetTestStateAborted
 	    exit 1
 	fi
 
-	if [ "${BOND_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="ERROR: The test parameter BOND_IP2 is not defined in constants file. No network connectivity test will be performed."
+	if [ "${VF_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
+	    msg="ERROR: The test parameter VF_IP2 is not defined in constants file. No network connectivity test will be performed."
 	    LogMsg "$msg"
 	    UpdateSummary "$msg"
         SetTestStateAborted
@@ -261,126 +260,80 @@ Create1Gfile()
 }
 
 #
-# RunBondingScript - it will run the bonding script. Acceptance criteria is the
-# presence of the bond between VF and eth after the bonding script ran.
-# NOTE: function returns the number of bonds present on VM, not "0"
+# ConfigureVF - will set the given VF_IP(s) (from constants file) 
+# for each vf present 
 #
-RunBondingScript()
+ConfigureVF()
 {
-	if is_ubuntu ; then
-	    bash /usr/src/linux-headers-*/tools/hv/bondvf.sh
-
-	    # Verify if bond0 was created
-	    bondCount=$(cat /etc/network/interfaces | grep "auto bond" | wc -l)
-	    if [ 0 -eq $bondCount ]; then
-	        msg="ERROR: Bonding script failed. No bond was created"
-		    LogMsg "$msg"
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    return 99
-	    fi
-
-	elif is_suse ; then
-	    bash /usr/src/linux-*/tools/hv/bondvf.sh
-
-	    # Verify if bond0 was created
-	    bondCount=$(ls -d /etc/sysconfig/network/ifcfg-bond* | wc -l)
-	    if [ 0 -eq $bondCount ]; then
-	        msg="ERROR: Bonding script failed. No bond was created"
-		    LogMsg "$msg"
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    return 99
-	    fi
-
-	elif is_fedora ; then
-	    ./bondvf.sh
-
-	    # Verify if bond0 was created
-	    bondCount=$(ls -d /etc/sysconfig/network-scripts/ifcfg-bond* | wc -l)
-	    if [ 0 -eq $bondCount ]; then
-	        msg="ERROR: Bonding script failed. No bond was created"
-		    LogMsg "$msg"
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    return 99
-	    fi
+	vfCount=$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
+	if [ $vfCount -eq 0 ]; then
+    	msg="ERROR: No VFs are present in the Guest VM!"
+	    LogMsg "$msg"
+	    UpdateSummary "$msg"
+	    SetTestStateFailed
+	    exit 1	
 	fi
 
-	LogMsg "Successfully ran the bonding script"
-	return $bondCount
-}
-
-#
-# ConfigureBond - will set the given BOND_IP(s) (from constants file) 
-# for each bond present 
-#
-ConfigureBond()
-{
-	__iterator=0
+	__iterator=1
 	__ipIterator=1
 	LogMsg "Iterator: $__iterator"
-	LogMsg "BondCount: $bondCount"
+	# LogMsg "vfCount: $vfCount"
 
-	# Set static IPs for each bond created
-	while [ $__iterator -lt $bondCount ]; do
+	# Set static IPs for each vf created
+	while [ $__iterator -le $vfCount ]; do
 	    LogMsg "Network config will start"
 
-        # Extract bondIP value from constants.sh
+        # Extract vfIP value from constants.sh
 		staticIP=$(cat constants.sh | grep IP$__ipIterator | head -1 | tr = " " | awk '{print $2}')
 
 	    if is_ubuntu ; then
 	        __file_path="/etc/network/interfaces"
 	        # Change /etc/network/interfaces 
-	        sed -i "s/bond$__iterator inet dhcp/bond$__iterator inet static/g" $__file_path
-	        sed -i "/bond$__iterator inet static/a address $staticIP" $__file_path
-	        sed -i "/address ${staticIP}/a netmask $NETMASK" $__file_path
+	        echo "auto eth$__iterator" >> $__file_path
+	        echo "iface eth$__iterator inet static" >> $__file_path
+	        echo "address $staticIP" >> $__file_path
+	        echo "netmask $NETMASK" >> $__file_path
+	        ifup eth$__iterator
 
 	    elif is_suse ; then
-	        __file_path="/etc/sysconfig/network/ifcfg-bond$__iterator"
-	        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-	        sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" $__file_path
-	        cat <<-EOF >> $__file_path
-	        BOOTPROTO=static
-	        IPADDR=$staticIP
-	        NETMASK=$NETMASK
-	EOF
+	        __file_path="/etc/sysconfig/network/ifcfg-eth$__iterator"
+	        rm -f $__file_path
+
+	        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+	        echo "DEVICE=eth$__iterator" >> $__file_path
+	        echo "NAME=eth$__iterator" >> $__file_path
+	        echo "BOOTPROTO=static" >> $__file_path
+	        echo "IPADDR=$staticIP" >> $__file_path
+	        echo "NETMASK=$NETMASK" >> $__file_path
+	        echo "STARTMODE=auto" >> $__file_path
+
+	        ifup eth$__iterator
 
 	    elif is_fedora ; then
-	        __file_path="/etc/sysconfig/network-scripts/ifcfg-bond$__iterator"
+	        __file_path="/etc/sysconfig/network-scripts/ifcfg-eth$__iterator"
+	        rm -f $__file_path
+
 	        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-	        sed -i "/\b\(BOOTPROTO\|IPADDR\|\NETMASK\)\b/d" $__file_path
-	        cat <<-EOF >> $__file_path
-	        BOOTPROTO=static
-	        IPADDR=$staticIP
-	        NETMASK=$NETMASK
-	EOF
+	        echo "DEVICE=eth$__iterator" >> $__file_path
+	        echo "NAME=eth$__iterator" >> $__file_path
+	        echo "BOOTPROTO=static" >> $__file_path
+	        echo "IPADDR=$staticIP" >> $__file_path
+	        echo "NETMASK=$NETMASK" >> $__file_path
+	        echo "ONBOOT=yes" >> $__file_path
+
+	        ifup eth$__iterator
 	    fi
 	    LogMsg "Network config file path: $__file_path"
-
-	    # Add some interface output
-	    LogMsg "$(ip -o addr show bond$__iterator | grep -vi inet6)"
 
 		__ipIterator=$(($__ipIterator + 2))
 	    : $((__iterator++))
 	done
 
-    # Get everything up & running
-    if is_ubuntu ; then
-        service networking restart
-
-    elif is_suse ; then
-        service network restart
-
-    elif is_fedora ; then
-        service network restart
-    fi
-
 	return 0
 }
 
 #
-# InstallDependencies - will install iperf, omping, netcat, etc
+# InstallDependencies - will install iperf, netcat, etc
 #
 InstallDependencies()
 {
@@ -409,7 +362,7 @@ InstallDependencies()
 			# Check iPerf3
 			iperf3 -v > /dev/null 2>&1
 			if [ $? -ne 0 ]; then
-				wget http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/libiperf0-3.1.3-50.1.x86_64.rpm
+				wget -4 http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/libiperf0-3.1.3-50.1.x86_64.rpm
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download libiperf (this an iperf3 dependency)"
 	                LogMsg "$msg"
@@ -418,7 +371,7 @@ InstallDependencies()
 	                exit 1
 	            fi
 
-	            wget http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/iperf-3.1.3-50.1.x86_64.rpm
+	            wget -4 http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/iperf-3.1.3-50.1.x86_64.rpm
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download iperf"
 	                LogMsg "$msg"
@@ -431,34 +384,6 @@ InstallDependencies()
 	            rpm -i iperf*
 	            if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to install iperf"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-			fi
-
-			# Check netcat
-			nc -help > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            zypper --non-interactive in netcat
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install netcat"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-	        fi
-
-	        # Check omping
-	        omping -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            zypper addrepo http://download.opensuse.org/repositories/home:emendonca/SLE_12_SP2/home:emendonca.repo
-	            zypper --gpg-auto-import-keys refresh
-	            zypper --non-interactive in omping
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install omping"
 	                LogMsg "$msg"
 	                UpdateSummary "$msg"
 	                SetTestStateFailed
@@ -487,7 +412,7 @@ InstallDependencies()
 			# Check iPerf3
 			iperf3 -v > /dev/null 2>&1
 			if [ $? -ne 0 ]; then
-				wget https://iperf.fr/download/ubuntu/libiperf0_3.1.3-1_amd64.deb
+				wget -4 https://iperf.fr/download/ubuntu/libiperf0_3.1.3-1_amd64.deb
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download libiperf (this an iperf3 dependency)"
 	                LogMsg "$msg"
@@ -496,7 +421,7 @@ InstallDependencies()
 	                exit 1
 	            fi
 
-	            wget https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
+	            wget -4 https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download iperf"
 	                LogMsg "$msg"
@@ -515,20 +440,6 @@ InstallDependencies()
 	                exit 1
 	            fi
 			fi
-
-			# Check netcat
-			nc -help > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            apt-get install netcat -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install netcat"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-	        fi
-
             ;;
 
         redhat*|centos*)
@@ -551,7 +462,7 @@ InstallDependencies()
 			# Check iPerf3
 			iperf3 -v > /dev/null 2>&1
 			if [ $? -ne 0 ]; then
-	            wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm
+	            wget -4 https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm
 				if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to download iperf"
 	                LogMsg "$msg"
@@ -569,33 +480,6 @@ InstallDependencies()
 	                exit 1
 	            fi
 			fi
-
-			# Check netcat
-			nc -help > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            yum install nc -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install netcat"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-            fi
-
-	        # Check omping
-	        omping -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            yum install omping -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install omping"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi	
-			fi
-
         ;;
         *)
             msg="ERROR: OS Version not supported"

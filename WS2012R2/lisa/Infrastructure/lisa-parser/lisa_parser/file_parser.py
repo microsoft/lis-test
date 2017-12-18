@@ -418,40 +418,42 @@ class NTTTCPLogsReader(BaseLogsReader):
         n_conn = reduce(lambda x1, x2: int(x1) * int(x2),
                         f_match.group(1).split('X'))
         log_dict['NumberOfConnections'] = n_conn
+        log_dict['Throughput_Gbps'] = 0
+        log_dict['SenderCyclesPerByte'] = 0
+        log_dict['ReceiverCyclesPerByte'] = 0
+        log_dict['AverageLatency_ms'] = 0
         with open(log_file, 'r') as fl:
-            f_lines = fl.readlines()
-            for x in range(0, len(f_lines)):
+            for x in fl:
                 if not log_dict.get('Throughput_Gbps', None):
-                    throughput = re.match('.+throughput.+:([0-9.]+)', f_lines[x])
+                    throughput = re.match('.+throughput.+:([0-9.]+)', x)
                     if throughput:
                         log_dict['Throughput_Gbps'] = throughput.group(1).strip()
                 if not log_dict.get('SenderCyclesPerByte', None):
-                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', f_lines[x])
+                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
                     if cycle:
                         log_dict['SenderCyclesPerByte'] = cycle.group(1).strip()
         receiver_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
                                      'ntttcp-receiver-p{}.log'.format(f_match.group(1)))
-        with open(receiver_file, 'r') as fl:
-            f_lines = fl.readlines()
-            for x in range(0, len(f_lines)):
-                if not log_dict.get('ReceiverCyclesPerByte', None):
-                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', f_lines[x])
-                    if cycle:
-                        log_dict['ReceiverCyclesPerByte'] = cycle.group(1).strip()
+        if os.path.exists(receiver_file):
+            with open(receiver_file, 'r') as fl:
+                for x in fl:
+                    if not log_dict.get('ReceiverCyclesPerByte', None):
+                        cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
+                        if cycle:
+                            log_dict['ReceiverCyclesPerByte'] = cycle.group(1).strip()
         lat_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
                                 'lagscope-ntttcp-p{}.log'.format(f_match.group(1)))
         with open(lat_file, 'r') as fl:
-            f_lines = fl.readlines()
-            for x in range(0, len(f_lines)):
+            for x in fl:
                 if not log_dict.get('IPVersion', None):
-                    ip_version = re.match('domain:.+(IPv[4,6])', f_lines[x])
+                    ip_version = re.match('domain:.+(IPv[4,6])', x)
                     if ip_version:
                         log_dict['IPVersion'] = ip_version.group(1).strip()
                 if not log_dict.get('Protocol', None):
-                    ip_proto = re.match('protocol:.+([A-Z]{3})', f_lines[x])
+                    ip_proto = re.match('protocol:.+([A-Z]{3})', x)
                     if ip_proto:
                         log_dict['Protocol'] = ip_proto.group(1).strip()
-                latency = re.match('.+Average = ([0-9.]+)([a-z]+)', f_lines[x])
+                latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
                 if latency:
                     unit = latency.group(2).strip()
                     log_dict['AverageLatency_ms'] = \
@@ -645,7 +647,7 @@ class FIOLogsReaderRaid(BaseLogsReader):
 class IPERFLogsReader(BaseLogsReader):
     """
     Subclass for parsing iPerf log files e.g.
-    XXX-iperf3.log
+    XXX-pXXX-iperf3.log
     """
     # conversion unit dict reference for throughput to 'Gbits'
     BUNIT = {'Gbits': 1.0,
@@ -659,7 +661,7 @@ class IPERFLogsReader(BaseLogsReader):
                         'RxThroughput_Gbps', 'DatagramLoss',
                         'PacketSize_KBytes', 'IPVersion', 'Protocol',
                         'SendBufSize_KBytes']
-        self.log_matcher = '([0-9]+)-iperf3.log'
+        self.log_matcher = '([0-9]+)-p8001-l([0-9]+)k-iperf3.log'
 
     def collect_data(self, f_match, log_file, log_dict):
         """
@@ -670,80 +672,71 @@ class IPERFLogsReader(BaseLogsReader):
         :return: <dict> {'head1': 'val1', ...}
         """
         log_dict['NumberOfConnections'] = int(f_match.group(1))
+        log_dict['SendBufSize_KBytes'] = int(f_match.group(2))
+        log_dict['DatagramLoss'] = 0
+        log_dict['PacketSize_KBytes'] = 0
         log_dict['TxThroughput_Gbps'] = 0
         log_dict['RxThroughput_Gbps'] = 0
         log_dict['IPVersion'] = 'IPv4'
-        log_dict['Protocol'] = 'TCP'
+        log_dict['Protocol'] = 'UDP'
         lost_datagrams = 0
         total_datagrams = 0
-        with open(log_file, 'r') as fl:
-            f_lines = fl.readlines()
-            read_client = False
-            read_server = False
-            for x in xrange(0, len(f_lines)):
-                if not log_dict.get('SendBufSize_KBytes', None):
-                    iperf_opt = re.match('Process.+iperf3.+?(-u\s*[A-Z]{3})*'
-                                         '.+?-(4|6).+\s*-l\s*([0-9]+)([a-z]+)'
-                                         '.+started', f_lines[x])
-                    if iperf_opt.group(1):
-                        log_dict['Protocol'] = iperf_opt.group(1).split(
-                            '-u')[1].strip()
-                    if iperf_opt.group(2):
-                        log_dict['IPVersion'] = 'IPv' + iperf_opt.group(2).strip()
-                    log_dict['SendBufSize_KBytes'] = int(
-                        iperf_opt.group(3).strip())
-                if 'Connecting to host' in f_lines[x]:
-                    read_client = True
-                    read_server = False
-                elif 'Server output:' in f_lines[x]:
-                    read_server = True
-                    read_client = False
-                if log_dict['NumberOfConnections'] == 1:
-                    iperf_values = re.match('\[\s*[0-9]\]\s*0[.]00-60[.]00\s*'
-                                            'sec\s*([0-9.]+)\s*([A-Za-z]+)\s*'
-                                            '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
-                                            '([0-9.]+)\s*([A-Za-z]+)\s*'
-                                            '([0-9]+)/([0-9]+)\s*'
-                                            '\(([a-z\-0-9.]+)%\)', f_lines[x])
-                else:
-                    iperf_values = re.match('\[SUM\]\s*0[.]00-60[.]00\s*sec\s*'
-                                            '([0-9.]+)\s*([A-Za-z]+)\s*'
-                                            '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
-                                            '([0-9.]+)\s*([A-Za-z]+)\s*'
-                                            '([0-9]+)/([0-9]+)\s*'
-                                            '\(([a-z\-+0-9.]+)%\)', f_lines[x])
-                if iperf_values is not None:
-                    key = None
-                    if read_client:
-                        key = 'TxThroughput_Gbps'
-                        lost_datagrams += float(iperf_values.group(7).strip())
-                        total_datagrams += float(iperf_values.group(8).strip())
-                    elif read_server:
-                        key = 'RxThroughput_Gbps'
-                    digit_3 = decimal.Decimal(10) ** -3
-                    log_dict[key] += decimal.Decimal(
-                        float(iperf_values.group(3).strip()) *
-                        self.BUNIT[iperf_values.group(4).strip()]
-                    ).quantize(digit_3)
+        digit_3 = decimal.Decimal(10) ** -3
+        log_files = [os.path.join(os.path.dirname(log_file), f)
+                     for f in os.listdir(os.path.dirname(log_file))
+                     if f.startswith(str(log_dict['NumberOfConnections']) + '-p')]
+        for log_f in log_files:
+            with open(log_f, 'r') as fl:
+                read_client = True
+                for line in fl:
+                    if 'Connecting to host' in line:
+                        ip_version = re.match('Connecting\s*to\s*host\s*(.+),\s*port', line)
+                        if ':' in ip_version.group(1):
+                            log_dict['IPVersion'] = 'IPv6'
+                    if 'Server output:' in line:
+                        read_client = False
+                    if int(log_dict['NumberOfConnections']) == 1:
+                        iperf_values = re.match('\[\s*[0-9]\]\s*0[.]00-60[.]00\s*'
+                                                'sec\s*([0-9.]+)\s*([A-Za-z]+)\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)\s*'
+                                                '([0-9]+)/([0-9]+)\s*'
+                                                '\(([a-z\-0-9.]+)%\)', line)
+                    else:
+                        iperf_values = re.match('\[SUM\]\s*0[.]00-60[.]00\s*sec\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)/sec\s*'
+                                                '([0-9.]+)\s*([A-Za-z]+)\s*'
+                                                '([0-9]+)/([0-9]+)\s*'
+                                                '\(([a-z\-+0-9.]+)%\)', line)
+                    if iperf_values is not None:
+                        if read_client:
+                            key = 'TxThroughput_Gbps'
+                            lost_datagrams += float(iperf_values.group(7).strip())
+                            total_datagrams += float(iperf_values.group(8).strip())
+                        else:
+                            key = 'RxThroughput_Gbps'
+                        log_dict[key] += decimal.Decimal(float(iperf_values.group(3).strip()) *
+                                                         self.BUNIT[iperf_values.group(4).strip()]
+                                                         ).quantize(digit_3)
         try:
             log_dict['DatagramLoss'] = round(
-                lost_datagrams / total_datagrams * 100, 2)
+                    lost_datagrams / total_datagrams * 100, 2)
         except ZeroDivisionError:
             log_dict['DatagramLoss'] = 0
 
         if not log_dict.get('PacketSize_KBytes', None):
+            log_dict['PacketSize_KBytes'] = 0
             ica_log = os.path.join(self.log_base_path, 'ica.log')
             with open(ica_log, 'r') as f2:
                 lines = f2.readlines()
+                ip_version_mark = '-ipv6' if log_dict['IPVersion'] == 'IPv6' else ''
                 for i in xrange(0, len(lines)):
-                    ica_mark = re.match(
-                        '\s*Test\s*iperf3-{}-{}k\s*:\s*Passed'.format(
-                            log_dict['Protocol'],
-                            log_dict['SendBufSize_KBytes']),
-                        lines[i])
+                    ica_mark = re.match('.*Test\s*iperf3-{}{}-{}k.*:\s*Passed'.format(
+                            log_dict['Protocol'], ip_version_mark, log_dict['SendBufSize_KBytes']),
+                            lines[i])
                     if ica_mark:
-                        pkg_size = re.match('\s*Packet size: (.+)',
-                                            lines[i + 5])
+                        pkg_size = re.match('.*Packet\s*size:\s*([0-9.]+)', lines[i + 5])
                         if pkg_size:
                             log_dict['PacketSize_KBytes'] = float(
                                 pkg_size.group(1).strip())

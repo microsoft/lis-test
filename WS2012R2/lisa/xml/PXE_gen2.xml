@@ -41,72 +41,24 @@
         <suite>
             <suiteName>PXE</suiteName>
             <suiteTests>
-                <suiteTest>PXE_basic</suiteTest>  
-                <suiteTest>PXE_install_singleCpu</suiteTest>
-                <suiteTest>PXE_install_SMP</suiteTest>
+                <suiteTest>PXE</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
         <test>
-            <testName>PXE_basic</testName>
+            <testName>PXE</testName>
             <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
                     Infrastructure\PXE\routingScript.sh</files>
             <testScript>setupscripts\pxe_install.ps1</testScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testParams>
-                <param>TC_COVERED=PXE-03</param>
                 <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for centos, rhel or sles-->
-                <!-- <param>IsoFilename=isoName</param>  -->
-                <param>generation=2</param> 
-                <param>willInstall=no</param>   
-                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
-                <param>distro=rhel</param>
+                <param>SnapshotName=ICABase</param>
+                <param>generation=2</param>
             </testParams>
-            <timeout>900</timeout>
-            <OnError>Continue</OnError>
-        </test>
-
-        <test>
-            <testName>PXE_install_singleCpu</testName>
-            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
-                    Infrastructure\PXE\routingScript.sh</files>
-            <testScript>setupscripts\pxe_install.ps1</testScript>
-            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
-            <testParams>
-                <param>TC_COVERED=PXE-06</param>
-                <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for centos, rhel or sles-->
-                <param>IsoFilename=isoName</param>
-                <param>generation=2</param> 
-                <param>willInstall=yes</param>    
-                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
-                <param>distro=rhel</param>
-            </testParams>
-            <timeout>2400</timeout>
-            <OnError>Continue</OnError>
-        </test>
-
-        <test>
-            <testName>PXE_install_SMP</testName>
-            <files>remote-scripts\ica\pxe_install.sh,remote-scripts/ica/utils.sh,
-                    Infrastructure\PXE\routingScript.sh</files>
-            <testScript>setupscripts\pxe_install.ps1</testScript>
-            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
-            <testParams>
-                <param>TC_COVERED=PXE-07</param>
-                <param>VM2NAME=PXE_CLIENT</param>
-                <!-- IsoFilename is mandatory for centos, rhel or sles-->
-                <!-- <param>IsoFilename=isoName</param> -->
-                <param>generation=2</param> 
-                <param>willInstall=yes</param>  
-                <param>VCPU=4</param>  
-                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
-                <param>distro=ubuntu</param>
-            </testParams>
-            <timeout>2400</timeout>
+            <timeout>3600</timeout>
             <OnError>Continue</OnError>
         </test>
     </testCases>
@@ -117,8 +69,19 @@
             <vmName>PXE_SERVER</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>key.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>PXE</suite>
+            <!-- <testParams> -->
+                <!-- <param>TC_COVERED=PXE-01</param> -->
+                <!-- <param>willInstall=yes</param>   -->
+                <!-- <param>VCPU=1</param>   -->
+                <!-- Mandatory: please complete with centos, rhel, sles or ubuntu -->
+                <!-- <param>distro=ubuntu</param> -->
+                <!-- Version is mandatory for ubuntu. Please complete with codename distro -->
+                <!-- <param>version=xenial</param> -->
+                <!-- IsoFilename is mandatory for centos, rhel or sles -->
+                <!-- <param>IsoFilename=isoName</param> -->
+            <!-- </testParams> -->
         </vm>
 
         <vm>
@@ -126,8 +89,7 @@
             <vmName>PXE_CLIENT</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>key.ppk</sshKey>
-            <role>nonSUT</role>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <hardware>
                <create>true</create>
                <numCPUs>1</numCPUs>

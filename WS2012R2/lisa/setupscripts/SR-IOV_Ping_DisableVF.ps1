@@ -51,8 +51,8 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
             <param>TC_COVERED=SRIOV-5A</param>
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <param>REMOTE_SERVER=remoteHostname</param>
         </testParams>
@@ -146,8 +146,8 @@ foreach ($p in $params)
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
         "VM2NAME" { $vm2Name = $fields[1].Trim() }
         "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
@@ -164,37 +164,38 @@ $ipv4 = GetIPv4 $vmName $hvServer
 "${vmName} IPADDRESS: ${ipv4}"
 
 #
-# Configure the bond on test VM
+# Configure VF on test VM
 #
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
+Start-Sleep -s 5
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to configure eth1 on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
+Start-Sleep -s 10
 
 #
 # Run Ping with SR-IOV enabled
 #
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 600 -I bond0 `$BOND_IP2 > PingResults.log &' > runPing.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 600 -I eth1 `$VF_IP2 > PingResults.log &' > runPing.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
 
 # Wait 60 seconds and read the RTT
 "Get Logs"
-Start-Sleep -s 60
+Start-Sleep -s 30
 [decimal]$vfEnabledRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 if (-not $vfEnabledRTT){
     "ERROR: No result was logged! Check if Ping was executed!" | Tee-Object -Append -file $summaryLog
     return $false
 }
-
 "The RTT before disabling SR-IOV is $vfEnabledRTT ms" | Tee-Object -Append -file $summaryLog
-Start-Sleep -s 10
 
 #
-# Disable SR-IOV on both VMs
+# Disable SR-IOV on test VM
 #
+Start-Sleep -s 5
 "Disabling VF on vm1"
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 0
 if (-not $?) {
@@ -202,16 +203,8 @@ if (-not $?) {
     return $false 
 }
 
-"Disabling VF on vm2"
-Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer -IovWeight 0
-if (-not $?) {
-    "ERROR: Failed to disable SR-IOV on $vm2Name!" | Tee-Object -Append -file $summaryLog
-    return $false 
-}
-
-
 # Read the RTT with SR-IOV disabled; it should be higher
-Start-Sleep -s 60
+Start-Sleep -s 30
 [decimal]$vfDisabledRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 if (-not $vfDisabledRTT){
     "ERROR: No result was logged after SR-IOV was disabled!" | Tee-Object -Append -file $summaryLog
@@ -223,11 +216,9 @@ if ($vfDisabledRTT -le $vfEnabledRTT) {
     "ERROR: The RTT was lower with SR-IOV disabled, it should be higher" | Tee-Object -Append -file $summaryLog
     return $false 
 }
-Start-Sleep -s 10
 
 #
-# Enable SR-IOV on both VMs
-#
+# Enable SR-IOV on test VM
 "Enable VF on vm1"
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 1
 if (-not $?) {
@@ -235,21 +226,15 @@ if (-not $?) {
     return $false 
 }
 
-"Enable VF on vm2"
-Set-VMNetworkAdapter -VMName $vm2Name -ComputerName $remoteServer -IovWeight 1
-if (-not $?) {
-    "ERROR: Failed to enable SR-IOV on $vm2Name!" | Tee-Object -Append -file $summaryLog
-    return $false 
-}
-Start-Sleep -s 80
+Start-Sleep -s 30
 
 # Read the RTT again, it should be lower than before
-# We should see a significant imporvement, we'll check for at least 0.1 ms improvement
-[decimal]$vfDisabledRTT = $vfDisabledRTT - 0.08
+# We should see values to close to the initial RTT measured
+[decimal]$vfEnabledRTT = $vfEnabledRTT * 1.3
 [decimal]$vfFinalRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 
 "The RTT after re-enabling SR-IOV is $vfFinalRTT ms" | Tee-Object -Append -file $summaryLog
-if ($vfDisabledRTT -le $vfFinalRTT ) {
+if ($vfFinalRTT -gt $vfEnabledRTT) {
     "ERROR: After re-enabling SR-IOV, the RTT value has not lowered enough
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
     return $false 

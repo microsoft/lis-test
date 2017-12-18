@@ -152,8 +152,20 @@ if (Test-Path ".\setupScripts\TCUtils.ps1")
 }
 else
 {
-    "Error: Could not find setupScripts\TCUtils.ps1"
+    "Error: Could not find setupScripts\TCUtils.ps1" | Tee-Object -Append -file $summaryLog
     return $False
+}
+
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
 }
 
 if ( $controllerType -eq "IDE" )
@@ -161,7 +173,7 @@ if ( $controllerType -eq "IDE" )
     $vmGeneration = GetVMGeneration $vmName $hvServer
     if ($vmGeneration -eq 2 )
     {
-         Write-Output "Generation 2 VM does not support IDE disk, skip test"
+         Write-Output "Generation 2 VM does not support IDE disk, skip test" | Tee-Object -Append -file $summaryLog
          return $Skipped
     }
 }
@@ -173,7 +185,7 @@ if (Test-Path ".\setupScripts\STOR_VHDXResize_Utils.ps1")
 }
 else
 {
-    "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1"
+    "Error: Could not find setupScripts\STOR_VHDXResize_Utils.ps1" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -206,7 +218,7 @@ foreach ($vhdx in $vhdxDisks)
 
 if (-not $vhdxDrive)
 {
-    "Error: VM ${vmName} does not have a $controllerType drive"
+    "Error: VM ${vmName} does not have a $controllerType drive" | Tee-Object -Append -file $summaryLog
     $error[0].Exception.Message
     return $False
 }
@@ -216,14 +228,14 @@ $vhdPath = $vhdxDrive.Path
 $vhdxInfo = GetRemoteFileInfo $vhdPath $hvServer
 if (-not $vhdxInfo)
 {
-    "Error: The vhdx file (${vhdPath} does not exist on server ${hvServer}"
+    "Error: The vhdx file (${vhdPath} does not exist on server ${hvServer}" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
 "Info : Verify the file is a .vhdx"
 if (-not $vhdPath.EndsWith(".vhdx") -and -not $vhdPath.EndsWith(".avhdx"))
 {
-    "Error: $controllerType virtual disk is not a .vhdx file."
+    "Error: $controllerType virtual disk is not a .vhdx file." | Tee-Object -Append -file $summaryLog
     "       Path = ${vhdPath}"
     return $False
 }
@@ -235,13 +247,13 @@ $deviceID = $vhdxInfo.Drive
 $diskInfo = Get-WmiObject -Query "SELECT * FROM Win32_LogicalDisk Where DeviceID = '${deviceID}'" -ComputerName $hvServer
 if (-not $diskInfo)
 {
-    "Error: Unable to collect information on drive ${deviceID}"
+    "Error: Unable to collect information on drive ${deviceID}" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
 if ($diskInfo.FreeSpace -le $sizeFlag + 10MB)
 {
-    "Error: Insufficent disk free space"
+    "Error: Insufficent disk free space" | Tee-Object -Append -file $summaryLog
     "       This test case requires ${newSize} free"
     "       Current free space is $($diskInfo.FreeSpace)"
     return $False
@@ -256,7 +268,7 @@ $guest_script = "STOR_VHDXResize_PartitionDisk"
 $sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
-  "Error: Running ${guest_script} script failed on VM. check VM logs , exiting test case execution "
+  "Error: Running ${guest_script} script failed on VM. check VM logs , exiting test case execution " | Tee-Object -Append -file $summaryLog
   return $False
 }
 
@@ -290,7 +302,7 @@ if ( $controllerType -eq "IDE" -or $offline -eq "True" )
   Start-VM -Name $vmName -ComputerName $hvServer
   if (-not (WaitForVMToStartSSH $ipv4 $timeout))
   {
-      "Error: Test case timed out for VM to be running again!"
+      "Error: Test case timed out for VM to be running again!" | Tee-Object -Append -file $summaryLog
       return $False
   }
   else
@@ -343,13 +355,13 @@ if (-not $cmdStatus)
 $growDiskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
 if (-not $?)
 {
-    "Error: Unable to determine disk size from within the guest after growing the VHDX"
+    "Error: Unable to determine disk size from within the guest after growing the VHDX" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
 if ($growDiskSize -ne $newVhdxGrowSize)
 {
-    "Error: VM ${vmName} sees a disk size of ${diskSize}, not the expected size of ${newVhdxGrowSize}"
+    "Error: VM ${vmName} sees a disk size of ${diskSize}, not the expected size of ${newVhdxGrowSize}" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
@@ -390,7 +402,7 @@ if ( $controllerType -eq "IDE" -or $offline -eq "True")
 Resize-VHD -Path $vhdPath -SizeBytes ($newVhdxShrinkSize) -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $?)
 {
-   "Error: Unable to shrink VHDX file '${vhdPath}"
+   "Error: Unable to shrink VHDX file '${vhdPath}" | Tee-Object -Append -file $summaryLog
    return $False
 }
 
@@ -403,7 +415,7 @@ if ( $controllerType -eq "IDE" -or $offline -eq "True" )
   Start-VM -Name $vmName -ComputerName $hvServer
   if (-not (WaitForVMToStartSSH $ipv4 $timeout))
   {
-      "Error: Test case timed out for VM to be running again!"
+      "Error: Test case timed out for VM to be running again!" | Tee-Object -Append -file $summaryLog
       return $False
   }
   else
@@ -437,13 +449,13 @@ while (-not $cmdStatus -and $maxChecks -lt 3)
 
 if (-not $cmdStatus)
 {
-    "Warning: Failed to force $controllerType device rescan"
+    "Warning: Failed to force $controllerType device rescan" | Tee-Object -Append -file $summaryLog
 }
 
 $shrinkDiskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
 if (-not $?)
 {
-    "Error: Unable to determine disk size from within the guest after shrinking the VHDX"
+    "Error: Unable to determine disk size from within the guest after shrinking the VHDX" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
@@ -460,11 +472,11 @@ $guest_script = "STOR_VHDXResize_PartitionDisk"
 $sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
-  "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+  "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "| Tee-Object -Append -file $summaryLog
   return $False
 }
 
-"Info : The guest sees the new grow size ($growDiskSize) and the new shrink size ($shrinkDiskSize)"
+"Info : The guest sees the new grow size ($growDiskSize) and the new shrink size ($shrinkDiskSize)" | Tee-Object -Append -file $summaryLog
 "Info : VHDx Resize - ${TC_COVERED} is Done"
 
 return $True

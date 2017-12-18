@@ -25,7 +25,7 @@
 
 .Description
     The script will generate a 100MB file with non-ascii characters. Then
-    it will copy the file to the Linux VM. Finally, the script will verify 
+    it will copy the file to the Linux VM. Finally, the script will verify
     both checksums (on host and guest).
 
     A typical XML definition for this test case would look similar
@@ -54,7 +54,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $retVal = $false
 
-####################################################################### 
+#######################################################################
 # Delete temporary test file
 #######################################################################
 function RemoveTestFile()
@@ -66,10 +66,10 @@ function RemoveTestFile()
     }
 }
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 #
 # Checking the input arguments
@@ -96,7 +96,7 @@ foreach ($p in $params)
         "ipv4" { $ipv4 = $fields[1].Trim() }
         "rootdir" { $rootDir = $fields[1].Trim() }
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
-        default  {}          
+        default  {}
         }
 }
 
@@ -130,6 +130,16 @@ else {
     return $false
 }
 
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
 # Delete any previous summary.log file, then create a new one
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
@@ -154,8 +164,8 @@ if (-not $gsi.Enabled) {
     while ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
         Start-Sleep -Seconds 5
     }
-    
-    Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer 
+
+    Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
     Start-VM -Name $vmName -ComputerName $hvServer
 
     # Waiting for the VM to run again and respond to SSH - port 22
@@ -164,7 +174,7 @@ if (-not $gsi.Enabled) {
     } until (Test-NetConnection $IPv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 }
 else {
-    Write-Output "Info: Guest services are enabled on VM '${vmName}'"       
+    Write-Output "Info: Guest services are enabled on VM '${vmName}'"
 }
 
 # Check to see if the fcopy daemon is running on the VM
@@ -188,12 +198,12 @@ if ($gsi.OperationalStatus -ne "OK") {
 else {
     # Define the file-name to use with the current time-stamp
     $CurrentDir= "$pwd\"
-    $testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file" 
-    $pathToFile="$CurrentDir"+"$testfile" 
+    $testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
+    $pathToFile="$CurrentDir"+"$testfile"
 
     # Sample string with non-ascii chars
     $nonAsciiChars="¡¢£¤¥§¨©ª«¬®¡¢£¤¥§¨©ª«¬®¯±µ¶←↑ψχφυ¯±µ¶←↑ψ¶←↑ψχφυ¯±µ¶←↑ψχφυχφυ"
-    
+
     # Create a ~2MB sample file with non-ascii characters
     $stream = [System.IO.StreamWriter] $pathToFile
     1..8000 | % {
@@ -204,7 +214,7 @@ else {
     # Checking if sample file was successfully created
     if (-not $?){
         Write-Output "Error: Unable to create the 2MB sample file" | Tee-Object -Append -file $summaryLog
-        return $False   
+        return $False
     }
     else {
         Write-Output "Info: initial 2MB sample file $testfile successfully created"
@@ -220,21 +230,21 @@ else {
     # Checking if auxiliary file was successfully created
     if (-not $?){
         Write-Output "Error: Unable to create the extended auxiliary file!" | Tee-Object -Append -file $summaryLog
-        return $False   
+        return $False
     }
 
     # Move the auxiliary file to testfile
     Move-Item -Path $MyDir"auxFile" -Destination $pathToFile -Force
 
     # Checking file size. It must be over 85MB
-    $testfileSize = (Get-Item $pathToFile).Length 
+    $testfileSize = (Get-Item $pathToFile).Length
     if ($testfileSize -le 85mb) {
         Write-Output "Error: File not big enough. File size: $testfileSize MB" | Tee-Object -Append -file $summaryLog
         $testfileSize = $testfileSize / 1MB
         $testfileSize = [math]::round($testfileSize,2)
         Write-Output "Error: File not big enough (over 85MB)! File size: $testfileSize MB" | Tee-Object -Append -file $summaryLog
         RemoveTestFile
-        return $False   
+        return $False
     }
     else {
         $testfileSize = $testfileSize / 1MB
@@ -247,7 +257,7 @@ else {
     if (-not $?){
         Write-Output "Error: Unable to get MD5 checksum!" | Tee-Object -Append -file $summaryLog
         RemoveTestFile
-        return $False   
+        return $False
     }
     else {
         Write-Output "MD5 file checksum on the host-side: $local_chksum" | Tee-Object -Append -file $summaryLog
@@ -262,7 +272,7 @@ else {
     }
 
     $vhd_path_formatted = $vhd_path.Replace(':','$')
-    
+
     $filePath = $vhd_path + $testfile
     $file_path_formatted = $vhd_path_formatted + $testfile
 

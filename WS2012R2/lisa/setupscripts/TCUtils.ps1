@@ -30,11 +30,11 @@
 #
 # test result codes
 #
-New-Variable Passed              -value "Passed"              -option ReadOnly
-New-Variable Skipped             -value "Skipped"             -option ReadOnly
-New-Variable Aborted             -value "Aborted"             -option ReadOnly
-New-Variable Failed              -value "Failed"              -option ReadOnly
 
+New-Variable Passed              -value "Passed"              -option ReadOnly -Force
+New-Variable Skipped             -value "Skipped"             -option ReadOnly -Force
+New-Variable Aborted             -value "Aborted"             -option ReadOnly -Force
+New-Variable Failed              -value "Failed"              -option ReadOnly -Force
 
 #####################################################################
 #
@@ -146,6 +146,91 @@ function GetIPv4([String] $vmName, [String] $server)
     return $addr
 }
 
+#######################################################################
+#
+# Logger
+#
+#######################################################################
+class Logger {
+    [String] $LogFile
+    [Boolean] $AddTimestamp
+
+    Logger([String] $logFile, [Boolean] $addTimestamp) {
+        $this.LogFile = $logFile
+        $this.AddTimestamp = $addTimestamp
+    }
+
+    [void] info([String] $message) {
+        $color = "white"
+        $this.logMessage("Info: ${message}", $color)
+    }
+
+    [void] error([String] $message) {
+        $color = "Red"
+        $this.logMessage("Error: ${message}", $color)
+    }
+
+    [void] debug([String] $message) {
+        $color = "Gray"
+        $this.logMessage("Debug: ${message}", $color)
+    }
+
+    [void] warning([String] $message) {
+        $color = "Yellow"
+        $this.logMessage("Warning: ${message}", $color)
+    }
+
+    [void] logMessage([String] $message, [String] $color) {
+        if ($this.AddTimestamp) {
+            $timestamp = $(Get-Date -Format G)
+            $message = "${timestamp} - ${message}"
+        }
+        Write-Host $message -ForegroundColor $color
+        $message | Add-Content $this.LogFile
+    }
+}
+
+
+#######################################################################
+#
+# LoggerManager
+#
+#######################################################################
+class LoggerManager {
+    [Logger] $Summary
+    [Logger] $TestCase
+
+    LoggerManager([Logger] $summaryLogger, [Logger] $testCaseLogger) {
+        $this.Summary = $summaryLogger
+        $this.TestCase = $testCaseLogger
+    }
+
+    [LoggerManager] static GetLoggerManager([String] $vmName, [String] $testParams) {
+        $params = $testParams.Split(";")
+        $testLogDir = $null
+        $testName = $null
+        foreach ($p in $params) {
+            $fields = $p.Split("=")
+            if ($fields[0].Trim() -eq "TestLogDir") {
+                $testLogDir = $fields[1].Trim()
+            } elseif ($fields[0].Trim() -eq "TestName") {
+                $testName = $fields[1].Trim()
+            }
+        }
+
+        if ((-not $testLogDir) -or (-not $testName)) {
+            throw [System.ArgumentException] "TestLogDir or TestName not found."
+        }
+
+        $summaryLog = "${vmName}_summary.log"
+        Remove-Item $summaryLog -ErrorAction SilentlyContinue
+        $testLog = "${testLogDir}\${vmName}_${testName}_ps.log"
+
+        $summaryLogger = [Logger]::new($summaryLog, $False)
+        $testLogger = [Logger]::new($testLog, $True)
+        return [LoggerManager]::new($summaryLogger, $testLogger)
+    }
+}
 #######################################################################
 #
 # GetIPv4ViaHyperV()
@@ -1042,8 +1127,9 @@ function RunRemoteScript($remoteScript)
     $TestRunning   = "TestRunning"
     $TestSkipped   = "TestSkipped"
     $timeout       = 6000
+    $params        = $scriptParam
 
-    "./${remoteScript} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
+    "./${remoteScript} ${params} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
 
     .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?)
@@ -1111,6 +1197,7 @@ function RunRemoteScript($remoteScript)
                     if ($contents -eq $TestAborted)
                     {
                          Write-Output "Info : State file contains TestAborted message."
+                         $retValue = $Aborted
                          break
                     }
                     if ($contents -eq $TestFailed)
@@ -1120,6 +1207,7 @@ function RunRemoteScript($remoteScript)
                     }
                     if ($contents -eq $TestSkipped)
                     {
+                        $retValue = $Skipped
                         Write-Output "Info : State file contains TestSkipped message."
                         break
                     }
@@ -1213,19 +1301,51 @@ function check_kernel
 # Check for application on VM
 #
 #######################################################################
-function check_app([string]$app_name, [string]$custom_ip)
+function checkApp([string]$appName, [string]$customIP)
 {
-    IF([string]::IsNullOrWhiteSpace($custom_ip)) {
-        $target_ip = $ipv4
+    IF([string]::IsNullOrWhiteSpace($customIP)) {
+        $targetIP = $ipv4
     }
     else {
-        $target_ip = $custom_ip
+        $targetIP = $customIP
     }
-    .\bin\plink -i ssh\${sshKey} root@${target_ip} "command -v ${app_name}"
+    .\bin\plink -i ssh\${sshKey} root@${targetIP} "command -v ${appName} > /dev/null 2>&1"
     if (-not $?) {
-        Write-Output "ERROR: ${app_name} is not installed on the VM" -ErrorAction SilentlyContinue
         return $False
     }
+    return $True
+}
+
+#######################################################################
+#
+# install application on VM
+#
+#######################################################################
+
+function installApp([string]$appName, [string]$customIP, [string]$appGitURL, [string]$appGitTag)
+{
+    # check whether app is already installed
+    $retVal = checkApp $appName $customIP
+    if ($retVal)
+    {
+        return $True
+    }
+    if ($appGitURL -eq $null)
+    {
+        Write-Output "ERROR: $appGitURL is not set" -ErrorAction SilentlyContinue | Out-File -Append $summaryLog
+        return $False
+    }
+    # app is not installed, install it
+    .\bin\plink -i ssh\${sshKey} root@${customIP} "cd /root; git clone $appGitURL $appName > /dev/null 2>&1"
+
+    if ($appGitTag)
+    {
+        .\bin\plink -i ssh\${sshKey} root@${customIP} "cd  /root/$appName; git checkout tags/$appGitTag > /dev/null 2>&1"
+    }
+    .\bin\plink -i ssh\${sshKey} root@${customIP} "cd /root/$appName; ./configure > /dev/null 2>&1; make > /dev/null 2>&1; make install > /dev/null 2>&1"
+
+    $retVal = checkApp $appName $customIP
+    return $retVal
 }
 
 ########################################################################
@@ -1304,6 +1424,7 @@ function CheckRecoveringJ()
     del $filename
     return $retValue
 }
+
 
 #######################################################################
 # Create a file on the VM.
@@ -1550,8 +1671,8 @@ function GetVMGeneration([String] $vmName, [String] $hvServer)
     #>
     $vmInfo = Get-VM -Name $vmName -ComputerName $hvServer
 
-    # Hyper-v server 2012 only supports generation 1 VM.
-    if ( $vmInfo.Generation -eq "")
+    # Hyper-V Server 2012 (no R2) only supports generation 1 VM
+    if (!$vmInfo.Generation)
     {
         $vmGeneration = 1
     }
@@ -1560,4 +1681,590 @@ function GetVMGeneration([String] $vmName, [String] $hvServer)
         $vmGeneration = $vmInfo.Generation
     }
     return $vmGeneration
+}
+
+#######################################################################
+#
+# GetNumaSupportStatus()
+#
+#######################################################################
+function GetNumaSupportStatus([string] $kernel)
+{
+    <#
+    .Synopsis
+        Try to determine whether guest supports NUMA
+    .Description
+        Get whether NUMA is supported or not based on kernel verison.
+        Generally, from RHEL 6.6 with kernel version 2.6.32-504,
+        NUMA is supported well.
+    .Parameter kernel
+        $kernel version gets from "uname -r"
+    .Example
+        GetNumaSupportStatus 2.6.32-696.el6.x86_64
+    #>
+
+    if ( $kernel.Contains("i686") -or $kernel.Contains("i386")) {
+        return $false
+    }
+
+    if ( $kernel.StartsWith("2.6")) {
+        $numaSupport = "2.6.32.504"
+        $kernelSupport = $numaSupport.split(".")
+        $kernelCurrent = $kernel.replace("-",".").split(".")
+
+        for ($i=0; $i -le 3; $i++) {
+            if ($kernelCurrent[$i] -lt $kernelSupport[$i] ) {
+                return $false
+            }
+        }
+    }
+
+    # We skip the check if kernel is not 2.6
+    # Anything newer will have support for it
+    return $true
+}
+
+
+
+#####################################################################
+#
+# GetHostBuildNumber
+#
+#####################################################################
+function GetHostBuildNumber([String] $hvServer)
+{
+    <#
+    .Synopsis
+        Get host BuildNumber.
+
+    .Description
+        Get host BuildNumber.
+        14393: 2016 host
+        9600: 2012R2 host
+        9200: 2012 host
+        0: error
+
+    .Parameter hvServer
+        Name of the server hosting the VM
+
+    .ReturnValue
+        Host BuildNumber.
+
+    .Example
+        GetHostBuildNumber
+    #>
+
+    [System.Int32]$buildNR = (Get-WmiObject -class Win32_OperatingSystem -ComputerName $hvServer).BuildNumber
+
+    if ( $buildNR -gt 0 )
+    {
+        return $buildNR
+    }
+    else
+    {
+        Write-Error -Message "Get host build number failed" -ErrorAction SilentlyContinue
+        return 0
+    }
+}
+
+
+#####################################################################
+#
+# AskVmForTime()
+#
+#####################################################################
+function AskVmForTime([String] $sshKey, [String] $ipv4, [string] $command)
+{
+    <#
+    .Synopsis
+        Send a time command to a VM
+    .Description
+        Use SSH to request the data/time on a Linux VM.
+    .Parameter sshKey
+        SSH key for the VM
+    .Parameter ipv4
+        IPv4 address of the VM
+    .Parameter command
+        Linux date command to send to the VM
+    .Output
+        The date/time string returned from the Linux VM.
+    .Example
+        AskVmForTime "lisa_id_rsa.ppk" "192.168.1.101" 'date "+%m/%d/%Y%t%T%p "'
+    #>
+
+    $retVal = $null
+
+    $sshKeyPath = Resolve-Path $sshKey
+
+    #
+    # Note: We did not use SendCommandToVM since it does not return
+    #       the output of the command.
+    #
+    $dt = .\bin\plink -i ${sshKeyPath} root@${ipv4} $command
+    if ($?)
+    {
+        $retVal = $dt
+    }
+    else
+    {
+        LogMsg 0 "Error: $vmName unable to send command to VM. Command = '$command'"
+    }
+
+    return $retVal
+}
+
+
+#####################################################################
+#
+# GetUnixVMTime()
+#
+#####################################################################
+function GetUnixVMTime([String] $sshKey, [String] $ipv4)
+{
+    <#
+    .Synopsis
+        Return a Linux VM current time as a string.
+    .Description
+        Return a Linxu VM current time as a string
+    .Parameter sshKey
+        SSH key used to connect to the Linux VM
+    .Parameter ivp4
+        IP address of the target Linux VM
+    .Example
+        GetUnixVMTime "lisa_id_rsa.ppk" "192.168.6.101"
+    #>
+
+    if (-not $sshKey)
+    {
+        return $null
+    }
+
+    if (-not $ipv4)
+    {
+        return $null
+    }
+
+    #
+    # now=`date "+%m/%d/%Y/%T"
+    # returns 04/27/2012/16:10:30PM
+    #
+    $unixTimeStr = $null
+    $command = 'date "+%m/%d/%Y/%T" -u'
+
+    $unixTimeStr = AskVMForTime ${sshKey} $ipv4 $command
+    if (-not $unixTimeStr -and $unixTimeStr.Length -lt 10)
+    {
+        return $null
+    }
+
+    return $unixTimeStr
+}
+
+
+#####################################################################
+#
+#   GetTimeSync()
+#
+#####################################################################
+function GetTimeSync([String] $sshKey, [String] $ipv4)
+{
+    if (-not $sshKey)
+    {
+        return $null
+    }
+
+    if (-not $ipv4)
+    {
+        return $null
+    }
+    #
+    # Get a time string from the VM, then convert the Unix time string into a .NET DateTime object
+    #
+    $unixTimeStr = GetUnixVMTime -sshKey "ssh\${sshKey}" -ipv4 $ipv4
+    if (-not $unixTimeStr)
+    {
+       "Error: Unable to get date/time string from VM"
+        return $False
+    }
+
+    $pattern = 'MM/dd/yyyy/HH:mm:ss'
+    $unixTime = [DateTime]::ParseExact($unixTimeStr, $pattern, $null)
+
+    #
+    # Get our time
+    #
+    $windowsTime = [DateTime]::Now.ToUniversalTime()
+
+    #
+    # Compute the timespan, then convert it to the absolute value of the total difference in seconds
+    #
+    $diffInSeconds = $null
+    $timeSpan = $windowsTime - $unixTime
+    if (-not $timeSpan)
+    {
+        "Error: Unable to compute timespan"
+        return $False
+    }
+    else
+    {
+        $diffInSeconds = [Math]::Abs($timeSpan.TotalSeconds)
+    }
+
+    #
+    # Display the data
+    #
+    "Windows time: $($windowsTime.ToString())"
+    "Unix time: $($unixTime.ToString())"
+    "Difference: $diffInSeconds"
+
+     Write-Output "Time difference = ${diffInSeconds}" | Tee-Object -Append -file $summaryLog
+     return $diffInSeconds
+}
+
+#####################################################################
+#
+#   ConfigTimeSync()
+#
+#####################################################################
+function ConfigTimeSync([String] $sshKey, [String] $ipv4)
+{
+    #
+    # Copying required scripts
+    #
+    $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
+    $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\Core_Config_TimeSync.sh" "/root/config_timesync.sh"
+
+    # check the return Value of SendFileToVM
+    if ($? -ne "True")
+    {
+        Write-Output "Error: Failed to send config file to VM."
+        $retVal = $False
+    }
+
+    $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix config_timesync.sh && chmod u+x config_timesync.sh && ./config_timesync.sh"
+    if ($? -ne "True")
+    {
+        Write-Output "Error: Failed to configure time sync. Check logs for details."
+        $retVal = $False
+    }
+
+    return $retVal
+}
+
+function CheckVMState([String] $vmName, [String] $hvServer)
+{
+    $vm = Get-Vm -VMName $vmName -ComputerName $hvServer
+    $vmStatus = $vm.state
+
+    return $vmStatus
+}
+
+############################################################################
+#
+# CreateController
+#
+# Description
+#     Create a SCSI controller if one with the ControllerID does not
+#     already exist.
+#
+############################################################################
+function CreateController([string] $vmName, [string] $server, [string] $controllerID)
+{
+    #
+    # Initially, we will limit this to 4 SCSI controllers...
+    #
+    if ($ControllerID -lt 0 -or $controllerID -gt 3)
+    {
+        write-output "    Error: Bad SCSI controller ID: $controllerID"
+        return $False
+    }
+
+    #
+    # Check if the controller already exists.
+    #
+    $scsiCtrl = Get-VMScsiController -VMName $vmName -ComputerName $server
+    if ($scsiCtrl.Length -1 -ge $controllerID)
+    {
+        "Info : SCSI controller already exists"
+    }
+    else
+    {
+        $error.Clear()
+        Add-VMScsiController -VMName $vmName -ComputerName $server
+        if ($error.Count -gt 0)
+        {
+            "    Error: Add-VMScsiController failed to add 'SCSI Controller $ControllerID'"
+            $error[0].Exception
+            return $False
+        }
+        "Info : Controller successfully added"
+    }
+    return $True
+}
+
+
+function SetIntegrationService([string] $vmName, [string] $hvServer, [string] $serviceName, [boolean] $serviceStatus)
+{
+    <#
+    .Synopsis
+        Set the Integration Service status.
+    .Description
+        Set the Integration Service status based on service name and expected service status.
+    .Parameter vmName
+        Name of the VM
+    .Parameter hvServer
+        Name of the server hosting the VM
+    .Parameter serviceName
+        Service name, e.g. VSS, Guest Service Interface
+    .Parameter serviceStatus
+        Expected servcie status, $true is enabled, $false is disabled
+    .Example
+        SetIntegrationService $vmName $hvServer $serviceName $true
+    #>
+    if (@("Guest Service Interface", "Time Synchronization", "Heartbeat", "Key-Value Pair Exchange", "Shutdown","VSS") -notcontains $serviceName)
+    {
+        "Error: Unknown service type: $serviceName"
+        return $false
+    }
+
+    "Info: Set the Integrated Services $serviceName as $serviceStatus"
+    if ($serviceStatus -eq $false)
+    {
+        Disable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $serviceName
+    }
+    else
+    {
+        Enable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $serviceName
+    }
+
+    $status = Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name $serviceName
+    if ($status.Enabled -ne $serviceStatus)
+    {
+        "Error: The $serviceName service could not be set as $serviceStatus"
+        return $False
+    }
+    return $True
+}
+
+function GetSelinuxAVCLog([String] $ipv4, [String] $sshKey)
+{
+    <#
+    .Synopsis
+        Check selinux audit.log in Linux VM for avc denied log.
+    .Description
+        Check audit.log in Linux VM for avc denied log.
+        If get avc denied log for hyperv daemons, return $true, else return $false.
+    .Parameter ipv4
+        IPv4 address of the Linux VM.
+    .Parameter sshKey
+        SSH key used to connect to the Linux VM
+    .Example
+        GetSelinuxAVCLog $ipv4 $sshKey
+    #>
+    $filename = ".\audit.log"
+    $text_hv = "hyperv"
+    $text_avc = "type=avc"
+    echo y | .\bin\pscp -i ssh\${sshKey}  root@${ipv4}:/var/log/audit.log $filename
+
+    if (-not $?) {
+        Write-Output "ERROR: Unable to copy audit.log from the VM"
+        return $False
+    }
+
+    $file = Get-Content $filename
+    if (-not $file) {
+        Write-Error -Message "Error: Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
+        return $null
+    }
+
+     foreach ($line in $file) {
+        if ($line -match $text_hv -and $line -match $text_avc){
+            write-output "Warning: get the avc denied log: $line"
+            return $True
+        }
+    }
+    del $filename
+    return $False
+}
+
+function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$supportKernel)
+{
+    <#
+    .Synopsis
+        Check vm supports one feature or not.
+    .Description
+        Check vm supports one feature or not based on comare curent kernel version with feature supported kernel version. If the current version is lower than feature supported version, return false, otherwise return true
+    .Parameter ipv4
+        IPv4 address of the Linux VM.
+    .Parameter sshKey
+        SSH key used to connect to the Linux VM
+    .Parameter supportkernel
+        the kernel version number starts to support this feature, e.g. supportkernel = "3.10.0.383"
+    .Example
+        GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
+    #>
+	$currentKernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
+	if( $? -eq $false){
+		write-output "WARNING: Could not get kernel version".
+	}
+	$sKernel = $supportKernel.split(".")
+	$cKernel = $currentKernel.replace("-",".").split(".")
+
+	for ($i=0; $i -le 3; $i++) {
+		if ($ckernel[$i] -lt $sKernel[$i] ) {
+			return $false
+		}
+	}
+	return $true
+}
+
+# Function for starting dependency VMs used by test scripts
+function StartDependencyVM([String] $dep_vmName, [String] $server, [int]$tries)
+{
+    if (Get-VM -Name $dep_vmName -ComputerName $server |  Where { $_.State -notlike "Running" })
+    {
+        [int]$i = 0
+        # Try to start dependency VM
+        for ($i=0; $i -lt $tries; $i++)
+        {
+            Start-VM -Name $dep_vmName -ComputerName $server -ErrorAction SilentlyContinue
+            if (-not $?)
+            {
+                "Warning: Unable to start VM $dep_vmName on attempt $i"
+            }
+            else
+            {
+                $i = 0
+                break
+            }
+
+            Start-Sleep -s 30
+        }
+
+        if ($i -ge $tries)
+        {
+            "Error: Unable to start VM $dep_vmName after $tries attempts" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+    }
+
+    # just to make sure vm2 started
+    if (Get-VM -Name $dep_vmName -ComputerName $server |  Where { $_.State -notlike "Running" })
+    {
+        "Error: $dep_vmName never started."
+        return $false
+    }
+}
+
+# ScriptBlock used for Dynamic Memory test cases
+$DM_scriptBlock = {
+  # function for starting stresstestapp
+  function ConsumeMemory([String]$conIpv4, [String]$sshKey, [String]$rootDir, [int]$timeoutStress, [int64]$memMB, [int]$duration, [int64]$chunk)
+  {
+
+  # because function is called as job, setup rootDir and source TCUtils again
+  if (Test-Path $rootDir)
+  {
+    Set-Location -Path $rootDir
+    if (-not $?)
+    {
+    "Error: Could not change directory to $rootDir !"
+    return $false
+    }
+    "Changed working directory to $rootDir"
+  }
+  else
+  {
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
+  }
+
+  # Source TCUitls.ps1 for getipv4 and other functions
+  if (Test-Path ".\setupScripts\TCUtils.ps1")
+  {
+    . .\setupScripts\TCUtils.ps1
+    "Sourced TCUtils.ps1"
+  }
+  else
+  {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+  }
+
+      $cmdToVM = @"
+#!/bin/bash
+        if [ ! -e /proc/meminfo ]; then
+          echo ConsumeMemory: no meminfo found. Make sure /proc is mounted >> /root/HotAdd.log 2>&1
+          exit 100
+        fi
+
+        rm ~/HotAddErrors.log -f
+        dos2unix check_traces.sh
+        chmod +x check_traces.sh
+        ./check_traces.sh ~/HotAddErrors.log &
+
+        __totalMem=`$(cat /proc/meminfo | grep -i MemTotal | awk '{ print `$2 }')
+        __totalMem=`$((__totalMem/1024))
+        echo ConsumeMemory: Total Memory found `$__totalMem MB >> /root/HotAdd.log 2>&1
+        declare -i __chunks
+        declare -i __threads
+        declare -i duration
+        declare -i timeout
+        if [ $chunk -le 0 ]; then
+            __chunks=128
+        else
+            __chunks=512
+        fi
+        __threads=`$(($memMB/__chunks))
+        if [ $timeoutStress -eq 0 ]; then
+            timeout=10000000
+            duration=`$((10*__threads))
+        elif [ $timeoutStress -eq 1 ]; then
+            timeout=5000000
+            duration=`$((5*__threads))
+        elif [ $timeoutStress -eq 2 ]; then
+            timeout=1000000
+            duration=`$__threads
+        else
+            timeout=1
+            duration=30
+            __threads=4
+            __chunks=2048
+        fi
+
+        if [ $duration -ne 0 ]; then
+            duration=$duration
+        fi
+        echo "Stress-ng info: `$__threads threads :: `$__chunks MB chunk size :: `$((`$timeout/1000000)) seconds between chunks :: `$duration seconds total stress time" >> /root/HotAdd.log 2>&1
+        stress-ng -m `$__threads --vm-bytes `${__chunks}M -t `$duration --backoff `$timeout
+        echo "Waiting for jobs to finish" >> /root/HotAdd.log 2>&1
+        wait
+        exit 0
+"@
+
+    #"pingVMs: sendig command to vm: $cmdToVM"
+    $filename = "ConsumeMem.sh"
+
+    # check for file
+    if (Test-Path ".\${filename}")
+    {
+      Remove-Item ".\${filename}"
+    }
+
+    Add-Content $filename "$cmdToVM"
+
+    # send file
+    $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
+
+    # check the return Value of SendFileToVM
+    if (-not $retVal[-1])
+    {
+      return $false
+    }
+
+    # execute command as job
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+
+    return $retVal
+  }
 }

@@ -500,7 +500,23 @@ try
 
     if ($vm.Generation -ne 2)
     {
-        Throw "Error: This test requires a Gen 2 VM.  VM '${vmName}' is not a Gen2 VM"
+        Write-Output "Info: This test requires a Gen 2 VM.  VM '${vmName}' is not a Gen2 VM" | Tee-Object -Append -file $summaryLog
+        return $Skipped
+    }
+
+    #
+    # Verify Windows Server version
+    #
+    $osInfo = GetHostBuildNumber $hvServer
+    if (-not $osInfo)
+    {
+        "Error: Unable to collect Operating System information"
+        return $False
+    }
+    if ($osInfo -le 9600)
+    {
+        Write-Output "Info: This test requires Windows Server 2016 or higher" | Tee-Object -Append -file $summaryLog
+        return $Skipped
     }
 
     #

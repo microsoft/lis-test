@@ -391,6 +391,19 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 		fi
 	fi
 
+# In some cases eth1 and eth2 would fail to ping6, restarting the network solves the issue
+if [ "$pingVersion" == "ping6" ] && [ ${#SYNTH_NET_INTERFACES[@]} -ge 1 ]; then
+    GetDistro
+    if [[ "$DISTRO" == "redhat"* || "$DISTRO" == "centos"* ]]; then
+        service network restart
+        if [ $? -ne 0 ]; then
+			msg="Unable to restart network service."
+			LogMsg "$msg"
+			UpdateSummary "$msg"
+		fi
+    fi
+fi
+
 	__hex_interface_name=$(echo -n "${__packet_size[$__packet_iterator]}" | od -A n -t x1 | sed 's/ //g' | cut -c1-12)
 
 	LogMsg "Trying to ping $PING_SUCC on interface ${SYNTH_NET_INTERFACES[$__iterator]}"

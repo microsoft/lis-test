@@ -31,7 +31,7 @@
 dos2unix SR-IOV_Utils.sh
 
 # Source SR-IOV_Utils.sh. This is the script that contains all the 
-# SR-IOV basic functions (checking drivers, making de bonds, assigning IPs)
+# SR-IOV basic functions (checking drivers, checking VFs, assigning IPs)
 . SR-IOV_Utils.sh || {
     echo "ERROR: unable to source SR-IOV_Utils.sh!"
     echo "TestAborted" > state.txt
@@ -56,24 +56,10 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-# Run the bonding script. Make sure you have this already on the system
-# Note: The location of the bonding script may change in the future
-RunBondingScript
-bondCount=$?
-if [ $bondCount -eq 99 ]; then
-    msg="ERROR: Running the bonding script failed. Please double check if it is present on the system"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-
-else
-    LogMsg "BondCount returned by SR-IOV_Utils: $bondCount"   
-fi
-
-# Set static IP to the bond
-ConfigureBond
+# Set static IP to the VF
+ConfigureVF
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not set a static IP to the bond!"
+    msg="ERROR: Could not set a static IP to the VF!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
@@ -92,17 +78,20 @@ else
 fi
 
 # iPerf3 Stress test
-ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$BOND_IP2" 'iperf3 -s > perfResults.log &'
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" "kill $(ps aux | grep iperf | head -1 | awk '{print $2}')"
+sleep 5
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" 'iperf3 -s > perfResults.log &'
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not start iPerf3 on VM2 (BOND_IP: ${BOND_IP2})"
+    msg="ERROR: Could not start iPerf3 on VM2 (VF_IP: ${VF_IP2})"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
 fi
 
-iperf3 -t 1800 -c ${BOND_IP2} > perfResults.log &
+sleep 5
+iperf3 -t 1800 -c ${VF_IP2} --logfile PerfResults.log &
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not start iPerf3 on VM1 (BOND_IP: ${BOND_IP1})"
+    msg="ERROR: Could not start iPerf3 on VM1 (VF_IP: ${VF_IP1})"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
@@ -127,7 +116,7 @@ UpdateSummary "The bandwidh reported by iPerf was ${bandwidth} gbps"
 # Check the connection again
 LogMsg "Last step: Ping again from VM1 to VM2 to make sure the connection is still up"
 
-ping -I bond0 -c 5 ${BOND_IP2} > pingResults.log
+ping -I eth1 -c 5 ${VF_IP2} > pingResults.log
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not ping from VM1 to VM2 after iPerf3 finished the run!"
     LogMsg "$msg"
