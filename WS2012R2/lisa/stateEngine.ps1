@@ -1130,8 +1130,10 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                             # Otherwise, terminate testing.
                             #
                             LogMsg 0 "Error: VM $($vm.vmName) setup script ${script} for test ${testName} failed"
-                            $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - setup script failed")
+                            $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - setup script failed")
                             #$vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
+                            SetTestResult $vm.currentTest $Aborted $xmlData
+                            SetRunningTime $vm.currentTest $vm
                             if ($abortOnError)
                             {
                                 $vm.currentTest = "done"
@@ -1159,7 +1161,9 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                         #
                         LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test ${testName} failed"
                         #$vm.emailSummary += "    Test $($vm.currentTest) : Failed - setup script failed<br />"
-                        $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - setup script failed")
+                        $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - setup script failed")
+                        SetTestResult $vm.currentTest $Aborted $xmlData
+                        SetRunningTime $vm.currentTest $vm
 
                         if ($abortOnError)
                         {
@@ -1509,15 +1513,124 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
     # Current behavior for this function is defined to just log some messages
     # and then try to stop the VM
     #
-    LogMsg 0 "Error: $($vm.vmName) never booted for test $($vm.currentTest)"
-    LogMsg 0 "Error: $($vm.vmName) terminating test run."
-    $vm.emailSummary += "    Unsuccessful boot for test $($vm.currentTest)<br />"
+    LogMsg 0 "Warn : $($vm.vmName) never booted for test $($vm.currentTest) on first try"
+
+    # Take a Console Screenshot
+    if (($testDir.Contains("\\")) -or ($testDir.Contains(":\")))
+    {
+        $BMPName = "${testDir}\$($vm.currentTest)_ConsoleScreenShot.bmp"
+    }
+    else
+    {
+        $BMPName = (pwd).Path + "\" + "${testDir}\$($vm.currentTest)_ConsoleScreenShot.bmp"
+    }
+
+    $VMName = $vm.vmName
+    Add-Type -AssemblyName "System.Drawing"
+    $VMCS = Get-WmiObject -Namespace root\virtualization\v2 -Class Msvm_ComputerSystem -Filter "ElementName='$($VMName)'"
+
+    # This is the default resolution in most cases
+    [int]$xResolution = 1152
+    [int]$yResolution = 864
+    LogMsg 0 "Info: Screenshot was captured on this location $BMPName "
+
+    try
+    {
+        # This will capture a screenshot at the default resolution of 1152*864
+        (TakeConsoleScreenShot $VMCS $xResolution $yResolution).Save($BMPName)
+    }
+    catch
+    {
+        # Sometimes 1152*864 resolution is not available on VM Console
+        # In this case a screenshot with 640*480 resolution will be taken
+        [int]$xResolution = 640
+        [int]$yResolution = 480
+        (TakeConsoleScreenShot $VMCS $xResolution $yResolution).Save($BMPName)
+    }
 
     #
-    # currently, we do not do anything other than stopping the VM
+    # Proceed with restarting the VM
     #
-    $vm.currentTest = "done"
-    UpdateState $vm $ForceShutdown
+    $currentTest = GetTestData $($vm.currentTest) $xmlData
+    Start-Sleep -s 5
+    $timeout = 60
+    Stop-VM -Name $vm.vmName -ComputerName $vm.hvServer -Force -TurnOff
+
+    while ($timeout -gt 0)
+    {
+        $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
+        if ( $($v.State) -eq "Off" )
+        {
+            LogMsg 0 "Warn : $($vm.vmName) is now starting for the second time for test $($vm.currentTest)"
+            Start-VM $vm.vmName -ComputerName $vm.hvServer | out-null
+            $timeout_startVM = 60
+            while ($timeout_startVM -gt 0)
+            {
+                #
+                # Check if the VM is in the Hyper-v Running state
+                #
+                $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
+                if ($($v.State) -eq "Running")
+                {
+                    break
+                }
+
+                Start-Sleep -s 1
+                $timeout_startVM -= 1
+            }
+
+            $ipv4 = $null
+            $hasBooted = $false
+            [int]$timeoutBoot = 25
+            # Update the vm.ipv4 value if the VMs IP address changed
+            while (($hasBooted -eq $false) -and ($timeoutBoot -ge 0))
+            {
+                Start-Sleep -s 1
+                $ipv4 = GetIPv4 $vm.vmName $vm.hvServer
+                LogMsg 9 "Debug: vm.ipv4 = $($vm.ipv4)"
+                if ($ipv4 -and ($vm.ipv4 -ne [String] $ipv4))
+                {
+                    LogMsg 9 "Updating VM IP from $($vm.ipv4) to ${ipv4}"
+                    $vm.ipv4 = [String] $ipv4
+                }
+                $sts = TestPort $vm.ipv4 -port 22 -timeout 5
+                if ($sts)
+                {
+                    $hasBooted = $true
+                }
+                $timeoutBoot -= 1
+            }
+
+            if ($hasBooted -eq $true)
+            {
+                UpdateState $vm $SystemUp
+            }
+            else
+            {
+                $testName = $($vm.currentTest)
+                $testData = GetTestData $testName  $xmlData
+                $completionCode = $Aborted
+
+                LogMsg 0 "Error: $($vm.vmName) did not boot after second try for test $testName "
+                LogMsg 0 "Info : $($vm.vmName) Status for test $testName  = ${completionCode}"
+
+                if ($testData.OnError -eq "Abort") {
+                    LogMsg 0 "Warn : Test is set to abort on error. Exiting"
+                    $vm.currentTest = "done"
+                    # UpdateState $vm $ForceShutdown
+                    UpdateState $vm $Disabled
+                }
+                SetTestResult $currentTest $completionCode $xmlData
+                $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
+                UpdateState $vm $ForceShutdown
+            }
+    }
+        else
+        {
+            $timeout -= 1
+            Start-Sleep -S 1
+        }
+    }
 }
 
 
@@ -1577,9 +1690,12 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #Determine LIS version on guest VM
     #
     if ($Script:LIS_version -eq $null) {
-        $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'version:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/ //g'"
+        $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus 2> /dev/null | grep -w 'version:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/ //g'"
         if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
-            $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"
+            $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_vmbus 2> /dev/null | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"
+            if ([string]::IsNullOrWhiteSpace($Script:LIS_version)) {
+                $Script:LIS_version=.\bin\plink.exe -i ssh\${sshKey} root@${hostname} "modinfo hv_netvsc 2> /dev/null | grep -w 'vermagic:' | cut -d : -f 2 | sed 's/^[ \t]*//;s/SMP mod_unload modversions//g;s/ //g'"
+            }
         }
     }
 
@@ -1597,7 +1713,7 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
         $kernelVer = GetKernelVersion
         $firmwareVer = GetFirmwareVersion
         SetOSInfo $kernelVer $firmwareVer
-        
+
         #for SUT VM, needs to wait for NonSUT VM startup
         UpdateState $vm $WaitForDependencyVM
     }
@@ -1932,7 +2048,11 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                             if (! $sts)
                             {
                                 LogMsg 0 "Error: $($vm.vmName) PreTest script ${script} for test $($testData.testName) failed"
-                                $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - pretest script failed")
+                                $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - pretest script failed")
+
+                                SetTestResult $vm.currentTest $Aborted $xmlData
+                                SetRunningTime $vm.currentTest $vm
+
                                 UpdateState $vm $DetermineReboot
                                 return
                             }
@@ -1946,7 +2066,10 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                         if (-not $sts)
                         {
                             LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
-                            $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - pretest script failed")
+                            $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - pretest script failed")
+
+                            SetTestResult $vm.currentTest $Aborted $xmlData
+                            SetRunningTime $vm.currentTest $vm
                             UpdateState $vm $DetermineReboot
                             return
                         }
@@ -2445,7 +2568,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData, [string]
         $iterationMsg = "($($vm.iteration))"
     }
 
-    SetTestResult $currentTest $completionCode
+    SetTestResult $currentTest $completionCode $xmlData
 
     $vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
 
@@ -2590,10 +2713,7 @@ function DoRunPostTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 if (-not $sts)
                 {
                     LogMsg 0 "Error: VM $($vm.vmName) postTest script for test $($testData.testName) failed"
-                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Failed - post script failed")
-                    $vm.currentTest = "done"
-                    UpdateState $vm $finished
-                    return
+                    $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f $($testData.testName), "Failed - post script failed")
                 }
             }
         }
@@ -2736,7 +2856,8 @@ function DoDetermineReboot([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 LogMsg 0 "Warn : $($vm.vmName) The <NoReboot> flag prevented running cleanup script for test $($testData.testName)"
             }
-
+            #save currentTest name before update
+            $currentTestName = $vm.currentTest
             UpdateCurrentTest $vm $xmlData
 
             $iterationMsg = $null
@@ -2752,7 +2873,7 @@ function DoDetermineReboot([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
             else
             {
-                SetRunningTime $vm.currentTest $vm
+                SetRunningTime $currentTestName $vm
                 #
                 # Mark next test not rebooted
                 #
@@ -3450,7 +3571,7 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     LogMsg 0 "Info : ${vmName} Status for test $($vm.currentTest) = ${completionCode}"
 
-    SetTestResult $currentTest $completionCode
+    SetTestResult $currentTest $completionCode $xmlData
     #
     # Update e-mail summary
     #
@@ -3466,6 +3587,15 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
         del $summaryLog
     }
 
-    UpdateState $vm $DetermineReboot
+    # UpdateState $vm $DetermineReboot
+    $testData = GetTestData $currentTest $xmlData
+    if ( $($testData.postTest) )
+    {
+        UpdateState $vm $RunPostTestScript
+    }
+    else
+    {
+        UpdateState $vm $DetermineReboot
+    }
 }
 0

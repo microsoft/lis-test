@@ -36,6 +36,7 @@ ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
 build_date=$(date "+%d-%b")
+lis_next_path="/root/lis-next"
 
 LogMsg() {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
@@ -68,9 +69,7 @@ if [ -e ~/constants.sh ]; then
     LogMsg "Info : Sourcing ~/constants.sh"
     . ~/constants.sh
 else
-    LogMsg "ERROR: Unable to source the constants file."
-    UpdateTestState $ICA_TESTABORTED
-    exit 1
+    LogMsg "Warning: Unable to source the constants file."
 fi
 
 #
@@ -99,31 +98,43 @@ if [ -e ./lis-next ]; then
     rm -rf ./lis-next
 fi
 
-#
-# Clone Lis-Next
-#
-LogMsg "Info : Cloning lis-next"
-git clone https://github.com/LIS/lis-next
-if [ $? -ne 0 ]; then
-    LogMsg "Error: unable to clone lis-next"
-    UpdateTestState $ICA_TESTFAILED
-    exit 1
+if [[ $lis_source ]]; then
+	scp -r -i .ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${lis_source} ${custom_build}
+	if [ $? -ne 0]; then
+        LogMsg "Error: unable to copy remote lis next build"
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+	fi
+		
+fi
+if [ ! ${custom_build} ]; then 
+    #
+    # Clone lis-next
+    #
+    LogMsg "Info : Cloning lis-next"
+    git clone https://github.com/LIS/lis-next
+    if [ $? -ne 0 ]; then
+        LogMsg "Error: unable to clone lis-next"
+        UpdateTestState $ICA_TESTFAILED
+        exit 1
+    fi
+else
+    lis_next_path=$custom_build
 fi
 
 if [ ! ${branch} ]; then
     LogMsg "The branch variable is not defined! Will use default master."
-    echo "The branch variable is not defined! Will use default master." >> ~/summary.
+    echo "The branch variable is not defined! Will use default master." >> ~/summary.log
     branch="master"
 fi
 
-cd ./lis-next
+cd $lis_next_path
 git checkout $branch
 cd ..
 
 #
 # Detect the version of CentOS/RHEL we are running
 #
-rhel_version=0
 GetDistro
 LogMsg "Info : Detected OS distro/version ${DISTRO}"
 
@@ -145,7 +156,6 @@ redhat_5|centos_5)
 esac
 
 echo "Kernel: $(uname -r)" >> ~/summary.log
-
 #
 # If an existing LIS RPM installation is present,
 # decide if we should clean-up the installed modules
@@ -160,10 +170,15 @@ if [[ ${lis_cleanup} -eq "yes" ]]; then
 fi
 
 LogMsg "Info : Building ${rhel_version}.x source tree"
-cd lis-next/hv-rhel${rhel_version}.x/hv
+cd "${lis_next_path}/hv-rhel${rhel_version}.x/hv"
 
 # Defining a custom LIS version string in order to acknoledge the use of these drivers
 sed --in-place -e s:"#define HV_DRV_VERSION.*":"#define HV_DRV_VERSION "'"'$branch'-'$build_date'"'"": include/linux/hv_compat.h
+
+
+if ! [[ $(rpm -qa | grep kernel-devel-$(uname -r)) ]]; then
+    yum install kernel-devel-$(uname -r) -y
+fi
 
 ./rhel${rhel_version}-hv-driver-install
 if [ $? -ne 0 ]; then
@@ -175,7 +190,7 @@ fi
 echo "Info: Successfully built lis-next from the hv-rhel-${rhel_version}.x code" > ~/summary.log
 
 # Compiling LIS daemons
-cd ~/lis-next/hv-rhel${rhel_version}.x/hv/tools
+cd "${lis_next_path}/hv-rhel${rhel_version}.x/hv/tools"
 
 make
 if [ $? -ne 0 ]; then
@@ -397,12 +412,6 @@ redhat_6|centos_6)
 esac
 
 echo "Info: Successfully compiled and started the lis-next tree LIS daemons." >> ~/summary.log
-
-# work-around to satisfy requirements
-numactl -s
-if [ $? -ne 0 ]; then
-    yum -y install numactl
-fi
 
 #
 # If we got here, everything worked as expected.

@@ -19,7 +19,6 @@
 #
 #####################################################################
 
-
 <#
 .Synopsis
  Verify that the ssigned memory never drops below the VMs Minimum Memory setting.
@@ -65,14 +64,11 @@
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
-
-
 #######################################################################
 #
 # Main script body
 #
 #######################################################################
-
 #
 # Check input arguments
 #
@@ -103,17 +99,11 @@ $sshKey = $null
 # IP Address of first VM
 $ipv4 = $null
 
-# IP Address of second VM
-$vm2ipv4 = $null
-
 # Name of first VM
 $vm1Name = $null
 
 # Name of second VM
 $vm2Name = $null
-
-# string array vmNames
-[String[]]$vmNames = @()
 
 # number of tries
 [int]$tries = 0
@@ -125,36 +115,36 @@ Set-Variable defaultTries -option Constant -value 8
 $testParams -match "RootDir=([^;]+)"
 if (-not $?)
 {
-  "Mandatory param RootDir=Path; not found!"
-  return $false
+    "Mandatory param RootDir=Path; not found!"
+    return $false
 }
 $rootDir = $Matches[1]
 
 if (Test-Path $rootDir)
 {
-  Set-Location -Path $rootDir
-  if (-not $?)
-  {
-    "Error: Could not change directory to $rootDir !"
-    return $false
-  }
-  "Changed working directory to $rootDir"
+    Set-Location -Path $rootDir
+    if (-not $?)
+    {
+        "Error: Could not change directory to $rootDir !"
+        return $false
+    }
+    "Changed working directory to $rootDir"
 }
 else
 {
-  "Error: RootDir = $rootDir is not a valid path"
-  return $false
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
 }
 
 # Source TCUitls.ps1 for getipv4 and other functions
 if (Test-Path ".\setupScripts\TCUtils.ps1")
 {
-  . .\setupScripts\TCUtils.ps1
+    . .\setupScripts\TCUtils.ps1
 }
 else
 {
-  "Error: Could not find setupScripts\TCUtils.ps1"
-  return $false
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 $params = $testParams.Split(";")
@@ -164,107 +154,52 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-      "vmName"  { $vmNames = $vmNames + $fields[1].Trim() }
+      "VM2NAME"       { $vm2Name = $fields[1].Trim() }
       "ipv4"    { $ipv4    = $fields[1].Trim() }
       "sshKey"  { $sshKey  = $fields[1].Trim() }
       "tries"  { $tries  = $fields[1].Trim() }
+      "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     }
-
 }
+
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 if (-not $sshKey)
 {
-  "Error: Please pass the sshKey to the script."
-  return $false
+    "Error: Please pass the sshKey to the script." | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 if ($tries -le 0)
 {
-  $tries = $defaultTries
+    $tries = $defaultTries
 }
 
-if ($vmNames.count -lt 2)
-{
-  "Error: two VMs are necessary for the Minimum Memory Honored test."
-  return $false
-}
-
-$vm1Name = $vmNames[0]
-$vm2Name = $vmNames[1]
-
-if ($vm1Name -notlike $vmName)
-{
-  if ($vm2Name -like $vmName)
-  {
-    # switch vm1Name with vm2Name
-    $vm1Name = $vmNames[1]
-    $vm2Name = $vmNames[0]
-
-  }
-  else
-  {
-    "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml."
-    return $false
-  }
-}
+$vm1Name = $vmName
 
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $vm1)
 {
-  "Error: VM $vm1Name does not exist"
-  return $false
+    "Error: VM $vm1Name does not exist" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 $vm2 = Get-VM -Name $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-
 if (-not $vm2)
 {
-  "Error: VM $vm2Name does not exist"
-  return $false
+    "Error: VM $vm2Name does not exist" | Tee-Object -Append -file $summaryLog
+    return $false
 }
-
 
 #
 # LIS Started VM1, so start VM2
 #
+$timeout = 120
+StartDependencyVM $vm2Name $hvServer $tries
+WaitForVMToStartKVP $vm2Name $hvServer $timeout
 
-if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
-{
-
-  [int]$i = 0
-  # try to start VM2
-  for ($i=0; $i -lt $tries; $i++)
-  {
-
-    Start-VM -Name $vm2Name -ComputerName $hvServer -ErrorAction SilentlyContinue
-    if (-not $?)
-    {
-      "Warning: Unable to start VM ${vm2Name} on attempt $i"
-    }
-    else
-    {
-      $i = 0
-      break
-    }
-
-    Start-sleep -s 30
-  }
-
-  if ($i -ge $tries)
-  {
-    "Error: Unable to start VM2 after $tries attempts"
-    return $false
-  }
-
-}
-
-# just to make sure vm2 started
-if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Running" })
-{
-  "Error: $vm2Names never started."
-  return $false
-}
 # Get VM's minimum memory setting
 [int64]$vm1MinMem = ($vm1.MemoryMinimum/1MB)
 
@@ -277,55 +212,39 @@ $sleepPeriod = 120 #seconds
 # get VM1 and VM2's Memory
 while ($sleepPeriod -gt 0)
 {
+    [int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
+    [int64]$vm1Demand = ($vm1.MemoryDemand/1MB)
+    [int64]$vm2Assigned = ($vm2.MemoryAssigned/1MB)
+    [int64]$vm2Demand = ($vm2.MemoryDemand/1MB)
 
-  [int64]$vm1Assigned = ($vm1.MemoryAssigned/1MB)
-  [int64]$vm1Demand = ($vm1.MemoryDemand/1MB)
-  [int64]$vm2Assigned = ($vm2.MemoryAssigned/1MB)
-  [int64]$vm2Demand = ($vm2.MemoryDemand/1MB)
+    if ($vm1Assigned -gt 0 -and $vm1Demand -gt 0 -and $vm2Assigned -gt 0 -and $vm2Demand -gt 0)
+    {
+        break
+    }
 
-  if ($vm1Assigned -gt 0 -and $vm1Demand -gt 0 -and $vm2Assigned -gt 0 -and $vm2Demand -gt 0)
-  {
-    break
-  }
+    if ($vm1Assigned -lt $vm1MinMem)
+    {
+        "Error: $vm1Name assigned memory drops below minimum memory set, $vm1MinMem MB" | Tee-Object -Append -file $summaryLog
+        Stop-VM -VMName $vm2name -ComputerName $hvServer -force
+        return $false
+    }
 
-  if ($vm1Assigned -lt $vm1MinMem)
-  {
-    "Error: $vm1Name assigned memory drops below minimum memory set, $vm1MinMem MB"
-    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
-    return $false
-  }
-
-  $sleepPeriod-= 5
-  start-sleep -s 5
-
+    $sleepPeriod-= 5
+    start-sleep -s 5
 }
 
 if ($vm1Assigned -le 0 -or $vm1Demand -le 0 -or $vm2Assigned -le 0 -or $vm2Demand -le 0)
 {
-  "Error: vm1 or vm2 reported 0 memory (assigned or demand)."
-  Stop-VM -VMName $vm2name -ComputerName $hvServer -force
-  return $False
+    "Error: vm1 or vm2 reported 0 memory (assigned or demand)." | Tee-Object -Append -file $summaryLog
+    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
+    return $False
 }
 
 "Memory stats after both $vm1Name and $vm2Name started reporting "
 "  ${vm1Name}: assigned - $vm1Assigned | demand - $vm1Demand"
 "  ${vm2Name}: assigned - $vm2Assigned | demand - $vm2Demand"
 
-# get vm2 IP
-$vm2ipv4 = GetIPv4 $vm2Name $hvServer
-
-# wait for ssh to start on vm2
-$timeout = 30 #seconds
-if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
-{
-    "Error: VM ${vm2Name} never started ssh"
-    Stop-VM -VMName $vm2name -ComputerName $hvServer -force
-    return $False
-}
-
 # stop vm2
 Stop-VM -VMName $vm2name -ComputerName $hvServer -force
 
-# Everything ok
-"Success!"
 return $true

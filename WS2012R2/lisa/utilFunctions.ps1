@@ -62,6 +62,9 @@ function GetJUnitXML()
 <testcase name="" time="">
     <skipped/>
     <failure type=""></failure>
+    <properties>
+        <property name="tc_covered" value="" />
+    </properties>
 </testcase>
 </testsuite>
 '@
@@ -208,7 +211,7 @@ function SetTimeStamp([String] $testTimeStamp)
 # SetTestResult
 #
 #####################################################################
-function SetTestResult([String] $testName, [String] $completionCode)
+function SetTestResult([String] $testName, [String] $completionCode, [xml] $xmlData )
 {
     <#
     .Synopsis
@@ -224,6 +227,10 @@ function SetTestResult([String] $testName, [String] $completionCode)
     .Parameter completionCode
         The test result, such as Passed, Failed, Skipped, and Aborted
         Type : [String]
+
+    .Parameter xmlData
+            XML configuration settings.
+            Type : [xml]
 
     .Example
         SetTestResult $testName $completionCode
@@ -251,6 +258,17 @@ function SetTestResult([String] $testName, [String] $completionCode)
             $newTestCase.RemoveChild($newTestCase.ChildNodes[0]) | Out-Null
             $newTestCase.failure.type = "Aborted"
             $newTestCase.failure.InnerText = "Test $testName Aborted."
+        }
+    }
+
+    $testID = GetTestID $testName $xmlData
+
+    foreach ($property in $newTestCase.properties.property)
+    {
+        if ($property.name -eq "TC_COVERED")
+        {
+            $property.value = $testID
+            break
         }
     }
     $testResult.testsuite.AppendChild($newTestCase) > $null
@@ -282,13 +300,11 @@ function SetRunningTime([String] $testName, [System.Xml.XmlElement] $vm)
         SetRunningTime $testName $vm
     #>
     LogMsg 6 ("Info :    SetRunningTime($testName)")
-
     $caseEndTime = [DateTime]::Now
     $deltaTime = $caseEndTime - [DateTime]::Parse($vm.caseStartTime)
     LogMsg 0 "Info : $($vm.vmName) currentTest lasts $($deltaTime.hours) Hours, $($deltaTime.minutes) Minutes, $($deltaTime.seconds) seconds."
 
     $runningTime = "{0:N2}" -f $deltaTime.TotalMinutes
-
     foreach ($testCase in $testResult.testsuite.testcase)
     {
         if ($testCase.name -eq $testName)
@@ -590,6 +606,59 @@ function GetTestData([String] $testName, [xml] $xmlData)
     }
 
     return $testData
+}
+
+#####################################################################
+#
+# GetTestID
+#
+#####################################################################
+function GetTestID([String] $testName, [xml] $xmlData)
+{
+    <#
+    .Synopsis
+        Retrieve the xml object for the TC_COVERED of specified test
+
+    .Description
+        Find the test named $testName, and return the TC_COVERED field value,
+        on $null if the test is not found.
+
+    .Parameter testName
+        The name of the test to return
+        Type : [String]
+
+    .Parameter xmlData
+        XML configuration settings.
+        Type : [xml]
+
+    .ReturnValue
+        An ID string with TC_COVERED Value.
+        Type: [String]
+
+    .Example
+        GetTestID "MyTest" $xmlData
+    #>
+    LogMsg 6 ("Info :    GetTestID($($testName))")
+
+    $idString = ""
+
+    foreach ($test in $xmlData.config.testCases.test)
+    {
+        if ($test.testName -eq $testName)
+        {
+            foreach ($param in $test.testParams.param)
+            {
+                if ($param.contains("TC_COVERED="))
+                {
+                    $idString = $param.split("=")[1]
+                    break
+                }
+            }
+            break
+        }
+    }
+
+    return $idString
 }
 
 #####################################################################
@@ -938,6 +1007,7 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
     $params += "scriptMode=${scriptMode};"
     $params += "TestLogDir=${testDir};"
     $params += "sshKey=$($vm.sshKey);"
+    $params += "ipv4=$($vm.ipv4);"
 
     #
     # Invoke the setup/cleanup script
@@ -1102,7 +1172,11 @@ function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [strin
     #bin\pscp -q -i ssh\${sshKey} root@${hostname}:${remoteFile} $localFile
     #if ($?)
 
-    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} root@${hostname}:${remoteFile} ${localFile}" -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} root@${hostname}:${remoteFile} ${localFile}" -PassThru -NoNewWindow -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process | Wait-process -timeout 4 -ErrorAction 0 -ErrorVariable hangFlag
+    if ($hangFlag) {
+        $process | kill
+    }
     if ($process.ExitCode -eq 0)
     {
         $retVal = $True
@@ -2209,4 +2283,36 @@ function checkHostVersion([XML] $xmlData)
         $retVal = $False
     }
     return $retVal
+}
+
+#####################################################################
+#
+# TakeConsoleScreenShot
+#
+#####################################################################
+function TakeConsoleScreenShot
+{
+    param
+    (
+        $VM,
+        $x,
+        $y
+    )
+    # This function captures a screenshot of the VM console
+    # It's used when the VM enters DiagnoseHungSystem state
+
+    $VMMS = Get-WmiObject -Namespace root\virtualization\v2 -Class Msvm_VirtualSystemManagementService
+
+    # Get screenshot
+    $image = $VMMS.GetVirtualSystemThumbnailImage($VMCS, $x, $y).ImageData
+
+    # Transform into bitmap
+    $BitMap = New-Object System.Drawing.Bitmap -Args $x,$y,Format16bppRgb565
+    $Rect = New-Object System.Drawing.Rectangle 0,0,$x,$y
+    $BmpData = $BitMap.LockBits($Rect,"ReadWrite","Format16bppRgb565")
+    [System.Runtime.InteropServices.Marshal]::Copy($Image, 0, $BmpData.Scan0, $BmpData.Stride*$BmpData.Height)
+
+    $BitMap.UnlockBits($BmpData)
+
+    return $BitMap
 }

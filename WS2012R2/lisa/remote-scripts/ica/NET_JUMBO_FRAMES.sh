@@ -349,7 +349,7 @@ __iterator=0
 
 declare -i __max_mtu=0
 declare -i __current_mtu=0
-declare -i __const_max_mtu=65536
+declare -i __const_max_mtu=61440
 declare -i __const_increment_size=4096
 declare -i __max_set=0
 
@@ -378,9 +378,8 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 			exit 10
 		fi
 
+		LogMsg "Successfully set mtu to $__current_mtu on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 	done
-
-	LogMsg "Successfully set mtu to $__current_mtu on interface ${SYNTH_NET_INTERFACES[$__iterator]}"
 
 	# update max mtu to the maximum of the first interface
 	if [ "$__max_set" -eq 0 ]; then
@@ -410,7 +409,7 @@ __iterator=0
 
 if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
 	LogMsg "Setting all interfaces on $STATIC_IP2 mtu to $__max_mtu"
-	ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "
+	ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "
 		__remote_interface=\$(ip -o addr show | grep \"$STATIC_IP2\" | cut -d ' ' -f2)
 		if [ x\"\$__remote_interface\" = x ]; then
 			exit 1
@@ -447,9 +446,9 @@ if [ "${SSH_PRIVATE_KEY:-UNDEFINED}" != "UNDEFINED" ]; then
 
 fi
 
-UpdateSummary "Successfully set mtu to $__max_mtu on both local and remote NICs."
+UpdateSummary "Successfully increased MTU up to $__max_mtu on both VMs"
 
-declare -ai __packet_size=(0 1 2 48 64 512 1440 1500 1505 4096 4192 25152 65500)
+declare -ai __packet_size=(0 1 2 48 64 512 1440 1500 1505 4096 4192 25152 61404)
 declare -i __packet_iterator
 # 20 bytes IP header + 8 bytes ICMP header
 declare -i __const_ping_header=28
@@ -493,7 +492,6 @@ for __iterator in ${!SYNTH_NET_INTERFACES[@]}; do
 done
 
 # everything ok
-UpdateSummary "Test successful"
 LogMsg "Updating test case state to completed"
 SetTestStateCompleted
 exit 0

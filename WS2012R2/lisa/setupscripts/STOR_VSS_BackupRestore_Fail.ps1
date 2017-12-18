@@ -139,13 +139,6 @@ if ($null -eq $TestLogDir)
 # Change the working directory to where we need to be
 cd $rootDir
 
-#
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
@@ -156,14 +149,18 @@ else {
 	return $false
 }
 
+$loggerManager = [LoggerManager]::GetLoggerManager($vmName, $testParams)
+$global:logger = $loggerManager.TestCase
+
+$logger.info("This script covers test case: ${TC_COVERED}")
 
 # Source STOR_VSS_Utils.ps1 for common VSS functions
 if (Test-Path ".\setupScripts\STOR_VSS_Utils.ps1") {
 	. .\setupScripts\STOR_VSS_Utils.ps1
-	"Info: Sourced STOR_VSS_Utils.ps1"
+	$logger.info("Sourced STOR_VSS_Utils.ps1")
 }
 else {
-	"Error: Could not find setupScripts\STOR_VSS_Utils.ps1"
+	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
 
@@ -179,54 +176,50 @@ if (-not $sts[-1])
 $sts = RunRemoteScript $remoteScript
 if (-not $sts[-1])
 {
-    Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-    Write-Output "ERROR: Running $remoteScript script failed on VM!"
+    $logger.error("Executing $remoteScript on VM. Exiting test case!")
     return $False
 }
-Write-Output "$remoteScript execution on VM: Success"
-Write-Output "$remoteScript execution on VM: Success" >> $summaryLog
+$logger.info("$remoteScript execution on VM: Success")
 
 
 $sts = startBackup $vmName $driveletter
 if (-not $sts[-1])
 {
-    return $False
+   return $False
 }
 else 
 {
     $backupLocation = $sts
 }
 
-Write-Output "INFO: Going through event logs for Warninig ID 10107"
+$logger.info("Going through event logs for Warninig ID 10107")
 # Now Check if Warning related Error is present in Event Log ? Backup should fail .
 $EventLog = Get-WinEvent -ProviderName Microsoft-Windows-Hyper-V-VMMS | where-object {  $_.TimeCreated -gt $Date}
 if(-not $EventLog)
 {
-    "ERROR: Cannot get Event log."
+    $logger.error("Cannot get Event log.")
     $retVal = $False
 } 
 
 # Event ID 10107 is what we looking here, it will be always be 10107.
 foreach ($event in $EventLog)
-   {
-       Write-Output "VSS Backup Error in Event Log number is $($event.ID):" 
-       if ($event.Id -eq 10150)
-       {
-           $results = "Passed"
-           $retVal = $True
-           Write-Output "INFO: " + $event.Message
-           Write-Output "INFO: VSS Backup Error in Event Log : Success"
-           Write-Output "VSS Backup Error in Event Log : Success" >> $summaryLog
-       }
-   }
+{
+    $logger.info("VSS Backup Error in Event Log number is $($event.ID)")
+    if ($event.Id -eq 10150)
+    {
+        $results = "Passed"
+        $retVal = $True
+        $logger.info($event.Message)
+        $logger.info("VSS Backup Error in Event Log : Success")
+    }
+}
 
 if ($retVal -eq $false)
 {
-     Write-Output "ERROR: VSS Backup Error not in Event Log"
-     Write-Output "ERROR: VSS Backup Error not in Event Log" >> $summaryLog
+     $logger.error("VSS Backup Error not in Event Log")
 }
 
 runCleanup $backupLocation
 
-Write-Output "INFO: Test ${results}"
+$logger.info("Test ${results}")
 return $retVal

@@ -42,12 +42,8 @@ ICA_TESTFAILED="TestFailed"                                        # Error while
 CONSTANTS_FILE="constants.sh"
 ROOT_DIR="/root"
 
-#######################################################################
-# Adds a timestamp to the log file
-#######################################################################
-function LogMsg() {
-    echo $(date "+%a %b %d %T %Y") : ${1}
-}
+# For changing Sysbench version only the following parameter has to be changed
+Sysbench_Version=1.0.9
 
 #######################################################################
 # Keeps track of the state of the test
@@ -57,157 +53,12 @@ function UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-LogMsg "Updating test case state to running"
-UpdateTestState $ICA_TESTRUNNING
-
-if [ -e ./${CONSTANTS_FILE} ]; then
-    source ${CONSTANTS_FILE}
-else
-    msg="Error: no ${CONSTANTS_FILE} file"
-    echo $msg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
-fi
-
-UpdateSummary()
-{
- if [ -f "$__LIS_SUMMARY_FILE" ]; then
-  if [ -w "$__LIS_SUMMARY_FILE" ]; then
-   echo "$1" >> "$__LIS_SUMMARY_FILE"
-  else
-   LogMsg "Warning: summary file $__LIS_SUMMARY_FILE exists and is a normal file, but is not writable"
-   chmod u+w "$__LIS_SUMMARY_FILE" && echo "$1" >> "$__LIS_SUMMARY_FILE" || LogMsg "Warning: unable to make $__LIS_SUMMARY_FILE writeable"
-   return 1
-  fi
- else
-  LogMsg "Warning: summary file $__LIS_SUMMARY_FILE either does not exist or is not a regular file. Trying to create it..."
-  echo "$1" >> "$__LIS_SUMMARY_FILE" || return 2
- fi
-
- return 0
-}
-
-function UpdateSummary()
-{
-    echo $1 >> ~/summary.log
-}
-
-#######################################################################
-#
-# Main script body
-#
-#######################################################################
-# Convert eol
-dos2unix utils.sh
-
-# Source utils.sh
-. utils.sh || {
-    echo "Error: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
-    exit 2
-}
-
-pushd $ROOT_DIR
-LogMsg "Cloning sysbench"
-git clone https://github.com/akopytov/sysbench.git
-if [ $? -gt 0 ]; then
-    LogMsg "Failed to cloning sysbench."
-    UpdateSummary "Compiling sysbench failed."
-    UpdateTestState $ICA_TESTFAILED
-    exit 10
-fi
-
-pushd "$ROOT_DIR/sysbench"
-# Create the state.txt file so LISA knows we are running
-UpdateTestState $ICA_TESTRUNNING
-
-# Cleanup any old summary.log files
-if [ -e ~/summary.log ]; then
-    rm -rf ~/summary.log
-fi
-LogMsg "This script tests sysbench on VM."
-
-if is_fedora ; then
-    # Installing dependencies of sysbench on fedora.
-    # yum install -y mysql-devel
-    
-    # mysql-devel should not be a requirement if we compile without mysql support
-    #wget ftp://mirror.switch.ch/pool/4/mirror/mysql/Downloads/MySQL-5.6/MySQL-devel-5.6.24-1.el7.x86_64.rpm
-    #rpm -iv MySQL-devel-5.6.24-1.el7.x86_64.rpm
-
-    pushd $ROOT_DIR
-    mkdir autoconf
-    cd autoconf
-    wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
-    tar xvfvz autoconf-2.69.tar.gz
-    cd autoconf-2.69
-    ./configure
-    make
-    make install
-
-    yum install devtoolset-2-binutils -y
-    yum install automake -y
-    yum install libtool -y
-    yum install vim -y
-
-    pushd "$ROOT_DIR/sysbench"
-    bash ./autogen.sh
-    bash ./configure --without-mysql
-    make
-    make install
-    if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Unable to install sysbench. Aborting..."
-        UpdateTestState $ICA_TESTABORTED
-        exit 10
-    fi
-    LogMsg "Sysbench installed successfully."
-
- elif is_ubuntu ; then
-     # Installing sysbench on ubuntu
-    apt-get install automake -y
-    apt-get install libtool -y
-    apt-get install pkg-config -y
-
-    pushd "$ROOT_DIR/sysbench"
-    bash ./autogen.sh
-    bash ./configure --without-mysql
-    make
-    make install
-    sysbench --help
-    if [ $? -ne 0 ]; then
-             LogMsg "ERROR: Unable to install sysbench. Aborting..."
-             UpdateTestState $ICA_TESTABORTED
-             exit 10
-    fi
-        LogMsg "Sysbench installed successfully!"
-
- elif is_suse ; then
-        bash ./autogen.sh
-        bash ./configure --without-mysql
-        make
-        make install
-        if [ $? -ne 0 ]; then
-            LogMsg "ERROR: Unable to install sysbench. Aborting..."
-            UpdateTestState $ICA_TESTABORTED
-            exit 10
-        fi
-        LogMsg "Sysbench installed successfully."
-    fi
- #else # other distro's
-  #   LogMsg "Distro not suported. Aborting"
-  #   UpdateTestState $ICA_TESTABORTED
-  #   exit 10
-# fi
-
- FILEIO_PASS=-1
- CPU_PASS=-1
-
 function cputest ()
 {
     LogMsg "Creating cpu.log and starting test."
     sysbench cpu --num-threads=1 run > /root/cpu.log
     if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Unable to exectute sysbench CPU. Aborting..."
+        LogMsg "ERROR: Unable to execute sysbench CPU. Aborting..."
         UpdateTestState $ICA_TESTABORTED
     fi
 
@@ -228,10 +79,8 @@ function cputest ()
     return "$CPU_PASS"
 }
 
-cputest
-
 function fileio ()
- {
+{
     sysbench fileio --num-threads=1 --file-test-mode=$1 prepare > /dev/null 2>&1
     LogMsg "Preparing files to test $1..."
     sysbench fileio --num-threads=1 --file-test-mode=$1 run > /root/$1.log
@@ -263,7 +112,133 @@ function fileio ()
     cat /root/$1.log >> /root/fileio.log
     rm /root/$1.log
     return "$FILEIO_PASS"
- }
+}
+#######################################################################
+#
+# Main script body
+#
+#######################################################################
+# Convert eol
+dos2unix utils.sh
+
+# Source utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
+# Cleanup any old summary.log files
+if [ -e ~/summary.log ]; then
+    rm -rf ~/summary.log
+fi
+
+LogMsg "Updating test case state to running"
+UpdateTestState $ICA_TESTRUNNING
+
+if [ -e ./${CONSTANTS_FILE} ]; then
+    source ${CONSTANTS_FILE}
+    UpdateSummary "Covers: $TC_COVERED"
+else
+    LogMsg "Error: no ${CONSTANTS_FILE} file"
+    UpdateSummary "Error: no ${CONSTANTS_FILE} file"
+    UpdateTestState $ICA_TESTABORTED
+    exit 10
+fi
+
+# Download sysbench
+pushd $ROOT_DIR
+LogMsg "Cloning sysbench"
+wget https://github.com/akopytov/sysbench/archive/$Sysbench_Version.zip
+if [ $? -gt 0 ]; then
+    LogMsg "Failed to download sysbench."
+    UpdateSummary "Failed to download sysbench."
+    UpdateTestState $ICA_TESTFAILED
+    exit 10
+fi
+
+unzip $Sysbench_Version.zip
+if [ $? -gt 0 ]; then
+    LogMsg "Failed to unzip sysbench."
+    UpdateSummary "Failed to unzip sysbench."
+    UpdateTestState $ICA_TESTFAILED
+    exit 10
+fi
+
+if is_fedora ; then
+    # Installing dependencies of sysbench on fedora.
+    # yum install -y mysql-devel
+    
+    # mysql-devel should not be a requirement if we compile without mysql support
+    #wget ftp://mirror.switch.ch/pool/4/mirror/mysql/Downloads/MySQL-5.6/MySQL-devel-5.6.24-1.el7.x86_64.rpm
+    #rpm -iv MySQL-devel-5.6.24-1.el7.x86_64.rpm
+
+    pushd $ROOT_DIR
+    mkdir autoconf
+    cd autoconf
+    wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
+    tar xvfvz autoconf-2.69.tar.gz
+    cd autoconf-2.69
+    ./configure
+    make
+    make install
+
+    yum install devtoolset-2-binutils -y
+    yum install automake -y
+    yum install libtool -y
+    yum install vim -y
+
+    pushd "$ROOT_DIR/sysbench-$Sysbench_Version"
+    bash ./autogen.sh
+    bash ./configure --without-mysql
+    make
+    make install
+    if [ $? -ne 0 ]; then
+        LogMsg "ERROR: Unable to install sysbench. Aborting..."
+        UpdateSummary "ERROR: Unable to install sysbench. Aborting..."
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+    LogMsg "Sysbench installed successfully."
+
+elif is_ubuntu ; then
+    apt-get install automake -y
+    apt-get install libtool -y
+    apt-get install pkg-config -y
+
+    pushd "$ROOT_DIR/sysbench-$Sysbench_Version"
+    bash ./autogen.sh
+    bash ./configure --without-mysql
+    make
+    make install
+    sysbench --help
+    if [ $? -ne 0 ]; then
+        LogMsg "ERROR: Unable to install sysbench. Aborting..."
+        UpdateSummary "ERROR: Unable to install sysbench. Aborting..."
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+    LogMsg "Sysbench installed successfully!"
+
+elif is_suse ; then
+    pushd "$ROOT_DIR/sysbench-$Sysbench_Version"
+    bash ./autogen.sh
+    bash ./configure --without-mysql
+    make
+    make install
+    if [ $? -ne 0 ]; then
+        LogMsg "ERROR: Unable to install sysbench. Aborting..."
+        UpdateSummary "ERROR: Unable to install sysbench. Aborting..."
+        UpdateTestState $ICA_TESTABORTED
+        exit 10
+    fi
+    LogMsg "Sysbench installed successfully."
+fi
+
+FILEIO_PASS=-1
+CPU_PASS=-1
+
+cputest
 
 LogMsg "Testing fileio. Writing to fileio.log."
 for test_item in ${TEST_FILE[*]}
@@ -271,6 +246,7 @@ do
     fileio $test_item
     if [ $FILEIO_PASS -eq -1 ]; then
         LogMsg "ERROR: Test mode $test_item failed "
+        UpdateSummary "ERROR: Test mode $test_item failed "
         UpdateTestState $ICA_TESTFAILED
     fi
 done

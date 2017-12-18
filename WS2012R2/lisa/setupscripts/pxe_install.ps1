@@ -182,6 +182,7 @@ foreach ($p in $params)
     "IsoFilename"  { $IsoFilename = $fields[1].Trim() }
     "generation"   { $generation = $fields[1].Trim() }
     "distro"       { $distro = $fields[1].Trim() }
+	"version"      { $version = $fields[1].Trim() }
     "willInstall"  { $willInstall = $fields[1].Trim() }
     "VCPU"         { $vcpu = $fields[1].Trim() }
     "SshKey"       { $sshKey  = $fields[1].Trim() }
@@ -193,6 +194,7 @@ foreach ($p in $params)
 }
 
 "This script covers test case: ${TC_COVERED}"
+
 
 #
 # Checking the mandatory testParams. New parameters must be validated here.
@@ -415,6 +417,7 @@ else {
     Write-output "OS was successfully installed"
 }  
 
-# Stop PXE Client after everything was checked
-Stop-VM -Name $vm2Name -ComputerName $hvServer -Force -TurnOff  
+# Stop PXE Client && PXE Server after everything was checked
+Stop-VM -Name $vm2Name -ComputerName $hvServer -Force -TurnOff
+Stop-VM -Name $vmName -ComputerName $hvServer -Force -TurnOff
 return $True

@@ -264,16 +264,6 @@ if (-not $ipv4)
     return $False
 }
 
-# Source TCUtils.ps1 for common functions
-if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
-	"Info: Sourced TCUtils.ps1"
-}
-else {
-	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
-}
-
 $hostInfo = Get-VMHost -ComputerName $hvServer
 if (-not $hostInfo)
 {

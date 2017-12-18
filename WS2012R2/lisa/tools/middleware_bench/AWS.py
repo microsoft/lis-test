@@ -26,7 +26,7 @@ import constants
 
 from boto import ec2
 from boto import vpc
-from boto.manage.cmdshell import sshclient_from_instance
+from cmdshell import SSHClient
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -63,7 +63,7 @@ class AWSConnector:
         else:
             self.region = region
         if not zone:
-            self.zone = self.region + 'b'
+            self.zone = self.region + 'c'
         else:
             self.zone = zone
         self.volume_type = {'ssd_gp2': 'gp2',
@@ -172,7 +172,7 @@ class AWSConnector:
             key_pair.save(self.localpath)
         except conn.ResponseError as e:
             if e.code == 'InvalidKeyPair.Duplicate':
-                log.error('KeyPair: {} already exists.'.format(self.key_name))
+                log.info('Duplicate KeyPair {}'.format(self.key_name))
             else:
                 raise
 
@@ -227,10 +227,8 @@ class AWSConnector:
         :return: SSHClient (needs to reconnect after reboot)
         """
         conn = self.conn or self.vpc_conn
-        sriov_status = conn.get_instance_attribute(instance.id, 'sriovNetSupport')
         log.info('Enabling SR-IOV on {}'.format(instance.id))
-        client = None
-        if not sriov_status and ssh_client:
+        if ssh_client:
             util_path = os.path.dirname(os.path.realpath(__file__))
             ssh_client.put_file(os.path.join(util_path, 'tests', 'enable_sr_iov.sh'),
                                 '/tmp/enable_sr_iov.sh')
@@ -239,28 +237,34 @@ class AWSConnector:
             ssh_client.run('/tmp/enable_sr_iov.sh {}'.format(self.instancetype))
             conn.stop_instances(instance_ids=[instance.id])
             self.wait_for_state(instance, 'state', 'stopped')
-            if self.instancetype == constants.AWS_P28XLARGE:
+            if self.instancetype in [constants.AWS_P28XLARGE, constants.AWS_M416XLARGE]:
                 log.info('Enabling ENA for instance: {}'.format(self.instancetype))
-                # The enaSupport attribute is not supported at this time.
-                ena_status = conn.get_instance_attribute(instance.id, 'enaSupport')
-                log.info('Enabling ENA for {} instance: {}'.format(constants.AWS_P28XLARGE,
-                                                                   ena_status))
-                conn.modify_instance_attribute(instance.id, 'enaSupport', True)
+                import boto3
+                client = boto3.client('ec2', region_name=self.region, aws_access_key_id=self.keyid,
+                                      aws_secret_access_key=self.secret)
+                client.modify_instance_attribute(InstanceId=instance.id, Attribute='enaSupport',
+                                                 Value='true')
+                log.info('ENA support: {}'.format(client.__dict__))
+                try:
+                    log.info(conn.get_instance_attribute(instance.id, 'enaSupport'))
+                except Exception as e:
+                    log.info(e)
+                    pass
+                # conn.modify_instance_attribute(instance.id, 'enaSupport', True)
+                # ena_status = conn.get_instance_attribute(instance.id, 'enaSupport')
+                # log.info('ENA status for {} instance: {}'.format(constants.AWS_P28XLARGE,
+                #                                                  ena_status))
             elif self.instancetype == constants.AWS_D24XLARGE:
                 conn.modify_instance_attribute(instance.id, 'sriovNetSupport', 'simple')
                 sriov_status = conn.get_instance_attribute(instance.id, 'sriovNetSupport')
-                log.info('Modifying SR-IOV state to simple: {}'.format(sriov_status))
+                log.info("SR-IOV status is: {}".format(sriov_status))
             else:
                 log.error('Instance type {} unhandled for SRIOV'.format(self.instancetype))
                 return None
             conn.start_instances(instance_ids=[instance.id])
             self.wait_for_state(instance, 'state', 'running')
 
-            client = self.wait_for_ping(instance)
-            instance.update()
-            sriov_status = conn.get_instance_attribute(instance.id, 'sriovNetSupport')
-            log.info("SR-IOV status is: {}".format(sriov_status))
-        return client
+        return self.wait_for_ping(instance)
 
     @staticmethod
     def wait_for_state(obj, attr, state):
@@ -298,16 +302,28 @@ class AWSConnector:
                 time.sleep(5)
                 timeout += 5
             # artificial wait for ssh service up status
-            time.sleep(30)
+            time.sleep(60)
             open(host_key_file, 'w').close()
-            client = sshclient_from_instance(instance, os.path.join(self.localpath,
-                                                                    self.key_name + '.pem'),
-                                             host_key_file=host_key_file,
-                                             user_name=user or self.user)
+            client = SSHClient(server=instance.ip_address, host_key_file=host_key_file,
+                               user=user or self.user,
+                               ssh_key_file=os.path.join(self.localpath, self.key_name + '.pem'))
         except Exception as e:
             log.error(e)
             client = None
         return client
+
+    def restart_vm(self, instance):
+        """
+        Restart instances VM.
+        :param instance instance obj to restart
+        :return SSHClient
+        """
+        conn = self.conn or self.vpc_conn
+        conn.reboot_instances(instance_ids=[instance.id])
+        self.wait_for_state(instance, 'state', 'running')
+
+        log.info('Rebooting VM: {}'.format(instance.id))
+        return self.wait_for_ping(instance)
 
     def teardown(self, instance=None, device=None):
         """

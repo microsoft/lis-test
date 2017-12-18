@@ -28,7 +28,7 @@
     2. Pause/Save one VM for at least one minute
     3. Resume the VM
     4. Transfer again an 1GB file
-    Acceptance: In both cases, the network traffic goes through bond0
+    Acceptance: In both cases, the network traffic goes through VF
     
 .Parameter vmName
     Name of the test VM.
@@ -53,8 +53,8 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
             <param>TC_COVERED=??</param>                                   
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <param>REMOTE_USER=root</param>
             <!-- VM_STATE has to be 'pause' or 'save' -->
@@ -149,10 +149,8 @@ foreach ($p in $params)
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
-        "BOND_IP3" { $vmBondIP3 = $fields[1].Trim() }
-        "BOND_IP4" { $vmBondIP4 = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK"  { $netmask = $fields[1].Trim() }
         "REMOTE_USER" { $remoteUser = $fields[1].Trim() }
         "VM2NAME"  { $vm2Name = $fields[1].Trim() }
@@ -168,19 +166,21 @@ $ipv4 = GetIPv4 $vmName $hvServer
 "${vmName} IPADDRESS: ${ipv4}"
 
 #
-# Configure the bond on test VM
+# Configure the eth1 on test VM
 #
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
+Start-Sleep -s 5
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask" | Tee-Object -Append -file $summaryLog
+    "ERROR: Failed to configure eth1 on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
 #
 # Run Ping with SR-IOV enabled
 #
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 20 -I bond0 `$BOND_IP2 > PingResults.log &' > runPing.sh"
+Start-Sleep -s 10
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 20 -I eth1 `$VF_IP2 > PingResults.log &' > runPing.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
 
@@ -199,18 +199,18 @@ Start-Sleep -s 10
 #
 # Create an 1 GB file on test VM
 #
-Start-Sleep -s 3
+Start-Sleep -s 5
 $retVal = CreateFileOnVM $ipv4 $sshKey 1024
 if (-not $retVal)
 {
-    "ERROR: Failed to create a file on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask" | Tee-Object -Append -file $summaryLog
+    "ERROR: Failed to create a file on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
 #
 # Send the file from the test VM to the dependency VM
 #
-Start-Sleep -s 3
+Start-Sleep -s 5
 $retVal = SRIOV_SendFile $ipv4 $sshKey 7000
 if (-not $retVal)
 {
@@ -274,7 +274,7 @@ Start-Sleep -s 5
 [decimal]$beforeRTT = $beforeRTT + 0.04
 [decimal]$afterRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 
-"The RTT after re-enabling SR-IOV is $afterRTT ms" | Tee-Object -Append -file $summaryLog
+"The RTT after resuming VM is $afterRTT ms" | Tee-Object -Append -file $summaryLog
 if ($afterRTT -ge $beforeRTT ) {
     "ERROR: After resuming VM, the RTT value has not lowered enough
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
@@ -293,5 +293,5 @@ if (-not $retVal)
 }
 
 Start-Sleep -s 10
- "File was successfully sent from VM1 to VM2 after resuming VM" | Tee-Object -Append -file $summaryLog
+"File was successfully sent from VM1 to VM2 after resuming VM" | Tee-Object -Append -file $summaryLog
 return $true

@@ -58,10 +58,10 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
             <param>TC_COVERED=SRIOV-7</param>
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
-            <param>REMOTE_SERVER=remoteHost/param>
+            <param>REMOTE_SERVER=hvServer/param>
         </testParams>
         <cleanupScript>setupscripts\SR-IOV_ShutDown_Dependency.ps1</cleanupScript>
         <timeout>2400</timeout>
@@ -73,10 +73,10 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 function Cleanup($childVMName)
 {
     # Clean up
-    $sts = Stop-VM -Name $childVMName -ComputerName $remoteHost -TurnOff
+    $sts = Stop-VM -Name $childVMName -ComputerName $hvServer -TurnOff
 
     # Delete New VM created
-    $sts = Remove-VM -Name $childVMName -ComputerName $remoteHost -Confirm:$false -Force
+    $sts = Remove-VM -Name $childVMName -ComputerName $hvServer -Confirm:$false -Force
 }
 
 #############################################################
@@ -151,10 +151,9 @@ foreach ($p in $params)
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
-        "REMOTE_SERVER" { $remoteHost = $fields[1].Trim() }
-        "REMOTE_USER" { $remoteUser = $fields[1].Trim() }
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim()}
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim()}
+        "REMOTE_SERVER" { $remoteServer = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim()}
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim()}
         "NIC"
         {
             $temp = $p.Trim().Split('=')
@@ -174,26 +173,53 @@ del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 # Check if there are running old child VMs and stop them
-Cleanup "SRIOV_Child_Remote"
+Cleanup "SRIOV_Child"
 
 # Get default Hyper-V VHD path; The VHD will be copied there
-$hostInfo = Get-VMHost -ComputerName $remoteHost
+$hostInfo = Get-VMHost -ComputerName $hvServer
 $defaultVhdPath = $hostInfo.VirtualHardDiskPath
 if (-not $defaultVhdPath.EndsWith("\")) {
     $defaultVhdPath += "\"
 }
 $vhd_path_formatted = $defaultVhdPath.Replace(':','$')
-$final_vhd_path="\\${remoteHost}\${vhd_path_formatted}SRIOV_ChildRemote"
+$final_vhd_path="\\${hvServer}\${vhd_path_formatted}SRIOV_ChildRemote"
+
+#
+# Configure eth1 on test VM
+#
+Start-Sleep -s 5
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
+if (-not $retVal)
+{
+    "ERROR: Failed to configure eth1 on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
+    return $false
+}
+Start-Sleep -s 10
+
+#
+# Start ping
+#
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 1200 -I eth1 `$VF_IP2 > PingResults.log &' > runPing.sh"
+Start-Sleep -s 5
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
+Start-Sleep -s 10
+
+[decimal]$initialRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
+if (-not $initialRTT){
+    "ERROR: No result was logged! Check if VF is up!" | Tee-Object -Append -file $summaryLog
+    .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig"
+    return $false
+}
+"The RTT before disabling VF is $initialRTT ms" | Tee-Object -Append -file $summaryLog
 
 # Stop main VM to get the parent VHD
-# Shutdown gracefully so we dont corrupt VHD.
-Stop-VM -Name $vmName -ComputerName $hvServer
+Stop-VM -VMName $vmName -ComputerName $hvServer -Force
 if (-not $?) {
     Write-Output "Error: Unable to Shut Down VM" | Tee-Object -Append -file $summaryLog
     return $False
 }
 
-Start-Sleep -s 10
+Start-Sleep -s 30
 # Get Parent VHD
 $ParentVHD = GetParentVHD $vmName $hvServer
 if(-not $ParentVHD) {
@@ -213,42 +239,34 @@ if (-not $?) {
 }
 
 # Create Child vhd
-$ChildVHD = CreateChildVHD $ParentVHD $final_vhd_path $remoteHost
-
-# Check if SR-IOV Switch is present on remote host
-Get-VMSwitch $networkName -ComputerName $remoteHost
-if (-not $?) {
-    Write-Output "Error: The vSwitch named $networkName is not present on $remoteHost" | Tee-Object -Append -file $summaryLog
-    return $false
-}
+$ChildVHD = CreateChildVHD $ParentVHD $final_vhd_path $hvServer
 
 # Create the new VM
-$newVm = New-VM -Name "SRIOV_Child_Remote" -ComputerName $remoteHost -VHDPath "${defaultVhdPath}\SRIOV_ChildRemote.vhdx" -MemoryStartupBytes 4096MB -SwitchName "External" -Generation $vm_gen
-
+$newVm = New-VM -Name "SRIOV_Child" -ComputerName $hvServer -VHDPath "${defaultVhdPath}\SRIOV_ChildRemote.vhdx" -MemoryStartupBytes 4096MB -SwitchName "External" -Generation $vm_gen
 if (-not $?) {
-    Write-Output "Error: Creating New VM SRIOV_Child_Remote on $remoteHost" | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: Creating New VM SRIOV_Child on $hvServer" | Tee-Object -Append -file $summaryLog
     return $False
 } 
 
 # Disable secure boot if Gen2
 if ($vm_gen -eq 2) {
-    Set-VMFirmware -VMName "SRIOV_Child_Remote" -ComputerName $remoteHost -EnableSecureBoot Off
+    Set-VMFirmware -VMName "SRIOV_Child" -ComputerName $hvServer -EnableSecureBoot Off
     if(-not $?) {
         Write-Output "Error: Unable to disable secure boot" | Tee-Object -Append -file $summaryLog
-        Cleanup "SRIOV_Child_Remote"
+        Cleanup "SRIOV_Child"
         return $false
     }
 }
 
-ConfigureVMandBond "SRIOV_Child_Remote" $remoteHost $sshKey $vmBondIP1 $netmask
+ConfigureVMandVF "SRIOV_Child" $hvServer $sshKey $vmVF_IP1 $netmask
 Write-Output "Child VM Configured and started" | Tee-Object -Append -file $summaryLog
 
-$ipv4_child = GetIPv4 "SRIOV_Child_Remote" $remoteHost 
-Write-Output "SRIOV_Child_Remote IP Address: $ipv4_child"
-Start-Sleep -s 5
+$ipv4_child = GetIPv4 "SRIOV_Child" $hvServer 
+Write-Output "SRIOV_Child IP Address: $ipv4_child"
+Start-Sleep -s 10
 
 # Run ping from child VM to dependency
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4_child} "echo ' ping -c 20 -I bond0 $vmBondIP2 > PingResults.log &' > runPing.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4_child} "echo ' ping -c 20 $vmVF_IP2 > PingResults.log &' > runPing.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4_child} "bash ~/runPing.sh > ~/Ping.log 2>&1"
 Start-Sleep -s 5
@@ -256,17 +274,17 @@ Start-Sleep -s 5
 
 if (-not $vfEnabledRTT){
     Write-Output "ERROR: No result was logged on the Child VM!" | Tee-Object -Append -file $summaryLog
-    Cleanup "SRIOV_Child_Remote"
+    Cleanup "SRIOV_Child"
     return $false   
 }
 
 if ($vfEnabledRTT -le 0.11) {
     Write-Output "VF is up & running, RTT is $vfEnabledRTT ms" | Tee-Object -Append -file $summaryLog
-    Cleanup "SRIOV_Child_Remote"
+    Cleanup "SRIOV_Child"
     return $True    
 } 
 else {
     Write-Output "ERROR: RTT value is too high, $vfEnabledRTT ms!" | Tee-Object -Append -file $summaryLog
-    Cleanup "SRIOV_Child_Remote"
+    Cleanup "SRIOV_Child"
     return $false
 }

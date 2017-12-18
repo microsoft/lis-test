@@ -70,8 +70,16 @@ d-i partman/choose_partition select finish
 d-i partman/confirm boolean true
 d-i partman/confirm_nooverwrite boolean true
 
+d-i pkgsel/include string linux-cloud-tools
+d-i pkgsel/include string linux-tools
+d-i pkgsel/include string linux-cloud-tools-common
+d-i	pkgsel/install-language-support	boolean
+
 d-i grub-installer/only_debian boolean true
+d-i	debian-installer/quiet	boolean false
+d-i	debian-installer/splash	boolean false
 
 d-i grub-installer/with_other_os boolean true
+d-i debian-installer/add-kernel-opts string vga=normal console=tty0 console=ttyS1
+d-i debian-installer/exit/poweroff boolean true
 d-i finish-install/reboot_in_progress note
-

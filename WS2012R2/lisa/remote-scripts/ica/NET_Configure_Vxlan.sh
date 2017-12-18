@@ -47,13 +47,13 @@ function ConfigureVxlan ()
     else
         LogMsg "Successfully added vxlan0"
         echo "Successfully added vxlan0" >> summary.log
-    fi  
+    fi
     ip l set vxlan0 up
     if [ $2 == "local" ]; then
         ip addr add 242.0.0.12/24 dev vxlan0
     else
         ip addr add 242.0.0.11/24 dev vxlan0
-    fi  
+    fi
     if [ 0 -ne $? ]; then
         msg="Failed to asociate an address for vxlan0."
         LogMsg "$msg"
@@ -67,7 +67,7 @@ function ConfigureVxlan ()
 }
 
 function CreateTestFolder ()
-{   
+{
     LogMsg "Creating test directory..."
     mkdir /root/test
     if [ $? -ne 0 ]; then
@@ -124,7 +124,7 @@ case "$DISTRO" in
     ubuntu*)
         ufw disable
         ;;
-    redhat* | centos*)
+    redhat* | centos* | fedora*)
         iptables -F
         iptables -X
         ;;

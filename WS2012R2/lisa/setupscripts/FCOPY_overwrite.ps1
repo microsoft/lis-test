@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -68,7 +68,7 @@ $gsi = $null
 function check_fcopy_daemon()
 {
 	$filename = ".\fcopy_present"
-    
+
     .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /tmp/fcopy_present"
     if (-not $?) {
         Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
@@ -85,12 +85,12 @@ function check_fcopy_daemon()
 
     # When using grep on the process in file, it will return 1 line if the daemon is running
     if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) {
-		Write-Output "Info: hv_fcopy_daemon process is running."  
+		Write-Output "Info: hv_fcopy_daemon process is running."
 		$retValue = $True
     }
-	
-    del $filename   
-    return $retValue 
+
+    del $filename
+    return $retValue
 }
 
 #######################################################################
@@ -164,7 +164,7 @@ function copy_and_check_file([String] $testfile, [Boolean] $overwrite, [Int] $co
     # Copy the file and check copied file
     $Error.Clear()
     if ($overwrite) {
-        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue -Force       
+        Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue -Force
     }
     else {
         Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
@@ -225,7 +225,7 @@ if (-not $testParams) {
 $params = $testParams.Split(";")
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    
+
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
@@ -251,6 +251,17 @@ if (-not (Test-Path $rootDir)) {
 cd $rootDir
 
 . .\setupScripts\TCUtils.ps1
+
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
 
 # Delete any previous summary.log file, then create a new one
 $summaryLog = "${vmName}_summary.log"
@@ -278,8 +289,8 @@ if (-not $gsi.Enabled) {
 	while ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
 		Start-Sleep -Seconds 5
 	}
-	
-	Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer 
+
+	Enable-VMIntegrationService -Name "Guest Service Interface" -vmName $vmName -ComputerName $hvServer
 	Start-VM -Name $vmName -ComputerName $hvServer
 
 	# Waiting for the VM to run again and respond to SSH - port 22
@@ -310,7 +321,7 @@ if (-not $sts[-1]) {
 }
 
 # Define the file-name to use with the current time-stamp
-$testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file" 
+$testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
 
 # Removing previous test files on the VM
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -f /tmp/testfile-*"

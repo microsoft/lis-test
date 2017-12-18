@@ -19,17 +19,17 @@
 #
 ########################################################################
 
-
 <#
 .Synopsis
     Perform tests on a VM as defined in a .xml file
 
 .Description
-    This powershell script automates the tasks required to test
+    This PowerShell script automates the tasks required to test
     the Linux Integrated Services (LIS) on Windows Hyper-V Server.
-    This script is the entry script into the automation.  The basics
-    behavior of the automation is:
-        Start a VM
+    This script is the entry script into the automation.
+    The basic behavior of the automation is:
+        Create a VM or multiple VMs
+	Start VM(s)
         Push files to a VM
         Start a script executing on a VM
         Collect files from a VM
@@ -132,7 +132,7 @@
         <VMs>
             <vm>
                 <hvServer>myHyperVHost</hvServer>
-                <vmName>SLES11SP3</vmName>
+                <vmName>vmName</vmName>
                 <os>Linux</os>
                 <ipv4>192.168.1.101</ipv4>
                 <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -195,10 +195,10 @@
     the value, the more verbose the logging of message.  Levels above 5 are
     quite chatty and are not recommended.
 .Parameter collect
-    The collect parameter is used if you want to collect a set of general information
-    from the VM (e.g kernel version, LIS version, dmesg).
-    Usage: "-collect True" if you want to get more information out, otherwise don't
-    use it.
+    The collect parameter is used if you want to collect a set of logs from the VM (e.g
+    kernel version, LIS version, dmesg log).
+    Usage: ".\lisa.ps1 run xml\kvpTests.xml -collect True"
+    Default value is to not collect these information.
 .Example
     .\lisa.ps1 run xml\myTests.xml
 
@@ -897,11 +897,45 @@ function RunTests ([String] $xmlFilename )
             $initResults = RunInitShutdownScript $xmlConfig.Config.Global.LisaInitScript $xmlFilename
         }
     }
-
+    
+    # Start reading the serial output if a com2 port is configured
+    $jobs = @()
+	foreach($vm in $xmlConfig.config.VMs.vm) {
+        $portPath = $(Get-VMComPort -ComputerName $vm.hvServer -VMName $vm.vmName -Number 2).Path
+        $vmName = $vm.vmName
+        if($portPath -ne '') {
+            $portPath = $portPath.Replace('.', $vm.hvServer)
+            $jobName = "${vmName}${portPath}"
+            $jobId = $(get-job -name $jobName -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Running' }).id
+            if($jobId) {
+                stop-job -id $jobId
+            }
+            $serialOutputFile = "${testDir}\${vmName}-icaserial.log"
+            $index = 0
+            while(Test-Path $serialOutputFile) {
+                $index = $index + 1
+                $serialOutputFile = "${testDir}\${vmName}-icaserial-${index}.log"
+            }
+            $currentPath = $PSScriptRoot
+            $jobObject=$(Start-Job -Name $jobName -ScriptBlock { Set-Location $args[0]; .\bin\icaserial.exe READ $args[1] | Out-File $args[2] } -ArgumentList $currentPath, $portPath, $serialOutputFile)
+            if($jobObject.State -ne 'Running') {
+                LogMsg 2 "Error : Unable to start ${jobName} background job on the following port ${portPath}"
+            } else {
+                LogMsg 4 "Info : Started background job ${jobName} for capturing VM output"
+                $jobs += $jobObject
+            }
+        }
+    }
+    
     LogMsg 10 "Info : Calling RunICTests"
     . .\stateEngine.ps1
     RunICTests $xmlConfig $collect
 
+    # Stop icaserial jobs
+    foreach($job in $jobs) {
+		Stop-Job -Id $job.id
+    }
+    
     #
     # email the test results if requested
     #
@@ -1017,4 +1051,3 @@ default    {
 
 LogMsg 0 "Test will exit with error code $lisaExitCode"
 exit $lisaExitCode
-0

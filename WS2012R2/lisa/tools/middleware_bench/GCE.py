@@ -77,8 +77,8 @@ class GCEConnector:
 
         self.key_name = 'test_ssh_key'
         self.bucket_name = 'middleware_bench' + str(time.time()).replace('.', '')
-        self.net_name = 'middleware-bench-net'
-        self.subnet_name = 'middleware-bench-subnet'
+        self.net_name = 'middleware-bench-net' + str(time.time()).replace('.', '')
+        self.subnet_name = 'middleware-bench-subnet' + str(time.time()).replace('.', '')
 
         self.vms = []
 
@@ -88,7 +88,8 @@ class GCEConnector:
         net, subnet and fw rules.
         """
         log.info('Creating compute client')
-        self.compute = discovery.build('compute', 'v1', credentials=self.credentials)
+        self.compute = discovery.build('compute', 'v1', credentials=self.credentials,
+                                       cache_discovery=False)
 
         # keeping bucket related code in case these will be later required
         # https://cloud.google.com/compute/docs/disks/gcs-buckets
@@ -269,6 +270,19 @@ class GCEConnector:
             log.error(e)
             raise
         return client
+
+    def restart_vm(self, instance):
+        """
+        Restart instances VM.
+        :param instance instance obj to restart
+        :return SSHClient
+        """
+        reset_vm = self.compute.instances().reset(instance=instance['name'],
+                                                  project=self.projectid, zone=self.zone).execute()
+        self.wait_for_operation(reset_vm['name'], zone=self.zone)
+
+        log.info('Rebooting VM: {}'.format(instance['name']))
+        return self.wait_for_ping(instance)
 
     def teardown(self):
         """

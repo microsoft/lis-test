@@ -105,6 +105,16 @@ dos2unix perf_utils.sh
     exit 2
 }
 
+# Convert eol
+dos2unix utils.sh
+
+# Source perf_utils.sh
+. utils.sh || {
+    echo "ERROR: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
 #Apling performance parameters
 setup_io_scheduler
 if [ $? -ne 0 ]; then
@@ -117,7 +127,7 @@ echo "Kernel version: $(uname -r)" >> ~/summary.log
 case $(LinuxRelease) in
     "UBUNTU")
         LogMsg "Run test on Ubuntu. Install dependencies..."
-        apt-get -y install make gcc mdadm libaio-dev        
+        apt-get -y install make gcc mdadm libaio-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the dependencies.!" >> ~/summary.log

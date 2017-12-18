@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0 
 # Copyright (c) Microsoft Corporation 
 # 
-# All rights reserved.  
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License""); 
 # you may not use this file except in compliance with the License. 
 # You may obtain a copy of the License at 
-#     http://www.apache.org/licenses/LICENSE-2.0   
+#     http://www.apache.org/licenses/LICENSE-2.0
 # 
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS 
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION 
@@ -137,15 +137,15 @@ param ([Switch] $HyperV,
        [String] $VmPath,
        [String] $ExternalFolderSync )
 
-
+# hide cmdlets progress bar
+$progressPreference = 'silentlyContinue'
 
 $internalSwitchName = "Internal"
 $externalSwitchName = "External"
 $privateSwitchName1 = "Private"
 $privateSwitchName2 = "Private2"
 
-$GitVersion = "1.9.4-preview20140929"
-$GitUrl     = "https://github.com/msysgit/msysgit/releases/download"
+$GitUrl     = "https://github.com/git-for-windows/git/releases/download/v2.15.0.windows.1/Git-2.15.0-64-bit.exe"
 
 $lisTestUrl = "https://github.com/LIS/lis-test"
 
@@ -247,7 +247,9 @@ function CreateInternalSwitch()
         {
             Throw "Error: Unable to create Internal switch"
         }
-        Write-Host "Info: Internal vSwitch '${internalSwitchName}' was created"
+        
+        Get-NetAdapter -Name "${internalSwitchName}" | New-NetIPAddress -AddressFamily ipv4 -IPAddress 192.168.0.1 -PrefixLength 24
+        Write-Host "Info: Internal vSwitch '${internalSwitchName}' was created with IP range 192.168.0.1/24"
     }
     else
     {
@@ -310,40 +312,34 @@ function InstallGitClient()
 {
     $GitNotInstalled = $False
 
-    try
-    {
-       git
+    try {
+       git | Out-Null
     }
-    catch
-    {
+    catch {
        $GitNotInstalled = $True 
     }
 
     if ($GitNotInstalled)
     {
-        $url = "${GitUrl}/Git-${GitVersion}/Git-${GitVersion}.exe"
-
-        Invoke-WebRequest "${url}" -OutFile ".\Git-${GitVersion}.exe"
+        Invoke-WebRequest "${GitUrl}" -OutFile ".\git-installer.exe"
         if (-not $?)
         {
             Throw "Error: Unable to download the git client"
         }
 
-        $cmd = ".\Git-${GitVersion}.exe"
-        & $cmd /VERYSILENT
-
+        Start-Process -FilePath ".\git-installer.exe" -ArgumentList "/VERYSILENT" -Wait -NoNewWindow
         if (-not $?)
         {
             Throw "Error: Unable to install the git client"
         }
 
-        del ".\Git-${GitVersion}.exe" -ErrorAction SilentlyContinue
+        del ".\git-installer.exe" -ErrorAction SilentlyContinue
 
         #
         # Verify Git was installed in the default directory
         #
         $systemDrive = $env:SystemDrive
-        $gitPath = "${systemDrive}\Program Files (x86)\Git\cmd"
+        $gitPath = "${systemDrive}\Program Files\Git\cmd"
         if (-not (Test-Path "${gitPath}\git.exe"))
         {
             Throw "Error: Git was not installed into the default location of '${gitPath}'"
@@ -419,7 +415,7 @@ function InstallPutty()
     #
     if (-not (Test-Path ".\lis-test\WS2012R2\lisa"))
     {
-        Throw "Error: The directory '.\lis-test\WS2012R2\lisa' directory does not exist"
+        Throw "Error: The directory '.\lis-test\WS2012R2\lisa' does not exist"
     }
 
     if (-not (Test-Path ".\lis-test\WS2012R2\lisa\Bin"))
@@ -437,7 +433,7 @@ function InstallPutty()
     foreach ($util in $puttyUtils)
     {
         Write-Host "Info : downloading ${util}"
-        $url = "${puttyBaseUrl}/x86/${util}"
+        $url = "${puttyBaseUrl}/w32/${util}"
         Invoke-WebRequest "${url}" -OutFile ".\lis-test\WS2012R2\lisa\Bin\${util}"
         if (-not $?)
         {
@@ -479,7 +475,7 @@ function InstallPutty()
         Write-Host "Info : Verifying sha256sum for ${util}"
 
         $filesum = Get-FileHash -Algorithm SHA256 -Path ".\lis-test\WS2012R2\lisa\Bin\${util}"
-        if ($filesum.Hash -ne $sums[ "x86/${util}" ])
+        if ($filesum.Hash -ne $sums[ "w32/${util}" ])
         {
             Throw "Error: sha256sum mismatch for ${util}"
         }

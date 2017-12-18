@@ -44,16 +44,31 @@ fi
 
 DISK="$1"
 MODES=(seqwr seqrewr seqrd rndrd rndwr rndrw)
-THREADS=(1 2 4 8 16 32 64 128 256 512 1024)
-IOS=(4 8 16 32)
-EXTRA="--file-total-size=184G --max-requests=0 --max-time=300 --file-extra-flags=dsync --file-fsync-freq=0"
+THREADS=(1 2 4 8 16 32 64)
+IOS=(4 8 32)
+EXTRA="--file-total-size=84G --max-requests=0 --max-time=300 --file-extra-flags=dsync --file-fsync-freq=0"
 
 if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
-sudo apt-get update >> ${LOG_FILE}
-sudo apt-get -y install libaio1 sysstat zip sysbench >> ${LOG_FILE}
+distro="$(head -1 /etc/issue)"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt -y install libaio1 sysstat zip sysbench >> ${LOG_FILE}
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean dbcache>> ${LOG_FILE}
+    sudo yum -y install sysstat zip sysstat zip gcc libtool wget >> ${LOG_FILE}
+    cd /tmp
+    wget http://downloads.mysql.com/source/sysbench-0.4.12.5.tar.gz >> ${LOG_FILE}
+    gunzip -c sysbench-0.4.12.5.tar.gz |tar zx >> ${LOG_FILE}
+    cd /tmp/sysbench-0.4.12.5; ./configure --without-mysql; make; sudo make install >> ${LOG_FILE}
+    sudo cp /usr/local/bin/sysbench /usr/bin/sysbench
+    cd /tmp
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
 
 function fileio ()
 {
@@ -89,7 +104,7 @@ else
     exit 70
 fi
 
-sudo sysbench --test=fileio --file-total-size=184G prepare >> ${LOG_FILE}
+sudo sysbench --test=fileio --file-total-size=84G prepare >> ${LOG_FILE}
 for mode in "${MODES[@]}"
 do
     for io in "${IOS[@]}"
@@ -102,9 +117,10 @@ do
     done
     sleep 10
 done
-sudo sysbench --test=fileio --file-total-size=184G cleanup >> ${LOG_FILE}
+sudo sysbench --test=fileio --file-total-size=84G cleanup >> ${LOG_FILE}
 
-LogMsg "Kernel Version : `uname -r` "
+LogMsg "Kernel Version : `uname -r`"
+LogMsg "Guest OS : ${distro}"
 
 cd /tmp
 zip -r sysbench.zip . -i sysbench_fileio/* >> ${LOG_FILE}

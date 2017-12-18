@@ -96,6 +96,7 @@ foreach ($p in $params)
     "sshKey"      { $sshKey = $fields[1].Trim() }
     "ipv4"        { $ipv4 = $fields[1].Trim() }
     "rootdir"     { $rootDir = $fields[1].Trim() }
+    "IDE"         { $IDEDisk = $fields[1].Trim() }
      default  {}
     }
 }
@@ -128,19 +129,23 @@ Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 # Source the TCUtils.ps1 file
 . .\setupscripts\TCUtils.ps1
 
-#Check if the host supports production checkpoints
-$osInfo = GWMI Win32_OperatingSystem -ComputerName $hvServer
-if (-not $osInfo)
-{
-    "Error: Unable to collect Operating System information"
+# if host build number lower than 10500, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0) {
     return $False
 }
+elseif ($BuildNumber -lt 10500) {
+    "Info: Feature supported only on WS2016 and newer"
+    return $Skipped
+}
 
-[System.Int32]$buildNR = $osInfo.BuildNumber
-
-if ($buildNR -le 10500){
-    Write-Output "ERROR: This Windows Server version doesn't support production checkpoints"
-    return $false
+# Check if AddVhdxHardDisk doesn't add a VHD disk to Gen2 VM
+if ($IDEDisk) {
+    $vmGen = GetVMGeneration $vmName $hvServer
+    if ($vmGen -eq 2) {
+        Write-Output "Info: Cannot add VHD file to Gen2 VM. Skipping." | Tee-Object -Append -file $summaryLog
+        return $Skipped
+    }
 }
 
 # Check if the Vm VHD in not on the same drive as the backup destination
@@ -197,7 +202,7 @@ Start-Sleep -seconds 30
 
 #Check if we can set the Production Checkpoint as default
 if ($vm.CheckpointType -ne "ProductionOnly"){
-    Set-VM -Name $vmName -CheckpointType ProductionOnly
+    Set-VM -Name $vmName -CheckpointType ProductionOnly -ComputerName $hvServer
     if (-not $?)
     {
        Write-Output "Error: Could not set Production as Checkpoint type"  | Out-File -Append $summaryLog

@@ -32,13 +32,24 @@ level=$1
 no_devices=$2
 declare -a devices=("${@:3}")
 
-sudo apt-get install -y mdadm
+distro="$(head -1 /etc/issue)"
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    sudo apt update
+    sudo apt install -y mdadm >> ${LOG_FILE}
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo yum clean dbcache>> ${LOG_FILE}
+    sudo yum -y install mdadm >> ${LOG_FILE}
+else
+    LogMsg "Unsupported distribution: ${distro}."
+fi
 
 # force disk rescan
 #for i in /sys/class/scsi_host/*; do sudo echo "- - -" > ${i}/scan; done
 #sudo fdisk -l
 
-LogMsg "Parameters are level=${level} raid-devices=${no_devices} devices=${devices[@]}"
+LogMsg "Parameters are level=${level} raid-devices=${no_devices} devices=${devices}"
 conf_raid()
 {
 DEV="/dev/md0"

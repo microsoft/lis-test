@@ -25,7 +25,7 @@
 
 .Description
 	The script will try to send a NMI to a given VM. Interrupts are successful
-	only if the VM is running. Other VM states - Stopped, Saved and Paused must fail. 
+	only if the VM is running. Other VM states - Stopped, Saved and Paused must fail.
 	This is the expected behavior and the test case will return the results as such.
 
     The definition for this test case would look similar to:
@@ -109,10 +109,10 @@ function SavedState()
 		Write-Host "." -NoNewLine
 		Start-Sleep -Seconds 5
 	}
-	do { 
-		Start-Sleep -Seconds 5 } 
+	do {
+		Start-Sleep -Seconds 5 }
 	until ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK")
-	
+
 	try {
 		Save-VM -Name $vmName -ComputerName $hvServer
 	}
@@ -198,7 +198,7 @@ if (-not $testParams) {
 $params = $testParams.Split(";")
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    
+
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
@@ -237,6 +237,24 @@ cd $rootDir
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
+
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
+    . .\setupScripts\TCUtils.ps1
+} else {
+    "Error: Could not find setupScripts\TCUtils.ps1"
+}
+
+# if host build number lower than 9600, skip test
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0)
+{
+    return $false
+}
+elseif ($BuildNumber -lt 9600)
+{
+    return $Skipped
+}
 
 #
 # Running all functions - StopState, SavedState and PausedState

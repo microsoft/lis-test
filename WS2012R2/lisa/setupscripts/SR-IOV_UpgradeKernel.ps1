@@ -58,8 +58,8 @@
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
             <param>TC_COVERED=SRIOV-7</param>
-            <param>BOND_IP1=10.11.12.31</param>
-            <param>BOND_IP2=10.11.12.32</param>
+            <param>VF_IP1=10.11.12.31</param>
+            <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
             <param>REMOTE_SERVER=remoteHost</param>
         </testParams>
@@ -154,8 +154,8 @@ foreach ($p in $params)
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
         "ipv4" { $ipv4 = $fields[1].Trim() }   
-        "BOND_IP1" { $vmBondIP1 = $fields[1].Trim() }
-        "BOND_IP2" { $vmBondIP2 = $fields[1].Trim() }
+        "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
+        "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
         "VM2NAME" { $vm2Name = $fields[1].Trim() }
         "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
@@ -174,12 +174,12 @@ $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "${vm2Name} IPADDRESS: ${vm2ipv4}"
 
 #
-# Configure the bond on test VM
+# Configure the VF on test VM
 #
-$retVal = ConfigureBond $ipv4 $sshKey $netmask
+$retVal = ConfigureVF $ipv4 $sshKey $netmask
 if (-not $retVal)
 {
-    "ERROR: Failed to configure bond on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmBondIP1 , netmask $netmask"
+    "ERROR: Failed to configure VF on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
 $kernelVersionOld = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "uname -r"
@@ -188,7 +188,7 @@ $kernelVersionOld = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "uname -r"
 #
 # Test ping before upgrading the kernel
 #
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 30 -I bond0 `$BOND_IP2 > PingResults.log &' > runPing.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 30 `$VF_IP2 > PingResults.log &' > runPing.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
 Start-Sleep -s 10
@@ -238,7 +238,7 @@ if ($kernelVersionOld -eq $kernelVersionNew) {
 #
 # Test ping after upgrading the kernel
 #
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 30 -I bond0 `$BOND_IP2 > PingResults.log &' > runPing.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && ping -c 30 `$VF_IP2 > PingResults.log &' > runPing.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runPing.sh > ~/Ping.log 2>&1"
 Start-Sleep -s 10
