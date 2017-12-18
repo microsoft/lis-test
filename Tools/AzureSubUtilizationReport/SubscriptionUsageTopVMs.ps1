@@ -5,7 +5,7 @@
 .DESCRIPTION
     This script fetches Azure VMs data and generates human readable HTML report of top 20 VMs.
 
-.PARAMETER -TopVMsCount
+.PARAMETER -topVMsCount
     Type: integer
     Required: Yes.
 
@@ -21,16 +21,16 @@
     Purpose/Change: Initial script development
   
 .EXAMPLE 
-    .\SubscriptionUsageTopVMs.ps1 -TopVMsCount 20
+    .\SubscriptionUsageTopVMs.ps1 -topVMsCount 20
 #>
 
 param
 (
-    [int]$TopVMsCount = 20,
+    [int]$topVMsCount = 20,
     [string]$customSecretsFilePath = $null
 )
 
-#---------------------------------------------------------[Initialisations]--------------------------------------------------------
+#---------------------------------------------------------[Initializations]--------------------------------------------------------
 if ( $customSecretsFilePath ) {
     $secretsFile = $customSecretsFilePath
     Write-Host "Using provided secrets file: $($secretsFile | Split-Path -Leaf)" 
@@ -234,7 +234,7 @@ $VMLink = "https://ms.portal.azure.com/#resource/subscriptions/$subscriptionID/r
 $RGLinkHtml = '<a href="https://ms.portal.azure.com/#resource/subscriptions/' + "$subscriptionID" + '/resourceGroups/RESOURCE_GROUP_NAME/overview" target="_blank" rel="noopener">RESOURCE_GROUP_NAME</a>'
 $VMLinkHtml = '<a href="https://ms.portal.azure.com/#resource/subscriptions/' + "$subscriptionID" + '/resourceGroups/RESOURCE_GROUP_NAME/providers/Microsoft.Compute/virtualMachines/INSTANCE_NAME/overview" target="_blank" rel="noopener">INSTANCE_NAME</a>'
 
-$maxCount = $TopVMsCount
+$maxCount = $topVMsCount
 $i = 0
 $counter = 0
 foreach ($currentVMNode in $VMAges) {

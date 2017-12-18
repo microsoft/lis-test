@@ -291,11 +291,11 @@ $finalEmailSummary = $finalEmailSummary.Replace("FINAL_SUMMARY", $htmlSummary)
 $finalEmailSummary += '</table>'
 
 Write-Host "Getting top 20 VMs."
-.\SubscriptionUsageTopVMs.ps1 -TopVMsCount 20
+.\SubscriptionUsageTopVMs.ps1 -topVMsCount 20
 
-$TopVMsHTMLReport = (Get-Content -Path .\vmAge.html)
+$topVMsHTMLReport = (Get-Content -Path .\vmAge.html)
 
-foreach ( $line in $TopVMsHTMLReport.Split("`n")) {
+foreach ( $line in $topVMsHTMLReport.Split("`n")) {
     $finalEmailSummary += $line
 }
 

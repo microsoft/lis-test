@@ -28,7 +28,7 @@ param
     [string]$customSecretsFilePath = $null
 )
 
-#---------------------------------------------------------[Initialisations]--------------------------------------------------------
+#---------------------------------------------------------[Initializations]--------------------------------------------------------
 
 if ( $customSecretsFilePath ) {
     $secretsFile = $customSecretsFilePath
