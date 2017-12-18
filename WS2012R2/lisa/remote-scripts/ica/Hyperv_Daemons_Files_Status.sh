@@ -145,14 +145,6 @@ CheckDaemonsFilesRHEL7()
     UpdateTestState $ICA_TESTFAILED
     exit 1
   fi
-
-  dameonPreset=`cat /lib/systemd/system-preset/90-default.preset | grep -i $1`
-  if [ "$dameonPreset" != "enable $1" ]; then
-    LogMsg "ERROR: $1 is not in 90-default.preset, test failed"
-    UpdateSummary "ERROR: $1 is not in 90-default.preset, test failed"
-    UpdateTestState $ICA_TESTFAILED
-    exit 1
-  fi
 }
 
 
