@@ -158,9 +158,9 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
     """
     Connect to DB and upload results
     """
-    if not test_results:
-        log.error('Results missing. Skipping DB upload.')
-        return None
+    # if not test_results:
+    #     log.error('Results missing. Skipping DB upload.')
+    #     return None
     if localpath:
         log.info('Looking up DB credentials for results upload in {}.' .format(localpath))
         db_creds_file = [os.path.join(localpath, c) for c in os.listdir(localpath)
