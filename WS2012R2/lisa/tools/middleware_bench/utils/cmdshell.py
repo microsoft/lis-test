@@ -20,8 +20,15 @@ permissions and limitations under the License.
 """
 import os
 import time
+import logging
 import paramiko
 import socket
+
+from winrm import protocol
+
+logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                    datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
+log = logging.getLogger(__name__)
 
 
 class SSHClient(object):
@@ -65,20 +72,20 @@ class SSHClient(object):
             except socket.error as se:
                 (value, message) = se.args
                 if value in (51, 61, 111):
-                    print('SSH Connection refused, will retry in 5 seconds')
+                    log.error('SSH Connection refused, will retry in 5 seconds')
                     time.sleep(5)
                     retry += 1
                 else:
                     raise
             except paramiko.BadHostKeyException:
-                print("{} has an entry in ~/.ssh/known_hosts and it doesn't match".format(
+                log.error("{} has an entry in ~/.ssh/known_hosts and it doesn't match".format(
                         self.server))
                 retry += 1
             except EOFError:
-                print('Unexpected Error from SSH Connection, retry in 5 seconds')
+                log.error('Unexpected Error from SSH Connection, retry in 5 seconds')
                 time.sleep(5)
                 retry += 1
-        print('Could not establish SSH connection')
+        log.error('Could not establish SSH connection')
 
     def open_sftp(self):
         """
@@ -154,3 +161,54 @@ class SSHClient(object):
         """
         transport = self._ssh_client.get_transport()
         transport.close()
+
+
+class WinRMClient(object):
+    """
+    This class creates a WinRM object that represents a session with a Windows server.
+    :param host: A server hostname or ip.
+    :param user: The username for the winrm connection.
+    :param password: Password to use for authentication.
+    :param port: WinRM port used to connect. Default is 5986.
+    :param proto: Protocol used for communication. Default is https.
+    """
+    def __init__(self, host=None, user=None, password=None, port=5986, proto='https'):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.port = port
+        self.proto = proto
+
+    def run(self, cmd=None, ps=False, transport='ssl', server_cert_validation='ignore'):
+        """
+        Run WinRM  command.
+        :param cmd: Windows command to run
+        :param ps: <bool> to run powershell command instead
+        :param transport: Cryptographic protocol. Default is ssl.
+        :param server_cert_validation: Server side validation type. Default is ignore.
+        :return: std_out, std_err, exit_code
+        """
+        if not cmd:
+            log.error('Please provide command to run remotely.')
+        if ps:
+            cmd = 'powershell -NoProfile -NonInteractive ' + cmd
+
+        secure_host = '{}://{}:{}/wsman'.format(self.proto, self.host, self.port)
+        protocol.Protocol.DEFAULT_TIMEOUT = "PT7200S"
+        try:
+            p = protocol.Protocol(endpoint=secure_host, transport=transport,
+                                  username=self.user, password=self.password,
+                                  server_cert_validation=server_cert_validation)
+            shell_id = p.open_shell()
+            command_id = p.run_command(shell_id, cmd)
+            std_out, std_err, exit_code = p.get_command_output(shell_id, command_id)
+            log.info('Output: {}'.format(std_out))
+            log.debug('Output: {}\nError: {}\nExit Code: {}'.format(std_out, std_err, exit_code))
+            if exit_code != 0:
+                log.error('{}.\nFailed to run command: {}'.format(std_err, cmd))
+            p.cleanup_command(shell_id, command_id)
+            p.close_shell(shell_id)
+        except Exception as e:
+            log.error(e)
+            raise
+        return std_out

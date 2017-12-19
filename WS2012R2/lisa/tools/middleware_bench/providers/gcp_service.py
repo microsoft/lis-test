@@ -27,16 +27,16 @@ import logging
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 from oauth2client import GOOGLE_TOKEN_URI
-from cmdshell import SSHClient
+from utils.cmdshell import SSHClient
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-class GCEConnector:
+class GCPConnector:
     """
-    Google Compute Engine connector that uses google-api-python-client.
+    Google Compute Platform connector that uses google-api-python-client.
     """
     def __init__(self, clientid=None, secret=None, token=None, projectid=None,
                  imageid=None, instancetype=None, user=None, localpath=None, zone=None):
@@ -82,7 +82,7 @@ class GCEConnector:
 
         self.vms = []
 
-    def gce_connect(self):
+    def connect(self):
         """
         Obtain the GCE service clients by authenticating, and setup prerequisites like bucket,
         net, subnet and fw rules.
@@ -133,7 +133,7 @@ class GCEConnector:
         self.wait_for_operation(fw['name'])
         log.info(fw)
 
-    def gce_create_vm(self):
+    def create_vm(self):
         """
         Create an GCE VM instance.
         :return: VirtualMachine object

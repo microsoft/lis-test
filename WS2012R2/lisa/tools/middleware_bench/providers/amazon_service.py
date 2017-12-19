@@ -22,11 +22,12 @@ permissions and limitations under the License.
 import os
 import time
 import logging
-import constants
+
+from utils import constants
 
 from boto import ec2
 from boto import vpc
-from cmdshell import SSHClient
+from utils.cmdshell import SSHClient
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -91,7 +92,7 @@ class AWSConnector:
         self.create_key_pair(self.conn)
         self.create_security_group(self.conn)
 
-    def aws_create_instance(self, user_data=None):
+    def ec2_create_vm(self, user_data=None):
         """
         Create an EC2 instance.
         :param user_data: routines to be executed upon spawning the instance
@@ -113,7 +114,7 @@ class AWSConnector:
 
         return instance
 
-    def vpc_connect(self, region=None):
+    def connect(self, region=None):
         """
         Obtain the VPC EC2 connector by authenticating. This also creates the
         keypair and security group for the instance.
@@ -134,7 +135,7 @@ class AWSConnector:
         self.create_security_group(self.vpc_conn, vpc_id=self.vpc_zone.id)
         self.create_key_pair(self.vpc_conn)
 
-    def aws_create_vpc_instance(self, user_data=None):
+    def create_vm(self, user_data=None):
         """
         Create a VPC EC2 instance.
         :param user_data: routines to be executed upon spawning the instance
@@ -198,7 +199,7 @@ class AWSConnector:
             else:
                 raise
 
-    def attach_ebs_volume(self, instance, size=10, volume_type=None, iops=None, device=None):
+    def attach_disk(self, instance, size=10, volume_type=None, iops=None, device=None):
         """
         Create and attach an EBS volume to a given instance.
         :param instance: Instance object to attach the volume to

@@ -75,7 +75,7 @@ class TestRun(object):
                 checkpoint_name=self.checkpoint_name
                 )
 
-    def update_from_ica(self, log_path):
+    def update_from_ica(self, log_path, lis_version=None):
         parsed_ica = parse_ica_log(log_path)
         logger.debug('Parsed ICA log file')
         logger.debug('Parsed content %s', parsed_ica)
@@ -89,11 +89,14 @@ class TestRun(object):
         except KeyError:
             logger.warning('Log folder path not found in ICA log')
 
-        try:
-            self.lis_version = parsed_ica['lisVersion']
-            logger.debug('Saving LIS version - %s', self.lis_version)
-        except KeyError:
-            logger.warning('LIS Version not found in ICA Log')
+        if not lis_version:
+            try:
+                self.lis_version = parsed_ica['lisVersion']
+                logger.debug('Saving LIS version - %s', self.lis_version)
+            except KeyError:
+                logger.warning('LIS Version not found in ICA Log')
+        else:
+            self.lis_version = lis_version
 
         for vm_name, props in parsed_ica['vms'].iteritems():
             logger.debug('Updating VM, %s, with details from ICA log',
@@ -210,8 +213,8 @@ class PerfTestRun(TestRun):
         super(PerfTestRun, self).__init__(skip_vm_check, checkpoint_name)
         self.perf_path = perf_path
 
-    def update_from_ica(self, log_path):
-        super(PerfTestRun, self).update_from_ica(log_path)
+    def update_from_ica(self, log_path, lis_version=None):
+        super(PerfTestRun, self).update_from_ica(log_path, lis_version)
         parsed_perf_log = None
         if self.suite.lower() == 'fio-singledisk':
             parsed_perf_log = FIOLogsReader(self.perf_path).process_logs()
@@ -240,10 +243,13 @@ class PerfTestRun(TestRun):
         for table_dict in insertion_list:
             del table_dict['TestID']
             del table_dict['TestResult']
-            del table_dict['LISVersion']
             del table_dict['TestArea']
             del table_dict['HostName']
             del table_dict['LogPath']
+            if not table_dict['LISVersion']:
+                del table_dict['LISVersion']
+            if 'sriov' in table_dict['TestCaseName']:
+                table_dict['DataPath'] = 'SRIOV'
 
             table_dict['GuestDistro'] = table_dict.pop('GuestOSDistro')
             table_dict['HostBy'] = os.environ['COMPUTERNAME']
@@ -272,8 +278,8 @@ class PerfTestRun(TestRun):
                 column['ProtocolType'], column['NumberOfConnections']))
         elif self.suite.lower() == 'iperf':
             insertion_list = sorted(insertion_list, key=lambda column: (
-                column['NumberOfConnections'], column['SendBufSize_KBytes']))
-
+                column['NumberOfConnections']))
+        print(insertion_list)
         return insertion_list
 
     @staticmethod

@@ -19,22 +19,24 @@ See the Apache Version 2.0 License for specific language governing
 permissions and limitations under the License.
 """
 
+import logging
 import os
 import time
-import logging
-import constants
-import utils
 
-from AWS import AWSConnector
-from Azure import AzureConnector
-from GCE import GCEConnector
-from cmdshell import SSHClient
+from utils import constants
+from utils import shortcut
+from utils.cmdshell import SSHClient
+from utils.cmdshell import WinRMClient
 
-from db_utils import upload_results
-from results_parser import OrionLogsReader, SysbenchLogsReader, MemcachedLogsReader,\
+from report.db_utils import upload_results
+from report.results_parser import OrionLogsReader, SysbenchLogsReader, MemcachedLogsReader,\
     RedisLogsReader, ApacheLogsReader, MariadbLogsReader, MongodbLogsReader, ZookeeperLogsReader,\
     TerasortLogsReader, TCPLogsReader, LatencyLogsReader, StorageLogsReader, SingleTCPLogsReader,\
     UDPLogsReader, SQLServerLogsReader, PostgreSQLLogsReader
+
+from providers.amazon_service import AWSConnector
+from providers.azure_service import AzureConnector
+from providers.gcp_service import GCPConnector
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -90,9 +92,9 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
             connector = AWSConnector(keyid=keyid, secret=secret, imageid=imageid,
                                      instancetype=instancetype, user=user, localpath=localpath,
                                      region=region, zone=zone)
-            connector.vpc_connect()
+            connector.connect()
             for i in xrange(1, vm_count + 1):
-                vms[i] = connector.aws_create_vpc_instance()
+                vms[i] = connector.create_vm()
 
             for i in xrange(1, vm_count + 1):
                 ssh_client[i] = connector.wait_for_ping(vms[i])
@@ -108,46 +110,46 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                     device = []
                     for i in xrange(raid):
                         dev = '/dev/sd{}'.format(chr(120 - i))
-                        connector.attach_ebs_volume(vms[1], size=disk_size, iops=5000,
-                                                    volume_type=connector.volume_type['ssd_io1'],
-                                                    device=dev)
+                        connector.attach_disk(vms[1], size=disk_size, iops=5000,
+                                              volume_type=connector.volume_type['ssd_io1'],
+                                              device=dev)
                         device.append(dev.replace('sd', 'xvd'))
                         time.sleep(3)
                 else:
-                    connector.attach_ebs_volume(vms[1], size=disk_size, iops=5000,
-                                                volume_type=connector.volume_type['ssd_io1'],
-                                                device=constants.DEVICE_AWS)
+                    connector.attach_disk(vms[1], size=disk_size, iops=5000,
+                                          volume_type=connector.volume_type['ssd_io1'],
+                                          device=constants.DEVICE_AWS)
             elif test_type == constants.DB_DISK:
                 if raid and type(raid) is int:
                     device = []
                     for i in xrange(raid):
                         dev = '/dev/sd{}'.format(chr(120 - i))
-                        connector.attach_ebs_volume(vms[2], size=disk_size, iops=5000,
-                                                    volume_type=connector.volume_type['ssd_io1'],
-                                                    device=dev)
+                        connector.attach_disk(vms[2], size=disk_size, iops=5000,
+                                              volume_type=connector.volume_type['ssd_io1'],
+                                              device=dev)
                         device.append(dev.replace('sd', 'xvd'))
                         time.sleep(3)
                 else:
-                    connector.attach_ebs_volume(vms[2], size=disk_size, iops=5000,
-                                                volume_type=connector.volume_type['ssd_io1'],
-                                                device=constants.DEVICE_AWS)
+                    connector.attach_disk(vms[2], size=disk_size, iops=5000,
+                                          volume_type=connector.volume_type['ssd_io1'],
+                                          device=constants.DEVICE_AWS)
             elif test_type == constants.CLUSTER_DISK:
-                connector.attach_ebs_volume(vms[1], size=disk_size + 200, iops=5000,
-                                            volume_type=connector.volume_type['ssd_io1'],
-                                            device=constants.DEVICE_AWS)
+                connector.attach_disk(vms[1], size=disk_size + 200, iops=5000,
+                                      volume_type=connector.volume_type['ssd_io1'],
+                                      device=constants.DEVICE_AWS)
                 for i in xrange(2, vm_count + 1):
-                    connector.attach_ebs_volume(vms[i], size=disk_size, iops=5000,
-                                                volume_type=connector.volume_type['ssd_io1'],
-                                                device=constants.DEVICE_AWS)
+                    connector.attach_disk(vms[i], size=disk_size, iops=5000,
+                                          volume_type=connector.volume_type['ssd_io1'],
+                                          device=constants.DEVICE_AWS)
                     time.sleep(3)
         elif provider == constants.AZURE:
             connector = AzureConnector(clientid=keyid, secret=secret,
                                        subscriptionid=subscriptionid, tenantid=tenantid,
                                        imageid=imageid, instancetype=instancetype, user=user,
                                        localpath=localpath, location=region, sriov=sriov)
-            connector.azure_connect()
+            connector.connect()
             for i in xrange(1, vm_count + 1):
-                vms[i] = connector.azure_create_vm()
+                vms[i] = connector.create_vm()
             device = constants.DEVICE_AZURE
             if test_type == constants.VM_DISK:
                 if raid and type(raid) is int:
@@ -182,13 +184,13 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                         'ifconfig eth0 | grep "inet\ addr" | cut -d: -f2 | cut -d" " -f1')
                 vm_ips[i] = cmd[1].strip()
         elif provider == constants.GCE:
-            connector = GCEConnector(clientid=keyid, secret=secret, token=token,
+            connector = GCPConnector(clientid=keyid, secret=secret, token=token,
                                      projectid=projectid, imageid=imageid,
                                      instancetype=instancetype, user=user, localpath=localpath,
                                      zone=zone)
-            connector.gce_connect()
+            connector.connect()
             for i in xrange(1, vm_count + 1):
-                vms[i] = connector.gce_create_vm()
+                vms[i] = connector.create_vm()
             for i in xrange(1, vm_count + 1):
                 ssh_client[i] = connector.wait_for_ping(vms[i])
                 vm_ips[i] = vms[i]['networkInterfaces'][0]['networkIP']
@@ -333,7 +335,7 @@ def test_orion(provider, keyid, secret, token, imageid, subscription, tenant, pr
         upload_results(localpath=localpath, table_name='Perf_{}_Orion'.format(provider),
                        results_path=results_path, parser=OrionLogsReader,
                        test_case_name='{}_Orion_perf_tuned'.format(provider),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='1 x SSD {}GB'.format(disk_size))
 
 
@@ -403,7 +405,7 @@ def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenan
         upload_results(localpath=localpath, table_name='Perf_{}_Orion'.format(provider),
                        results_path=results_path, parser=OrionLogsReader,
                        test_case_name='{}_Orion_perf_tuned'.format(provider),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='{} x SSD {}GB'.format(raid, disk_size))
 
 
@@ -471,7 +473,7 @@ def test_sysbench(provider, keyid, secret, token, imageid, subscription, tenant,
         upload_results(localpath=localpath, table_name='Perf_{}_Sysbench'.format(provider),
                        results_path=results_path, parser=SysbenchLogsReader,
                        test_case_name='{}_sysbench_fileio_perf_tuned'.format(provider),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='1 x SSD {}GB'.format(disk_size))
 
 
@@ -543,7 +545,7 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
         upload_results(localpath=localpath, table_name='Perf_{}_Sysbench'.format(provider),
                        results_path=results_path, parser=SysbenchLogsReader,
                        test_case_name='{}_sysbench_fileio_perf_tuned'.format(provider),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='{} x SSD {}GB RAID0'.format(raid, disk_size))
 
 
@@ -607,7 +609,7 @@ def test_memcached(provider, keyid, secret, token, imageid, subscription, tenant
         upload_results(localpath=localpath, table_name='Perf_{}_Memcached'.format(provider),
                        results_path=results_path, parser=MemcachedLogsReader,
                        test_case_name='{}_memcached_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype)
 
 
@@ -671,7 +673,7 @@ def test_redis(provider, keyid, secret, token, imageid, subscription, tenant, pr
         upload_results(localpath=localpath, table_name='Perf_{}_Redis'.format(provider),
                        results_path=results_path, parser=RedisLogsReader,
                        test_case_name='{}_redis_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype)
 
 
@@ -736,7 +738,7 @@ def test_apache_bench(provider, keyid, secret, token, imageid, subscription, ten
         upload_results(localpath=localpath, table_name='Perf_{}_Apache'.format(provider),
                        results_path=results_path, parser=ApacheLogsReader,
                        test_case_name='{}_Apache_bench_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype)
 
 
@@ -801,7 +803,7 @@ def test_nginx_bench(provider, keyid, secret, token, imageid, subscription, tena
         upload_results(localpath=localpath, table_name='Perf_{}_Nginx'.format(provider),
                        results_path=results_path, parser=ApacheLogsReader,
                        test_case_name='{}_Apache_bench_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype)
 
 
@@ -873,7 +875,7 @@ def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, 
         upload_results(localpath=localpath, table_name='Perf_{}_MariaDB'.format(provider),
                        results_path=results_path, parser=MariadbLogsReader,
                        test_case_name='{}_MariaDB_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype, disk_setup='1 x SSD {}GB'.format(disk_size))
 
 
@@ -950,7 +952,7 @@ def test_mariadb_raid(provider, keyid, secret, token, imageid, subscription, ten
         upload_results(localpath=localpath, table_name='Perf_{}_MariaDB'.format(provider),
                        results_path=results_path, parser=MariadbLogsReader,
                        test_case_name='{}_MariaDB_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype,
                        disk_setup='{} x SSD {}GB RAID0'.format(raid, disk_size))
 
@@ -1023,7 +1025,7 @@ def test_mongodb(provider, keyid, secret, token, imageid, subscription, tenant, 
         upload_results(localpath=localpath, table_name='Perf_{}_MongoDB'.format(provider),
                        results_path=results_path, parser=MongodbLogsReader,
                        test_case_name='{}_MongoDB_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype, disk_setup='1 x SSD {}GB'.format(disk_size))
 
 
@@ -1099,7 +1101,7 @@ def test_mongodb_raid(provider, keyid, secret, token, imageid, subscription, ten
         upload_results(localpath=localpath, table_name='Perf_{}_MongoDB'.format(provider),
                        results_path=results_path, parser=MongodbLogsReader,
                        test_case_name='{}_MongoDB_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype,
                        disk_setup='{} x SSD {}GB RAID0'.format(raid, disk_size))
 
@@ -1172,7 +1174,7 @@ def test_postgresql(provider, keyid, secret, token, imageid, subscription, tenan
         upload_results(localpath=localpath, table_name='Perf_{}_PostgreSQL'.format(provider),
                        results_path=results_path, parser=PostgreSQLLogsReader,
                        test_case_name='{}_PostgreSQL_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype, disk_setup='1 x SSD {}GB'.format(disk_size))
 
 
@@ -1240,7 +1242,7 @@ def test_zookeeper(provider, keyid, secret, token, imageid, subscription, tenant
         upload_results(localpath=localpath, table_name='Perf_{}_Zookeeper'.format(provider),
                        results_path=results_path, parser=ZookeeperLogsReader,
                        test_case_name='{}_Zookeeper_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype,
                        cluster_setup='{} x servers'.format(vm_count - 1))
 
@@ -1310,7 +1312,7 @@ def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant,
         upload_results(localpath=localpath, table_name='Perf_{}_Terasort'.format(provider),
                        results_path=results_path, parser=TerasortLogsReader,
                        test_case_name='{}_Terasort_perf_tuned'.format(provider),
-                       data_path=utils.data_path(sriov), host_type=utils.host_type(provider),
+                       data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype,
                        cluster_setup='1 master + {} slaves'.format(vm_count - 1))
 
@@ -1383,8 +1385,8 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
         upload_results(localpath=localpath, table_name='Perf_{}_Storage'.format(provider),
                        results_path=results_path, parser=StorageLogsReader,
                        test_case_name='{}_Storage_perf_tuned'.format(provider),
-                       provider=provider, region=region, data_path=utils.data_path(sriov),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       provider=provider, region=region, data_path=shortcut.data_path(sriov),
+                       host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='RAID0:{}x{}G'.format(raid, disk_size))
 
 
@@ -1448,8 +1450,8 @@ def test_network_tcp(provider, keyid, secret, token, imageid, subscription, tena
         upload_results(localpath=localpath, table_name='Perf_{}_Network_TCP'.format(provider),
                        results_path=results_path, parser=TCPLogsReader,
                        test_case_name='{}_Network_TCP_perf_tuned'.format(provider),
-                       provider=provider, region=region, data_path=utils.data_path(sriov),
-                       host_type=utils.host_type(provider), instance_size=instancetype)
+                       provider=provider, region=region, data_path=shortcut.data_path(sriov),
+                       host_type=shortcut.host_type(provider), instance_size=instancetype)
 
 
 def test_network_udp(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
@@ -1512,8 +1514,8 @@ def test_network_udp(provider, keyid, secret, token, imageid, subscription, tena
         upload_results(localpath=localpath, table_name='Perf_{}_Network_UDP'.format(provider),
                        results_path=results_path, parser=UDPLogsReader,
                        test_case_name='{}_Network_UDP_perf_tuned'.format(provider),
-                       provider=provider, region=region, data_path=utils.data_path(sriov),
-                       host_type=utils.host_type(provider), instance_size=instancetype)
+                       provider=provider, region=region, data_path=shortcut.data_path(sriov),
+                       host_type=shortcut.host_type(provider), instance_size=instancetype)
 
 
 def test_network_latency(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
@@ -1576,8 +1578,8 @@ def test_network_latency(provider, keyid, secret, token, imageid, subscription, 
         upload_results(localpath=localpath, table_name='Perf_{}_Network_Latency'.format(provider),
                        results_path=results_path, parser=LatencyLogsReader,
                        test_case_name='{}_Network_Latency_perf_tuned'.format(provider),
-                       provider=provider, region=region, data_path=utils.data_path(sriov),
-                       host_type=utils.host_type(provider), instance_size=instancetype)
+                       provider=provider, region=region, data_path=shortcut.data_path(sriov),
+                       host_type=shortcut.host_type(provider), instance_size=instancetype)
 
 
 def test_network_single_tcp(provider, keyid, secret, token, imageid, subscription, tenant,
@@ -1641,8 +1643,8 @@ def test_network_single_tcp(provider, keyid, secret, token, imageid, subscriptio
                        table_name='Perf_{}_Network_Single_TCP'.format(provider),
                        results_path=results_path, parser=SingleTCPLogsReader,
                        test_case_name='{}_Network_Single_TCP_perf_tuned'.format(provider),
-                       provider=provider, region=region, data_path=utils.data_path(sriov),
-                       host_type=utils.host_type(provider), instance_size=instancetype)
+                       provider=provider, region=region, data_path=shortcut.data_path(sriov),
+                       host_type=shortcut.host_type(provider), instance_size=instancetype)
 
 
 def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscription, tenant,
@@ -1688,7 +1690,7 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
     results_path = None
     try:
         # TODO add Windows VM support for the other cloud providers
-        win_user, password, win_vm = connector.azure_create_vm(config_file=localpath)
+        win_user, password, win_vm = connector.create_vm(config_file=localpath)
         log.info(win_vm)
         if all(client for client in ssh_client.values()):
             current_path = os.path.dirname(os.path.realpath(__file__))
@@ -1707,6 +1709,7 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
         sqlserver_ip = vm_ips[1]
 
         host = win_vm.name + connector.dns_suffix
+        winrm_client = WinRMClient(host=host, user=win_user, password=password)
         settings = []
         sql_sps = []
 
@@ -1721,20 +1724,16 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
                 bc_path=constants.BC_PATH, bc_profile=constants.BC_PROFILE, passwd=password))
         for setting in settings:
             log.info(setting)
-            utils.run_win_command(cmd=setting, host=host, user=win_user, password=password,
-                                  ps=True)
+            winrm_client.run(cmd=setting, ps=True)
 
         log.info('Creating database.')
-        utils.run_win_command(cmd=utils.run_sql('{}Create_Database_InMem.sql'.format(
-                constants.DB_SQL_PATH), sqlserver_ip, password=password),
-                              host=host, user=win_user, password=password, ps=True)
+        winrm_client.run(cmd=shortcut.run_sql('{}Create_Database_InMem.sql'.format(
+                constants.DB_SQL_PATH), sqlserver_ip, password=password), ps=True)
         log.info('Creating InMemDb tables.')
-        utils.run_win_command(cmd=utils.run_sql('{}Create_Tables_InMem.sql'.format(
-                constants.DB_SQL_PATH), sqlserver_ip, password=password, db='InMemDb'),
-                              host=host, user=win_user, password=password, ps=True)
+        winrm_client.run(cmd=shortcut.run_sql('{}Create_Tables_InMem.sql'.format(
+                constants.DB_SQL_PATH), sqlserver_ip, password=password, db='InMemDb'), ps=True)
         log.info('Loading data into tables.')
-        utils.run_win_command(cmd='{}Load_HK_DB_BCP.ps1'.format(constants.PS_PATH), host=host,
-                              user=win_user, password=password, ps=True)
+        winrm_client.run(cmd='{}Load_HK_DB_BCP.ps1'.format(constants.PS_PATH), ps=True)
 
         sql_sps.append('{}InMem_FulfillOrders.sql'.format(constants.SP_SQL_PATH))
         sql_sps.append('{}InMem_GetOrdersByCustomerID.sql'.format(constants.SP_SQL_PATH))
@@ -1745,9 +1744,8 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
         sql_sps.append('{}optimize_memory.sql'.format(constants.DB_SCRIPTS_PATH))
         for sql_sp in sql_sps:
             log.info(sql_sp)
-            utils.run_win_command(
-                    cmd=utils.run_sql(sql_sp, sqlserver_ip, password=password, db='InMemDb'),
-                    host=host, user=win_user, password=password, ps=True)
+            winrm_client.run(cmd=shortcut.run_sql(sql_sp, sqlserver_ip, password=password,
+                                                  db='InMemDb'), ps=True)
 
         # start server collect
         ssh_client[1].run('mkdir /tmp/sqlserver_stats', timeout=constants.TIMEOUT)
@@ -1760,7 +1758,7 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
 
         cmd = '{bc_path}start.ps1'.format(bc_path=constants.BC_PATH)
         log.info(cmd)
-        utils.run_win_command(cmd=cmd, host=host, user=win_user, password=password, ps=True)
+        winrm_client.run(cmd=cmd, ps=True)
 
         # collect server stats
         ssh_client[1].run('pkill -f sar; pkill -f vmstat; pkill -f iostat',
@@ -1771,8 +1769,7 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
                 localpath, 'sqlserver_stats{}_{}.zip'.format(str(time.time()), instancetype)))
 
         cmd = 'type {}Report1.log'.format(constants.BC_PATH)
-        report = utils.run_win_command(cmd=cmd, host=host, user=win_user, password=password,
-                                       ps=True)
+        report = winrm_client.run(cmd=cmd, ps=True)
     except Exception as e:
         log.error(e)
         raise
@@ -1783,6 +1780,120 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
         upload_results(localpath=localpath, table_name='Perf_{}_SQLServer'.format(provider),
                        results_path=results_path, parser=SQLServerLogsReader,
                        test_case_name='{}_SQLServer_perf_tuned'.format(provider),
-                       provider=provider, region=region, data_path=utils.data_path(sriov),
-                       host_type=utils.host_type(provider), instance_size=instancetype,
+                       provider=provider, region=region, data_path=shortcut.data_path(sriov),
+                       host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='1 x SSD {}GB'.format(disk_size), report=report)
+
+
+def test_network_custom(provider, keyid, secret, token, imageid, subscription, tenant,
+                        projectid, instancetype, user, localpath, region, zone, sriov, kernel):
+    """
+    Run variable TCP custom test.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    :param sriov: Enable or disable SR-IOV
+    :param kernel: custom kernel name provided in localpath
+    """
+    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=2,
+                                                      test_type=None, disk_size=None, raid=False,
+                                                      keyid=keyid, secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone, sriov=sriov, kernel=kernel)
+    try:
+        if all(client for client in ssh_client.values()):
+            # enable key auth between instances
+            ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
+                                   '/home/{}/.ssh/id_rsa'.format(user))
+            ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
+
+            current_path = os.path.dirname(os.path.realpath(__file__))
+            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_network.sh'),
+                                   '/tmp/run_network.sh')
+            ssh_client[1].run('chmod +x /tmp/run_network.sh')
+            ssh_client[1].run("sed -i 's/\r//' /tmp/run_network.sh")
+            cmd = '/tmp/run_network.sh {} {} {}'.format(vm_ips[2], user, 'custom')
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
+            results_path = os.path.join(localpath, 'network{}_{}.zip'.format(str(time.time()),
+                                                                             instancetype))
+            ssh_client[1].get_file('/tmp/network.zip', results_path)
+    except Exception as e:
+        log.error(e)
+        raise
+    finally:
+        if connector:
+            connector.teardown()
+
+
+def test_scheduler(provider, keyid, secret, token, imageid, subscription, tenant,
+                   projectid, instancetype, user, localpath, region, zone, sriov, kernel):
+    """
+    Run kernel scheduler tests.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    :param sriov: Enable or disable SR-IOV
+    :param kernel: custom kernel name provided in localpath
+    """
+    connector, vm_ips, device, ssh_client = setup_env(provider=provider, vm_count=1,
+                                                      test_type=None, disk_size=None, raid=False,
+                                                      keyid=keyid, secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone, sriov=sriov, kernel=kernel)
+    try:
+        if all(client for client in ssh_client.values()):
+            # enable key auth between instances
+            ssh_client[1].put_file(os.path.join(localpath, connector.key_name + '.pem'),
+                                   '/home/{}/.ssh/id_rsa'.format(user))
+            ssh_client[1].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(user))
+
+            current_path = os.path.dirname(os.path.realpath(__file__))
+            ssh_client[1].put_file(os.path.join(current_path, 'tests', 'run_scheduler.sh'),
+                                   '/tmp/run_scheduler.sh')
+            ssh_client[1].run('chmod +x /tmp/run_scheduler.sh')
+            ssh_client[1].run("sed -i 's/\r//' /tmp/run_scheduler.sh")
+            cmd = '/tmp/run_scheduler.sh {}'.format('all')
+            log.info('Running command {}'.format(cmd))
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
+            results_path = os.path.join(localpath, 'scheduler{}_{}.zip'.format(str(time.time()),
+                                                                               instancetype))
+            ssh_client[1].get_file('/tmp/scheduler.zip', results_path)
+    except Exception as e:
+        log.error(e)
+        raise
+    finally:
+        if connector:
+            connector.teardown()
