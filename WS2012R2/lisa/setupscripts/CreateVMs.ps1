@@ -651,7 +651,6 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             }
         } else {
             # Setup an unique com port
-			$comPath = $(Get-VMComPort -ComputerName $hvServer -VMName $vmName -Number 2).Path
 			$pipeName = $(-join ((48..57) + (97..122) | Get-Random -Count 10 | % {[char]$_}))
 			$pipePath = "\\.\pipe\${pipeName}"
 			$comPorts = $(get-vm -computername $hvServer | Where-Object { $_.ComPort2.Path -ne '' } | Select -ExpandProperty ComPort2 | Select -ExpandProperty Path)
@@ -661,7 +660,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 				$pipePath = "\\.\pipe\${pipeName}"
 			}
 			Set-VMComPort -ComputerName $hvServer -VMName $vmName -Number 2 -Path $pipePath -ErrorAction SilentlyContinue
-			if($? -ne 0) 
+			if(-not $?) 
 			{
 				Write-Error "Error: Unable to set Com Port with the following path: ${pipePath}"
 			}
