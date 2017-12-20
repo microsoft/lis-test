@@ -925,8 +925,8 @@ function RunTests ([String] $xmlFilename )
                 $jobs += $jobObject
             }
         }
-	}
-
+    }
+    
     LogMsg 10 "Info : Calling RunICTests"
     . .\stateEngine.ps1
     RunICTests $xmlConfig $collect
@@ -934,7 +934,8 @@ function RunTests ([String] $xmlFilename )
     # Stop icaserial jobs
     foreach($job in $jobs) {
 		Stop-Job -Id $job.id
-	}
+    }
+    
     #
     # email the test results if requested
     #
