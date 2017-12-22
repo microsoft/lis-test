@@ -270,7 +270,7 @@ function Copy_Files_to_GH ([string] $GH_IP, [string] $share_path, $gh_creds, $sh
 		Remove-PSDrive -Name "PRO_Test"
 		return $sts
 	}	
-
+	Restart-Service WinRm -Force
 	return $copy_files_cmd
 }
 
@@ -437,6 +437,7 @@ function Clean_provisioned_VM ([string] $GH_IP, $gh_creds)
 		return $sts
 	}
 	
+	Restart-Service WinRm -Force
 	return $clean_cmd
 }
 
