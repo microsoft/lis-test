@@ -23,12 +23,21 @@
     <suite>
         <suiteName>kernel_validation_minimal</suiteName>
         <suiteTests>
+            <suiteTest>InstallKernel</suiteTest>
             <suiteTest>VMHeartbeat</suiteTest>
         </suiteTests>
     </suite>
     </testSuites>
 
     <testCases>
+        <test>
+            <testName>InstallKernel</testName>
+            <testScript>install_kernel.sh</testScript>
+            <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
         <test>
             <testName>VMHeartBeat</testName>
             <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
