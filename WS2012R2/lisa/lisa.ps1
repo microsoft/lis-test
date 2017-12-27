@@ -901,9 +901,9 @@ function RunTests ([String] $xmlFilename )
     # Start reading the serial output if a com2 port is configured
     $jobs = @()
 	foreach($vm in $xmlConfig.config.VMs.vm) {
-        $portPath = $(Get-VMComPort -ComputerName $vm.hvServer -VMName $vm.vmName -Number 2).Path
+        $portPath = $(Get-VMComPort -ComputerName $vm.hvServer -VMName $vm.vmName -Number 2 -ErrorAction SilentlyContinue).Path
         $vmName = $vm.vmName
-        if($portPath -ne '') {
+        if( $portPath ) {
             $portPath = $portPath.Replace('.', $vm.hvServer)
             $jobName = "${vmName}${portPath}"
             $jobId = $(get-job -name $jobName -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Running' }).id
