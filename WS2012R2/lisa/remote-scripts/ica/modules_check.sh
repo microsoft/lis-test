@@ -79,12 +79,21 @@ dos2unix utils.sh
 
 UtilsInit
 
+hv_modules=()
 if [ ! -d /sys/firmware/efi ]; then
-    msg="Info: Test not available for Gen1 VMs."
-    LogMsg "$msg"
-    echo $msg >> ~/summary.log
-    SetTestStateSkipped
-    exit 0
+    index=${!gen1_hv_modules[@]}
+    n=0
+    for n in $index
+    do
+        hv_modules[$n]=${gen1_hv_modules[$n]}
+    done
+else
+    index=${!gen2_hv_modules[@]}
+    n=0
+    for n in $index
+    do
+        hv_modules[$n]=${gen2_hv_modules[$n]}
+    done
 fi
 
 if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
