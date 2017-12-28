@@ -131,6 +131,32 @@ CheckHypervDaemons()
     ;;
     esac
 }
+#######################################################################
+# Check kernel version is newer than the specified version
+# if return 0, the current kernel version is newer than specified version
+# else, the current kernel version is older than specified version
+#######################################################################
+CheckVMFeatureSupportStatus()
+{
+  specifiedKernel=$1
+  if [ $specifiedKernel == "" ];then
+    return 1
+  fi
+  # for example 3.10.0-514.el7.x86_64
+  # get kernel version array is (3 10 0 514)
+  local kernel_array=(`uname -r | awk -F '[.-]' '{print $1,$2,$3,$4}'`)
+  local specifiedKernel_array=(`echo $specifiedKernel | awk -F '[.-]' '{print $1,$2,$3,$4}'`)
+  local index=${!kernel_array[@]}
+  local n=0
+  for n in $index
+  do
+      if [ ${kernel_array[$n]} -gt ${specifiedKernel_array[$n]} ];then
+          return 0
+      fi
+  done
+
+  return 1
+}
 
 #######################################################################
 # Check hyper-v daemons service status under 90-default.preset and
@@ -146,12 +172,23 @@ CheckDaemonsFilesRHEL7()
     exit 1
   fi
 
-  dameonPreset=`cat /lib/systemd/system-preset/90-default.preset | grep -i $1`
-  if [ "$dameonPreset" != "enable $1" ]; then
-    LogMsg "ERROR: $1 is not in 90-default.preset, test failed"
-    UpdateSummary "ERROR: $1 is not in 90-default.preset, test failed"
-    UpdateTestState $ICA_TESTFAILED
-    exit 1
+  # for rhel7.3+(kernel-3.10.0-514), no need to check 90-default.preset
+  local kernel=$(uname -r)
+  CheckVMFeatureSupportStatus "3.10.0-513"
+
+  if [ $? -ne 0 ]; then
+    LogMsg "INFO: Check 90-default.preset for $kernel"
+    UpdateSummary "INFO: Check 90-default.preset for $kernel"
+    dameonPreset=`cat /lib/systemd/system-preset/90-default.preset | grep -i $1`
+    if [ "$dameonPreset" != "enable $1" ]; then
+      LogMsg "ERROR: $1 is not in 90-default.preset, test failed"
+      UpdateSummary "ERROR: $1 is not in 90-default.preset, test failed"
+      UpdateTestState $ICA_TESTFAILED
+      exit 1
+    fi
+  else
+    LogMsg "INFO: No need to check 90-default.preset for $kernel"
+    UpdateSummary "INFO: No need to check 90-default.preset for $kernel"
   fi
 }
 
