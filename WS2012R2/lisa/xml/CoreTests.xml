@@ -321,7 +321,8 @@
 		<files>remote-scripts/ica/utils.sh</files>
 		<testparams>
 			<param>TC_COVERED=CORE-24</param>
-			<param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
+                        <param>gen1_hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko)</param>
+			<param>gen2_hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
 		</testparams>
 		<noReboot>True</noReboot>
 		<onError>Continue</onError>
