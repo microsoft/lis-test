@@ -383,11 +383,6 @@ class NTTTCPLogsReader(BaseLogsReader):
     ntttcp-pXXX.log
     tcping-ntttcp-pXXX.log - avg latency
     """
-    # conversion units
-    CUNIT = {'us': 10**-3,
-             'ms': 1,
-             's': 10**3}
-
     def __init__(self, log_path=None):
         super(NTTTCPLogsReader, self).__init__(log_path)
         self.headers = ['NumberOfConnections', 'Throughput_Gbps',
@@ -740,4 +735,63 @@ class IPERFLogsReader(BaseLogsReader):
                         if pkg_size:
                             log_dict['PacketSize_KBytes'] = float(
                                 pkg_size.group(1).strip())
+        return log_dict
+
+
+class LatencyLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing Latency log files e.g.
+    lagscope.log
+    """
+    # conversion units
+    CUNIT = {'us': 1,
+             'ms': 10**3,
+             's': 10**6}
+
+    def __init__(self, log_path=None):
+        super(LatencyLogsReader, self).__init__(log_path)
+        self.headers = ['MinLatency_us', 'AverageLatency_us', 'MaxLatency_us',
+                        'Latency95Percentile_us', 'Latency99Percentile_us', 'IPVersion',
+                        'ProtocolType']
+        self.log_matcher = 'lagscope.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for Latency test case.
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['MinLatency_us'] = 0
+        log_dict['AverageLatency_us'] = 0
+        log_dict['MaxLatency_us'] = 0
+        log_dict['Latency95Percentile_us'] = 0
+        log_dict['Latency99Percentile_us'] = 0
+
+        with open(log_file, 'r') as fl:
+            for x in fl:
+                if not log_dict.get('IPVersion', None):
+                    ip_version = re.match('domain:.+(IPv[4,6])', x)
+                    if ip_version:
+                        log_dict['IPVersion'] = ip_version.group(1).strip()
+                if not log_dict.get('Protocol', None):
+                    ip_proto = re.match('protocol:.+([A-Z]{3})', x)
+                    if ip_proto:
+                        log_dict['ProtocolType'] = ip_proto.group(1).strip()
+                min_latency = re.match('.+Minimum\s*=\s*([0-9.]+)\s*([a-z]+)', x)
+                if min_latency:
+                    unit = min_latency.group(2).strip()
+                    log_dict['MinLatency_us'] = \
+                        float(min_latency.group(1).strip()) * self.CUNIT[unit]
+                avg_latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
+                if avg_latency:
+                    unit = avg_latency.group(2).strip()
+                    log_dict['AverageLatency_us'] = \
+                        float(avg_latency.group(1).strip()) * self.CUNIT[unit]
+                max_latency = re.match('.+Maximum\s*=\s*([0-9.]+)\s*([a-z]+)', x)
+                if max_latency:
+                    unit = max_latency.group(2).strip()
+                    log_dict['MaxLatency_us'] = \
+                        float(max_latency.group(1).strip()) * self.CUNIT[unit]
         return log_dict

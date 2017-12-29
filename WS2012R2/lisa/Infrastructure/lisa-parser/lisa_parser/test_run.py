@@ -20,12 +20,8 @@ permissions and limitations under the License.
 """
 
 from __future__ import print_function
-from file_parser import ParseXML
-from file_parser import parse_ica_log
-from file_parser import FIOLogsReader
-from file_parser import FIOLogsReaderRaid
-from file_parser import NTTTCPLogsReader
-from file_parser import IPERFLogsReader
+from file_parser import ParseXML, parse_ica_log, FIOLogsReader, FIOLogsReaderRaid,\
+    NTTTCPLogsReader, IPERFLogsReader, LatencyLogsReader
 from virtual_machine import VirtualMachine
 from copy import deepcopy
 import logging
@@ -220,10 +216,12 @@ class PerfTestRun(TestRun):
             parsed_perf_log = FIOLogsReader(self.perf_path).process_logs()
         if self.suite.lower() == 'fio-raid0-4disks':
             parsed_perf_log = FIOLogsReaderRaid(self.perf_path).process_logs()
-        elif self.suite.lower() == 'ntttcp':
+        elif self.suite.lower() in ['ntttcp', 'tcp']:
             parsed_perf_log = NTTTCPLogsReader(self.perf_path).process_logs()
-        elif self.suite.lower() == 'iperf':
+        elif self.suite.lower() in ['iperf', 'udp']:
             parsed_perf_log = IPERFLogsReader(self.perf_path).process_logs()
+        elif self.suite.lower() in ['latency']:
+            parsed_perf_log = LatencyLogsReader(self.perf_path).process_logs()
 
         tests_cases = dict()
         test_index = 0
@@ -246,10 +244,7 @@ class PerfTestRun(TestRun):
             del table_dict['TestArea']
             del table_dict['HostName']
             del table_dict['LogPath']
-            if not table_dict['LISVersion']:
-                del table_dict['LISVersion']
-            if 'sriov' in table_dict['TestCaseName']:
-                table_dict['DataPath'] = 'SRIOV'
+            del table_dict['LISVersion']
 
             table_dict['GuestDistro'] = table_dict.pop('GuestOSDistro')
             table_dict['HostBy'] = os.environ['COMPUTERNAME']
@@ -262,10 +257,18 @@ class PerfTestRun(TestRun):
             test_case_obj = self.test_cases[table_dict['TestCaseName']]
             if self.suite.lower() in ['fio-singledisk', 'fio-raid0-4disks']:
                 self.prep_for_fio(table_dict, test_case_obj)
-            elif self.suite.lower() == 'ntttcp':
+            elif self.suite.lower() in ['ntttcp', 'tcp']:
                 self.prep_for_ntttcp(table_dict, test_case_obj)
-            elif self.suite.lower() == 'iperf':
+            elif self.suite.lower() in ['iperf', 'udp']:
                 self.prep_for_iperf(table_dict, test_case_obj)
+            elif self.suite.lower() in ['latency']:
+                self.prep_for_latency(table_dict, test_case_obj)
+
+            if 'fio' not in self.suite.lower():
+                if 'sriov' in table_dict['TestCaseName'].lower():
+                    table_dict['DataPath'] = 'SRIOV'
+                else:
+                    table_dict['DataPath'] = 'Synthetic'
 
             table_dict['TestCaseName'] = re.match('(.*[a-z]+)[0-9]*',
                                                   table_dict['TestCaseName']).group(1)
@@ -278,7 +281,7 @@ class PerfTestRun(TestRun):
                 column['ProtocolType'], column['NumberOfConnections']))
         elif self.suite.lower() == 'iperf':
             insertion_list = sorted(insertion_list, key=lambda column: (
-                column['NumberOfConnections']))
+                column['NumberOfConnections'], column['SendBufSize_KBytes']))
         print(insertion_list)
         return insertion_list
 
@@ -317,6 +320,18 @@ class PerfTestRun(TestRun):
         table_dict['IPVersion'] = test_case_obj.perf_dict['IPVersion']
         table_dict['ProtocolType'] = test_case_obj.perf_dict['Protocol']
         table_dict['SendBufSize_KBytes'] = test_case_obj.perf_dict['SendBufSize_KBytes']
+
+    @staticmethod
+    def prep_for_latency(table_dict, test_case_obj):
+        table_dict['IPVersion'] = test_case_obj.perf_dict['IPVersion']
+        table_dict['ProtocolType'] = test_case_obj.perf_dict['ProtocolType']
+        table_dict['MinLatency_us'] = float(test_case_obj.perf_dict['MinLatency_us'])
+        table_dict['AverageLatency_us'] = float(test_case_obj.perf_dict['AverageLatency_us'])
+        table_dict['MaxLatency_us'] = float(test_case_obj.perf_dict['MaxLatency_us'])
+        table_dict['Latency95Percentile_us'] = float(test_case_obj.perf_dict[
+                                                         'Latency95Percentile_us'])
+        table_dict['Latency99Percentile_us'] = float(test_case_obj.perf_dict[
+                                                         'Latency99Percentile_us'])
 
 
 class TestCase(object):

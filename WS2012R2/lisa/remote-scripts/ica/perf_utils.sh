@@ -41,8 +41,8 @@ declare -A sysctl_tcp_params=( ["net.core.netdev_max_backlog"]="30000"
                                ["net.core.rmem_max"]="67108864"
                                ["net.core.wmem_default"]="67108864"
                                ["net.core.wmem_max"]="67108864"
-                               ["net.ipv4.tcp_wmem"]="4096 12582912 33554432"
-                               ["net.ipv4.tcp_rmem"]="4096 12582912 33554432"
+                               ["net.ipv4.tcp_wmem"]="8192 12582912 67108864"
+                               ["net.ipv4.tcp_rmem"]="8192 12582912 67108864"
                                ["net.ipv4.tcp_max_syn_backlog"]="80960"
                                ["net.ipv4.tcp_slow_start_after_idle"]="0"
                                ["net.ipv4.tcp_tw_reuse"]="1"
@@ -64,6 +64,7 @@ function setup_sysctl {
 }
 
 function setup_sysctl {
+    sudo sed -i '/DefaultTasksMax/c\DefaultTasksMax=12288' /etc/systemd/system.conf
     for param in "${!sysctl_tcp_params[@]}"; do
         grep -q "$param" ${sysctl_file} && \
         sed -i 's/^'"$param"'.*/'"$param"' = '"${sysctl_tcp_params[$param]}"'/' \
