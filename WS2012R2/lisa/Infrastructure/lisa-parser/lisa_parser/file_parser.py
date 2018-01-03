@@ -383,6 +383,11 @@ class NTTTCPLogsReader(BaseLogsReader):
     ntttcp-pXXX.log
     tcping-ntttcp-pXXX.log - avg latency
     """
+    # conversion units
+    CUNIT = {'us': 10**-3,
+             'ms': 1,
+             's': 10**3}
+
     def __init__(self, log_path=None):
         super(NTTTCPLogsReader, self).__init__(log_path)
         self.headers = ['NumberOfConnections', 'Throughput_Gbps',
