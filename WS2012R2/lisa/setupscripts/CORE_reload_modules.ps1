@@ -253,9 +253,17 @@ if (-not $sts) {
 	return $False 
 }
 
+# Start pinging the VM while the netvsc driver is being stress reloaded
+$pingJob = Start-Job -ScriptBlock { param($ipv4) ping -t $ipv4 } -ArgumentList ($ipv4)
+if (-not $?){
+    "Error: Unable to start job for pinging the VM while stress reloading the netvsc driver."
+    return $false
+}
+
 # Run test script in background
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} 'nohup ./runtest.sh &>/dev/null &'
 
+Stop-Job $pingJob
 
 $status = CheckResult 
 if (-not $($status[-1])) {
