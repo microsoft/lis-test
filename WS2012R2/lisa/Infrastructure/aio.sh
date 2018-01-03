@@ -657,7 +657,8 @@ elif is_suse ; then
     cd ~
 
     PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3
-    nfs-client pciutils libaio-devel parted squashfs-tools unzip parted)
+    nfs-client pciutils libaio-devel parted squashfs-tools unzip parted python-curses dstat net-tools-deprecated ethtool
+    libidn11 iputils)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... " >> summary.log
