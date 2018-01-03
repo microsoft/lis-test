@@ -20,12 +20,12 @@ See the Apache Version 2.0 License for specific language governing
 permissions and limitations under the License.
 """
 import argparse
+import copy
 import logging
 import sys
-import copy
-import constants
-import connector
 
+import connector
+from utils import constants
 from args_validation import TestAction, ProviderAction, KeyIdAction, SecretAction,\
     SubscriptionAction, TenantAction, LocalPathAction, RegionAction, ZoneAction, InstTypeAction,\
     ImageIdAction, UserAction, ProjectAction, TokenAction, KernelAction, SriovAction

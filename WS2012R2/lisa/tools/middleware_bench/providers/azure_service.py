@@ -22,9 +22,9 @@ permissions and limitations under the License.
 import os
 import time
 import logging
-import constants
 import ConfigParser
 
+from utils import constants
 from azure.common.credentials import ServicePrincipalCredentials
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.storage import StorageManagementClient
@@ -101,7 +101,7 @@ class AzureConnector:
         self.subnet = None
         self.vms = []
 
-    def azure_connect(self):
+    def connect(self):
         """
         Obtain the Azure connector by authenticating. This also creates the keypair and
         security group for the instance.
@@ -132,68 +132,7 @@ class AzureConnector:
                 {'address_prefix': '10.10.10.0/24'})
         self.subnet = create_subnet.result()
 
-    def azure_create_windows_vm(self, config_file=None):
-        """
-        Create an Azure Windows VM instance.
-        :return: VirtualMachine object
-        """
-        if config_file:
-            log.info('Looking up Windows VM credentials in {}.'.format(config_file))
-            db_creds_file = [os.path.join(config_file, c) for c in os.listdir(config_file)
-                             if c.endswith('.windows')][0]
-            # read credentials from file - should be present in the localpath provided to runner
-            config = ConfigParser.ConfigParser()
-            config.read(db_creds_file)
-        else:
-            log.error('No credentials file path provided for Windows VM.')
-            return None
-        if 'Image' not in config.sections():
-            imageid = {'publisher': 'MicrosoftWindowsServer',
-                       'offer': 'WindowsServer',
-                       'sku': '2016-Datacenter',
-                       'version': 'latest'}
-        else:
-            imageid = {'publisher': config.get('Image', 'publisher'),
-                       'offer': config.get('Image', 'offer'),
-                       'sku': config.get('Image', 'sku'),
-                       'version': config.get('Image', 'version')}
-        vm_name = config.get('Windows', 'Name')
-        log.info('Creating Windows VM: {}'.format(vm_name))
-        nic = self.create_nic(vm_name)
-        vm_parameters = {
-            'location': self.location,
-            'os_profile': {
-                'computer_name': vm_name,
-                'admin_username': config.get('Windows', 'User'),
-                'admin_password': config.get('Windows', 'Password'),
-                'windows_configuration': {'provision_vm_agent': True,
-                                          'enable_automatic_updates': False}},
-            'hardware_profile': {'vm_size': self.instancetype},
-            'storage_profile': {
-                'image_reference': imageid,
-                'os_disk': {
-                    'os_type': 'Windows',
-                    'name': self.os_disk_name,
-                    'caching': 'ReadWrite',
-                    'create_option': 'fromImage'}},
-            'network_profile': {'network_interfaces': [{'id': nic.id}]}
-        }
-        vm_creation = self.compute_client.virtual_machines.create_or_update(
-                self.group_name, vm_name, vm_parameters)
-        vm_creation.wait()
-
-        vm_instance = self.compute_client.virtual_machines.get(self.group_name, vm_name)
-
-        log.info('Starting VM: {}'.format(vm_name))
-        vm_start = self.compute_client.virtual_machines.start(self.group_name, vm_name)
-        vm_start.wait()
-        log.info('Started VM: {}'.format(vm_instance.__dict__))
-
-        self.vms.append(vm_instance)
-
-        return vm_instance
-
-    def azure_create_vm(self, config_file=None):
+    def create_vm(self, config_file=None):
         """
         Create an Azure VM instance.
         :return: VirtualMachine object

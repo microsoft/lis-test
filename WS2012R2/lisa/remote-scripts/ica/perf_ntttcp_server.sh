@@ -370,7 +370,7 @@ suse_12)
     ;;
 esac
 
-if [ $DISTRO -eq "suse_12" ]; then
+if [ $DISTRO = "suse_12" ]; then
     ldconfig
     if [ $? -ne 0 ]; then
         msg="Warning: Couldn't run ldconfig, there might be shared library errors"

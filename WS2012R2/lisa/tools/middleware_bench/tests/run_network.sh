@@ -112,6 +112,20 @@ then
     else
         LogMsg "Unsupported distribution: ${distro}."
     fi
+elif [[ ${TEST_TYPE} == "custom" ]]
+then
+    TEST_BUFFERS=('64k' '128k')
+    if [[ ${distro} == *"Ubuntu"* ]]
+    then
+        sudo apt -y install iperf3 >> ${LOG_FILE}
+        ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install iperf3" >> ${LOG_FILE}
+    elif [[ ${distro} == *"Amazon"* ]]
+    then
+        cd /tmp; wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm; sudo rpm -ivh iperf3-3.1.3-1.fc24.x86_64.rpm >> ${LOG_FILE}
+        ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "cd /tmp; wget https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm; sudo rpm -ivh iperf3-3.1.3-1.fc24.x86_64.rpm" >> ${LOG_FILE}
+    else
+        LogMsg "Unsupported distribution: ${distro}."
+    fi
 else
     LogMsg "Unsupported test type: ${TEST_TYPE}."
 fi
@@ -251,9 +265,40 @@ function run_single_tcp()
     sudo pkill -f iperf3
     ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iperf3" >> ${LOG_FILE}
     sleep 10
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo iperf3 -s 4 -p ${port} -i 60 -D" >> ${LOG_FILE}
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo iperf3 -s -4 -p ${port} -i 60 -D" >> ${LOG_FILE}
     sleep 3
     sudo iperf3 -c ${SERVER} -p ${port} -4 -b 0 -l ${current_test_buffer} -P 1 -t 60 --get-server-output -i 60 > /tmp/network${TEST_TYPE}/${current_test_buffer}-iperf3.log
+}
+
+function run_custom()
+{
+    current_test_buffer=$1
+    LogMsg "======================================"
+    LogMsg "Running iPerf3 check behaviour = ${current_test_buffer}"
+    LogMsg "======================================"
+    port=8001
+    sudo pkill -f iperf3
+    ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iperf3" >> ${LOG_FILE}
+    sleep 10
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo iperf3 -s -4 -p ${port} -i 60 -D" >> ${LOG_FILE}
+    sleep 3
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 2>&1 > /tmp/network${TEST_TYPE}/${current_test_buffer}.sar.netio.receiver.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -P ALL 1 2>&1 > /tmp/network${TEST_TYPE}/${current_test_buffer}.sar.cpu.receiver.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 2>&1 > /tmp/network${TEST_TYPE}/${current_test_buffer}.iostat.diskio.receiver.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 2>&1 > /tmp/network${TEST_TYPE}/${current_test_buffer}.vmstat.memory.cpu.receiver.log"
+    sar -n DEV 1 2>&1 > /tmp/network${TEST_TYPE}/${current_test_buffer}.sar.netio.sender.log &
+    sar -P ALL 1 2>&1 > /tmp/network${TEST_TYPE}/${current_test_buffer}.sar.cpu.sender.log &
+    iostat -x -d 1 2>&1 > /tmp/network${TEST_TYPE}/${current_test_buffer}.iostat.netio.sender.log &
+    vmstat 1 2>&1 > /tmp/network${TEST_TYPE}/${current_test_buffer}.vmstat.netio.sender.log &
+
+    sudo iperf3 -c ${SERVER} -p ${port} -4 -b 0 -l ${current_test_buffer} -P 64 -t 60 --get-server-output -i 60 > /tmp/network${TEST_TYPE}/${current_test_buffer}-iperf3.log
+
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f sar"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iostat"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f vmstat"
+    sudo pkill -f sar
+    sudo pkill -f iostat
+    sudo pkill -f vmstat
 }
 
 if [[ ${TEST_TYPE} == "TCP" ]]
@@ -284,6 +329,13 @@ then
     do
         run_single_tcp ${packet}
     done
+elif [[ ${TEST_TYPE} == "custom" ]]
+then
+    for buffer in "${TEST_BUFFERS[@]}"
+    do
+        run_custom ${buffer}
+    done
+    scp -o StrictHostKeyChecking=no ${USER}@${SERVER}:/tmp/network${TEST_TYPE}/* /tmp/network${TEST_TYPE}/ >> ${LOG_FILE}
 else
     LogMsg "Unsupported test type: ${TEST_TYPE}."
 fi

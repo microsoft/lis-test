@@ -41,8 +41,8 @@ declare -A sysctl_tcp_params=( ["net.core.netdev_max_backlog"]="30000"
                                ["net.core.rmem_max"]="67108864"
                                ["net.core.wmem_default"]="67108864"
                                ["net.core.wmem_max"]="67108864"
-                               ["net.ipv4.tcp_wmem"]="4096 12582912 33554432"
-                               ["net.ipv4.tcp_rmem"]="4096 12582912 33554432"
+                               ["net.ipv4.tcp_wmem"]="8192 12582912 67108864"
+                               ["net.ipv4.tcp_rmem"]="8192 12582912 67108864"
                                ["net.ipv4.tcp_max_syn_backlog"]="80960"
                                ["net.ipv4.tcp_slow_start_after_idle"]="0"
                                ["net.ipv4.tcp_tw_reuse"]="1"
@@ -64,6 +64,7 @@ function setup_sysctl {
 }
 
 function setup_sysctl {
+    sudo sed -i '/DefaultTasksMax/c\DefaultTasksMax=12288' /etc/systemd/system.conf
     for param in "${!sysctl_tcp_params[@]}"; do
         grep -q "$param" ${sysctl_file} && \
         sed -i 's/^'"$param"'.*/'"$param"' = '"${sysctl_tcp_params[$param]}"'/' \
@@ -71,6 +72,7 @@ function setup_sysctl {
         echo "$param = ${sysctl_tcp_params[$param]}" >> ${sysctl_file} || return 1
     done
     sysctl -p ${sysctl_file}
+    sudo sed -i '/DefaultTasksMax/c\DefaultTasksMax=122880' /etc/systemd/system.conf
     return $?
 }
 setup_sysctl
@@ -622,19 +624,17 @@ VerifyVF()
 		fi
 	fi
 
-	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo' | head -1)
-	if [[ is_fedora || is_ubuntu ]]; then
-        ifconfig -a | grep $interface
-   		if [ $? -ne 0 ]; then
-		    msg="ERROR: VF device, $interface , was not found!"
-		    LogMsg "$msg"
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    exit 1
-		fi
+    interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|bond*\|lo' | head -1)
+    ifconfig -a | grep $interface
+    if [ $? -ne 0 ]; then
+        msg="ERROR: VF device, $interface , was not found!"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
     fi
 
-	return 0
+    return 0
 }
 
 #

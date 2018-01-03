@@ -447,7 +447,7 @@ suse_12)
 esac
 
 LogMsg "Enlarging the system limit"
-ulimit -n 204800
+ulimit -n 20480
 if [ $? -ne 0 ]; then
     LogMsg "ERROR: Unable to enlarged system limit"
     UpdateTestState $ICA_TESTABORTED
@@ -503,95 +503,106 @@ if [ -d  $HOME/$log_folder ]; then
 fi
 
 mkdir $HOME/$log_folder
-eth_log="$HOME/$log_folder/eth_report.log"
-echo "#test_connections    throughput_gbps    average_packet_size" > $eth_log
-
-sleep 10
-#Starting test
-cat /proc/interrupts > $HOME/$log_folder/sender-interrupts-start.log
-ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "cat /proc/interrupts > $HOME/$log_folder/receiver-interrupts-start.log"
-previous_tx_bytes=$(get_tx_bytes $ETH_NAME)
-previous_tx_pkts=$(get_tx_pkts $ETH_NAME)
-port_change=false
-port=
-for current_test_threads in "${TEST_THREADS[@]}"
-do
-    if [ $current_test_threads -lt $MAX_THREADS ]
-    then
-        num_threads_P=$current_test_threads
-        num_threads_n=1
-    else
-        num_threads_P=$MAX_THREADS
-        num_threads_n=$(($current_test_threads / $num_threads_P))
-    fi
-    if ${port_change}
-    then
-        port=20000
-        port_change=false
-    else
-        port=40000
-        port_change=true
-    fi
-    echo "======================================"
-    echo "Running Test: $num_threads_P X $num_threads_n"
-    echo "======================================"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ulimit -n 204800 && ntttcp -r${SERVER_IP} -P $num_threads_P -e ${ipVersion} > $HOME/$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "lagscope -r${SERVER_IP} ${ipVersion}"
-    sleep 1
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "for ((i=1;i<=$TEST_DURATION;i++)); do ss -ta | grep ESTA | grep -v ssh | wc -l >> $HOME/$log_folder/tcp-connections-p${current_test_threads}.log; sleep 1; done"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "sar -n DEV 1 ${TEST_DURATION} > $HOME/$log_folder/sar-receiver-p${current_test_threads}.log"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "dstat -dam 1 ${TEST_DURATION} > $HOME/$log_folder/dstat-receiver-p${current_test_threads}.log"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "mpstat -P ALL 1 ${TEST_DURATION} > $HOME/$log_folder/mpstat-receiver-p${current_test_threads}.log"
-
-    sar -n DEV 1 ${TEST_DURATION} > "$HOME/$log_folder/sar-sender-p${current_test_threads}.log" &
-    dstat -dam 1 ${TEST_DURATION} > "$HOME/$log_folder/dstat-sender-p${current_test_threads}.log" &
-    mpstat -P ALL 1 ${TEST_DURATION} > "$HOME/$log_folder/mpstat-sender-p${current_test_threads}.log" &
-
-    lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V ${ipVersion} > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
-    ntttcp -s${SERVER_IP} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION} ${ipVersion} -f${port} > "./$log_folder/ntttcp-sender-p${num_threads_P}X${num_threads_n}.log"
-    sts=$?
-
-    current_tx_bytes=$(get_tx_bytes $ETH_NAME)
-    current_tx_pkts=$(get_tx_pkts $ETH_NAME)
-    bytes_new=`(expr $current_tx_bytes - $previous_tx_bytes)`
-    pkts_new=`(expr $current_tx_pkts - $previous_tx_pkts)`
-    avg_pkt_size=$(echo "scale=2;$bytes_new/$pkts_new/1024" | bc)
-    Throughput=$(echo "scale=2;$bytes_new/$TEST_DURATION*8/1024/1024/1024" | bc)
-    previous_tx_bytes=$current_tx_bytes
-    previous_tx_pkts=$current_tx_pkts
-
-    echo "Throughput (gbps): $Throughput"
-    echo "average packet size: $avg_pkt_size"
-    printf "%4s  %8.2f  %8.2f\n" ${current_test_threads} $Throughput $avg_pkt_size >> $eth_log
-
-    echo "current test finished. wait 10 seconds for next one... "
+# Determine test type lagscope/ntttcp
+if [[ "${TEST_TYPE:-UNDEFINED}" = "UNDEFINED" ]] || [[ "${TEST_TYPE}" = "ntttcp" ]]; then
+    eth_log="$HOME/$log_folder/eth_report.log"
+    echo "#test_connections    throughput_gbps    average_packet_size" > $eth_log
     sleep 10
-    pkill -x ntttcp
-    pkill -x lagscope
-    pkill -f ESTA
-    pkill -x sar
-    pkill -x dstat
-    pkill -x mpstat
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x ntttcp"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x lagscope"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x sar"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x dstat"
-    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x mpstat"
-done
+    #Starting test
+    cat /proc/interrupts > $HOME/$log_folder/sender-interrupts-start.log
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "cat /proc/interrupts > $HOME/$log_folder/receiver-interrupts-start.log"
+    previous_tx_bytes=$(get_tx_bytes $ETH_NAME)
+    previous_tx_pkts=$(get_tx_pkts $ETH_NAME)
+    port_change=false
+    port=
+    for current_test_threads in "${TEST_THREADS[@]}"
+    do
+        if [ $current_test_threads -lt $MAX_THREADS ]
+        then
+            num_threads_P=$current_test_threads
+            num_threads_n=1
+        else
+            num_threads_P=$MAX_THREADS
+            num_threads_n=$(($current_test_threads / $num_threads_P))
+        fi
+        if ${port_change}
+        then
+            port=20000
+            port_change=false
+        else
+            port=40000
+            port_change=true
+        fi
+        echo "======================================"
+        echo "Running Test: $num_threads_P X $num_threads_n"
+        echo "======================================"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ulimit -n 20480 && ntttcp -r${SERVER_IP} -P $num_threads_P -e ${ipVersion} > $HOME/$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "lagscope -r${SERVER_IP} ${ipVersion}"
+        sleep 1
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "for ((i=1;i<=$TEST_DURATION;i++)); do ss -ta | grep ESTA | grep -v ssh | wc -l >> $HOME/$log_folder/tcp-connections-p${current_test_threads}.log; sleep 1; done"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "sar -n DEV 1 ${TEST_DURATION} > $HOME/$log_folder/sar-receiver-p${current_test_threads}.log"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "dstat -dam 1 ${TEST_DURATION} > $HOME/$log_folder/dstat-receiver-p${current_test_threads}.log"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "mpstat -P ALL 1 ${TEST_DURATION} > $HOME/$log_folder/mpstat-receiver-p${current_test_threads}.log"
 
-ethtool -S eth1 > $HOME/$log_folder/sender-ethtool-eth1.log
-ethtool -S enP2p0s2 > $HOME/$log_folder/sender-ethtool-enP2p0s2.log
-ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S eth1 > $HOME/$log_folder/receiver-ethtool-eth1.log"
-ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S enP2p0s2 > $HOME/$log_folder/receiver-ethtool-enP2p0s2.log"
-cat /proc/interrupts > $HOME/$log_folder/sender-interrupts-end.log
-ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "cat /proc/interrupts > $HOME/$log_folder/receiver-interrupts-end.log"
-LogMsg "Ntttcp succeeded with all connections."
-echo "Ntttcp succeeded with all connections." >> ~/summary.log
-cd $HOME
-scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:/root/$log_folder/* /root/$log_folder
-if [ $? -ne 0 ]; then
-    echo "ERROR: Unable to transfer server side logs."
-    UpdateTestState $ICA_TESTFAILED
+        sar -n DEV 1 ${TEST_DURATION} > "$HOME/$log_folder/sar-sender-p${current_test_threads}.log" &
+        dstat -dam 1 ${TEST_DURATION} > "$HOME/$log_folder/dstat-sender-p${current_test_threads}.log" &
+        mpstat -P ALL 1 ${TEST_DURATION} > "$HOME/$log_folder/mpstat-sender-p${current_test_threads}.log" &
+
+        lagscope -s${SERVER_IP} -t ${TEST_DURATION} -V ${ipVersion} > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
+        ntttcp -s${SERVER_IP} -P $num_threads_P -n $num_threads_n -t ${TEST_DURATION} ${ipVersion} -f${port} > "./$log_folder/ntttcp-sender-p${num_threads_P}X${num_threads_n}.log"
+        sts=$?
+
+        current_tx_bytes=$(get_tx_bytes $ETH_NAME)
+        current_tx_pkts=$(get_tx_pkts $ETH_NAME)
+        bytes_new=`(expr $current_tx_bytes - $previous_tx_bytes)`
+        pkts_new=`(expr $current_tx_pkts - $previous_tx_pkts)`
+        avg_pkt_size=$(echo "scale=2;$bytes_new/$pkts_new/1024" | bc)
+        Throughput=$(echo "scale=2;$bytes_new/$TEST_DURATION*8/1024/1024/1024" | bc)
+        previous_tx_bytes=$current_tx_bytes
+        previous_tx_pkts=$current_tx_pkts
+
+        echo "Throughput (gbps): $Throughput"
+        echo "average packet size: $avg_pkt_size"
+        printf "%4s  %8.2f  %8.2f\n" ${current_test_threads} $Throughput $avg_pkt_size >> $eth_log
+
+        echo "current test finished. wait 10 seconds for next one... "
+        sleep 10
+        pkill -x ntttcp
+        pkill -x lagscope
+        pkill -f ESTA
+        pkill -x sar
+        pkill -x dstat
+        pkill -x mpstat
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x ntttcp"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x lagscope"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x sar"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x dstat"
+        ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "pkill -x mpstat"
+    done
+    ethtool -S eth1 > $HOME/$log_folder/sender-ethtool-eth1.log
+    ethtool -S enP2p0s2 > $HOME/$log_folder/sender-ethtool-enP2p0s2.log
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S eth1 > $HOME/$log_folder/receiver-ethtool-eth1.log"
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "ethtool -S enP2p0s2 > $HOME/$log_folder/receiver-ethtool-enP2p0s2.log"
+    cat /proc/interrupts > $HOME/$log_folder/sender-interrupts-end.log
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "cat /proc/interrupts > $HOME/$log_folder/receiver-interrupts-end.log"
+    LogMsg "Ntttcp succeeded with all connections."
+    echo "Ntttcp succeeded with all connections." >> ~/summary.log
+    cd $HOME
+    scp -i $HOME/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:/root/$log_folder/* /root/$log_folder
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Unable to transfer server side logs."
+        UpdateTestState $ICA_TESTFAILED
+    fi
+elif [[ "${TEST_TYPE}" = "latency" ]]; then
+    ssh -i $HOME/.ssh/${SSH_PRIVATE_KEY} -f -o StrictHostKeyChecking=no ${SERVER_OS_USERNAME}@${STATIC_IP2} "lagscope -r${SERVER_IP} ${ipVersion}"
+    sleep 5
+    lagscope -s${SERVER_IP} -n1000000 -i0 -V ${ipVersion} > "./$log_folder/lagscope.log"
+    sts=$?
+    echo "Lagscope exit code ${sts}." >> ~/summary.log
+    LogMsg "Lagscope exit code ${sts}."
+else
+    echo "ERROR: Unknown test type ${TEST_TYPE}."
+    LogMsg "ERROR: Unknown test type ${TEST_TYPE}."
 fi
 zip -r $log_folder.zip $log_folder/*
 
