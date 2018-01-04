@@ -52,7 +52,7 @@
 
    The following is an example of a testParam for configuring Dynamic Memory
 
-       "vmName=vm;enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
+       "enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully or not.
@@ -67,7 +67,7 @@
     Test data for this test case
 
     .Example
-    setupScripts\DM_CONFIGURE_MEMORY -vmName sles11sp3x64 -hvServer localhost -testParams "vmName=vm;enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
+    setupScripts\DM_CONFIGURE_MEMORY -vmName sles11sp3x64 -hvServer localhost -testParams "enableDM=yes;minMem=512MB;maxMem=50%;startupMem=1GB;memWeight=20"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -109,11 +109,25 @@ else {
   return $false
 }
 
+$vm2Name = $null
+$vm3Name = $null
+
+$params = $testParams.Split(";")
+foreach ($p in $params) {
+    $fields = $p.Split("=")
+    switch ($fields[0].Trim()) {
+      "VM2NAME"       { $vm2Name = $fields[1].Trim() }
+      "VM3NAME"       { $vm3Name = $fields[1].Trim() }
+      default         {}
+    }
+}
+
 #
 # Parse the testParams string, then process each parameter
 #
 $params = $testParams.Split(';')
-
+#check vm number
+$VM_Number = 0
 foreach ($p in $params)
 {
     $temp = $p.Trim().Split('=')
@@ -124,13 +138,9 @@ foreach ($p in $params)
         continue
     }
 
-    if ($temp[0].Trim() -eq "vmName")
-    {
-       $vmName = $temp[1]
-    }
-
     if($temp[0].Trim() -eq "enableDM")
     {
+      $VM_Number = $VM_Number+1
 
       if ($temp[1].Trim() -ilike "yes")
       {
@@ -142,7 +152,6 @@ foreach ($p in $params)
       }
 
       "dm enabled: $tpEnabled"
-
     }
 
 	elseif ($temp[0].Trim() -eq "bootLargeMem")
@@ -210,7 +219,16 @@ foreach ($p in $params)
 
       "memWeight: $tPmemWeight"
 	  }
- 
+
+     if ($VM_Number -eq 2)
+     {
+         $vmName = $vm2Name
+     }
+     elseif ($VM_Number -eq 3)
+     {
+        $vmName = $vm3Name
+     }
+
     # check if we have all variables set
     if ( $vmName -and ($tpEnabled -eq $false -or $tpEnabled -eq $true) -and $tPstartupMem -and ([int64]$tPmemWeight -ge [int64]0) )
     {
@@ -254,7 +272,7 @@ foreach ($p in $params)
 		}
 	  } elseif ($tpEnabled)
       {
-        if ($maxMem_xmlValue -eq $startupMem_xmlValue) 
+        if ($maxMem_xmlValue -eq $startupMem_xmlValue)
         {
           $tPstartupMem = $tPmaxMem
         }

@@ -61,8 +61,8 @@
     Test data for this test case
 
     .Example
-    setupscripts\DM_RemoveUnderPressure.ps1 -vmName nameOfVM -hvServer localhost -testParams 'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir;vmName=NameOfVM1
-        vmName=NameOfVM2;vmName=NameOfVM3'
+    setupscripts\DM_RemoveUnderPressure.ps1 -vmName nameOfVM -hvServer localhost -testParams 'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir;
+        vm2Name=NameOfVM2;vm3Name=NameOfVM3'
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -111,8 +111,8 @@ $vm1Name = $null
 # Name of second VM
 $vm2Name = $null
 
-# string array vmNames
-[String[]]$vmNames = @()
+# Name of third VM if have
+$vm3Name = $null
 
 # number of tries
 [int]$tries = 0
@@ -163,10 +163,13 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-        "vmName"  { $vmNames = $vmNames + $fields[1].Trim() }
+        "VM2NAME"       { $vm2Name = $fields[1].Trim() }
+        "VM3NAME"       { $vm3Name = $fields[1].Trim() }
         "ipv4"    { $ipv4    = $fields[1].Trim() }
         "sshKey"  { $sshKey  = $fields[1].Trim() }
         "tries"  { $tries  = $fields[1].Trim() }
+        "appGitURL"  { $appGitURL  = $fields[1].Trim() }
+        "appGitTag"  { $appGitTag  = $fields[1].Trim() }
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     }
 }
@@ -186,36 +189,8 @@ if ($tries -le 0)
     $tries = $defaultTries
 }
 
-if ($vmNames.count -lt 3)
-{
-    "Error: three VMs are necessary for the StartupLowCompete test." | Tee-Object -Append -file $summaryLog
-    return $false
-}
 
-$vm1Name = $vmNames[0]
-$vm2Name = $vmNames[1]
-$vm3Name = $vmNames[2]
-if ($vm1Name -notlike $vmName)
-{
-    if ($vm2Name -like $vmName)
-    {
-        # switch vm1Name with vm2Name
-        $vm1Name = $vmNames[1]
-        $vm2Name = $vmNames[0]
-
-    }
-    elseif ($vm3Name -like $vmName)
-    {
-        # switch vm1Name with vm3Name
-        $vm1Name = $vmNames[2]
-        $vm3Name = $vmNames[0]
-    }
-    else
-    {
-        "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml." | Tee-Object -Append -file $summaryLog
-        return $false
-    }
-}
+$vm1Name = $vmName
 
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $vm1)
@@ -283,10 +258,10 @@ if ($vm3MemWeight -lt $vm2MemWeight)
     }
 }
 
-# Check if stress-ng is installed
+# Install stress-ng if not installed
 "Checking if stress-ng is installed"
 
-$retVal = check_app "stress-ng"
+$retVal = installApp "stress-ng" $ipv4 $appGitURL $appGitTag
 if (-not $retVal)
 {
     "stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
@@ -299,7 +274,7 @@ if (-not $retVal)
 #
 $timeout = 120
 StartDependencyVM $vm2Name $hvServer $tries
-WaitForVMToStartKVP $vm2Name $hvServer $timeout 
+WaitForVMToStartKVP $vm2Name $hvServer $timeout
 $vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
 $timeoutStress = 1
@@ -332,10 +307,10 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0)
 "  ${vm1Name}: assigned - $vm1BeforeAssigned | demand - $vm1BeforeDemand"
 "  ${vm2Name}: assigned - $vm2BeforeAssigned | demand - $vm2BeforeDemand"
 
-# Check if stress-ng is installed
+# Install stress-ng if not installed
 "Checking if stress-ng is installed"
 
-$retVal = check_app "stress-ng" $vm2ipv4
+$retVal = installApp "stress-ng" $vm2ipv4 $appGitURL $appGitTag
 if (-not $retVal)
 {
     "stress-ng is not installed on $vm2Name! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog

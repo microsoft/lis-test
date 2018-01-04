@@ -359,6 +359,7 @@
         <onError>Continue</onError>
         <testParams>
             <param>TC_COVERED=CORE-23</param>
+            <param>enableDM=no</param>
             <param>VCPU=8</param>
             <param>NumaNodes=4</param>
             <param>Sockets=2</param>
@@ -1833,7 +1834,6 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-01</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=1GB</param>
@@ -1870,7 +1870,6 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-03</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=1024MB</param>
             <param>maxMem=4GB</param>
@@ -1888,14 +1887,12 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-04</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=1024MB</param>
             <param>maxMem=6GB</param>
             <param>startupMem=1024MB</param>
             <param>memWeight=100</param>
             <param>staticMem=1024MB</param>
-            <param>vmName=VM2Name</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=70%</param>
@@ -1913,14 +1910,12 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-05</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=80%</param>
             <param>startupMem=79%</param>
             <param>memWeight=0</param>
             <param>staticMem=512MB</param>
-            <param>vmName=VM2Name</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=20%</param>
@@ -1938,21 +1933,18 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-06</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=60%</param>
             <param>startupMem=60%</param>
             <param>memWeight=0</param>
             <param>staticMem=1024MB</param>
-            <param>vmName=VM2Name</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=40%</param>
             <param>startupMem=40%</param>
             <param>memWeight=0</param>
             <param>staticMem=512MB</param>
-            <param>vmName=VM3Name</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=25%</param>
@@ -1970,7 +1962,6 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-07</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=20%</param>
@@ -1988,14 +1979,12 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-08</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=50%</param>
             <param>startupMem=50%</param>
             <param>memWeight=100</param>
             <param>staticMem=1024MB</param>
-            <param>vmName=VM2Name</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=50%</param>
@@ -2013,14 +2002,12 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-09</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=50%</param>
             <param>maxMem=80%</param>
             <param>startupMem=80%</param>
             <param>memWeight=0</param>
             <param>staticMem=1024MB</param>
-            <param>vmName=VM2Name</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=50%</param>
@@ -2038,14 +2025,12 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-10</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=80%</param>
             <param>startupMem=80%</param>
             <param>memWeight=0</param>
             <param>staticMem=1024MB</param>
-            <param>vmName=VM2Name</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=40%</param>
@@ -2063,14 +2048,12 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-11</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=80%</param>
             <param>startupMem=80%</param>
             <param>memWeight=0</param>
             <param>staticMem=512MB</param>
-            <param>vmName=VM2Name</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=20%</param>
@@ -2088,14 +2071,12 @@
         <setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
         <testParams>
             <param>TC_COVERED=DM-12</param>
-            <param>vmName=VMName</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=20%</param>
             <param>startupMem=20%</param>
             <param>memWeight=0</param>
             <param>staticMem=512MB</param>
-            <param>vmName=VM2Name</param>
             <param>enableDM=yes</param>
             <param>minMem=512MB</param>
             <param>maxMem=75%</param>
@@ -2261,6 +2242,7 @@
             <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
                 <param>VM2NAME=vmName</param>
+                <param>VM3NAME=vm3Name</param>
                 <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
                 <param>SnapshotName=ICABase</param>
             </testParams>

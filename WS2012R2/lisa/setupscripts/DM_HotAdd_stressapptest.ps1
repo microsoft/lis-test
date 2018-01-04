@@ -197,7 +197,7 @@ $sshKey = $null
 $ipv4 = $null
 
 # Name of first VM
-$vm1Name = $null
+$vm1Name = $vmName
 
 # number of tries
 [int]$tries = 0
@@ -248,10 +248,11 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-      "vmName"  { $vm1Name =$fields[1].Trim() }
       "ipv4"    { $ipv4    = $fields[1].Trim() }
       "sshKey"  { $sshKey  = $fields[1].Trim() }
       "tries"  { $tries  = $fields[1].Trim() }
+      "appGitURL"  { $appGitURL  = $fields[1].Trim() }
+      "appGitTag"  { $appGitTag  = $fields[1].Trim() }
       "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     }
 }
@@ -267,12 +268,6 @@ if ($tries -le 0)
     $tries = $defaultTries
 }
 
-if ($vmName -notlike $vm1Name)
-{
-    "Error: the VMName testParam needs to be the same as the VMName from the global setting"
-    return $false
-}
-
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
@@ -284,10 +279,11 @@ if (-not $vm1)
     return $false
 }
 
-# Check if stressapptest is installed
+# Install Stressapptest if not installed
 "Checking if Stressapptest is installed"
 
-$retVal = check_app "stressapptest"
+$retVal = installApp "stressapptest" $ipv4 $appGitURL $appGitTag
+
 if (-not $retVal)
 {
     "Stressapptest is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog

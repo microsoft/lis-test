@@ -65,6 +65,7 @@
                 <suiteTest>Measure_DisableVF</suiteTest>
                 <suiteTest>Move_VHD</suiteTest>
                 <suiteTest>Max_vCPU</suiteTest>
+                <suiteTest>One_vCPU</suiteTest>
                 
                 <!-- Mellanox specific -->
                 <suiteTest>Upgrade_Downgrade_PF</suiteTest>
@@ -387,6 +388,24 @@
                 <param>vCPU=max</param>
 				<!-- This is based on the physical CPU hardware topology -->
 				<param>numaNodes=36</param>
+            </testParams>
+            <timeout>1000</timeout>
+        </test>
+
+        <test>
+            <testName>One_vCPU</testName>
+            <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
+            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\ChangeCPU.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript> 
+            <noReboot>False</noReboot>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
+                <param>TC_COVERED=SRIOV-22a</param>
+                <param>vCPU=1</param>
             </testParams>
             <timeout>1000</timeout>
         </test>

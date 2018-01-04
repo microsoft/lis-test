@@ -130,6 +130,11 @@ function GetOSVersion {
             os_VENDOR=""
         done
         os_PACKAGE="rpm"
+
+    elif [[ -r /etc/SuSE-brand || -r /etc/SUSE-brand ]]; then
+        os_VENDOR=`head -1 /etc/S*SE-brand`
+        os_VERSION=`cat /etc/S*SE-brand | awk '/VERSION/ {print $NF}'`
+
     elif [[ -r /etc/SuSE-release ]]; then
         for r in openSUSE "SUSE Linux"; do
             if [[ "$r" = "SUSE Linux" ]]; then
@@ -184,7 +189,9 @@ function is_suse {
         GetOSVersion
     fi
 
-    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ]
+    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ] || \
+    [ "$os_VENDOR" = "SUSE" ] || [ "$os_VENDOR" = "SLE" ] || \
+    [ "$os_VENDOR" = "SLES" ]
 }
 
 ########################################################################
@@ -519,7 +526,7 @@ if is_fedora ; then
     PACK_LIST=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc dosfstools 
     selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake nano parted
     kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-utils omping nc 
-    pciutils squashfs-tools vim)
+    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... "
@@ -563,7 +570,7 @@ elif is_ubuntu ; then
 
     PACK_LIST=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 at autoconf 
     multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm automake libtool pkg-config ifupdown
-    bridge-utils btrfs-tools libkeyutils-dev xfsprogs reiserfsprogs sysstat build-essential bc numactl python3 pciutils
+    bridge-utils btrfs-tools libkeyutils-dev xfsprogs reiserfsprogs sysstat build-essential bc numactl python3 pciutils tcpdump
     nfs-client parted netcat squashfs-tools linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r`)
     for item in ${PACK_LIST[*]}
     do
@@ -650,7 +657,8 @@ elif is_suse ; then
     cd ~
 
     PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3
-    nfs-client pciutils libaio-devel parted squashfs-tools)
+    nfs-client pciutils libaio-devel parted squashfs-tools unzip parted python-curses dstat net-tools-deprecated ethtool
+    libidn11 iputils)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... " >> summary.log

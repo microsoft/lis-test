@@ -180,14 +180,16 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
         }
 
         # Also remove VM from second node if it's located there
-        $currentNode = (Get-Clusternode -Name $env:computername).Name.ToLower()
-        $clusterNodes = Get-ClusterNode
-        if ($currentNode -eq $clusterNodes[0].Name.ToLower()) {
-            $destinationNode = $clusterNodes[1].Name.ToLower()
-        }
+        if (Get-ClusterGroup -ErrorAction SilentlyContinue){
+            $currentNode = (Get-Clusternode -Name $env:computername).Name.ToLower()
+            $clusterNodes = Get-ClusterNode
+            if ($currentNode -eq $clusterNodes[0].Name.ToLower()) {
+                $destinationNode = $clusterNodes[1].Name.ToLower()
+            }
 
-        if (Get-VM -Name $vmName -ComputerName $destinationNode -ErrorAction SilentlyContinue) {
-            Remove-VM $vmName -ComputerName $destinationNode -Force   
+            if (Get-VM -Name $vmName -ComputerName $destinationNode -ErrorAction SilentlyContinue) {
+                Remove-VM $vmName -ComputerName $destinationNode -Force   
+            }
         }
     }
 
@@ -647,7 +649,22 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 Set-VMFirmware -VM $newVm -EnableSecureBoot Off
             }
-        }
+        } else {
+            # Setup an unique com port
+			$pipeName = $(-join ((48..57) + (97..122) | Get-Random -Count 10 | % {[char]$_}))
+			$pipePath = "\\.\pipe\${pipeName}"
+			$comPorts = $(get-vm -computername $hvServer | Where-Object { $_.ComPort2.Path -ne '' } | Select -ExpandProperty ComPort2 | Select -ExpandProperty Path)
+			while (($comPorts.contains($pipePath)))
+			{
+				$pipeName = $(-join ((48..57) + (97..122) | Get-Random -Count 10 | % {[char]$_}))
+				$pipePath = "\\.\pipe\${pipeName}"
+			}
+			Set-VMComPort -ComputerName $hvServer -VMName $vmName -Number 2 -Path $pipePath -ErrorAction SilentlyContinue
+			if(-not $?) 
+			{
+				Write-Error "Error: Unable to set Com Port with the following path: ${pipePath}"
+			}
+		}
           
         #
         # Modify VMs CPU count if user specified a new value

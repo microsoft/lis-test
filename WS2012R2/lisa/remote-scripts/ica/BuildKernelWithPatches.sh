@@ -32,9 +32,9 @@
 #    2. Configure and build the new kernel
 #
 # The outputs are directed into files named:
-#     Perf_BuildKernel_make.log, 
-#     Perf_BuildKernel_makemodulesinstall.log, 
-#     Perf_BuildKernel_makeinstall.log
+#     BuildKernel_make.log,
+#     BuildKernel_makemodulesinstall.log,
+#     BuildKernel_makeinstall.log
 #
 # This test script requires the below test parameters:
 #     <param>SOURCE_TYPE=ONLINE</param>
@@ -44,10 +44,10 @@
 # A typical XML test definition for this test case would look
 # similar to the following:
 #          <test>
-#             <testName>BuildKernel</testName>     
+#             <testName>BuildKernel</testName>
 #             <testScript>Perf_BuildKernel.sh</testScript>
 #             <files>remote-scripts/ica/Perf_BuildKernel.sh</files>
-#             <files>Tools/linux-3.14.tar.xz</files>
+#             <files>Tools/linux-4.14.tar.xz</files>
 #             <testParams>
 #                 <param>SOURCE_TYPE=ONLINE</param>
 #                 <param>LINUX_KERNEL_LOCATION=https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git</param>
@@ -55,7 +55,7 @@
 #                 # params to build kernel from rpm - requires copyLatestItem.ps1 as preTest
 #                 <param>SOURCE_TYPE=RPM</param>
 #                 <param>ITEM=*.src.rpm</param>
-#                 <param>itemLoc=\\redmond\wsscfs\OSTCNix\Build_Drops\unstable_drops\latest\rpm</param>
+#                 <param>itemLoc=\\UNC_path\folder</param>
 #                 <param>localDest=tools</param>
 #                 # params to build upstream kernel tar from http link
 #                 <param>SOURCE_TYPE=ONLINE_TAR</param>
@@ -64,9 +64,9 @@
 #                 <param>ACTIVATE_GCOV=yes</param>
 #             </testParams>
 #             <uploadFiles>
-#                 <file>Perf_BuildKernel_make.log</file>
-#                 <file>Perf_BuildKernel_makemodulesinstall.log</file> 
-#                 <file>Perf_BuildKernel_makeinstall.log</file>
+#                 <file>BuildKernel_make.log</file>
+#                 <file>BuildKernel_makemodulesinstall.log</file>
+#                 <file>BuildKernel_makeinstall.log</file>
 #             </uploadFiles>
 #             <timeout>10800</timeout>
 #             <OnError>Abort</OnError>
@@ -78,7 +78,8 @@ DEBUG_LEVEL=3
 CONFIG_FILE=.config
 LINUX_VERSION=$(uname -r)
 START_DIR=$(pwd)
-proc_count=$(cat /proc/cpuinfo | grep --count processor)
+cores=$(cat /proc/cpuinfo | grep --count processor)
+threads="$(expr $cores*2 | bc)"
 
 #######################################################################
 # Adds a timestamp to the log file
@@ -271,12 +272,7 @@ ApplyPatchesAndCompile() {
 
     dbgprint 1 "*************************"
     dbgprint 1 "Info: Building the kernel..."
-
-    if [ $proc_count -eq 1 ]; then
-        (time make) >/root/Perf_BuildKernel_make.log 2>&1
-    else
-        (time make -j $proc_count) >/root/Perf_BuildKernel_make.log 2>&1
-    fi
+    (time make -j $threads) >/root/BuildKernel_make.log 2>&1
 }
 
 # Create the state.txt file so the ICA script knows we are running
@@ -314,7 +310,7 @@ if [ "${SOURCE_TYPE}" == "TARBALL" ]; then
     tar -jxvf ${TARBALL}
     sts=$?
     if [ 0 -ne ${sts} ]; then
-        dbgprint 0 "tar failed to extract the kernel from the tarball: ${sts}" 
+        dbgprint 0 "tar failed to extract the kernel from the tarball: ${sts}"
         dbgprint 0 "Aborting test."
         UpdateTestState "TestAborted"
         exit 40
@@ -416,7 +412,6 @@ else
     fi
 fi
 
-#
 if is_fedora ; then
     yum install openssl-devel bc nfs-utils elfutils-devel elfutils-libelf-devel -y
     if [ $? -ne 0 ]; then
@@ -429,9 +424,9 @@ if is_fedora ; then
     fi
 elif is_ubuntu ; then
     apt update
-    apt-get -y install nfs-common libssl-dev bc elfutils libelf-dev
+    apt-get -y install gcc make nfs-common libssl-dev bc elfutils libelf-dev
     if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Unable to install libssl-devel. Aborting..."
+        LogMsg "ERROR: Unable to install dependency packages. Aborting..."
         UpdateTestState $TestAborted
     fi
 elif is_suse ; then
@@ -472,17 +467,12 @@ UpdateSummary "make: Success"
 
 # Install the kernel modules
 dbgprint 1 "Building the kernel modules."
-if [ $proc_count -eq 1 ]; then
-    (time make modules_install) >/root/Perf_BuildKernel_makemodulesinstall.log 2>&1
-else
-    (time make modules_install -j $proc_count) >/root/Perf_BuildKernel_makemodulesinstall.log 2>&1
-fi
+(time make modules_install -j $threads) >/root/BuildKernel_makemodulesinstall.log 2>&1
 sts=$?
 if [ 0 -ne ${sts} ]; then
     dbgprint 1 "Kernel make failed: ${sts}"
-    dbgprint 1 "Aborting test."
     UpdateTestState "TestAborted"
-    UpdateSummary "make modules_install: Failed"    
+    UpdateSummary "make modules_install: Failed"
     exit 110
 else
     UpdateSummary "make modules_install: Success"
@@ -490,11 +480,7 @@ fi
 
 # Install the kernel
 dbgprint 1 "Installing the kernel."
-if [ $proc_count -eq 1 ]; then
-    (time make install) >/root/Perf_BuildKernel_makeinstall.log 2>&1
-else
-    (time make install -j $proc_count) >/root/Perf_BuildKernel_makeinstall.log 2>&1
-fi
+(time make install -j $threads) >/root/BuildKernel_makeinstall.log 2>&1
 sts=$?
 if [ 0 -ne ${sts} ]; then
     echo "kernel build failed: ${sts}"

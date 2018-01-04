@@ -55,7 +55,6 @@
         <files>remote-scripts/ica/lsvmbus_basic.sh,remote-scripts/ica/utils.sh</files>
         <testParams>
             <param>TC_COVERED=lsvmbus-01</param>
-            <param>vmName=LinuxVM</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=2GB</param>
@@ -78,7 +77,6 @@
         <files>remote-scripts/ica/lsvmbus_target.sh,remote-scripts/ica/utils.sh</files>
         <testParams>
             <param>TC_COVERED=lsvmbus-02</param>
-            <param>vmName=LinuxVM</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=2GB</param>

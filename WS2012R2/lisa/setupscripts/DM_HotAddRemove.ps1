@@ -106,9 +106,6 @@ $vm1Name = $null
 # Name of second VM
 $vm2Name = $null
 
-# string array vmNames
-[String[]]$vmNames = @()
-
 # number of tries
 [int]$tries = 0
 
@@ -158,10 +155,12 @@ foreach ($p in $params)
 
     switch ($fields[0].Trim())
     {
-        "vmName"  { $vmNames = $vmNames + $fields[1].Trim() }
+        "VM2NAME"       { $vm2Name = $fields[1].Trim() }
         "ipv4"    { $ipv4    = $fields[1].Trim() }
         "sshKey"  { $sshKey  = $fields[1].Trim() }
         "tries"  { $tries  = $fields[1].Trim() }
+        "appGitURL"  { $appGitURL  = $fields[1].Trim() }
+        "appGitTag"  { $appGitTag  = $fields[1].Trim() }
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     }
 }
@@ -177,33 +176,11 @@ if ($tries -le 0)
     $tries = $defaultTries
 }
 
-if ($vmNames.count -lt 2)
-{
-    "Error: two VMs are necessary for the Maximum Memory Honored test."
-    return $false
-}
-
 $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-$vm1Name = $vmNames[0]
-$vm2Name = $vmNames[1]
-if ($vm1Name -notlike $vmName)
-{
-    if ($vm2Name -like $vmName)
-    {
-        # switch vm1Name with vm2Name
-        $vm1Name = $vmNames[1]
-        $vm2Name = $vmNames[0]
-    }
-    else
-    {
-        "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml." | Tee-Object -Append -file $summaryLog
-        return $false
-    }
-}
-
+$vm1Name = $vmName
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $vm1)
 {
@@ -221,10 +198,11 @@ if (-not $vm2)
 # Check if stress-ng is installed
 "Checking if stress-ng is installed"
 
-$retVal = check_app "stress-ng"
+$retVal = installApp "stress-ng" $ipv4 $appGitURL $appGitTag
+
 if (-not $retVal)
 {
-    "stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
+    "Error: stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
     return $false
 }
 

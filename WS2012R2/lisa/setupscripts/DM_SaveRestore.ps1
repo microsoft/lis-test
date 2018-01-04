@@ -30,8 +30,8 @@
 
    The testParams have the format of:
 
-      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%], 
-      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100) 
+      vmName=Name of a VM, enable=[yes|no], minMem= (decimal) [MB|GB|%], maxMem=(decimal) [MB|GB|%],
+      startupMem=(decimal) [MB|GB|%], memWeight=(0 < decimal < 100)
 
    Only the vmName param is taken into consideration. This needs to appear at least twice for
    the test to start.
@@ -49,7 +49,7 @@
        vmName=sles11x64sp3_2;enable=yes;minMem=512MB;maxMem=25%;startupMem=25%;memWeight=0"
 
    All scripts must return a boolean to indicate if the script completed successfully or not.
-   
+
    .Parameter vmName
     Name of the VM to remove NIC from .
 
@@ -107,9 +107,6 @@ $vm1Name = $null
 # Name of second VM
 $vm2Name = $null
 
-# string array vmNames
-[String[]]$vmNames = @()
-
 # number of tries
 [int]$tries = 0
 
@@ -159,15 +156,15 @@ $params = $testParams.Split(";")
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
-    
+
     switch ($fields[0].Trim())
     {
-      "vmName"  { $vmNames = $vmNames + $fields[1].Trim() }
+      "VM2NAME"       { $vm2Name = $fields[1].Trim() }
       "ipv4"    { $ipv4    = $fields[1].Trim() }
       "sshKey"  { $sshKey  = $fields[1].Trim() }
       "tries"  { $tries  = $fields[1].Trim() }
       "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
-    } 
+    }
 }
 
 $summaryLog = "${vmName}_summary.log"
@@ -179,28 +176,7 @@ if ($tries -le 0)
     $tries = $defaultTries
 }
 
-if ($vmNames.count -lt 2)
-{
-    "Error: two VMs are necessary for the StartupLowCompete test." | Tee-Object -Append -file $summaryLog
-    return $false
-}
-
-$vm1Name = $vmNames[0]
-$vm2Name = $vmNames[1]
-if ($vm1Name -notlike $vmName)
-{
-    if ($vm2Name -like $vmName)
-    {
-        # switch vm1Name with vm2Name
-        $vm1Name = $vmNames[1]
-        $vm2Name = $vmNames[0]
-    }
-    else 
-    {
-        "Error: The first vmName testparam must be the same as the vmname from the vm section in the xml." | Tee-Object -Append -file $summaryLog
-        return $false
-    }
-}
+$vm1Name = $vmName
 
 $vm1 = Get-VM -Name $vm1Name -ComputerName $hvServer -ErrorAction SilentlyContinue
 if (-not $vm1)
@@ -218,7 +194,7 @@ if (-not $vm2)
 
 # sleep 1 minute for VM to start reporting demand
 $sleepPeriod = 60
-while ($sleepPeriod -gt 0) 
+while ($sleepPeriod -gt 0)
 {
     # get VM1's Memory
     [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/[int64]1048576)
@@ -253,9 +229,9 @@ if ($vm1BeforeDemand -le 0)
 #
 $timeout = 120
 StartDependencyVM $vm2Name $hvServer $tries
-WaitForVMToStartKVP $vm2Name $hvServer $timeout 
+WaitForVMToStartKVP $vm2Name $hvServer $timeout
 
-# sleep another 2 minute trying to get VM2's memory demand 
+# sleep another 2 minute trying to get VM2's memory demand
 $sleepPeriod = 120 #seconds
 # get VM2's Memory
 while ($sleepPeriod -gt 0)

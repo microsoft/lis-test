@@ -57,6 +57,7 @@ $retVal = $false
 $rootDir = $null
 $ipv4 = $null
 $sshKey = $null
+$REMOTE_SERVER = $null
 
 #
 # Check input arguments
@@ -98,6 +99,7 @@ foreach ($p in $params)
         "VM[0-9]NAME" { $vm = $fields[1].Trim() }
         "snapshotName" { $snapshot = $fields[1].Trim() }
         "snapshotVm" { $snapshot_vm = $fields[1].Trim() }
+		"REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
         default  {}
         }
     if ($vm -ne "")
@@ -105,6 +107,11 @@ foreach ($p in $params)
         $vms.Add($vm)
         $vm = ""
     }
+}
+
+# if dependency VM runs on a different host, we need to map hvServer to it
+if ( $snapshot_vm -eq "dependency" -and $remoteServer ) {
+    $hvServer = $remoteServer
 }
 
 if ($snapshot_vm -ne "dependency")

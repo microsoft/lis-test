@@ -151,6 +151,8 @@ ConfigRhel()
         boot_filepath=/boot/grub2/grub.cfg
     elif [ $os_GENERATION -eq 2 ] && [ $os_RELEASE -eq 7 ]; then
         boot_filepath=/boot/efi/EFI/redhat/grub.cfg
+    else
+	boot_filepath=`find /boot -name grub.cfg`
     fi
 
     # Enable kdump service

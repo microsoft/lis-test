@@ -88,7 +88,6 @@
             <testParams>
                 <param>TC_COVERED=Stress-05</param>
                 <param>bootLargeMem=yes</param>
-                <param>vmName=VMName</param>
                 <param>enableDM=no</param>
                 <param>startupMem=69632MB</param>
                 <param>staticMem=69632MB</param>

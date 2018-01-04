@@ -157,7 +157,7 @@ class Logger {
 
     Logger([String] $logFile, [Boolean] $addTimestamp) {
         $this.LogFile = $logFile
-        $this.AddTimestamp = $addTimestamp 
+        $this.AddTimestamp = $addTimestamp
     }
 
     [void] info([String] $message) {
@@ -176,7 +176,7 @@ class Logger {
     }
 
     [void] warning([String] $message) {
-        $color = "Yellow" 
+        $color = "Yellow"
         $this.logMessage("Warning: ${message}", $color)
     }
 
@@ -202,7 +202,7 @@ class LoggerManager {
 
     LoggerManager([Logger] $summaryLogger, [Logger] $testCaseLogger) {
         $this.Summary = $summaryLogger
-        $this.TestCase = $testCaseLogger 
+        $this.TestCase = $testCaseLogger
     }
 
     [LoggerManager] static GetLoggerManager([String] $vmName, [String] $testParams) {
@@ -1301,19 +1301,51 @@ function check_kernel
 # Check for application on VM
 #
 #######################################################################
-function check_app([string]$app_name, [string]$custom_ip)
+function checkApp([string]$appName, [string]$customIP)
 {
-    IF([string]::IsNullOrWhiteSpace($custom_ip)) {
-        $target_ip = $ipv4
+    IF([string]::IsNullOrWhiteSpace($customIP)) {
+        $targetIP = $ipv4
     }
     else {
-        $target_ip = $custom_ip
+        $targetIP = $customIP
     }
-    .\bin\plink -i ssh\${sshKey} root@${target_ip} "command -v ${app_name}"
+    .\bin\plink -i ssh\${sshKey} root@${targetIP} "command -v ${appName} > /dev/null 2>&1"
     if (-not $?) {
-        Write-Output "ERROR: ${app_name} is not installed on the VM" -ErrorAction SilentlyContinue
         return $False
     }
+    return $True
+}
+
+#######################################################################
+#
+# install application on VM
+#
+#######################################################################
+
+function installApp([string]$appName, [string]$customIP, [string]$appGitURL, [string]$appGitTag)
+{
+    # check whether app is already installed
+    $retVal = checkApp $appName $customIP
+    if ($retVal)
+    {
+        return $True
+    }
+    if ($appGitURL -eq $null)
+    {
+        Write-Output "ERROR: $appGitURL is not set" -ErrorAction SilentlyContinue | Out-File -Append $summaryLog
+        return $False
+    }
+    # app is not installed, install it
+    .\bin\plink -i ssh\${sshKey} root@${customIP} "cd /root; git clone $appGitURL $appName > /dev/null 2>&1"
+
+    if ($appGitTag)
+    {
+        .\bin\plink -i ssh\${sshKey} root@${customIP} "cd  /root/$appName; git checkout tags/$appGitTag > /dev/null 2>&1"
+    }
+    .\bin\plink -i ssh\${sshKey} root@${customIP} "cd /root/$appName; ./configure > /dev/null 2>&1; make > /dev/null 2>&1; make install > /dev/null 2>&1"
+
+    $retVal = checkApp $appName $customIP
+    return $retVal
 }
 
 ########################################################################
@@ -2182,7 +2214,7 @@ $DM_scriptBlock = {
             __chunks=128
         else
             __chunks=512
-        fi   
+        fi
         __threads=`$(($memMB/__chunks))
         if [ $timeoutStress -eq 0 ]; then
             timeout=10000000

@@ -156,7 +156,6 @@ redhat_5|centos_5)
 esac
 
 echo "Kernel: $(uname -r)" >> ~/summary.log
-
 #
 # If an existing LIS RPM installation is present,
 # decide if we should clean-up the installed modules
@@ -175,6 +174,11 @@ cd "${lis_next_path}/hv-rhel${rhel_version}.x/hv"
 
 # Defining a custom LIS version string in order to acknoledge the use of these drivers
 sed --in-place -e s:"#define HV_DRV_VERSION.*":"#define HV_DRV_VERSION "'"'$branch'-'$build_date'"'"": include/linux/hv_compat.h
+
+
+if ! [[ $(rpm -qa | grep kernel-devel-$(uname -r)) ]]; then
+    yum install kernel-devel-$(uname -r) -y
+fi
 
 ./rhel${rhel_version}-hv-driver-install
 if [ $? -ne 0 ]; then

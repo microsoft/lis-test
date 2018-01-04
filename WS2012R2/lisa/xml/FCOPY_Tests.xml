@@ -30,7 +30,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>File Copy test run on WS2012R2</subject>
+            <subject>File Copy test run</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -50,111 +50,111 @@
         </suite>
     </testSuites>
 
-	<testCases>
-		<test>
-			<testName>FCOPY_basic</testName>
-			<testScript>setupscripts\FCOPY_basic.ps1</testScript>
-			<timeout>900</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-01</param>
-			</testParams>
-			<noReboot>True</noReboot>
-		</test>
+    <testCases>
+        <test>
+            <testName>FCOPY_basic</testName>
+            <testScript>setupscripts\FCOPY_basic.ps1</testScript>
+            <timeout>300</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-01</param>
+            </testParams>
+            <noReboot>True</noReboot>
+        </test>
 
-		<test>
-			<testName>FCOPY_file_exists</testName>
-			<testScript>setupscripts\FCOPY_file_exists.ps1</testScript>
-			<timeout>900</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-02</param>
-			</testParams>
-			<noReboot>True</noReboot>
-		</test>
+        <test>
+            <testName>FCOPY_file_exists</testName>
+            <testScript>setupscripts\FCOPY_file_exists.ps1</testScript>
+            <timeout>300</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-02</param>
+            </testParams>
+            <noReboot>True</noReboot>
+        </test>
 
-		<test>
-			<testName>FCOPY_overwrite</testName>
-			<testScript>setupscripts\FCOPY_overwrite.ps1</testScript>
-			<timeout>900</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-03</param>
-			</testParams>
-			<noReboot>False</noReboot>
-		</test>
+        <test>
+            <testName>FCOPY_overwrite</testName>
+            <testScript>setupscripts\FCOPY_overwrite.ps1</testScript>
+            <timeout>300</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-03</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
 
-		<test>
-			<testName>FCOPY_large_file</testName>
-			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
-			<testScript>setupscripts\FCOPY_large_file.ps1</testScript>
-			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-			<timeout>1200</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-04</param>
-        <param>Type=Fixed</param>
-        <param>SectorSize=512</param>
-        <param>DefaultSize=15GB</param>
-				<param>ControllerType=SCSI</param>
-			</testParams>
-			<noReboot>False</noReboot>
-		</test>
+        <test>
+            <testName>FCOPY_large_file</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\FCOPY_large_file.ps1</testScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>1200</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-04</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=15GB</param>
+                <param>ControllerType=SCSI</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
 
-		<test>
-			<testName>FCOPY_non_ascii</testName>
-			<testScript>setupscripts\FCOPY_non_ascii.ps1</testScript>
-	        <files>remote-scripts/ica/utils.sh</files>
-			<timeout>2000</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-05</param>
-			</testParams>
-			<noReboot>False</noReboot>
-		</test>
+        <test>
+            <testName>FCOPY_non_ascii</testName>
+            <testScript>setupscripts\FCOPY_non_ascii.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <timeout>360</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-05</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
 
-		<test>
-			<testName>FCOPY_repeat</testName>
-			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
-			<testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
-			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-			<timeout>1200</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-06</param>
-		    <param>Type=Fixed</param>
-		    <param>SectorSize=512</param>
-		    <param>DefaultSize=3GB</param>
-        <param>ControllerType=SCSI</param>
-		    <!--Make sure DefaultSize is equal or bigger than FileSize-->
-				<param>FileSize=2GB</param>
-			</testParams>
-			<noReboot>False</noReboot>
-		</test>
+        <test>
+            <testName>FCOPY_repeat</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-06</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
+                <param>ControllerType=SCSI</param>
+            <!--Make sure DefaultSize is equal or bigger than FileSize-->
+                <param>FileSize=2GB</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
 
-		<test>
-			<testName>FCOPY_disableEnable</testName>
-			<setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
-			<testScript>setupscripts\FCOPY_disableEnable.ps1</testScript>
-			<cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-			<files>remote-scripts\ica\utils.sh,remote-scripts\ica\check_traces.sh</files>
-			<timeout>1200</timeout>
-			<testParams>
-				<param>TC_COVERED=FCopy-07</param>
-		        <param>Type=Fixed</param>
-		        <param>SectorSize=512</param>
-		        <param>DefaultSize=7GB</param>
-				<param>ControllerType=SCSI</param>
-				<param>FcopyFileSize=5GB</param>
-				<param>CycleCount=20</param>
-			</testParams>
-			<noReboot>False</noReboot>
-		</test>
-	</testCases>
+        <test>
+            <testName>FCOPY_disableEnable</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\FCOPY_disableEnable.ps1</testScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts\ica\utils.sh,remote-scripts\ica\check_traces.sh</files>
+            <timeout>900</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-07</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=7GB</param>
+                <param>ControllerType=SCSI</param>
+                <param>FcopyFileSize=5GB</param>
+                <param>CycleCount=20</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+    </testCases>
 
-	<VMs>
-		<vm>
-			<hvServer>localhost</hvServer>
-			<vmName>vmName</vmName>
-			<os>Linux</os>
-			<ipv4></ipv4>
-			<sshKey>key.ppk</sshKey>
-			<suite>File_Copy</suite>
-		</vm>
-	</VMs>
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>vmName</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <suite>File_Copy</suite>
+        </vm>
+    </VMs>
 
 </config>

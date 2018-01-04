@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+<config>
+    <global>
+        <!-- <logfileRootDir>TestResults</logfileRootDir> -->
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <email>
+            <recipients>
+                <to>v-adsuho@microsoft.com</to>
+            </recipients>
+            <sender>v-adsuho@microsoft.com</sender>
+            <subject>Shielded Pre-TDC Test Cases</subject>
+            <smtpServer>smtphost.remdmond.corp.microsoft.com</smtpServer>
+        </email>
+        <imageStoreDir>\\vhd\path\to\encrypted\vhd</imageStoreDir>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>Shielded_PreTDC</suiteName>
+            <suiteTests>
+                <!-- VM preparation test cases-->
+                <suiteTest>Install_lsvm</suiteTest> 
+
+                <!-- Pre-TDC test cases -->
+                <suiteTest>Verify_lsvm</suiteTest>
+                <suiteTest>Verify_dependencies</suiteTest>
+                <suiteTest>Verify_lsvmprep</suiteTest>
+                <suiteTest>Verify_not_encrypted</suiteTest>
+                <suiteTest>Verify_passphrase</suiteTest>
+                <suiteTest>Verify_insufficient_space</suiteTest>
+
+                <!-- Post testing preparation -->
+                <suiteTest>Prepare_VM_for_TDC</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>Install_lsvm</testName>
+            <setupScript>setupScripts\Shielded_Add_DecryptVHD.ps1</setupScript>
+            <testScript>setupscripts\Shielded_install_lsvm.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=LSVM-INSTALL</param>
+            </testParams>
+            <cleanupScript>setupScripts\Shielded_Remove_DecryptVHD.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>Verify_lsvm</testName>
+            <testScript>shielded_verify_lsvm.sh</testScript>
+            <files>remote-scripts/ica/shielded_verify_lsvm.sh,remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Shielded_Add_DecryptVHD.ps1</file>
+            </setupScript> 
+            <testParams>
+                <param>TC_COVERED=LSVM-PRE-01</param>
+            </testParams>
+            <cleanupScript>setupScripts\Shielded_Remove_DecryptVHD.ps1</cleanupScript>
+            <timeout>450</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>Verify_dependencies</testName>
+            <testScript>shielded_verify_dependencies.sh</testScript>
+            <files>remote-scripts/ica/shielded_verify_dependencies.sh,remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Shielded_Add_DecryptVHD.ps1</file>
+            </setupScript> 
+            <testParams>
+                <param>TC_COVERED=LSVM-PRE-01</param>
+            </testParams>
+            <cleanupScript>setupScripts\Shielded_Remove_DecryptVHD.ps1</cleanupScript>
+            <timeout>450</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>Verify_lsvmprep</testName>
+            <testScript>shielded_verify_lsvmprep.sh</testScript>
+            <files>remote-scripts/ica/shielded_verify_lsvmprep.sh,remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Shielded_Add_DecryptVHD.ps1</file>
+            </setupScript> 
+            <testParams>
+                <param>TC_COVERED=LSVM-PRE-03</param>
+            </testParams>
+            <cleanupScript>setupScripts\Shielded_Remove_DecryptVHD.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>Verify_not_encrypted</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Shielded_Add_DecryptVHD.ps1</file>
+            </setupScript> 
+            <testScript>setupscripts\Shielded_not_encrypted_vhd.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=LSVM-PRE-04</param>
+                <param>rhel_folder_path=\\path\to\rhel\vhd\folder</param>
+                <param>sles_folder_path=\\path\to\sles\vhd\folder</param>
+                <param>ubuntu_folder_path=\\path\to\ubuntu\vhd\folder</param>
+            </testParams>
+            <cleanupScript>setupScripts\Shielded_Remove_DecryptVHD.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>Verify_passphrase</testName>
+            <testScript>shielded_verify_passphrase_noSpace.sh</testScript>
+            <files>remote-scripts/ica/shielded_verify_passphrase_noSpace.sh,remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Shielded_Add_DecryptVHD.ps1</file>
+            </setupScript> 
+            <testParams>
+                <param>TC_COVERED=LSVM-PRE-05</param>
+                <param>change_passphrase=yes</param>
+                <param>fill_disk=no</param>
+            </testParams>
+            <cleanupScript>setupScripts\Shielded_Remove_DecryptVHD.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>Verify_insufficient_space</testName>
+            <testScript>shielded_verify_passphrase_noSpace.sh</testScript>
+            <files>remote-scripts/ica/shielded_verify_passphrase_noSpace.sh,remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Shielded_Add_DecryptVHD.ps1</file>
+            </setupScript> 
+            <testParams>
+                <param>TC_COVERED=LSVM-PRE-06</param>
+                <param>change_passphrase=no</param>
+                <param>fill_disk=yes</param>
+            </testParams>
+            <cleanupScript>setupScripts\Shielded_Remove_DecryptVHD.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>Prepare_VM_for_TDC</testName>
+            <testScript>shielded_verify_lsvmprep.sh</testScript>
+            <files>remote-scripts/ica/shielded_verify_lsvmprep.sh,remote-scripts/ica/utils.sh</files> 
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupScripts\Shielded_Add_DecryptVHD.ps1</file>
+            </setupScript> 
+            <testParams>
+                <param>TC_COVERED=LSVM-Prepare_TDC</param>
+            </testParams>
+            <cleanupScript>
+                <file>setupScripts\Shielded_Remove_DecryptVHD.ps1</file>
+                <file>setupScripts\Shielded_template_prepare.ps1</file>
+            </cleanupScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>vm1</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <testParams>
+                <param>lsvm_folder_path=//path/to/lsvm/packages</param>
+                <param>decrypt_vhd_folder=//path/to/decryption/vhd</param>
+                <param>SnapshotName=ICABase</param>
+            </testParams>
+            <suite>Shielded_PreTDC</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>4</numCPUs>
+                <memSize>4096</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>2</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+    </VMs>
+</config>
