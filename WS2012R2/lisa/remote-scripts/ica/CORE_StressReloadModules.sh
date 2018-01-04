@@ -33,6 +33,11 @@
 #
 ################################################################
 
+ICA_TESTRUNNING="TestRunning"      # The test is running
+ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
+ICA_TESTABORTED="TestAborted"      # Error during setup of test
+ICA_TESTFAILED="TestFailed"        # Error during execution of test
+
 LogMsg()
 {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
