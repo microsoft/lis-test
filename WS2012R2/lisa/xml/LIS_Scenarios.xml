@@ -42,6 +42,9 @@
             <suiteTest>Upgrade_kernel_Install</suiteTest>
             <suiteTest>Upgrade_LIS_before_kernel</suiteTest>
             <suiteTest>Install_uninstall</suiteTest>
+            <!-- Following tests require SRIOV adapters -->
+            <suiteTest>Install_LIS_Check_Bonding</suiteTest>
+            <suiteTest>Upgrade_LIS_Check_Bonding</suiteTest>
         </suiteTests>
         </suite>
     </testSuites>
@@ -154,8 +157,44 @@
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
             <timeout>2600</timeout>
             <testParams>
-            	<param>TC_COVERED=LISDeploy-07</param>
-                <param>scenario=7</param>
+            	<param>TC_COVERED=LISDeploy-08</param>
+                <param>scenario=8</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Install_LIS_Check_Bonding</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\DM_CONFIGURE_MEMORY.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
+            <testScript>setupscripts\Deploy_scenarios.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
+            <timeout>2600</timeout>
+            <testParams>
+            	<param>TC_COVERED=LISDeploy-09</param>
+                <param>NIC=NetworkAdapter,External,SRIOV</param>
+                <param>scenario=9</param>          
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Upgrade_LIS_Check_Bonding</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\DM_CONFIGURE_MEMORY.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
+            <testScript>setupscripts\Deploy_scenarios.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Install_LIS.sh</files>
+            <timeout>2600</timeout>
+            <testParams>
+            	<param>TC_COVERED=LISDeploy-10</param>
+                <param>NIC=NetworkAdapter,External,SRIOV</param>
+                <param>scenario=10</param>          
             </testParams>
         </test>
     </testCases>
