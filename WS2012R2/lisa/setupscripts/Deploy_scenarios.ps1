@@ -169,6 +169,29 @@ function stop_vm(){
     return $false
 }
 
+function check_bonding_errors() {
+    $timer = 0
+    while(true) {
+        SendCommandToVM $ipv4 $sshkey "dmesg | grep -q 'bond0: Error'"
+        if($sts[-1]){
+            Write-Output "Error: Error found after kernel upgrade" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        SendCommandToVM $ipv4 $sshkey "grep -qi 'Call Trace' /var/log/messages"
+        if($sts[-1]){
+            Write-Output "Error: Call Trace found after kernel upgrade" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+        $timer = $timer + 5
+        Start-Sleep -s 5
+        if($timer -gt 300) {
+            Write-Output "Info: No errors found after kernel upgrade" | Tee-Object -Append -file $summaryLog
+            break
+        }
+    }
+    return $true
+}
 #######################################################################
 #
 #   Main body script
@@ -879,7 +902,7 @@ switch ($scenario){
         }
     }
 
-    "7"{
+    "8"{
         # Mount and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
         if(-not $sts[-1]){
@@ -922,6 +945,288 @@ switch ($scenario){
         }
 
         Write-Output "Successfully removed LIS" | Tee-Object -Append -file $summaryLog
+    }
+
+    "9" {
+        # Run bonding script
+        $sts = SendCommandToVM $ipv4 $sshkey "~/bondvf.sh"
+        if(-not $sts[-1]){
+            Write-Output "Error: Bonding script exited with error code" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        # Reboot the VM
+        Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+        $sts = WaitForVMToStartSSH $ipv4 200
+        if( -not $sts[-1]){
+            Write-Output "Error: ${vmName} failed to restart after installing the latest LIS drivers" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+        
+        Write-output "Rebooted VM"
+
+        # Mount and install LIS
+        $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        $sts = install_lis
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot install LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+        Write-output "Successfully installed LIS $current_lis" | Tee-Object -Append -file $summaryLog
+
+        # Reboot the VM
+        Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+        $sts = WaitForVMToStartSSH $ipv4 200
+        if( -not $sts[-1]){
+            Write-Output "Error: ${vmName} failed to restart after installing the latest LIS drivers" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+        Write-output "Rebooted VM"
+
+        # validate install
+        $sts = verify_daemons_modules
+        if( -not $sts[-1]){
+            Write-Output "Error: Daemons/Modules verification failed for ${vmName} after install." | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        # Reboot the VM
+        Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+        $sts = WaitForVMToStartSSH $ipv4 200
+        if( -not $sts[-1]){
+            Write-Output "Error: ${vmName} failed to restart after installing the latest LIS drivers" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+        
+        Write-output "Rebooted VM"
+        
+        $sts = check_bonding_errors
+        if( -not $sts[-1]) {
+            Write-Output "Error: Bond errors found after LIS install." | Tee-Object -Append -file $summaryLog
+            return $false
+        } else {
+            Write-Output "No errors found after LIS install" | Tee-Object -Append -file $summaryLog
+        }
+
+        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
+        Write-output "LIS version before kernel upgrade: $LIS_version_beforeUpgrade "| Tee-Object -Append -file $summaryLog
+
+        # Upgrade kernel
+        $sts = SendCommandToVM $ipv4 $sshkey "yum install -y kernel >> ~/kernel_install_scenario_$scenario.log"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to upgrade kernel on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        SendCommandToVM $ipv4 $sshkey "echo `"---kernel version before upgrade:`$(uname -r)---`" >> kernel_install_scenario_$scenario.log"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add kernel version before upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        $sts = SendCommandToVM $ipv4 $sshkey "sync"
+        Start-Sleep -s 30
+        # Check if kernel was upgraded
+        $sts = kernel_upgrade
+        if(-not $sts[-1]){
+            Write-Output "Error: Kernel was not upgraded" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+        Write-Output "Successfully upgraded kernel."
+
+        # Reboot the VM
+        Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+        $sts = WaitForVMToStartSSH $ipv4 200
+        if( -not $sts[-1]){
+            Write-Output "Error: ${vmName} has not started after upgrading the kernel" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+        Write-output "Rebooted VM"
+
+        SendCommandToVM $ipv4 $sshkey "echo `"---kernel version after upgrade:`$(uname -r)---`" >> kernel_install_scenario_$scenario.log"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add kernel version after upgrade to log on on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        $LIS_version_afterUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
+        if ($LIS_version_afterUpgrade -eq $LIS_version_beforeUpgrade){
+            Write-Output "Error: After upgrading the kernel, VM booted with LIS drivers $LIS_version_afterUpgrade " | Tee-Object -Append -file $summaryLog    
+        }
+        else{
+            Write-Output "VM booted with built-in LIS drivers after kernel upgrade" | Tee-Object -Append -file $summaryLog   
+        }
+
+        $sts = check_bonding_errors
+        if( -not $sts[-1]) {
+            Write-Output "Error: Bond errors found after kernel upgrade." | Tee-Object -Append -file $summaryLog
+            return $false
+        } else {
+            Write-Output "No errors found after kernel upgrade" | Tee-Object -Append -file $summaryLog
+        }
+    }
+    "10" {
+        # Mount and install LIS
+        $sts = SendCommandToVM $ipv4 $sshkey "echo 'action=install' >> ~/constants.sh"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        $sts = install_lis
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot install LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        # Reboot the VM
+        Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+        $sts = WaitForVMToStartSSH $ipv4 200
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot restart ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        # validate install
+        $sts = verify_daemons_modules
+        if( -not $sts[-1]){
+            Write-Output "Error: Daemons/Modules verification failed for ${vmName} after install." | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        $LIS_version_old = check_lis_version
+        $LIS_version_old = $LIS_version_old[($LIS_version_old.count -1)]
+        $LIS_version_old = $LIS_version_old -split "\s+"
+        $LIS_version_old = $LIS_version_old[1]
+
+        Write-Output "LIS version with previous LIS drivers: $LIS_version_old" | Tee-Object -Append -file $summaryLog
+        if ($LIS_version_old -eq $LIS_version_initial) {
+            Write-Output "Error: LIS version has not changed on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false     
+        }
+        
+        # Run bonding script
+        $sts = SendCommandToVM $ipv4 $sshkey "~/bondvf.sh"
+        if(-not $sts[-1]){
+            Write-Output "Error: Bonding script exited with error code" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        # Attach the new iso.
+        Stop-VM -vmName $vmName -ComputerName $hvServer -force
+        .\setupscripts\InsertIsoInDvd.ps1 $vmName $hvServer "isofilename=$IsoFilename"
+
+        Start-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
+        $sts = WaitForVMToStartSSH $ipv4 200
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot start ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        # Mount and upgrade LIS
+        $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=upgrade/g' constants.sh"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        $sts = install_lis
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot upgrade LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        # Reboot the VM
+        Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+        $sts = WaitForVMToStartSSH $ipv4 200
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot restart ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        # validate upgrade
+        $sts = verify_daemons_modules
+        if( -not $sts[-1]){
+            Write-Output "Error: Daemons/Modules verification failed for ${vmName} after upgrade." | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
+        Write-output "LIS before kernel upgrade is $LIS_version_beforeUpgrade "| Tee-Object -Append -file $summaryLog
+        
+        $sts = check_bonding_errors
+        if( -not $sts[-1]) {
+            Write-Output "Error: Bond errors found after lis upgrade" | Tee-Object -Append -file $summaryLog
+            return $false
+        } else {
+            Write-Output "No errors found after lis upgrade" | Tee-Object -Append -file $summaryLog
+        }
+        
+        # Upgrade kernel
+        $sts = SendCommandToVM $ipv4 $sshkey "yum install -y kernel >> ~/kernel_install_scenario_$scenario.log"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to upgrade kernel on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        # Upgrade kernel
+
+        $sts = SendCommandToVM $ipv4 $sshkey "yum install -y kernel >> ~/kernel_install_scenario_$scenario.log"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to upgrade kernel on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        SendCommandToVM $ipv4 $sshkey "echo `"---kernel version before upgrade:`$(uname -r)---`" >> kernel_install_scenario_$scenario.log"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add kernel version before upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        $sts = SendCommandToVM $ipv4 $sshkey "sync"
+        Start-Sleep -s 30
+        # Check if kernel was upgraded
+        $sts = kernel_upgrade
+        if(-not $sts[-1]){
+            Write-Output  "Error: Kernel was not upgraded" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+        Write-Output "Successfully upgraded kernel."
+
+        # Reboot the VM
+        Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+        $sts = WaitForVMToStartSSH $ipv4 200
+        if( -not $sts[-1]){
+            Write-Output "Error: Cannot restart ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        SendCommandToVM $ipv4 $sshkey "echo `"---kernel version after upgrade:`$(uname -r)---`" >> kernel_install_scenario_$scenario.log"
+        if(-not $sts[-1]){
+            Write-Output "Error: Unable to add kernel version after upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
+            return $false
+        }
+
+        $LIS_version_afterUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
+        if ($LIS_version_afterUpgrade -eq $LIS_version_beforeUpgrade){
+            Write-Output "Error: After upgrading the kernel, VM booted with LIS drivers $LIS_version_afterUpgrade " | Tee-Object -Append -file $summaryLog    
+        }
+        else{
+            Write-Output "VM booted with built-in LIS drivers after kernel upgrade" | Tee-Object -Append -file $summaryLog   
+        }
+
+        $sts = check_bonding_errors
+        if( -not $sts[-1]) {
+            Write-Output "Error: Bond errors found after kernel upgrade." | Tee-Object -Append -file $summaryLog
+            return $false
+        } else {
+            Write-Output "No errors found after kernel upgrade" | Tee-Object -Append -file $summaryLog
+        }
     }
 }
 
