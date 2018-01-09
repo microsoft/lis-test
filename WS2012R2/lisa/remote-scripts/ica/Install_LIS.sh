@@ -189,6 +189,7 @@ if [[ "$action" == "install" && ! -f hyperv-daemons.te ]]; then
     done
 fi
 sync
+sleep 10
 
 UpdateTestState "TestCompleted"
 exit 0
