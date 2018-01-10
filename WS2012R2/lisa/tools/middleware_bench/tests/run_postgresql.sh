@@ -162,13 +162,13 @@ sleep 20
 #Read vs. Write Performance
 LogMsg "Running Read vs. Write Performance"
 #LogMsg "Running Read-Write Test - same with Mostly Cache Test mem_disk.cache"
-LogMsg "Running Read-Only Test"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/dropdb test_db"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${USER} test_db"
-sleep 10
-pgbench --host=${SERVER} --username=${USER} -i -s ${cache_scale} test_db
-pgbench --host=${SERVER} --username=${USER} -c ${clients} -j ${threads} -T ${DURATION} -S test_db > /tmp/postgresql/rw_perf.read_only.log
-sleep 20
+#LogMsg "Running Read-Only Test"
+#ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/dropdb test_db"
+#ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${USER} test_db"
+#sleep 10
+#pgbench --host=${SERVER} --username=${USER} -i -s ${cache_scale} test_db
+#pgbench --host=${SERVER} --username=${USER} -c ${clients} -j ${threads} -T ${DURATION} -S test_db > /tmp/postgresql/rw_perf.read_only.log
+#sleep 20
 LogMsg "Running Simple Write Test"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/dropdb test_db"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${USER} test_db"
