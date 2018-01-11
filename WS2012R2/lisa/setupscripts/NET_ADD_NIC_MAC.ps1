@@ -280,7 +280,9 @@ foreach ($p in $params)
                 } else {
                     $retVal = $True
                 }
-            }
+            } else {
+				$retVal = $True
+			}
 		}
     }
 }
