@@ -35,33 +35,6 @@ function CheckGateway
 	return 1
 }
 
-function AddGateway
-{
-	let max_attempts=3
-	let counter=1
-	let next_step=0
-	ifName=$1
-	while [ $next_step -eq 0 ];do
-		LogMsg "Info : Adding default gateway to interface ${ifName} on attempt ${counter}"
-		UpdateSummary "Info : Adding default gateway to interface ${ifName} on attempt ${counter}"
-		route add -net 0.0.0.0 gw ${DEFAULT_GATEWAY} netmask 0.0.0.0 dev ${ifName}
-
-		ip_status=$?
-		if [ $? -ne 0 ]; then
-			LogMsg "Error: Unable to add default gateway"
-			if [ $counter -eq $max_attempts ]; then
-				UpdateSummary "Error: Cannot add default gateway - ${DEFAULT_GATEWAY} for ${ifName} after ${max_attempts}"
-				SetTestStateFailed
-				return 0
-			else
-				let counter=$counter+1
-			fi
-		else
-			return 0
-		fi
-	done
-}
-
 function ConfigureInterfaces
 {
 	for IFACE in ${IFACES[@]}; do
@@ -72,109 +45,33 @@ function ConfigureInterfaces
 		# Get the specific nic name as seen by the VM
 		LogMsg "Info : Configuring interface ${IFACE}"
 		UpdateSummary "Info : Configuring interface ${IFACE}"
-		AddNIC $IFACE
-		sleep 5
+		CreateIfupConfigFile $IFACE dhcp
 		if [ $? -eq 0 ]; then
 			ip_address=$(ip addr show $IFACE | grep "inet\b" | grep -v '127.0.0.1' | awk '{print $2}' | cut -d/ -f1)
 			msg="Info : Successfully set IP address - ${ip_address}"
 			LogMsg "${msg}"
 			UpdateSummary "${msg}"
 		else
+			LogMsg "Error: Unable to create ifcfg-file for $IFACE"
+			UpdateSummary "Error: Unable to create ifcfg-file for $IFACE"
+			SetTestStateAborted
 			return 1
 		fi
 
-		# Disable reverse protocol filters
-		sysctl -w net.ipv4.conf.all.rp_filter=0
-		sysctl -w net.ipv4.conf.default.rp_filter=0
-		sysctl -w net.ipv4.conf.eth0.rp_filter=0
-		sysctl -w net.ipv4.conf.$IFACE.rp_filter=0
-		sleep 2
+		ifdown $IFACE && ifup $IFACE
 
 		# Chech for gateway
 		LogMsg "Info : Checking if default gateway is set for ${IFACE}"
+		UpdateSummary "Info : Checking if default gateway is set for ${IFACE}"
 		CheckGateway $IFACE
 		if [ $? -ne 0 ];  then
-			LogMsg "Info : No gateway found for interface ${IFACE}"
-			UpdateSummary "Info : No gateway found for interface ${IFACE}"
 			route add -net 0.0.0.0 gw ${DEFAULT_GATEWAY} netmask 0.0.0.0 dev ${IFACE}
 			if [ $? -ne 0 ]; then
-				msg="Error : Unable to set default gateway - ${DEFAULT_GATEWAY}"
-				LogMsg "${msg}"
-				UpdateSummary "${msg}"
-				return 1
-			else
-				msg="Info: Default gateway - ${DEFAULT_GATEWAY} - was set for interface - ${IFACE}"
-				LogMsg "${msg}"
-				UpdateSummary "${msg}"
+				LogMsg "Error: Unable to set ${DEFAULT_GATEWAY} as Default Gateway for $IFACE"
+				UpdateSummary "Error: Unable to set ${DEFAULT_GATEWAY} as Default Gateway for $IFACE"
 			fi
 		fi
 	done
-	return 0
-}
-
-function AddNIC
-{
-	ifName=$1
-
-	#
-	# Bring the new NIC online
-	#
-	LogMsg "os_VENDOR=$os_VENDOR"
-	SetTestStateRunning
-	if [[ "$os_VENDOR" == "Red Hat" ]] || \
-	[[ "$os_VENDOR" == "CentOS" ]]; then
-		LogMsg "Info : Creating ifcfg-${ifName}"
-		cp /etc/sysconfig/network-scripts/ifcfg-eth0 /etc/sysconfig/network-scripts/ifcfg-${ifName}
-		sed -i -- "s/eth0/${ifName}/g" /etc/sysconfig/network-scripts/ifcfg-${ifName}
-		sed -i -e "s/HWADDR/#HWADDR/" /etc/sysconfig/network-scripts/ifcfg-${ifName}
-		sed -i -e "s/UUID/#UUID/" /etc/sysconfig/network-scripts/ifcfg-${ifName}
-	elif [ "$os_VENDOR" == "SUSE LINUX" ] || \
-	[ "$os_VENDOR" == "SUSE" ]; then
-		LogMsg "Info : Creating ifcfg-${ifName}"
-		cp /etc/sysconfig/network/ifcfg-eth0 /etc/sysconfig/network/ifcfg-${ifName}
-		sed -i -- "s/eth0/${ifName}/g" /etc/sysconfig/network/ifcfg-${ifName}
-		sed -i -e "s/HWADDR/#HWADDR/" /etc/sysconfig/network/ifcfg-${ifName}
-		sed -i -e "s/UUID/#UUID/" /etc/sysconfig/network/ifcfg-${ifName}
-	elif [ "$os_VENDOR" == "Ubuntu" ]; then
-		echo "auto ${ifName}" >> /etc/network/interfaces
-		echo "iface ${ifName} inet dhcp" >> /etc/network/interfaces
-	else
-		LogMsg "Error: Linux Distro not supported!"
-		UpdateSummary "Error: Linux Distro not supported!"
-		SetTestStateAborted
-		return 1
-	fi
-
-	# In some cases the interfaces does not receive an IP address from first try
-	let max_attempts=3
-	let counter=1
-	let next_step=0
-	while [ $next_step -eq 0 ];do
-		LogMsg "Info : Bringing up ${ifName} on attempt ${counter}"
-		UpdateSummary "Info : Bringing up ${ifName} on attempt ${counter}"
-		ifup ${ifName}
-
-		#
-		# Verify the new NIC received an IP v4 address
-		#
-		LogMsg "Info : Verify the new NIC has an IPv4 address}"
-		ifconfig ${ifName} | grep -s "inet " > /dev/null
-		ip_status=$?
-		if [ $? -ne 0 ]; then
-			LogMsg "Error: ${ifName} was not assigned an IPv4 address"
-			if [ $counter -eq $max_attempts ]; then
-				UpdateSummary "Error: ${ifName} was not assigned an IPv4 address"
-				SetTestStateFailed
-				return 1
-			else
-				let counter=$counter+1
-			fi
-		else
-			let next_step=1
-		fi
-	done
-
-	LogMsg "Info : ${ifName} is up"
 	return 0
 }
 
@@ -269,6 +166,7 @@ if [ $? -ne 0 ]; then
 	SetTestStateFailed
 	exit 1
 fi
+
 #
 # Check if all interfaces have a default gateway
 #
@@ -280,10 +178,11 @@ if [ ${#GATEWAY_IF[@]} -ne $EXPECTED_INTERFACES_NO ]; then
 	for IFACE in ${IFACES[@]}; do
 		CheckGateway $IFACE
 		if [ $? -ne 0 ]; then
-			LogMsg "WARNING : No gateway found for interface ${IFACE}"
+			LogMsg "WARNING : No gateway found for interface ${IFACE}. Adding gateway."
+			UpdateSummary "WARNING : No gateway found for interface ${IFACE}. Adding gateway."
 			route add -net 0.0.0.0 gw ${DEFAULT_GATEWAY} netmask 0.0.0.0 dev ${IFACE}
 			if [ $? -ne 0 ]; then
-				msg="Error : Unable to set default gateway - ${DEFAULT_GATEWAY}"
+				msg="Error : Unable to set default gateway - ${DEFAULT_GATEWAY} for ${IFACE}"
 				LogMsg "${msg}"
 				UpdateSummary "${msg}"
 				SetTestStateFailed
