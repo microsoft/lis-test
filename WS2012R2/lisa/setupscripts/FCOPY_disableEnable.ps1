@@ -305,10 +305,14 @@ if ($checkVM -eq "True") {
         return $Failed
     }
 
-    $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active *fcopy*"
+    # Daemon name might vary. Get the correct daemon name based on systemctl output
+    $daemonName = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl list-unit-files | grep fcopy"
+    $daemonName = $daemonName.Split(".")[0]
+
+    $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active $daemonName"
     if ($checkProcess -ne "active") {
-         Write-Output "Warning: FCopy daemon was not automatically started by systemd. Will start it manually." | Tee-Object -Append -file $summaryLog
-         $startProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl start *fcopy*"
+         Write-Output "Warning: $daemonName was not automatically started by systemd. Will start it manually." | Tee-Object -Append -file $summaryLog
+         $startProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl start $daemonName"
     }
 
     $gsi = Get-VMIntegrationService -vmName $vmName -ComputerName $hvServer -Name "Guest Service Interface"

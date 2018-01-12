@@ -272,7 +272,17 @@ foreach ($p in $params)
         }
 		else
 		{
-			$retVal = $True
+            if($networkName -like '*SRIOV*') {
+                $(get-vm -name $vmName -ComputerName $hvServer).NetworkAdapters | Where-Object { $_.SwitchName -like 'SRIOV' }  | Set-VMNetworkAdapter -IovWeight 1
+                if($? -ne $True) {
+                    "Error: Unable to enable SRIOV"
+                    $retVal = $False
+                } else {
+                    $retVal = $True
+                }
+            } else {
+				$retVal = $True
+			}
 		}
     }
 }
