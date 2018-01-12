@@ -37,7 +37,7 @@ client_threads_collection=(1 2 4 8 12 16 20)
 watch_multiple=5
 znode_size=100
 znode_count=10000
-zk_version="zookeeper-3.4.9"
+zk_version="zookeeper-3.4.10"
 zk_data="/zk/data"
 
 if [ -e /tmp/summary.log ]; then
@@ -146,7 +146,7 @@ do
     vmstat 1 2>&1 > /tmp/zookeeper/${threads}.vmstat.netio.log &
     mpstat -P ALL 1 2>&1 > /tmp/zookeeper/${threads}.mpstat.cpu.log &
     LogMsg  "Running zookeeper with ${threads} parallel client(s)."
-    run_zk ${threads} > /tmp/zookeeper/${threads}.zookeeper.latency.log
+    run_zk ${threads} 2>&1 > /tmp/zookeeper/${threads}.zookeeper.latency.log
     sudo pkill -f sar
     sudo pkill -f iostat
     sudo pkill -f vmstat
