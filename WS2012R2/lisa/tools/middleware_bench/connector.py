@@ -32,7 +32,7 @@ from report.db_utils import upload_results
 from report.results_parser import OrionLogsReader, SysbenchLogsReader, MemcachedLogsReader,\
     RedisLogsReader, ApacheLogsReader, MariadbLogsReader, MongodbLogsReader, ZookeeperLogsReader,\
     TerasortLogsReader, TCPLogsReader, LatencyLogsReader, StorageLogsReader, SingleTCPLogsReader,\
-    UDPLogsReader, SQLServerLogsReader, PostgreSQLLogsReader
+    UDPLogsReader, SQLServerLogsReader, PostgreSQLLogsReader, SchedulerLogsReader
 
 from providers.amazon_service import AWSConnector
 from providers.azure_service import AzureConnector
@@ -1873,6 +1873,7 @@ def test_scheduler(provider, keyid, secret, token, imageid, subscription, tenant
                                                       instancetype=instancetype, user=user,
                                                       localpath=localpath, region=region,
                                                       zone=zone, sriov=sriov, kernel=kernel)
+    results_path = None
     try:
         if all(client for client in ssh_client.values()):
             # enable key auth between instances
@@ -1897,3 +1898,8 @@ def test_scheduler(provider, keyid, secret, token, imageid, subscription, tenant
     finally:
         if connector:
             connector.teardown()
+    if results_path:
+        upload_results(localpath=localpath, table_name='Perf_{}_Scheduler'.format(provider),
+                       results_path=results_path, parser=SchedulerLogsReader,
+                       test_case_name='{}_Scheduler_perf_tuned'.format(provider),
+                       host_type=shortcut.host_type(provider), instance_size=instancetype)

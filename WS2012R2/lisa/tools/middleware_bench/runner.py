@@ -84,7 +84,7 @@ def run(options):
                         Instance/VM login username.
     """
     # validate options
-    log.info('Options are {}'.format(options))
+    # log.info('Options are {}'.format(options))
     sys.stdout.flush()
     parser = argparse.ArgumentParser(description='Run middleware benchmarking tests.')
     mandatory_args = parser.add_argument_group('mandatory arguments')
@@ -159,10 +159,11 @@ def run(options):
                         help='Custom kernel to install from localpath.')
 
     args = parser.parse_args(options)
-    log.info('Options are {}'.format(vars(args)))
+    # log.info('Options are {}'.format(vars(args)))
     test_args = copy.deepcopy(vars(args))
     test_args.pop('test', None)
     getattr(connector, args.test)(**test_args)
+
 
 if __name__ == "__main__":
     # argv[0] is the script name with the OS location dependent

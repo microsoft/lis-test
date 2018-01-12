@@ -1319,8 +1319,8 @@ class StorageLogsReader(BaseLogsReader):
 
 class SQLServerLogsReader(BaseLogsReader):
     """
-    Subclass for parsing FIO log files e.g.
-    FIOLog-XXXq.log
+    Subclass for parsing sqlserver log files e.g.
+    ***_***.log
     """
     def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
                  region=None, host_type=None, instance_size=None, disk_setup=None, report=None):
@@ -1340,7 +1340,7 @@ class SQLServerLogsReader(BaseLogsReader):
 
     def collect_data(self, f_match, log_file, log_dict):
         """
-        Customized data collect for FIO test case.
+        Customized data collect for test case.
         :param f_match: regex file matcher
         :param log_file: full path log file name
         :param log_dict: dict constructed from the defined headers
@@ -1377,8 +1377,8 @@ class SQLServerLogsReader(BaseLogsReader):
 
 class PostgreSQLLogsReader(BaseLogsReader):
     """
-    Subclass for parsing FIO log files e.g.
-    FIOLog-XXXq.log
+    Subclass for parsing postgresql log files e.g.
+    ***_***.log
     """
     def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
                  region=None, host_type=None, instance_size=None, disk_setup=None):
@@ -1454,4 +1454,82 @@ class PostgreSQLLogsReader(BaseLogsReader):
                                    '\(excluding connections establishing\)', f_line)
                     if tps:
                         log_dict['TransactionsPerSecExcEstablishing'] = float(tps.group(1).strip())
+        return log_dict
+
+
+class SchedulerLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing scheduler logs e.g.
+    ***.***.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, provider=None,
+                 region=None, host_type=None, instance_size=None, disk_setup=None):
+        super(SchedulerLogsReader, self).__init__(log_path)
+        self.headers = ['TestMode', 'DataSize_bytes', 'Loops', 'Groups', 'WorkerThreads',
+                        'MessageThreads', 'Latency_sec', 'Latency95thPercentile_us',
+                        'Latency99thPercentile_us']
+        self.sorter = []
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.region = region
+        self.provider = provider
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.disk_setup = disk_setup
+        self.log_matcher = '([a-z]+).([0-9]+).log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['HostType'] = self.host_type
+        log_dict['InstanceSize'] = self.instance_size
+        log_dict['TestMode'] = f_match.group(1).strip()
+        log_dict['DataSize_bytes'] = None
+        log_dict['Loops'] = None
+        log_dict['Groups'] = None
+        log_dict['MessageThreads'] = None
+        log_dict['WorkerThreads'] = None
+        log_dict['Latency_sec'] = None
+        log_dict['Latency95thPercentile_us'] = None
+        log_dict['Latency99thPercentile_us'] = None
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestOS'] = summary['guest_os']
+
+        if log_dict['TestMode'] == 'hackbench':
+            log_dict['Groups'] = int(f_match.group(2).strip())
+        elif log_dict['TestMode'] == 'schbench':
+            log_dict['MessageThreads'] = int(f_match.group(2).strip())
+            log_dict['WorkerThreads'] = 16
+
+        with open(log_file, 'r') as fl:
+            for f_line in fl:
+                if log_dict['TestMode'] == 'hackbench':
+                    sizes = re.match('\s*Each\s*sender\s*will\s*pass\s*([0-9.]+)'
+                                     '\s*messages\s*of\s*([0-9.]+)\s*bytes', f_line)
+                    if sizes:
+                        log_dict['Loops'] = int(sizes.group(1).strip())
+                        log_dict['DataSize_bytes'] = int(sizes.group(2).strip())
+                    if not log_dict.get('Latency_sec', None):
+                        lat_sec = re.match('\s*Time:\s*([0-9.]+)', f_line)
+                        if lat_sec:
+                            log_dict['Latency_sec'] = float(lat_sec.group(1).strip())
+                elif log_dict['TestMode'] == 'schbench':
+                    if not log_dict.get('Latency95thPercentile_us', None):
+                        lat_95 = re.match('\s*95.0000th:\s*([0-9.]+)', f_line)
+                        if lat_95:
+                            log_dict['Latency95thPercentile_us'] = float(lat_95.group(1).strip())
+                    if not log_dict.get('Latency99thPercentile_us', None):
+                        lat_99 = re.match('\s*\*99.0000th:\s*([0-9.]+)', f_line)
+                        if lat_99:
+                            log_dict['Latency99thPercentile_us'] = float(lat_99.group(1).strip())
+
         return log_dict
