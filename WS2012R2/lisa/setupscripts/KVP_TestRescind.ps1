@@ -195,13 +195,17 @@ if ($checkVM -eq "True") {
         Current status: $gsi.PrimaryOperationalStatus" | Tee-Object -Append -file $summaryLog
         return $Failed
     } else {
+        # Daemon name might vary. Get the correct daemon name based on systemctl output
+        $daemonName = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl list-unit-files | grep kvp"
+        $daemonName = $daemonName.Split(".")[0]
+
         #If the KVP service is OK, check the KVP daemon on the VM
-        $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active '*kvp*'"
+        $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active $daemonName"
         if ($checkProcess -ne "active") {
-             Write-Output "Error: KVP daemon is not running on $vmName after disable/enable cycle" | Tee-Object -Append -file $summaryLog
+             Write-Output "Error: $daemonName is not running on $vmName after disable/enable cycle" | Tee-Object -Append -file $summaryLog
              return $Failed
         } else {
-            Write-Output "Info: KVP service and KVP daemon are operational after disable/enable cycle" | Tee-Object -Append -file $summaryLog
+            Write-Output "Info: KVP service and $daemonName are operational after disable/enable cycle" | Tee-Object -Append -file $summaryLog
             return $Passed
         }
     }
