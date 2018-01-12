@@ -653,8 +653,8 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             # Setup an unique com port
 			$pipeName = $(-join ((48..57) + (97..122) | Get-Random -Count 10 | % {[char]$_}))
 			$pipePath = "\\.\pipe\${pipeName}"
-			$comPorts = $(get-vm -computername $hvServer | Where-Object { $_.ComPort2.Path -ne '' } | Select -ExpandProperty ComPort2 | Select -ExpandProperty Path)
-			while (($comPorts.contains($pipePath)))
+			$comPorts = $(Get-VM -computername $hvServer | Where-Object { ($_.ComPort2 -ne $null) -and ($_.ComPort2.Path -ne '') } | Select -ExpandProperty ComPort2 | Select -ExpandProperty Path)
+			while (($comPorts -ne $null) -and ($comPorts.contains($pipePath)))
 			{
 				$pipeName = $(-join ((48..57) + (97..122) | Get-Random -Count 10 | % {[char]$_}))
 				$pipePath = "\\.\pipe\${pipeName}"
