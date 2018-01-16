@@ -176,7 +176,7 @@ Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 # Convert the new size
 #
 $newVhdxSize = ConvertStringToUInt64 $newSize
-$sizeFlag = ConvertStringToUInt64 "50GB"
+$sizeFlag = ConvertStringToUInt64 "20GB"
 #
 # Make sure the VM has a SCSI 0 controller, and that
 # Lun 0 on the controller has a .vhdx file attached.
