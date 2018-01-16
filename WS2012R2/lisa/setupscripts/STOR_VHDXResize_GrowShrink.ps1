@@ -196,7 +196,7 @@ Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 $newVhdxGrowSize = ConvertStringToUInt64 $newGrowSize
 $newVhdxShrinkSize = ConvertStringToUInt64 $newShrinkSize
-$sizeFlag = ConvertStringToUInt64 "50GB"
+$sizeFlag = ConvertStringToUInt64 "20GB"
 
 #
 # Make sure the VM has a SCSI 0 controller, and that

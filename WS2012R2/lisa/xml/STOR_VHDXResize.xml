@@ -303,7 +303,7 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=127GB</param>
                 <param>NewSize=2304GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-05a</param>
             </testparams>
@@ -323,7 +323,7 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=127GB</param>
                 <param>NewSize=2304GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>ControllerType=IDE</param>
                 <param>TC_COVERED=STOR-VHDx-05b</param>
             </testparams>
@@ -344,7 +344,7 @@
                 <param>DefaultSize=3GB</param>
                 <param>growSize=2304GB</param>
                 <param>shrinkSize=3GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>ControllerType=SCSI</param>
                <param>TC_COVERED=STOR-VHDx-06a</param>
             </testparams>
@@ -365,7 +365,7 @@
                <param>DefaultSize=3GB</param>
                <param>growSize=2304GB</param>
                <param>shrinkSize=3GB</param>
-               <param>fileSystems=(ext4 ext3 xfs)</param>
+               <param>fileSystems=(ext4 xfs)</param>
                <param>ControllerType=SCSI</param>
                <param>Offline=True</param>
                <param>TC_COVERED=STOR-VHDx-06b</param>
@@ -387,7 +387,7 @@
                 <param>DefaultSize=3GB</param>
                 <param>growSize=2304GB</param>
                 <param>shrinkSize=3GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>ControllerType=IDE</param>
                 <param>TC_COVERED=STOR-VHDx-06c</param>
             </testparams>
