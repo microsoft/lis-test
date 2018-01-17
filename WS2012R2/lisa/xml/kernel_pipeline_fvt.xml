@@ -3185,6 +3185,14 @@
                 <param>REMOTE_USER=root</param>
                 <param>ssh_key=rhel5_id_rsa</param>
             </testParams>
+            <hardware>
+                <create>true</create>
+                <numCPUs>4</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
             <suite>kernel_validation</suite>
         </vm>
         <vm>
