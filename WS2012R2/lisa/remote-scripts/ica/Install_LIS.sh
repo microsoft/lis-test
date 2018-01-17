@@ -28,6 +28,8 @@
 #     and performs various LIS installation methods.
 #
 ################################################################
+
+# the following versions support selinux and can handle custom LIS policy
 release_versions=("6.6" "6.7" "6.8" "7.1" "7.2" "7.3" "7.4" "7.5")
 
 UpdateTestState()
@@ -84,7 +86,6 @@ if [ 0 -ne ${sts} ]; then
     exit 1
 fi
 
-UpdateSummary "Info: Perform read operations on the CDROM"
 cd /mnt/
 
 if [ "$first_install" == "" ];then
@@ -188,8 +189,10 @@ if [[ "$action" == "install" && ! -f hyperv-daemons.te ]]; then
         fi
     done
 fi
+
+# allow time for all installation related backgroup processes to finish
 sync
-sleep 10
+sleep 15
 
 UpdateTestState "TestCompleted"
 exit 0
