@@ -7,6 +7,7 @@
         <LisaInitScript>
             <file>.\setupScripts\CreateVMs.ps1</file>
         </LisaInitScript>
+        <imageStoreDir>\\unc\path</imageStoreDir>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>
