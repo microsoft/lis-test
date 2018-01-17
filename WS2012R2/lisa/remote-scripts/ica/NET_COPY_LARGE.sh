@@ -561,7 +561,7 @@ LogMsg "Received $output_file from $STATIC_IP2"
 UpdateSummary "Received $output_file from $STATIC_IP2"
 
 if [ "${TestIPV6}" = "yes" ]; then
-	scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@\["$STATIC_IP2_V6"\]:"$remote_home"/"$output_file" "$HOME"/"$output_file"
+	scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@\["$STATIC_IP2_V6%${SYNTH_NET_INTERFACES[@]}"\]:"$remote_home"/"$output_file" "$HOME"/"$output_file"
 
 	if [ 0 -ne $? ]; then
 		#try to erase file from remote vm
