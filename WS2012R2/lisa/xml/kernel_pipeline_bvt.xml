@@ -1,0 +1,814 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<config>
+    <global>
+        <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <imageStoreDir>\\unc\path</imageStoreDir>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LISA BVT Tests Run</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+    <suite>
+        <suiteName>kernel_validation_bvt</suiteName>
+        <suiteTests>
+            <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>MainVM_Checkpoint</suiteTest>
+
+            <!-- Core Tests -->
+            <suiteTest>VMHeartbeat</suiteTest>
+            <suiteTest>VMBus_protocol_version</suiteTest>
+            <suiteTest>Verify_LISModules_Version</suiteTest>
+            <suiteTest>Verify_LIS_Modules</suiteTest>
+            <suiteTest>initrd_modules_check</suiteTest>
+            <suiteTest>check_clocksource</suiteTest>
+            <suiteTest>TimeSync</suiteTest>
+            <suiteTest>TimeSync_NTP</suiteTest>
+            <suiteTest>TimeSync_SavedVM</suiteTest>
+            <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
+
+            <suiteTest>StressReloadModules</suiteTest>
+            <suiteTest>LISShutdownVM</suiteTest>
+            <suiteTest>Multi_Cpu_Test</suiteTest>
+            <suiteTest>VCPU_verify_online</suiteTest>
+            <suiteTest>VerifyIntegratedShutdownService</suiteTest>
+            <suiteTest>RebootDifferentMemSettings</suiteTest>
+            <suiteTest>CheckNuma</suiteTest>
+            <suiteTest>CheckNuma_Maximum</suiteTest>
+            <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
+
+            <!-- KVP and SQM Tests -->
+            <suiteTest>SQM_Basic</suiteTest>
+            <suiteTest>KVP_Basic</suiteTest>
+            <suiteTest>KVP_Add_Key_Values</suiteTest>
+            <suiteTest>KVP_Modify_Key_Values</suiteTest>
+            <suiteTest>KVP_Remove_Key_Values</suiteTest>
+            <suiteTest>KVP_Push_Key_Values</suiteTest>
+            <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
+            <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+            <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
+            <suiteTest>KVP_TestRescind</suiteTest>
+            <suiteTest>KVP_Max_Read</suiteTest>
+
+            <!-- FCopy Tests -->
+            <suiteTest>FCOPY_basic</suiteTest>
+            <suiteTest>FCOPY_file_exists</suiteTest>
+            <suiteTest>FCOPY_overwrite</suiteTest>
+            <suiteTest>FCOPY_large_file</suiteTest>
+            <suiteTest>FCOPY_non_ascii</suiteTest>
+            <suiteTest>FCOPY_repeat</suiteTest>
+            <suiteTest>FCOPY_disableEnable</suiteTest>
+
+            <!-- VHDx Resize Tests -->
+            <suiteTest>VHDxResizeToBigger512</suiteTest>
+            <suiteTest>VHDxResizeToBigger4096</suiteTest>
+            <suiteTest>VHDxResizeToSmaller512</suiteTest>
+            <suiteTest>VHDxResizeToSmaller4096</suiteTest>
+
+            <!-- lsvmbus tool Tests -->
+            <suiteTest>lsvmbus_basic</suiteTest>
+            <suiteTest>lsvmbus_target</suiteTest>
+
+            <!-- Runtime Memory Resize Tests -->
+            <suiteTest>Runtime_Mem_HotAdd</suiteTest>
+            <suiteTest>Runtime_Mem_HotRemove</suiteTest>
+            <suiteTest>Runtime_Mem_HotAdd_Reboot</suiteTest>
+        </suiteTests>
+    </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>InstallKernel</testName>
+            <testScript>install_kernel.sh</testScript>
+            <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>MainVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <!-- Core Tests -->
+    	<test>
+            <testName>VMHeartBeat</testName>
+            <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-03</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+        <testName>VMBus_protocol_version</testName>
+        <testScript>vmbus_protocol_version.sh</testScript>
+        <files>remote-scripts/ica/vmbus_protocol_version.sh</files>
+        <timeout>300</timeout>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>	
+        <testParams>
+            <param>TC_COVERED=VMBus-01</param>
+        </testParams>
+        </test>
+
+		<test>
+            <testName>TimeSync</testName>
+            <testScript>SetupScripts\INST_LIS_TimeSync.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-05</param>
+                <param>TestDelay=10</param>
+                <param>MaxTimeDiff=1.0</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+		<test>
+	        <testName>TimeSync_NTP</testName>
+	        <testScript>CORE_TimeSync_NTP.sh</testScript>
+	        <files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
+	        <testParams>
+	            <param>TC_COVERED=CORE-04</param>
+	        </testParams>
+	        <timeout>2000</timeout>
+	        <onError>Continue</onError>
+			<noReboot>True</noReboot>
+		</test>
+
+		<test>
+            <testName>TimeSync_SavedVM</testName>
+            <testScript>SetupScripts\INST_timesync_change_state.ps1</testScript>
+            <testparams>
+                <param>TC_COVERED=CORE-06</param>
+                <param>vmState=Save</param>
+                <param>TestDelay=600</param>
+            </testparams>
+            <timeout>800</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>LISShutdownVM</testName>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-07</param>
+                <param>vCPU=5</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>Verify_LIS_Modules</testName>
+            <testScript>LIS_VerifyHyperVIC.sh</testScript>
+            <files>remote-scripts/ica/LIS_VerifyHyperVIC.sh</files>
+            <testParams>
+                <param>TC_COVERED=CORE-09,CORE-10</param>
+                <param>HYPERV_MODULES=(hyperv_keyboard hv_netvsc hid_hyperv hv_util hv_storvsc)</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+	<test>
+            <testName>Multi_Cpu_Test</testName>
+            <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-11</param>
+            </testParams>
+            <timeout>1600</timeout>
+            <noReboot>False</noReboot>
+        </test>
+
+	<test>
+            <testName>Verify_LISModules_Version</testName>
+            <testScript>CORE_LISmodules_version.sh</testScript>
+            <files>remote-scripts/ica/CORE_LISmodules_version.sh</files>
+            <testparams>
+                <param>TC_COVERED=CORE-15</param>
+        	<param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
+            </testparams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+	<test>
+            <testName>VerifyIntegratedShutdownService</testName>
+            <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-16</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>RebootDifferentMemSettings</testName>
+            <testScript>SetupScripts\CORE_RebootDiffMemory.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-17</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>StressReloadModules</testName>
+            <setupscript>setupscripts\CORE_EnableIntegrationServices.ps1</setupscript>
+            <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-18</param>
+            </testParams>
+            <timeout>3600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+		<testName>VCPU_verify_online</testName>
+		<testScript>vcpu_verify_online.sh</testScript>
+		<setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+		<files>remote-scripts/ica/vcpu_verify_online.sh</files>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<noReboot>False</noReboot>
+		<testParams>
+			<param>TC_COVERED=CORE-21</param>
+			<param>vCPU=4</param>
+		</testParams>
+        </test>
+
+        <test>
+            <testName>CheckNuma</testName>
+            <setupScript>
+                <file>SetupScripts\DM_DISABLE.ps1</file>
+                <file>setupScripts\ChangeCPU.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\NUMA.ps1</testScript>
+            <files>remote-scripts\ica\utils.sh</files>
+            <onError>Continue</onError>
+            <cleanupScript>setupScripts\RevertSnapshot.ps1</cleanupScript>
+            <testParams>
+                <param>TC_COVERED=CORE-22</param>
+                <param>enableDM=no</param>
+                <param>memWeight=0</param>
+                <param>VCPU=4</param>
+                <param>NumaNodes=1</param>
+                <param>Sockets=1</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+            <testName>CheckNuma_Maximum</testName>
+            <setupScript>
+            	<file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+            	<file>setupScripts\ChangeCPU.ps1</file>
+            </setupScript>
+            <testScript>setupScripts\NUMA.ps1</testScript>
+            <files>remote-scripts\ica\utils.sh</files>
+            <onError>Continue</onError>
+            <testParams>
+                <param>TC_COVERED=CORE-23</param>
+                <param>enableDM=no</param>
+                <param>VCPU=8</param>
+                <param>NumaNodes=4</param>
+                <param>Sockets=2</param>
+                <param>MemSize=1024MB</param>
+                <param>startupMem=2048MB</param>
+                <param>memWeight=0</param>
+            </testParams>
+            <timeout>600</timeout>
+        </test>
+
+        <test>
+        <testName>initrd_modules_check</testName>
+        <testScript>modules_check.sh</testScript>
+        <files>remote-scripts/ica/modules_check.sh,remote-scripts/ica/utils.sh</files>
+        <files>remote-scripts/ica/utils.sh</files>
+        <testparams>
+            <param>TC_COVERED=CORE-24</param>
+            <param>gen1_hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko)</param>
+            <param>gen2_hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
+        </testparams>
+        <noReboot>True</noReboot>
+        <onError>Continue</onError>
+        <timeout>600</timeout>
+        </test>
+
+        <test>
+           <testName>Disable_NUMA_By_Kernel</testName>
+           <setupScript>
+        <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+        <file>setupScripts\ChangeCPU.ps1</file>
+           </setupScript>
+           <testScript>setupScripts\NUMA_Off_Kernel.ps1</testScript>
+           <files>remote-scripts\ica\NUMA_off_kernel.sh</files>
+           <files>remote-scripts\ica\NUMA_check.sh</files>
+           <files>remote-scripts\ica\utils.sh</files>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <noReboot>False</noReboot>
+           <testparams>
+               <param>TC_COVERED=CORE-25</param>
+               <param>enableDM=no</param>
+               <param>startupMem=4096MB</param>
+               <param>memWeight=20</param>
+               <param>VCPU=4</param>
+               <param>NumaNodes=1</param>
+               <param>Sockets=1</param>
+               <param>MemSize=1024MB</param>
+           </testparams>
+       </test>
+
+        <test>
+		<testName>check_clocksource</testName>
+		<testScript>check_clocksource.sh</testScript>
+		<files>remote-scripts/ica/check_clocksource.sh,remote-scripts/ica/utils.sh</files>
+		<testParams>
+			<param>TC_COVERED=CORE-26</param>
+		</testParams>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<noReboot>True</noReboot>
+        </test>
+
+        <test>
+		<testName>VerifyIntegratedTimeSyncService</testName>
+		<testScript>setupscripts\INST_LIS_TimeSyncServiceDisableEnable.ps1</testScript>
+		<testParams>
+			<param>TC_COVERED=CORE-29</param>
+			<param>MaxTimeDiff=5</param>
+		</testParams>
+		<timeout>600</timeout>
+		<onError>Continue</onError>
+		<noReboot>True</noReboot>
+        </test>
+
+        <!-- KVP and SQM Tests -->
+        <test>
+            <testName>SQM_Basic</testName>
+            <testScript>SetupScripts\SQM_Basic.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=SQM-01</param>
+            </testparams>
+        </test>
+        
+        <test>
+            <testName>KVP_Basic</testName>
+            <testScript>SetupScripts\KVP_Basic.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-01</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Add_Key_Values</testName>
+            <testScript>KVP_VerifyKeyValue.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-02</param>
+                <param>Key=EEE</param>
+                <param>Value=555</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Modify_Key_Values</testName>
+            <testScript>KVP_VerifyKeyValue.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <preTest>setupscripts\ModifyKeyValue.ps1</preTest>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-03</param>
+                <param>Key=EEE</param>
+                <param>Value=999</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Remove_Key_Values</testName>
+            <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-04</param>
+                <param>Key=EEE</param>
+                <param>Value=999</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Push_Key_Values</testName>
+            <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
+            <files>tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-05</param>
+                <param>Key=BBB</param>
+                <param>Value=111</param>
+            </testparams>
+        </test>
+		
+    	<test>
+    		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
+    		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+    		<timeout>600</timeout>
+    		<onError>Abort</onError>
+    		<noReboot>True</noReboot>
+    		<testparams>
+    			<param>TC_COVERED=KVP-06</param>
+    			<param>Key=AAA</param>
+    			<param>Value=000</param>
+    			<param>Pool=0</param>
+    		</testparams>
+    	</test>	
+    		
+    	<test>
+    		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
+    		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+    		<timeout>600</timeout>
+    		<onError>Abort</onError>
+    		<noReboot>True</noReboot>
+    		<testparams>
+    			<param>TC_COVERED=KVP-07</param>
+    			<param>Key=AAA</param>
+    			<param>Value=000</param>
+    			<param>Pool=0</param>
+    		</testparams>
+    	</test>
+
+        <test>
+            <testName>KVP_VerifyHostInjectedItems</testName>
+            <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
+            <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-10</param>
+                <param>Pool=3</param>
+                <param>Items=11</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_TestRescind</testName>
+            <testScript>SetupScripts\KVP_TestRescind.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-11</param>
+                <!-- Number of times to disable and reenable the KVP service -->
+                <param>CycleCount=20</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>KVP_Max_Read</testName>
+            <testScript>SetupScripts\Kvp_Max_Read.ps1</testScript>
+            <files>tools/KVP/kvp_client64, tools/KVP/kvp_client32</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-12</param>
+                <param>Pool=1</param>
+                <!-- Number of key pairs to be added in the kvp pool -->  
+                <param>Entries=250</param>
+            </testparams>
+        </test>
+
+        <!-- FCopy Tests -->
+        <test>
+            <testName>FCOPY_basic</testName>
+            <testScript>setupscripts\FCOPY_basic.ps1</testScript>
+            <timeout>300</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-01</param>
+            </testParams>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>FCOPY_file_exists</testName>
+            <testScript>setupscripts\FCOPY_file_exists.ps1</testScript>
+            <timeout>300</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-02</param>
+            </testParams>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>FCOPY_overwrite</testName>
+            <testScript>setupscripts\FCOPY_overwrite.ps1</testScript>
+            <timeout>300</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-03</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>FCOPY_large_file</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\FCOPY_large_file.ps1</testScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>1200</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-04</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=15GB</param>
+                <param>ControllerType=SCSI</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>FCOPY_non_ascii</testName>
+            <testScript>setupscripts\FCOPY_non_ascii.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <timeout>360</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-05</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>FCOPY_repeat</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-06</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
+                <param>ControllerType=SCSI</param>
+            <!--Make sure DefaultSize is equal or bigger than FileSize-->
+                <param>FileSize=2GB</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>FCOPY_disableEnable</testName>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <testScript>setupscripts\FCOPY_disableEnable.ps1</testScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts\ica\utils.sh,remote-scripts\ica\check_traces.sh</files>
+            <timeout>900</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-07</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=7GB</param>
+                <param>ControllerType=SCSI</param>
+                <param>FcopyFileSize=5GB</param>
+                <param>CycleCount=20</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+
+            <!-- VHDx Resize Tests -->
+        <test>
+            <testName>VHDxResizeToBigger512</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
+                <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 xfs)</param>
+                <param>ControllerType=SCSI</param>
+                <param>TC_COVERED=STOR-VHDx-01a</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>VHDxResizeToBigger4096</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=4096</param>
+                <param>DefaultSize=3GB</param>
+                <param>NewSize=4GB</param>
+                <param>fileSystems=(ext4 xfs)</param>
+                <param>ControllerType=SCSI</param>
+                <param>TC_COVERED=STOR-VHDx-01b</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>VHDxResizeToSmaller512</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
+                <param>NewSize=2GB</param>
+                <param>fileSystems=(ext4 xfs)</param>
+                <param>ControllerType=SCSI</param>
+                <param>TC_COVERED=STOR-VHDx-02a</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>VHDxResizeToSmaller4096</testName>
+            <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <testparams>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=4096</param>
+                <param>DefaultSize=3GB</param>
+                <param>NewSize=2GB</param>
+                <param>fileSystems=(ext4 xfs)</param>
+                <param>ControllerType=SCSI</param>
+                <param>TC_COVERED=STOR-VHDx-02b</param>
+            </testparams>
+        </test>
+
+            <!-- lsvmbus tool Tests -->
+        <test>
+        <testName>lsvmbus_basic</testName>
+        <setupScript>
+            <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+            <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+        </setupScript>
+        <testScript>lsvmbus_basic.sh</testScript>
+        <files>remote-scripts/ica/lsvmbus_basic.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=lsvmbus-01</param>
+            <param>enableDM=yes</param>
+            <param>minMem=2048MB</param>
+            <param>maxMem=2GB</param>
+            <param>startupMem=2048MB</param>
+            <param>memWeight=0</param>
+            <param>staticMem=2048MB</param>
+            <param>generation=1</param>
+        </testParams>
+        <timeout>800</timeout>
+        </test>
+
+        <test>
+        <testName>lsvmbus_target</testName>
+        <setupScript>
+            <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+            <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+            <file>setupScripts\ChangeCPU.ps1</file>
+        </setupScript>
+        <testScript>lsvmbus_target.sh</testScript>
+        <files>remote-scripts/ica/lsvmbus_target.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=lsvmbus-02</param>
+            <param>enableDM=yes</param>
+            <param>minMem=2048MB</param>
+            <param>maxMem=2GB</param>
+            <param>startupMem=2048MB</param>
+            <param>memWeight=0</param>
+            <param>staticMem=2048MB</param>
+            <param>VCPU=8</param>
+        </testParams>
+        <timeout>800</timeout>
+        </test>
+
+            <!-- Runtime Memory Resize Tests -->
+        <test>
+            <testName>Runtime_Mem_HotAdd</testName>
+            <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
+            <testScript>setupscripts\Runtime_Mem_HotAdd.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=Runtime_Mem_Resize-01</param>                                   
+                <param>startupMem=2GB</param>
+                <param>testMem=4GB</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>Runtime_Mem_HotRemove</testName>
+            <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
+            <testScript>setupscripts\Runtime_Mem_HotAdd.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=Runtime_Mem_Resize-02</param>                                   
+                <param>startupMem=4GB</param>
+                <param>testMem=2GB</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+
+        <test>
+            <testName>Runtime_Mem_HotAdd_Reboot</testName>
+            <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
+            <testScript>setupscripts\Runtime_Mem_HotAdd_reboot.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=Runtime_Mem_Resize-09</param>                                   
+                <param>startupMem=5000MB</param>
+            </testParams>
+            <timeout>1200</timeout>
+        </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>vm_kernel_bvt</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>kernel_validation_bvt</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>8</numCPUs>
+                <memSize>4096</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+            <testParams>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+        </vm>
+    </VMs>
+</config>
