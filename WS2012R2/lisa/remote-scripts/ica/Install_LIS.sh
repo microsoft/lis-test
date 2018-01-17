@@ -28,6 +28,7 @@
 #     and performs various LIS installation methods.
 #
 ################################################################
+release_versions=("6.6" "6.7" "6.8" "7.1" "7.2" "7.3" "7.4" "7.5")
 
 UpdateTestState()
 {
@@ -163,7 +164,6 @@ UpdateSummary "CDROM mount & LIS ${action} returned no errors"
 
 # Apply selinux policy
 if [[ "$action" == "install" && ! -f hyperv-daemons.te ]]; then
-    release_versions=("6.6" "6.7" "6.8" "7.1" "7.2")
     for release in ${release_versions[*]}; do
         grep $release /etc/redhat-release
         if [ $? -eq 0 ]; then
