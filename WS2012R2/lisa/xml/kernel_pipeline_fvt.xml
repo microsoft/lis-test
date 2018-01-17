@@ -4,13 +4,16 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LISA Core Tests Run</subject>
+            <subject>LISA FVT Tests Run</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -19,8 +22,9 @@
     <suite>
         <suiteName>kernel_validation</suiteName>
         <suiteTests>
-            <suiteTest>MainVM_Checkpoint</suiteTest>  
-            <!-- <suiteTest>DependencyVM_Checkpoint</suiteTest> -->
+            <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>MainVM_Checkpoint</suiteTest>
+            <suiteTest>DependencyVM_Checkpoint</suiteTest>
 
             <suiteTest>VMHeartbeat</suiteTest>
             <suiteTest>Verify_LISModules_Version</suiteTest>
@@ -32,7 +36,6 @@
             <suiteTest>TimeSync_SavedVM</suiteTest>
             <suiteTest>TimeSync_PausedVM</suiteTest>
             <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
-            <suiteTest>FloppyDisk</suiteTest>
 
             <suiteTest>StressReloadModules</suiteTest>
             <suiteTest>LISShutdownVM</suiteTest>
@@ -40,11 +43,10 @@
             <suiteTest>VCPU_verify_online</suiteTest>
             <suiteTest>VerifyIntegratedShutdownService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
-            <suiteTest>CDmount</suiteTest>
             <suiteTest>CheckNuma</suiteTest>
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
-            <!-- <suiteTest>PausedCritical_Heartbeat</suiteTest> -->
+            <suiteTest>PausedCritical_Heartbeat</suiteTest>
 
             <suiteTest>SQM_Basic</suiteTest>
             <suiteTest>KVP_Basic</suiteTest>
@@ -63,8 +65,6 @@
             <suiteTest>FCOPY_non_ascii</suiteTest>
             <suiteTest>FCOPY_repeat</suiteTest>
             <suiteTest>FCOPY_disableEnable</suiteTest>
-
-            <!-- <suiteTest>STOR_VSS_BackupRestore_ext3_vhd</suiteTest>  -->
 
             <suiteTest>VHDxResizeToBigger512</suiteTest>
             <suiteTest>VHDxResizeToBigger4096</suiteTest>
@@ -92,11 +92,6 @@
 			<suiteTest>VMBus_PanicNotifier</suiteTest>
 			<suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
 
-            <suiteTest>MultipleReboot</suiteTest>
-            <suiteTest>Sysbench</suiteTest>
-            <suiteTest>LTPBasic</suiteTest>
-            <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
-
             <suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>
             <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
             <suiteTest>VHDx_IDE_0_1_Fixed</suiteTest>
@@ -122,7 +117,6 @@
             <suiteTest>VHDx_SCSI_Dynamic_Local_Copy_File</suiteTest>
             <suiteTest>VHDx_Verify_SectorSize</suiteTest>
 
-            <suiteTest>VHD_IDE_0_1_DYNAMIC</suiteTest>
             <suiteTest>VHD_MultiDisk_SCSI_Dynamic</suiteTest>
             <suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
             <suiteTest>VHD_MultiDisk_SCSI_Fixed</suiteTest>
@@ -140,17 +134,6 @@
             <suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest>
 
             <!-- WS 2016 TESTS -->
-            <suiteTest>ProductionCheckpoint</suiteTest>   
-            <suiteTest>ProductionCheckpoint_Failback</suiteTest>
-            <suiteTest>ProductionCheckpoint_ext3</suiteTest>
-            <suiteTest>ProductionCheckpoint_ext4</suiteTest>
-            <suiteTest>ProductionCheckpoint_btrfs</suiteTest>
-            <suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
-            <suiteTest>ProductionCheckpoint_SCSI_vhdx</suiteTest>
-            <suiteTest>ProductionCheckpoint_ISO_NoNetwork</suiteTest> 
-            <!-- <suiteTest>ProductionCheckpoint_3Chain_VHD</suiteTest> 
-            <suiteTest>ProductionCheckpoint_iSCSI</suiteTest>-->
-
             <suiteTest>Runtime_Mem_HotAdd</suiteTest>      
             <suiteTest>Runtime_Mem_HotRemove</suiteTest> 
             <suiteTest>Runtime_Mem_SmallIncrease128</suiteTest>  
@@ -160,6 +143,15 @@
             <suiteTest>Runtime_Mem_MultipleAddRemove</suiteTest>
             <suiteTest>Runtime_Mem_StressHotRemove</suiteTest>
             <suiteTest>Runtime_Mem_HotAdd_Reboot</suiteTest>
+
+            <suiteTest>ProductionCheckpoint</suiteTest>   
+            <suiteTest>ProductionCheckpoint_Failback</suiteTest>
+            <suiteTest>ProductionCheckpoint_ext3</suiteTest>
+            <suiteTest>ProductionCheckpoint_ext4</suiteTest>
+            <suiteTest>ProductionCheckpoint_btrfs</suiteTest>
+            <suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
+            <suiteTest>ProductionCheckpoint_SCSI_vhdx</suiteTest>
+            <suiteTest>ProductionCheckpoint_ISO_NoNetwork</suiteTest> 
 
             <suiteTest>External</suiteTest>
             <suiteTest>InternalNetwork</suiteTest>
@@ -200,26 +192,51 @@
             <suiteTest>SaveRestore</suiteTest>
             <suiteTest>CleanShutdown</suiteTest>-->
 
-            <!-- <suiteTest>FC_disks_detection</suiteTest>  
-            <suiteTest>FC_stressTest</suiteTest>
-            <suiteTest>FC_SaveRestore_VM</suiteTest>
-            <suiteTest>FC_disks_multipath_detection</suiteTest>
-            <suiteTest>FC_WWN_basic</suiteTest>-->
-
-            <suiteTest>Crash_single_core</suiteTest>
-            <!--<suiteTest>Crash_SMP</suiteTest>
-            <suiteTest>Crash_NMI</suiteTest>
-            <suiteTest>Crash_differentVCPU</suiteTest>
-            <suiteTest>Crash_16cores</suiteTest>
-            <suiteTest>Crash_nfs</suiteTest>
-             Only for RedHat. Test with crashkernel=auto 
-            <suiteTest>Crash_Auto_size</suiteTest>-->
+            <suiteTest>MultipleReboot</suiteTest>
+            <suiteTest>Sysbench</suiteTest>
+            <suiteTest>LTPBasic</suiteTest>
+            <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
         </suiteTests>
     </suite>
     </testSuites>
 
     <testCases>
+        <test>
+            <testName>InstallKernel</testName>
+            <testScript>install_kernel.sh</testScript>
+            <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
 
+     <test>
+        <testName>MainVM_Checkpoint</testName>
+        <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+        <timeout>600</timeout>
+           <testParams>
+            <param>TC_COVERED=snapshot</param>
+            <param>snapshotVm=main</param>
+            <param>snapshotName=ICABase</param>
+        </testParams>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+    </test>
+
+	
+	    <test>
+        <testName>DependencyVM_Checkpoint</testName>
+        <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+        <timeout>600</timeout>
+           <testParams>
+            <param>TC_COVERED=snapshot</param>
+            <param>snapshotVm=dependency</param>
+            <param>snapshotName=ICABase</param>
+        </testParams>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+    </test>   
+	    
         <!-- Core Tests -->
         <test>
             <testName>VMHeartBeat</testName>
@@ -374,34 +391,6 @@
                 <param>TC_COVERED=CORE-18</param>
             </testParams>
             <timeout>3600</timeout>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test>
-
-            <test>
-            <testName>FloppyDisk</testName>
-            <testScript>setupscripts\AddFloppyDisk.ps1</testScript>
-            <files>remote-scripts\ica\Core_Floppy_Disk.sh</files>
-            <cleanupScript>setupScripts\RemoveFloppyDisk.ps1</cleanupScript>
-            <testParams>
-                <param>TC_COVERED=CORE-19</param>
-            </testParams>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>
-        </test>
-
-        <test>
-            <testName>CDmount</testName>
-            <testScript>Core_LIS_CD.sh</testScript>
-            <files>remote-scripts/ica/Core_LIS_CD.sh</files>
-            <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
-            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
-            <testparams>
-                <param>TC_COVERED=CORE-20</param>
-                <param>IsoFilename=CDTEST.iso</param>
-            </testparams>
-            <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
@@ -2359,21 +2348,6 @@
 		<cleanupScript>setupscripts\RevertSnapshot.ps1</cleanupScript>
         </test>
 
-    <!-- Network Testing -->
-    <test>
-        <testName>MainVM_Checkpoint</testName>
-        <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
-        <timeout>600</timeout>
-           <testParams>
-            <param>TC_COVERED=snapshot</param>
-            <param>snapshotVm=main</param>
-            <param>snapshotName=ICABase</param>
-            <!-- <param>VM1NAME=Upstream_Ubuntu1604</param> -->
-        </testParams>
-        <onError>Continue</onError>
-        <noReboot>False</noReboot>
-    </test>
-
         <!-- DM tests -->
         <test>
             <testName>DM_loaded</testName>
@@ -3091,7 +3065,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-01</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-01</param>
                 <param>startupMem=2GB</param>
                 <param>testMem=4GB</param>
             </testParams>
@@ -3103,7 +3077,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-02</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-02</param>
                 <param>startupMem=6GB</param>
                 <param>testMem=2GB</param>
             </testParams>
@@ -3115,7 +3089,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-03</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-03</param>
                 <param>startupMem=2048MB</param>
                 <param>chunkMem=128MB</param>
                 <param>decrease=no</param>
@@ -3128,7 +3102,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-04</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-04</param>
                 <param>startupMem=2560MB</param>
                 <param>chunkMem=128MB</param>
                 <param>decrease=yes</param>
@@ -3141,7 +3115,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-05</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-05</param>
                 <param>startupMem=2148MB</param>
                 <param>chunkMem=100MB</param>
                 <param>decrease=no</param>
@@ -3154,7 +3128,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-06</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-06</param>
                 <param>startupMem=4496MB</param>
                 <param>chunkMem=100MB</param>
                 <param>decrease=yes</param>
@@ -3167,7 +3141,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_MultipleAddRemove.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-07</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-07</param>
                 <param>startupMem=4GB</param>
             </testParams>
             <timeout>1200</timeout>
@@ -3178,7 +3152,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_StressHotRemove.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-08</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-08</param>
                 <param>startupMem=8GB</param>
             </testParams>
             <timeout>1200</timeout>
@@ -3189,7 +3163,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_reboot.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-09</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-09</param>
                 <param>startupMem=8000MB</param>
             </testParams>
             <timeout>1200</timeout>
@@ -3203,15 +3177,31 @@
             <vmName>vmName</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>demo_id_rsa.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <testParams>
                 <param>VM2NAME=aux_vm</param>
-                <param>SSH_PRIVATE_KEY=demo_id_rsa</param>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
                 <param>snapshotName=ICABase</param>
                 <param>REMOTE_USER=root</param>
-                <param>ssh_key=demo_id_rsa</param>
+                <param>ssh_key=rhel5_id_rsa</param>
             </testParams>
             <suite>kernel_validation</suite>
+        </vm>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>aux_vm</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <role>nonSUT</role>
+            <hardware>
+                <create>true</create>
+                <numCPUs>2</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
         </vm>
     </VMs>
 </config>
