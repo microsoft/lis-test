@@ -21,10 +21,10 @@
 
 <#
 .Synopsis
-    This script tests the functionality of copying a 10GB large file.
+    This script tests the functionality of copying a large file.
 
 .Description
-    The script will copy a random generated 10GB file from a Windows host to
+    The script will copy a random generated file from a Windows host to
 	the Linux VM, and then checks if the size is matching.
 
     A typical XML definition for this test case would look similar
@@ -58,7 +58,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $testfile = $null
 $gsi = $null
-# 10GB file size
+# Default 10GB file size
 $filesize = 10737418240
 
 #######################################################################
@@ -192,6 +192,9 @@ foreach ($p in $params) {
 	if ($fields[0].Trim() -eq "sshkey") {
         $sshkey = $fields[1].Trim()
     }
+	if ($fields[0].Trim() -eq "Large_File_Size_GB") {
+        $filesize  = [int64] ( [float]($fields[1].Trim()) * 1024 * 1024 * 1024 )
+    }
 }
 
 #
@@ -289,7 +292,7 @@ $testfile = "testfile-$(get-date -uformat '%H-%M-%S-%Y-%m-%d').file"
 $filePath = $vhd_path + $testfile
 $file_path_formatted = $vhd_path_formatted + $testfile
 
-# Create a 10GB sample file
+# Create a sample big file
 $createfile = fsutil file createnew \\$hvServer\$file_path_formatted $filesize
 
 if ($createfile -notlike "File *testfile-*.file is created") {
@@ -339,10 +342,10 @@ if (-not $sts[-1]) {
 	$retVal = $False
 }
 elseif ($sts[0] -eq $filesize) {
-	Write-Output "Info: The file copied matches the 10GB size." | Tee-Object -Append -file $summaryLog
+	Write-Output "Info: The file copied matches the size: $filesize bytes." | Tee-Object -Append -file $summaryLog
 }
 else {
-	Write-Output "ERROR: The file copied doesn't match the 10GB size!" | Tee-Object -Append -file $summaryLog
+	Write-Output "ERROR: The file copied doesn't match the size: $filesize bytes!" | Tee-Object -Append -file $summaryLog
 	$retVal = $False
 }
 

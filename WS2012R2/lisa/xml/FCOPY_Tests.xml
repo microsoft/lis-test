@@ -93,6 +93,9 @@
                 <param>SectorSize=512</param>
                 <param>DefaultSize=15GB</param>
                 <param>ControllerType=SCSI</param>
+                <!-- Customize file size if you wish, 10GB by default
+                <param>Large_File_Size_GB=11.3</param>
+                -->
             </testParams>
             <noReboot>False</noReboot>
         </test>
