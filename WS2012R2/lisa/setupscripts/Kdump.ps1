@@ -231,8 +231,8 @@ bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_exec
 #
 Write-Output "Trigger the kernel panic..."
 if ($nmi -eq 1){
-    # Waiting to kdump_execute.sh to finish his activity.
-    Start-Sleep -S 70
+    # Waiting to kdump_execute.sh to finish execution.
+    Start-Sleep -S 100
     Debug-VM -Name $vmName -InjectNonMaskableInterrupt -ComputerName $hvServer -Force
 }
 else {
@@ -266,7 +266,7 @@ Write-Output "Info: VM Heartbeat is OK"
 # Waiting the VM to have a connection
 #
 Write-Output "Info: Checking the VM connection after kernel panic"
-$sts = WaitForVMToStartSSH $ipv4 100
+$sts = WaitForVMToStartSSH $ipv4 400
 if (-not $sts[-1]){
     Write-Output "Error: $vmName didn't restart after triggering the crash" | Tee-Object -Append -file $summaryLog
     return $false

@@ -66,7 +66,7 @@
                 <param>VCPU=1</param>
                 <param>VMMemory=4GB</param>
             </testParams>
-            <timeout>600</timeout>
+            <timeout>1000</timeout>
         </test>
 
         <test>
@@ -84,7 +84,7 @@
                 <param>VCPU=2</param>
                 <param>VMMemory=2GB</param>
             </testParams>
-            <timeout>600</timeout>
+            <timeout>1000</timeout>
         </test>
 
         <test>
@@ -103,7 +103,7 @@
                 <param>VMMemory=3GB</param>
                 <param>NMI=1</param>
             </testParams>
-            <timeout>600</timeout>
+            <timeout>1000</timeout>
         </test>
 
         <test>
@@ -122,7 +122,7 @@
                 <param>VCPU=2</param>
                 <param>VMMemory=2GB</param>
             </testParams>
-            <timeout>600</timeout>
+            <timeout>1000</timeout>
         </test>
 
         <test>
@@ -141,7 +141,7 @@
                 <param>VCPU=4</param>
                 <param>VMMemory=2GB</param>
             </testParams>
-            <timeout>600</timeout>
+            <timeout>1000</timeout>
         </test>
 
         <test>
@@ -160,7 +160,7 @@
                 <param>VCPU=16</param>
                 <param>VMMemory=4GB</param>
             </testParams>
-            <timeout>600</timeout>
+            <timeout>1000</timeout>
         </test>
 
         <test>
@@ -179,7 +179,7 @@
                 <param>VCPU=1</param>
                 <param>VMMemory=4GB</param>
             </testParams>
-            <timeout>700</timeout>
+            <timeout>1000</timeout>
         </test>
     </testCases>
 
