@@ -106,7 +106,7 @@ CheckHypervDaemons()
 
         for (( i=0; i<$len_hv; i++))
         do
-            CheckDaemonsFilesRHEL6 ${hv_service[$i]}
+            CheckDaemonsFilesRHEL6 ${hv[$i]}
             CheckDaemonsStatus ${hv[$i]} ${hv_alias[$i]}
         done
         ;;
