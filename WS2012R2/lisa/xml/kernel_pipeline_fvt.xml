@@ -88,10 +88,10 @@
             <suiteTest>NMI_Verify_Interrupt</suiteTest>
             <suiteTest>NMI_different_vmStates</suiteTest>
 
-			<suiteTest>VMBus_protocol_version</suiteTest>
-			<suiteTest>VMBus_verify_interrupts</suiteTest>
-			<suiteTest>VMBus_PanicNotifier</suiteTest>
-			<suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
+		<suiteTest>VMBus_protocol_version</suiteTest>
+		<suiteTest>VMBus_verify_interrupts</suiteTest>
+		<suiteTest>VMBus_PanicNotifier</suiteTest>
+		<suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
 
             <suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>
             <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
@@ -147,7 +147,6 @@
 
             <suiteTest>ProductionCheckpoint</suiteTest>   
             <suiteTest>ProductionCheckpoint_Failback</suiteTest>
-            <suiteTest>ProductionCheckpoint_ext3</suiteTest>
             <suiteTest>ProductionCheckpoint_ext4</suiteTest>
             <suiteTest>ProductionCheckpoint_btrfs</suiteTest>
             <suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
@@ -514,7 +513,7 @@
             <timeout>1200</timeout>
             <cleanupScript>SetupScripts\Core_Heartbeat_Cleanup.ps1</cleanupScript>
             <onError>Continue</onError>
-            <noReboot>True</noReboot>
+            <noReboot>False</noReboot>
         </test>
 
     <!-- KVP_Tests -->
@@ -1564,7 +1563,7 @@
         <testParams>
             <param>IDE=0,1,Dynamic,512</param>
             <param>IDE=1,1,Dynamic,512</param>
-            <param>fileSystems=(ext3 ext4 xfs)</param>
+            <param>fileSystems=(ext4 xfs)</param>
             <param>TC_COVERED=STOR-22</param>
         </testParams>
         <testScript>STOR_Lis_Disk.sh</testScript>
@@ -1587,7 +1586,7 @@
             <param>SCSI=0,0,Dynamic,512</param>
             <param>SCSI=0,1,Dynamic,512</param>
             <param>SCSI=0,2,Dynamic,512</param>
-            <param>fileSystems=(ext3 ext4 xfs)</param>
+            <param>fileSystems=(ext4 xfs)</param>
             <param>TC_COVERED=STOR-23,STOR-28</param>
         </testparams>
         <onError>Continue</onError>
@@ -1599,7 +1598,7 @@
              <testParams>
                 <param>IDE=0,1,Fixed,512</param>
                 <param>IDE=1,1,Fixed,512</param>
-                <param>fileSystems=(ext3 ext4 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-24</param>
              </testParams>
              <testScript>STOR_Lis_Disk.sh</testScript>
@@ -1622,7 +1621,7 @@
                 <param>SCSI=0,0,Fixed,512</param>
                 <param>SCSI=0,1,Fixed,512</param>
                 <param>SCSI=0,2,Fixed,512</param>
-                <param>fileSystems=(ext3 ext4 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-25</param>
             </testparams>
             <onError>Continue</onError>
@@ -1637,7 +1636,7 @@
             <testparams>
                 <param>IDE=1,1,Diff</param>
                 <param>TC_COVERED=STOR-26</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
                 <param>vhdFormat=vhdx</param>
             </testparams>
             <onError>Continue</onError>
@@ -1652,7 +1651,7 @@
             <testparams>
                 <param>SCSI=0,0,Diff</param>
                 <param>TC_COVERED=STOR-27</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
                 <param>vhdFormat=vhdx</param>
             </testparams>
             <onError>Continue</onError>
@@ -2270,7 +2269,7 @@
             <testParams>
                 <param>SCSI=0,1,Dynamic,2039GB</param>
                 <param>TC_COVERED=STOR-13</param>
-                <param>fileSystems=(ext2 ext3 ext4 xfs btrfs)</param>
+                <param>fileSystems=(ext4 xfs btrfs)</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
