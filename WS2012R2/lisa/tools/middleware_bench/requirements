@@ -10,4 +10,4 @@ SQLAlchemy<=1.1.16
 pyodbc<=3.0.10
 pywinrm<=0.2.2
 msrest<=0.4.8
-msrestzure<=0.4.7
+msrestazure<=0.4.7
