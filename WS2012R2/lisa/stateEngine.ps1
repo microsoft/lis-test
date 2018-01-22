@@ -3217,8 +3217,8 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
     .Synopsis
         Finish up after the test run completed.
     .Description
-        Finish up after the test run completed.  Currently, this state
-        does not do anything.
+        Finish up after the test run completed. Kill all remaining processes
+        started by LIS automation.
     .Parameter vm
         XML Element representing the VM under test
     .Parameter $xmlData
@@ -3235,6 +3235,14 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
     {
         SaveResultToXML $testDir
     }
+
+    # Get the PID of the Powershell window and kill all child processes after testing is done
+    $parentProcessPid = $PID
+    $children = Get-WmiObject WIN32_Process | where `
+        {$_.ParentProcessId -eq $parentProcessPid -and $_.Name -ne "conhost.exe"}
+        foreach ($child in $children) {
+            Stop-Process -Force $child.Handle -Confirm:$false -ErrorAction SilentlyContinue
+        }
 }
 
 ########################################################################
