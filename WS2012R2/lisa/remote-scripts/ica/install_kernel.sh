@@ -76,7 +76,7 @@ function download_artifacts {
     for art in $artifacts;do
         line=$(echo $art | grep "</Name>")
         line=${line%</Name>*}
-        if [[ "$line" != "" ]];then
+        if [[ "$line" != "" && "$line" != *"dbg"* ]];then
             wget -O $line "$share_url/$kernel_folder/$package/$line?$azure_token"
         fi
     done
