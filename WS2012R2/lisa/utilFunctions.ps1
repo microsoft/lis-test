@@ -909,10 +909,11 @@ function ShutDownVM([System.Xml.XmlElement] $vm)
     $v = Get-VM -vm $($vm.vmName) -ComputerName $($vm.hvServer)
     if ($($v.State) -ne "Off")
     {
-        if (-not (SendCommandToVM $vm "init 0") )
+        Stop-VM $($vm.vmName) -ComputerName $($vm.hvServer) -Force
+        if ($? -ne $true)
         {
-            LogMsg 0 "Warn : $($vm.vmName) could not send shutdown command to the VM. Using HyperV to stop the VM."
-            Stop-VM $($vm.vmName) -ComputerName $($vm.hvServer) -Force
+            LogMsg 0 "Warn : $($vm.vmName) did not shutdown gracefully. Forcing VM TurnOff."
+            Stop-VM $($vm.vmName) -ComputerName $($vm.hvServer) -TurnOff
         }
     }
 }
