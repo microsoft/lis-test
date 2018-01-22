@@ -205,7 +205,7 @@
             <testName>InstallKernel</testName>
             <testScript>install_kernel.sh</testScript>
             <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
-            <timeout>1000</timeout>
+            <timeout>1500</timeout>
             <onError>Abort</onError>
             <noReboot>False</noReboot>
         </test>
