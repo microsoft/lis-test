@@ -97,7 +97,7 @@ function prepare_rhel {
 
 function install_kernel_debian {
     apt remove -y linux-cloud-tools-common
-    dpkg -i *.deb
+    dpkg --force-all -i *.deb
     if [[ $? -ne 0 ]];then
         msg="Error: deb install failed."
         UpdateSummary $msg
