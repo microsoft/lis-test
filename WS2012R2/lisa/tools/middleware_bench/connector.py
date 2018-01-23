@@ -321,7 +321,7 @@ def test_orion(provider, keyid, secret, token, imageid, subscription, tenant, pr
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
             cmd = '/tmp/run_orion.sh {}'.format(device)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 4)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 5)
             results_path = os.path.join(localpath, 'orion{}_{}.zip'.format(str(time.time()),
                                                                            instancetype))
             ssh_client[1].get_file('/tmp/orion.zip', results_path)
@@ -391,7 +391,7 @@ def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenan
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
             cmd = '/tmp/run_orion.sh {}'.format(' '.join(device))
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 4)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 5)
             results_path = os.path.join(localpath, 'orion{}_{}.zip'.format(str(time.time()),
                                                                            instancetype))
             ssh_client[1].get_file('/tmp/orion.zip', results_path)
@@ -1371,7 +1371,7 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_storage.sh")
             cmd = '/tmp/run_storage.sh {}'.format(constants.RAID_DEV)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 2)
             results_path = os.path.join(localpath, 'storage{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/storage.zip', results_path)
