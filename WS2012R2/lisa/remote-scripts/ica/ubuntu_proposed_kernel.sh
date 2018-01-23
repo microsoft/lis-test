@@ -21,17 +21,21 @@
 #
 ########################################################################
 
-#######################################################################
+########################################################################
 #
 # Description:
 #     This script was created to automate the installation and validation
-#     of an Ubuntu proposed kernel. The following steps are performed:
+#     of an Ubuntu proposed kernel or Ubuntu proposed kernel azure.
+#     The following steps are performed:
 #		1. Adds the proposed repository source for the detected release.
-#		2. Installs the newest proposed kernel version.
+#		2. Installs the newest proposed kernel version or newest proposed
+#          azure kernel.
 #		3. Matching LIS daemons packages are also installed.
 #		4. Modifies grub configuration to boot the installed kernel.
 #
-#######################################################################
+# Note: For Ubuntu proposed kernel azure you must have param 'azure_kernel'
+#     set to 'yes'. Also, linux-azure exist only for Ubuntu 16.04 LTS.
+########################################################################
 
 DEBUG_LEVEL=3
 release=$(lsb_release -c | cut -f2)
@@ -58,6 +62,14 @@ UpdateSummary() {
     echo $1 >> ~/summary.log
 }
 
+#Source constans file
+if [ -e $HOME/constants.sh ]; then
+    . $HOME/constants.sh
+else
+    echo "ERROR: Unable to source the config file."
+    exit 1
+fi
+
 apply_proposed_kernel() {
 	candidate_kernel=$(apt-cache policy linux-image-generic | grep "Candidate")
 
@@ -77,6 +89,17 @@ apply_proposed_kernel() {
 		exit 1
 	fi
 }
+
+apply_proposed_kernel_azure() {
+    candidate_kernel=$(apt-cache policy linux-azure | grep "Candidate")
+
+    apt-get install -qq linux-azure/$release-proposed
+	if [[ $? -ne 0 ]]; then
+		UpdateSummary "Error: Unable to install the proposed kernel azure!"
+		UpdateTestState $ICA_TESTABORTED
+		exit 1
+	fi
+ }
 
 modify_grub() {
 	#
@@ -124,27 +147,41 @@ apt-get -qq update
 #
 # Installing the proposed kernel
 #
-apply_proposed_kernel
-sts=$?
-if [ 0 -ne ${sts} ]; then
-    dbgprint 1 "Error: Couldn't install the proposed kernel: ${sts}"
-	UpdateTestState $ICA_TESTABORTED
-	exit 1
+if [ $azure_kernel == "yes" ]; then
+    apply_proposed_kernel_azure
+    if [ 0 -ne $? ]; then
+        dbgprint 1 "Error: Couldn't install the proposed kernel: ${sts}"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
+
+    dbgprint 3 ""
+    dbgprint 3 "Proposed kernel azure = ${candidate_kernel}"
+    dbgprint 3 ""
+
+    UpdateSummary "Proposed kernel azure = ${candidate_kernel}"
+    UpdateSummary "Proposed kernel azure has been successfully installed."
+else
+    apply_proposed_kernel
+    if [ 0 -ne $? ]; then
+        dbgprint 1 "Error: Couldn't install the proposed kernel: ${sts}"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
+
+    dbgprint 3 ""
+    dbgprint 3 "Proposed kernel = ${candidate_kernel}"
+    dbgprint 3 ""
+
+    UpdateSummary "Proposed kernel = ${candidate_kernel}"
+    UpdateSummary "Proposed kernel has been successfully installed."
 fi
-
-dbgprint 3 ""
-dbgprint 3 "Proposed kernel = ${candidate_kernel}"
-dbgprint 3 ""
-
-UpdateSummary "Proposed kernel = ${candidate_kernel}"
-UpdateSummary "Proposed kernel has been successfully installed."
 
 #
 # Changing grub config to boot the proposed kernel
 #
 modify_grub
-sts=$?
-if [ 0 -ne ${sts} ]; then
+if [ 0 -ne $? ]; then
     dbgprint 1 "Error: Couldn't modify the grub config: ${sts}"
 	UpdateTestState $ICA_TESTABORTED
 	exit 1
