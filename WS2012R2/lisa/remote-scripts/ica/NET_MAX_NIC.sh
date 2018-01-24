@@ -59,7 +59,8 @@ function ConfigureInterfaces
 		fi
 
 		ifdown $IFACE && ifup $IFACE
-
+		#sleep a while after ifup
+		sleep 10
 		# Chech for gateway
 		LogMsg "Info : Checking if default gateway is set for ${IFACE}"
 		UpdateSummary "Info : Checking if default gateway is set for ${IFACE}"
