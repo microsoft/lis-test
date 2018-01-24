@@ -284,7 +284,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-21</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
@@ -296,7 +296,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-22</param>
             </testParams>
-            <timeout>2400</timeout>
+            <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
