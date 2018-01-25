@@ -268,6 +268,12 @@ if ($timeout -le 0)
 }
 
 #
-# Report test results
+# TurnOff VM and report test results
 #
+
+Stop-VM -Name $vmName -ComputerName $hvServer -TurnOff
+if ($? -ne $true) {
+    Write-Output "Error: Unable to TurnOff VM after test completion." | Tee-Object -Append -file $summaryLog
+}
+
 return $testPassed
