@@ -909,7 +909,7 @@ function ShutDownVM([System.Xml.XmlElement] $vm)
     $v = Get-VM -vm $($vm.vmName) -ComputerName $($vm.hvServer)
     if ($($v.State) -ne "Off")
     {
-        Stop-VM $($vm.vmName) -ComputerName $($vm.hvServer) -Force
+        Stop-VM $($vm.vmName) -ComputerName $($vm.hvServer) -Force -ErrorAction SilentlyContinue
         if ($? -ne $true)
         {
             LogMsg 0 "Warn : $($vm.vmName) did not shutdown gracefully. Forcing VM TurnOff."
