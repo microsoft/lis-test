@@ -95,7 +95,6 @@
 		<suiteTest>VMBus_PanicNotifier</suiteTest>
 		<suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
 
-            <suiteTest>VHDx_IDE_0_1_Dynamic</suiteTest>
             <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
             <suiteTest>VHDx_IDE_0_1_Fixed</suiteTest>
             <suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest>
@@ -113,7 +112,6 @@
             <suiteTest>VHDx_4k_MultiDiskSCSI_Fixed</suiteTest>
             <suiteTest>VHDx_4k_HotADD_Multi_Dynamic_SCSI</suiteTest>
             <suiteTest>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</suiteTest>
-            <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_3TB</suiteTest>
             <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
             <!-- Test case VHDx_SCSI_0_1_Dynamic_Large_64TB requires a 64bit virtual machine -->
             <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
@@ -194,7 +192,6 @@
             <suiteTest>SaveRestore</suiteTest>
             <suiteTest>CleanShutdown</suiteTest>-->
 
-            <suiteTest>MultipleReboot</suiteTest>
             <suiteTest>Sysbench</suiteTest>
             <suiteTest>LTPBasic</suiteTest>
             <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
@@ -331,7 +328,7 @@
             <files>remote-scripts/ica/LIS_VerifyHyperVIC.sh</files>
             <testParams>
                 <param>TC_COVERED=CORE-09,CORE-10</param>
-                <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc)</param>
+                <param>HYPERV_MODULES=(hyperv_keyboard hv_netvsc hid_hyperv hv_util hv_storvsc)</param>
             </testParams>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -436,19 +433,20 @@
         <test>
             <testName>CheckNuma_Maximum</testName>
             <setupScript>
-                <file>setupScripts\DM_DISABLE.ps1</file>
-                <file>setupScripts\ChangeCPU.ps1</file>
+            	<file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+            	<file>setupScripts\ChangeCPU.ps1</file>
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
             <onError>Continue</onError>
             <testParams>
                 <param>TC_COVERED=CORE-23</param>
+                <param>enableDM=no</param>
                 <param>VCPU=8</param>
                 <param>NumaNodes=4</param>
                 <param>Sockets=2</param>
-                <param>MemSize=2048MB</param>
-                <param>staticMem=2048MB</param>
+                <param>MemSize=1024MB</param>
+                <param>startupMem=2048MB</param>
                 <param>memWeight=0</param>
             </testParams>
             <timeout>600</timeout>
@@ -1938,7 +1936,7 @@
                 <param>DefaultSize=16TB</param>
                 <!-- <param>Path=G:\VHDs</param> -->
                 <param>SCSI=0,0,Dynamic,512,16TB</param>
-                <param>fileSystems=(ext4 xfs btrfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-32-B</param>
             </testParams>
@@ -1959,7 +1957,7 @@
                 <!-- <param>Path=G:\VHDs</param> -->
                 <param>ControllerType=SCSI</param>
                 <param>SCSI=0,0,Dynamic,512,64TB</param>
-                <param>fileSystems=(ext4 xfs btrfs)</param>
+                <param>fileSystems=(xfs btrfs)</param>
                 <param>TC_COVERED=STOR-32-C</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
@@ -2862,79 +2860,6 @@
                 <param>VMMemory=4GB</param>
             </testParams>
             <timeout>700</timeout>
-        </test>
-
-
-<!-- FC Testing -->
-       <test>
-            <testName>FC_disks_detection</testName>
-            <testScript>FC_disks.sh</testScript>
-            <files>remote-scripts\ica\FC_disks.sh</files>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\FC_AddFibreChannelHba.ps1</file>
-            </setupScript>
-            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-            <timeout>3600</timeout>
-            <testParams>
-                <param>snapshotName=ICABase</param>
-                <param>TC_COVERED=FC-01,FC-02</param>
-                <param>vSANName=vFC</param>
-            </testParams>
-        </test>
-
-        <test>
-            <testName>FC_stressTest</testName>
-            <testScript>FC_stressTest.sh</testScript>
-            <files>remote-scripts\ica\FC_stressTest.sh</files>
-            <files>Tools/iozone3_420.tar</files>
-            <setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-            <timeout>7200</timeout>
-            <testParams>
-                <param>TC_COVERED=FC-04</param>
-                <param>vSANName=vFC</param>
-                <param>FILE_NAME=iozone3_420.tar</param>
-            </testParams>
-        </test>
-
-        <test>
-            <testName>FC_SaveRestore_VM</testName>
-            <testScript>FC_disks.sh</testScript>
-            <files>remote-scripts\ica\FC_disks.sh</files>
-            <setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-            <posttest>setupScripts\FC_SaveRestoreVM.ps1</posttest>
-            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-            <timeout>7200</timeout>
-            <testParams>
-                <param>TC_COVERED=FC-07</param>
-                <param>vSANName=vFC</param>
-            </testParams>
-        </test>
-
-        <test>
-            <testName>FC_disks_multipath_detection</testName>
-            <testScript>setupscripts\FC_MultipathDetection.ps1</testScript>
-            <setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-            <files>remote-scripts\ica\utils.sh</files>
-            <timeout>3600</timeout>
-            <testParams>
-                <param>TC_COVERED=FC-08</param>
-                <param>vSANName=vFC</param>
-            </testParams>
-        </test>
-
-        <test>
-            <testName>FC_WWN_basic</testName>
-            <testScript>setupScripts\FC_WWN.ps1</testScript>
-            <files>remote-scripts\ica\FC_WWN.sh,remote-scripts/ica/utils.sh</files>
-            <setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-            <timeout>800</timeout>
-            <testParams>
-                <param>TC_COVERED=FC-09</param>
-                <param>vSANName=vFC</param>
-            </testParams>
         </test>
 
     <!-- Production Checkpoint test suite -->
