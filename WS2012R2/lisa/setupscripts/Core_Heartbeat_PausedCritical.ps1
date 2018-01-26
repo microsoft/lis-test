@@ -35,7 +35,7 @@
     .Parameter testParams
     Test data for this test case
     .Example
-    setupScripts\PausedCritical.ps1 -vmName vm -hvServer localhost -testParams "DriveLetter=Z:;vhdpath=C:\TestVolume.vhdx;"
+    setupScripts\PausedCritical.ps1 -vmName vm -hvServer localhost -testParams "DriveLetter=Z:;"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -76,7 +76,6 @@ foreach ($p in $params)
     "rootDir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
     "TC_COVERED" { $tcCovered = $fields[1].Trim() }
-    "vhdpath" { $vhdpath = $fields[1].Trim() }
      default  {}
     }
 }
@@ -135,18 +134,32 @@ if(-not $ParentVHD)
 # Get VHD size
 $VHDSize = (Get-VHD -Path $ParentVHD -ComputerName $hvServer).FileSize
 [uint64]$newsize = [math]::round($VHDSize /1Gb, 1)
+$baseVhdPath = $(Get-VMHost).VirtualHardDiskPath
 $newsize = ($newsize * 1GB) + 1GB
+$foundName = $false
+
+# Check if VHD path exists and is being used by another process
+while(-not $foundName) {
+    $vhdName = $(-join ((48..57) + (97..122) | Get-Random -Count 10 | % {[char]$_}))
+    $vhdpath = "${baseVhdPath}${vhdName}.vhdx"
+    if(Test-Path $vhdpath) {   
+        try {
+            [IO.File]::OpenWrite($file).close()
+            Write-Host "Deleting existing VHD $vhdpath"
+            del $vhdpath
+            $foundName = $true
+        } catch {
+            $foundName = $false
+        }
+    } else {
+        $foundName = $true
+    }
+}
 
 Get-Partition -DriveLetter $driveletter[0] -ErrorAction SilentlyContinue
 if ($?)
 {
     Dismount-VHD -Path $vhdpath -ComputerName $hvServer -ErrorAction SilentlyContinue 
-}
-
-if ( Test-Path $vhdpath )
-{
-    Write-Host "Deleting existing VHD $vhdpath"
-    del $vhdpath
 }
 
 # Create the new partition
