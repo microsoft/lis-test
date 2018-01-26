@@ -185,7 +185,7 @@
             <testScript>SetupScripts\KVP_TestRescind.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
-            <noReboot>True</noReboot>
+            <noReboot>False</noReboot>
             <testparams>
                 <param>TC_COVERED=KVP-11</param>
                 <!-- Number of times to disable and reenable the KVP service -->
