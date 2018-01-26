@@ -93,6 +93,7 @@ function prepare_debian {
 
 function prepare_rhel {
     yum install -y curl
+    yum remove -y hypervvssd hypervkvpd hypervfcopyd hyperv-daemons
 }
 
 function install_kernel_debian {
@@ -107,7 +108,7 @@ function install_kernel_debian {
 }
 
 function install_kernel_rhel {
-    rpm -i *.rpm
+    yum -y install *.rpm
     if [[ $? -ne 0 ]];then
         msg="Error: rpm install failed."
         UpdateSummary $msg
