@@ -253,8 +253,8 @@ ApplyPatchesAndCompile() {
         yes "" | make oldconfig
 
         # Workaround: Enable HyperV Sock functionality. Otherwise, yes "" | make oldconfig won't set this
-        sed --in-place -e s:"CONFIG_HYPERV_SOCK=.*":"": ${CONFIG_FILE}
-        echo "CONFIG_HYPERV_SOCK=m" >> ${CONFIG_FILE}
+        sed --in-place -e s:"CONFIG_HYPER_VSOCKETS=.*":"": ${CONFIG_FILE}
+        echo "CONFIG_HYPER_VSOCKETS=m" >> ${CONFIG_FILE}
     fi
     UpdateSummary "make oldconfig: Success"
 
