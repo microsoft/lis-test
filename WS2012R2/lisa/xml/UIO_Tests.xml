@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+
+    <global>
+        <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <email>
+            <recipients>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS UIO test results on WS2012R2</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+        <suite>
+            <suiteName>UIO</suiteName>
+            <suiteTests>
+                <suiteTest>UIO_Basic</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+
+	<testCases>
+        <test>
+              <testName>UIO_Basic</testName>
+              <setupScript>setupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+              <testScript>UIO_Basic.sh</testScript>
+              <files>remote-scripts/ica/utils.sh,remote-scripts/ica/UIO_Basic.sh</files>
+              <testParams>
+                  <param>NIC=NetworkAdapter,None,InvalidNIC</param>
+                  <param>TC_COVERED=UIO-01</param>
+              </testParams>
+              <timeout>400</timeout>
+        </test>
+	</testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>VM_NAME</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>PKI_id_rsa.ppk</sshKey>
+            <suite>UIO</suite>
+        </vm>
+    </VMs>
+
+</config>
