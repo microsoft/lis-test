@@ -65,7 +65,7 @@ CheckVMFeatureSupportStatus()
 UtilsInit
 
 # Check kernel version
-CheckVMFeatureSupportStatus "3.10.0-610"
+CheckVMFeatureSupportStatus "3.10.0-692"
 if [ $? -ne 0 ]; then
     LogMsg "INFO: this kernel version does not support uio feature, skip test"
     UpdateSummary "INFO: this kernel version does not support uio feature, skip test"
