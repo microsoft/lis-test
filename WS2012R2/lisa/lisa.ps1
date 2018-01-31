@@ -997,6 +997,16 @@ function ValidateXMLFile ([String] $xmlFilename)
     ValidateUserXmlFile $xmlFilename
 }
 
+function StopChildProcesses
+{
+    # Get the PID of the Powershell window and stop all child processes after testing is done
+    $parentProcessPid = $PID
+    $children = Get-WmiObject WIN32_Process | where `
+        {$_.ParentProcessId -eq $parentProcessPid -and $_.Name -ne "conhost.exe"}
+        foreach ($child in $children) {
+            Stop-Process -Force $child.Handle -Confirm:$false -ErrorAction SilentlyContinue
+        }
+}
 
 ########################################################################
 #
@@ -1023,6 +1033,8 @@ switch ($cmdVerb)
         {
             $lisaExitCode = 2
         }
+        #Stop all processes started by automation during the test
+        StopChildProcesses
     }
 "validate" {
         $sts = ValidateXmlFile $cmdNoun
