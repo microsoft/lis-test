@@ -385,11 +385,11 @@ foreach ($p in $params)
     # a parameter has the form of var_name = 'value'
     # here we parse and split the paramters to ensure that a parameter
     # does contain a value.
-	$p -match'^([^=]+)=(.+)' > $nul
+    $p -match '^([^=]+)=(.+)' | Out-Null
     if ($Matches[1,2].Length -ne 2)
     {
-    "Warn : test parameter '$p' is being ignored because it appears to be malformed"
-    continue
+        "Warn : test parameter '$p' is being ignored because it appears to be malformed"
+        continue
     }
 
     # Matches[1] represents the parameter name
