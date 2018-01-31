@@ -25,6 +25,7 @@
         <suiteTests>
             <suiteTest>InstallKernel</suiteTest>
             <suiteTest>VMHeartbeat</suiteTest>
+            <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
         </suiteTests>
     </suite>
     </testSuites>
@@ -38,6 +39,7 @@
             <onError>Abort</onError>
             <noReboot>False</noReboot>
         </test>
+        
         <test>
             <testName>VMHeartBeat</testName>
             <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
@@ -48,6 +50,24 @@
             <onError>Continue</onError>
             <noReboot>True</noReboot>
         </test>
+        
+            <test>
+        <testName>VHDx_MultiDiskSCSI_Dynamic</testName>
+        <testScript>STOR_Lis_Disk.sh</testScript>
+        <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+        <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+        <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+        <timeout>3600</timeout>
+        <testparams>
+            <param>SCSI=0,0,Dynamic,512</param>
+            <param>SCSI=0,1,Dynamic,512</param>
+            <param>SCSI=0,2,Dynamic,512</param>
+            <param>fileSystems=(ext4 xfs)</param>
+            <param>TC_COVERED=STOR-23,STOR-28</param>
+        </testparams>
+        <onError>Continue</onError>
+    </test>
     </testCases>
 
     <VMs>
