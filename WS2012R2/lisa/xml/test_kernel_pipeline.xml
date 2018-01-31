@@ -67,6 +67,7 @@
             <param>TC_COVERED=STOR-23,STOR-28</param>
         </testparams>
         <onError>Continue</onError>
+        <noReboot>False</noReboot>
     </test>
     </testCases>
 
