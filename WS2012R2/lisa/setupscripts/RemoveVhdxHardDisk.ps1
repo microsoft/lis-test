@@ -358,7 +358,7 @@ foreach ($p in $params)
     # a parameter has the form of var_name = 'value'
     # here we parse and split the paramters to ensure that a parameter
     # does contain a value.
-    $p -match'^([^=]+)=(.+)' > $nul
+    $p -match '^([^=]+)=(.+)' | Out-Null
     if ($Matches[1,2].Length -ne 2)
     {
         "Error: bad test parameter: $p"
