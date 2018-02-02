@@ -61,7 +61,6 @@
             <param>startupMem=2048MB</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>generation=1</param>
         </testParams>
         <timeout>800</timeout>
         </test>

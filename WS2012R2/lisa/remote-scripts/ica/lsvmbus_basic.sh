@@ -93,7 +93,8 @@ if [ -z $lsvmbus_path ]; then
     exit 1
 fi
 
-if [ "$generation" -eq "1" ]; then
+GetGuestGeneration
+if [ "$os_GENERATION" -eq "1" ]; then
     tokens+=("Synthetic IDE Controller")
 fi
 
