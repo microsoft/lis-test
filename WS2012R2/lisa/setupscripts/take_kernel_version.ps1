@@ -118,10 +118,10 @@ if ($hash.rhel68[0] -notmatch $latest_rhel68){
     echo "New kernel RHEL68: $($hash.rhel68[0]) \n \`r`nPrevious kernel RHEL68: $latest_rhel68 \n\n \" >> env.properties
     $latest_rhel68=$hash.rhel68[0]}
 if ($hash.rhel67[0] -notmatch $latest_rhel67){
-    echo "New kernel RHEL67: $($hash.rhel67[0]) \n \`r`nPrevious kernel RHEL67: $latest_rhel67 n\\n \" >> env.properties
+    echo "New kernel RHEL67: $($hash.rhel67[0]) \n \`r`nPrevious kernel RHEL67: $latest_rhel67 \n\n \" >> env.properties
     $latest_rhel67=$hash.rhel67[0]}
 if ($hash.rhel66[0] -notmatch $latest_rhel66){
-    echo "New kernel RHEL66: $($hash.rhel66[0]) \n \`r`nPrevious kernel RHEL66: $latest_rhel66 n\\n \" >> env.properties
+    echo "New kernel RHEL66: $($hash.rhel66[0]) \n \`r`nPrevious kernel RHEL66: $latest_rhel66 \n\n \" >> env.properties
     $latest_rhel66=$hash.rhel66[0]}
 if ($hash.rhel65[0] -notmatch $latest_rhel65){
     echo "New kernel RHEL65: $($hash.rhel65[0]) \n \`r`nPrevious kernel RHEL65: $latest_rhel65 \n\n \" >> env.properties
