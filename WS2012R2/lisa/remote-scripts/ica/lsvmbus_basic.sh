@@ -84,6 +84,10 @@ case $DISTRO in
     ;;
 esac
 
+if [[ "$DISTRO" =~ "redhat" ]] || [[ "$DISTRO" =~ "centos" ]]; then
+    yum install -y hyperv-tools
+fi
+
 # check if lsvmbus exists
 lsvmbus_path=`which lsvmbus`
 if [ -z $lsvmbus_path ]; then
