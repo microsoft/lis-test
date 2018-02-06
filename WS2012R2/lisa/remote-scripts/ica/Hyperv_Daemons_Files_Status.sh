@@ -152,10 +152,11 @@ CheckVMFeatureSupportStatus()
   do
       if [ ${kernel_array[$n]} -gt ${specifiedKernel_array[$n]} ];then
           return 0
+      elif [ ${kernel_array[$n]} -lt ${specifiedKernel_array[$n]} ];then
+          return 1
       fi
   done
-
-  return 1
+  return 0
 }
 
 #######################################################################
@@ -174,7 +175,7 @@ CheckDaemonsFilesRHEL7()
 
   # for rhel7.3+(kernel-3.10.0-514), no need to check 90-default.preset
   local kernel=$(uname -r)
-  CheckVMFeatureSupportStatus "3.10.0-513"
+  CheckVMFeatureSupportStatus "3.10.0-514"
 
   if [ $? -ne 0 ]; then
     LogMsg "INFO: Check 90-default.preset for $kernel"
