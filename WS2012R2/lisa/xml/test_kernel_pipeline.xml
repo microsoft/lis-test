@@ -48,7 +48,7 @@
             </testParams>
             <timeout>600</timeout>
             <onError>Continue</onError>
-            <noReboot>True</noReboot>
+            <noReboot>False</noReboot>
         </test>
         
             <test>
