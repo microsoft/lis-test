@@ -32,33 +32,6 @@ dos2unix utils.sh
 }
 
 #######################################################################
-# Check kernel version is newer than the specified version
-# if return 0, the current kernel version is newer than specified version
-# else, the current kernel version is older than specified version
-#######################################################################
-CheckVMFeatureSupportStatus()
-{
-    specifiedKernel=$1
-    if [ $specifiedKernel == "" ];then
-        return 1
-    fi
-    # for example 3.10.0-514.el7.x86_64
-    # get kernel version array is (3 10 0 514)
-    local kernel_array=(`uname -r | awk -F '[.-]' '{print $1,$2,$3,$4}'`)
-    local specifiedKernel_array=(`echo $specifiedKernel | awk -F '[.-]' '{print $1,$2,$3,$4}'`)
-    local index=${!kernel_array[@]}
-    local n=0
-    for n in $index
-    do
-        if [ ${kernel_array[$n]} -gt ${specifiedKernel_array[$n]} ];then
-            return 0
-        fi
-    done
-
-    return 1
-}
-
-#######################################################################
 # Pre-settings & Functions
 #######################################################################
 
