@@ -2114,6 +2114,9 @@ function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$su
 		if ($ckernel[$i] -lt $sKernel[$i] ) {
 			return $false
 		}
+		if ($ckernel[$i] -gt $sKernel[$i] ) {
+			return $true
+		}
 	}
 	return $true
 }
