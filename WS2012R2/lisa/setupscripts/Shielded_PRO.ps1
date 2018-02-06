@@ -378,7 +378,6 @@ function Provision_VM ([string] $GH_IP, $gh_creds, [string] $change_fsk)
 				Start-Sleep -Seconds 30
 			}
 		}
-		
 		return $sts
 		}
 	
@@ -408,7 +407,6 @@ function Get_VM_ipv4 ([string] $GH_IP, $gh_creds)
 
 function Verify_provisioned_VM([string]$vm_ipv4, [string]$sshKey)
 {
-	Restart-Service WinRm -Force
 	# Command that verifies call traces in system logs
 	$cmd_trace = '[[ -f "/var/log/syslog" ]] && logfile="/var/log/syslog" || logfile=/var/log/messages && cat $logfile | grep Call'
 	
