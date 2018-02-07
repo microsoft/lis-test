@@ -434,9 +434,9 @@ if ($cleanDependency -ne $null) {
 if ($vm2_is_configured -eq $false) {
     if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like "Running" }) {
 
-        Stop-VM $vm2Name  -ComputerName $remoteServer -force
+        Stop-VM $vm2Name -ComputerName $remoteServer -TurnOff -Force
         if (-not $?) {
-            "ERROR: Failed to shut $vm2Name down (in order to add a new network Adapter)"
+            "ERROR: Failed to shutdown $vm2Name (in order to add a new network Adapter)"
             return $false
         }
 
