@@ -212,7 +212,7 @@ class AzureConnector:
                 self.group_name, vm_name, vm_parameters)
         vm_creation.wait()
         vm_instance = self.compute_client.virtual_machines.get(self.group_name, vm_name)
-        log.info('Created VM: {}'.format(vm_instance))
+        log.info('Created VM: {}'.format(vm_name))
         vm_start = self.compute_client.virtual_machines.start(self.group_name, vm_name)
         vm_start.wait()
         log.info('Started VM: {}'.format(vm_name))
@@ -292,9 +292,10 @@ class AzureConnector:
                      'priority': 1001})
             log.info('Adding custom security group to NIC')
             nic_parameters['network_security_group'] = create_nsg.result()
+        nic_name = self.nic_name + str(time.time())
         nic_op = self.network_client.network_interfaces.create_or_update(
-                self.group_name, self.nic_name + str(time.time()), nic_parameters)
-        log.info(nic_op.result())
+                self.group_name, nic_name, nic_parameters)
+        log.info('Created NIC: {}'.format(nic_name))
         return nic_op.result()
 
     def attach_disk(self, vm_instance, disk_size, lun=0):

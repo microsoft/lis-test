@@ -188,7 +188,8 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
     e = create_engine('mssql+pyodbc://{}:{}@{}/{}?driver={}'.format(
             config.get('Credentials', 'User'), config.get('Credentials', 'Password'),
             config.get('Credentials', 'Server'), config.get('Credentials', 'Database'),
-            config.get('Credentials', 'Driver'), poolclass=NullPool, echo=True))
+            config.get('Credentials', 'Driver'), poolclass=NullPool, convert_unicode=True,
+            echo=True))
     metadata = MetaData(bind=e)
 
     table_columns = [column for column in COLUMNS if column['name'] in test_results[0]]
