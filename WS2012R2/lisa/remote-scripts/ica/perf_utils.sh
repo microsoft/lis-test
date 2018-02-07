@@ -60,22 +60,11 @@ function setup_sysctl {
         echo "$param = ${sysctl_params[$param]}" >> ${sysctl_file} || return 1
     done
     sysctl -p ${sysctl_file}
+    if [ -f /etc/systemd/system.conf ]; then
+        sudo sed -i '/DefaultTasksMax/c\DefaultTasksMax=122880' /etc/systemd/system.conf
+    fi
     return $?
 }
-
-function setup_sysctl {
-    sudo sed -i '/DefaultTasksMax/c\DefaultTasksMax=12288' /etc/systemd/system.conf
-    for param in "${!sysctl_tcp_params[@]}"; do
-        grep -q "$param" ${sysctl_file} && \
-        sed -i 's/^'"$param"'.*/'"$param"' = '"${sysctl_tcp_params[$param]}"'/' \
-            ${sysctl_file} || \
-        echo "$param = ${sysctl_tcp_params[$param]}" >> ${sysctl_file} || return 1
-    done
-    sysctl -p ${sysctl_file}
-    sudo sed -i '/DefaultTasksMax/c\DefaultTasksMax=122880' /etc/systemd/system.conf
-    return $?
-}
-setup_sysctl
 
 # change i/o scheduler to noop on each disk - does not persist after reboot
 function setup_io_scheduler {
@@ -114,7 +103,8 @@ fi
 function setup_ntttcp {
     if [ "$(which ntttcp)" == "" ]; then
       rm -rf ntttcp-for-linux
-      git clone https://github.com/Microsoft/ntttcp-for-linux
+      #git clone https://github.com/Microsoft/ntttcp-for-linux
+      git clone https://github.com/mihaico/ntttcp-for-linux
       status=$?
       if [ $status -eq 0 ]; then
         echo "ntttcp-for-linux successfully downloaded." >> ~/summary.log
@@ -476,7 +466,7 @@ function fio_raid {
                 log_file="/root/${LOG_FOLDER}/${current_io_size}K-${current_q_depth}-${current_io_mode}.fio.log"
                 echo "FIO TEST COMMAND:" > ${log_file}
                 echo "fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=120 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting" >> ${log_file}
-                      fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=120 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting  >> ${log_file}
+                fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=120 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting  >> ${log_file}
                 sleep 1
                 io_mode_index=$(($io_mode_index + 1))
             done
