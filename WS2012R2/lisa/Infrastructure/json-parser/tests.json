@@ -1,0 +1,22 @@
+[
+    {
+        "testID":  "LSVM-Install",
+        "kernelVersion":  "4.4.0-87-generic",
+        "distroName":  "Ubuntu 16.04 ",
+        "testName":  "Preparation tasks for LSVM-PRE testing",
+        "testDate":  "2018-02-06 10:07:58",
+        "windowsVersion":  "10.0.16299",
+        "testResult":  "Passed",
+        "testDuration":  103
+    },
+    {
+        "testID":  "LSVM-Prepare_TDC",
+        "kernelVersion":  "4.4.0-87-generic",
+        "distroName":  "Ubuntu 16.04 ",
+        "testName":  "Prepare VM for TDC testing",
+        "testDate":  "2018-02-06 10:07:58",
+        "windowsVersion":  "10.0.16299",
+        "testResult":  "Passed",
+        "testDuration":  83
+    }
+]

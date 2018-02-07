@@ -98,7 +98,8 @@ Describe "Preparation tasks for LSVM-PRE testing" {
             3. Install LSVMTools
             4. Take a snapshot" {
     
-        It "LSVM-Install" {           
+        It "LSVM-Install" {
+            CleanupDependency 'Shielded_PRE-TDC'           
 			Create_Test_VM $CLImageStorDir | Should be $true
 
             $ipv4 = AttachDecryptVHDx $decrypt_vhd_folder
