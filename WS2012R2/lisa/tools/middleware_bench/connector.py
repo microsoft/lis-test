@@ -174,6 +174,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                 for i in xrange(2, vm_count + 1):
                     log.info('Created disk: {}'.format(connector.attach_disk(vms[i], disk_size)))
 
+            open(connector.host_key_file, 'w').close()
             for i in xrange(1, vm_count + 1):
                 ssh_client[i] = SSHClient(server=vms[i].name + connector.dns_suffix,
                                           host_key_file=connector.host_key_file,
