@@ -328,10 +328,10 @@ function fio_single_disk {
 
     fi
 
-	echo "Creating log folder..."
+    echo "Creating log folder..."
     mkdir /root/${LOG_FOLDER}
 
-        # Run FIO with block size 8k and iodepth 1
+    # Run FIO with block size 8k and iodepth 1
     /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1q.log
 
     # Run FIO with block size 8k and iodepth 2
@@ -365,14 +365,6 @@ function fio_single_disk {
     # Run FIO with block size 8k and iodepth 256
     sed --in-place=.orig -e s:"iodepth=128":"iodepth=256": /root/${FIO_SCENARIO_FILE}
     /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-256q.log
-
-    # Run FIO with block size 8k and iodepth 512
-    sed --in-place=.orig -e s:"iodepth=256":"iodepth=512": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-512q.log
-
-    # Run FIO with block size 8k and iodepth 1024
-    sed --in-place=.orig -e s:"iodepth=512":"iodepth=1024": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1024q.log
 
     cd /root
     zip -r ${LOG_FOLDER}.zip ${LOG_FOLDER}/*
@@ -465,8 +457,8 @@ function fio_raid {
                 echo "        Running IO test = ${current_io_mode}"
                 log_file="/root/${LOG_FOLDER}/${current_io_size}K-${current_q_depth}-${current_io_mode}.fio.log"
                 echo "FIO TEST COMMAND:" > ${log_file}
-                echo "fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=120 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting" >> ${log_file}
-                fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=120 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting  >> ${log_file}
+                echo "fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=60 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting" >> ${log_file}
+                fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=60 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting  >> ${log_file}
                 sleep 1
                 io_mode_index=$(($io_mode_index + 1))
             done
