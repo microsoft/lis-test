@@ -85,7 +85,6 @@
             <suiteTest>VHDxResizeGrowOver2TB_Shrink_SCSI_Online</suiteTest>
             <suiteTest>VHDxResizeGrowOver2TB_Shrink_SCSI_Offline</suiteTest>
             <suiteTest>VHDxResizeGrowOver2TB_Shrink_IDE</suiteTest>
-            <suiteTest>VHDxResize_Live_Migration</suiteTest>
 
             <suiteTest>NMI_Verify_Interrupt</suiteTest>
             <suiteTest>NMI_different_vmStates</suiteTest>
@@ -204,7 +203,7 @@
             <testName>InstallKernel</testName>
             <testScript>install_kernel.sh</testScript>
             <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
-            <timeout>1500</timeout>
+            <timeout>2500</timeout>
             <onError>Abort</onError>
             <noReboot>False</noReboot>
         </test>
@@ -507,8 +506,7 @@
             <testScript>SetupScripts\Core_Heartbeat_PausedCritical.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=CORE-32</param>
-                <param>DriveLetter=Z:</param>
-                <param>vhdpath=C:\TestVolume.vhdx</param>
+                <param>DriveLetter=K:</param>
             </testParams>
             <timeout>1200</timeout>
             <cleanupScript>SetupScripts\Core_Heartbeat_Cleanup.ps1</cleanupScript>
@@ -664,7 +662,7 @@
             <files>tools/KVP/kvp_client64, tools/KVP/kvp_client32</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
-            <noReboot>True</noReboot>
+            <noReboot>False</noReboot>
             <testparams>
                 <param>TC_COVERED=KVP-12</param>
                 <param>Pool=1</param>
@@ -2634,7 +2632,7 @@
                 <param>TC_COVERED=FCopy-01</param>
             </testParams>
             <onError>Continue</onError>
-            <noReboot>True</noReboot>
+            <noReboot>False</noReboot>
         </test>
 
         <test>
