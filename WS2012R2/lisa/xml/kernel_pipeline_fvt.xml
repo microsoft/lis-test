@@ -23,177 +23,183 @@
     <suite>
         <suiteName>kernel_validation</suiteName>
         <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
-            <suiteTest>MainVM_Checkpoint</suiteTest>
-            <suiteTest>DependencyVM_Checkpoint</suiteTest>
+		<suiteTest>InstallKernel</suiteTest>
+		<suiteTest>MainVM_Checkpoint</suiteTest>
+		<suiteTest>DependencyVM_Checkpoint</suiteTest>
 
-            <suiteTest>VMHeartbeat</suiteTest>
-            <suiteTest>Verify_LISModules_Version</suiteTest>
-            <suiteTest>Verify_LIS_Modules</suiteTest>
-            <suiteTest>initrd_modules_check</suiteTest>
-            <suiteTest>check_clocksource</suiteTest>
-            <suiteTest>TimeSync</suiteTest>
-            <suiteTest>TimeSync_NTP</suiteTest>
-            <suiteTest>TimeSync_SavedVM</suiteTest>
-            <suiteTest>TimeSync_PausedVM</suiteTest>
-            <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
+		<suiteTest>VMHeartbeat</suiteTest>
+		<suiteTest>Verify_LISModules_Version</suiteTest>
+		<suiteTest>Verify_LIS_Modules</suiteTest>
+		<suiteTest>initrd_modules_check</suiteTest>
+		<suiteTest>check_clocksource</suiteTest>
+		<suiteTest>TimeSync</suiteTest>
+		<suiteTest>TimeSync_NTP</suiteTest>
+		<suiteTest>TimeSync_SavedVM</suiteTest>
+		<suiteTest>TimeSync_PausedVM</suiteTest>
+		<suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
 
-            <suiteTest>StressReloadModules</suiteTest>
-            <suiteTest>LISShutdownVM</suiteTest>
-            <suiteTest>Multi_Cpu_Test</suiteTest>
-            <suiteTest>VCPU_verify_online</suiteTest>
-            <suiteTest>VerifyIntegratedShutdownService</suiteTest>
-            <suiteTest>RebootDifferentMemSettings</suiteTest>
-            <suiteTest>CheckNuma</suiteTest>
-            <suiteTest>CheckNuma_Maximum</suiteTest>
-            <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
-            <suiteTest>PausedCritical_Heartbeat</suiteTest>
+		<suiteTest>StressReloadModules</suiteTest>
+		<suiteTest>LISShutdownVM</suiteTest>
+		<suiteTest>Multi_Cpu_Test</suiteTest>
+		<suiteTest>VCPU_verify_online</suiteTest>
+		<suiteTest>VerifyIntegratedShutdownService</suiteTest>
+		<suiteTest>RebootDifferentMemSettings</suiteTest>
+		<suiteTest>CheckNuma</suiteTest>
+		<suiteTest>CheckNuma_Maximum</suiteTest>
+		<suiteTest>Disable_NUMA_By_Kernel</suiteTest>
+		<suiteTest>PausedCritical_Heartbeat</suiteTest>
 
-            <suiteTest>SQM_Basic</suiteTest>
-            <suiteTest>KVP_Basic</suiteTest>
-            <suiteTest>KVP_Add_Key_Values</suiteTest>
-            <suiteTest>KVP_Modify_Key_Values</suiteTest>
-            <suiteTest>KVP_Remove_Key_Values</suiteTest>
-            <suiteTest>KVP_Push_Key_Values</suiteTest>
-            <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
-            <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
-            <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
-            <suiteTest>KVP_TestRescind</suiteTest>
-            <suiteTest>KVP_Max_Read</suiteTest>
+		<suiteTest>SQM_Basic</suiteTest>
+		<suiteTest>KVP_Basic</suiteTest>
+		<suiteTest>KVP_Add_Key_Values</suiteTest>
+		<suiteTest>KVP_Modify_Key_Values</suiteTest>
+		<suiteTest>KVP_Remove_Key_Values</suiteTest>
+		<suiteTest>KVP_Push_Key_Values</suiteTest>
+		<suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
+		<suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+		<suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
+		<suiteTest>KVP_TestRescind</suiteTest>
+		<suiteTest>KVP_Max_Read</suiteTest>
 
-            <suiteTest>FCOPY_basic</suiteTest>
-            <suiteTest>FCOPY_file_exists</suiteTest>
-            <suiteTest>FCOPY_overwrite</suiteTest>
-            <suiteTest>FCOPY_large_file</suiteTest>
-            <suiteTest>FCOPY_non_ascii</suiteTest>
-            <suiteTest>FCOPY_repeat</suiteTest>
-            <suiteTest>FCOPY_disableEnable</suiteTest>
+		<suiteTest>FCOPY_basic</suiteTest>
+		<suiteTest>FCOPY_file_exists</suiteTest>
+		<suiteTest>FCOPY_overwrite</suiteTest>
+		<suiteTest>FCOPY_large_file</suiteTest>
+		<suiteTest>FCOPY_non_ascii</suiteTest>
+		<suiteTest>FCOPY_repeat</suiteTest>
+		<suiteTest>FCOPY_disableEnable</suiteTest>
 
-            <suiteTest>VHDxResizeToBigger512</suiteTest>
-            <suiteTest>VHDxResizeToBigger4096</suiteTest>
-            <suiteTest>VHDxResizeToBigger512_Dynamic_IDE</suiteTest>
-            <suiteTest>VHDxResizeToBigger512_Fixed_IDE</suiteTest>
-            <suiteTest>VHDxResizeToSmaller512</suiteTest>
-            <suiteTest>VHDxResizeToSmaller4096</suiteTest>
-            <suiteTest>VHDxResizeGrowShrink_SCSI</suiteTest>
-            <suiteTest>VHDxResizeGrowShrink_IDE</suiteTest>
-            <suiteTest>VHDxResizeGrowShrink_SCSI_Offline</suiteTest>
-            <suiteTest>VHDxResizeGrowFilesystem512</suiteTest>
-            <suiteTest>VHDxResizeGrowFilesystem4096</suiteTest>
-            <suiteTest>VHDxResizeOver2TB_SCSI</suiteTest>
-            <suiteTest>VHDxResizeOver2TB_IDE</suiteTest>
-            <suiteTest>VHDxResizeGrowOver2TB_Shrink_SCSI_Online</suiteTest>
-            <suiteTest>VHDxResizeGrowOver2TB_Shrink_SCSI_Offline</suiteTest>
-            <suiteTest>VHDxResizeGrowOver2TB_Shrink_IDE</suiteTest>
+		<suiteTest>VHDxResizeToBigger512</suiteTest>
+		<suiteTest>VHDxResizeToBigger4096</suiteTest>
+		<suiteTest>VHDxResizeToBigger512_Dynamic_IDE</suiteTest>
+		<suiteTest>VHDxResizeToBigger512_Fixed_IDE</suiteTest>
+		<suiteTest>VHDxResizeToSmaller512</suiteTest>
+		<suiteTest>VHDxResizeToSmaller4096</suiteTest>
+		<suiteTest>VHDxResizeGrowShrink_SCSI</suiteTest>
+		<suiteTest>VHDxResizeGrowShrink_IDE</suiteTest>
+		<suiteTest>VHDxResizeGrowShrink_SCSI_Offline</suiteTest>
+		<suiteTest>VHDxResizeGrowFilesystem512</suiteTest>
+		<suiteTest>VHDxResizeGrowFilesystem4096</suiteTest>
+		<suiteTest>VHDxResizeOver2TB_SCSI</suiteTest>
+		<suiteTest>VHDxResizeOver2TB_IDE</suiteTest>
+		<suiteTest>VHDxResizeGrowOver2TB_Shrink_SCSI_Online</suiteTest>
+		<suiteTest>VHDxResizeGrowOver2TB_Shrink_SCSI_Offline</suiteTest>
+		<suiteTest>VHDxResizeGrowOver2TB_Shrink_IDE</suiteTest>
 
-            <suiteTest>NMI_Verify_Interrupt</suiteTest>
-            <suiteTest>NMI_different_vmStates</suiteTest>
+		<suiteTest>NMI_Verify_Interrupt</suiteTest>
+		<suiteTest>NMI_different_vmStates</suiteTest>
 
 		<suiteTest>VMBus_protocol_version</suiteTest>
 		<suiteTest>VMBus_verify_interrupts</suiteTest>
 		<suiteTest>VMBus_PanicNotifier</suiteTest>
 		<suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
 
-            <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
-            <suiteTest>VHDx_IDE_0_1_Fixed</suiteTest>
-            <suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest>
-            <suiteTest>VHDx_AddDiff_Disk_IDE</suiteTest>
-            <suiteTest>VHDx_AddDiff_Disk_SCSI</suiteTest>
-            <suiteTest>VHDx_HotADD_Multi_Dynamic_SCSI</suiteTest>
-            <suiteTest>VHDx_HotRemove_Multi_Dynamic_SCSI</suiteTest>
-            <suiteTest>VHDx_HotADD_Dynamic_SCSI_SMP</suiteTest>
-            <suiteTest>VHDx_HotRemove_Dynamic_SCSI_SMP</suiteTest>
-            <suiteTest>VHDx_DiskHotPlugUnplug</suiteTest>
-            <suiteTest>VHDx_DiskHotPlugUnplug_Multi_SCSI</suiteTest>
-            <suiteTest>VHDx_4k_IDE_0_1_Dynamic</suiteTest>
-            <suiteTest>VHDx_4k_MultiDiskSCSI_Dynamic</suiteTest>
-            <suiteTest>VHDx_4k_IDE_0_1_Fixed</suiteTest>
-            <suiteTest>VHDx_4k_MultiDiskSCSI_Fixed</suiteTest>
-            <suiteTest>VHDx_4k_HotADD_Multi_Dynamic_SCSI</suiteTest>
-            <suiteTest>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</suiteTest>
-            <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
-            <!-- Test case VHDx_SCSI_0_1_Dynamic_Large_64TB requires a 64bit virtual machine -->
-            <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
-            <suiteTest>VHDx_SCSI_Dynamic_Local_Copy_File</suiteTest>
-            <suiteTest>VHDx_Verify_SectorSize</suiteTest>
+		<suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
+		<suiteTest>VHDx_IDE_0_1_Fixed</suiteTest>
+		<suiteTest>VHDx_MultiDiskSCSI_Fixed</suiteTest>
+		<suiteTest>VHDx_AddDiff_Disk_IDE</suiteTest>
+		<suiteTest>VHDx_AddDiff_Disk_SCSI</suiteTest>
+		<suiteTest>VHDx_HotADD_Multi_Dynamic_SCSI</suiteTest>
+		<suiteTest>VHDx_HotRemove_Multi_Dynamic_SCSI</suiteTest>
+		<suiteTest>VHDx_HotADD_Dynamic_SCSI_SMP</suiteTest>
+		<suiteTest>VHDx_HotRemove_Dynamic_SCSI_SMP</suiteTest>
+		<suiteTest>VHDx_DiskHotPlugUnplug</suiteTest>
+		<suiteTest>VHDx_DiskHotPlugUnplug_Multi_SCSI</suiteTest>
+		<suiteTest>VHDx_4k_IDE_0_1_Dynamic</suiteTest>
+		<suiteTest>VHDx_4k_MultiDiskSCSI_Dynamic</suiteTest>
+		<suiteTest>VHDx_4k_IDE_0_1_Fixed</suiteTest>
+		<suiteTest>VHDx_4k_MultiDiskSCSI_Fixed</suiteTest>
+		<suiteTest>VHDx_4k_HotADD_Multi_Dynamic_SCSI</suiteTest>
+		<suiteTest>VHDx_4k_HotRemove_Multi_Dynamic_SCSI</suiteTest>
+		<suiteTest>VHDx_SCSI_0_1_Dynamic_Large_16TB</suiteTest>
+		<!-- Test case VHDx_SCSI_0_1_Dynamic_Large_64TB requires a 64bit virtual machine -->
+		<suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
+		<suiteTest>VHDx_SCSI_Dynamic_Local_Copy_File</suiteTest>
+		<suiteTest>VHDx_Verify_SectorSize</suiteTest>
 
-            <suiteTest>VHD_MultiDisk_SCSI_Dynamic</suiteTest>
-            <suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
-            <suiteTest>VHD_MultiDisk_SCSI_Fixed</suiteTest>
-            <suiteTest>VHD_AddDiff_Disk_IDE</suiteTest>
-            <suiteTest>VHD_AddDiff_Disk_SCSI</suiteTest>
-            <suiteTest>VHD_HotADD_Multi_Dynamic_SCSI</suiteTest>
-            <suiteTest>VHD_HotRemove_Multi_Dynamic_SCSI</suiteTest>
-            <suiteTest>VHD_HotADD_Dynamic_SCSI_SMP</suiteTest>
-            <suiteTest>VHD_HotRemove_Dynamic_SCSI_SMP</suiteTest>
-            <suiteTest>VHD_SCSI_0_1_Format_btrfs</suiteTest>
-            <suiteTest>VHD_SCSI_0_1_Dynamic_Large_Disk</suiteTest>
-            <suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest>
-            <suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest>
-            <suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
-            <suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest>
+		<suiteTest>VHD_MultiDisk_SCSI_Dynamic</suiteTest>
+		<suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
+		<suiteTest>VHD_MultiDisk_SCSI_Fixed</suiteTest>
+		<suiteTest>VHD_AddDiff_Disk_IDE</suiteTest>
+		<suiteTest>VHD_AddDiff_Disk_SCSI</suiteTest>
+		<suiteTest>VHD_HotADD_Multi_Dynamic_SCSI</suiteTest>
+		<suiteTest>VHD_HotRemove_Multi_Dynamic_SCSI</suiteTest>
+		<suiteTest>VHD_HotADD_Dynamic_SCSI_SMP</suiteTest>
+		<suiteTest>VHD_HotRemove_Dynamic_SCSI_SMP</suiteTest>
+		<suiteTest>VHD_SCSI_0_1_Format_btrfs</suiteTest>
+		<suiteTest>VHD_SCSI_0_1_Dynamic_Large_Disk</suiteTest>
+		<suiteTest>VHD_AddPassThrough_Disk_IDE_0_1</suiteTest>
+		<suiteTest>VHD_AddPassThrough_MultiDisk_SCSI</suiteTest>
+		<suiteTest>HotADD_Multi_PassThrough_SCSI</suiteTest>
+		<suiteTest>HotRemove_Multi_PassThrough_SCSI</suiteTest>
 
-            <!-- WS 2016 TESTS -->
-            <suiteTest>Runtime_Mem_HotAdd</suiteTest>      
-            <suiteTest>Runtime_Mem_HotRemove</suiteTest> 
-            <suiteTest>Runtime_Mem_SmallIncrease128</suiteTest>  
-            <suiteTest>Runtime_Mem_SmallDecrease128</suiteTest> 
-            <suiteTest>Runtime_Mem_SmallIncrease100</suiteTest>  
-            <suiteTest>Runtime_Mem_SmallDecrease100</suiteTest>
-            <suiteTest>Runtime_Mem_MultipleAddRemove</suiteTest>
-            <suiteTest>Runtime_Mem_StressHotRemove</suiteTest>
-            <suiteTest>Runtime_Mem_HotAdd_Reboot</suiteTest>
+		<!-- WS 2016 TESTS -->
+		<suiteTest>Runtime_Mem_HotAdd</suiteTest>      
+		<suiteTest>Runtime_Mem_HotRemove</suiteTest> 
+		<suiteTest>Runtime_Mem_SmallIncrease128</suiteTest>  
+		<suiteTest>Runtime_Mem_SmallDecrease128</suiteTest> 
+		<suiteTest>Runtime_Mem_SmallIncrease100</suiteTest>  
+		<suiteTest>Runtime_Mem_SmallDecrease100</suiteTest>
+		<suiteTest>Runtime_Mem_MultipleAddRemove</suiteTest>
+		<suiteTest>Runtime_Mem_StressHotRemove</suiteTest>
+		<suiteTest>Runtime_Mem_HotAdd_Reboot</suiteTest>
 
-            <suiteTest>ProductionCheckpoint</suiteTest>   
-            <suiteTest>ProductionCheckpoint_Failback</suiteTest>
-            <suiteTest>ProductionCheckpoint_ext4</suiteTest>
-            <suiteTest>ProductionCheckpoint_btrfs</suiteTest>
-            <suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
-            <suiteTest>ProductionCheckpoint_SCSI_vhdx</suiteTest>
-            <suiteTest>ProductionCheckpoint_ISO_NoNetwork</suiteTest> 
+		<suiteTest>ProductionCheckpoint</suiteTest>   
+		<suiteTest>ProductionCheckpoint_Failback</suiteTest>
+		<suiteTest>ProductionCheckpoint_ext4</suiteTest>
+		<suiteTest>ProductionCheckpoint_btrfs</suiteTest>
+		<suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
+		<suiteTest>ProductionCheckpoint_SCSI_vhdx</suiteTest>
+		<suiteTest>ProductionCheckpoint_ISO_NoNetwork</suiteTest> 
 
-            <suiteTest>External</suiteTest>
-            <suiteTest>InternalNetwork</suiteTest>
-            <suiteTest>GuestOnlyNetwork</suiteTest>
-            <suiteTest>MultipleNIC</suiteTest>
-            <suiteTest>LegacySyntheticNetwork</suiteTest>
-            <suiteTest>NetworkMode</suiteTest>
-            <suiteTest>ChangeNetTypeInternal</suiteTest>
-            <suiteTest>ChangeNetTypeGuest</suiteTest>
-            <suiteTest>JumboFrame</suiteTest>
-            <suiteTest>OperState</suiteTest>
-            <suiteTest>CopyLargeFile</suiteTest>
-            <suiteTest>CopyFileDifferentMTU</suiteTest>
-            <suiteTest>CopyBothWays</suiteTest>
-            <suiteTest>VlanTagging</suiteTest>
-            <suiteTest>VlanTrunking</suiteTest>
-            <suiteTest>Network_Hang_Vxlan</suiteTest>
-            <suiteTest>CopyFileScp</suiteTest>
-            <suiteTest>CheckKeywithEthtool</suiteTest>
-            <suiteTest>MaxSyntheticNIC</suiteTest>
-            <suiteTest>MaxLegacyNIC</suiteTest>
-            <suiteTest>MaxNIC</suiteTest>
-            <suiteTest>TCP_Corruption</suiteTest>
-            <suiteTest>Multicast</suiteTest>
+		<suiteTest>External</suiteTest>
+		<suiteTest>InternalNetwork</suiteTest>
+		<suiteTest>GuestOnlyNetwork</suiteTest>
+		<suiteTest>MultipleNIC</suiteTest>
+		<suiteTest>LegacySyntheticNetwork</suiteTest>
+		<suiteTest>NetworkMode</suiteTest>
+		<suiteTest>ChangeNetTypeInternal</suiteTest>
+		<suiteTest>ChangeNetTypeGuest</suiteTest>
+		<suiteTest>JumboFrame</suiteTest>
+		<suiteTest>OperState</suiteTest>
+		<suiteTest>CopyLargeFile</suiteTest>
+		<suiteTest>CopyFileDifferentMTU</suiteTest>
+		<suiteTest>CopyBothWays</suiteTest>
+		<suiteTest>VlanTagging</suiteTest>
+		<suiteTest>VlanTrunking</suiteTest>
+		<suiteTest>Network_Hang_Vxlan</suiteTest>
+		<suiteTest>CopyFileScp</suiteTest>
+		<suiteTest>CheckKeywithEthtool</suiteTest>
+		<suiteTest>MaxSyntheticNIC</suiteTest>
+		<suiteTest>MaxLegacyNIC</suiteTest>
+		<suiteTest>MaxNIC</suiteTest>
+		<suiteTest>TCP_Corruption</suiteTest>
+		<suiteTest>Multicast</suiteTest>
 
-            <suiteTest>DM_loaded</suiteTest>
-            <suiteTest>HotAdd_Verify_udev</suiteTest>
-            <!-- Basic Hot Add tests -->
-            <suiteTest>HotAdd</suiteTest>
-            <!--<suiteTest>HotAddStressapptest</suiteTest> 
-            <suiteTest>DemandPressure</suiteTest>-->
-            <!-- Complex Hot Add tests 
-            <suiteTest>HotRemove</suiteTest>-->  
-            <!-- Dynamic Memory – Ballooning
-            <suiteTest>StartupLowCompete</suiteTest>
-            <suiteTest>MinMemHonored</suiteTest>
-            <suiteTest>MaxMemHonored</suiteTest>
-            <suiteTest>SaveRestore</suiteTest>
-            <suiteTest>CleanShutdown</suiteTest>-->
+		<suiteTest>DM_loaded</suiteTest>
+		<suiteTest>HotAdd_Verify_udev</suiteTest>
+		<!-- Basic Hot Add tests -->
+		<suiteTest>HotAdd</suiteTest>
+		<!--<suiteTest>HotAddStressapptest</suiteTest> 
+		<suiteTest>DemandPressure</suiteTest>-->
+		<!-- Complex Hot Add tests 
+		<suiteTest>HotRemove</suiteTest>-->  
+		<!-- Dynamic Memory – Ballooning
+		<suiteTest>StartupLowCompete</suiteTest>
+		<suiteTest>MinMemHonored</suiteTest>
+		<suiteTest>MaxMemHonored</suiteTest>
+		<suiteTest>SaveRestore</suiteTest>
+		<suiteTest>CleanShutdown</suiteTest>-->
 
-            <suiteTest>Sysbench</suiteTest>
-            <suiteTest>LTPBasic</suiteTest>
-            <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
+		<suiteTest>Sysbench</suiteTest>
+		<suiteTest>LTPBasic</suiteTest>
+		<suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
+
+		<suiteTest>Crash_single_core</suiteTest>
+		<suiteTest>Crash_SMP</suiteTest>
+		<suiteTest>Crash_NMI</suiteTest>
+		<suiteTest>Crash_differentVCPU</suiteTest>
+		<suiteTest>Crash_16cores</suiteTest>
         </suiteTests>
     </suite>
     </testSuites>
@@ -452,16 +458,18 @@
         </test>
 
         <test>
-            <testName>initrd_modules_check</testName>
-            <testScript>modules_check.sh</testScript>
-            <files>remote-scripts/ica/modules_check.sh,remote-scripts/ica/utils.sh</files>
-            <testparams>
-                <param>TC_COVERED=CORE-24</param>
-                <param>hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
-            </testparams>
-            <noReboot>True</noReboot>
-            <onError>Continue</onError>
-            <timeout>600</timeout>
+		<testName>initrd_modules_check</testName>
+		<testScript>modules_check.sh</testScript>
+		<files>remote-scripts/ica/modules_check.sh,remote-scripts/ica/utils.sh</files>
+		<files>remote-scripts/ica/utils.sh</files>
+		<testparams>
+			<param>TC_COVERED=CORE-24</param>
+                        <param>gen1_hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko)</param>
+			<param>gen2_hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko)</param>
+		</testparams>
+		<noReboot>True</noReboot>
+		<onError>Continue</onError>
+		<timeout>600</timeout>
         </test>
 
         <test>
@@ -2739,7 +2747,7 @@
             <testScript>setupScripts\kdump.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
             <testParams>
-                <param>crashkernel=384M</param>
+                <param>crashkernel=512M</param>
                 <param>TC_COVERED=KDUMP-01</param>
                 <param>VCPU=1</param>
                 <param>VMMemory=4GB</param>
@@ -2757,7 +2765,7 @@
             <testScript>setupscripts\kdump.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
             <testParams>
-                <param>crashkernel=384M</param>
+                <param>crashkernel=512M</param>
                 <param>TC_COVERED=KDUMP-02</param>
                 <param>VCPU=2</param>
                 <param>VMMemory=2GB</param>
@@ -2775,30 +2783,11 @@
             <testScript>setupscripts\kdump.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
             <testParams>
-                <param>crashkernel=384M</param>
+                <param>crashkernel=512M</param>
                 <param>TC_COVERED=KDUMP-03</param>
                 <param>VCPU=3</param>
                 <param>VMMemory=3GB</param>
                 <param>NMI=1</param>
-            </testParams>
-            <timeout>600</timeout>
-        </test>
-
-        <test>
-            <testName>Crash_Auto_size</testName>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\ChangeCPU.ps1</file>
-                <file>setupScripts\SetVMMemory.ps1</file>
-            </setupScript>
-            <testScript>setupScripts\kdump.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
-            <testParams>
-                <!-- Minimum RAM=2GB -->
-                <param>crashkernel=auto</param>
-                <param>TC_COVERED=KDUMP-04</param>
-                <param>VCPU=2</param>
-                <param>VMMemory=2GB</param>
             </testParams>
             <timeout>600</timeout>
         </test>
@@ -2814,7 +2803,7 @@
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh</files>
             <testParams>
                 <!-- Minimum RAM=2GB -->
-                <param>crashkernel=384M</param>
+                <param>crashkernel=512M</param>
                 <param>TC_COVERED=KDUMP-05</param>
                 <param>VCPU=4</param>
                 <param>VMMemory=2GB</param>
@@ -2839,25 +2828,6 @@
                 <param>VMMemory=4GB</param>
             </testParams>
             <timeout>600</timeout>
-        </test>
-
-        <test>
-            <testName>Crash_nfs</testName>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\ChangeCPU.ps1</file>
-                <file>setupScripts\SetVMMemory.ps1</file>
-            </setupScript>
-            <testScript>setupScripts\kdump.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh,remote-scripts/ica/kdump_nfs_config.sh</files>
-            <testParams>
-                <param>crashkernel=384M</param>
-                <param>TC_COVERED=KDUMP-06</param>
-                <param>use_nfs=yes</param>
-                <param>VCPU=1</param>
-                <param>VMMemory=4GB</param>
-            </testParams>
-            <timeout>700</timeout>
         </test>
 
     <!-- Production Checkpoint test suite -->
