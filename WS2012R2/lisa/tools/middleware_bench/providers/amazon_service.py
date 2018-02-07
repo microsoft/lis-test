@@ -295,7 +295,7 @@ class AWSConnector:
             ping_arg = '-c'
         if not instance.public_dns_name:
             log.error("Spawned instance was not allocated a public IP. Please try again.")
-            raise
+            raise Exception("Spawned instance was not allocated a public IP. Please try again.")
         ping_cmd = 'ping {} 1 {}'.format(ping_arg, instance.ip_address)
         try:
             timeout = 0
