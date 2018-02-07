@@ -39,6 +39,7 @@
 #
 ################################################################################
 
+param ([String] $LatestVersionFile)
 
 $downloadToPath = "package.html"
 $remoteFileLocation = "https://access.redhat.com/downloads/content/kernel/2.6.32-642.15.1.el6/x86_64/fd431d51/package"
@@ -143,10 +144,11 @@ if ($hash.rhel60[0] -notmatch $latest_rhel60){
     $latest_rhel60=$hash.rhel60[0]}
 	
 #overwrite latest kernel file
-echo "`$latest_rhel74=`"$latest_rhel74`" `r`n`$latest_rhel73=`"$latest_rhel73`" `r`n`$latest_rhel72=`"$latest_rhel72`" 
-`$latest_rhel71=`"$latest_rhel71`" `r`n`$latest_rhel70=`"$latest_rhel70`" `r`n`$latest_rhel69=`"$latest_rhel69`" `r`n`$latest_rhel68=`"$latest_rhel68`"
-`$latest_rhel67=`"$latest_rhel67`" `r`n`$latest_rhel66=`"$latest_rhel66`" `r`n`$latest_rhel65=`"$latest_rhel65`" `r`n`$latest_rhel64=`"$latest_rhel64`"
-`$latest_rhel63=`"$latest_rhel63`" `r`n`$latest_rhel62=`"$latest_rhel62`" `r`n`$latest_rhel61=`"$latest_rhel61`" `r`n`$latest_rhel60=`"$latest_rhel60`"" | Out-File \\redmond\wsscfs\OSTC\LIS\TestContent\latest_versions.ps1
+echo "`$latest_rhel74=`"$latest_rhel74`" `r`n`$latest_rhel73=`"$latest_rhel73`" `r`n`$latest_rhel72=`"$latest_rhel72`"
+`$latest_rhel71=`"$latest_rhel71`" `r`n`$latest_rhel70=`"$latest_rhel70`" `r`n`$latest_rhel69=`"$latest_rhel69`"
+`$latest_rhel68=`"$latest_rhel68`" `r`n`$latest_rhel67=`"$latest_rhel67`" `r`n`$latest_rhel66=`"$latest_rhel66`"
+`$latest_rhel65=`"$latest_rhel65`" `r`n`$latest_rhel64=`"$latest_rhel64`" `r`n`$latest_rhel63=`"$latest_rhel63`"
+`$latest_rhel62=`"$latest_rhel62`" `r`n`$latest_rhel61=`"$latest_rhel61`" `r`n`$latest_rhel60=`"$latest_rhel60`"" | Out-File $LatestVersionFile
 
 
 Write-Host "Completed!"
