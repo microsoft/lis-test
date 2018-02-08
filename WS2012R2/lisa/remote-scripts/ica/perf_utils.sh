@@ -103,8 +103,7 @@ fi
 function setup_ntttcp {
     if [ "$(which ntttcp)" == "" ]; then
       rm -rf ntttcp-for-linux
-      #git clone https://github.com/Microsoft/ntttcp-for-linux
-      git clone https://github.com/mihaico/ntttcp-for-linux
+      git clone https://github.com/Microsoft/ntttcp-for-linux
       status=$?
       if [ $status -eq 0 ]; then
         echo "ntttcp-for-linux successfully downloaded." >> ~/summary.log
