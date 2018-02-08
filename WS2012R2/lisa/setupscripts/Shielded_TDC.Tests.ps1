@@ -47,7 +47,7 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
 Describe "Run the TDC wizard with a Linux VHDX file" {
     Context "Submit the VHDX file (after running lsvmprep) to the TDC Wizard." {
 
-        It "TDC-01" {
+        It "LSVM-TDC-01" {
             # Get full VHDx path
             $vhdPath = Get_Full_VHD_Path $lsvmprepVhdName
             $vhdPath | Should not Be $null
@@ -70,7 +70,7 @@ Describe "Verify the output LSVM VHDX file from the TDC Wizard" {
             5.  Verify the boot loader is the Minimal OS, not the Shim, or MBLoad.
             6.  Examine the contents of the VSC file and look for the hashes for various partitions." {
         
-        It "TDC-02" {			
+        It "LSVM-TDC-02" {			
             # Get full VHDx path
             $vhdPath = Get_Full_VHD_Path $lsvmprepVhdName
             $vhdPath | Should not Be $null
@@ -96,7 +96,7 @@ Describe "Verify a VHDX file that has not had lsvmprep run fails TDC" {
             2.  Do not install lsvmtools.
             3.  Submit the VHDX file from the VM in step 1 to the TDC Wizard." {
         
-        It "TDC-03" {
+        It "LSVM-TDC-03" {
 			# Copy VHDx from share
             $vhdPath = Copy_vhdx_from_share $vhdNoLsvmtools
 			$vhdPath | Should not Be $null
@@ -116,7 +116,7 @@ Describe "Test TDC using Linux VHDX file and an invalid certificate" {
             2.  Specify an invalid certificate.
             3.  Submit the VHDX file from the VM in step 1 to the TDC Wizard." {
         
-        It "TDC-04" {
+        It "LSVM-TDC-04" {
 		    # Get full VHDx path
             $vhdPath = Get_Full_VHD_Path $lsvmprepVhdName
             $vhdPath | Should not Be $null

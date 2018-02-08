@@ -184,6 +184,7 @@ function SendFile ([string] $ipv4, [string] $sshKey, [string] $fileName)
 {
     $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\$fileName" "/root/$fileName"
     $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix $fileName && chmod u+x $fileName"
+    Start-Sleep -s 5
     return $retVal
 }
 
@@ -703,7 +704,7 @@ function DisableSecureBoot ([string] $VMName)
 function StopVM ([string] $VMName, [string] $hvServer)
 {
     if ((Get-VM -Name $VMName).State -ne "Off") {
-        Stop-VM -Name $VMName -ComputerName $hvServer -TurnOff -Confirm:$false
+        Stop-VM -Name $VMName -ComputerName $hvServer -Confirm:$false
         Start-Sleep -s 5
     }
 }

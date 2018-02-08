@@ -99,7 +99,9 @@ Describe "Preparation tasks for LSVM-PRE testing" {
             4. Take a snapshot" {
     
         It "LSVM-Install" {
-            CleanupDependency 'Shielded_PRE-TDC'           
+            CleanupDependency 'Shielded_PRE-TDC'     
+            Start-Sleep -s 60
+               
 			Create_Test_VM $CLImageStorDir | Should be $true
 
             $ipv4 = AttachDecryptVHDx $decrypt_vhd_folder
@@ -271,6 +273,19 @@ Describe "Prepare VM for TDC testing" {
         It "LSVM-Prepare_TDC" {
             $snap = Get-VMSnapshot -VMName 'Shielded_PRE-TDC' -Name 'ICABase'
             Restore-VMSnapshot $snap -Confirm:$false
+
+            $ipv4 = AttachDecryptVHDx $decrypt_vhd_folder
+            $ipv4 | Should not Be $false
+
+            # Send utils.sh to VM
+            SendFile $ipv4 $sshKey 'utils.sh' | Should be $true
+
+            # Send utils.sh to VM
+            SendFile $ipv4 $sshKey 'shielded_verify_lsvmprep.sh' | Should be $true
+
+            Verify_script $ipv4 $sshKey 'shielded_verify_lsvmprep.sh' | Should be $true
+
+            DettachDecryptVHDx | Should be $true
 
 			Prepare_VM $sshKey | Should be $true
         }
