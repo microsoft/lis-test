@@ -23,6 +23,7 @@ import os
 import time
 import logging
 import ConfigParser
+import uuid
 
 from utils import constants
 from azure.common.credentials import ServicePrincipalCredentials
@@ -88,15 +89,15 @@ class AzureConnector:
 
         self.user = user
         self.dns_suffix = '.{}.cloudapp.azure.com'.format(self.location)
-        tag = str(time.time()).replace('.', '')
+        tag = str(uuid.uuid4())
         self.key_name = 'test_ssh_key'
-        self.group_name = 'middleware_bench' + tag
-        self.vmnet_name = 'middleware_bench_vmnet' + tag
-        self.subnet_name = 'middleware_bench_subnet' + tag
-        self.os_disk_name = 'middleware_bench_osdisk' + tag
+        self.group_name = 'middleware_' + tag
+        self.vmnet_name = 'middleware_vmnet' + tag
+        self.subnet_name = 'middleware_subnet' + tag
+        self.os_disk_name = 'middleware_osdisk' + tag
         self.storage_account = 'benchstor' + tag
-        self.ip_config_name = 'middleware_bench_ipconfig' + tag
-        self.nic_name = 'middleware_bench_nic' + tag
+        self.ip_config_name = 'middleware_ipconfig' + tag
+        self.nic_name = 'middleware_nic' + tag
 
         self.subnet = None
         self.vms = []
@@ -211,7 +212,7 @@ class AzureConnector:
                 self.group_name, vm_name, vm_parameters)
         vm_creation.wait()
         vm_instance = self.compute_client.virtual_machines.get(self.group_name, vm_name)
-        log.info('Created VM: {}'.format(vm_instance))
+        log.info('Created VM: {}'.format(vm_name))
         vm_start = self.compute_client.virtual_machines.start(self.group_name, vm_name)
         vm_start.wait()
         log.info('Started VM: {}'.format(vm_name))
@@ -291,9 +292,10 @@ class AzureConnector:
                      'priority': 1001})
             log.info('Adding custom security group to NIC')
             nic_parameters['network_security_group'] = create_nsg.result()
+        nic_name = self.nic_name + str(time.time())
         nic_op = self.network_client.network_interfaces.create_or_update(
-                self.group_name, self.nic_name + str(time.time()), nic_parameters)
-        log.info(nic_op.result())
+                self.group_name, nic_name, nic_parameters)
+        log.info('Created NIC: {}'.format(nic_name))
         return nic_op.result()
 
     def attach_disk(self, vm_instance, disk_size, lun=0):

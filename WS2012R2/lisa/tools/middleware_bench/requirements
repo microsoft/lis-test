@@ -1,7 +1,7 @@
 boto<=2.43.0
 boto3<=1.4.4
 paramiko<=2.0
-azure<=2.0.0rc6
+azure<=2.0.0
 google-api-python-client<=1.6.2
 gcs-oauth2-boto-plugin<=1.14
 pycrypto<=2.6.1
@@ -10,4 +10,5 @@ SQLAlchemy<=1.1.16
 pyodbc<=3.0.10
 pywinrm<=0.2.2
 msrest<=0.4.8
-msrestzure<=0.4.7
+msrestazure<=0.4.7
+# create __init__ in azure and azure.mgmt site-packages

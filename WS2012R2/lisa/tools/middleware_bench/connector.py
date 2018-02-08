@@ -174,6 +174,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                 for i in xrange(2, vm_count + 1):
                     log.info('Created disk: {}'.format(connector.attach_disk(vms[i], disk_size)))
 
+            open(connector.host_key_file, 'w').close()
             for i in xrange(1, vm_count + 1):
                 ssh_client[i] = SSHClient(server=vms[i].name + connector.dns_suffix,
                                           host_key_file=connector.host_key_file,
@@ -321,7 +322,7 @@ def test_orion(provider, keyid, secret, token, imageid, subscription, tenant, pr
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
             cmd = '/tmp/run_orion.sh {}'.format(device)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 4)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 5)
             results_path = os.path.join(localpath, 'orion{}_{}.zip'.format(str(time.time()),
                                                                            instancetype))
             ssh_client[1].get_file('/tmp/orion.zip', results_path)
@@ -391,7 +392,7 @@ def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenan
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_orion.sh")
             cmd = '/tmp/run_orion.sh {}'.format(' '.join(device))
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 4)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 5)
             results_path = os.path.join(localpath, 'orion{}_{}.zip'.format(str(time.time()),
                                                                            instancetype))
             ssh_client[1].get_file('/tmp/orion.zip', results_path)
@@ -1371,7 +1372,7 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
             ssh_client[1].run("sed -i 's/\r//' /tmp/run_storage.sh")
             cmd = '/tmp/run_storage.sh {}'.format(constants.RAID_DEV)
             log.info('Running command {}'.format(cmd))
-            ssh_client[1].run(cmd, timeout=constants.TIMEOUT)
+            ssh_client[1].run(cmd, timeout=constants.TIMEOUT * 2)
             results_path = os.path.join(localpath, 'storage{}_{}.zip'.format(str(time.time()),
                                                                              instancetype))
             ssh_client[1].get_file('/tmp/storage.zip', results_path)

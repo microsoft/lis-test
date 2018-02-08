@@ -33,7 +33,7 @@ fi
 
 DISK="$1"
 
-QDEPTH=(1 2 4 8 16 32 64 128 256 512 1024)
+QDEPTH=(1 2 4 8 16 32 64 128 256)
 IO_SIZE=(4 1024)
 FILE_SIZE=(16)
 IO_MODE=(read randread write randwrite)
@@ -100,7 +100,7 @@ function run_storage ()
     iostat -x -d 1 900 2>&1 > /tmp/storage/${qdepth}.iostat.netio.log &
     vmstat 1 900       2>&1 > /tmp/storage/${qdepth}.vmstat.netio.log &
 
-    sudo fio --name=${io_mode} --bs=${io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${file_size}G --direct=1 --runtime=120 --numjobs=${num_jobs} --rw=${io_mode} --group_reporting --directory ${MNT} > /tmp/storage/${io_size}K-${qdepth}-${io_mode}.fio.log
+    sudo fio --name=${io_mode} --bs=${io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${file_size}G --direct=1 --runtime=60 --numjobs=${num_jobs} --rw=${io_mode} --group_reporting --directory ${MNT} > /tmp/storage/${io_size}K-${qdepth}-${io_mode}.fio.log
 
     sudo pkill -f iostat
     sudo pkill -f vmstat
