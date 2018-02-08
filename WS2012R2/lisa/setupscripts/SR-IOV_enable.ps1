@@ -473,7 +473,8 @@ for ($i=0; $i -lt $nicIterator; $i++){
         $macSubstring = $macSubstring + 10
         $macAddress = $macAddress -replace $macAddress.Substring(9), "$macSubstring"
         
-        Add-VMNetworkAdapter -VMName $vmName -SwitchName $nicValues[$i*5+2] -StaticMacAddress $macAddress -IsLegacy:$nicValues[$i*5+4] -ComputerName $hvServer
+        Add-VMNetworkAdapter -VMName $vmName -SwitchName $nicValues[$i*5+2] -StaticMacAddress $macAddress `
+        -IsLegacy:$nicValues[$i*5+4] -ComputerName $hvServer
         if ($? -ne "True") {
             "Error: Add-VmNic to $vmName failed"
             $retVal = $False
@@ -483,7 +484,8 @@ for ($i=0; $i -lt $nicIterator; $i++){
         }
 
         if ($vm2_is_configured -eq $false) {
-            Add-VMNetworkAdapter -VMName $vm2Name -SwitchName $nicValues[$i*5+2] -StaticMacAddress $nicValues[$i*5+3] -IsLegacy:$nicValues[$i*5+4] -ComputerName $remoteServer 
+            Add-VMNetworkAdapter -VMName $vm2Name -SwitchName $nicValues[$i*5+2] -StaticMacAddress $nicValues[$i*5+3] `
+            -IsLegacy:$nicValues[$i*5+4] -ComputerName $remoteServer 
             if ($? -ne "True") {
                 "Error: Add-VmNic to $vm2Name failed"
                 $retVal = $False
@@ -559,7 +561,7 @@ if ($vm2_is_configured -eq $false) {
     $timeout = 200 #seconds
     if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout)) {
         "ERROR: VM ${vm2Name} never started"
-        Stop-VM -Name $vm2Name -ComputerName $remoteServer -force | out-null
+        Stop-VM $vm2Name -ComputerName $remoteServer -TurnOff -Force | out-null
         return $False
     }
 
@@ -573,7 +575,7 @@ if ($vm2_is_configured -eq $false) {
     $retVal = SendFileToVM "$vm2ipv4" "$sshKey" ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
 
     if (-not $retVal) {
-        "Failed sending file to VM!"
+        "Failed sending utils.sh file to VM!"
         return $False
     }
     "Successfully sent utils.sh"
@@ -582,7 +584,7 @@ if ($vm2_is_configured -eq $false) {
     $retVal = SendFileToVM "$vm2ipv4" "$sshKey" ".\remote-scripts\ica\SR-IOV_Utils.sh" "/root/SR-IOV_Utils.sh"
 
     if (-not $retVal) {
-        "Failed sending file to VM!"
+        "Failed sending SR-IOV_Utils.sh file to VM!"
         return $False
     }
     "Successfully sent SR-IOV_Utils.sh"
