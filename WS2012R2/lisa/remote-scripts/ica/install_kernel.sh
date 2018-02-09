@@ -115,6 +115,8 @@ function install_kernel_rhel {
         UpdateTestState $ICA_TESTABORTED
         exit 1
     fi
+    sudo sed -i 's%GRUB_DEFAULT=.*%GRUB_DEFAULT=0%' /etc/default/grub
+    sudo grub2-mkconfig -o /boot/grub2/grub.cfg
 }
 
 
