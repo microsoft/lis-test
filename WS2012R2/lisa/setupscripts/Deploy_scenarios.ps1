@@ -142,6 +142,19 @@ function kernel_upgrade(){
     return $true
 }
 
+function kernel_version(){
+	$upgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "cat kernel_install_scenario_$scenario.log | grep 'Installed' -A 1 | tail -1 | cut -d \: -f 2"
+	if ($upgrade){
+		Write-Output "Kernel version after upgrade: ${upgrade}" | Tee-Object -Append -file $summaryLog
+	} else {
+		Write-Output "Warn: Cannot find upgraded kernel version" | Tee-Object -Append -file $summaryLog
+	}
+
+	$kernel = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "uname -r"
+	Write-Output "Previous kernel version: ${kernel}" | Tee-Object -Append -file $summaryLog
+	return $true
+}
+
 function stop_vm(){
     # Stop VM to attach the ISO
     Stop-VM $vmName  -ComputerName $hvServer -force
@@ -317,7 +330,7 @@ $sts = Copy-Item -Path $latest_lis_iso_path -Destination $defaultVhdPath -Force
 
 # Attach ISO accordingly to deploy scenario
 stop_vm
-if (($scenario -eq 2) -or ($scenario -eq 3) -or  ($scenario -eq 6)) {
+if (($scenario -eq 2) -or ($scenario -eq 3) -or  ($scenario -eq 6) -or ($scenario -eq 10)) {
     .\setupscripts\InsertIsoInDvd.ps1 $vmName $hvServer "isofilename=$IsoFilename2"
 }
 else {
@@ -659,6 +672,9 @@ switch ($scenario){
             return $false
         }
 
+        #write kernel version in summaryLog
+        kernel_version
+
         $sts = SendCommandToVM $ipv4 $sshkey "sync"
         Start-Sleep -s 30
         # Check if kernel was upgraded
@@ -716,7 +732,7 @@ switch ($scenario){
             return $false
         }
 
-        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
+        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} " modinfo hv_vmbus | grep  -w version: | cut -d ':' -f 2 | tr -d ' \t' "
         Write-output "LIS version before kernel upgrade: $LIS_version_beforeUpgrade "| Tee-Object -Append -file $summaryLog
 
         # Upgrade kernel
@@ -731,6 +747,9 @@ switch ($scenario){
             Write-Output "Error: Unable to add kernel version before upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
+
+        #write kernel version in summaryLog
+        kernel_version
 
         $sts = SendCommandToVM $ipv4 $sshkey "sync"
         Start-Sleep -s 30
@@ -845,8 +864,8 @@ switch ($scenario){
             return $false
         }
 
-        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
-        Write-output "LIS before kernel upgrade is $LIS_version_beforeUpgrade "| Tee-Object -Append -file $summaryLog
+        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} " modinfo hv_vmbus | grep  -w version: | cut -d ':' -f 2 | tr -d ' \t' "
+        Write-output "LIS before kernel upgrade: $LIS_version_beforeUpgrade "| Tee-Object -Append -file $summaryLog
 
         # Upgrade kernel
         $sts = SendCommandToVM $ipv4 $sshkey "yum install -y kernel >> ~/kernel_install_scenario_$scenario.log"
@@ -868,6 +887,9 @@ switch ($scenario){
             Write-Output "Error: Unable to add kernel version before upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
+
+        #write kernel version in summaryLog
+        kernel_version
 
         $sts = SendCommandToVM $ipv4 $sshkey "sync"
         Start-Sleep -s 30
@@ -1013,7 +1035,7 @@ switch ($scenario){
             Write-Output "No errors found after LIS install" | Tee-Object -Append -file $summaryLog
         }
 
-        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
+        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} " modinfo hv_vmbus | grep  -w version: | cut -d ':' -f 2 | tr -d ' \t' "
         Write-output "LIS version before kernel upgrade: $LIS_version_beforeUpgrade "| Tee-Object -Append -file $summaryLog
 
         # Upgrade kernel
@@ -1028,6 +1050,9 @@ switch ($scenario){
             Write-Output "Error: Unable to add kernel version before upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
+
+        #write kernel version in summaryLog
+        kernel_version
 
         $sts = SendCommandToVM $ipv4 $sshkey "sync"
         Start-Sleep -s 30
@@ -1156,8 +1181,8 @@ switch ($scenario){
             return $false
         }
 
-        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
-        Write-output "LIS before kernel upgrade is $LIS_version_beforeUpgrade "| Tee-Object -Append -file $summaryLog
+        $LIS_version_beforeUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} " modinfo hv_vmbus | grep  -w version: | cut -d ':' -f 2 | tr -d ' \t' "
+        Write-output "LIS before kernel upgrade: $LIS_version_beforeUpgrade "| Tee-Object -Append -file $summaryLog
         
         $sts = check_bonding_errors
         if( -not $sts[-1]) {
@@ -1187,6 +1212,9 @@ switch ($scenario){
             Write-Output "Error: Unable to add kernel version before upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
+
+        #write kernel version in summaryLog
+        kernel_version
 
         $sts = SendCommandToVM $ipv4 $sshkey "sync"
         Start-Sleep -s 30
