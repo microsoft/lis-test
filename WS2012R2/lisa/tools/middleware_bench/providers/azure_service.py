@@ -91,7 +91,7 @@ class AzureConnector:
         self.dns_suffix = '.{}.cloudapp.azure.com'.format(self.location)
         tag = str(uuid.uuid4()).replace('-', '')
         self.key_name = 'test_ssh_key'
-        self.group_name = 'm_' + tag
+        self.group_name = 'middleware_' + tag
         self.vmnet_name = 'm_vmnet' + tag
         self.subnet_name = 'm_subnet' + tag
         self.os_disk_name = 'm_osdisk' + tag
