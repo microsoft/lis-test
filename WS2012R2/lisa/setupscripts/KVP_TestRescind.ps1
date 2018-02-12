@@ -159,6 +159,7 @@ if ($checkVM -eq "True") {
     }
 
     # Check if VM is RedHat 7.2 or older and if it uses external LIS
+    # Do a check first for 4.x.x kernel series so that we don't skip it
     $majorKernelVersion = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r | cut -d. -f1"
     $isRHEL = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "yum --version"
     if ($? -eq "True" -and $majorKernelVersion -lt 4) {
