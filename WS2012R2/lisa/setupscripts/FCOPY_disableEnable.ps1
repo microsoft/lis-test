@@ -201,7 +201,7 @@ if ($? -ne "True") {
 # If the VM is in any state other than running power it ON
 if ($currentState -ne "Running") {
     Write-Output "Found $vmName in $currentState state. Powering ON ... " | Tee-Object -Append -file $summaryLog
-    Start-VM $vmName
+    Start-VM -vmName $vmName -ComputerName $hvServer
     if ($? -ne "True") {
         Write-Output "Error: Unable to Power ON the VM" | Tee-Object -Append -file $summaryLog
         return $Failed
