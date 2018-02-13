@@ -2091,34 +2091,37 @@ function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$su
 {
     <#
     .Synopsis
-        Check vm supports one feature or not.
+        Check if VM supports one feature or not.
     .Description
-        Check vm supports one feature or not based on comare curent kernel version with feature supported kernel version. If the current version is lower than feature supported version, return false, otherwise return true
+        Check if VM supports one feature or not based on comparison of curent kernel version with feature
+        supported kernel version. If the current version is lower than feature supported version, return false, otherwise return true.
     .Parameter ipv4
         IPv4 address of the Linux VM.
     .Parameter sshKey
-        SSH key used to connect to the Linux VM
+        SSH key used to connect to the Linux VM.
     .Parameter supportkernel
-        the kernel version number starts to support this feature, e.g. supportkernel = "3.10.0.383"
+        The kernel version number starts to support this feature, e.g. supportkernel = "3.10.0.383"
     .Example
         GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
     #>
-	$currentKernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
-	if( $? -eq $false){
-		write-output "WARNING: Could not get kernel version".
-	}
-	$sKernel = $supportKernel.split(".")
-	$cKernel = $currentKernel.replace("-",".").split(".")
+    $currentKernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
+    if( $? -eq $false){
+        Write-Output "Warning: Could not get kernel version".
+    }
+    $sKernel = $supportKernel.split(".")
+    $cKernel = $currentKernel.replace("-",".")
+    $cKernel = $cKernel.split(".")
 
-	for ($i=0; $i -le 3; $i++) {
-		if ($ckernel[$i] -lt $sKernel[$i] ) {
-			return $false
-		}
-		if ($ckernel[$i] -gt $sKernel[$i] ) {
-			return $true
-		}
-	}
-	return $true
+    for ($i=0; $i -le 3; $i++) {
+        if ($cKernel[$i] -lt $sKernel[$i] ) {
+            $cmpResult = $false
+        }
+        if ($cKernel[$i] -gt $sKernel[$i] ) {
+            $cmpResult = $true
+            break
+        }
+    }
+    return $cmpResult
 }
 
 # Function for starting dependency VMs used by test scripts
