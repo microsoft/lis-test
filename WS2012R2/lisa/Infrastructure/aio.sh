@@ -523,16 +523,11 @@ if is_fedora ; then
 
     # vim installs xxd which is required to build sysbench
     echo "Installing packages..." >> summary.log
-    PACK_LIST=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc dosfstools 
+    rpm_packages=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc dosfstools 
     selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake nano parted
     kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-utils omping nc 
     pciutils squashfs-tools vim tcpdump elfutils-libelf-devel)
-    for item in ${PACK_LIST[*]}
-    do
-        echo "Starting to install $item... "
-        yum install $item -y
-        verify_install $? $item
-    done
+    sudo yum -y install ${rpm_packages[@]}
     yum groups mark install "Development Tools"
     yum groups mark convert "Development Tools"
     yum -y groupinstall "Development Tools"
@@ -568,16 +563,11 @@ elif is_ubuntu ; then
         sed -i -e 's/sleep 59/#sleep 59/g' /etc/init/failsafe.conf
     fi
 
-    PACK_LIST=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 at autoconf 
+    deb_packages=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 at autoconf 
     multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm automake libtool pkg-config ifupdown
     bridge-utils btrfs-tools libkeyutils-dev xfsprogs reiserfsprogs sysstat build-essential bc numactl python3 pciutils tcpdump
     nfs-client parted netcat squashfs-tools linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r`)
-    for item in ${PACK_LIST[*]}
-    do
-        echo "Starting to install $item... "
-        apt-get install $item -y
-        verify_install $? $item
-    done
+    DEBIAN_FRONTEND=noninteractive sudo apt-get -y install ${deb_packages[@]}
 
     if [ -e /etc/multipath.conf ]; then
         rm /etc/multipath.conf
