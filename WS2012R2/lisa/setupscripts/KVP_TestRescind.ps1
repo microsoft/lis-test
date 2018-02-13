@@ -158,15 +158,12 @@ if ($checkVM -eq "True") {
         return $Failed
     }
 
-    # Check if VM is RedHat 7.2 or older and if it uses external LIS
-    # Do a check first for 4.x.x kernel series so that we don't skip it
-    $majorKernelVersion = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r | cut -d. -f1"
+# Check if VM is RedHat 7.2 or older and if it uses external LIS
+    $supportkernel = "3.10.0.327" #kernel version for RHEL 7.2
     $isRHEL = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "yum --version"
-    if ($? -eq "True" -and $majorKernelVersion -lt 4) {
-        # If distro is RedHat check the kernel version
-        $rhel_kernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r | cut -d. -f3 | cut -d- -f2"
-        if ($rhel_kernel -le 327) {
-            # If RedHat distro and older kernel, check if LIS-4.x drivers are present
+    if ($? -eq "True") {
+        $kernelSupport = GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
+        if ($kernelSupport -ne "True") {
             Write-Output "Info: Kernels older than 3.10.0-514 require LIS-4.x drivers." | Tee-Object -Append -file $summaryLog
             $checkExternal = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rpm -qa | grep kmod-microsoft-hyper-v && rpm -qa | grep microsoft-hyper-v"
             if ($? -ne "True") {
