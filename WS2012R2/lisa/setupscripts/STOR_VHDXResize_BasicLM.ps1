@@ -61,8 +61,6 @@ param( [String] $vmName,
 $sshKey     = $null
 $ipv4       = $null
 $newSize    = $null
-$sectorSize = $null
-$DefaultSize = $null
 $rootDir    = $null
 $TC_COVERED = $null
 $TestLogDir = $null
@@ -118,12 +116,12 @@ foreach ($p in $params)
     "SSHKey"    { $sshKey  = $fields[1].Trim() }
     "ipv4"      { $ipv4    = $fields[1].Trim() }
     "newSize"   { $newSize = $fields[1].Trim() }
-    "sectorSize" { $sectorSize = $fields[1].Trim() }
-    "DefaultSize"   { $DefaultSize = $fields[1].Trim() }
     "rootDIR"   { $rootDir = $fields[1].Trim() }
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
     "TestName"   { $TestName = $fields[1].Trim() }
+    "SCSI"  { $controllerType = "SCSI" }
+    "IDE"  { $controllerType = "IDE" }
     default     {}  # unknown param - just ignore it
     }
 }
@@ -182,7 +180,7 @@ $newVhdxSize = ConvertStringToUInt64 $newSize
 # Lun 0 on the controller has a .vhdx file attached.
 #
 "Info : Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
-$vhdxName = $vmName + "-" + $DefaultSize + "-" + $sectorSize + "-test"
+$vhdxName = $vmName + "-" + $controllerType
 $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
 foreach ($vhdx in $vhdxDisks)
@@ -297,8 +295,7 @@ if (-not $?)
 #
 # Let system have some time for the volume change to be indicated
 #
-$sleepTime = 30
-Start-Sleep -s $sleepTime
+Start-Sleep -s 30
 
 if ($diskSize -ne $newVhdxSize)
 {
