@@ -594,7 +594,13 @@ elif is_suse ; then
     # SLES ISO must be mounted for BETA releases
     #
     chkconfig atd on
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Unable to enable atd service to start on startup." >> summary.log
+    fi
     service atd start
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Unable to start AT daemon." >> summary.log
+    fi
     
     #
     # Removing /var/log/messages
@@ -609,7 +615,7 @@ elif is_suse ; then
     username=$1
     password=$2
 
-    if [ $os_RELEASE -eq 12 ]; then
+    if [ "$os_RELEASE" = 12 ]; then
         echo "Registering SLES 11" >> summary.log
         SUSEConnect -r $password -e $username
 
@@ -619,7 +625,7 @@ elif is_suse ; then
         zypper addrepo http://download.opensuse.org/repositories/devel:tools:scm:svn/SLE_12/devel:tools:scm:svn.repo
         zypper --no-gpg-checks refresh
 
-    elif [ $os_RELEASE -eq 11 ]; then
+    elif [ "$os_RELEASE" = 11 ]; then
         echo "Registering SLES 11" >> summary.log
         suse_register -a regcode-sles=$password -a email=$username -L /root/.suse_register.log
 
@@ -635,6 +641,16 @@ elif is_suse ; then
 
     echo "Installing dependencies for SLES 12" >> summary.log
 
+    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3
+    nfs-client pciutils libaio-devel parted squashfs-tools unzip parted python-curses dstat net-tools-deprecated ethtool
+    libidn11 iputils automake make libtool)
+    for item in ${PACK_LIST[*]}
+    do
+        echo "Starting to install $item... " >> summary.log
+        zypper --non-interactive in $item
+        verify_install $? $item
+    done
+
     #
     # Installing dependencies for stress-ng to work
     # First one needed is keyutils
@@ -645,16 +661,6 @@ elif is_suse ; then
     make
     make install
     cd ~
-
-    PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3
-    nfs-client pciutils libaio-devel parted squashfs-tools unzip parted python-curses dstat net-tools-deprecated ethtool
-    libidn11 iputils)
-    for item in ${PACK_LIST[*]}
-    do
-        echo "Starting to install $item... " >> summary.log
-        zypper --non-interactive in $item
-        verify_install $? $item
-    done
 
     install_stressapptest
     verify_install $? stressapptest
