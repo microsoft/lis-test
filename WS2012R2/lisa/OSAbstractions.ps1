@@ -237,6 +237,10 @@ function GetOSType ([System.Xml.XmlElement] $vm)
     # plink will pending at waiting password if sshkey failed auth, so
     # pipe a 'y' to response
     $os = echo y | bin\plink -i ssh\${sshKey} root@${hostname} "uname -s"
+    if ($os -eq $null)
+    {
+        $os = "unknown"
+    }
 
     switch ($os)
     {
