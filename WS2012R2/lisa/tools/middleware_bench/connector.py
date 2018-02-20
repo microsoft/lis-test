@@ -88,6 +88,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
     vm_ips = {}
     ssh_client = {}
     try:
+        open(connector.host_key_file, 'w').close()
         if provider == constants.AWS:
             connector = AWSConnector(keyid=keyid, secret=secret, imageid=imageid,
                                      instancetype=instancetype, user=user, localpath=localpath,
