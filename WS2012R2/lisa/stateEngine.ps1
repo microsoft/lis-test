@@ -1702,7 +1702,7 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # Determine the VMs OS
     #
-    $os = (GetOSType $vm).ToString()
+    $os = [string](GetOSType $vm)
     LogMsg 9 "INFO : The OS type is $os"
 
     If ($vm.role.ToLower().StartsWith("sut"))
