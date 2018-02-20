@@ -88,12 +88,12 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
     vm_ips = {}
     ssh_client = {}
     try:
-        open(connector.host_key_file, 'w').close()
         if provider == constants.AWS:
             connector = AWSConnector(keyid=keyid, secret=secret, imageid=imageid,
                                      instancetype=instancetype, user=user, localpath=localpath,
                                      region=region, zone=zone)
             connector.connect()
+            open(connector.host_key_file, 'w').close()
             for i in xrange(1, vm_count + 1):
                 vms[i] = connector.create_vm()
 
@@ -149,6 +149,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                                        imageid=imageid, instancetype=instancetype, user=user,
                                        localpath=localpath, location=region, sriov=sriov)
             connector.connect()
+            open(connector.host_key_file, 'w').close()
             for i in xrange(1, vm_count + 1):
                 vms[i] = connector.create_vm()
             device = constants.DEVICE_AZURE
@@ -175,7 +176,6 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                 for i in xrange(2, vm_count + 1):
                     log.info('Created disk: {}'.format(connector.attach_disk(vms[i], disk_size)))
 
-            open(connector.host_key_file, 'w').close()
             for i in xrange(1, vm_count + 1):
                 ssh_client[i] = SSHClient(server=vms[i].name + connector.dns_suffix,
                                           host_key_file=connector.host_key_file,
@@ -191,6 +191,7 @@ def setup_env(provider=None, vm_count=None, test_type=None, disk_size=None, raid
                                      instancetype=instancetype, user=user, localpath=localpath,
                                      zone=zone)
             connector.connect()
+            open(connector.host_key_file, 'w').close()
             for i in xrange(1, vm_count + 1):
                 vms[i] = connector.create_vm()
             for i in xrange(1, vm_count + 1):
