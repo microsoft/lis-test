@@ -30,6 +30,10 @@
 #
 ########################################################################
 
+# iperf3 download location
+iperf3_version=3.2
+iperf3_url=https://github.com/esnet/iperf/archive/$iperf3_version.tar.gz
+
 # Convert eol
 dos2unix utils.sh
 
@@ -85,143 +89,144 @@ declare -i vfCount
 #
 VerifyVF()
 {
-	# Check for pciutils. If it's not on the system, install it
-	lspci --version
-	if [ $? -ne 0 ]; then
-	    msg="INFO: pciutils not found. Trying to install it"
-	    LogMsg "$msg"
+    # Check for pciutils. If it's not on the system, install it
+    lspci --version
+    if [ $? -ne 0 ]; then
+        msg="INFO: pciutils not found. Trying to install it"
+        LogMsg "$msg"
 
-	    GetDistro
-	    case "$DISTRO" in
-	        suse*)
-	            zypper --non-interactive in pciutils
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install pciutils"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-	            ;;
-	        ubuntu*)
-	            apt-get install pciutils -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install pciutils"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-	            ;;
-	        redhat*|centos*)
-	            yum install pciutils -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install pciutils"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-	            ;;
-	            *)
-	                msg="ERROR: OS Version not supported"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            ;;
-	    esac
-	fi
+        GetDistro
+        case "$DISTRO" in
+            suse*)
+                zypper --non-interactive in pciutils
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to install pciutils"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                fi
+                ;;
+            ubuntu*)
+                apt update
+            apt install pciutils -y
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to install pciutils"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                fi
+                ;;
+            redhat*|centos*)
+                yum install pciutils -y
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to install pciutils"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                fi
+                ;;
+                *)
+                    msg="ERROR: OS Version not supported"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                ;;
+        esac
+    fi
 
-	# Using lsmod command, verify if driver is loaded
-	lsmod | grep ixgbevf
-	if [ $? -ne 0 ]; then
-	    lsmod | grep mlx4_core
-	    if [ $? -ne 0 ]; then
-	  		msg="ERROR: Neither mlx4_core or ixgbevf drivers are in use!"
-	  		LogMsg "$msg"
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    exit 1
-		fi
-	fi
+    # Using lsmod command, verify if driver is loaded
+    lsmod | grep ixgbevf
+    if [ $? -ne 0 ]; then
+        lsmod | grep mlx4_core
+        if [ $? -ne 0 ]; then
+            msg="ERROR: Neither mlx4_core or ixgbevf drivers are in use!"
+            LogMsg "$msg"
+            UpdateSummary "$msg"
+            SetTestStateFailed
+            exit 1
+        fi
+    fi
 
-	# Using the lspci command, verify if NIC has SR-IOV support
-	lspci -vvv | grep ixgbevf
-	if [ $? -ne 0 ]; then
-		lspci -vvv | grep mlx4_core
-		if [ $? -ne 0 ]; then
-		    msg="No NIC with SR-IOV support found!"
-		    LogMsg "$msg"                                                             
-		    UpdateSummary "$msg"
-		    SetTestStateFailed
-		    exit 1
-		fi
-	fi
+    # Using the lspci command, verify if NIC has SR-IOV support
+    lspci -vvv | grep ixgbevf
+    if [ $? -ne 0 ]; then
+        lspci -vvv | grep mlx4_core
+        if [ $? -ne 0 ]; then
+            msg="No NIC with SR-IOV support found!"
+            LogMsg "$msg"
+            UpdateSummary "$msg"
+            SetTestStateFailed
+            exit 1
+        fi
+    fi
 
-	interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo' | head -1)
+    interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo' | head -1)
     ifconfig -a | grep $interface
-		if [ $? -ne 0 ]; then
-	    msg="ERROR: VF device, $interface , was not found!"
-	    LogMsg "$msg"                                                             
-	    UpdateSummary "$msg"
-	    SetTestStateFailed
-	    exit 1
-	fi
+        if [ $? -ne 0 ]; then
+        msg="ERROR: VF device, $interface , was not found!"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    fi
 
-	return 0
+    return 0
 }
 
 #
-# Check_SRIOV_Parameters - check if the needed parameters for SR-IOV 
+# Check_SRIOV_Parameters - check if the needed parameters for SR-IOV
 # testing are present in constants.sh
 #
 Check_SRIOV_Parameters()
 {
-	# Parameter provided in constants file
-	declare -a STATIC_IPS=()
+    # Parameter provided in constants file
+    declare -a STATIC_IPS=()
 
-	if [ "${VF_IP1:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="ERROR: The test parameter VF_IP1 is not defined in constants file. Will try to set addresses via dhcp"
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    SetTestStateAborted
-	    exit 1
-	fi
-
-	if [ "${VF_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="ERROR: The test parameter VF_IP2 is not defined in constants file. No network connectivity test will be performed."
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
+    if [ "${VF_IP1:-UNDEFINED}" = "UNDEFINED" ]; then
+        msg="ERROR: The test parameter VF_IP1 is not defined in constants file. Will try to set addresses via dhcp"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
         SetTestStateAborted
         exit 1
-	fi
+    fi
 
-	IFS=',' read -a networkType <<< "$NIC"
-	if [ "${NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="ERROR: The test parameter NETMASK is not defined in constants file . Defaulting to 255.255.255.0"
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
+    if [ "${VF_IP2:-UNDEFINED}" = "UNDEFINED" ]; then
+        msg="ERROR: The test parameter VF_IP2 is not defined in constants file. No network connectivity test will be performed."
+        LogMsg "$msg"
+        UpdateSummary "$msg"
         SetTestStateAborted
         exit 1
-	fi
+    fi
 
-	if [ "${sshKey:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="ERROR: The test parameter sshKey is not defined in ${LIS_CONSTANTS_FILE}"
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
+    IFS=',' read -a networkType <<< "$NIC"
+    if [ "${NETMASK:-UNDEFINED}" = "UNDEFINED" ]; then
+        msg="ERROR: The test parameter NETMASK is not defined in constants file . Defaulting to 255.255.255.0"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
         SetTestStateAborted
         exit 1
-	fi
+    fi
 
-	if [ "${REMOTE_USER:-UNDEFINED}" = "UNDEFINED" ]; then
-	    msg="ERROR: The test parameter REMOTE_USER is not defined in ${LIS_CONSTANTS_FILE}"
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
+    if [ "${sshKey:-UNDEFINED}" = "UNDEFINED" ]; then
+        msg="ERROR: The test parameter sshKey is not defined in ${LIS_CONSTANTS_FILE}"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
         SetTestStateAborted
         exit 1
-	fi
-	
+    fi
+
+    if [ "${REMOTE_USER:-UNDEFINED}" = "UNDEFINED" ]; then
+        msg="ERROR: The test parameter REMOTE_USER is not defined in ${LIS_CONSTANTS_FILE}"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateAborted
+        exit 1
+    fi
+
     return 0
 }
 
@@ -230,106 +235,106 @@ Check_SRIOV_Parameters()
 #
 Create1Gfile()
 {
-	output_file=large_file
-	
-	if [ "${ZERO_FILE:-UNDEFINED}" = "UNDEFINED" ]; then
-	    file_source=/dev/urandom
-	else
-	    file_source=/dev/zero
-	fi
+    output_file=large_file
 
-	if [ -d "$HOME"/"$output_file" ]; then
-	    rm -rf "$HOME"/"$output_file"
-	fi
+    if [ "${ZERO_FILE:-UNDEFINED}" = "UNDEFINED" ]; then
+        file_source=/dev/urandom
+    else
+        file_source=/dev/zero
+    fi
 
-	if [ -e "$HOME"/"$output_file" ]; then
-	    rm -f "$HOME"/"$output_file"
-	fi
+    if [ -d "$HOME"/"$output_file" ]; then
+        rm -rf "$HOME"/"$output_file"
+    fi
 
-	dd if=$file_source of="$HOME"/"$output_file" bs=1 count=0 seek=1G
-	if [ 0 -ne $? ]; then
-	    msg="ERROR: Unable to create file $output_file in $HOME"
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    SetTestStateFailed
-	    exit 1
-	fi
+    if [ -e "$HOME"/"$output_file" ]; then
+        rm -f "$HOME"/"$output_file"
+    fi
 
-	LogMsg "Successfully created $output_file"
-	return 0
+    dd if=$file_source of="$HOME"/"$output_file" bs=1 count=0 seek=1G
+    if [ 0 -ne $? ]; then
+        msg="ERROR: Unable to create file $output_file in $HOME"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    fi
+
+    LogMsg "Successfully created $output_file"
+    return 0
 }
 
 #
-# ConfigureVF - will set the given VF_IP(s) (from constants file) 
+# ConfigureVF - will set the given VF_IP(s) (from constants file)
 # for each vf present 
 #
 ConfigureVF()
 {
-	vfCount=$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
-	if [ $vfCount -eq 0 ]; then
-    	msg="ERROR: No VFs are present in the Guest VM!"
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    SetTestStateFailed
-	    exit 1	
-	fi
+    vfCount=$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
+    if [ $vfCount -eq 0 ]; then
+        msg="ERROR: No VFs are present in the Guest VM!"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    fi
 
-	__iterator=1
-	__ipIterator=1
-	LogMsg "Iterator: $__iterator"
-	# LogMsg "vfCount: $vfCount"
+    __iterator=1
+    __ipIterator=1
+    LogMsg "Iterator: $__iterator"
+    # LogMsg "vfCount: $vfCount"
 
-	# Set static IPs for each vf created
-	while [ $__iterator -le $vfCount ]; do
-	    LogMsg "Network config will start"
+    # Set static IPs for each vf created
+    while [ $__iterator -le $vfCount ]; do
+        LogMsg "Network config will start"
 
         # Extract vfIP value from constants.sh
-		staticIP=$(cat constants.sh | grep IP$__ipIterator | head -1 | tr = " " | awk '{print $2}')
+        staticIP=$(cat constants.sh | grep IP$__ipIterator | head -1 | tr = " " | awk '{print $2}')
 
-	    if is_ubuntu ; then
-	        __file_path="/etc/network/interfaces"
-	        # Change /etc/network/interfaces 
-	        echo "auto eth$__iterator" >> $__file_path
-	        echo "iface eth$__iterator inet static" >> $__file_path
-	        echo "address $staticIP" >> $__file_path
-	        echo "netmask $NETMASK" >> $__file_path
-	        ifup eth$__iterator
+        if is_ubuntu ; then
+            __file_path="/etc/network/interfaces"
+            # Change /etc/network/interfaces 
+            echo "auto eth$__iterator" >> $__file_path
+            echo "iface eth$__iterator inet static" >> $__file_path
+            echo "address $staticIP" >> $__file_path
+            echo "netmask $NETMASK" >> $__file_path
+            ifup eth$__iterator
 
-	    elif is_suse ; then
-	        __file_path="/etc/sysconfig/network/ifcfg-eth$__iterator"
-	        rm -f $__file_path
+        elif is_suse ; then
+            __file_path="/etc/sysconfig/network/ifcfg-eth$__iterator"
+            rm -f $__file_path
 
-	        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
-	        echo "DEVICE=eth$__iterator" >> $__file_path
-	        echo "NAME=eth$__iterator" >> $__file_path
-	        echo "BOOTPROTO=static" >> $__file_path
-	        echo "IPADDR=$staticIP" >> $__file_path
-	        echo "NETMASK=$NETMASK" >> $__file_path
-	        echo "STARTMODE=auto" >> $__file_path
+            # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+            echo "DEVICE=eth$__iterator" >> $__file_path
+            echo "NAME=eth$__iterator" >> $__file_path
+            echo "BOOTPROTO=static" >> $__file_path
+            echo "IPADDR=$staticIP" >> $__file_path
+            echo "NETMASK=$NETMASK" >> $__file_path
+            echo "STARTMODE=auto" >> $__file_path
 
-	        ifup eth$__iterator
+            ifup eth$__iterator
 
-	    elif is_fedora ; then
-	        __file_path="/etc/sysconfig/network-scripts/ifcfg-eth$__iterator"
-	        rm -f $__file_path
+        elif is_fedora ; then
+            __file_path="/etc/sysconfig/network-scripts/ifcfg-eth$__iterator"
+            rm -f $__file_path
 
-	        # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file 
-	        echo "DEVICE=eth$__iterator" >> $__file_path
-	        echo "NAME=eth$__iterator" >> $__file_path
-	        echo "BOOTPROTO=static" >> $__file_path
-	        echo "IPADDR=$staticIP" >> $__file_path
-	        echo "NETMASK=$NETMASK" >> $__file_path
-	        echo "ONBOOT=yes" >> $__file_path
+            # Replace the BOOTPROTO, IPADDR and NETMASK values found in ifcfg file
+            echo "DEVICE=eth$__iterator" >> $__file_path
+            echo "NAME=eth$__iterator" >> $__file_path
+            echo "BOOTPROTO=static" >> $__file_path
+            echo "IPADDR=$staticIP" >> $__file_path
+            echo "NETMASK=$NETMASK" >> $__file_path
+            echo "ONBOOT=yes" >> $__file_path
 
-	        ifup eth$__iterator
-	    fi
-	    LogMsg "Network config file path: $__file_path"
+            ifup eth$__iterator
+        fi
+        LogMsg "Network config file path: $__file_path"
 
-		__ipIterator=$(($__ipIterator + 2))
-	    : $((__iterator++))
-	done
+        __ipIterator=$(($__ipIterator + 2))
+        : $((__iterator++))
+    done
 
-	return 0
+    return 0
 }
 
 #
@@ -337,149 +342,64 @@ ConfigureVF()
 #
 InstallDependencies()
 {
-	# Enable broadcast listening
-	echo 0 >/proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
+    # Enable broadcast listening
+    echo 0 >/proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
 
     GetDistro
     case "$DISTRO" in
         suse*)
-			# Disable firewall
-			rcSuSEfirewall2 stop
+            # Disable firewall
+            rcSuSEfirewall2 stop
 
-			# Check wget 
-			wget -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-				zypper --non-interactive in wget
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install wget"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-			fi
+            # Check wget
+            wget -V > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+                zypper --non-interactive in wget
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to install wget"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                fi
+            fi
 
-			# Check iPerf3
-			iperf3 -v > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-				wget -4 http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/libiperf0-3.1.3-50.1.x86_64.rpm
-				if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to download libiperf (this an iperf3 dependency)"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-
-	            wget -4 http://download.opensuse.org/repositories/home:/aeneas_jaissle:/sewikom/SLE_12/x86_64/iperf-3.1.3-50.1.x86_64.rpm
-				if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to download iperf"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-
-	            rpm -i libiperf*
-	            rpm -i iperf*
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install iperf"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-			fi
             ;;
 
         ubuntu*)
-			# Disable firewall
-			ufw disable
+            # Disable firewall
+            ufw disable
 
-			# Check wget 
-			wget -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-				apt-get install wget -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install wget"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-			fi
-
-			# Check iPerf3
-			iperf3 -v > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-				wget -4 https://iperf.fr/download/ubuntu/libiperf0_3.1.3-1_amd64.deb
-				if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to download libiperf (this an iperf3 dependency)"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-
-	            wget -4 https://iperf.fr/download/ubuntu/iperf3_3.1.3-1_amd64.deb
-				if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to download iperf"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-
-	            dpkg -i libiperf*
-	            dpkg -i iperf3*
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install iperf"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-			fi
+            # Check wget
+            wget -V > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+                apt-get install wget -y
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to install wget"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                fi
+            fi
             ;;
 
         redhat*|centos*)
-			# Disable firewall
-			service firewalld stop
+            # Disable firewall
+            service firewalld stop
 
-			# Check wget 
-			wget -V > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-				yum install wget -y
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install wget"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-			fi
-
-			# Check iPerf3
-			iperf3 -v > /dev/null 2>&1
-			if [ $? -ne 0 ]; then
-	            wget -4 https://iperf.fr/download/fedora/iperf3-3.1.3-1.fc24.x86_64.rpm
-				if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to download iperf"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-
-	            rpm -i iperf3*
-	            if [ $? -ne 0 ]; then
-	                msg="ERROR: Failed to install iperf"
-	                LogMsg "$msg"
-	                UpdateSummary "$msg"
-	                SetTestStateFailed
-	                exit 1
-	            fi
-			fi
+            # Check wget 
+            wget -V > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+                yum install wget -y
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to install wget"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                fi
+            fi
         ;;
         *)
             msg="ERROR: OS Version not supported"
@@ -489,6 +409,31 @@ InstallDependencies()
             exit 1
         ;;
     esac
+
+    # Check if iPerf3 is already installed
+    iperf3 -v > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        wget $iperf3_url
+        if [ $? -ne 0 ]; then
+            msg="ERROR: Failed to download iperf3 from $iperf3_url"
+            LogMsg "$msg"
+            UpdateSummary "$msg"
+            SetTestStateFailed
+            exit 1
+        fi
+
+        tar xf $iperf3_version.tar.gz
+        cd iperf-$iperf3_version
+
+        ./configure; make; make install; ldconfig
+        if [ $? -ne 0 ]; then
+        msg="ERROR: Failed to install iperf3"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+        fi
+    fi
 
     return 0
 }

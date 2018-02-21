@@ -74,77 +74,77 @@ function ConfigureVFSecondVM([String]$conIpv4,[String]$sshKey,[String]$netmask)
     # create command to be sent to VM. This determines the interface based on the MAC Address.
     $cmdToVM = @"
 #!/bin/bash
-        cd ~
-        # Source utils.sh
-        dos2unix utils.sh
-        dos2unix SR-IOV_Utils.sh
+cd ~
+# Source utils.sh
+dos2unix utils.sh
+dos2unix SR-IOV_Utils.sh
 
-        # Source SR-IOV_Utils.sh
-        . SR-IOV_Utils.sh || {
-            echo "ERROR: unable to source SR-IOV_Utils.sh!" >> SRIOV_SendFile.log
-            exit 2
-        }
+# Source SR-IOV_Utils.sh
+. SR-IOV_Utils.sh || {
+    echo "ERROR: unable to source SR-IOV_Utils.sh!" >> SRIOV_SendFile.log
+    exit 2
+}
 
-        # Install dependencies needed for testing
-        InstallDependencies
+# Install dependencies needed for testing
+InstallDependencies
 
-        # Get the number of VFs on the VM
-        vfCount=`$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
+# Get the number of VFs on the VM
+vfCount=`$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
 
-        __iterator=1
-        __ipIterator=2
-        # Set static IPs for each VF
-        while [ `$__iterator -le `$vfCount ]; do
-            # Extract vfIP value from constants.sh
-            staticIP=`$(cat constants.sh | grep IP`$__ipIterator | tr = " " | awk '{print `$2}')
+__iterator=1
+__ipIterator=2
+# Set static IPs for each VF
+while [ `$__iterator -le `$vfCount ]; do
+    # Extract vfIP value from constants.sh
+    staticIP=`$(cat constants.sh | grep IP`$__ipIterator | tr = " " | awk '{print `$2}')
 
-            if is_ubuntu ; then
-                __file_path="/etc/network/interfaces"
+    if is_ubuntu ; then
+        __file_path="/etc/network/interfaces"
 
-                # Add VF to /etc/network/interfaces 
-                echo "auto eth`$__iterator" >> `$__file_path
-                echo "iface eth`$__iterator inet static" >> `$__file_path
-                echo "address `$staticIP" >> `$__file_path
-                echo "netmask $netmask" >> `$__file_path
+        # Add VF to /etc/network/interfaces 
+        echo "auto eth`$__iterator" >> `$__file_path
+        echo "iface eth`$__iterator inet static" >> `$__file_path
+        echo "address `$staticIP" >> `$__file_path
+        echo "netmask $netmask" >> `$__file_path
 
-                ifup eth`$__iterator
+        ifup eth`$__iterator
 
-            elif is_suse ; then
-                __file_path="/etc/sysconfig/network/ifcfg-eth`$__iterator"
-                rm -f `$__file_path
-                # Create ifcfg file for the VF
+    elif is_suse ; then
+        __file_path="/etc/sysconfig/network/ifcfg-eth`$__iterator"
+        rm -f `$__file_path
+        # Create ifcfg file for the VF
 
-                echo "DEVICE=eth`$__iterator" >> `$__file_path
-                echo "NAME=eth`$__iterator" >> `$__file_path
-                echo "BOOTPROTO=static" >> `$__file_path
-                echo "IPADDR=`$staticIP" >> `$__file_path
-                echo "NETMASK=$netmask" >> `$__file_path
-                echo "STARTMODE=auto" >> `$__file_path
+        echo "DEVICE=eth`$__iterator" >> `$__file_path
+        echo "NAME=eth`$__iterator" >> `$__file_path
+        echo "BOOTPROTO=static" >> `$__file_path
+        echo "IPADDR=`$staticIP" >> `$__file_path
+        echo "NETMASK=$netmask" >> `$__file_path
+        echo "STARTMODE=auto" >> `$__file_path
 
-                ifup eth`$__iterator
+        ifup eth`$__iterator
 
-            elif is_fedora ; then
-                __file_path="/etc/sysconfig/network-scripts/ifcfg-eth`$__iterator"
-                rm -f `$__file_path
-                # Create ifcfg file for the VF
+    elif is_fedora ; then
+        __file_path="/etc/sysconfig/network-scripts/ifcfg-eth`$__iterator"
+        rm -f `$__file_path
+        # Create ifcfg file for the VF
 
-                echo "DEVICE=eth`$__iterator" >> `$__file_path
-                echo "NAME=eth`$__iterator" >> `$__file_path
-                echo "BOOTPROTO=static" >> `$__file_path
-                echo "IPADDR=`$staticIP" >> `$__file_path
-                echo "NETMASK=$netmask" >> `$__file_path
-                echo "ONBOOT=yes" >> `$__file_path
+        echo "DEVICE=eth`$__iterator" >> `$__file_path
+        echo "NAME=eth`$__iterator" >> `$__file_path
+        echo "BOOTPROTO=static" >> `$__file_path
+        echo "IPADDR=`$staticIP" >> `$__file_path
+        echo "NETMASK=$netmask" >> `$__file_path
+        echo "ONBOOT=yes" >> `$__file_path
 
-                ifup eth`$__iterator
+        ifup eth`$__iterator
 
-            fi
+    fi
 
-            __ipIterator=`$((`$__ipIterator + 2))
-            : `$((__iterator++))
-        done
+    __ipIterator=`$((`$__ipIterator + 2))
+    : `$((__iterator++))
+done
 
-        echo ConfigureVF: returned `$__retVal >> /root/SR-IOV_enable.log 2>&1
-        exit `$__retVal
+echo ConfigureVF: returned `$__retVal >> /root/SR-IOV_enable.log 2>&1
+exit `$__retVal
 "@
 
     $filename = "ConfigureVF.sh"
@@ -170,7 +170,7 @@ function ConfigureVFSecondVM([String]$conIpv4,[String]$sshKey,[String]$netmask)
     }
 
     # execute sent file
-    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
+    $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && dos2unix ${filename} && bash ./${filename}"
 
     return $retVal
 }
@@ -334,7 +334,7 @@ foreach ($p in $params)
                 {
                     "Error: Switch $networkName is type $vmSwitch.SwitchType (not $networkType)"
                     return $false
-                }             
+                }
             }
 
             # Validate the MAC is the correct length
@@ -395,7 +395,7 @@ if (-not $remoteServer) {
 $vm2 = Get-VM -Name $vm2Name -ComputerName $remoteServer -ERRORAction SilentlyContinue
 if (-not $vm2) {
     "ERROR: VM ${vm2Name} does not exist"
-    return $False    
+    return $False
 }
 
 # Verify if VM2 is already configured
@@ -416,10 +416,10 @@ if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like 
         $retval = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "ifconfig | grep $vm_vfIP4"
         if ($retVal) {
             $vm2_is_configured = $true
-        } 
+        }
         else {
-            $vm2_is_configured = $false    
-        }  
+            $vm2_is_configured = $false
+        }
     }
 
 }
@@ -427,7 +427,7 @@ if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like 
 # There are some tests that require a clean dependency VM
 if ($cleanDependency -ne $null) {
     if ($cleanDependency -eq 'yes'){
-        $vm2_is_configured = $false   
+        $vm2_is_configured = $false
     }
 }
 
