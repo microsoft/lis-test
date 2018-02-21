@@ -424,7 +424,7 @@ if is_fedora ; then
     fi
 elif is_ubuntu ; then
     apt update
-    apt-get -y install gcc make nfs-common libssl-dev bc elfutils libelf-dev
+    apt -y install gcc make nfs-common libssl-dev bc elfutils libelf-dev bison flex
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Unable to install dependency packages. Aborting..."
         UpdateTestState $TestAborted
