@@ -211,6 +211,7 @@
             <suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
             <suiteTest>ProductionCheckpoint_SCSI_vhdx</suiteTest>
             <suiteTest>ProductionCheckpoint_ISO_NoNetwork</suiteTest>
+            <suiteTest>kexec_git_install</suiteTest>
             <suiteTest>Crash_single_core</suiteTest>
             <suiteTest>Crash_SMP</suiteTest>
             <suiteTest>Crash_NMI</suiteTest>
@@ -2591,6 +2592,15 @@
          <noReboot>False</noReboot>
       </test>
       <!-- KDUMP -->
+        <test>
+            <testName>kexec_git_install</testName>
+            <testScript>kexec_git_install.sh</testScript>
+            <files>remote-scripts/ica/kexec_git_install.sh,remote-scripts/ica/utils.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+	   
       <test>
          <testName>Crash_single_core</testName>
          <setupScript>
