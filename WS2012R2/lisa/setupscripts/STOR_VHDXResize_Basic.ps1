@@ -63,8 +63,6 @@ param( [String] $vmName,
 $sshKey     = $null
 $ipv4       = $null
 $newSize    = $null
-$sectorSize = $null
-$DefaultSize = $null
 $rootDir    = $null
 $TC_COVERED = $null
 $TestLogDir = $null
@@ -121,13 +119,11 @@ foreach ($p in $params)
     "ipv4"      { $ipv4    = $fields[1].Trim() }
     "newSize"   { $newSize = $fields[1].Trim() }
     "rootDIR"   { $rootDir = $fields[1].Trim() }
-    "sectorSize"   { $sectorSize = $fields[1].Trim() }
-    "DefaultSize"   { $DefaultSize = $fields[1].Trim() }
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
     "TestName"   { $TestName = $fields[1].Trim() }
-    "ControllerType"   { $controllerType = $fields[1].Trim() }
-    "Type"   { $type = $fields[1].Trim() }
+    "SCSI"  { $controllerType = "SCSI" }
+    "IDE"  { $controllerType = "IDE" }
     default     {}  # unknown param - just ignore it
     }
 }
@@ -197,7 +193,7 @@ $sizeFlag = ConvertStringToUInt64 "20GB"
 #
 
 "Info : Check if VM ${vmName} has a $controllerType drive"
-$vhdxName = $vmName + "-" + $DefaultSize + "-" + $sectorSize + "-test"
+$vhdxName = $vmName + "-" + $controllerType
 $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
 foreach ($vhdx in $vhdxDisks)
@@ -258,7 +254,6 @@ if ($diskInfo.FreeSpace -le $sizeFlag + 10MB)
 
 $guest_script = "STOR_VHDXResize_PartitionDisk"
 
-
 $sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
@@ -312,8 +307,7 @@ if ( $newSize.contains("GB") -and $vhdxInfoResize.Size/1gb -ne $newSize.Trim("GB
 #
 # Let system have some time for the volume change to be indicated
 #
-$sleepTime = 60
-Start-Sleep -s $sleepTime
+Start-Sleep -s 60
 
 #
 # Check if the guest sees the added space
@@ -352,7 +346,6 @@ if ([int]($newVhdxGrowSize/1gb) -gt 2048)
 {
   $guest_script = "STOR_VHDXResize_PartitionDiskOver2TB"
 }
-
 else
 {
  $guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"

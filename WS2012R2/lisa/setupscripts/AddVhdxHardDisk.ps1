@@ -39,26 +39,26 @@
    controllers, hard drives, .vhd type, and sector size.  The
    testParamss have the format of:
 
-      ControllerType=Controller Index, Lun or Port, vhd type, sector size
+      ControllerType=Controller Index, Lun or Port, vhd type, sector size, vhd Size
 
    The following are some examples:
 
-   SCSI=0,0,Dynamic,4096 : Add SCSI Controller 0, hard drive on Lun 0, .vhd type Dynamic, sector size of 4096
-   SCSI=1,0,Fixed,512    : Add SCSI Controller 1, hard drive on Lun 0, .vhd type Fixed, sector size of 512 bytes
-   IDE=0,1,Dynamic,512   : Add IDE hard drive on IDE 0, port 1, .vhd type Fixed, sector size of 512 bytes
-   IDE=1,1,Fixed,4096    : Add IDE hard drive on IDE 1, port 1, .vhd type Fixed, sector size of 4096 bytes
+   SCSI=0,0,Dynamic,4096,1GB : Add SCSI Controller 0, hard drive on Lun 0, .vhd type Dynamic, sector size of 4096, vhd size 1GB
+   SCSI=1,0,Fixed,512,3GB    : Add SCSI Controller 1, hard drive on Lun 0, .vhd type Fixed, sector size of 512 bytes, vhd size 3GB
+   IDE=0,1,Dynamic,512,1GB   : Add IDE hard drive on IDE 0, port 1, .vhd type Fixed, sector size of 512 bytes, vhd size 1GB
+   IDE=1,1,Fixed,4096,3GB    : Add IDE hard drive on IDE 1, port 1, .vhd type Fixed, sector size of 4096 bytes, vhd size 3GB
 
    The following testParams
 
      <testParams>
-         <param>SCSI=0,0,Dynamic,4096</param>
+         <param>SCSI=0,0,Dynamic,4096,3GB</param>
          <param>IDE=1,1,Fixed,512</param>
      <testParams>
 
    will be parsed into the following string by the ICA scripts and passed
    to the setup script:
 
-       "SCSI=0,0,Dynamic,4096;IDE=1,1,Fixed,512"
+       "SCSI=0,0,Dynamic,4096,3GB;IDE=1,1,Fixed,512"
 
    All setup and cleanup scripts must return a boolean ($true or $false)
    to indicate if the script completed successfully.
@@ -72,11 +72,12 @@
                          Valid VHD types are:
                              Dynamic
                              Fixed
+      vhd Size         = Size of .vhd in GB. If size is not specified the default size is 1GB.
 
    The following are some examples:
 
-   SCSI=0,0,Dynamic,4096 : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic disk with logical sector size of 4096
-   IDE=1,1,Fixed,4096  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Fixed disk with logical sector size of 4096
+   SCSI=0,0,Dynamic,4096 : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic disk with logical sector size of 4096, vhd size 1GB
+   IDE=1,1,Fixed,4096,3GB  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Fixed disk with logical sector size of 4096, vhd size 3GB
 
     A typical XML definition for this test case would look similar to the following:
      <test>
@@ -116,37 +117,6 @@ $diskCount=$null
 $lun=$null
 $vmGeneration=$null
 
-#######################################################################
-#
-# GetRemoteFileInfo()
-#
-# Description:
-#     Use WMI to retrieve file information for a file residing on the
-#     Hyper-V server.
-#
-# Return:
-#     A FileInfo structure if the file exists, null otherwise.
-#
-#######################################################################
-function GetRemoteFileInfo([String] $filename, [String] $server )
-{
-    $fileInfo = $null
-
-    if (-not $filename)
-    {
-        return $null
-    }
-
-    if (-not $server)
-    {
-        return $null
-    }
-
-    $remoteFilename = $filename.Replace("\", "\\")
-    $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-
-    return $fileInfo
-}
 
 ############################################################################
 #
@@ -409,7 +379,7 @@ foreach ($p in $params)
 
     $diskArgs = $Matches[2].Trim().Split(',')
 
-    if ($diskArgs.Length -lt 3 -or $diskArgs.Length -gt 4)
+    if ($diskArgs.Length -lt 3 -or $diskArgs.Length -gt 5)
     {
         "Error: Incorrect number of arguments: $p"
         $retVal = $false
@@ -436,6 +406,12 @@ foreach ($p in $params)
             "Error: bad sector size: ${sectorSize}"
             return $False
         }
+    }
+
+    #if 5th element is specified, it will be used, else it will be used the default size: MinDiskSize=1GB
+    if ($diskArgs.Length -eq 5)
+    {
+        $global:MinDiskSize = ConvertStringToDecimal($diskArgs[4].Trim())
     }
 
     if (@("Fixed", "Dynamic") -notcontains $vhdType)

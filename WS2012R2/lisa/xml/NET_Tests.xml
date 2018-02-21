@@ -388,16 +388,13 @@ permissions and limitations under the License.
 
         <test>
             <testName>CopyFileScp</testName>
-            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=NET-19</param>
-                <param>Type=Dynamic</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=25GB</param>
-                <param>ControllerType=SCSI</param>
+                <param>SCSI=0,1,Dynamic,512,25GB</param>
             </testParams>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>2400</timeout>
             <onError>Continue</onError>
         </test>

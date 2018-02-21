@@ -64,8 +64,6 @@ $sshKey     = $null
 $ipv4       = $null
 $newGrowSize    = $null
 $newShrinkSize    = $null
-$sectorSize = $null
-$DefaultSize = $null
 $rootDir    = $null
 $TC_COVERED = $null
 $TestLogDir = $null
@@ -123,15 +121,13 @@ foreach ($p in $params)
     "ipv4"      { $ipv4    = $fields[1].Trim() }
     "growSize"  { $newGrowSize = $fields[1].Trim() }
     "shrinkSize"       { $newShrinkSize = $fields[1].Trim() }
-    "sectorSize"       { $sectorSize = $fields[1].Trim() }
-    "DefaultSize"   { $DefaultSize = $fields[1].Trim() }
     "rootDIR"   { $rootDir = $fields[1].Trim() }
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
     "TestName"   { $TestName = $fields[1].Trim() }
-    "ControllerType"   { $controllerType = $fields[1].Trim() }
-    "Type"   { $type = $fields[1].Trim() }
     "Offline"   { $offline = $fields[1].Trim() }
+    "SCSI"  { $controllerType = "SCSI" }
+    "IDE"  { $controllerType = "IDE" }
     default     {}  # unknown param - just ignore it
     }
 }
@@ -204,7 +200,7 @@ $sizeFlag = ConvertStringToUInt64 "20GB"
 #
 
 "Info : Check if VM ${vmName} has a $controllerType drive"
-$vhdxName = $vmName + "-" + $DefaultSize + "-" + $sectorSize + "-test"
+$vhdxName = $vmName + "-" + $controllerType
 $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
 foreach ($vhdx in $vhdxDisks)

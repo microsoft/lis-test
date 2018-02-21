@@ -21,41 +21,33 @@
 
 <#
 .Synopsis
-    This is a setup script that will run before the VM is booted.
-    The script will create two .vhdx files and attach and detached them, one at a time.
-
+    This test script will dettach VHDx disk(s) from VM and reattach them while vm is running.
 
 .Description
-     This is a setup script that will run before the VM is booted.
-     The script will create two .vhdx files and attach and detached them, one at a time.
-     The first .vhdx file will be attached and dettached, then the second .vhdx
-     file will be attached and dettached and then the first .vhdx file will be attached
-     again,  will do add/remove two disks based on LoopCount parameter.
-     The VM should recognize the first .vhdx file.
+    The first .vhdx file will be dettached, then the second .vhdx.
+    The VM should not have attached disks anymore.
+    Then the first .vhdx will be attached back, and then the second .vhdx.
+    The VM should recognize the disks attached.
+    Will do add/remove two disks based on LoopCount parameter.
 
-    The  scripts will always pass the vmName, hvServer, and a string of
-    testParams from the test definition separated by semicolons. The testParams
-    for this script identifies the two VHDx types, two sector sizes and the two
-    default sizes of the .vhdx files which will be created.
-
-    The following are some examples:
-
-    "Type1=Dynamic;SectorSize1=512;DefaultSize1=5GB;
-    Type2=Dynamic;SectorSize2=512;DefaultSize2=2GB":
-    Create 2 VHDx; first .vhdx file will be a 5GB, 512 sector size, dynamic VHDx
-    and the second .vhdx file will be a 2GB, 512 sector size, dynamic VHDx
-
-    Test params xml entry:
-    <testparams>
-        <param>TC_COVERED=Something-01</param>
-        <param>Type1=Dynamic</param>
-        <param>SectorSize1=512</param>
-        <param>DefaultSize1=5GB</param>
-        <param>Type2=Dynamic</param>
-        <param>SectorSize2=512</param>
-        <param>DefaultSize2=2GB</param>
-        <param>LoopCount=2</param>
-     </testparams>
+    A typical test case definition for this test script would look
+    similar to the following:
+        <test>
+            <testName>VHDx_DiskHotPlugUnplug</testName>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+            <testScript>setupscripts\STOR_unPlug_Plug.ps1</testScript>
+            <files>remote-scripts/ica/STOR_hot_remove.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <testparams>
+                <param>TC_COVERED=STOR-31b,STOR-42b</param>
+                <param>SCSI=0,0,Dynamic,512,1GB</param>
+                <param>SCSI=0,1,Dynamic,512,2GB</param>
+                <param>LoopCount=5</param>
+            </testparams>
+            <timeout>800</timeout>
+            <onError>Continue</onError>
+        </test>
 
 .Parameter vmName
     Name of the VM to add disk to.
@@ -70,49 +62,20 @@
     setupScripts\STOR_unPlug_Plug.ps1 `
     -vmName VM_NAME
     -hvServer HYPERV_SERVER `
-    -testParams "Type1=Dynamic;SectorSize1=512;DefaultSize1=5GB;Type2=Dynamic;SectorSize2=512;DefaultSize2=2GB;LoopCount=2"
+    -testParams "SCSI=0,0,Dynamic,512,1GB;SCSI=0,1,Dynamic,512,2GB;LoopCount=5"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-################################################################################
-# NewVHDxPath
-#
-# Description
-#   Returns the path of a .vhdx created with CreateVHDxDiskDrive function
-################################################################################
-function NewVHDxPath([string] $vmName, [string] $hvServer)
-{
-    $vmDrive = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
-    $lastSlash = $vmDrive[0].Path.LastIndexOf("\")
-    if (-not $vhdPath)
-    {
-        $defaultVhdPath = $vmDrive[0].Path.Substring(0,$lastSlash)
-    }
-    else {
-        $defaultVhdPath = $vhdPath
-    }
-    if (-not $defaultVhdPath.EndsWith("\"))
-    {
-        $defaultVhdPath += "\"
-    }
-        return $defaultVhdPath
-}
-
-################################################################################
-# AttachVHDxDiskDrive
-#
-# Description
-#   Attaches .vhdx hard-disk to the VM.
-################################################################################
 function AttachVHDxDiskDrive( [string] $vmName, [string] $hvServer,
-                        [string] $vhdxPath, [string] $controllerType)
+                        [string] $vhdxPath, [string] $controllerType,[string] $controllerID,[string] $lun )
 {
     Add-VMHardDiskDrive -VMName $vmName `
-                            -Path $vhdxPath `
-                            -ControllerType $controllerType `
-                            -ComputerName $hvServer
-
+                        -ComputerName $hvServer `
+                        -Path $vhdxPath `
+                        -ControllerType $controllerType `
+                        -ControllerNumber $controllerID `
+                        -ControllerLocation $lun
     if ($error.Count -gt 0)
     {
         Write-Output "Error: Add-VMHardDiskDrive failed to add drive on SCSI controller $error[0].Exception"
@@ -123,15 +86,14 @@ function AttachVHDxDiskDrive( [string] $vmName, [string] $hvServer,
     return $True
 }
 
-
 function RemoveVHDxDiskDrive( [string] $vmName, [string] $hvServer,
-                        [string] $vhdxPath, [string] $controllerType)
+                        [string] $controllerType,[string] $controllerID,[string] $lun)
 {
     Remove-VMHardDiskDrive -VMName $vmName `
-                            -Path $vhdxPath `
-                            -ControllerType $controllerType `
-                            -ComputerName $hvServer
-
+                           -ComputerName $hvServer `
+                           -ControllerType $controllerType `
+                           -ControllerLocation $lun `
+                           -ControllerNumber $controllerID
     if ($error.Count -gt 0)
     {
         Write-Output "Error: Remove-VMHardDiskDrive failed to remove drive on SCSI controller $error[0].Exception"
@@ -148,56 +110,35 @@ function RemoveVHDxDiskDrive( [string] $vmName, [string] $hvServer,
 #
 ################################################################################
 
-#
-# Set default values
-#
-$retVal = $False
-$sectorSize1 = $null
-$sectorSize2 = $null
-$defaultSize1 = 2GB
-$defaultSize2 = 1GB
+$scsi=$true
+$remoteScript="STOR_hot_remove.sh"
 
-# Delete any summary.log from a previous test run, then create a new file
-#
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
-Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
-#
 # Check input arguments
-#
 if ($vmName -eq $null -or $vmName.Length -eq 0)
 {
-    Write-Output "Error: VM name is null"| Tee-Object -Append -file $summaryLog
+    Write-Output "Error: VM name is null"
     return $False
 }
 if ($hvServer -eq $null -or $hvServer.Length -eq 0)
 {
-    Write-Output "Error: hvServer is null"| Tee-Object -Append -file $summaryLog
+    Write-Output "Error: hvServer is null"
     return $False
 }
 if ($testParams -eq $null -or $testParams.Length -lt 3)
 {
-    Write-Output "Error: setupScript requires test params"| Tee-Object -Append -file $summaryLog
+    Write-Output "Error: setupScript requires test params"
     return $False
 }
 
-#
 # Parse the testParams string
-#
 $params = $testParams.TrimEnd(";").Split(";")
+
 foreach ($p in $params)
 {
     $fields = $p.Split("=")
     $value = $fields[1].Trim()
     switch ($fields[0].Trim())
-{
-    "Type1"          { $type1    = $fields[1].Trim() }
-    "SectorSize1"    { $sectorSize1    = $fields[1].Trim() }
-    "DefaultSize1"   { $defaultSize1  = $fields[1].Trim() }
-    "Type2"          { $type2    = $fields[1].Trim() }
-    "SectorSize2"    { $sectorSize2    = $fields[1].Trim() }
-    "DefaultSize2"   { $defaultSize2  = $fields[1].Trim() }
+    {
     "SshKey"  { $sshKey  = $fields[1].Trim() }
     "ipv4"    { $ipv4    = $fields[1].Trim() }
     "rootDIR"   { $rootDir = $fields[1].Trim() }
@@ -207,87 +148,130 @@ foreach ($p in $params)
     }
 }
 
-if (-not (Test-Path $rootDir)) {
-    Write-Output "Error: The directory `"${rootDir}`" does not exist"| Tee-Object -Append -file $summaryLog
+if (-not (Test-Path $rootDir))
+{
+    Write-Output "Error: The directory `"${rootDir}`" does not exist"
     return $False
 }
-
 
 cd $rootDir
 
-$numb = (Get-VMScsiController -VMName $vmName -ComputerName $hvServer).ControllerNumber.Count - 1
-$p = "scsi=" + $numb + ",1," + $type2 + "," + $sectorSize2
+# Source TCUtils.ps1
+if (Test-Path ".\setupScripts\TCUtils.ps1")
+{
+    . .\setupScripts\TCUtils.ps1
+}
+else
+{
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
+}
 
-####
-$path1 = NewVHDxPath $vmName $hvServer
-$path2 =  $path1 + $vmName + "-" + $defaultSize2 + "-" + $sectorSize2 + "-test.vhdx"
-$path1 +=  $vmName + "-" + $defaultSize1 + "-" + $sectorSize1 + "-test.vhdx"
+# Delete any summary.log from a previous test run, then create a new file
+$summaryLog = "${vmName}_summary.log"
+del $summaryLog -ErrorAction SilentlyContinue
+$Error.Clear()
 
+Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+foreach ($p in $params){
+    $p -match '^([^=]+)=(.+)' | Out-Null
+    if ($Matches[1,2].Length -ne 2)
+    {
+        "Warn : test parameter '$p' is being ignored because it appears to be malformed"
+        continue
+    }
+
+    # Matches[1] represents the parameter name
+    # Matches[2] is the value content of the parameter
+    $controller = $Matches[1].Trim()
+    if ("SCSI" -notcontains $controller)
+    {
+        # Not a test parameter we are concerned with
+        continue
+    }
+
+    $controllerType=$controller
+    $diskArgs = $Matches[2].Trim().Split(',')
+    if ($diskArgs.Length -lt 3 -or $diskArgs.Length -gt 5)
+    {
+        "Error: Incorrect number of arguments: $p"
+        return $False
+    }
+    $vmGeneration = GetVMGeneration $vmName $hvServer
+    if($scsi){
+        $controllerID1 = $diskArgs[0].Trim()
+        if ($vmGeneration -eq 1){$lun1 = [int]($diskArgs[1].Trim())}
+        else{$lun1 = [int]($diskArgs[1].Trim()) +1}
+        $scsi=$false
+        }
+    else{
+        $controllerID2 = $diskArgs[0].Trim()
+        if ($vmGeneration -eq 1){$lun2 = [int]($diskArgs[1].Trim())}
+        else{$lun2 = [int]($diskArgs[1].Trim()) +1}
+        }
+    $vhdType = $diskArgs[2].Trim()
+}
+
+$path1=(Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerLocation $lun1 -ControllerNumber $controllerID1 -ControllerType $controllerType).Path
+$path2=(Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer -ControllerLocation $lun2 -ControllerNumber $controllerID2 -ControllerType $controllerType).Path
 
 for ($i=0; $i -lt $loopCount; $i++)
 {
+    #Remove the 1st VHDx
+    Write-Output "Current loop number is $i."
+    $retVal = RemoveVHDxDiskDrive $vmName $hvServer $controllerType $controllerID1 $lun1
+    if (-not $retVal[-1])
+    {
+        Write-Output "Error: Failed to remove first VHDx with path $path1!" | Tee-Object -Append -file $summaryLog
+        return $False
+    }
+    Write-Output "Removed first VHDx with path $path1"
 
-  # Remove the 1st VHDx
-  #
-  Write-Output "Current loop number is $i."
-  $retVal = RemoveVHDxDiskDrive $vmName $hvServer $path1 SCSI
+    #Remove the 2nd VHDx
+    $retVal = RemoveVHDxDiskDrive $vmName $hvServer $controllerType $ccontrollerID2 $lun2
+    if (-not $retVal[-1])
+    {
+        Write-Output "Error: Failed to remove second VHDx with path $path2!" | Tee-Object -Append -file $summaryLog
+        return $False
+    }
+    Write-Output "Removed second VHDx with path $path2"
 
-  if (-not $retVal)
-  {
-      Write-Output "Error: Failed to remove VHDx with size $defaultSize1"| Tee-Object -Append -file $summaryLog
-      return $False
-  }
-  Write-Output "Removed VHDx with size $defaultSize1"
+    #verify if vm sees that disks were dettached
+    $sts = RunRemoteScript $remoteScript
+    if (-not $sts[-1])
+    {
+        Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" | Tee-Object -Append -file $summaryLog
+        Write-Output "ERROR: Running $remoteScript script failed on VM!"
+        return $False
+    }
 
+    #Attaching the 1st VHDx again
+    $retVal = AttachVHDxDiskDrive $vmName $hvServer $path1 $controllerType $controllerID1 $lun1
+    if (-not $retVal[-1])
+    {
+        Write-Output "Error: Failed to attach first VHDx with path $path1!" | Tee-Object -Append -file $summaryLog
+        return $False
+    }
+    Write-Output "Attached first VHDx with path $path1"
 
-  $retVal = RemoveVHDxDiskDrive $vmName $hvServer $path2 SCSI
+    #Attaching the 2nd VHDx again
+    $retVal = AttachVHDxDiskDrive $vmName $hvServer $path2 $controllerType $controllerID2 $lun2
+    if (-not $retVal[-1])
+    {
+        Write-Output "Error: Failed to attach second VHDx with path $pat2!" | Tee-Object -Append -file $summaryLog
+        return $False
+    }
+    Write-Output "Attached second VHDx with path $path2"
 
-  if (-not $retVal)
-  {
-      Write-Output "Error: Failed to remove VHDx with size $defaultSize2"| Tee-Object -Append -file $summaryLog
-      return $False
-  }
-  Write-Output "Removed VHDx with size $defaultSize2"
+    #wait for vm to see the disks
+    Start-Sleep 5
 
-  $sts = RunRemoteScript "STOR_hot_remove.sh"
-  if (-not $sts[-1])
-  {
-      Write-Output "ERROR executing $remoteScript on VM. Exiting test case!" >> $summaryLog
-      Write-Output "ERROR: Running $remoteScript script failed on VM!"
-      return $False
-  }
-
-  #
-  # Attaching the 1st VHDx again
-  #
-  $retVal = AttachVHDxDiskDrive $vmName $hvServer $path1 SCSI
-
-  if (-not $retVal)
-  {
-      Write-Output "Error: Failed to attach VHDx with size $defaultSize1"| Tee-Object -Append -file $summaryLog
-      return $False
-  }
-  Write-Output "Attached VHDx with size $defaultSize1"
-
-
-  $retVal = AttachVHDxDiskDrive $vmName $hvServer $path2 SCSI
-
-  if (-not $retVal)
-  {
-      Write-Output "Error: Failed to attach VHDx with size $defaultSize2"| Tee-Object -Append -file $summaryLog
-      return $False
-  }
-  Write-Output "Attached VHDx with size $defaultSize2"
-
-
-  $diskNumber = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l | grep 'Disk /dev/sd*' | grep -v 'Disk /dev/sda' | wc -l"
-  if ( $diskNumber -ne 2)
-  {
-    Write-Output "Error: Failed to attach VHDx "| Tee-Object -Append -file $summaryLog
-    return $False
-  }
+    $diskNumber = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l | grep 'Disk /dev/sd*' | grep -v 'Disk /dev/sda' | wc -l"
+    if ( $diskNumber -ne 2)
+    {
+        Write-Output "Error: Failed to attach VHDx "| Tee-Object -Append -file $summaryLog
+        return $False
+    }
 }
-
-
 return $true

@@ -44,14 +44,19 @@ function UpdateTestState()
 
 function CheckForError()
 {
+    distro=$(grep -ihs "Ubuntu\|SUSE\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version})
+        if [[ $distro = *"ubuntu"* || $distro = *"debian"* ]]; then
+            messages="/var/log/syslog"
+        else
+            messages="/var/log/messages"
+        fi
     while true; do
-        a=$(tail /var/log/messages | grep "No additional sense information")
-        if [[ -n $a ]]; then
+        if [[ $(tail $messages | grep -i "No additional sense information") ]]; then
             UpdateSummary "System hanging at mkfs $1"
-            sleep 1
             UpdateTestState $ICA_TESTABORTED
             exit 1
         fi
+        sleep 3
     done
  }
 
