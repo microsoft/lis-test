@@ -337,6 +337,7 @@ def test_orion(provider, keyid, secret, token, imageid, subscription, tenant, pr
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Orion'.format(provider),
                        results_path=results_path, parser=OrionLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Orion_perf_tuned'.format(provider),
                        host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='1 x SSD {}GB'.format(disk_size))
@@ -407,6 +408,7 @@ def test_orion_raid(provider, keyid, secret, token, imageid, subscription, tenan
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Orion'.format(provider),
                        results_path=results_path, parser=OrionLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Orion_perf_tuned'.format(provider),
                        host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='{} x SSD {}GB'.format(raid, disk_size))
@@ -475,6 +477,7 @@ def test_sysbench(provider, keyid, secret, token, imageid, subscription, tenant,
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Sysbench'.format(provider),
                        results_path=results_path, parser=SysbenchLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_sysbench_fileio_perf_tuned'.format(provider),
                        host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='1 x SSD {}GB'.format(disk_size))
@@ -547,6 +550,7 @@ def test_sysbench_raid(provider, keyid, secret, token, imageid, subscription, te
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Sysbench'.format(provider),
                        results_path=results_path, parser=SysbenchLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_sysbench_fileio_perf_tuned'.format(provider),
                        host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='{} x SSD {}GB RAID0'.format(raid, disk_size))
@@ -611,6 +615,7 @@ def test_memcached(provider, keyid, secret, token, imageid, subscription, tenant
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Memcached'.format(provider),
                        results_path=results_path, parser=MemcachedLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_memcached_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype)
@@ -675,6 +680,7 @@ def test_redis(provider, keyid, secret, token, imageid, subscription, tenant, pr
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Redis'.format(provider),
                        results_path=results_path, parser=RedisLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_redis_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype)
@@ -740,6 +746,7 @@ def test_apache_bench(provider, keyid, secret, token, imageid, subscription, ten
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Apache'.format(provider),
                        results_path=results_path, parser=ApacheLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Apache_bench_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype)
@@ -805,6 +812,7 @@ def test_nginx_bench(provider, keyid, secret, token, imageid, subscription, tena
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Nginx'.format(provider),
                        results_path=results_path, parser=ApacheLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Apache_bench_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype)
@@ -877,6 +885,7 @@ def test_mariadb(provider, keyid, secret, token, imageid, subscription, tenant, 
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_MariaDB'.format(provider),
                        results_path=results_path, parser=MariadbLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_MariaDB_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype, disk_setup='1 x SSD {}GB'.format(disk_size))
@@ -954,6 +963,7 @@ def test_mariadb_raid(provider, keyid, secret, token, imageid, subscription, ten
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_MariaDB'.format(provider),
                        results_path=results_path, parser=MariadbLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_MariaDB_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype,
@@ -1027,6 +1037,7 @@ def test_mongodb(provider, keyid, secret, token, imageid, subscription, tenant, 
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_MongoDB'.format(provider),
                        results_path=results_path, parser=MongodbLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_MongoDB_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype, disk_setup='1 x SSD {}GB'.format(disk_size))
@@ -1103,6 +1114,7 @@ def test_mongodb_raid(provider, keyid, secret, token, imageid, subscription, ten
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_MongoDB'.format(provider),
                        results_path=results_path, parser=MongodbLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_MongoDB_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype,
@@ -1176,6 +1188,7 @@ def test_postgresql(provider, keyid, secret, token, imageid, subscription, tenan
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_PostgreSQL'.format(provider),
                        results_path=results_path, parser=PostgreSQLLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_PostgreSQL_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype, disk_setup='1 x SSD {}GB'.format(disk_size))
@@ -1244,6 +1257,7 @@ def test_zookeeper(provider, keyid, secret, token, imageid, subscription, tenant
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Zookeeper'.format(provider),
                        results_path=results_path, parser=ZookeeperLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Zookeeper_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype,
@@ -1314,6 +1328,7 @@ def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant,
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Terasort'.format(provider),
                        results_path=results_path, parser=TerasortLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Terasort_perf_tuned'.format(provider),
                        data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                        instance_size=instancetype,
@@ -1387,6 +1402,7 @@ def test_storage(provider, keyid, secret, token, imageid, subscription, tenant, 
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Storage'.format(provider),
                        results_path=results_path, parser=StorageLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Storage_perf_tuned'.format(provider),
                        provider=provider, region=region, data_path=shortcut.data_path(sriov),
                        host_type=shortcut.host_type(provider), instance_size=instancetype,
@@ -1452,6 +1468,7 @@ def test_network_tcp(provider, keyid, secret, token, imageid, subscription, tena
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Network_TCP'.format(provider),
                        results_path=results_path, parser=TCPLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Network_TCP_perf_tuned'.format(provider),
                        provider=provider, region=region, data_path=shortcut.data_path(sriov),
                        host_type=shortcut.host_type(provider), instance_size=instancetype)
@@ -1516,6 +1533,7 @@ def test_network_udp(provider, keyid, secret, token, imageid, subscription, tena
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Network_UDP'.format(provider),
                        results_path=results_path, parser=UDPLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Network_UDP_perf_tuned'.format(provider),
                        provider=provider, region=region, data_path=shortcut.data_path(sriov),
                        host_type=shortcut.host_type(provider), instance_size=instancetype)
@@ -1580,6 +1598,7 @@ def test_network_latency(provider, keyid, secret, token, imageid, subscription, 
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_Network_Latency'.format(provider),
                        results_path=results_path, parser=LatencyLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Network_Latency_perf_tuned'.format(provider),
                        provider=provider, region=region, data_path=shortcut.data_path(sriov),
                        host_type=shortcut.host_type(provider), instance_size=instancetype)
@@ -1645,6 +1664,7 @@ def test_network_single_tcp(provider, keyid, secret, token, imageid, subscriptio
         upload_results(localpath=localpath,
                        table_name='Perf_{}_Network_Single_TCP'.format(provider),
                        results_path=results_path, parser=SingleTCPLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Network_Single_TCP_perf_tuned'.format(provider),
                        provider=provider, region=region, data_path=shortcut.data_path(sriov),
                        host_type=shortcut.host_type(provider), instance_size=instancetype)
@@ -1782,6 +1802,7 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
     if results_path:
         upload_results(localpath=localpath, table_name='Perf_{}_SQLServer'.format(provider),
                        results_path=results_path, parser=SQLServerLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_SQLServer_perf_tuned'.format(provider),
                        provider=provider, region=region, data_path=shortcut.data_path(sriov),
                        host_type=shortcut.host_type(provider), instance_size=instancetype,
@@ -1902,7 +1923,9 @@ def test_scheduler(provider, keyid, secret, token, imageid, subscription, tenant
         if connector:
             connector.teardown()
     if results_path:
+
         upload_results(localpath=localpath, table_name='Perf_{}_Scheduler'.format(provider),
                        results_path=results_path, parser=SchedulerLogsReader,
+                       other_table=('.deb' in kernel),
                        test_case_name='{}_Scheduler_perf_tuned'.format(provider),
                        host_type=shortcut.host_type(provider), instance_size=instancetype)

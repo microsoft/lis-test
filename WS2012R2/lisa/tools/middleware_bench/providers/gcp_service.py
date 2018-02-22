@@ -253,7 +253,7 @@ class GCPConnector:
         nat_ip = instance['networkInterfaces'][0]['accessConfigs'][0].get('natIP', None)
         if not nat_ip:
             log.error("Spawned instance was not allocated a NAT IP. Please try again.")
-            raise
+            raise Exception("Spawned instance was not allocated a public IP. Please try again.")
         ping_cmd = 'ping {} 1 {}'.format(ping_arg, nat_ip)
         try:
             timeout = 0
