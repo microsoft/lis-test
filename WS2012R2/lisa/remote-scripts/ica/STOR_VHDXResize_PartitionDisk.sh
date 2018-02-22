@@ -79,10 +79,7 @@ fi
 #
 if [ "${TC_COVERED:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="Error: The test parameter TC_COVERED is not defined in ${CONSTANTS_FILE}"
-    echo $msg
     echo $msg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 30
 fi
 
 #
@@ -216,5 +213,4 @@ for fs in "${fileSystems[@]}"; do
 done
 
 UpdateTestState $ICA_TESTCOMPLETED
-
 exit 0;
