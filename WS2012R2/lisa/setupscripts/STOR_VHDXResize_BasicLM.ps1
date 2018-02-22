@@ -148,11 +148,11 @@ else
 
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
+    . .\setupScripts\TCUtils.ps1
 }
 else {
-	"Error: Could not find setupScripts\TCUtils.ps1" | Tee-Object -Append -file $summaryLog
-	return $false
+    "Error: Could not find setupScripts\TCUtils.ps1" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
@@ -306,7 +306,13 @@ if ($diskSize -ne $newVhdxSize)
 #
 # Make sure if we can perform Read/Write operations on the guest VM
 #
-$guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
+$guest_script = "STOR_VHDXResize_PartitionDisk"
+$addParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'rerun=yes' >> constants.sh"
+if ($? -ne "True")
+{
+    "Error: Unable to alter constants.sh for second run. " | Tee-Object -Append -file $summaryLog
+    return $False
+}
 
 $sts = RunTest $guest_script
 if (-not $($sts[-1]))
@@ -348,6 +354,12 @@ if (-not $?)
 # Make sure if we can perform Read/Write operations on the guest VM
 #
 $guest_script = "STOR_VHDXResize_PartitionDisk"
+$removeParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sed -i '/rerun=yes/d' constants.sh"
+if ($? -ne "True")
+{
+    "Error: Unable to alter constants.sh for first run. " | Tee-Object -Append -file $summaryLog
+    return $False
+}
 
 $sts = RunTest $guest_script
 if (-not $($sts[-1]))
