@@ -304,7 +304,7 @@ class AWSConnector:
                 timeout += 5
             # artificial wait for ssh service up status
             time.sleep(60)
-            client = SSHClient(server=instance.ip_address, host_key_file=host_key_file,
+            client = SSHClient(server=instance.ip_address, host_key_file=self.host_key_file,
                                user=user or self.user,
                                ssh_key_file=os.path.join(self.localpath, self.key_name + '.pem'))
         except Exception as e:
