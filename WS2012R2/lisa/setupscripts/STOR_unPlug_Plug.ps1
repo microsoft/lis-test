@@ -70,6 +70,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 function AttachVHDxDiskDrive( [string] $vmName, [string] $hvServer,
                         [string] $vhdxPath, [string] $controllerType,[string] $controllerID,[string] $lun )
 {
+    $error.Clear()
     Add-VMHardDiskDrive -VMName $vmName `
                         -ComputerName $hvServer `
                         -Path $vhdxPath `
@@ -82,13 +83,13 @@ function AttachVHDxDiskDrive( [string] $vmName, [string] $hvServer,
         $error[0].Exception
         return $False
     }
-    $error.Clear()
     return $True
 }
 
 function RemoveVHDxDiskDrive( [string] $vmName, [string] $hvServer,
                         [string] $controllerType,[string] $controllerID,[string] $lun)
 {
+    $error.Clear()
     Remove-VMHardDiskDrive -VMName $vmName `
                            -ComputerName $hvServer `
                            -ControllerType $controllerType `
@@ -100,7 +101,6 @@ function RemoveVHDxDiskDrive( [string] $vmName, [string] $hvServer,
         $error[0].Exception
         return $False
     }
-    $error.Clear()
     return $True
 }
 
