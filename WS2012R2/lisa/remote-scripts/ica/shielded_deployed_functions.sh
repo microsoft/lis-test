@@ -124,7 +124,7 @@ AddRecoveryKey ()
     root=$(dmsetup ls --target crypt | grep -v boot |  awk {'print $1'})
     
     # Add key to boot partition
-    yes Passw0rd | cryptsetup luksAddKey /dev/sda2 --master-key-file <(dmsetup table --showkey /dev/mapper/boot | awk '{print$5}' | xxd -r -p)
+    yes shielded_test_pass | cryptsetup luksAddKey /dev/sda2 --master-key-file <(dmsetup table --showkey /dev/mapper/boot | awk '{print$5}' | xxd -r -p)
     if [ $? -ne 0 ]; then
         msg="ERROR: Failed to add key to boot partition"
         LogMsg "$msg"
@@ -136,7 +136,7 @@ AddRecoveryKey ()
     fi   
 
     # Add key to root partition
-    yes Passw0rd | cryptsetup luksAddKey /dev/sda3 --master-key-file <(dmsetup table --showkey /dev/mapper/${root} | awk '{print$5}' | xxd -r -p)
+    yes shielded_test_pass | cryptsetup luksAddKey /dev/sda3 --master-key-file <(dmsetup table --showkey /dev/mapper/${root} | awk '{print$5}' | xxd -r -p)
     if [ $? -ne 0 ]; then
         msg="ERROR: Failed to add key to root partition"
         LogMsg "$msg"
@@ -151,7 +151,7 @@ AddRecoveryKey ()
 TestRecoveryKey ()
 {
     # Open LUKS partitions
-    yes Passw0rd | cryptsetup luksOpen /dev/sdb3 encrypted_root
+    yes shielded_test_pass | cryptsetup luksOpen /dev/sdb3 encrypted_root
     if [ $? -ne 0 ]; then
         msg="ERROR: Failed to open root LUKS device"
         LogMsg "$msg"
@@ -159,7 +159,7 @@ TestRecoveryKey ()
         SetTestStateFailed
         exit 1    
     fi  
-    yes Passw0rd | cryptsetup luksOpen /dev/sdb2 encrypted_boot
+    yes shielded_test_pass | cryptsetup luksOpen /dev/sdb2 encrypted_boot
     if [ $? -ne 0 ]; then
         msg="ERROR: Failed to open boot LUKS device"
         LogMsg "$msg"

@@ -838,7 +838,7 @@ function MakeVMonSecondGH ([string] $second_GH_name, [string] $dep_vhd)
         
         # Attach the test VHDx to the VM
         $test_vhd_path = $using:remote_defaultVhdPath + $using:parentVHD_name 
-        $sts = Add-VMHardDiskDrive -VMName 'Dependency_VM' -ControllerType SCSI -ControllerNumber 0 -ControllerLocation 1 -Path $test_vhd_path
+        $sts = Add-VMHardDiskDrive -VMName 'Dependency_VM' -ControllerType IDE -ControllerNumber 0 -ControllerLocation 1 -Path $test_vhd_path
         if (-not $?) {
             return $false
         }

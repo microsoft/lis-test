@@ -171,7 +171,7 @@ Describe "Verify dependent packages are installed" {
     } 
 }
 
-Describe "Run lsvmprep on VHDX where root partition is not encrypted" {
+Describe "Verify lsvmprep correctly configures the Linux VHDX for templatization" {
     Context "1. Run the script /opt/lsvmtools-<version>/bin/lsvmprep
             2.  Monitor the progress of the script" {
         

@@ -392,8 +392,9 @@ function Get_VM_ipv4 ([string] $GH_IP, $gh_creds)
 		while ($waitTimeOut -gt 0) {
 			$vmIp = $(Get-VMNetworkAdapter -VMName "LSVM_PRO_Test" ).IpAddresses
 			if ($vmIp -ne "") {
-				$waitTimeOut = 0
+				$waitTimeOut = -1
 			}
+			$waitTimeOut = $waitTimeOut - 5
 			Start-Sleep -s 5
 		}
 		Start-Sleep -s 20
