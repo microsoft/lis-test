@@ -326,47 +326,18 @@ function fio_single_disk {
     if [ -d "/root/${LOG_FOLDER}" ]; then
         echo "WARN: ${LOG_FOLDER} exists. Will delete it ..." >> ~/summary.log
         rm -rf /root/${LOG_FOLDER}
-
     fi
 
     echo "Creating log folder..."
     mkdir /root/${LOG_FOLDER}
-
-    # Run FIO with block size 8k and iodepth 1
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1q.log
-
-    # Run FIO with block size 8k and iodepth 2
-    sed --in-place=.orig -e s:"iodepth=1":"iodepth=2": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-2q.log
-
-    # Run FIO with block size 8k and iodepth 4
-    sed --in-place=.orig -e s:"iodepth=2":"iodepth=4": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-4q.log
-
-    # Run FIO with block size 8k and iodepth 8
-    sed --in-place=.orig -e s:"iodepth=4":"iodepth=8": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-8q.log
-
-    #Run FIO with block size 8k and iodepth 16
-    sed --in-place=.orig -e s:"iodepth=8":"iodepth=16": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-16q.log
-
-    # Run FIO with block size 8k and iodepth 32
-    sed --in-place=.orig -e s:"iodepth=16":"iodepth=32": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-32q.log
-
-    # Run FIO with block size 8k and iodepth 64
-    sed --in-place=.orig -e s:"iodepth=32":"iodepth=64": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-64q.log
-
-    # Run FIO with block size 8k and iodepth 128
-    sed --in-place=.orig -e s:"iodepth=64":"iodepth=128": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-128q.log
-
-    # Run FIO with block size 8k and iodepth 256
-    sed --in-place=.orig -e s:"iodepth=128":"iodepth=256": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-256q.log
-
+    for q in "${QDEPTH[@]}"
+    do
+        sed -i "/iodepth/c\iodepth=${q}" /root/${FIO_SCENARIO_FILE}
+        LogMsg "INFO: Running FIO qdepth ${q}"
+        echo "INFO: Running FIO qdepth ${q}"
+        fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-${q}q.log 2>&1
+        sleep 3
+    done
     cd /root
     zip -r ${LOG_FOLDER}.zip ${LOG_FOLDER}/*
     if [ $? -ne 0 ]; then
@@ -407,7 +378,7 @@ function fio_raid {
         echo "ERROR: Unable to detect OS version."
         UpdateTestState $ICA_TESTABORTED
     fi
-    if [ ${DISTRO} == "centos_6" ]; then
+    if [[ ${DISTRO} == "centos_6" || ${DISTRO} == "rhel_6" ]]; then
         mkfs.${FS} /dev/${RAID_NAME} -E lazy_itable_init=0 -K
     else
         mkfs.${FS} /dev/${RAID_NAME} -E lazy_itable_init=0,lazy_journal_init=0 -K
