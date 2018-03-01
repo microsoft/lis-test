@@ -199,6 +199,8 @@
     kernel version, LIS version, dmesg log).
     Usage: ".\lisa.ps1 run xml\kvpTests.xml -collect True"
     Default value is to not collect these information.
+.Parameter noshutdown
+    True/False to leave the VM running regardless of a testcase status.
 .Example
     .\lisa.ps1 run xml\myTests.xml
 
@@ -227,6 +229,7 @@ param([string] $cmdVerb,
       [string] $os,
       [switch] $help,
       [string] $collect="False",
+      [string] $noshutdown="False",
       [int]    $dbgLevel=0
      )
 
@@ -325,10 +328,11 @@ function Usage()
     write-host "                          -suite      : Name of test suite to run on user supplied VM"
     write-host "                          -testParams : Quoted string of semicolon separated parameters"
     write-host "                                         -testParams `"a=1;b='x y';c=3`""
-	write-host "                          -VhdPath       : Global parameter representing the path of the directory in"
+    write-host "                          -VhdPath       : Global parameter representing the path of the directory in"
     write-host "                                           which the VHD will be copied when CreateVMs script is used"
     write-host "                          -CLImageStorDir: Global parameter representing the directory of the VHD"
     write-host "                                           file used to create a VM with CreateVMs"
+    write-host "                          -noshutdown : True/False to leave the VM running regardless of a testcase status"
     write-host
     write-host "  Common options"
     write-host "         -dbgLevel   : Specifies the level of debug messages"
@@ -373,6 +377,7 @@ function    DumpParams()
     LogMsg 0 "Info : os:         $os"
     LogMsg 0 "Info : dbgLevel:   $dbgLevel"
     LogMsg 0 "Info : collect:    $collect"
+    LogMsg 0 "Info : noshutdown: $noshutdown"
 }
 
 
@@ -929,7 +934,7 @@ function RunTests ([String] $xmlFilename )
     
     LogMsg 10 "Info : Calling RunICTests"
     . .\stateEngine.ps1
-    RunICTests $xmlConfig $collect
+    RunICTests $xmlConfig $collect $noshutdown
 
     # Stop icaserial jobs
     foreach($job in $jobs) {
