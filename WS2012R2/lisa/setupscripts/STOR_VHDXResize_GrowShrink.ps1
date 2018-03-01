@@ -64,8 +64,6 @@ $sshKey     = $null
 $ipv4       = $null
 $newGrowSize    = $null
 $newShrinkSize    = $null
-$sectorSize = $null
-$DefaultSize = $null
 $rootDir    = $null
 $TC_COVERED = $null
 $TestLogDir = $null
@@ -123,15 +121,13 @@ foreach ($p in $params)
     "ipv4"      { $ipv4    = $fields[1].Trim() }
     "growSize"  { $newGrowSize = $fields[1].Trim() }
     "shrinkSize"       { $newShrinkSize = $fields[1].Trim() }
-    "sectorSize"       { $sectorSize = $fields[1].Trim() }
-    "DefaultSize"   { $DefaultSize = $fields[1].Trim() }
     "rootDIR"   { $rootDir = $fields[1].Trim() }
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
     "TestName"   { $TestName = $fields[1].Trim() }
-    "ControllerType"   { $controllerType = $fields[1].Trim() }
-    "Type"   { $type = $fields[1].Trim() }
     "Offline"   { $offline = $fields[1].Trim() }
+    "SCSI"  { $controllerType = "SCSI" }
+    "IDE"  { $controllerType = "IDE" }
     default     {}  # unknown param - just ignore it
     }
 }
@@ -196,7 +192,7 @@ Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 $newVhdxGrowSize = ConvertStringToUInt64 $newGrowSize
 $newVhdxShrinkSize = ConvertStringToUInt64 $newShrinkSize
-$sizeFlag = ConvertStringToUInt64 "50GB"
+$sizeFlag = ConvertStringToUInt64 "20GB"
 
 #
 # Make sure the VM has a SCSI 0 controller, and that
@@ -204,7 +200,7 @@ $sizeFlag = ConvertStringToUInt64 "50GB"
 #
 
 "Info : Check if VM ${vmName} has a $controllerType drive"
-$vhdxName = $vmName + "-" + $DefaultSize + "-" + $sectorSize + "-test"
+$vhdxName = $vmName + "-" + $controllerType
 $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
 foreach ($vhdx in $vhdxDisks)
@@ -372,19 +368,25 @@ if ($growDiskSize -ne $newVhdxGrowSize)
 # if file size larger than 2T (2048G), use parted to format disk
  if ([int]($newVhdxGrowSize/1gb) -gt 2048)
  {
-   $guest_script = "STOR_VHDXResize_PartitionDiskOver2TB"
+    $guest_script = "STOR_VHDXResize_PartitionDiskOver2TB"
  }
 
 else
 {
-  $guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
+    $guest_script = "STOR_VHDXResize_PartitionDisk"
+    $addParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'rerun=yes' >> constants.sh"
+    if ($? -ne "True")
+    {
+        "Error: Unable to alter constants.sh for second run. " | Tee-Object -Append -file $summaryLog
+        return $False
+    }
 }
 
 $sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
-  "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
-  return $False
+    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+    return $False
 }
 
 #
@@ -469,6 +471,13 @@ if ($shrinkDiskSize -ne $newVhdxShrinkSize)
 # Make sure if we can perform Read/Write operations on the guest VM
 #
 $guest_script = "STOR_VHDXResize_PartitionDisk"
+$removeParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sed -i '/rerun=yes/d' constants.sh"
+if ($? -ne "True")
+{
+    "Error: Unable to alter constants.sh for $guest_script run. " | Tee-Object -Append -file $summaryLog
+    return $False
+}
+
 $sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {

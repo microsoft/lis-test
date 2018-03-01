@@ -47,6 +47,7 @@ ICA_TESTABORTED="TestAborted"       # Error during setup of test
 ICA_TESTFAILED="TestFailed"         # Error while performing the test
 maxdelay=5.0                        # max offset in seconds.
 zerodelay=0.0                       # zero
+loopbackIP="127.0.0.1"              # IP to force NTPD to listen on IPv4
 
 #######################################################################
 # Adds a timestamp to the log file
@@ -99,7 +100,6 @@ if [ -e $HOME/constants.sh ]; then
     . $HOME/constants.sh
     UpdateSummary "Covers: $TC_COVERED"
 fi
-
 
 # Try to restart NTP. If it fails we try to install it.
 if is_fedora ; then
@@ -255,8 +255,8 @@ else # other distro
     exit 10
 fi
 
-# Now let's see if the VM is in sync with the NTP server
-ntpq -p
+# Show a list of peers to check if the NTP daemon is running
+ntpq -p $loopbackIP
 if [[ $? -ne 0 ]]; then
     LogMsg "Error: Unable to query NTP deamon!"
     UpdateSummary "Error: Unable to query NTP deamon!"
@@ -271,13 +271,13 @@ stopTest=$(( $(date +%s) + secondsToRun ))
 
 while [ $isOver == false ]; do
     # 'ntpq -c rl' returns the offset between the ntp server and internal clock
-    delay=$(ntpq -c rl | grep offset= | awk -F "=" '{print $3}' | awk '{print $1}')
+    delay=$(ntpq -c rl $loopbackIP | grep offset= | awk -F "=" '{print $3}' | awk '{print $1}')
     delay=$(echo $delay | sed s'/.$//')
 
     # If the above value is not a number it means the output is an error message and exit loop
     re='^-?[0-9]+([.][0-9]+)?$'
     if ! [[ $delay =~ $re ]] ; then
-        ntpqErr="$(ntpq -c rl 2>&1)"
+        ntpqErr="$(ntpq -c rl $loopbackIP 2>&1)"
         LogMsg "ERROR: ntpq returned $ntpqErr. Aborting test."
         UpdateTestState $ICA_TESTABORTED
         isOver=true

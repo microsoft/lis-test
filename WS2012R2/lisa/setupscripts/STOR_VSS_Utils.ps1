@@ -159,7 +159,7 @@ function checkResults([string] $vmName, [string] $hvServer)
 {
    # Review the results
 	$RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
-	$logger.error("Restore duration: $RestoreTime minutes")
+	$logger.info("Restore duration: $RestoreTime minutes")
 
 	# Make sure VM exists after VSS backup/restore operation
 	$vm = Get-VM -Name $vmName -ComputerName $hvServer

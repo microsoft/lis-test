@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<config>
+    <global>
+        <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <imageStoreDir>\\unc\path</imageStoreDir>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>Sample Tests Run for pipelines development</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+    <suite>
+        <suiteName>kernel_validation_minimal</suiteName>
+        <suiteTests>
+            <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>VMHeartbeat</suiteTest>
+            <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
+        </suiteTests>
+    </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>InstallKernel</testName>
+            <testScript>install_kernel.sh</testScript>
+            <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
+            <timeout>2000</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+        
+        <test>
+            <testName>VMHeartBeat</testName>
+            <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-03</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+        
+            <test>
+        <testName>VHDx_MultiDiskSCSI_Dynamic</testName>
+        <testScript>STOR_Lis_Disk.sh</testScript>
+        <files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
+            <files>remote-scripts/ica/check_traces.sh</files>
+        <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+        <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+        <timeout>3600</timeout>
+        <testparams>
+            <param>SCSI=0,0,Dynamic,512</param>
+            <param>SCSI=0,1,Dynamic,512</param>
+            <param>SCSI=0,2,Dynamic,512</param>
+            <param>fileSystems=(ext4 xfs)</param>
+            <param>TC_COVERED=STOR-23,STOR-28</param>
+        </testparams>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+    </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>vm_kernel_sample</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>kernel_validation_minimal</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>4</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+    </VMs>
+</config>

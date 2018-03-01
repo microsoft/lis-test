@@ -43,9 +43,12 @@ if is_fedora ; then
 	yum install kernel -y
 
 elif is_ubuntu ; then
+	boot_before=$(ls /boot)
 	DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
 	new_kernel=$(dpkg --list | grep linux-image | awk {'print $2'} | head -1 | sed "s/linux-image-//")
 	apt-get install -y linux-cloud-tools-common linux-tools-$new_kernel linux-cloud-tools-$new_kernel
+	boot_after=$(ls /boot)
+	echo $boot_before -ne echo $boot_after
 
 elif is_suse ; then
 	zypper --non-interactive dist-upgrade

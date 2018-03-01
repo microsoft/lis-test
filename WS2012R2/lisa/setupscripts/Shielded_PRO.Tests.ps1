@@ -77,7 +77,7 @@ Describe "Preparation tasks for Provisioning testing"{
     Context "1. Create a Linux Shielded VM template
             2.  Upload template to share" {
 
-        It "Running LSVM-Preparation" {
+        It "LSVM-Preparation" {
             # Get full VHDx path
             $vhdPath = Get_Full_VHD_Path $lsvmprepVhdName
             $vhdPath | Should not Be $null
@@ -105,7 +105,7 @@ Describe "Verify a provisioned Linux Shielded VM boots successfully" {
             3.  Verify the VM boots.
             4.  Review the syslog for any errors or warnings related to LSVM." {
 
-        It "Running LSVM-PRO-01" {
+        It "LSVM-PRO-01" {
             Set-Item WSMan:\localhost\Client\TrustedHosts -value * -Force
             # Copy VHDx from share
             Copy_template_from_share $sharePath | Should be $true
@@ -147,7 +147,7 @@ Describe "Modify VSC, verify a VM created from the Linux VHDX template fails pro
             2.  Create a Shielded VM using this modified template/VSC.
             3.  Start the VM and verify provisioning fails." {
         
-        It "Running LSVM-PRO-02" {
+        It "LSVM-PRO-02" {
             Set-Item WSMan:\localhost\Client\TrustedHosts -value * -Force       
             # Copy VHDx from share
             Copy_template_from_share $sharePath | Should be $true
@@ -189,7 +189,7 @@ Describe "Modify file in boot partition of Linux VHDX template and verify provis
             4.  Unmount the VHDX file.
             5.  Use the modified template VHDX file and its VSC to create a Linux Shielded VM." {
         
-        It "Running LSVM-PRO-03" {
+        It "LSVM-PRO-03" {
             Set-Item WSMan:\localhost\Client\TrustedHosts -value * -Force       
             # Copy VHDx from share
             Copy_template_from_share $sharePath | Should be $true
@@ -231,7 +231,7 @@ Describe "Modify file in root partition of Linux VHDX template and verify provis
             4.  Unmount the VHDX file.
             5.  Use the modified template VHDX file and its VSC to create a Linux Shielded VM." {
         
-        It "Running LSVM-PRO-04" {
+        It "LSVM-PRO-04" {
             Set-Item WSMan:\localhost\Client\TrustedHosts -value * -Force       
             # Copy VHDx from share
             Copy_template_from_share $sharePath | Should be $true
@@ -272,7 +272,7 @@ Describe "VM fails to boot if the specialization file has been modified" {
             3.  Modify the specialization file.
             4.  Boot the VM." {
         
-        It "Running LSVM-PRO-05" {
+        It "LSVM-PRO-05" {
             Set-Item WSMan:\localhost\Client\TrustedHosts -value * -Force
             # Copy VHDx from share
             Copy_template_from_share $sharePath | Should be $true
@@ -307,7 +307,7 @@ Describe "Unsupported specialization items are logged" {
             3.  Boot the VM and complete provisioning.
             4.  Boot the VM and login." {
         
-        It "Running LSVM-PRO-06" {
+        It "LSVM-PRO-06" {
             Set-Item WSMan:\localhost\Client\TrustedHosts -value * -Force
             # Copy VHDx from share
             Copy_template_from_share $sharePath | Should be $true

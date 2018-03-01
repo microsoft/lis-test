@@ -244,6 +244,12 @@ GetDistro()
 		*Debian*)
 			DISTRO=debian_x
 			;;
+		*SLE*15*)
+			DISTRO=suse_15
+			;;
+		*SUSE*15*)
+			DISTRO=suse_15
+			;;
 		*SUSE*12*)
 			DISTRO=suse_12
 			;;
@@ -296,6 +302,37 @@ GetDistro()
 	esac
 
 	return 0
+}
+
+# Check kernel version is above/equal to feature supported version
+# eg. CheckVMFeatureSupportStatus "3.10.0-513"
+# Return value:
+#   0: current version equals or above supported version
+#   1: current version is below supported version, or no param
+CheckVMFeatureSupportStatus()
+{
+    specifiedKernel=$1
+    if [ $specifiedKernel == "" ];then
+        return 1
+    fi
+    # for example 3.10.0-514.el7.x86_64
+    # get kernel version array is (3 10 0 514)
+    local kernel_array=(`uname -r | awk -F '[.-]' '{print $1,$2,$3,$4}'`)
+    local specifiedKernel_array=(`echo $specifiedKernel | awk -F '[.-]' '{print $1,$2,$3,$4}'`)
+    local index=${!kernel_array[@]}
+    local n=0
+    for n in $index
+    do
+        # above support version, returns 0
+        if [ ${kernel_array[$n]} -gt ${specifiedKernel_array[$n]} ];then
+            return 0
+        elif [ ${kernel_array[$n]} -lt ${specifiedKernel_array[$n]} ];then
+        # below support version, returns 1
+            return 1
+        fi
+    done
+    # strictly equal to support version, returns 0
+    return 0
 }
 
 # Function to get all synthetic network interfaces
@@ -1966,6 +2003,7 @@ function GetOSVersion {
     elif [[ -r /etc/SuSE-brand || -r /etc/SUSE-brand ]]; then
         os_VENDOR=`head -1 /etc/S*SE-brand`
         os_VERSION=`cat /etc/S*SE-brand | awk '/VERSION/ {print $NF}'`
+        os_RELEASE=$os_VERSION
         os_PACKAGE="rpm"
 
     elif [[ -r /etc/SuSE-release ]]; then

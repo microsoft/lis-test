@@ -527,17 +527,40 @@ LogMsg "Successfully sent $output_file to $STATIC_IP2:$remote_home/$output_file"
 UpdateSummary "Successfully sent $output_file to $STATIC_IP2:$remote_home/$output_file"
 
 if [ "${TestIPV6}" = "yes" ]; then
-	scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@\["$STATIC_IP2_V6"\]:"$remote_home"/"$output_file"
-
-	if [ 0 -ne $? ]; then
-		msg="File copy over ipv6 FAILED. Unable to copy file $output_file to $STATIC_IP2_V6:$remote_home/$output_file."
-		LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    SetTestStateFailed
-	    exit 10
+	#try to ping
+	ping6 -I ${SYNTH_NET_INTERFACES[@]} -c 10 "$STATIC_IP2_V6" >/dev/null 2>&1
+	if [[ $? -ne 0 ]]; then
+		UpdateSummary "Unable to ping $STATIC_IP2_V6 through ${SYNTH_NET_INTERFACES[@]}"
+		SetTestStateFailed
+		exit 10
 	else
-		LogMsg "Successfully sent $output_file to $STATIC_IP2_V6:$remote_home/$output_file"
-		UpdateSummary "Successfully sent $output_file to $STATIC_IP2_V6:$remote_home/$output_file"
+		UpdateSummary "Successfully pinged $STATIC_IP2_V6 through ${SYNTH_NET_INTERFACES[@]}"
+	fi
+	#transfer file
+	if [[ "$STATIC_IP2_V6" == fe80* ]]; then
+		scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@\["$STATIC_IP2_V6%${SYNTH_NET_INTERFACES[@]}"\]:"$remote_home"/"$output_file"
+		if [ 0 -ne $? ]; then
+			msg="File copy over ipv6 FAILED. Unable to copy file $output_file to $STATIC_IP2_V6:$remote_home/$output_file."
+			LogMsg "$msg"
+			UpdateSummary "$msg"
+			SetTestStateFailed
+			exit 10
+		else
+			LogMsg "Successfully sent $output_file to $STATIC_IP2_V6:$remote_home/$output_file"
+			UpdateSummary "Successfully sent $output_file to $STATIC_IP2_V6:$remote_home/$output_file"
+		fi
+	else
+		scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@\["$STATIC_IP2_V6"\]:"$remote_home"/"$output_file"
+		if [ 0 -ne $? ]; then
+			msg="File copy over ipv6 FAILED. Unable to copy file $output_file to $STATIC_IP2_V6:$remote_home/$output_file."
+			LogMsg "$msg"
+			UpdateSummary "$msg"
+			SetTestStateFailed
+			exit 10
+		else
+			LogMsg "Successfully sent $output_file to $STATIC_IP2_V6:$remote_home/$output_file"
+			UpdateSummary "Successfully sent $output_file to $STATIC_IP2_V6:$remote_home/$output_file"
+		fi
 	fi
 fi
 
@@ -561,18 +584,31 @@ LogMsg "Received $output_file from $STATIC_IP2"
 UpdateSummary "Received $output_file from $STATIC_IP2"
 
 if [ "${TestIPV6}" = "yes" ]; then
-	scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@\["$STATIC_IP2_V6"\]:"$remote_home"/"$output_file" "$HOME"/"$output_file"
-
-	if [ 0 -ne $? ]; then
-		#try to erase file from remote vm
-		msg="Unable to copy from $STATIC_IP2_V6:$remote_home/$output_file"
-		LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    SetTestStateFailed
-	    exit 10
+	#transfer file back
+	if [[ "$STATIC_IP2_V6" == fe80* ]]; then
+		scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@\["$STATIC_IP2_V6%${SYNTH_NET_INTERFACES[@]}"\]:"$remote_home"/"$output_file" "$HOME"/"$output_file"
+		if [ 0 -ne $? ]; then
+			msg="Unable to copy from $STATIC_IP2_V6:$remote_home/$output_file"
+			LogMsg "$msg"
+			UpdateSummary "$msg"
+			SetTestStateFailed
+			exit 10
+		else
+			LogMsg "Received $output_file from $STATIC_IP2_V6"
+			UpdateSummary "Received $output_file from $STATIC_IP2_V6"
+		fi
 	else
-		LogMsg "Received $output_file from $STATIC_IP2_V6"
-		UpdateSummary "Received $output_file from $STATIC_IP2_V6"
+		scp -6 -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@\["$STATIC_IP2_V6"\]:"$remote_home"/"$output_file" "$HOME"/"$output_file"
+		if [ 0 -ne $? ]; then
+			msg="Unable to copy from $STATIC_IP2_V6:$remote_home/$output_file"
+			LogMsg "$msg"
+			UpdateSummary "$msg"
+			SetTestStateFailed
+			exit 10
+		else
+			LogMsg "Received $output_file from $STATIC_IP2_V6"
+			UpdateSummary "Received $output_file from $STATIC_IP2_V6"
+		fi
 	fi
 fi
 

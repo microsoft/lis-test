@@ -21,35 +21,32 @@
 
 <#
 .Synopsis
-    This cleanup script, which runs after the VM is shutdown, will remove VHDx Hard Driver from VM.
+    This cleanup script, which runs after the VM is shutdown, will remove VHDx disk(s) from VM.
 
 .Description
+   This is a cleanup script that will run after the VM shuts down.
+   This script will delete the hard drive, and if no other drives
+   are attached to the controller, delete the controller.
 
-#   This is a cleanup script that will run after the VM shuts down.
-#   This script will delete the hard drive, and if no other drives
-#   are attached to the controller, delete the controller.
-#
-#   Note: The controller will not be removed if it is an IDE.
-#         IDE Lun 0 will not be removed.
-#
-#
-#   An actual testparams definition may look like the following
-#
-#     <testParams>
-#         <param>SCSI=0,0,Fixed</param>
-#         <param>IDE=0,1,Dynamic</param>
-#     <testParams>
-#
-#   The above example will be parsed into the following string by the
-#   ICA scripts and passed to the cleanup script:
-#
-#       "SCSI=0,0,Fixed;IDE=0,1,Dynamic"
-#
-#   Cleanup scripts need to parse the testParam string to find any
-#   parameters it needs.
-#
-#   All setup and cleanup scripts must return a boolean ($true or $false)
-#   to indicate if the script completed successfully or not.
+   Note: The controller will not be removed if it is an IDE.
+         IDE Lun 0 will not be removed.
+
+   An actual testparams definition may look like the following
+
+     <testParams>
+         <param>SCSI=0,0,Fixed</param>
+         <param>IDE=0,1,Dynamic</param>
+     <testParams>
+
+   The above example will be parsed into the following string by the
+   ICA scripts and passed to the cleanup script:
+
+       "SCSI=0,0,Fixed;IDE=0,1,Dynamic"
+
+   Cleanup scripts need to parse the testParam string to find any parameters it needs.
+
+   All setup and cleanup scripts must return a boolean ($true or $false)
+   to indicate if the script completed successfully or not.
 
    Where
       ControllerType   = The type of disk controller.  IDE or SCSI
@@ -61,13 +58,12 @@
                              Dynamic
                              Fixed
                              Diff (Differencing)
-   The following are some examples
 
+   The following are some examples:
    SCSI=0,0,Dynamic,4096 : Add a hard drive on SCSI controller 0, Lun 0, vhd type of Dynamic disk with logical sector size of 4096
    IDE=1,1,Fixed,4096  : Add a hard drive on IDE controller 1, IDE port 1, vhd type of Fixed disk with logical sector size of 4096
 
-   A typical XML definition for this test case would look similar
-   to the following:
+   A typical XML definition for this test case would look similar to the following:
      <test>
           <testName>VHDx_4k_IDE1_Dynamic</testName>
           <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
@@ -81,7 +77,7 @@
       </test>
 
 .Parameter vmName
-    Name of the VM to remove disk from .
+    Name of the VM to remove the disk(s) from.
 
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
@@ -95,11 +91,11 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$retVal = $false
 $SCSICount = 0
 $IDECount = 0
 $diskCount =$null
 $vmGeneration = $null
-
 
 ############################################################################
 #
@@ -135,9 +131,8 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
     #
     $controllerID = -1
     $lun = -1
-
     $fields = $arguments.Trim().Split(',')
-    if ($fields.Length -ne 4)
+    if (($fields.Length -lt 4) -or ($fields.Length -gt 5))
     {
         write-output "Error - Incorrect number of arguments: $arguments"
         write-output "        args = ControllerID,Lun,vhdtype"
@@ -195,14 +190,13 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
     }
     else
     {
-        write-output "Error - undefined controller type"
+        write-output "Error! Undefined controller type!"
         return $retVal
     }
 
     #
     # Delete the drive if it exists
     #
-
     $controller = $null
     $drive = $null
 
@@ -269,8 +263,6 @@ function DeleteHardDrive([string] $vmName, [string] $hvServer, [string]$controll
 # Main entry point for script
 #
 ############################################################################
-$retVal = $false
-
 #
 # Check input arguments
 #
@@ -300,7 +292,7 @@ if ($testParams -eq $null -or $testParams.Length -lt 13)
 # Parse the testParams string
 # We expect a parameter string similar to: "ide=1,1,dynamic;scsi=0,0,fixed"
 #
-# Create an array of string, each element is separated by the ;
+# Create an array of string, each element is separated by ";"
 #
 $params = $testParams.Split(';')
 
@@ -358,28 +350,33 @@ if ($diskCount -ne $null)
 
 foreach ($p in $params)
 {
-    if ($p.Trim().Length -eq 0)
-    { continue }
+    if ($p.Trim().Length -eq 0) {
+        continue
+    }
 
-    $fields = $p.Split('=')
-
-    if ($fields.Length -ne 2)
+    # a parameter has the form of var_name = 'value'
+    # here we parse and split the paramters to ensure that a parameter
+    # does contain a value.
+    $p -match '^([^=]+)=(.+)' | Out-Null
+    if ($Matches[1,2].Length -ne 2)
     {
         "Error: bad test parameter: $p"
         $retVal = $false
         continue
     }
 
-    $controllerType = $fields[0].Trim().ToLower()
+    # Matches[1] represents the parameter name
+    # Matches[2] is the value content of the parameter
+    $controllerType = $Matches[1].Trim().ToLower()
     if ($controllertype -ne "scsi" -and $controllerType -ne "ide")
     {
         # Just ignore the parameter
         continue
     }
 
-    "DeleteHardDrive $vmName $hvServer $controllerType $($fields[1])"
-
-    $sts = DeleteHardDrive -vmName $vmName -hvServer $hvServer -controllerType $controllertype -arguments $fields[1] -diskCount $diskCount
+    "DeleteHardDrive $vmName $hvServer $controllerType $($Matches[2])"
+    $sts = DeleteHardDrive -vmName $vmName -hvServer $hvServer -controllerType $controllertype `
+     -arguments $Matches[2] -diskCount $diskCount
 
     if ($sts[$sts.Length-1] -eq $false)
     {

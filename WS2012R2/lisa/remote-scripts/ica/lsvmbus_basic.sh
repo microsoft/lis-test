@@ -84,6 +84,13 @@ case $DISTRO in
     ;;
 esac
 
+if [[ "$DISTRO" =~ "redhat" ]] || [[ "$DISTRO" =~ "centos" ]]; then
+    rpm -q hyperv-tools
+    if [ $? -ne 0 ]; then
+        yum install -y hyperv-tools
+    fi
+fi
+
 # check if lsvmbus exists
 lsvmbus_path=`which lsvmbus`
 if [ -z $lsvmbus_path ]; then
@@ -93,7 +100,8 @@ if [ -z $lsvmbus_path ]; then
     exit 1
 fi
 
-if [ "$generation" -eq "1" ]; then
+GetGuestGeneration
+if [ "$os_GENERATION" -eq "1" ]; then
     tokens+=("Synthetic IDE Controller")
 fi
 

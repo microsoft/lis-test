@@ -40,9 +40,17 @@ else {
     return $false
 }
 
-function Provision ([string] $VMName)
+function Provision ([string] $VMName, [string] $isClustered)
 {
     $hasErrors = $false
+    if ($isClustered -eq "yes") {
+        $dep_vhd_path = $volume_location + "LSVM-DEP_test.vhdx"
+        $dep_pdk_path = $volume_location + "PDK_Test.pdk"
+        $VMPath = $volume_location + "Provision_Test\"
+        $VmVhdPath = $VMPath + '\' + $VMName + '.vhdx'
+        $fskFile = $VMPath + '\' + $VMName + '.fsk'
+    }
+
     $sts_folder = Remove-Item -Recurse -Force -Path $VMPath -EA SilentlyContinue
     $sts_folder = New-Item -ItemType directory -Path $VMPath
 
@@ -176,6 +184,7 @@ function SendFile ([string] $ipv4, [string] $sshKey, [string] $fileName)
 {
     $retVal = SendFileToVM $ipv4 $sshKey ".\remote-scripts\ica\$fileName" "/root/$fileName"
     $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix $fileName && chmod u+x $fileName"
+    Start-Sleep -s 5
     return $retVal
 }
 
@@ -344,7 +353,7 @@ function DependencyVM ([string] $dep_vhd)
     return $ipv4   
 }
 
-function VerfifyPassphrase ([string] $sshKey, [string] $ipv4)
+function VerifyPassphrase ([string] $sshKey, [string] $ipv4)
 {
     $sts_root = SendCommandToVM $ipv4 $sshkey "yes passphrase | cryptsetup luksOpen /dev/sdb3 encrypted_root"
     $sts_boot = SendCommandToVM $ipv4 $sshkey "yes passphrase | cryptsetup luksOpen /dev/sdb2 encrypted_boot"
@@ -359,7 +368,7 @@ function VerfifyPassphrase ([string] $sshKey, [string] $ipv4)
 
 function ExportVM ([string] $VMName)
 {
-    StopVM $VMName
+    StopVM $VMName "localhost"
 
     $exportPath = (Get-VMHost).VirtualMachinePath + "\ExportTest\"
     Set-Variable -Name 'export_path' -Value $exportPath -Scope Global
@@ -379,9 +388,66 @@ function ExportVM ([string] $VMName)
     return $true
 }
 
+function ImportVM ([string] $second_GH_name, [string] $VMName)
+{
+    # Copy exported VM to second Guarded Host
+    if (-not (Test-Path $export_path_vm)) {
+        return $false
+    }
+
+    $remote_defaultVhdPath = $(Get-VMHost -ComputerName $second_GH_name).VirtualHardDiskPath
+    if (-not $defaultVhdPath.EndsWith("\")) {
+        $defaultVhdPath += "\"
+    }
+    $copy_path = $remote_defaultVhdPath -replace ':','$'
+    $copy_path = '\\' + $second_GH_name + '\' + $copy_path
+
+    Copy-Item $export_path_vm $copy_path -Recurse -Force
+    if (-not $?) {
+        return $false
+    }
+
+    $vmConfig = Invoke-Command $second_GH_name -ScriptBlock{
+        $exportPath = $using:remote_defaultVhdPath + $using:VMName + '\Virtual Machines\*.vmcx'
+        $(Get-Item $exportPath).Fullname
+    }
+    Write-Host $vmConfig
+
+    Import-VM -Path $vmConfig -ComputerName $second_GH_name
+    if (-not $?) {
+        return $false
+    }
+
+    return $true
+}
+
+function VerifyImport ([string] $second_GH_name, [string] $VMName)
+{
+    $sts = Start-VM -Name $VMName -ComputerName $second_GH_name
+    $timeout = 150
+    if (-not (WaitForVMToStartKVP $VMName $second_GH_name $timeout )){
+        return $false
+    }
+    Start-Sleep -s 15
+    $ipv4 = GetIPv4 $VMName $second_GH_name   
+    if ($ipv4 -ne $null) {
+        return $true   
+    }
+    else {
+        return $false
+    }
+}
+
+function CleanImport ([string] $second_GH_name, [string] $VMName)
+{
+    # Clean up
+    $sts = Stop-VM -Name $VMName -ComputerName $second_GH_name -TurnOff
+    $sts = Remove-VM -Name $VMName -ComputerName $second_GH_name -Confirm:$false -Force
+}
+
 function CreateDataDisk ([string] $VMName, [string] $sshKey)
 {
-    StopVM $VMName
+    StopVM $VMName "localhost"
 
     # Create the data disk
     $vhdName = $dep_vhd_path -replace 'DEP_test','DataDisk'
@@ -401,7 +467,7 @@ function CreateDataDisk ([string] $VMName, [string] $sshKey)
     }
 
     # Start VM and get IP
-    $ipv4 = StartVM $VMName
+    $ipv4 = StartVM $VMName 'localhost'
     if (-not (isValidIPv4 $ipv4)) {
         return $false
     }
@@ -483,7 +549,7 @@ function CheckRestoreStatus ([string] $sshKey, [string] $mountDisk, [string] $fi
 {
     if (Get-VM -Name $VM_name |  Where { $_.State -notlike "Running" }) {
          # Start VM and get IP
-        $ipv4 = StartVM $VM_name
+        $ipv4 = StartVM $VM_name 'localhost'
         if (-not (isValidIPv4 $ipv4)) {
             return $false
         }
@@ -520,7 +586,7 @@ function ModifyGrub ([string] $ipv4, [string] $sshKey, [string] $vmName)
         return $false
     }
 
-    StopVM $vmName
+    StopVM $vmName "localhost"
     return $true
 }
 
@@ -553,7 +619,7 @@ function AddComPort ([string] $VMName)
     $job = $(Start-Job -Name $jobName -ScriptBlock { Set-Location $args[0]; .\bin\icaserial.exe READ \\localhost\pipe\log | Out-File COM.log } -ArgumentList $currentPath)
 
     # Start VM
-    $ipv4 = StartVM $VMName
+    $ipv4 = StartVM $VMName 'localhost'
     if (-not (isValidIPv4 $ipv4)) {
         return $false
     }
@@ -609,7 +675,7 @@ function ModifyBoot ([string] $ipv4, [string] $sshKey, [string] $VMName)
         return $false
     }
 
-    $ipv4 = StartVM $VMName
+    $ipv4 = StartVM $VMName 'localhost'
     if (-not (isValidIPv4 $ipv4)) {
         return $true
     }
@@ -620,13 +686,13 @@ function ModifyBoot ([string] $ipv4, [string] $sshKey, [string] $VMName)
 
 function DisableSecureBoot ([string] $VMName)
 {
-    StopVM $VMName
+    StopVM $VMName "localhost"
     Set-VMFirmware -VMName $VMName -EnableSecureBoot Off
     if (-not $?) {
         return $false
     }
 
-    $ipv4 = StartVM $VMName
+    $ipv4 = StartVM $VMName 'localhost'
     if (-not (isValidIPv4 $ipv4)) {
         return $true
     }
@@ -635,24 +701,24 @@ function DisableSecureBoot ([string] $VMName)
     }
 }
 
-function StopVM ([string] $VMName)
+function StopVM ([string] $VMName, [string] $hvServer)
 {
     if ((Get-VM -Name $VMName).State -ne "Off") {
-        Stop-VM -Name $VMName -Force -Confirm:$false
+        Stop-VM -Name $VMName -ComputerName $hvServer -Confirm:$false
         Start-Sleep -s 5
     }
 }
 
-function StartVM ([string] $VMName)
+function StartVM ([string] $VMName, [string] $hvServer)
 {
     # Start VM and get IP
-    $sts = Start-VM -Name $VMName
+    $sts = Start-VM -Name $VMName -ComputerName $hvServer 
     $timeout = 150
-    if (-not (WaitForVMToStartKVP $VMName 'localhost' $timeout )){
+    if (-not (WaitForVMToStartKVP $VMName $hvServer $timeout )){
         return $false
     }
     Start-Sleep -s 15
-    $ipv4 = GetIPv4 $VMName 'localhost'
+    $ipv4 = GetIPv4 $VMName $hvServer
     return $ipv4
 }
 
@@ -666,6 +732,196 @@ function WriteDataOnVM ([string] $VMName, [string] $sshKey, [string] $cmdToSend)
     else {
         return $true
     }  
+}
+
+function PrepareClusteredVM ()
+{
+    # Copy files to cluster storage
+    $volume_location = $($(Get-ClusterSharedVolume).SharedVolumeInfo).FriendlyVolumeName
+    if (-not $volume_location.EndsWith("\")) {
+        $volume_location += "\"
+    }
+    Set-Variable -Name 'volume_location' -Value $volume_location -Scope Global
+
+    Copy-Item -Path $dep_vhd_path -Destination $volume_location -Force -EA SilentlyContinue
+    if (-not $?) {
+        return $false
+    }
+    Copy-Item -Path $dep_pdk_path -Destination $volume_location -Force -EA SilentlyContinue
+    if (-not $?) {
+        return $false
+    }
+
+    return $true
+}
+
+function TestClusteredVM ([string] $VMName)
+{
+    StopVM $VMName "localhost"
+
+    # Add Cluster Role
+    $sts = Add-ClusterVirtualMachineRole -VirtualMachine $VMName
+    if (-not $?){
+        return $false
+    }
+
+    # Start VM
+    $ipv4 = StartVM $VMName 'localhost'
+    if (-not (isValidIPv4 $ipv4)) {
+        return $false
+    }
+
+    # Live migrate the VM
+    $rootDir = $(pwd).Path
+    $sts = .\setupscripts\NET_LIVEMIG.ps1 -vmName $VMName -hvServer 'localhost' -MigrationType 'Live' -testParams "ipv4=${ipv4}; rootDir=${rootDir}; MigrationType=Live"
+    if (-not $?) {
+        return $false
+    }
+
+    # Clean the VM
+    CleanupDependency $VMName
+    $sts = Remove-ClusterGroup -Name $VMName -RemoveResources -Force
+
+    return $true
+}
+
+function AddRecoverykey ([string] $VMName, [string]$ipv4, [string]$sshKey)
+{
+    # Add recovery key
+    $retVal = SendCommandToVM $ipv4 $sshKey ". shielded_deployed_functions.sh && AddRecoveryKey && cat state.txt"
+    if (-not $retVal) {
+        return $false
+    }
+    # Check status
+    $state = .\bin\plink.exe -i ssh\$sshKey root@$ipv4 "cat state.txt"
+    if ($state -ne "TestCompleted") {
+        return $false
+    }
+
+    # Stop VM and remove checkpoint
+    StopVM $VMName "localhost"
+    $sts = Remove-VMSnapshot -VMName $VMName -ComputerName "localhost" -Name "Deployed"
+    Start-Sleep -s 120
+    return $true
+}
+
+function MakeVMonSecondGH ([string] $second_GH_name, [string] $dep_vhd)
+{
+    $remote_defaultVhdPath = $(Get-VMHost -ComputerName $second_GH_name).VirtualHardDiskPath
+    if (-not $defaultVhdPath.EndsWith("\")) {
+        $defaultVhdPath += "\"
+    }
+    $copy_path = $remote_defaultVhdPath -replace ':','$'
+    $copy_path = '\\' + $second_GH_name + '\' + $copy_path
+
+    # Copy parent VHD
+    Copy-Item $parentClone $copy_path -Recurse -Force
+    if (-not $?) {
+        return $false
+    }
+    $parentVHD_name = $(Get-ChildItem $parentClone).Name
+
+    # Copy dependency Linux VHD
+    Copy-Item $dep_vhd $copy_path -Recurse -Force
+        if (-not $?) {
+        return $false
+    }
+    $depVHD_name = $(Get-ChildItem $dep_vhd).Name
+
+    $sts = Invoke-Command $second_GH_name -ScriptBlock{
+        # Make a new VM
+        $dependency_vhd_path = $using:remote_defaultVhdPath + $using:depVHD_name
+        $newVm = New-VM -Name 'Dependency_VM' -VHDPath $dependency_vhd_path -MemoryStartupBytes 2048MB -SwitchName 'External' -Generation 1
+        if (-not $?) {
+            return $false
+        }
+        
+        # Attach the test VHDx to the VM
+        $test_vhd_path = $using:remote_defaultVhdPath + $using:parentVHD_name 
+        $sts = Add-VMHardDiskDrive -VMName 'Dependency_VM' -ControllerType SCSI -ControllerNumber 0 -ControllerLocation 1 -Path $test_vhd_path
+        if (-not $?) {
+            return $false
+        }
+
+        return $true
+    }
+
+    return $sts
+}
+
+function TestRecoveryKey ([string] $second_GH_name, [string]$sshKey)
+{
+    # Start VM and get IP
+    $ipv4 = StartVM 'Dependency_VM' $second_GH_name
+    if (-not (isValidIPv4 $ipv4)) {
+        return $false
+    }
+
+    Write-Host $ipv4
+    # Send utils.sh to VM
+    SendFile $ipv4 $sshKey 'utils.sh' | Should be $true
+    
+    # Send shielded_deployed_functions.sh to VM
+    SendFile $ipv4 $sshKey 'shielded_deployed_functions.sh' | Should be $true
+
+    # Test recovery key
+    $retVal = SendCommandToVM $ipv4 $sshKey ". shielded_deployed_functions.sh && TestRecoveryKey && cat state.txt"
+    if (-not $retVal) {
+        return $false
+    }
+    # Check status
+    $state = .\bin\plink.exe -i ssh\$sshKey root@$ipv4 "cat state.txt"
+    if ($state -ne "TestCompleted") {
+        return $false
+    }
+
+    # Clean up
+    $sts = Stop-VM -Name 'Dependency_VM' -ComputerName $second_GH_name -TurnOff
+    $sts = Remove-VM -Name 'Dependency_VM' -ComputerName $second_GH_name -Confirm:$false -Force
+    
+    return $true
+}
+
+function Modify_MBLoad ([string] $modifyMBLoad, [string]$ipv4, [string]$sshKey, [string] $vmName)
+{
+    $mbload_path = $defaultVhdPath + "bootx64.efi"
+    # Send the bootloader to the VM
+    $retVal = SendFileToVM $ipv4 $sshKey $mbload_path "/root/bootx64.efi"
+    if (-not $retVal) {
+        return $false
+    }
+
+    # Modify the bootloader. First we'll make a copy of the existing bootloader and then we'll copy the new one
+    $retVal = SendCommandToVM $ipv4 $sshKey 'cp /boot/efi/EFI/boot/bootx64.efi /root/boot_backup.efi && cp /root/bootx64.efi /boot/efi/EFI/boot/bootx64.efi -rf'
+    if (-not $retVal) {
+        return $false
+    }
+
+    Start-Sleep -s 30
+    # Restart the VM. It should reboot fine
+    $ipv4 =  RestartVM $vmName
+    if ($ipv4 -eq "") {
+        return $false
+    }
+
+    # Test if already passed if we're testing bootloader upgrade
+    if ($modifyMBLoad -eq "upgrade") {
+        return $true
+    }
+
+    # Continue testing if we are doing a downgrade
+    if ($modifyMBLoad -eq "downgrade") {
+        $retVal = SendCommandToVM $ipv4 $sshKey "cp /root/boot_backup.efi /boot/efi/EFI/boot/bootx64.efi -rf"
+        if (-not $retVal) {
+            return $false
+        }
+
+        $ipv4 =  RestartVM $vmName
+        if ($ipv4 -eq "") {
+            return $false
+        } 
+    }
+    return $true
 }
 
 # Construct global variables

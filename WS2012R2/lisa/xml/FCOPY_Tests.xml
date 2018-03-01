@@ -83,16 +83,16 @@
 
         <test>
             <testName>FCOPY_large_file</testName>
-            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>setupscripts\FCOPY_large_file.ps1</testScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1200</timeout>
             <testParams>
                 <param>TC_COVERED=FCopy-04</param>
-                <param>Type=Fixed</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=15GB</param>
-                <param>ControllerType=SCSI</param>
+                <param>SCSI=0,0,Fixed,512,15GB</param>
+                <!-- Customize file size if you wish, 10GB by default
+                <param>Large_File_Size_GB=11.3</param>
+                -->
             </testParams>
             <noReboot>False</noReboot>
         </test>
@@ -110,16 +110,13 @@
 
         <test>
             <testName>FCOPY_repeat</testName>
-            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <testParams>
                 <param>TC_COVERED=FCopy-06</param>
-                <param>Type=Fixed</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=3GB</param>
-                <param>ControllerType=SCSI</param>
+                <param>SCSI=0,0,Fixed,512,3GB</param>
             <!--Make sure DefaultSize is equal or bigger than FileSize-->
                 <param>FileSize=2GB</param>
             </testParams>
@@ -128,17 +125,14 @@
 
         <test>
             <testName>FCOPY_disableEnable</testName>
-            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>setupscripts\FCOPY_disableEnable.ps1</testScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <files>remote-scripts\ica\utils.sh,remote-scripts\ica\check_traces.sh</files>
             <timeout>900</timeout>
             <testParams>
                 <param>TC_COVERED=FCopy-07</param>
-                <param>Type=Fixed</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=7GB</param>
-                <param>ControllerType=SCSI</param>
+                <param>SCSI=0,0,Fixed,512,7GB</param>
                 <param>FcopyFileSize=5GB</param>
                 <param>CycleCount=20</param>
             </testParams>

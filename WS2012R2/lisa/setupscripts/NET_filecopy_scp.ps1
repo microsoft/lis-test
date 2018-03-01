@@ -25,7 +25,7 @@
 
 .Description
     The script will copy 2 random generated 10GB files from a Windows host to
-    the Linux VM, and then checks if the sizes and checksums are matching.
+    the Linux VM, and then check if the sizes and checksums are matching.
 
     A typical XML definition for this test case would look similar
     to the following:
@@ -103,7 +103,7 @@ function mount_disk()
         return $False
     }
 
-    $sts = SendCommandToVM $ipv4 $sshKey "mkfs.ext3 ${driveName}1"
+    $sts = SendCommandToVM $ipv4 $sshKey "mkfs.ext4 ${driveName}1"
     if (-not $sts) {
         Write-Output "ERROR: Failed to make file system in the VM $vmName."
         return $False
@@ -116,7 +116,6 @@ function mount_disk()
     }
 
     "Info: $driveName has been mounted to /mnt in the VM $vmName."
-
     return $True
 }
 
@@ -248,11 +247,11 @@ del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
-# Verify the Putty utilities exist. Without them, we cannot talk to the Linux VM.
+# Verify the Putty utilities exist in order to copy the test files.
 #
 if (-not (Test-Path -Path ".\bin\pscp.exe"))
 {
-    LogMsg 0 "Error: The putty utility .\bin\pscp.exe does not exist"
+    LogMsg 0 "Error: The putty utility .\bin\pscp.exe does not exist!"
     return $false
 }
 
@@ -278,9 +277,20 @@ $localChksum2 = compute_local_md5 $fullFilePath2
 # Copy the file to the Linux guest VM
 #
 $Error.Clear()
-$command = "${rootDir}\bin\pscp -i ${rootDir}\ssh\${sshKey} '${fullFilePath2}' root@${ipv4}:/mnt/"
+$command = "& '${rootDir}\bin\pscp.exe' -i '${rootDir}\ssh\${sshKey}' '${fullFilePath2}' root@${ipv4}:/mnt/"
 
-$job = Start-Job -ScriptBlock  {Invoke-Expression $args[0]} -ArgumentList $command
+$job = Start-Job -ScriptBlock {Invoke-Expression $args[0]} -ArgumentList $command
+if (-not $job) {
+    "Error: Job to transfer the 2nd file failed to start!"
+    return $False
+}
+
+# Checking if the job is actually running
+$jobInfo = Get-Job -Id $job.Id
+if($jobInfo.State -ne "Running") {
+    "Error: job did not start or terminated immediately!"
+    return $False
+}
 
 $copyDuration1 = (Measure-Command { bin\pscp -i ssh\${sshKey} ${fullFilePath1} root@${ipv4}:/mnt/ }).TotalMinutes
 
@@ -301,21 +311,22 @@ else {
     return $False
 }
 
-Write-Output "The file copy process took $([System.Math]::Round($copyDuration1, 2)) minutes for first file and $([System.Math]::Round($copyDuration2, 2)) minutes for second file" | Tee-Object -Append -file $summaryLog
+Write-Output "The file copy process took $([System.Math]::Round($copyDuration1, 2)) minutes for first file `
+ and $([System.Math]::Round($copyDuration2, 2)) minutes for second file" | Tee-Object -Append -file $summaryLog
 
 #
 # Checking if the file is present on the guest and file size is matching
 #
 $sts = check_file $testfile1
 if (-not $sts) {
-    Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
+    Write-Output "ERROR: 1st file is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
     return $False
 }
 elseif ($sts -eq $filesize1) {
-    "Info: The file copied matches the 10GB size."
+    "Info: The 1st file copied matches the 10GB size." | Tee-Object -Append -file $summaryLog
 }
 else {
-    Write-Output "ERROR: The file copied doesn't match the 10GB size!" | Tee-Object -Append -file $summaryLog
+    Write-Output "ERROR: The 1st file copied doesn't match the 10GB size!" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
@@ -325,15 +336,15 @@ else {
 #
 $sts = check_file $testfile2
 if (-not $sts[-1]) {
-    Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
+    Write-Output "ERROR: 2nd file is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
 elseif ($sts[0] -eq $filesize2) {
-    Write-Output "Info: The file copied matches the 10GB size." | Tee-Object -Append -file $summaryLog
+    Write-Output "Info: The 2nd file copied matches the 10GB size." | Tee-Object -Append -file $summaryLog
 }
 else {
-    Write-Output "ERROR: The file copied doesn't match the 10GB size!" | Tee-Object -Append -file $summaryLog
+    Write-Output "ERROR: The 2nd file copied doesn't match the 10GB size!" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
@@ -345,16 +356,16 @@ else {
 # first file
 $md5RemoteFile1=.\bin\plink -i ssh\${sshKey} root@${ipv4} "openssl md5 /mnt/$testfile1"
 if (-not $?) {
-    Write-Error -Message "ERROR: Unable to run openssl command on VM for first file" -ErrorAction SilentlyContinue
-    Write-Output "ERROR: Unable to run openssl command on VM for first file" | Tee-Object -Append -file $summaryLog
+    Write-Error -Message "ERROR: Unable to run openssl command on VM for first file!" -ErrorAction SilentlyContinue
+    Write-Output "ERROR: Unable to run openssl command on VM for first file!" | Tee-Object -Append -file $summaryLog
     remove_files
     return $False
 }
 
-#Extracting only the MD5 hash for the remote and local variables
+# Extract only the MD5 hash for the remote and local variables
 $remoteChecksum1=$md5RemoteFile1.split()[-1]
 $localFile1MD5=$localChksum1.split()[-1]
-Write-Output "MD5 checksum on Guest VM: $remoteChecksum1" | Tee-Object -Append -file $summaryLog
+Write-Output "MD5 checksum for 1st file on Guest VM: $remoteChecksum1"
 
 $md5IsMatching1 = [string]::Compare($remoteChecksum1, $localFile1MD5, $true)
 if ($md5IsMatching1 -ne 0) {
@@ -376,7 +387,7 @@ if (-not $?) {
 
 $remoteChecksum2=$md5RemoteFile2.split()[-1]
 $localFile2MD5=$localChksum2.split()[-1]
-Write-Output "MD5 checksum on Guest VM: $remoteChecksum2" | Tee-Object -Append -file $summaryLog
+Write-Output "MD5 checksum for 2nd file on Guest VM: $remoteChecksum2"
 
 $md5IsMatching2 = [string]::Compare($remoteChecksum2, $localFile2MD5, $true)
 if ($md5IsMatching2 -ne 0) {

@@ -1725,7 +1725,7 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # Determine the VMs OS
     #
-    $os = (GetOSType $vm).ToString()
+    $os = [string](GetOSType $vm)
     LogMsg 9 "INFO : The OS type is $os"
 
     If ($vm.role.ToLower().StartsWith("sut"))
@@ -3249,8 +3249,8 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
     .Synopsis
         Finish up after the test run completed.
     .Description
-        Finish up after the test run completed.  Currently, this state
-        does not do anything.
+        Finish up after the test run completed. Kill all remaining processes
+        started by LIS automation.
     .Parameter vm
         XML Element representing the VM under test
     .Parameter $xmlData

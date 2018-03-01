@@ -64,7 +64,7 @@
 		<suiteTest>Disable_NUMA_By_Kernel</suiteTest>
 		<suiteTest>PausedCritical_Heartbeat</suiteTest>
 
-		<!-- This test is available only on RHEL/CENTOS with LIS built-in -->
+		<!-- These tests are available only on RHEL/CENTOS with LIS built-in -->
 		<suiteTest>LISdaemons_selinux_check</suiteTest>
 		<suiteTest>Check_HypervDaemons_Files_Status</suiteTest>
 	</suiteTests>
@@ -83,7 +83,7 @@
             <noReboot>True</noReboot>
         </test>
 
-		<test>
+        <test>
             <testName>TimeSync</testName>
             <testScript>SetupScripts\INST_LIS_TimeSync.ps1</testScript>
             <testParams>
@@ -96,19 +96,19 @@
             <noReboot>True</noReboot>
         </test>
 
-		<test>
-	        <testName>TimeSync_NTP</testName>
-	        <testScript>CORE_TimeSync_NTP.sh</testScript>
-	        <files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
-	        <testParams>
-	            <param>TC_COVERED=CORE-04</param>
-	        </testParams>
-	        <timeout>2000</timeout>
-	        <onError>Continue</onError>
-			<noReboot>True</noReboot>
-		</test>
+	<test>
+	<testName>TimeSync_NTP</testName>
+	<testScript>CORE_TimeSync_NTP.sh</testScript>
+	<files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
+	<testParams>
+	    <param>TC_COVERED=CORE-04</param>
+	</testParams>
+	<timeout>2000</timeout>
+	<onError>Continue</onError>
+	<noReboot>True</noReboot>
+	</test>
 
-		<test>
+        <test>
             <testName>TimeSync_SavedVM</testName>
             <testScript>SetupScripts\INST_timesync_change_state.ps1</testScript>
             <testparams>
@@ -392,6 +392,20 @@
         </test>
 
         <test>
+            <testName>PausedCritical_Heartbeat</testName>
+            <testScript>SetupScripts\Core_Heartbeat_PausedCritical.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-32</param>
+                <param>DriveLetter=Z:</param>
+            </testParams>
+            <timeout>1200</timeout>
+            <cleanupScript>SetupScripts\Core_Heartbeat_Cleanup.ps1</cleanupScript>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <!-- These tests are available only on RHEL/CENTOS with LIS built-in -->
+        <test>
             <testName>LISdaemons_selinux_check</testName>
             <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
             <testScript>CORE_LISdaemons_selinux.sh</testScript>
@@ -413,20 +427,6 @@
               </testParams>
             <timeout>600</timeout>
             <onError>Continue</onError>
-        </test>
-
-        <test>
-            <testName>PausedCritical_Heartbeat</testName>
-            <testScript>SetupScripts\Core_Heartbeat_PausedCritical.ps1</testScript>
-            <testParams>
-                <param>TC_COVERED=CORE-32</param>
-                <param>DriveLetter=Z:</param>
-                <param>vhdpath=C:\TestVolume.vhdx</param>
-            </testParams>
-            <timeout>1200</timeout>
-            <cleanupScript>SetupScripts\Core_Heartbeat_Cleanup.ps1</cleanupScript>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>
         </test>
     </testCases>
 

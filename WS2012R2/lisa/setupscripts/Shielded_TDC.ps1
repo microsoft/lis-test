@@ -72,10 +72,10 @@ function Get_Certificate
 function CleanupDependency ([string]$vmName)
 {
     # Clean up
-    $sts = Stop-VM -Name $vmName -TurnOff
+    $sts = Stop-VM -Name $vmName -TurnOff -ErrorAction SilentlyContinue
 
     # Delete New VM created
-    $sts = Remove-VM -Name $vmName -Confirm:$false -Force
+    $sts = Remove-VM -Name $vmName -Confirm:$false -Force -ErrorAction SilentlyContinue
 }
 
 function Run_TDC ([string] $vhd_path, $signcert)

@@ -29,8 +29,9 @@ function InstallNetcat
     [[ "$os_VENDOR" == "Fedora" ]] || \
     [[ "$os_VENDOR" == "CentOS" ]]; then
         yum install nc -y
-    elif [ "$os_VENDOR" == "SUSE LINUX" ]; then
-        continue
+    elif [ "$os_VENDOR" == "SUSE LINUX" ] || \
+    [ "$os_VENDOR" == "SLE" ]; then
+        zypper install -y netcat
     elif [ "$os_VENDOR" == "Ubuntu" ]; then
         apt-get install netcat -y
     else
@@ -89,7 +90,7 @@ function AddNIC
         sed -i -e "s/HWADDR/#HWADDR/" /etc/sysconfig/network-scripts/ifcfg-${ifName}
         sed -i -e "s/UUID/#UUID/" /etc/sysconfig/network-scripts/ifcfg-${ifName}
     elif [ "$os_VENDOR" == "SUSE LINUX" ] || \
-    [ "$os_VENDOR" == "SUSE" ]; then
+    [ "$os_VENDOR" == "SUSE" ] || [ "$os_VENDOR" == "SLE" ]; then
         LogMsg "Info : Creating ifcfg-${ifName}"
         cp /etc/sysconfig/network/ifcfg-eth0 /etc/sysconfig/network/ifcfg-${ifName}
         sed -i -- "s/eth0/${ifName}/g" /etc/sysconfig/network/ifcfg-${ifName}

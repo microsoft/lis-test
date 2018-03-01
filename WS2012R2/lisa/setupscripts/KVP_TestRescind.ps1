@@ -158,6 +158,21 @@ if ($checkVM -eq "True") {
         return $Failed
     }
 
+# Check if VM is RedHat 7.2 or older and if it uses external LIS
+    $supportkernel = "3.10.0.327" #kernel version for RHEL 7.2
+    $isRHEL = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "yum --version"
+    if ($? -eq "True") {
+        $kernelSupport = GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
+        if ($kernelSupport -ne "True") {
+            Write-Output "Info: Kernels older than 3.10.0-514 require LIS-4.x drivers." | Tee-Object -Append -file $summaryLog
+            $checkExternal = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rpm -qa | grep kmod-microsoft-hyper-v && rpm -qa | grep microsoft-hyper-v"
+            if ($? -ne "True") {
+                Write-Output "Error: No LIS-4.x drivers detected. Skipping test." | Tee-Object -Append -file $summaryLog
+                return $Skipped
+            }
+        }
+    }
+
     # If KVP is not enabled, enable it
     if ($gsi.Enabled -ne "True") {
         Enable-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer

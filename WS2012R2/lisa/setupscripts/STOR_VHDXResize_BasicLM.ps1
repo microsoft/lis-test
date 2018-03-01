@@ -61,8 +61,6 @@ param( [String] $vmName,
 $sshKey     = $null
 $ipv4       = $null
 $newSize    = $null
-$sectorSize = $null
-$DefaultSize = $null
 $rootDir    = $null
 $TC_COVERED = $null
 $TestLogDir = $null
@@ -118,12 +116,12 @@ foreach ($p in $params)
     "SSHKey"    { $sshKey  = $fields[1].Trim() }
     "ipv4"      { $ipv4    = $fields[1].Trim() }
     "newSize"   { $newSize = $fields[1].Trim() }
-    "sectorSize" { $sectorSize = $fields[1].Trim() }
-    "DefaultSize"   { $DefaultSize = $fields[1].Trim() }
     "rootDIR"   { $rootDir = $fields[1].Trim() }
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
     "TestName"   { $TestName = $fields[1].Trim() }
+    "SCSI"  { $controllerType = "SCSI" }
+    "IDE"  { $controllerType = "IDE" }
     default     {}  # unknown param - just ignore it
     }
 }
@@ -150,11 +148,11 @@ else
 
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
+    . .\setupScripts\TCUtils.ps1
 }
 else {
-	"Error: Could not find setupScripts\TCUtils.ps1" | Tee-Object -Append -file $summaryLog
-	return $false
+    "Error: Could not find setupScripts\TCUtils.ps1" | Tee-Object -Append -file $summaryLog
+    return $false
 }
 
 Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
@@ -182,7 +180,7 @@ $newVhdxSize = ConvertStringToUInt64 $newSize
 # Lun 0 on the controller has a .vhdx file attached.
 #
 "Info : Check if VM ${vmName} has a SCSI 0 Lun 0 drive"
-$vhdxName = $vmName + "-" + $DefaultSize + "-" + $sectorSize + "-test"
+$vhdxName = $vmName + "-" + $controllerType
 $vhdxDisks = Get-VMHardDiskDrive -VMName $vmName -ComputerName $hvServer
 
 foreach ($vhdx in $vhdxDisks)
@@ -297,8 +295,7 @@ if (-not $?)
 #
 # Let system have some time for the volume change to be indicated
 #
-$sleepTime = 30
-Start-Sleep -s $sleepTime
+Start-Sleep -s 30
 
 if ($diskSize -ne $newVhdxSize)
 {
@@ -309,7 +306,13 @@ if ($diskSize -ne $newVhdxSize)
 #
 # Make sure if we can perform Read/Write operations on the guest VM
 #
-$guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
+$guest_script = "STOR_VHDXResize_PartitionDisk"
+$addParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'rerun=yes' >> constants.sh"
+if ($? -ne "True")
+{
+    "Error: Unable to alter constants.sh for second run. " | Tee-Object -Append -file $summaryLog
+    return $False
+}
 
 $sts = RunTest $guest_script
 if (-not $($sts[-1]))
@@ -351,6 +354,12 @@ if (-not $?)
 # Make sure if we can perform Read/Write operations on the guest VM
 #
 $guest_script = "STOR_VHDXResize_PartitionDisk"
+$removeParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sed -i '/rerun=yes/d' constants.sh"
+if ($? -ne "True")
+{
+    "Error: Unable to alter constants.sh for first run. " | Tee-Object -Append -file $summaryLog
+    return $False
+}
 
 $sts = RunTest $guest_script
 if (-not $($sts[-1]))

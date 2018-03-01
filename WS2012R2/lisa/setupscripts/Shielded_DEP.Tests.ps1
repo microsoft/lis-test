@@ -41,7 +41,11 @@ Param(
     
     [Parameter(Mandatory = $true,Position = 0,HelpMessage = 'VHD that will be used to create a dependency VM')]
     [ValidateNotNullorEmpty()]
-    [String]$dependencyVhdPath
+    [String]$dependencyVhdPath,
+
+    [Parameter(Mandatory = $true,Position = 0,HelpMessage = 'VHD that will be used to create a dependency VM')]
+    [ValidateNotNullorEmpty()]
+    [String]$second_GH_name
 )
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -79,7 +83,7 @@ Describe "Preparation tasks for Deployed Shielded VMs testing"{
     Context "1. Copy template and PDK from share
             2. Provison a test VM
             3. Turn off the VM and take a snapshot" {
-        It "Running LSVM-DEP-Preparation" {
+        It "LSVM-DEP-Preparation" {
             # Copy VHDx from share
             Copy_template_from_share $sharePath | Should be $true
 
@@ -92,7 +96,7 @@ Describe "Preparation tasks for Deployed Shielded VMs testing"{
             $? | Should be $true
 
             # Provision the VM
-            Provision "LSVM_Dep_Test" | Should be $false
+            Provision "LSVM_Dep_Test" "no" | Should be $false
 
             # Check if the deployed VM has booted
             $vm_ipv4 = GetDEP_ipv4 "LSVM_Dep_Test"
@@ -110,7 +114,7 @@ Describe "Update the kernel on a LSVM and verify the VM continues to boot succes
             4.  Verify the kernel packages were update successfully.
             5.  Reboot the VM" {
 
-        It "Running LSVM-DEP-01" {
+        It "LSVM-DEP-01" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
             # Check if the deployed VM has booted
@@ -135,7 +139,7 @@ Describe "Update a boot component on a LSVM and verify the VM boots successfully
             3.  Run a distro specific command to update one of the boot components.
             4.  Reboot the VM." {
         
-        It "Running LSVM-DEP-02" {
+        It "LSVM-DEP-02" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
             # Check if the deployed VM has booted
@@ -163,7 +167,7 @@ Describe "Clone a Linux Shielded VM VHDX and confirm it fails to boot" {
             6.  Use the copied VHDX file as the boot disk of the VM created in step 3.
             7.  Boot the new VM." {
         
-        It "Running LSVM-DEP-03" {
+        It "LSVM-DEP-03" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
             # Make a copy of the vhd used to provision the vm
@@ -186,7 +190,7 @@ Describe "Verify well known DMCrypt/LUKS passwords no longer work" {
         5.  Using a second Linux VM (non-shielded VM), connect the copied VHDX file as a data disk.
         6.  In the second Linux VM, try to mount the boot/root partition using well-known passphrase." {
         
-        It "Running LSVM-DEP-04" {
+        It "LSVM-DEP-04" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
             # Make a copy of the vhd used to provision the vm
@@ -196,7 +200,7 @@ Describe "Verify well known DMCrypt/LUKS passwords no longer work" {
             $vm_ipv4 = DependencyVM $dependencyVhdPath 
             $vm_ipv4 | Should not be $null
 
-            VerfifyPassphrase $sshKey $vm_ipv4 | Should be $true
+            VerifyPassphrase $sshKey $vm_ipv4 | Should be $true
 
             # Clean VM
             CleanupDependency 'LSVM_Dependency'
@@ -211,8 +215,14 @@ Describe "Upgrade MBLoad to a newer version" {
             4.  Run the utility to upgrade MBLoad.
             5.  Reboot the VM." {
         
-        It "Running LSVM-DEP-05" -Pending {
+        It "LSVM-DEP-05" {
+            ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
+            # Check if the deployed VM has booted
+            $ipv4 = GetDEP_ipv4 "LSVM_Dep_Test"
+            $ipv4 | Should not Be $null
+
+            Modify_MBLoad "upgrade" $ipv4 $sshKey "LSVM_Dep_Test" | Should be $true
         }
     }
 }
@@ -221,11 +231,17 @@ Describe "Downgrade MBLoad to an older version." {
     Context "1. Create a Linux Shielded VM from a known good template.
             2.  Verify the VM boots successfully.
             3.  Install an older version of the LSVMTools package.
-            4.  Run the utility to ‘upgrade’ the MBLoad.
+            4.  Run the utility to upgrade the MBLoad.
             5.  Reboot the VM." {
         
-        It "Running LSVM-DEP-06" -Pending {
+        It "LSVM-DEP-06" {
+            ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
+            # Check if the deployed VM has booted
+            $ipv4 = GetDEP_ipv4 "LSVM_Dep_Test"
+            $ipv4 | Should not Be $null
+
+            Modify_MBLoad "downgrade" $ipv4 $sshKey "LSVM_Dep_Test" | Should be $true
         }
     }
 }
@@ -236,8 +252,14 @@ Describe "Live Migrate a LSVM" {
             3.  Migrate the Linux Shielded VM to another Hyper-V host in the same HGS fabric.
             4.  Reboot the VM two or more times after it has been migrated." {
         
-        It "Running LSVM-DEP-07" -Pending {
+        It "LSVM-DEP-07" {
+            PrepareClusteredVM | Should be $true
 
+            # Provision VM on the cluster shared volume
+            Provision "LSVM_Dep_Clustered" "yes" | Should be $false
+
+            # Configure High Availability
+            TestClusteredVM "LSVM_Dep_Clustered" | Should be $true
         }
     }
 }
@@ -248,11 +270,19 @@ Describe "Export/Import a LSVM" {
             3.  Export the VM to a shared directory.
             4.  On a separate Hyper-V host, import the exported VM." {
         
-        It "Running LSVM-DEP-08" -Pending {
+        It "LSVM-DEP-08" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
+            # Export the test VM
             ExportVM "LSVM_Dep_Test" | Should be $true
 
+            # Copy files to second GH and import the VM
+            ImportVM $second_GH_name "LSVM_Dep_Test" | Should be $true
+
+            # Boot the VM and verify if it gets an IP
+            VerifyImport $second_GH_name "LSVM_Dep_Test" | Should be $true
+
+            CleanImport $second_GH_name "LSVM_Dep_Test"
         }
     }
 }
@@ -267,7 +297,7 @@ Describe "Online Backup/Restore a data disk on a Linux Shielded VM" {
             7.  Modify the contents of an existing file on the data disk.
             8.  Restore the data disk from the backup created in step 5." {
         
-        It "Running LSVM-DEP-09" {
+        It "LSVM-DEP-09" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
             # Create a data disk
@@ -303,7 +333,7 @@ Describe "Online Backup, then Restore the system disk of a Linux Shielded VM" {
             7.  Restore the system disk from the backup created in step 3.
             8.  Boot the VM." {
         
-        It "Running LSVM-DEP-10" {
+        It "LSVM-DEP-10" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
             # Write data
@@ -339,7 +369,7 @@ Describe "Use Backup to restore the system disk to an older version of MBLoad" {
             7.  Restore the system disk from the backup created in step 3.
             8.  Reboot the VM." {
         
-        It "Running LSVM-DEP-11" -Pending{
+        It "LSVM-DEP-11" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
             
             # Backup the VM
@@ -347,6 +377,10 @@ Describe "Use Backup to restore the system disk to an older version of MBLoad" {
 
             # Write additional data & upgrade LSVMTools
             WriteDataOnVM "LSVM_Dep_Test" $sshKey  "echo 'Test' > firstFile" | Should be $true
+
+            # Upgrade bootloader
+            $ipv4 = GetIPv4 "LSVM_Dep_Test" 'localhost'
+            Modify_MBLoad "upgrade" $ipv4 $sshKey "LSVM_Dep_Test" | Should be $true
 
             # Restore VM
             RestoreVM | Should be $true
@@ -366,7 +400,7 @@ Describe "Add COM port to LSVM" {
             3.  Shutdown the VM.
             4.  Use the PowerShell cmdlet Set-VMComPort to add/configure a COM port to the VM." {
         
-        It "Running LSVM-DEP-12" {
+        It "LSVM-DEP-12" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
             # Check if the deployed VM has booted
@@ -400,7 +434,7 @@ Describe "Attack a VHDX file of a functioning LSVM" {
             10. Replace the LSVMs boot disk with the modified VHDX file.
             11. Boot the VM." {
         
-        It "Running LSVM-DEP-13" {
+        It "LSVM-DEP-13" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
             # Make a copy of the vhd used to provision the vm
@@ -422,8 +456,7 @@ Describe "Replicate a LSVM to a different host which uses the same HGS" {
             3.  Replicate the VM to a different Hyper-V host which is using the same HGS that the original Hyper-V host is using.
             4.  Boot the VM." {
         
-        It "Running LSVM-DEP-14" -Pending{
-
+        It "LSVM-DEP-14" -Pending{
         }
     }
 }
@@ -440,8 +473,33 @@ Describe "VHD recovery with LSVM recovery key" {
             9.  Mount the boot partition.
             10. Mount the root partition." {
         
-        It "Running LSVM-DEP-15" -Pending{
+        It "LSVM-DEP-15" {
+            ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
+            # Check if the deployed VM has booted
+            $ipv4 = GetDEP_ipv4 "LSVM_Dep_Test"
+            $ipv4 | Should not Be $null
+
+            # Send utils.sh to VM
+            SendFile $ipv4 $sshKey 'utils.sh' | Should be $true
+            
+            # Send shielded_deployed_functions.sh to VM
+            SendFile $ipv4 $sshKey 'shielded_deployed_functions.sh' | Should be $true
+
+            # Add Recovery key
+            AddRecoveryKey "LSVM_Dep_Test" $ipv4 $sshKey | Should be $true
+
+            # Make a copy of the vhd used to provision the vm
+            CopyVHD "LSVM_Dep_Test" | Should be $true
+
+            # Remake the snapshot
+            TakeSnapshot "LSVM_Dep_Test" | Should be $true
+
+            # Make a new VM on the second GH
+            MakeVMonSecondGH $second_GH_name $dependencyVhdPath | Should be $true
+
+            # Test Recovery key
+            TestRecoveryKey $second_GH_name $sshKey | Should be $true
         }
     }
 }
@@ -453,13 +511,13 @@ Describe "Disable Secure Boot and verify Linux Shielded VM fails to boot" {
             4.  Disable Secure Boot for the VM.
             5.  Boot the VM." {
         
-        It "Running LSVM-DEP-16" {
+        It "LSVM-DEP-16" {
             ApplySnapshot "LSVM_Dep_Test" | Should be $true
 
             # Disable SecureBoot
             DisableSecureBoot "LSVM_Dep_Test" | Should be $true
 
-            # Disable SecureBoot
+            # Clean up the VM
             CleanupDependency "LSVM_Dep_Test"
         }
     }

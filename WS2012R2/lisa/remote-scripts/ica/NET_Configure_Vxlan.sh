@@ -114,10 +114,13 @@ dos2unix utils.sh
 GetDistro
 case "$DISTRO" in
     suse*)
-       /sbin/rcSuSEfirewall2 stop
-        if [ $? -ne 0 ]; then
-            echo "Failed to stop FIREWALL." >> summary.log
-            exit 12
+        status=`systemctl is-active rcSuSEfirewall2`
+        if [ "$status" = "active" ]; then
+           /sbin/rcSuSEfirewall2 stop
+            if [ $? -ne 0 ]; then
+                echo "Failed to stop FIREWALL." >> summary.log
+                exit 12
+            fi
         fi
         service atd start
         ;;

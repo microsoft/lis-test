@@ -56,7 +56,7 @@ SearchModules()
         else
             LogMsg "ERROR: Module $module was NOT found."
             echo "ERROR: Module $module was NOT found." >> /root/summary.log
-			grep -i $module $abs_path*/modules.dep >> /root/summary.log
+            grep -i $module $abs_path*/modules.dep >> /root/summary.log
             SetTestStateFailed
             exit 1
         fi
@@ -87,6 +87,7 @@ if [ ! -d /sys/firmware/efi ]; then
     do
         hv_modules[$n]=${gen1_hv_modules[$n]}
     done
+
 else
     index=${!gen2_hv_modules[@]}
     n=0
@@ -95,6 +96,38 @@ else
         hv_modules[$n]=${gen2_hv_modules[$n]}
     done
 fi
+
+# Rebuild array to exclude built-in modules
+skip_modules=()
+
+vmbusIncluded=`grep CONFIG_HYPERV=y /boot/config-$(uname -r)`
+if [ $vmbusIncluded ]; then
+    skip_modules+=("hv_vmbus.ko")
+    LogMsg "Info: hv_vmbus module is built-in. Skipping module. "
+fi
+storvscIncluded=`grep CONFIG_HYPERV_STORAGE=y /boot/config-$(uname -r)`
+if [ $storvscIncluded ]; then
+    skip_modules+=("hv_storvsc.ko")
+    LogMsg "Info: hv_storvsc module is built-in. Skipping module. "
+fi
+netvscIncluded=`grep CONFIG_HYPERV_NET=y /boot/config-$(uname -r)`
+if [ $netvscIncluded ]; then
+    skip_modules+=("hv_netvsc.ko")
+    LogMsg "Info: hv_netvsc module is built-in. Skipping module. "
+fi
+
+# declare temporary array
+tempList=()
+
+# remove each module in skip_modules from hv_modules
+for module in "${hv_modules[@]}"; do
+    skip=""
+    for modSkip in "${skip_modules[@]}"; do
+        [[ $module == $modSkip ]] && { skip=1; break; }
+    done
+    [[ -n $skip ]] || tempList+=("$module")
+done
+hv_modules=("${tempList[@]}")
 
 if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter hv_modules is not defined in constants file."

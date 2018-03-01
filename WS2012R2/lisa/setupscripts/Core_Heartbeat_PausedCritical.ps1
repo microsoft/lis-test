@@ -35,13 +35,15 @@
     .Parameter testParams
     Test data for this test case
     .Example
-    setupScripts\PausedCritical.ps1 -vmName vm -hvServer localhost -testParams "DriveLetter=Z:;vhdpath=C:\TestVolume.vhdx;"
+    setupScripts\PausedCritical.ps1 -vmName vm -hvServer localhost -testParams "DriveLetter=Z:;"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $ipv4vm1 = $null
+$vm_gen = $null
 $retVal = $true
+$foundName = $false
 
 #######################################################################
 #
@@ -76,7 +78,6 @@ foreach ($p in $params)
     "rootDir" { $rootDir = $fields[1].Trim() }
     "driveletter" { $driveletter = $fields[1].Trim() }
     "TC_COVERED" { $tcCovered = $fields[1].Trim() }
-    "vhdpath" { $vhdpath = $fields[1].Trim() }
      default  {}
     }
 }
@@ -135,18 +136,36 @@ if(-not $ParentVHD)
 # Get VHD size
 $VHDSize = (Get-VHD -Path $ParentVHD -ComputerName $hvServer).FileSize
 [uint64]$newsize = [math]::round($VHDSize /1Gb, 1)
+
+$baseVhdPath = $(Get-VMHost).VirtualHardDiskPath
+if (-not $baseVhdPath.EndsWith("\")) {
+    $baseVhdPath += "\"
+}
+
 $newsize = ($newsize * 1GB) + 1GB
+
+# Check if VHD path exists and is being used by another process
+while(-not $foundName) {
+    $vhdName = $(-join ((48..57) + (97..122) | Get-Random -Count 10 | % {[char]$_}))
+    $vhdpath = "${baseVhdPath}${vhdName}.vhdx"
+    if(Test-Path $vhdpath) {   
+        try {
+            [IO.File]::OpenWrite($file).close()
+            Write-Host "Deleting existing VHD $vhdpath"
+            del $vhdpath
+            $foundName = $true
+        } catch {
+            $foundName = $false
+        }
+    } else {
+        $foundName = $true
+    }
+}
 
 Get-Partition -DriveLetter $driveletter[0] -ErrorAction SilentlyContinue
 if ($?)
 {
     Dismount-VHD -Path $vhdpath -ComputerName $hvServer -ErrorAction SilentlyContinue 
-}
-
-if ( Test-Path $vhdpath )
-{
-    Write-Host "Deleting existing VHD $vhdpath"
-    del $vhdpath
 }
 
 # Create the new partition
@@ -157,11 +176,13 @@ if (-not $?)
     Write-Output "Error: Failed to create the new partition $driveletter" | Tee-Object -Append -file $summaryLog
     return $False
 }
+
 "hvServer=$hvServer" | Out-File './heartbeat_params.info'
 $test_vhd = [regex]::escape($vhdpath)
 "test_vhd=$test_vhd" | Out-File './heartbeat_params.info' -Append
 # Copy parent VHD to partition
-$ChildVHD = CreateChildVHD $ParentVHD $driveletter $hvServer
+# this will be appended the .vhd or .vhdx file extension
+$ChildVHD = CreateChildVHD $ParentVHD $driveletter\child_disk $hvServer
 if(-not $ChildVHD)
 {
     Write-Output "Error: Creating Child VHD of VM $vmName" | Tee-Object -Append -file $summaryLog
@@ -169,8 +190,6 @@ if(-not $ChildVHD)
 }
 $child_vhd = [regex]::escape($ChildVHD)
 "child_vhd=$child_vhd" | Out-File "./heartbeat_params.info" -Append
-
-$vm = Get-VM -Name $vmName -ComputerName $hvServer
 
 # Get the VM Network adapter so we can attach it to the new VM
 $VMNetAdapter = Get-VMNetworkAdapter $vmName -ComputerName $hvServer
@@ -181,15 +200,15 @@ if (-not $?)
 }
 
 #Get VM Generation
-$vm_gen = $vm.Generation
+$vm_gen = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation -ErrorAction SilentlyContinue
 
 # Remove old VM
 if ( Get-VM $vmName1 -ComputerName $hvServer -ErrorAction SilentlyContinue ) {
-	Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
+    Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
 }
 
 # Create the ChildVM
-$newVm = New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 2048MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
+New-VM -Name $vmName1 -ComputerName $hvServer -VHDPath $ChildVHD -MemoryStartupBytes 2048MB -SwitchName $VMNetAdapter[0].SwitchName -Generation $vm_gen
 if (-not $?)
 {
    Write-Output "Error: Creating new VM $vmName1 failed!" | Tee-Object -Append -file $summaryLog
