@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<config>
+    <global>
+        <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <imageStoreDir>\\unc\path</imageStoreDir>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LISA BVT Tests Run</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+    <suite>
+        <suiteName>lis_validation_test</suiteName>
+        <suiteTests>
+            <suiteTest>lis_install</suiteTest>
+
+            <!-- Core Tests -->
+            <suiteTest>VMHeartbeat</suiteTest>
+        </suiteTests>
+    </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>lis_install</testName>
+            <testScript>lis_install.sh</testScript>
+            <files>remote-scripts/ica/lis_install.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=LIS-INSTALL</param>
+            </testParams>
+            <timeout>1800</timeout>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <!-- Core Tests -->
+        <test>
+            <testName>VMHeartBeat</testName>
+            <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-03</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>vm_lis_test</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>lis_validation_test</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>2</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+            <testParams>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+        </vm>
+    </VMs>
+</config>
