@@ -56,7 +56,8 @@ function download_archive {
 	fi
 
 	# Download file
-	wget "$LIS_URL$AZURE_TOKEN"
+    TAR_NAME="${LIS_URL##*/}"
+	wget "$LIS_URL$AZURE_TOKEN" -O "$TAR_NAME"
 	if [ $? -ne 0 ]; then
 		msg="ERROR: Archive download failed"
 		LogMsg "$msg"
