@@ -3234,7 +3234,7 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     If ($vm.role.ToLower().StartsWith("sut"))
     {
-        SaveResultToXML $testDir
+        SaveResultToXML $vm.suite $testDir
     }
 }
 

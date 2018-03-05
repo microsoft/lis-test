@@ -260,7 +260,6 @@ function SetTimeStamp([String] $testSuite, [String] $testTimeStamp)
 
     $currentSuite = GetCurentSuite($testSuite)
     $currentSuite.timestamp = $testTimeStamp
-
 }
 
 #####################################################################
@@ -362,7 +361,6 @@ function RemoveXMLChildNode([System.Xml.XmlElement]$newTestCase, [String] $nodeN
     $newTestCase.childNodes | where-object {$_.Name -contains $nodeName } | ForEach-Object  { [void]$_.parentNode.RemoveChild($_) } | out-null
 }
 
-
 #####################################################################
 #
 # SetRunningTime
@@ -410,7 +408,7 @@ function SetRunningTime([String] $testName, [System.Xml.XmlElement] $vm)
 # SaveResultToXML
 #
 #####################################################################
-function SaveResultToXML([String] $testDir)
+function SaveResultToXML([String] $testSuite, [String] $testDir)
 {
     <#
     .Synopsis
@@ -419,21 +417,26 @@ function SaveResultToXML([String] $testDir)
     .Description
         Export result XML object into an XML file.
 
+    .Parameter testSuite
+        The name of the test suite to run
+        Type : [String]
+
     .Parameter testDir
         The folder storing test log.
         Type : [String]
 
     .Example
-        SaveResultToXML $testDir
+        SaveResultToXML "acceptance" $testDir
     #>
-    LogMsg 6 ("Info :    SaveResultToXML to ($($testDir))")
+    LogMsg 6 ("Info :    SaveResultToXML to ($($testSuite),$($testDir))")
 
     $resultXMLFileName = "Report" + ".xml"
     # remove users with undefined name (remove template)
 
     $testResult.testsuites.testsuite | Where-Object { $_.Name -eq "" } | ForEach-Object  { [void]$testResult.testsuites.RemoveChild($_) }
 
-    $testResult.testsuites.testsuite.testcase | Where-Object { $_.Name -eq "" } | ForEach-Object  { [void]$_.ParentNode.RemoveChild($_) }
+    $currentSuite = GetCurentSuite($testSuite)
+    $currentSuite.testcase | Where-Object { $_.Name -eq ""  } | ForEach-Object  { [void]$_.ParentNode.RemoveChild($_) }
 
     # save xml to file
 
