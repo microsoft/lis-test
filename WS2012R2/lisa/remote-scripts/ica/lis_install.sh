@@ -79,7 +79,7 @@ function install_lis {
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
-	exit 1
+		exit 1
 	fi
 
 	# Install LIS
