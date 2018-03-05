@@ -56,7 +56,8 @@ function download_archive {
 	fi
 
 	# Download file
-	wget "$LIS_URL$AZURE_TOKEN"
+	TAR_NAME="${LIS_URL##*/}"
+	wget "$LIS_URL$AZURE_TOKEN" -O "$TAR_NAME"
 	if [ $? -ne 0 ]; then
 		msg="ERROR: Archive download failed"
 		LogMsg "$msg"
@@ -73,7 +74,7 @@ function download_archive {
 function install_lis {
 	# Extract archive
 	tar -xzvf lis-rpm*.tar.gz
-		if [ $? -ne 0 ]; then
+	if [ $? -ne 0 ]; then
 		msg="ERROR: Extracting the archive failed"
 		LogMsg "$msg"
 		UpdateSummary "$msg"
