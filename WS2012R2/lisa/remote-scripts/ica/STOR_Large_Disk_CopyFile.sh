@@ -126,8 +126,11 @@ function TestNFSCopyFile()
       LogMsg "Mount nfs successfully from $NFS_Path"
       # dd 5G file
       dd if=/dev/zero of=/mnt_2/data bs=2048 count=2500000
+      sleep 2
+
       LogMsg "Finish dd file in nfs path, start to copy to drive..."
       cp /mnt_2/data /mnt/
+      sleep 2
 
       file_size=`ls -l /mnt_2/data | awk '{ print $5}' | tr -d '\r'`
       file_size1=`ls -l /mnt/data | awk '{ print $5}' | tr -d '\r'`
