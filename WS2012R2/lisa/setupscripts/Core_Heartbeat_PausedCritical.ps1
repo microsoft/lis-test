@@ -22,7 +22,7 @@
 <#
 .Synopsis
  Description:
-   This script tests the VM's Heartbeat after the VM enters in PausedCritical state.
+   This script tests the VMs Heartbeat after the VM enters in PausedCritical state.
    For the VM to enter in PausedCritical state the disk where the VHD is has to be full.
    We create a new partition, copy the VHD and fill up the partition.
    After the VM enters in PausedCritical state we free some space and the VM
@@ -35,7 +35,7 @@
     .Parameter testParams
     Test data for this test case
     .Example
-    setupScripts\PausedCritical.ps1 -vmName vm -hvServer localhost -testParams "DriveLetter=Z:;"
+    setupScripts\PausedCritical.ps1 -vmName vm -hvServer localhost -testParams "sshkey=linux_id_rsa;"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -44,14 +44,7 @@ $ipv4vm1 = $null
 $vm_gen = $null
 $retVal = $true
 $foundName = $false
-
-#######################################################################
-#
-# Main script body
-#
-#######################################################################
-$summaryLog  = "${vmName}_summary.log"
-$vmName1 = "${vmName}_ChildVM"
+$driveletter = $null
 
 # Check input arguments
 if ($vmName -eq $null)
@@ -76,7 +69,6 @@ foreach ($p in $params)
     "sshKey" { $sshKey  = $fields[1].Trim() }
     "ipv4"   { $ipv4    = $fields[1].Trim() }
     "rootDir" { $rootDir = $fields[1].Trim() }
-    "driveletter" { $driveletter = $fields[1].Trim() }
     "TC_COVERED" { $tcCovered = $fields[1].Trim() }
      default  {}
     }
@@ -94,12 +86,6 @@ if ($null -eq $ipv4)
     return $False
 }
 
-if ($null -eq $driveletter)
-{
-    "ERROR: Test parameter driveletter was not specified."
-    return $False
-}
-
 # Change the working directory to where we need to be
 if (-not (Test-Path $rootDir))
 {
@@ -114,10 +100,25 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${tcCovered}" | Tee-Object -Append -file $summaryLog
 
+#######################################################################
+#
+# Main script body
+#
+#######################################################################
 # Source the TCUtils.ps1 file
 . .\setupscripts\TCUtils.ps1
 
-# Shutdown gracefully so we dont corrupt VHD.
+# check what drive letter is available and pick one randomly
+$driveletter = ls function:[g-y]: -n | ?{ !(test-path $_) } | random
+
+if ([string]::IsNullOrEmpty($driveletter)) {
+    Write-Host "Error: The driveletter variable is empty!"
+    exit 1
+} else {
+    Write-Output "The drive letter of test volume is $driveletter" | Tee-Object -Append -file $summaryLog
+}
+
+# Shutdown gracefully so we dont corrupt VHD
 Stop-VM -Name $vmName -ComputerName $hvServer
 if (-not $?)
 {
@@ -127,8 +128,7 @@ if (-not $?)
 
 # Get Parent VHD
 $ParentVHD = GetParentVHD $vmName $hvServer
-if(-not $ParentVHD)
-{
+if(-not $ParentVHD) {
     Write-Output "Error getting Parent VHD of VM $vmName" | Tee-Object -Append -file $summaryLog
     return $False
 }
@@ -202,6 +202,7 @@ if (-not $?)
 #Get VM Generation
 $vm_gen = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation -ErrorAction SilentlyContinue
 
+$vmName1 = "${vmName}_ChildVM"
 # Remove old VM
 if ( Get-VM $vmName1 -ComputerName $hvServer -ErrorAction SilentlyContinue ) {
     Remove-VM -Name $vmName1 -ComputerName $hvServer -Confirm:$false -Force
