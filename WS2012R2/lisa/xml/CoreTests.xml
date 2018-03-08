@@ -396,7 +396,6 @@
             <testScript>SetupScripts\Core_Heartbeat_PausedCritical.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=CORE-32</param>
-                <param>DriveLetter=Z:</param>
             </testParams>
             <timeout>1200</timeout>
             <cleanupScript>SetupScripts\Core_Heartbeat_Cleanup.ps1</cleanupScript>
