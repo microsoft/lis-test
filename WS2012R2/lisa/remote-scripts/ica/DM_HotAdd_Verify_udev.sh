@@ -80,17 +80,14 @@ done
 # Now let's check the results
 if [ ${#filelist[@]} -gt 0 ]; then # check if we found anything
     if [ ${#filelist[@]} -gt 1 ]; then # check if we found multiple files
-        LogMsg "Error: More than one udev rules found. Aborting test!"
+        UpdateSummary "Info: More than one udev rules found"
         LogMsg "Following DM udev files were found:"
         # list the files
         for rulefile in "${filelist[@]}"; do
             LogMsg $rulefile
         done
-        UpdateTestState $ICA_TESTFAILED
-        UpdateSummary "Hot-Add udev rule present: Failed. More than one udev rules found."
-        exit 1
     else
-        LogMsg "Hot-Add udev rule present: Success"
+        UpdateSummary "Hot-Add udev rule present: Success"
         LogMsg "File is: ${filelist[@]}"
     fi
 else
