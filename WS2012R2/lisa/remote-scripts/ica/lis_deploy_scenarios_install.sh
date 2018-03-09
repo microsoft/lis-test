@@ -28,65 +28,20 @@
 #     and performs various LIS installation methods.
 #
 ################################################################
-
-# the following versions support selinux and can handle custom LIS policy
+# The following versions support selinux and can handle custom LIS policy
 release_versions=("6.6" "6.7" "6.8" "7.1" "7.2" "7.3" "7.4" "7.5")
 
-UpdateTestState()
-{
-    echo $1 > $HOME/state.txt
+# Convert eol
+dos2unix utils.sh
+
+# Source utils.sh
+. utils.sh || {
+    echo "ERROR: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
 }
-
-UpdateSummary()
-{
-    echo $1 >> ~/summary_scenario_$scenario.log
-}
-
-cd ~
-
-UpdateTestState "TestRunning"
-
-if [ -e $HOME/constants.sh ]; then
-    . $HOME/constants.sh
-else
-    UpdateSummary "ERROR: Unable to source the constants file."
-    UpdateTestState "TestAborted"
-    exit 1
-fi
-
-#
-# Check if the CDROM module is loaded
-#
-CD=`lsmod | grep 'ata_piix\|isofs'`
-if [[ $CD != "" ]] ; then
-    module=`echo $CD | cut -d ' ' -f1`
-    UpdateSummary "${module} module is present."
-else
-    UpdateSummary "ata_piix module is not present in VM"
-    UpdateSummary "Loading ata_piix module "
-    insmod /lib/modules/`uname -r`/kernel/drivers/ata/ata_piix.ko
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        UpdateSummary "Warning: Unable to load the ata_piix module!"
-    else
-        UpdateSummary "ata_piix module loaded inside the VM"
-    fi
-fi
-
-# Get the mounting point
-mounting_point=$(ls /dev/sr* | tail -1)
-umount $mounting_point
-UpdateSummary "Mount the CDROM"
-
-mount $mounting_point /mnt
-sts=$?
-if [ 0 -ne ${sts} ]; then
-    UpdateSummary "Error: The ISO file was not mounted"
-    UpdateTestState "TestFailed"
-    exit 1
-fi
-
-cd /mnt/
+# Source constants file and initialize most common variables
+UtilsInit
 
 if [ "$first_install" == "" ];then
     first_install=0
@@ -95,23 +50,26 @@ fi
 # Deleting old LIS
 if [[ "$action" == "install" && "$first_install" == 0 ]]; then
     UpdateSummary "successfully removed LIS"
-    rpm -qa | grep microsoft | xargs rpm -e >> ~/LIS_log_scenario_$scenario.log
+    rpm -qa | grep microsoft | xargs rpm -e | tee ~/LIS_scenario_${scenario}.log
     chmod +w ~/constants.sh
     echo "first_install=1" >> ~/constants.sh
 fi
 
-./${action}.sh >> ~/LIS_log_scenario_$scenario.log 2>&1
-sts=$?
-if [ 0 -ne ${sts} ]; then
-    UpdateSummary "Unable to run ${action}"
-    UpdateTestState "TestFailed"
+pushd $lis_folder
+# Install LIS
+bash ${action}.sh 2>&1 | tee ~/LIS_scenario_${scenario}.log
+if [ $? -ne 0 ]; then
+    msg="Unable to run ${action}.sh"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
     exit 1
 fi
-
+popd
 # Do a double check to see if script finished running
 is_finished=false
 while [ $is_finished == false ]; do
-    cat ~/LIS_log_scenario_$scenario.log | tail -2 | grep reboot
+    cat ~/LIS_scenario_${scenario}.log | tail -2 | grep reboot
     if [ $? -eq 0 ]; then
         is_finished=true
     else
@@ -120,48 +78,32 @@ while [ $is_finished == false ]; do
 done
 sleep 60
 
-#search for warnings
-cat ~/LIS_log_scenario_$scenario.log | grep -i "Warning"
-sts=$?
-if [ 0 -eq ${sts} ]; then
-    echo "Warning: Errors at $action LIS. Warning messages." >> LIS_log_scenario_$scenario.log
-    UpdateSummary "Warnings at $action LIS"
-    UpdateTestState "TestAborted"
+# Search for install issues
+cat ~/LIS_scenario_${scenario}.log | grep -i "error\|aborting"
+if [ $? -eq 0 ]; then
+    msg="ERROR: abort/error detected while installing LIS"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
     exit 1
 fi
 
-#search for errors
-cat ~/LIS_log_scenario_$scenario.log | grep -i "Error"
-sts=$?
-if [ 0 -eq ${sts} ]; then
-    UpdateSummary "Errors at install LIS"
-    echo "ERROR: Errors at $action LIS" >> LIS_log_scenario_$scenario.log
-    UpdateTestState "TestFailed"
-    exit 1
+cat ~/LIS_scenario_${scenario}.log | grep -i "warning"
+if [ $? -eq 0 ]; then
+    msg="Warning detected. Will verify if it's expected"
+    LogMsg "$msg"
+
+    cat ~/LIS_scenario_${scenario}.log | grep -i "warning" | grep $(uname -r)
+    if [ $? -eq 0 ]; then
+        msg="ERROR: Warning is not expected"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    fi
 fi
 
-#search for aborts
-cat ~/LIS_log_scenario_$scenario.log | grep -i "aborting"
-sts=$?
-if [ 0 -eq ${sts} ]; then
-    UpdateSummary "Errors at $action LIS"
-    echo "ERROR: Errors at $action LIS. Abort messages." >> LIS_log_scenario_$scenario.log
-    UpdateTestState "TestFailed"
-    exit 1
-fi
 UpdateSummary "LIS drivers ${action}ed successfully"
-
-cd ~
-sleep 5
-umount /mnt/
-if [ $? -ne 0 ]; then
-    UpdateSummary "Unable to unmount the CDROM"
-    UpdateTestState "TestFailed"
-    exit 1
-else
-    UpdateSummary  "Info: CDROM unmounted successfully"
-fi
-UpdateSummary "CDROM mount & LIS ${action} returned no errors"
 
 # Apply selinux policy
 if [[ "$action" == "install" && ! -f hyperv-daemons.te ]]; then
@@ -190,9 +132,9 @@ if [[ "$action" == "install" && ! -f hyperv-daemons.te ]]; then
     done
 fi
 
-# allow time for all installation related backgroup processes to finish
+# Allow time for all installation related background processes to finish
 sync
 sleep 15
 
-UpdateTestState "TestCompleted"
+SetTestStateCompleted
 exit 0

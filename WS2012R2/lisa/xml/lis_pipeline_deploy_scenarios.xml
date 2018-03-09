@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<config>
+    <global>
+        <logfileRootDir>TestResults</logfileRootDir>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <imageStoreDir>\\unc\path</imageStoreDir>
+        <email>
+            <recipients>
+                <to>myboss@mycompany.com</to>
+                <to>myself@mycompany.com</to>
+            </recipients>
+            <sender>myself@mycompany.com</sender>
+            <subject>LIS RPM Deploy Scenarios</subject>
+            <smtpServer>mysmtphost.mycompany.com</smtpServer>
+        </email>
+    </global>
+
+    <testSuites>
+    <suite>
+        <suiteName>lis_deploy_scenarios</suiteName>
+        <suiteTests>
+            <suiteTest>lis_download</suiteTest>
+            <suiteTest>Register_vm</suiteTest>
+            <suiteTest>MainVM_Checkpoint</suiteTest>
+
+            <!-- Deploy scenarios -->
+            <suiteTest>Install_LIS</suiteTest>
+            <suiteTest>Uninstall_LIS</suiteTest> 
+            <suiteTest>Install_LIS_Upgrade_kernel</suiteTest>
+            <suiteTest>Upgrade_LIS</suiteTest> 
+            <suiteTest>Downgrade_LIS</suiteTest> 
+            <suiteTest>Upgrade_LIS_upgrade_kernel</suiteTest> 
+            <suiteTest>Upgrade_kernel_upgrade_LIS</suiteTest>
+            <suiteTest>Upgrade_kernel_no_reboot</suiteTest>
+        </suiteTests>
+    </suite>
+
+    <suite>
+        <suiteName>lis_deploy_scenarios_sriov</suiteName>
+        <suiteTests>
+            <suiteTest>lis_download</suiteTest>
+            <suiteTest>Register_vm</suiteTest>
+            <suiteTest>MainVM_Checkpoint</suiteTest>
+
+            <!-- Deploy scenarios -->
+            <suiteTest>Install_LIS</suiteTest>
+            <suiteTest>Uninstall_LIS</suiteTest> 
+            <suiteTest>Install_LIS_Upgrade_kernel</suiteTest>
+            <suiteTest>Upgrade_LIS</suiteTest> 
+            <suiteTest>Downgrade_LIS</suiteTest> 
+            <suiteTest>Upgrade_LIS_upgrade_kernel</suiteTest> 
+            <suiteTest>Upgrade_kernel_upgrade_LIS</suiteTest>
+            <suiteTest>Upgrade_kernel_no_reboot</suiteTest>
+
+            <!-- Following tests require SRIOV adapters-->
+            <suiteTest>Install_LIS_Check_Bonding</suiteTest>
+            <suiteTest>Upgrade_LIS_Check_Bonding</suiteTest> 
+        </suiteTests>
+    </suite>
+    </testSuites>
+
+    <testCases>
+        <test>
+            <testName>lis_download</testName>
+            <testScript>lis_download.sh</testScript>
+            <files>remote-scripts/ica/lis_download.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/lis_deploy_scenarios_install.sh</files>
+            <testParams>
+                <param>TC_COVERED=LIS-DOWNLOAD</param>
+            </testParams>
+            <timeout>1800</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>Register_vm</testName>
+            <testScript>Register_vm_rhel.sh</testScript>
+            <files>remote-scripts/ica/Register_vm_rhel.sh</files>
+            <timeout>600</timeout>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>MainVM_Checkpoint</testName>
+            <setupScript>setupscripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+            <PreTest>setupScripts\Change_SELinux_Policy.ps1</PreTest>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>1200</timeout>
+            <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
+                <param>vmName=vm_deploy_scenarios</param>
+                <param>enableDM=yes</param>
+                <param>minMem=2048MB</param>
+                <param>maxMem=4GB</param>
+                <param>startupMem=2048MB</param>
+                <param>memWeight=0</param>
+                <param>staticMem=2048MB</param>
+                <param>selinux=enforcing</param>
+            </testParams>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+
+        <test>
+            <testName>Install_LIS</testName>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>1900</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-01</param>
+                <param>scenario=1</param>         
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Uninstall_LIS</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>2600</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-08</param>
+                <param>scenario=8</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Install_LIS_Upgrade_kernel</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>2600</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-05</param>
+                <param>scenario=5</param> 
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Upgrade_LIS</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>2900</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-02</param>
+                <param>scenario=2</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Downgrade_LIS</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>2900</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-03</param>
+                <param>scenario=3</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Upgrade_LIS_upgrade_kernel</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>2900</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-06</param>
+                <param>scenario=6</param>
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Upgrade_kernel_upgrade_LIS</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>2600</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-07</param>
+                <param>scenario=7</param>          
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Upgrade_kernel_no_reboot</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>2600</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-04</param>
+                <param>scenario=4</param>          
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Install_LIS_Check_Bonding</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>2600</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-09</param>
+                <param>NIC=NetworkAdapter,External,SRIOV</param>
+                <param>scenario=9</param>          
+            </testParams>
+        </test>
+
+        <test>
+            <testName>Upgrade_LIS_Check_Bonding</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <timeout>2600</timeout>
+            <testParams>
+                <param>TC_COVERED=LISDeploy-10</param>
+                <param>NIC=NetworkAdapter,External,SRIOV</param>
+                <param>scenario=10</param>          
+            </testParams>
+        </test>
+    </testCases>
+
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>vm_deploy_scenarios</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <hardware>
+                <create>true</create>
+                <numCPUs>4</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+            <testParams>
+                <param>snapshotName=ICABase</param>
+                <param>DAEMONS=(kvp vss fcopy)</param>
+                <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
+            </testParams>
+        </vm>
+    </VMs>
+</config>
