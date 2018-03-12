@@ -158,8 +158,8 @@ if ($checkVM -eq "True") {
         return $Failed
     }
 
-# Check if VM is RedHat 7.2 or older and if it uses external LIS
-    $supportkernel = "3.10.0.327" #kernel version for RHEL 7.2
+    # Check if VM is RedHat 7.3 or later (and if not, check external LIS exists)
+    $supportkernel = "3.10.0.514" #kernel version for RHEL 7.3
     $isRHEL = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "yum --version"
     if ($? -eq "True") {
         $kernelSupport = GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
