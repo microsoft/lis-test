@@ -13,7 +13,7 @@
             <to>myself@mycompany.com</to>
          </recipients>
          <sender>myself@mycompany.com</sender>
-         <subject>LISA FVT Tests Run</subject>
+         <subject>LISA FVT Test Run</subject>
          <smtpServer>mysmtphost.mycompany.com</smtpServer>
       </email>
       <!-- Global test params -->
@@ -511,7 +511,6 @@
          <testScript>SetupScripts\Core_Heartbeat_PausedCritical.ps1</testScript>
          <testParams>
             <param>TC_COVERED=CORE-32</param>
-            <param>DriveLetter=K:</param>
          </testParams>
          <timeout>1200</timeout>
          <cleanupScript>SetupScripts\Core_Heartbeat_Cleanup.ps1</cleanupScript>
