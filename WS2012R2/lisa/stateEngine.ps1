@@ -2326,9 +2326,9 @@ function DoTestStarting([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
 
-    $stateFile = "state.txt"
+    $stateFile = "state_$($vm.vmName).txt"
     del $stateFile -ErrorAction "SilentlyContinue"
-    if ( (GetFileFromVM $vm $stateFile ".") )
+    if ( (GetFileFromVM $vm state.txt ".\$stateFile") )
     {
         if ( (test-path $stateFile) )
         {
@@ -2399,11 +2399,10 @@ function DoTestRunning([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
 
-    $stateFile = "state.txt"
-
+    $stateFile = "state_$($vm.vmName).txt"
     del $stateFile -ErrorAction "SilentlyContinue"
 
-    if ( (GetFileFromVM $vm $stateFile ".") )
+    if ( (GetFileFromVM $vm state.txt ".\$stateFile") )
     {
         if (test-path $stateFile)
         {
