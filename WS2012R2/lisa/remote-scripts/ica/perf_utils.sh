@@ -154,13 +154,13 @@ function setup_lagscope {
 #Install FIO-tool
 function setup_fio {
     git clone https://github.com/axboe/fio
+    pushd fio
+    git checkout tags/${FIO_VERSION}
     if [ 0 -ne $? ]; then
-        echo "ERROR: Cannot git clone FIO source files." >> ~/summary.log
+        echo "ERROR: Cannot git clone FIO ${FIO_VERSION} source files." >> ~/summary.log
         UpdateTestState $ICA_TESTABORTED
         exit 20
     fi
-    pushd fio
-    git checkout tags/${FIO_VERSION}
     #Compiling FIO
     ./configure
     sts=$?
