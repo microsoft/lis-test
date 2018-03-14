@@ -59,40 +59,37 @@ $remoteScript = "CORE_StressReloadModules.sh"
 $summaryLog  = "${vmName}_summary.log"
 $retVal = $False
 
-
 #########################################################################
-#    
-#	get state.txt file from VM.
+#
+#   get state.txt file from VM.
 #
 ########################################################################
 function CheckResult()
 {
     $retVal = $False
-    $stateFile     = "state.txt"
+    $stateFile     = "state_${vmName}.txt"
     $TestCompleted = "TestCompleted"
     $TestAborted   = "TestAborted"
-    $TestRunning   = "TestRunning"
-    $attempts      = 200    
-     
-    Write-Output "Info : pscp -q -i ssh\${sshKey} root@${ipv4}:$stateFile}"
+    $attempts      = 200
+
     while ($attempts -ne 0 ){
-        bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . 2>&1 | out-null
+        bin\pscp -q -i ssh\${sshKey} root@${ipv4}:state.txt ".\$stateFile" 2>&1 | out-null
         $sts = $?
 
         if ($sts) {
             if (test-path $stateFile){
                 $contents = Get-Content -Path $stateFile
                 if ($null -ne $contents){
-                    if ($contents -eq $TestCompleted) {                    
-                        Write-Output "Info: state file contains TestCompleted"              
+                    if ($contents -eq $TestCompleted) {
+                        Write-Output "Info: state file contains TestCompleted"
                         $retVal = $True
-                        break                                             
-                    }
-                    if ($contents -eq $TestAborted) {
-                        Write-Output "Info: State file contains TestAborted failed"                                  
                         break
                     }
-                }    
+                    if ($contents -eq $TestAborted) {
+                        Write-Output "Info: State file contains TestAborted failed"
+                        break
+                    }
+                }
                 else {
                     Write-Output "Warning: state file is empty!"
                     break
@@ -102,89 +99,74 @@ function CheckResult()
         else {
             Start-Sleep -s 10
             $attempts--
-			Write-Output "Info : Attempt number ${attempts}"
-            if ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {                     
-                Write-Output "Error : Lost Communication to vm" | Out-File -Append $summaryLog                  
+            Write-Output "Info : Attempt number ${attempts}"
+            if ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {
+                Write-Output "Error : Lost Communication to VM" | Out-File -Append $summaryLog
                 break
             }
-            if ($attempts -eq 0){                        
-                Write-Output "Error : Reached max number of attempts to extract state file" | Out-File -Append $summaryLog         
-                break                                               
-            }    
+            if ($attempts -eq 0) {
+                Write-Output "Error : Reached max number of attempts to extract state file" | Out-File -Append $summaryLog
+                break
+            }
         }
-		
-        if (test-path $stateFile){
-            del $stateFile 
+
+        if (test-path $stateFile) {
+            Remove-Item $stateFile
         }
     }
-	
-    if (test-path $stateFile){
-        del $stateFile 
+
+    if (test-path $stateFile) {
+        Remove-Item $stateFile
     } 
     return $retVal
 }
 
-
 ######################################################################
 #
-#	Helper function to execute command on remote machine.
-# 
-#######################################################################
+#   Helper function to execute command on remote machine.
+#
+######################################################################
 function Execute ([string] $command)
 {
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} $command
     return $?
 }
 
-
 ######################################################################
 #
-#	Push the remote script to VM.
-# 
-#######################################################################
+#   Push the remote script to VM.
+#
+######################################################################
 function setupTest ()
 {
-    "./${remoteScript} &> CORE_StressReloadModules.log " | out-file -encoding ASCII -filepath runtest.sh 
+    "./${remoteScript} &> CORE_StressReloadModules.log " | out-file -encoding ASCII -filepath runtest.sh
 
     .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?) {
-        Write-Error -Message "Error: Unable to copy runtest.sh to the VM" -ErrorAction SilentlyContinue 
+        Write-Error -Message "Error: Unable to copy runtest.sh to the VM" -ErrorAction SilentlyContinue
         return $False
-    }      
+    }
 
      .\bin\pscp -i ssh\${sshKey} .\remote-scripts\ica\${remoteScript} root@${ipv4}:
     if (-not $?) {
-        Write-Error -Message "Error: Unable to copy ${remoteScript} to the VM" -ErrorAction SilentlyContinue 
+        Write-Error -Message "Error: Unable to copy ${remoteScript} to the VM" -ErrorAction SilentlyContinue
         return $False
     }
 
-    $result = Execute("dos2unix ${remoteScript} 2> /dev/null");
+    $result = Execute("dos2unix ${remoteScript} && chmod +x ${remoteScript} 2> /dev/null");
     if (-not $result) {
-        Write-Error -Message "Error: Unable to run dos2unix on ${remoteScript}" -ErrorAction SilentlyContinue 
+        Write-Error -Message "Error: Unable to run dos2unix or chmod on ${remoteScript}" -ErrorAction SilentlyContinue
         return $False
     }
 
-    $result = Execute("dos2unix runtest.sh 2> /dev/null");
+    $result = Execute("dos2unix runtest.sh && chmod +x runtest.sh 2> /dev/null");
     if (-not $result) {
-        Write-Error -Message "Error: Unable to run dos2unix on runtest.sh" -ErrorAction SilentlyContinue 
-        return $False
-    }
-    
-    $result = Execute("chmod +x ${remoteScript} 2> /dev/null");
-    if (-not $result) {
-        Write-Error -Message "Error: Unable to chmod +x ${remoteScript}" -ErrorAction SilentlyContinue 
-        return $False
-    }
- 
-    $result = Execute("chmod +x runtest.sh 2> /dev/null");
-    if (-not $result) {
-        Write-Error -Message "Error: Unable to chmod +x runtest.sh " -ErrorAction SilentlyContinue 
+        Write-Error -Message "Error: Unable to run dos2unix or chmod on runtest.sh" -ErrorAction SilentlyContinue
         return $False
     }
 
-    return $True      
+    return $True
 }
-
 
 #######################################################################
 #
@@ -207,16 +189,15 @@ if ($hvServer -eq $null) {
 }
 
 $params = $testParams.Split(";")
-
 foreach ($p in $params) {
-	$fields = $p.Split("=")
-    
-	switch ($fields[0].Trim()) {
-		"sshKey" { $sshKey  = $fields[1].Trim() }
-		"ipv4"   { $ipv4    = $fields[1].Trim() }
-		"rootdir" { $rootDir = $fields[1].Trim() }
-		"TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
-		default  {}
+    $fields = $p.Split("=")
+
+    switch ($fields[0].Trim()) {
+        "sshKey" { $sshKey  = $fields[1].Trim() }
+        "ipv4"   { $ipv4    = $fields[1].Trim() }
+        "rootdir" { $rootDir = $fields[1].Trim() }
+        "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
+        default  {}
     }
 }
 
@@ -239,8 +220,7 @@ if (-not (Test-Path $rootDir)) {
 }
 
 Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
-
-cd $rootDir
+Set-Location $rootDir
 
 #
 # Source the TCUtils.ps1 file
@@ -249,8 +229,8 @@ cd $rootDir
 
 $sts = setupTest
 if (-not $sts) {
-	"Error: Running test setup has failed!"  
-	return $False 
+    "Error: Running test setup has failed!"
+    return $False
 }
 
 # Start pinging the VM while the netvsc driver is being stress reloaded
@@ -265,18 +245,17 @@ if (-not $?){
 
 Stop-Job $pingJob
 
-$status = CheckResult 
+$status = CheckResult
 if (-not $($status[-1])) {
     "Error: Something went wrong during execution of CORE_StressReloadModules script!" 
-    return $False    
+    return $False
 }
 else {
     $results = "Passed"
     $retVal = $True
 }
 
-del runtest.sh
+Remove-Item runtest.sh
 "Info : Test Stress Reload Modules ${results} "
-
 return $retVal
 0
