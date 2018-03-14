@@ -276,12 +276,9 @@ while ( $timeout -gt 0)
 # Waiting the VM to have a connection
 #
 Write-Output "Info: Checking the VM connection after kernel panic"
-$sts = WaitForVMToStartSSH $ipv4 400
-if (-not $sts[-1]){
-    Write-Output "Error: $vmName didn't restart after triggering the crash" | Tee-Object -Append -file $summaryLog
-    return $false
-}
-Write-Output "Info: Connection to VM is good. Checking the results..."
+do {
+    sleep 5
+} until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 
 #
 # Verifying if the kernel panic process creates a vmcore file of size 10M+
