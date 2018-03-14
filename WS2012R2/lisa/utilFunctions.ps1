@@ -77,7 +77,9 @@ function GetJUnitXML()
     # load template into XML object
     $junit_xml = New-Object xml
     $junit_xml.Load($templatePath)
+    $Script:junit_xml_template = $junit_xml.clone()
     Remove-Item $templatePath
+
     return $junit_xml
 }
 
@@ -191,8 +193,8 @@ function SetResultSuite([String] $testSuite)
     $currentSuite = GetCurentSuite($testSuite)
     if ($currentSuite -eq $null)
     {
-        $newTestSuiteTemplate = (@($testResult.testsuites.testsuite)[0]).Clone()
-        $newTestSuite = $newTestSuiteTemplate.clone()
+        $tempTestSuite = $Script:junit_xml_template.testsuites.testsuite
+        $newTestSuite = $testResult.importNode($tempTestSuite,$true)
         $newTestSuite.name = $testSuite
         $testResult.testsuites.AppendChild($newTestSuite) > $null
     }
@@ -297,10 +299,10 @@ function SetTestResult([String] $testSuite,[String] $testName, [String] $complet
     #>
     LogMsg 6 ("Info :    SetTestResult($($testSuite),$($testName))")
 
-    $newTestCaseTemplate = (@($testResult.testsuites.testsuite.testcase)[0]).Clone()
-    $newTestCase = $newTestCaseTemplate.clone()
+    $tempTestCase = $Script:junit_xml_template.testsuites.testsuite.testcase
+    $newTestCase = $testResult.importNode($tempTestCase,$true)
     $newTestCase.name = $testName
-
+    
     switch ($completionCode)
     {
         "Passed" {
