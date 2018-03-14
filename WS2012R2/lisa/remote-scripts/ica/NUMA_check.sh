@@ -80,7 +80,7 @@ UtilsInit
 GetDistro
 
 case $DISTRO in
-    redhat*)
+    redhat* | centos*)
        numactl -s
         if [ $? -ne 0 ]; then
              yum -y install numactl
