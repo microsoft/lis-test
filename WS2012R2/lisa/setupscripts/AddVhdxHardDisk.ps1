@@ -221,11 +221,11 @@ function CreateHardDrive( [string] $vmName, [string] $server, [System.Boolean] $
       {
           "Dynamic"
               {
-                  $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Dynamic -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
+                  $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Dynamic -LogicalSectorSizeBytes ([int] $sectorSize)  -ComputerName $server
               }
           "Fixed"
               {
-                  $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Fixed -LogicalSectorSize ([int] $sectorSize)  -ComputerName $server
+                  $nv = New-Vhd -Path $vhdName -size $global:MinDiskSize -Fixed -LogicalSectorSizeBytes ([int] $sectorSize)  -ComputerName $server
               }
 
           default
@@ -398,7 +398,7 @@ foreach ($p in $params)
     $vhdType = $diskArgs[2].Trim()
 
     $sectorSize = 512
-    if ($diskArgs.Length -eq 4)
+    if ($diskArgs.Length -ge 4)
     {
         $sectorSize = $diskArgs[3].Trim()
         if ($sectorSize -ne "4096" -and $sectorSize -ne "512")
