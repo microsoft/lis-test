@@ -1467,7 +1467,7 @@ CreateIfupConfigFile()
 		GetDistro
 
 		case $DISTRO in
-			suse_12*)
+			suse_12*|suse_15*)
 				__file_path="/etc/sysconfig/network/ifcfg-$__interface_name"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"

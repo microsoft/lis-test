@@ -244,7 +244,8 @@ class PerfTestRun(TestRun):
             del table_dict['TestArea']
             del table_dict['HostName']
             del table_dict['LogPath']
-            del table_dict['LISVersion']
+            if table_dict['KernelVersion'] in table_dict['LISVersion']:
+                del table_dict['LISVersion']
 
             table_dict['GuestDistro'] = table_dict.pop('GuestOSDistro')
             table_dict['HostBy'] = os.environ['COMPUTERNAME']

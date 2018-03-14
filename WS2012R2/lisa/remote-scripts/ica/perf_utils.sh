@@ -153,28 +153,15 @@ function setup_lagscope {
 
 #Install FIO-tool
 function setup_fio {
-    FIO=/root/${FILE_NAME}
-    if [ ! -e ${FIO} ]; then
-        echo "ERROR: Cannot find FIO test source file." >> ~/summary.log
+    git clone https://github.com/axboe/fio
+    if [ 0 -ne $? ]; then
+        echo "ERROR: Cannot git clone FIO source files." >> ~/summary.log
         UpdateTestState $ICA_TESTABORTED
         exit 20
     fi
-    # Get Root Directory of the archive
-    FIODIR=`tar -tvf ${FIO} | head -n 1 | awk -F " " '{print $6}' | awk -F "/" '{print $1}'`
-    tar -xvf ${FIO}
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        echo "ERROR: Failed to extract the FIO archive!" >> ~/summary.log
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
-    fi
-    if [ ! ${FIODIR} ]; then
-        echo "ERROR: Cannot find FIODIR." >> ~/summary.log
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
-    fi
+    pushd fio
+    git checkout tags/${FIO_VERSION}
     #Compiling FIO
-    cd ${FIODIR}
     ./configure
     sts=$?
     if [ 0 -ne ${sts} ]; then
@@ -193,7 +180,7 @@ function setup_fio {
     else
     echo "FIO successfully installed." >> ~/summary.log
     fi
-  cd /root/
+    popd
 }
 #Upgrade gcc to 4.8.1
 function upgrade_gcc {
@@ -297,15 +284,18 @@ function config_staticip {
 
 #Run FIO on single physical disk
 function fio_single_disk {
+    #Create partition for test
+    echo -e "o\nn\np\n1\n\n\nw" | fdisk ${TEST_DEVICE}
     #Check for raid partition
-    FIND_RAID=$(cat /proc/mdstat | grep md | awk -F:  '{ print $1 }')
+    FIND_RAID=$(cat /proc/mdstat | grep md | awk -F: '{ print $1 }')
     if [ -n ${FIND_RAID} ]; then
         LogMsg "INFO: Raid partition found. Will delete it."
         mdadm --stop ${FIND_RAID}
         mdadm --remove ${FIND_RAID}
     fi
-    #Create partition for test
-    echo -e "o\nn\np\n1\n\n\nw" | fdisk ${TEST_DEVICE}
+    #Write 0 on disk
+    dd if=/dev/zero of=${TEST_DEVICE}1 bs=1M oflag=direct
+
     mkfs.${FS} ${TEST_DEVICE}1
     if [ "$?" = "0" ]; then
         LogMsg "mkfs.$FS ${TEST_DEVICE}1 successful..."
@@ -317,7 +307,7 @@ function fio_single_disk {
             echo "Drive mount : Failed" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-        else
+    else
         LogMsg "ERROR in creating file system.."
         echo "Creating Filesystem : Failed" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
@@ -327,15 +317,15 @@ function fio_single_disk {
         echo "WARN: ${LOG_FOLDER} exists. Will delete it ..." >> ~/summary.log
         rm -rf /root/${LOG_FOLDER}
     fi
-
     echo "Creating log folder..."
     mkdir /root/${LOG_FOLDER}
+    sleep 5
     for q in "${QDEPTH[@]}"
     do
         sed -i "/iodepth/c\iodepth=${q}" /root/${FIO_SCENARIO_FILE}
         LogMsg "INFO: Running FIO qdepth ${q}"
         echo "INFO: Running FIO qdepth ${q}"
-        fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-${q}q.log 2>&1
+        fio /root/${FIO_SCENARIO_FILE} --output /root/${LOG_FOLDER}/FIOLog-${q}q.log
         sleep 3
     done
     cd /root
@@ -378,7 +368,7 @@ function fio_raid {
         echo "ERROR: Unable to detect OS version."
         UpdateTestState $ICA_TESTABORTED
     fi
-    if [[ ${DISTRO} == "centos_6" || ${DISTRO} == "rhel_6" ]]; then
+    if [[ ${DISTRO} == "redhat_6" || ${DISTRO} == "centos_6" ]]; then
         mkfs.${FS} /dev/${RAID_NAME} -E lazy_itable_init=0 -K
     else
         mkfs.${FS} /dev/${RAID_NAME} -E lazy_itable_init=0,lazy_journal_init=0 -K
@@ -430,7 +420,7 @@ function fio_raid {
                 log_file="/root/${LOG_FOLDER}/${current_io_size}K-${current_q_depth}-${current_io_mode}.fio.log"
                 echo "FIO TEST COMMAND:" > ${log_file}
                 echo "fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=60 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting" >> ${log_file}
-                fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=60 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting  >> ${log_file}
+                fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=60 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting  --output ${log_file}
                 sleep 1
                 io_mode_index=$(($io_mode_index + 1))
             done

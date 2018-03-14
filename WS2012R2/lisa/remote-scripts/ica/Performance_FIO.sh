@@ -32,7 +32,6 @@
 # Parameters:
 #     DISKS: Number of disks attached
 #     TEST_DEVICE1 = /dev/sdb
-#     FILE_NAME=fio-2.1.10.tar.gz
 #     FIO_SCENARIO_FILE=lis-ssd-test.fio
 #     TestLogDir=/path/to/log/dir/
 #     
@@ -145,7 +144,7 @@ case $(LinuxRelease) in
     ;;
     "RHEL"|"CENTOS")
         LogMsg "Run test on RHEL. Install libaio-devel..."
-        yum -y install libaio-devel mdadm
+        yum -y install libaio-devel mdadm zlib-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then
             echo "Failed to install the libaio-dev library!" >> ~/summary.log

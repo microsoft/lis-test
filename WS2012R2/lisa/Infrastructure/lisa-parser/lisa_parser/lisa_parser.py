@@ -34,6 +34,7 @@ from monitor import MonitorRuns
 
 logger = logging.getLogger(__name__)
 
+
 def parse_results(xml_file, log_file, perf_flag, skip_kvp_flag, snapshot_name):
     logger.info('Initializing TestRun object')
     if perf_flag:
@@ -57,6 +58,7 @@ def parse_results(xml_file, log_file, perf_flag, skip_kvp_flag, snapshot_name):
     logger.info('Parsing test run for database insertion')
     return test_run
 
+
 def commit_results(insert_values, config_file_path):
     env.read_envfile(config_file_path)
     # Connect to db and insert values in the table
@@ -73,7 +75,7 @@ def commit_results(insert_values, config_file_path):
     logger.info("Checking insert validity")
     sql_utils.check_insert(db_cursor, insert_values)
 
-    
+
 def main(args):
     """The main entry point of the application
 
@@ -113,10 +115,10 @@ def main(args):
         else: logger.warning('Results need to be parsed first.')
     else:
         logger.info('Skipping db insertion.') 
-    
 
     if parsed_arguments.report: MonitorRuns.write_json(parsed_arguments.report,  MonitorRuns.get_test_summary(insert_list))
     if parsed_arguments.summary: MonitorRuns(parsed_arguments.summary)()
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])
