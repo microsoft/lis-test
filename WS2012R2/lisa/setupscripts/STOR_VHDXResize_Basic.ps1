@@ -344,18 +344,24 @@ if ($diskSize -ne $newVhdxSize)
 
 if ([int]($newVhdxGrowSize/1gb) -gt 2048)
 {
-  $guest_script = "STOR_VHDXResize_PartitionDiskOver2TB"
+    $guest_script = "STOR_VHDXResize_PartitionDiskOver2TB"
 }
 else
 {
- $guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
+    $guest_script = "STOR_VHDXResize_PartitionDisk"
+    $addParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'rerun=yes' >> constants.sh"
+    if ($? -ne "True")
+    {
+        "Error: Unable to alter constants.sh for second run. " | Tee-Object -Append -file $summaryLog
+        return $False
+    }
 }
 
 $sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
-  "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution " | Tee-Object -Append -file $summaryLog
-  return $False
+    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution " | Tee-Object -Append -file $summaryLog
+    return $False
 }
 "Info : The guest sees the new size after resizing ($diskSize)" | Tee-Object -Append -file $summaryLog
 "Info : VHDx Resize - ${TC_COVERED} is Done"

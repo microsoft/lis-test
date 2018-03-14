@@ -297,7 +297,7 @@
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
-            <timeout>600</timeout>
+            <timeout>1200</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
@@ -315,7 +315,7 @@
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
-            <timeout>600</timeout>
+            <timeout>1200</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
@@ -334,7 +334,7 @@
             <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
-            <timeout>600</timeout>
+            <timeout>1200</timeout>
             <onError>Continue</onError>
             <testparams>
                 <param>IDE=0,1,Dynamic,512,3GB</param>

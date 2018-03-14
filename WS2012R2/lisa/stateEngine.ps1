@@ -372,12 +372,13 @@ function RunICTests([XML] $xmlConfig, [string] $collect)
         {
             # Add test suite and test date time into test result XML
             #
-            SetTimeStamp $testStartTime.toString()
             SetResultSuite $vm.suite
+            SetTimeStamp $vm.suite $testStartTime.toString()
+
             #
             # Add Hyper-V host version into result XML
             #
-            SetHypervVersion "$($OSInfo.Version)"
+            SetHypervVersion $vm.suite "$($OSInfo.Version)"
         }
 
         #
@@ -1132,7 +1133,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                             LogMsg 0 "Error: VM $($vm.vmName) setup script ${script} for test ${testName} failed"
                             $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - setup script failed")
                             #$vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
-                            SetTestResult $vm.currentTest $Aborted $xmlData
+                            SetTestResult $vm.suite $vm.currentTest $Aborted $xmlData
                             SetRunningTime $vm.currentTest $vm
                             if ($abortOnError)
                             {
@@ -1162,7 +1163,7 @@ function DoRunSetupScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                         LogMsg 0 "Error: VM $($vm.vmName) setup script $($testData.setupScript) for test ${testName} failed"
                         #$vm.emailSummary += "    Test $($vm.currentTest) : Failed - setup script failed<br />"
                         $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - setup script failed")
-                        SetTestResult $vm.currentTest $Aborted $xmlData
+                        SetTestResult $vm.suite $vm.currentTest $Aborted $xmlData
                         SetRunningTime $vm.currentTest $vm
 
                         if ($abortOnError)
@@ -1620,7 +1621,7 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     # UpdateState $vm $ForceShutdown
                     UpdateState $vm $Disabled
                 }
-                SetTestResult $currentTest $completionCode $xmlData
+                SetTestResult $vm.suite $currentTest $completionCode $xmlData
                 $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
                 UpdateState $vm $ForceShutdown
             }
@@ -1702,7 +1703,7 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
     #
     # Determine the VMs OS
     #
-    $os = (GetOSType $vm).ToString()
+    $os = [string](GetOSType $vm)
     LogMsg 9 "INFO : The OS type is $os"
 
     If ($vm.role.ToLower().StartsWith("sut"))
@@ -1712,7 +1713,7 @@ function DoSystemUp([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         $kernelVer = GetKernelVersion
         $firmwareVer = GetFirmwareVersion
-        SetOSInfo $kernelVer $firmwareVer
+        SetOSInfo $vm.suite $kernelVer $firmwareVer
 
         #for SUT VM, needs to wait for NonSUT VM startup
         UpdateState $vm $WaitForDependencyVM
@@ -2050,7 +2051,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                                 LogMsg 0 "Error: $($vm.vmName) PreTest script ${script} for test $($testData.testName) failed"
                                 $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - pretest script failed")
 
-                                SetTestResult $vm.currentTest $Aborted $xmlData
+                                SetTestResult $vm.suite $vm.currentTest $Aborted $xmlData
                                 SetRunningTime $vm.currentTest $vm
 
                                 UpdateState $vm $DetermineReboot
@@ -2068,7 +2069,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                             LogMsg 0 "Error: VM $($vm.vmName) preTest script for test $($testData.testName) failed"
                             $vm.emailSummary += ("    Test {0, -25} : {1}<br />" -f ${testName}, "Aborted - pretest script failed")
 
-                            SetTestResult $vm.currentTest $Aborted $xmlData
+                            SetTestResult $vm.suite $vm.currentTest $Aborted $xmlData
                             SetRunningTime $vm.currentTest $vm
                             UpdateState $vm $DetermineReboot
                             return
@@ -2325,9 +2326,9 @@ function DoTestStarting([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
 
-    $stateFile = "state.txt"
+    $stateFile = "state_$($vm.vmName).txt"
     del $stateFile -ErrorAction "SilentlyContinue"
-    if ( (GetFileFromVM $vm $stateFile ".") )
+    if ( (GetFileFromVM $vm state.txt ".\$stateFile") )
     {
         if ( (test-path $stateFile) )
         {
@@ -2398,11 +2399,10 @@ function DoTestRunning([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
 
-    $stateFile = "state.txt"
-
+    $stateFile = "state_$($vm.vmName).txt"
     del $stateFile -ErrorAction "SilentlyContinue"
 
-    if ( (GetFileFromVM $vm $stateFile ".") )
+    if ( (GetFileFromVM $vm state.txt ".\$stateFile") )
     {
         if (test-path $stateFile)
         {
@@ -2568,7 +2568,7 @@ function DoCollectLogFiles([System.Xml.XmlElement] $vm, [XML] $xmlData, [string]
         $iterationMsg = "($($vm.iteration))"
     }
 
-    SetTestResult $currentTest $completionCode $xmlData
+    SetTestResult $vm.suite $currentTest $completionCode $xmlData
 
     $vm.emailSummary += ("    Test {0,-25} : {2}<br />" -f $($vm.currentTest), $iterationMsg, $completionCode)
 
@@ -3233,7 +3233,7 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     If ($vm.role.ToLower().StartsWith("sut"))
     {
-        SaveResultToXML $testDir
+        SaveResultToXML $vm.suite $testDir
     }
 }
 
@@ -3571,7 +3571,7 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     LogMsg 0 "Info : ${vmName} Status for test $($vm.currentTest) = ${completionCode}"
 
-    SetTestResult $currentTest $completionCode $xmlData
+    SetTestResult $vm.suite $currentTest $completionCode $xmlData
     #
     # Update e-mail summary
     #

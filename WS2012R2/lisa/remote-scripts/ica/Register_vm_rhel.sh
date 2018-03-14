@@ -20,40 +20,25 @@
 # permissions and limitations under the License.
 #
 ########################################################################
-ICA_TESTRUNNING="TestRunning"
-ICA_TESTCOMPLETED="TestCompleted"
-ICA_TESTFAILED="TestFailed"
-ICA_TESTABORTED="TestAborted"
-#######################################################################
-# Adds a timestamp to the log file
-#######################################################################
-LogMsg()
-{
-    echo `date "+%a %b %d %T %Y"` : ${1}
+# Convert eol
+dos2unix utils.sh
+
+# Source utils.sh
+. utils.sh || {
+    echo "ERROR: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
 }
 
-#######################################################################
-# Updates the summary.log file
-#######################################################################
-UpdateSummary()
-{
-    echo $1 >> ~/summary.log
-}
-
-#######################################################################
-# Keeps track of the state of the test
-#######################################################################
-UpdateTestState()
-{
-    echo $1 > ~/state.txt
-}
+# Source constants file and initialize most common variables
+UtilsInit
 
 Register_vm()
 {
   subscription-manager register --force --username=${username} --password=${password}
   if [ $? -ne 0 ]; then
       echo "VM could not be registered" >> ~/summary.log
-	  UpdateTestState $ICA_TESTFAILED
+	  SetTestStateFailed
 	  exit 1
   fi
   subscription-manager attach --auto
@@ -64,24 +49,24 @@ Register_vm()
 # Main script body
 #######################################################################
 
-# Create the state.txt file so ICA knows we are running
-UpdateTestState $ICA_TESTRUNNING
-
-# Source the constants file
-if [ -e constants.sh ]; then
-    . constants.sh
-else
-    LogMsg "Error: Unable to source the constants file."
-    UpdateTestState $ICA_TESTABORTED
-    exit 1
+# Check if distro is Oracle/CentOS. If it's the case, stop the registration
+if [ -f "/etc/os-release" ]; then
+    cat /etc/os-release | grep -i "oracle\|centos"
+    if [ $? -eq 0 ]; then
+        SetTestStateSkipped
+        exit 0
+    fi
 fi
 
-# Cleanup any old summary.log files
-if [ -e ~/summary.log ]; then
-    rm -rf ~/summary.log
+if [ -f "/etc/redhat-release" ]; then
+    cat /etc/redhat-release | grep -i "oracle\|centos"
+    if [ $? -eq 0 ]; then
+        SetTestStateSkipped
+        exit 0
+    fi
 fi
 
 Register_vm
   
-UpdateTestState $ICA_TESTCOMPLETED
+SetTestStateCompleted
 exit 0

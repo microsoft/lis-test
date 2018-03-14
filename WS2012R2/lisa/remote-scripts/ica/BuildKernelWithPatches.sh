@@ -253,8 +253,8 @@ ApplyPatchesAndCompile() {
         yes "" | make oldconfig
 
         # Workaround: Enable HyperV Sock functionality. Otherwise, yes "" | make oldconfig won't set this
-        sed --in-place -e s:"CONFIG_HYPER_VSOCKETS=.*":"": ${CONFIG_FILE}
-        echo "CONFIG_HYPER_VSOCKETS=m" >> ${CONFIG_FILE}
+        sed --in-place -e s:"CONFIG_HYPERV_VSOCKETS=.*":"": ${CONFIG_FILE}
+        echo "CONFIG_HYPERV_VSOCKETS=m" >> ${CONFIG_FILE}
     fi
     UpdateSummary "make oldconfig: Success"
 
@@ -424,7 +424,7 @@ if is_fedora ; then
     fi
 elif is_ubuntu ; then
     apt update
-    apt-get -y install gcc make nfs-common libssl-dev bc elfutils libelf-dev
+    apt -y install gcc make nfs-common libssl-dev bc elfutils libelf-dev bison flex
     if [ $? -ne 0 ]; then
         LogMsg "ERROR: Unable to install dependency packages. Aborting..."
         UpdateTestState $TestAborted

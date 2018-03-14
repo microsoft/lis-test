@@ -2115,11 +2115,13 @@ function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$su
     for ($i=0; $i -le 3; $i++) {
         if ($cKernel[$i] -lt $sKernel[$i] ) {
             $cmpResult = $false
+            break;
         }
         if ($cKernel[$i] -gt $sKernel[$i] ) {
             $cmpResult = $true
             break
         }
+        if ($i -eq 3) { $cmpResult = $True }
     }
     return $cmpResult
 }

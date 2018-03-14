@@ -244,6 +244,12 @@ GetDistro()
 		*Debian*)
 			DISTRO=debian_x
 			;;
+		*SLE*15*)
+			DISTRO=suse_15
+			;;
+		*SUSE*15*)
+			DISTRO=suse_15
+			;;
 		*SUSE*12*)
 			DISTRO=suse_12
 			;;
@@ -1997,6 +2003,7 @@ function GetOSVersion {
     elif [[ -r /etc/SuSE-brand || -r /etc/SUSE-brand ]]; then
         os_VENDOR=`head -1 /etc/S*SE-brand`
         os_VERSION=`cat /etc/S*SE-brand | awk '/VERSION/ {print $NF}'`
+        os_RELEASE=$os_VERSION
         os_PACKAGE="rpm"
 
     elif [[ -r /etc/SuSE-release ]]; then

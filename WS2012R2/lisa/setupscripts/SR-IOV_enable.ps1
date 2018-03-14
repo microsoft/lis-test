@@ -143,12 +143,12 @@ function ConfigureVFSecondVM([String]$conIpv4,[String]$sshKey,[String]$netmask)
             : `$((__iterator++))
         done
 
+        # Must fix retVal handler to return proper exit codes
         echo ConfigureVF: returned `$__retVal >> /root/SR-IOV_enable.log 2>&1
         exit `$__retVal
 "@
 
     $filename = "ConfigureVF.sh"
-
     # check for file
     if (Test-Path ".\${filename}") {
         Remove-Item ".\${filename}"
@@ -171,7 +171,6 @@ function ConfigureVFSecondVM([String]$conIpv4,[String]$sshKey,[String]$netmask)
 
     # execute sent file
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
     return $retVal
 }
 
@@ -181,9 +180,14 @@ function ConfigureVFSecondVM([String]$conIpv4,[String]$sshKey,[String]$netmask)
 #
 #############################################################
 $retVal = $False
-
-# Write out test Params
-$testParams
+$maxNICs = "no"
+$networkName = $null
+$remoteServer = $null
+$nicIterator = 0
+$vm_vfIP = @()
+$vfIterator = 0
+$nicValues = @()
+$leaveTrail = "no"
 
 if ($hvServer -eq $null) {
     "ERROR: hvServer is null"
@@ -234,14 +238,6 @@ else {
     return $false
 }
 
-$maxNICs = "no"
-$networkName = $null
-$remoteServer = $null
-$nicIterator = 0
-$vm_vfIP = @()
-$vfIterator = 0
-$nicValues = @()
-$leaveTrail = "no"
 $params = $testParams.Split(';')
 foreach ($p in $params)
 {
@@ -286,7 +282,7 @@ foreach ($p in $params)
                 "Error: Incorrect number of arguments for NIC test parameter: $p"
                 return $false
             }
-            
+
             $nicType = $nicArgs[0].Trim()
             $networkType = $nicArgs[1].Trim()
             $networkName = $nicArgs[2].Trim()
@@ -296,7 +292,7 @@ foreach ($p in $params)
             $nicValues += ($nicType,$networkType,$networkName,$macAddress,$legacy)
             # Increment nicIterator for every NIC declared
             $nicIterator++
-            
+
             # Validate the network adapter type
             if (@("NetworkAdapter", "LegacyNetworkAdapter") -notcontains $nicType)
             {
@@ -304,7 +300,7 @@ foreach ($p in $params)
                 "       Must be either 'NetworkAdapter' or 'LegacyNetworkAdapter'"
                 return $false
             }
-            
+
             if ($nicType -eq "LegacyNetworkAdapter")
             {
                 $legacy = $true
@@ -334,7 +330,7 @@ foreach ($p in $params)
                 {
                     "Error: Switch $networkName is type $vmSwitch.SwitchType (not $networkType)"
                     return $false
-                }             
+                }
             }
 
             # Validate the MAC is the correct length
@@ -343,7 +339,7 @@ foreach ($p in $params)
                "Error: Invalid mac address: $p"
                  return $false
             }
-            
+
             # Make sure each character is a hex digit
             $ca = $macAddress.ToCharArray()
             foreach ($c in $ca)
@@ -395,7 +391,7 @@ if (-not $remoteServer) {
 $vm2 = Get-VM -Name $vm2Name -ComputerName $remoteServer -ERRORAction SilentlyContinue
 if (-not $vm2) {
     "ERROR: VM ${vm2Name} does not exist"
-    return $False    
+    return $False
 }
 
 # Verify if VM2 is already configured
@@ -416,24 +412,22 @@ if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like 
         $retval = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "ifconfig | grep $vm_vfIP4"
         if ($retVal) {
             $vm2_is_configured = $true
-        } 
+        }
         else {
-            $vm2_is_configured = $false    
-        }  
+            $vm2_is_configured = $false
+        }
     }
-
 }
 
 # There are some tests that require a clean dependency VM
 if ($cleanDependency -ne $null) {
     if ($cleanDependency -eq 'yes'){
-        $vm2_is_configured = $false   
+        $vm2_is_configured = $false
     }
 }
 
 if ($vm2_is_configured -eq $false) {
     if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like "Running" }) {
-
         Stop-VM $vm2Name -ComputerName $remoteServer -TurnOff -Force
         if (-not $?) {
             "ERROR: Failed to shutdown $vm2Name (in order to add a new network Adapter)"
@@ -479,9 +473,6 @@ for ($i=0; $i -lt $nicIterator; $i++){
             "Error: Add-VmNic to $vmName failed"
             $retVal = $False
         }
-        else {
-            $retVal = $True
-        }
 
         if ($vm2_is_configured -eq $false) {
             Add-VMNetworkAdapter -VMName $vm2Name -SwitchName $nicValues[$i*5+2] -StaticMacAddress $nicValues[$i*5+3] `
@@ -490,9 +481,7 @@ for ($i=0; $i -lt $nicIterator; $i++){
                 "Error: Add-VmNic to $vm2Name failed"
                 $retVal = $False
             }
-            else {
-                $retVal = $True
-            }
+        $retVal = $True
         }
     }
     else {
@@ -501,19 +490,13 @@ for ($i=0; $i -lt $nicIterator; $i++){
             "Error: Add-VmNic to $vmName failed"
             $retVal = $False
         }
-        else {
-            $retVal = $True
-        }
 
         Add-VMNetworkAdapter -VMName $vm2Name -SwitchName "SRIOV" -IsLegacy:$false -ComputerName $remoteServer 
         if ($? -ne "True") {
             "Error: Add-VmNic to $vm2Name failed"
             $retVal = $False
         }
-        else {
-            $retVal = $True
-        }
-
+        $retVal = $True
     }
 }
 
@@ -600,7 +583,7 @@ if ($vm2_is_configured -eq $false) {
         if ($maxNICs -eq "yes") {
             $ipToSend = "10.1${nicIterator}.12.${j}"
             if ($j % 2 -eq 0) {
-                $nicIterator++  
+                $nicIterator++
             }
         }
         else {

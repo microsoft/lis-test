@@ -21,9 +21,9 @@
 
     <testSuites>
     <suite>
-        <suiteName>kernel_validation_bvt</suiteName>
+        <suiteName>lis_validation_bvt</suiteName>
         <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>lis_install</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
 
             <!-- Core Tests -->
@@ -90,10 +90,13 @@
 
     <testCases>
         <test>
-            <testName>InstallKernel</testName>
-            <testScript>install_kernel.sh</testScript>
-            <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
-            <timeout>1500</timeout>
+            <testName>lis_install</testName>
+            <testScript>lis_install.sh</testScript>
+            <files>remote-scripts/ica/lis_install.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=LIS-INSTALL</param>
+            </testParams>
+            <timeout>1800</timeout>
             <onError>Abort</onError>
             <noReboot>False</noReboot>
         </test>
@@ -112,7 +115,7 @@
         </test>
 
         <!-- Core Tests -->
-    	<test>
+        <test>
             <testName>VMHeartBeat</testName>
             <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
             <testParams>
@@ -129,13 +132,13 @@
         <files>remote-scripts/ica/vmbus_protocol_version.sh</files>
         <timeout>300</timeout>
         <onError>Continue</onError>
-        <noReboot>False</noReboot>	
+        <noReboot>False</noReboot>  
         <testParams>
             <param>TC_COVERED=VMBus-01</param>
         </testParams>
         </test>
 
-		<test>
+        <test>
             <testName>TimeSync</testName>
             <testScript>SetupScripts\INST_LIS_TimeSync.ps1</testScript>
             <testParams>
@@ -148,19 +151,19 @@
             <noReboot>True</noReboot>
         </test>
 
-		<test>
-	        <testName>TimeSync_NTP</testName>
-	        <testScript>CORE_TimeSync_NTP.sh</testScript>
-	        <files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
-	        <testParams>
-	            <param>TC_COVERED=CORE-04</param>
-	        </testParams>
-	        <timeout>2000</timeout>
-	        <onError>Continue</onError>
-			<noReboot>True</noReboot>
-		</test>
+        <test>
+            <testName>TimeSync_NTP</testName>
+            <testScript>CORE_TimeSync_NTP.sh</testScript>
+            <files>remote-scripts/ica/CORE_TimeSync_NTP.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=CORE-04</param>
+            </testParams>
+            <timeout>2000</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>
 
-		<test>
+        <test>
             <testName>TimeSync_SavedVM</testName>
             <testScript>SetupScripts\INST_timesync_change_state.ps1</testScript>
             <testparams>
@@ -199,7 +202,7 @@
             <noReboot>True</noReboot>
         </test>
 
-	<test>
+    <test>
             <testName>Multi_Cpu_Test</testName>
             <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
             <testParams>
@@ -209,20 +212,20 @@
             <noReboot>False</noReboot>
         </test>
 
-	<test>
+    <test>
             <testName>Verify_LISModules_Version</testName>
             <testScript>CORE_LISmodules_version.sh</testScript>
             <files>remote-scripts/ica/CORE_LISmodules_version.sh</files>
             <testparams>
                 <param>TC_COVERED=CORE-15</param>
-        	<param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
+            <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
             </testparams>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
         </test>
 
-	<test>
+    <test>
             <testName>VerifyIntegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <testParams>
@@ -257,17 +260,17 @@
         </test>
 
         <test>
-		<testName>VCPU_verify_online</testName>
-		<testScript>vcpu_verify_online.sh</testScript>
-		<setupScript>setupScripts\ChangeCPU.ps1</setupScript>
-		<files>remote-scripts/ica/vcpu_verify_online.sh</files>
-		<timeout>600</timeout>
-		<onError>Continue</onError>
-		<noReboot>False</noReboot>
-		<testParams>
-			<param>TC_COVERED=CORE-21</param>
-			<param>vCPU=4</param>
-		</testParams>
+        <testName>VCPU_verify_online</testName>
+        <testScript>vcpu_verify_online.sh</testScript>
+        <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+        <files>remote-scripts/ica/vcpu_verify_online.sh</files>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+        <testParams>
+            <param>TC_COVERED=CORE-21</param>
+            <param>vCPU=4</param>
+        </testParams>
         </test>
 
         <test>
@@ -294,8 +297,8 @@
         <test>
             <testName>CheckNuma_Maximum</testName>
             <setupScript>
-            	<file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
-            	<file>setupScripts\ChangeCPU.ps1</file>
+                <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+                <file>setupScripts\ChangeCPU.ps1</file>
             </setupScript>
             <testScript>setupScripts\NUMA.ps1</testScript>
             <files>remote-scripts\ica\utils.sh</files>
@@ -354,27 +357,27 @@
        </test>
 
         <test>
-		<testName>check_clocksource</testName>
-		<testScript>check_clocksource.sh</testScript>
-		<files>remote-scripts/ica/check_clocksource.sh,remote-scripts/ica/utils.sh</files>
-		<testParams>
-			<param>TC_COVERED=CORE-26</param>
-		</testParams>
-		<timeout>600</timeout>
-		<onError>Continue</onError>
-		<noReboot>True</noReboot>
+        <testName>check_clocksource</testName>
+        <testScript>check_clocksource.sh</testScript>
+        <files>remote-scripts/ica/check_clocksource.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=CORE-26</param>
+        </testParams>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
         </test>
 
         <test>
-		<testName>VerifyIntegratedTimeSyncService</testName>
-		<testScript>setupscripts\INST_LIS_TimeSyncServiceDisableEnable.ps1</testScript>
-		<testParams>
-			<param>TC_COVERED=CORE-29</param>
-			<param>MaxTimeDiff=5</param>
-		</testParams>
-		<timeout>600</timeout>
-		<onError>Continue</onError>
-		<noReboot>True</noReboot>
+        <testName>VerifyIntegratedTimeSyncService</testName>
+        <testScript>setupscripts\INST_LIS_TimeSyncServiceDisableEnable.ps1</testScript>
+        <testParams>
+            <param>TC_COVERED=CORE-29</param>
+            <param>MaxTimeDiff=5</param>
+        </testParams>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
         </test>
 
         <!-- KVP and SQM Tests -->
@@ -461,34 +464,34 @@
                 <param>Value=111</param>
             </testparams>
         </test>
-		
-    	<test>
-    		<testName>KVP_DeleteNonExistKVPOnGuest</testName>
-    		<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
-    		<timeout>600</timeout>
-    		<onError>Abort</onError>
-    		<noReboot>True</noReboot>
-    		<testparams>
-    			<param>TC_COVERED=KVP-06</param>
-    			<param>Key=AAA</param>
-    			<param>Value=000</param>
-    			<param>Pool=0</param>
-    		</testparams>
-    	</test>	
-    		
-    	<test>
-    		<testName>KVP_ModifyNonExistKVPOnGuest</testName>
-    		<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
-    		<timeout>600</timeout>
-    		<onError>Abort</onError>
-    		<noReboot>True</noReboot>
-    		<testparams>
-    			<param>TC_COVERED=KVP-07</param>
-    			<param>Key=AAA</param>
-    			<param>Value=000</param>
-    			<param>Pool=0</param>
-    		</testparams>
-    	</test>
+        
+        <test>
+            <testName>KVP_DeleteNonExistKVPOnGuest</testName>
+            <testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-06</param>
+                <param>Key=AAA</param>
+                <param>Value=000</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test> 
+            
+        <test>
+            <testName>KVP_ModifyNonExistKVPOnGuest</testName>
+            <testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-07</param>
+                <param>Key=AAA</param>
+                <param>Value=000</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
 
         <test>
             <testName>KVP_VerifyHostInjectedItems</testName>
@@ -566,16 +569,16 @@
 
         <test>
             <testName>FCOPY_large_file</testName>
-            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
             <testScript>setupscripts\FCOPY_large_file.ps1</testScript>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>1200</timeout>
             <testParams>
                 <param>TC_COVERED=FCopy-04</param>
-                <param>SCSI=0,0,Fixed,512,15GB</param>
-                <!-- Customize file size if you wish, 10GB by default
-                <param>Large_File_Size_GB=11.3</param>
-                -->
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=15GB</param>
+                <param>ControllerType=SCSI</param>
             </testParams>
             <noReboot>False</noReboot>
         </test>
@@ -593,13 +596,16 @@
 
         <test>
             <testName>FCOPY_repeat</testName>
-            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
             <testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <testParams>
                 <param>TC_COVERED=FCopy-06</param>
-                <param>SCSI=0,0,Fixed,512,3GB</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
+                <param>ControllerType=SCSI</param>
             <!--Make sure DefaultSize is equal or bigger than FileSize-->
                 <param>FileSize=2GB</param>
             </testParams>
@@ -608,90 +614,105 @@
 
         <test>
             <testName>FCOPY_disableEnable</testName>
-            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
             <testScript>setupscripts\FCOPY_disableEnable.ps1</testScript>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts\ica\utils.sh,remote-scripts\ica\check_traces.sh</files>
             <timeout>900</timeout>
             <testParams>
                 <param>TC_COVERED=FCopy-07</param>
-                <param>SCSI=0,0,Fixed,512,7GB</param>
+                <param>Type=Fixed</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=7GB</param>
+                <param>ControllerType=SCSI</param>
                 <param>FcopyFileSize=5GB</param>
                 <param>CycleCount=20</param>
             </testParams>
             <noReboot>False</noReboot>
         </test>
 
-        <!-- VHDx Resize Tests -->
+            <!-- VHDx Resize Tests -->
         <test>
             <testName>VHDxResizeToBigger512</testName>
-            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,1,Dynamic,512,3GB</param>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-01a</param>
             </testparams>
         </test>
 
         <test>
             <testName>VHDxResizeToBigger4096</testName>
-            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,1,Dynamic,4096,3GB</param>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=4096</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-01b</param>
             </testparams>
         </test>
 
         <test>
             <testName>VHDxResizeToSmaller512</testName>
-            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,1,Dynamic,512,3GB</param>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=512</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
                 <param>fileSystems=(ext4 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
 
         <test>
             <testName>VHDxResizeToSmaller4096</testName>
-            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
+            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>SCSI=0,1,Dynamic,4096,3GB</param>
+                <param>Type=Dynamic</param>
+                <param>SectorSize=4096</param>
+                <param>DefaultSize=3GB</param>
                 <param>NewSize=2GB</param>
                 <param>fileSystems=(ext4 xfs)</param>
+                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
 
-        <!-- lsvmbus tool Tests -->
+            <!-- lsvmbus tool Tests -->
         <test>
         <testName>lsvmbus_basic</testName>
         <setupScript>
@@ -775,11 +796,11 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>vm_kernel_bvt</vmName>
+            <vmName>vm_lis_bvt</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
-            <suite>kernel_validation_bvt</suite>
+            <suite>lis_validation_bvt</suite>
             <hardware>
                 <create>true</create>
                 <numCPUs>8</numCPUs>

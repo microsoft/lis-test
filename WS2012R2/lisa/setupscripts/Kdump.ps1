@@ -253,14 +253,24 @@ else {
 #
 # Give the host a few seconds to record the event
 #
-Write-Output "Waiting 100 seconds to record the event..."
-Start-Sleep -S 100
-if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {
-    Write-Output "Error : Lost Communication to VM" | Tee-Object -Append -file $summaryLog
-    Stop-VM -Name $vmName -ComputerName $hvServer -Force
-    return $false
+Write-Output "Waiting seconds to record the event..."
+
+$timeout = 240
+while ( $timeout -gt 0)
+{
+    if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK") {
+
+        Write-Output "Info: VM Heartbeat is OK"
+        break
+    }
+    Start-Sleep -S 6
+    if ($timeout -eq 0)
+    {
+        Write-Output "Error : Lost Communication to VM" | Tee-Object -Append -file $summaryLog
+        Stop-VM -Name $vmName -ComputerName $hvServer -Force
+        return $false
+    }
 }
-Write-Output "Info: VM Heartbeat is OK"
 
 #
 # Waiting the VM to have a connection

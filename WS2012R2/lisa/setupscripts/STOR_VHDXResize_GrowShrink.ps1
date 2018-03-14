@@ -368,19 +368,25 @@ if ($growDiskSize -ne $newVhdxGrowSize)
 # if file size larger than 2T (2048G), use parted to format disk
  if ([int]($newVhdxGrowSize/1gb) -gt 2048)
  {
-   $guest_script = "STOR_VHDXResize_PartitionDiskOver2TB"
+    $guest_script = "STOR_VHDXResize_PartitionDiskOver2TB"
  }
 
 else
 {
-  $guest_script = "STOR_VHDXResize_PartitionDiskAfterResize"
+    $guest_script = "STOR_VHDXResize_PartitionDisk"
+    $addParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'rerun=yes' >> constants.sh"
+    if ($? -ne "True")
+    {
+        "Error: Unable to alter constants.sh for second run. " | Tee-Object -Append -file $summaryLog
+        return $False
+    }
 }
 
 $sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
-  "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
-  return $False
+    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution "
+    return $False
 }
 
 #
@@ -465,6 +471,13 @@ if ($shrinkDiskSize -ne $newVhdxShrinkSize)
 # Make sure if we can perform Read/Write operations on the guest VM
 #
 $guest_script = "STOR_VHDXResize_PartitionDisk"
+$removeParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sed -i '/rerun=yes/d' constants.sh"
+if ($? -ne "True")
+{
+    "Error: Unable to alter constants.sh for $guest_script run. " | Tee-Object -Append -file $summaryLog
+    return $False
+}
+
 $sts = RunRemoteScriptCheckResult $guest_script
 if (-not $($sts[-1]))
 {
