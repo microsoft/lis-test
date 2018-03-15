@@ -264,6 +264,7 @@ while ( $timeout -gt 0)
         break
     }
     Start-Sleep -S 6
+    $timeout = $timeout -6
     if ($timeout -eq 0)
     {
         Write-Output "Error : Lost Communication to VM" | Tee-Object -Append -file $summaryLog
