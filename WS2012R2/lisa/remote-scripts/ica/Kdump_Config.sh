@@ -138,7 +138,7 @@ ConfigRhel()
         GetOSVersion
     fi
 
-    if [[ $os_RELEASE.$os_UPDATE =~ ^5.* ]] || [[ $os_RELEASE.$os_UPDATE =~ ^6.[0-2] ]] ; then
+    if [[ $os_RELEASE.$os_UPDATE =~ ^5.* ]] || [[ $os_RELEASE.$os_UPDATE =~ ^6.[0-2][^0-9] ]] ; then
         RhelExtraSettings
     fi
 
