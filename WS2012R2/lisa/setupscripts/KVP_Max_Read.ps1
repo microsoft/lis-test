@@ -200,8 +200,12 @@ $logger.Summary.info("Covers: ${tcCovered}")
 # Supported in RHEL7.5 ( no official release for now, might need update )
 $FeatureSupported = GetVMFeatureSupportStatus $ipv4 $sshKey "3.10.0-860"
 if ( $FeatureSupported -ne $True ){
-    $logger.Summary.info("Guest kernel version does not support this feature, skipping")
-    return $Skipped
+    $logger.Summary.info("Kernels older than 3.10.0-514 require LIS-4.x drivers.")
+    $checkExternal = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rpm -qa | grep kmod-microsoft-hyper-v && rpm -qa | grep microsoft-hyper-v"
+    if ($? -ne "True") {
+        $logger.Summary.info("Error: No LIS-4.x drivers detected. Skipping test.")
+        return $Skipped
+    }
 }
 
 #
