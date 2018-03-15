@@ -169,8 +169,8 @@ foreach ($p in $params)
     "TC_COVERED"   { $tcCovered = $fields[1].Trim() }
     "Pool"         { $pool = $fields[1].Trim() }
     "Entries"      { $entries = $fields[1].Trim() }
-	"sshKey"	    { $sshKey = $fields[1].Trim() }
-	"ipv4"	    { $ipv4 = $fields[1].Trim() }
+    "sshKey"       { $sshKey = $fields[1].Trim() }
+    "ipv4"         { $ipv4 = $fields[1].Trim() }
     default  {}       
     }
 }
@@ -196,6 +196,13 @@ else {
 
 $logger = [LoggerManager]::GetLoggerManager($vmName, $testParams)
 $logger.Summary.info("Covers: ${tcCovered}")
+
+# Supported in RHEL7.5 ( no official release for now, might need update )
+$FeatureSupported = GetVMFeatureSupportStatus $ipv4 $sshKey "3.10.0-860"
+if ( $FeatureSupported -ne $True ){
+    $logger.Summary.info("Guest kernel version does not support this feature, skipping")
+    return $Skipped
+}
 
 #
 # Verify the Data Exchange Service is enabled for this VM
