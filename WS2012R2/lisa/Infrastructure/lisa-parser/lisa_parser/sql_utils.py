@@ -168,3 +168,15 @@ def check_insert(cursor, insertion_list):
                 logger.info("Results inserted successfully to the database")
         except pyodbc.ProgrammingError as pyodbc_error:
             logger.warning("Error while attempting to select row - %s" % pyodbc_error[1])
+
+
+def check_column_exists(cursor, column_name):
+    check_column = Template("select * from sys.columns where Name = N'$columnName' and "
+                            "Object_ID = Object_ID(N'$tableName')")
+
+    table_name = '"' + env.str('TableName') + '"'
+    result = cursor.execute(check_column.substitute(tableName=table_name, columnName=column_name))
+    print('checking column {} existence: {}'.format(column_name, result))
+    if list(result):
+        return True
+    return False

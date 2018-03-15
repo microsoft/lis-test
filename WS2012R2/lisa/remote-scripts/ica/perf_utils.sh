@@ -293,8 +293,6 @@ function fio_single_disk {
         mdadm --stop ${FIND_RAID}
         mdadm --remove ${FIND_RAID}
     fi
-    #Write 0 on disk
-    dd if=/dev/zero of=${TEST_DEVICE}1 bs=1M oflag=direct
 
     mkfs.${FS} ${TEST_DEVICE}1
     if [ "$?" = "0" ]; then

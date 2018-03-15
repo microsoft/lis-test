@@ -20,13 +20,15 @@ permissions and limitations under the License.
 """
 
 from __future__ import print_function
+import os
+import re
+import logging
+import sql_utils
+from copy import deepcopy
 from file_parser import ParseXML, parse_ica_log, FIOLogsReader, FIOLogsReaderRaid,\
     NTTTCPLogsReader, IPERFLogsReader, LatencyLogsReader
 from virtual_machine import VirtualMachine
-from copy import deepcopy
-import logging
-import re
-import os
+
 
 logger = logging.getLogger(__name__)
 
@@ -205,9 +207,10 @@ class TestRun(object):
 
 
 class PerfTestRun(TestRun):
-    def __init__(self, perf_path, skip_vm_check=True, checkpoint_name=False):
+    def __init__(self, perf_path, skip_vm_check=True, checkpoint_name=False, db_cursor=None):
         super(PerfTestRun, self).__init__(skip_vm_check, checkpoint_name)
         self.perf_path = perf_path
+        self.db_cursor = db_cursor
 
     def update_from_ica(self, log_path, lis_version=None):
         super(PerfTestRun, self).update_from_ica(log_path, lis_version)
@@ -244,7 +247,7 @@ class PerfTestRun(TestRun):
             del table_dict['TestArea']
             del table_dict['HostName']
             del table_dict['LogPath']
-            if table_dict['KernelVersion'] in table_dict['LISVersion']:
+            if not sql_utils.check_column_exists(self.db_cursor, 'LISVersion'):
                 del table_dict['LISVersion']
 
             table_dict['GuestDistro'] = table_dict.pop('GuestOSDistro')
