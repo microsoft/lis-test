@@ -299,7 +299,7 @@ class AWSConnector:
         ping_cmd = 'ping {} 1 {}'.format(ping_arg, instance.ip_address)
         try:
             timeout = 0
-            while os.system(ping_cmd) != 0 or timeout >= 60:
+            while os.system(ping_cmd) != 0 and timeout < 60:
                 time.sleep(5)
                 timeout += 5
             # artificial wait for ssh service up status
