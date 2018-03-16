@@ -1558,21 +1558,24 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData, [Stri
     }
 
     $currentTest = GetTestData $($vm.currentTest) $xmlData
-    if ($noshutdown -eq "True") {
+    if ($noshutdown -eq "True")
+    {
         $testName = $($vm.currentTest)
         $testData = GetTestData $testName $xmlData
         $completionCode = $Aborted
         LogMsg 0 "Info : NoShutdown parameter is True. Skipping DoDiagnoseHungSystem($($vm.vmName))"
         LogMsg 0 "Error: $($vm.vmName) did not boot for test $testName "
         LogMsg 0 "Info : $($vm.vmName) Status for test $testName  = ${completionCode}"
-        if ($testData.OnError -eq "Abort") {
+        if ($testData.OnError -eq "Abort")
+        {
             LogMsg 0 "Warn : Test is set to abort on error. Exiting"
             $vm.currentTest = "done"
         }
         SetTestResult $currentTest $completionCode $xmlData
         UpdateState $vm $Finished
-     }
-    else {
+    }
+    else
+    {
         #
         # Proceed with restarting the VM
         #
@@ -1643,7 +1646,7 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData, [Stri
                         # UpdateState $vm $ForceShutdown
                         UpdateState $vm $Disabled
                     }
-                    SetTestResult $currentTest $completionCode $xmlData
+                    SetTestResult $vm.suite $currentTest $completionCode $xmlData
                     $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
                     UpdateState $vm $ForceShutdown
                 }
@@ -1653,25 +1656,9 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData, [Stri
                 $timeout -= 1
                 Start-Sleep -S 1
             }
-                if ($testData.OnError -eq "Abort") {
-                    LogMsg 0 "Warn : Test is set to abort on error. Exiting"
-                    $vm.currentTest = "done"
-                    # UpdateState $vm $ForceShutdown
-                    UpdateState $vm $Disabled
-                }
-                SetTestResult $vm.suite $currentTest $completionCode $xmlData
-                $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
-                UpdateState $vm $ForceShutdown
-            }
-    }
-        else
-        {
-            $timeout -= 1
-            Start-Sleep -S 1
         }
     }
 }
-
 
 ########################################################################
 #
