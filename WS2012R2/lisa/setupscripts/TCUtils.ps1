@@ -2108,18 +2108,19 @@ function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$su
     if( $? -eq $false){
         Write-Output "Warning: Could not get kernel version".
     }
-    $sKernel = $supportKernel.split(".")
-    $cKernel = $currentKernel.replace("-",".")
-    $cKernel = $cKernel.split(".")
+    $sKernel = $supportKernel.split(".-")
+    $cKernel = $currentKernel.split(".-")
 
     for ($i=0; $i -le 3; $i++) {
         if ($cKernel[$i] -lt $sKernel[$i] ) {
             $cmpResult = $false
+            break;
         }
         if ($cKernel[$i] -gt $sKernel[$i] ) {
             $cmpResult = $true
             break
         }
+        if ($i -eq 3) { $cmpResult = $True }
     }
     return $cmpResult
 }

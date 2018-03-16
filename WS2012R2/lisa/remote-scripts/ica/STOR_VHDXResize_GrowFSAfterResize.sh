@@ -113,6 +113,7 @@ for fs in "${fileSystems[@]}"; do
         echo "Error: File-system tools for $fs not present. Skipping filesystem $fs.">> ~/summary.log
         LogMsg "Error: File-system tools for $fs not present. Skipping filesystem $fs."
         count=`expr $count + 1`
+        continue
     else
         #Use -f option for xfs filesystem, but ignore parameter for other filesystems
         option=""

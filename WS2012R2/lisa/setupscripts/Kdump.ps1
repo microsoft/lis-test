@@ -253,25 +253,33 @@ else {
 #
 # Give the host a few seconds to record the event
 #
-Write-Output "Waiting 100 seconds to record the event..."
-Start-Sleep -S 100
-if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {
-    Write-Output "Error : Lost Communication to VM" | Tee-Object -Append -file $summaryLog
-    Stop-VM -Name $vmName -ComputerName $hvServer -Force
-    return $false
+Write-Output "Waiting seconds to record the event..."
+
+$timeout = 240
+while ( $timeout -gt 0)
+{
+    if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK") {
+
+        Write-Output "Info: VM Heartbeat is OK"
+        break
+    }
+    Start-Sleep -S 6
+    $timeout = $timeout -6
+    if ($timeout -eq 0)
+    {
+        Write-Output "Error : Lost Communication to VM" | Tee-Object -Append -file $summaryLog
+        Stop-VM -Name $vmName -ComputerName $hvServer -Force
+        return $false
+    }
 }
-Write-Output "Info: VM Heartbeat is OK"
 
 #
 # Waiting the VM to have a connection
 #
 Write-Output "Info: Checking the VM connection after kernel panic"
-$sts = WaitForVMToStartSSH $ipv4 400
-if (-not $sts[-1]){
-    Write-Output "Error: $vmName didn't restart after triggering the crash" | Tee-Object -Append -file $summaryLog
-    return $false
-}
-Write-Output "Info: Connection to VM is good. Checking the results..."
+do {
+    sleep 5
+} until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 
 #
 # Verifying if the kernel panic process creates a vmcore file of size 10M+

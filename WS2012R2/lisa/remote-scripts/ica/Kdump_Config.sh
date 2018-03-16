@@ -138,7 +138,7 @@ ConfigRhel()
         GetOSVersion
     fi
 
-    if [[ $os_RELEASE.$os_UPDATE =~ ^5.* ]] || [[ $os_RELEASE.$os_UPDATE =~ ^6.[0-2] ]] ; then
+    if [[ $os_RELEASE.$os_UPDATE =~ ^5.* ]] || [[ $os_RELEASE.$os_UPDATE =~ ^6.[0-2][^0-9] ]] ; then
         RhelExtraSettings
     fi
 
@@ -170,7 +170,7 @@ ConfigRhel()
     fi
 
     # Configure to dump file on nfs server if it is the case
-    if [ $vm2ipv4 != "" ]; then
+    if [ $vm2ipv4 ] && [ $vm2ipv4 != "" ]; then
         yum install -y nfs-utils
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Failed to install nfs."
@@ -242,7 +242,7 @@ ConfigSles()
         UpdateSummary "Success: kdump enabled."
     fi
 
-    if [ $vm2ipv4 != "" ]; then
+    if [ $vm2ipv4 ] && [ $vm2ipv4 != "" ]; then
         zypper --non-interactive install nfs-client
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Failed to install nfs."
@@ -281,7 +281,7 @@ ConfigUbuntu()
     apt-get update -y
     sleep 10
 
-    if [ $vm2ipv4 != "" ]; then
+    if [ $vm2ipv4 ] && [ $vm2ipv4 != "" ]; then
         apt-get install -y nfs-kernel-server
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Failed to install nfs."

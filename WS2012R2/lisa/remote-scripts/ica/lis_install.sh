@@ -36,9 +36,9 @@ dos2unix utils.sh
 
 # Source utils.sh
 . utils.sh || {
-    echo "ERROR: unable to source utils.sh!"
-    echo "TestAborted" > state.txt
-    exit 2
+	echo "ERROR: unable to source utils.sh!"
+	echo "TestAborted" > state.txt
+	exit 2
 }
 
 # Source constants file and initialize most common variables
@@ -48,60 +48,76 @@ function download_archive {
 	# Check URL
 	wget -q --spider "$LIS_URL$AZURE_TOKEN"
 	if [ $? -ne 0 ]; then
-	    msg="ERROR: Archive URL is not valid"
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    SetTestStateFailed
-	    exit 1
+		msg="ERROR: Archive URL is not valid"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 1
 	fi
 
 	# Download file
-	wget "$LIS_URL$AZURE_TOKEN"
-    if [ $? -ne 0 ]; then
-        msg="ERROR: Archive download failed"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 1
-    fi
+	TAR_NAME="${LIS_URL##*/}"
+	wget "$LIS_URL$AZURE_TOKEN" -O "$TAR_NAME"
+	if [ $? -ne 0 ]; then
+		msg="ERROR: Archive download failed"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 1
+	fi
 
-    msg="Archive was successfully downloaded"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
+	msg="Archive was successfully downloaded"
+	LogMsg "$msg"
+	UpdateSummary "$msg"
 }
 
 function install_lis {
 	# Extract archive
 	tar -xzvf lis-rpm*.tar.gz
-    if [ $? -ne 0 ]; then
-        msg="ERROR: Extracting the archive failed"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 1
-    fi
-    
-    # Install LIS
-    pushd ./LISISO
-    bash install.sh 2>&1 | tee ~/LIS_install_complete.log
 	if [ $? -ne 0 ]; then
-	    msg="Unable to install LIS"
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    UpdateTestState "TestFailed"
-	    exit 1
+		msg="ERROR: Extracting the archive failed"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 1
+	fi
+
+	# Install LIS
+	pushd ./LISISO
+	bash install.sh 2>&1 | tee ~/LIS_install_complete.log
+	if [ $? -ne 0 ]; then
+		msg="ERROR: Unable to install LIS"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 1
 	fi
 	sleep 5
 	popd
 
 	# Search for install issues
-	cat ~/LIS_install_complete.log | grep -i "warning\|error\|aborting"
+	cat ~/LIS_install_complete.log | grep -i "error\|aborting"
 	if [ $? -eq 0 ]; then
-		msg="Warning: Warning\error\abort detected while installing LIS"
-	    LogMsg "$msg"
-	    UpdateSummary "$msg"
-	    UpdateTestState "TestFailed"
-	    exit 1
+		msg="ERROR: abort/error detected while installing LIS"
+		LogMsg "$msg"
+		UpdateSummary "$msg"
+		SetTestStateFailed
+		exit 1
+	fi
+
+	cat ~/LIS_install_complete.log | grep -i "warning"
+	if [ $? -eq 0 ]; then
+		msg="Warning detected. Will verify if it's expected"
+		LogMsg "$msg"
+
+		cat ~/LIS_install_complete.log | grep -i "warning" | grep $(uname -r)
+		if [ $? -eq 0 ]; then
+			msg="ERROR: Warning is not expected"
+			LogMsg "$msg"
+			UpdateSummary "$msg"
+			SetTestStateFailed
+			exit 1
+		fi
 	fi
 }
 
@@ -110,10 +126,10 @@ function main {
 
 	install_lis
 
-    msg="LIS was successfully installed"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateCompleted
+	msg="LIS was successfully installed"
+	LogMsg "$msg"
+	UpdateSummary "$msg"
+	SetTestStateCompleted
 }
 
 main $@

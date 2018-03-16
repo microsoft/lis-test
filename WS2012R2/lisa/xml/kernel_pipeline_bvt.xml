@@ -566,16 +566,16 @@
 
         <test>
             <testName>FCOPY_large_file</testName>
-            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>setupscripts\FCOPY_large_file.ps1</testScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>1200</timeout>
             <testParams>
                 <param>TC_COVERED=FCopy-04</param>
-                <param>Type=Fixed</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=15GB</param>
-                <param>ControllerType=SCSI</param>
+                <param>SCSI=0,0,Fixed,512,15GB</param>
+                <!-- Customize file size if you wish, 10GB by default
+                <param>Large_File_Size_GB=11.3</param>
+                -->
             </testParams>
             <noReboot>False</noReboot>
         </test>
@@ -593,16 +593,13 @@
 
         <test>
             <testName>FCOPY_repeat</testName>
-            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <timeout>600</timeout>
             <testParams>
                 <param>TC_COVERED=FCopy-06</param>
-                <param>Type=Fixed</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=3GB</param>
-                <param>ControllerType=SCSI</param>
+                <param>SCSI=0,0,Fixed,512,3GB</param>
             <!--Make sure DefaultSize is equal or bigger than FileSize-->
                 <param>FileSize=2GB</param>
             </testParams>
@@ -611,105 +608,90 @@
 
         <test>
             <testName>FCOPY_disableEnable</testName>
-            <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>setupscripts\FCOPY_disableEnable.ps1</testScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <files>remote-scripts\ica\utils.sh,remote-scripts\ica\check_traces.sh</files>
             <timeout>900</timeout>
             <testParams>
                 <param>TC_COVERED=FCopy-07</param>
-                <param>Type=Fixed</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=7GB</param>
-                <param>ControllerType=SCSI</param>
+                <param>SCSI=0,0,Fixed,512,7GB</param>
                 <param>FcopyFileSize=5GB</param>
                 <param>CycleCount=20</param>
             </testParams>
             <noReboot>False</noReboot>
         </test>
 
-            <!-- VHDx Resize Tests -->
+        <!-- VHDx Resize Tests -->
         <test>
             <testName>VHDxResizeToBigger512</testName>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Type=Dynamic</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=3GB</param>
+                <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 xfs)</param>
-                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-01a</param>
             </testparams>
         </test>
 
         <test>
             <testName>VHDxResizeToBigger4096</testName>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Type=Dynamic</param>
-                <param>SectorSize=4096</param>
-                <param>DefaultSize=3GB</param>
+                <param>SCSI=0,1,Dynamic,4096,3GB</param>
                 <param>NewSize=4GB</param>
                 <param>fileSystems=(ext4 xfs)</param>
-                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-01b</param>
             </testparams>
         </test>
 
         <test>
             <testName>VHDxResizeToSmaller512</testName>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Type=Dynamic</param>
-                <param>SectorSize=512</param>
-                <param>DefaultSize=3GB</param>
+                <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>NewSize=2GB</param>
                 <param>fileSystems=(ext4 xfs)</param>
-                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
 
         <test>
             <testName>VHDxResizeToSmaller4096</testName>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
             <testScript>SetupScripts\STOR_VHDXResize_Basic.ps1</testScript>
-            <setupScript>SetupScripts\Add-VHDXForResize.ps1</setupScript>
-            <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
             <files>remote-scripts/ica/STOR_VHDXResize_ReadWrite.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <testparams>
-                <param>Type=Dynamic</param>
-                <param>SectorSize=4096</param>
-                <param>DefaultSize=3GB</param>
+                <param>SCSI=0,1,Dynamic,4096,3GB</param>
                 <param>NewSize=2GB</param>
                 <param>fileSystems=(ext4 xfs)</param>
-                <param>ControllerType=SCSI</param>
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
 
-            <!-- lsvmbus tool Tests -->
+        <!-- lsvmbus tool Tests -->
         <test>
         <testName>lsvmbus_basic</testName>
         <setupScript>

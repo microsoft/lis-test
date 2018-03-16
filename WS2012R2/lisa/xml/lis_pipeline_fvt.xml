@@ -28,7 +28,7 @@
       <suite>
          <suiteName>Core</suiteName>
          <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>lis_install</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <suiteTest>VMHeartbeat</suiteTest>
             <suiteTest>Verify_LISModules_Version</suiteTest>
@@ -81,7 +81,7 @@
       <suite>
          <suiteName>Storage</suiteName>
          <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>lis_install</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <!-- VHD Resize tests -->
             <suiteTest>VHDxResizeToBigger512</suiteTest>
@@ -142,7 +142,7 @@
       <suite>
          <suiteName>Network_and_Stress</suiteName>
          <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>lis_install</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <suiteTest>DependencyVM_Checkpoint</suiteTest>
             <!-- Network tests -->
@@ -178,7 +178,7 @@
       <suite>
          <suiteName>Memory</suiteName>
          <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>lis_install</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <!-- WS 2016 TESTS -->
             <suiteTest>DM_loaded</suiteTest>
@@ -222,14 +222,13 @@
    </testSuites>
    <testCases>
       <test>
-         <testName>InstallKernel</testName>
-         <testScript>install_kernel.sh</testScript>
-         <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
-         <timeout>2500</timeout>
+         <testName>lis_install</testName>
+         <testScript>lis_install.sh</testScript>
+         <files>remote-scripts/ica/lis_install.sh,remote-scripts/ica/utils.sh</files>
          <testParams>
-            <param>SHARE_URL="https://kernel.file.core.windows.net/stable-kernels"</param>
-            <param>KERNEL_FOLDER="msft-4.14.18-0ea7311-08022018"</param>
+             <param>TC_COVERED=LIS-INSTALL</param>
          </testParams>
+         <timeout>1800</timeout>
          <onError>Abort</onError>
          <noReboot>False</noReboot>
       </test>
@@ -242,7 +241,7 @@
             <param>snapshotVm=main</param>
             <param>snapshotName=ICABase</param>
          </testParams>
-         <onError>Continue</onError>
+         <onError>Abort</onError>
          <noReboot>False</noReboot>
       </test>
       <test>
@@ -2243,7 +2242,7 @@
             <param>startupMem=2048MB</param>
             <param>memWeight=100</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=85%</param>
@@ -2267,7 +2266,7 @@
             <param>startupMem=80%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=50%</param>
@@ -2307,7 +2306,7 @@
             <param>startupMem=70%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=50%</param>
@@ -2330,7 +2329,7 @@
             <param>startupMem=80%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=40%</param>
@@ -2353,7 +2352,7 @@
             <param>startupMem=80%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=20%</param>
@@ -2376,7 +2375,7 @@
             <param>startupMem=20%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=80%</param>
@@ -2834,7 +2833,7 @@
    <VMs>
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>core_vm</vmName>
+         <vmName>lis_core_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -2850,7 +2849,7 @@
       </vm>
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>stor_vm</vmName>
+         <vmName>lis_stor_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -2866,7 +2865,7 @@
       </vm>
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>mem_vm</vmName>
+         <vmName>lis_mem_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -2882,12 +2881,12 @@
       </vm>
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>net_vm</vmName>
+         <vmName>lis_net_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
          <testParams>
-            <param>VM2Name=aux_vm</param>
+            <param>VM2Name=lis_aux_vm</param>
          </testParams>
          <hardware>
             <create>true</create>
@@ -2902,7 +2901,7 @@
       <!-- Used only by the Network tests -->
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>aux_vm</vmName>
+         <vmName>lis_aux_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
