@@ -228,7 +228,15 @@ if [ "${SRIOV}" = "yes" ]; then
         UpdateSummary "$msg"
         SetTestStateFailed
     fi
-    __vf_ignore='enP2p0s2'
+    vfCount=$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
+    if [ $vfCount -ne 1 ]; then
+        msg="ERROR: VF not found on the Guest VM!"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+       exit 1
+    fi
+    __vf_ignore=$(ls $(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci))
     SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__vf_ignore/})
 fi
 

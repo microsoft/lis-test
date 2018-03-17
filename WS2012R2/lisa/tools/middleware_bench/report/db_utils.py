@@ -19,6 +19,7 @@ See the Apache Version 2.0 License for specific language governing
 permissions and limitations under the License.
 """
 import os
+import sys
 import logging
 import ConfigParser
 
@@ -161,14 +162,11 @@ class TestResults(object):
         return setattr(self, item, value)
 
 
-# def upload_results(localpath=None, table_name=None, test_results=None):
-def upload_results(localpath=None, table_name=None, results_path=None, parser=None, **kwargs):
+def upload_results(localpath=None, table_name=None, results_path=None, parser=None,
+                   other_table=False, **kwargs):
     """
     Connect to DB and upload results
     """
-    # if not test_results:
-    #     log.error('Results missing. Skipping DB upload.')
-    #     return None
     if localpath:
         log.info('Looking up DB credentials for results upload in {}.' .format(localpath))
         db_creds_file = [os.path.join(localpath, c) for c in os.listdir(localpath)
@@ -184,12 +182,20 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
 
     import pprint
     pprint.pprint(test_results)
+    if 'linux' in sys.platform:
+        driver = config.get('Credentials', 'Driver_linux')
+    else:
+        driver = config.get('Credentials', 'Driver_windows')
+
+    if other_table:
+        temp = table_name.split('_')
+        temp.insert(2, config.get('Credentials', 'Other_table'))
+        table_name = '_'.join(temp)
 
     e = create_engine('mssql+pyodbc://{}:{}@{}/{}?driver={}'.format(
             config.get('Credentials', 'User'), config.get('Credentials', 'Password'),
-            config.get('Credentials', 'Server'), config.get('Credentials', 'Database'),
-            config.get('Credentials', 'Driver'), poolclass=NullPool, convert_unicode=True,
-            echo=True))
+            config.get('Credentials', 'Server'), config.get('Credentials', 'Database'), driver,
+            poolclass=NullPool, convert_unicode=True, echo=True))
     metadata = MetaData(bind=e)
 
     table_columns = [column for column in COLUMNS if column['name'] in test_results[0]]
@@ -210,7 +216,8 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
         session.add(test_data)
         try:
             session.commit()
-        except:
+        except Exception as ex:
+            log.error(ex)
             print("Failed to commit {} data. Rolling back.".format(row))
             session.rollback()
             raise

@@ -539,7 +539,8 @@ class FIOLogsReader(BaseLogsReader):
     CUNIT = {'usec': 1,
              'msec': 1000,
              'sec': 1000000}
-    CSIZE = {'K': 1,
+    CSIZE = {'B': 2 ** -10,
+             'K': 1,
              'M': 1024,
              'G': 1048576}
 
@@ -565,8 +566,7 @@ class FIOLogsReader(BaseLogsReader):
             for key in log_dict:
                 if not log_dict[key]:
                     if 'BlockSize' in key:
-                        block_size = re.match(
-                            '.+rw=read, bs=\s*([0-9])([A-Z])-', f_lines[0])
+                        block_size = re.match('.+rw=read, bs=\(R\)\s*([0-9]+)([A-Z])', f_lines[0])
                         um = block_size.group(2).strip()
                         log_dict[key] = \
                             int(block_size.group(1).strip()) * self.CSIZE[um]
@@ -574,16 +574,14 @@ class FIOLogsReader(BaseLogsReader):
                         if all(markers in f_lines[x] for markers in
                                [key.split(':')[0], 'pid=']):
                             if 'latency' in key:
-                                lat = re.match(
-                                    '\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)',
-                                    f_lines[x + 4])
+                                lat = re.match('\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)',
+                                               f_lines[x + 4])
                                 if lat:
                                     unit = lat.group(1).strip()
                                     log_dict[key] = float(
                                         lat.group(2).strip()) * self.CUNIT[unit]
                             else:
-                                iops = re.match('.+iops=([0-9. ]+)',
-                                                f_lines[x + 1])
+                                iops = re.match('.+iops=([0-9. ]+)', f_lines[x + 1], re.IGNORECASE)
                                 if iops:
                                     log_dict[key] = iops.group(1).strip()
         return log_dict
@@ -598,7 +596,8 @@ class FIOLogsReaderRaid(BaseLogsReader):
     CUNIT = {'usec': 1,
              'msec': 1000,
              'sec': 1000000}
-    CSIZE = {'K': 1,
+    CSIZE = {'B': 2 ** -10,
+             'K': 1,
              'M': 1024,
              'G': 1048576}
 
@@ -629,18 +628,21 @@ class FIOLogsReaderRaid(BaseLogsReader):
                         '-', '').replace('seq', ''):
                     for x in range(0, len(f_lines)):
                             if 'latency' in key:
-                                lat = re.match(
-                                    '\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)',
-                                    f_lines[x])
+                                lat = re.match('\s*lat\s*\(([a-z]+)\).+avg=\s*([0-9.]+)',
+                                               f_lines[x])
                                 if lat:
                                     unit = lat.group(1).strip()
                                     log_dict[key] = float(
                                         lat.group(2).strip()) * self.CUNIT[unit]
                             else:
-                                iops = re.match('.+iops=([0-9. ]+)',
-                                                f_lines[x])
+                                iops = re.match('.+iops=\s*([0-9.]+)\s*([a-z]*),', f_lines[x],
+                                                re.IGNORECASE)
                                 if iops:
-                                    log_dict[key] = iops.group(1).strip()
+                                    if 'k' in iops.group(2):
+                                        log_dict[key] = float(iops.group(1).strip()) * 1000
+                                    else:
+                                        log_dict[key] = iops.group(1).strip()
+
         return log_dict
 
 

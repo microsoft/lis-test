@@ -49,7 +49,9 @@ declare -A sysctl_tcp_params=( ["net.core.netdev_max_backlog"]="30000"
                                ["net.ipv4.tcp_abort_on_overflow"]="1"
                                ["net.ipv4.ip_local_port_range"]="10240 65535" )
 declare -A sysctl_udp_params=( ["net.core.rmem_default"]="67108864"
-                               ["net.core.rmem_max"]="67108864" )
+                               ["net.core.rmem_max"]="67108864"
+                               ["net.core.wmem_default"]="67108864"
+                               ["net.core.wmem_max"]="67108864" )
 sysctl_file="/etc/sysctl.conf"
 
 function setup_sysctl {
@@ -151,28 +153,15 @@ function setup_lagscope {
 
 #Install FIO-tool
 function setup_fio {
-    FIO=/root/${FILE_NAME}
-    if [ ! -e ${FIO} ]; then
-        echo "ERROR: Cannot find FIO test source file." >> ~/summary.log
+    git clone https://github.com/axboe/fio
+    pushd fio
+    git checkout tags/${FIO_VERSION}
+    if [ 0 -ne $? ]; then
+        echo "ERROR: Cannot git clone FIO ${FIO_VERSION} source files." >> ~/summary.log
         UpdateTestState $ICA_TESTABORTED
         exit 20
     fi
-    # Get Root Directory of the archive
-    FIODIR=`tar -tvf ${FIO} | head -n 1 | awk -F " " '{print $6}' | awk -F "/" '{print $1}'`
-    tar -xvf ${FIO}
-    sts=$?
-    if [ 0 -ne ${sts} ]; then
-        echo "ERROR: Failed to extract the FIO archive!" >> ~/summary.log
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
-    fi
-    if [ ! ${FIODIR} ]; then
-        echo "ERROR: Cannot find FIODIR." >> ~/summary.log
-        UpdateTestState $ICA_TESTABORTED
-        exit 1
-    fi
     #Compiling FIO
-    cd ${FIODIR}
     ./configure
     sts=$?
     if [ 0 -ne ${sts} ]; then
@@ -191,7 +180,7 @@ function setup_fio {
     else
     echo "FIO successfully installed." >> ~/summary.log
     fi
-  cd /root/
+    popd
 }
 #Upgrade gcc to 4.8.1
 function upgrade_gcc {
@@ -295,15 +284,16 @@ function config_staticip {
 
 #Run FIO on single physical disk
 function fio_single_disk {
+    #Create partition for test
+    echo -e "o\nn\np\n1\n\n\nw" | fdisk ${TEST_DEVICE}
     #Check for raid partition
-    FIND_RAID=$(cat /proc/mdstat | grep md | awk -F:  '{ print $1 }')
+    FIND_RAID=$(cat /proc/mdstat | grep md | awk -F: '{ print $1 }')
     if [ -n ${FIND_RAID} ]; then
         LogMsg "INFO: Raid partition found. Will delete it."
         mdadm --stop ${FIND_RAID}
         mdadm --remove ${FIND_RAID}
     fi
-    #Create partition for test
-    echo -e "o\nn\np\n1\n\n\nw" | fdisk ${TEST_DEVICE}
+
     mkfs.${FS} ${TEST_DEVICE}1
     if [ "$?" = "0" ]; then
         LogMsg "mkfs.$FS ${TEST_DEVICE}1 successful..."
@@ -315,7 +305,7 @@ function fio_single_disk {
             echo "Drive mount : Failed" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
         fi
-        else
+    else
         LogMsg "ERROR in creating file system.."
         echo "Creating Filesystem : Failed" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
@@ -324,47 +314,18 @@ function fio_single_disk {
     if [ -d "/root/${LOG_FOLDER}" ]; then
         echo "WARN: ${LOG_FOLDER} exists. Will delete it ..." >> ~/summary.log
         rm -rf /root/${LOG_FOLDER}
-
     fi
-
     echo "Creating log folder..."
     mkdir /root/${LOG_FOLDER}
-
-    # Run FIO with block size 8k and iodepth 1
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-1q.log
-
-    # Run FIO with block size 8k and iodepth 2
-    sed --in-place=.orig -e s:"iodepth=1":"iodepth=2": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-2q.log
-
-    # Run FIO with block size 8k and iodepth 4
-    sed --in-place=.orig -e s:"iodepth=2":"iodepth=4": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-4q.log
-
-    # Run FIO with block size 8k and iodepth 8
-    sed --in-place=.orig -e s:"iodepth=4":"iodepth=8": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-8q.log
-
-    #Run FIO with block size 8k and iodepth 16
-    sed --in-place=.orig -e s:"iodepth=8":"iodepth=16": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-16q.log
-
-    # Run FIO with block size 8k and iodepth 32
-    sed --in-place=.orig -e s:"iodepth=16":"iodepth=32": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-32q.log
-
-    # Run FIO with block size 8k and iodepth 64
-    sed --in-place=.orig -e s:"iodepth=32":"iodepth=64": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-64q.log
-
-    # Run FIO with block size 8k and iodepth 128
-    sed --in-place=.orig -e s:"iodepth=64":"iodepth=128": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-128q.log
-
-    # Run FIO with block size 8k and iodepth 256
-    sed --in-place=.orig -e s:"iodepth=128":"iodepth=256": /root/${FIO_SCENARIO_FILE}
-    /root/${FIODIR}/fio /root/${FIO_SCENARIO_FILE} > /root/${LOG_FOLDER}/FIOLog-256q.log
-
+    sleep 5
+    for q in "${QDEPTH[@]}"
+    do
+        sed -i "/iodepth/c\iodepth=${q}" /root/${FIO_SCENARIO_FILE}
+        LogMsg "INFO: Running FIO qdepth ${q}"
+        echo "INFO: Running FIO qdepth ${q}"
+        fio /root/${FIO_SCENARIO_FILE} --output /root/${LOG_FOLDER}/FIOLog-${q}q.log
+        sleep 3
+    done
     cd /root
     zip -r ${LOG_FOLDER}.zip ${LOG_FOLDER}/*
     if [ $? -ne 0 ]; then
@@ -405,7 +366,7 @@ function fio_raid {
         echo "ERROR: Unable to detect OS version."
         UpdateTestState $ICA_TESTABORTED
     fi
-    if [ ${DISTRO} == "centos_6" ]; then
+    if [[ ${DISTRO} == "redhat_6" || ${DISTRO} == "centos_6" ]]; then
         mkfs.${FS} /dev/${RAID_NAME} -E lazy_itable_init=0 -K
     else
         mkfs.${FS} /dev/${RAID_NAME} -E lazy_itable_init=0,lazy_journal_init=0 -K
@@ -457,7 +418,7 @@ function fio_raid {
                 log_file="/root/${LOG_FOLDER}/${current_io_size}K-${current_q_depth}-${current_io_mode}.fio.log"
                 echo "FIO TEST COMMAND:" > ${log_file}
                 echo "fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=60 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting" >> ${log_file}
-                fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=60 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting  >> ${log_file}
+                fio --name=${current_io_mode} --bs=${current_io_size}k --ioengine=libaio --iodepth=${actual_q_depth} --size=${current_file_size}G --direct=1 --runtime=60 --numjobs=${num_jobs} --rw=${current_io_mode} --group_reporting  --output ${log_file}
                 sleep 1
                 io_mode_index=$(($io_mode_index + 1))
             done

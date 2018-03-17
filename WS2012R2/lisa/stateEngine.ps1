@@ -257,7 +257,7 @@ $testResult = GetJUnitXML
 # RunICTests()
 #
 ########################################################################
-function RunICTests([XML] $xmlConfig, [string] $collect)
+function RunICTests([XML] $xmlConfig, [string] $collect, [string] $noshutdown)
 {
     <#
     .Synopsis
@@ -269,6 +269,8 @@ function RunICTests([XML] $xmlConfig, [string] $collect)
         on test completion.
     .Parameter xmlConfig
         XML document driving the test.
+    .Parameter noshutdown
+        Flag to leave the VM running regardless of a testcase status.
     .Example
         RunICTests $xmlData
     #>
@@ -282,6 +284,12 @@ function RunICTests([XML] $xmlConfig, [string] $collect)
     if (-not $collect -or $collect -isnot [string])
     {
         LogMsg 0 "Error: RunICTests received a bad collect parameter - terminating LISA"
+        return
+    }
+
+    if (-not $noshutdown -or $noshutdown -isnot [string])
+    {
+        LogMsg 0 "Error: RunICTests received a bad noshutdown parameter: ${noshutdown} - terminating LISA"
         return
     }
 
@@ -435,7 +443,7 @@ function RunICTests([XML] $xmlConfig, [string] $collect)
     #
     # run the state engine
     #
-    DoStateMachine $xmlConfig $collect
+    DoStateMachine $xmlConfig $collect $noshutdown
 
     #
     # Add LIS version to the email summary text
@@ -579,7 +587,7 @@ function ResetVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 # DoStateMachine()
 #
 ########################################################################
-function DoStateMachine([XML] $xmlConfig, [string] $collect)
+function DoStateMachine([XML] $xmlConfig, [string] $collect, [string] $noshutdown)
 {
     <#
     .Synopsis
@@ -641,7 +649,7 @@ function DoStateMachine([XML] $xmlConfig, [string] $collect)
 
             $DiagNoseHungSystem
                 {
-                    DoDiagnoseHungSystem $vm $xmlConfig
+                    DoDiagnoseHungSystem $vm $xmlConfig $noshutdown
                     $done = $false
                 }
 
@@ -707,7 +715,7 @@ function DoStateMachine([XML] $xmlConfig, [string] $collect)
 
             $ShutdownSystem
                 {
-                    DoShutdownSystem $vm $xmlConfig
+                    DoShutdownSystem $vm $xmlConfig $noshutdown
                     $done = $false
                 }
 
@@ -1477,7 +1485,7 @@ function DoSlowSystemStarting([System.Xml.XmlElement] $vm, [XML] $xmlData)
 # DiagnoseHungSystem()
 #
 ########################################################################
-function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
+function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData, [String] $noshutdown)
 {
     <#
     .Synopsis
@@ -1549,91 +1557,108 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
         (TakeConsoleScreenShot $VMCS $xResolution $yResolution).Save($BMPName)
     }
 
-    #
-    # Proceed with restarting the VM
-    #
     $currentTest = GetTestData $($vm.currentTest) $xmlData
-    Start-Sleep -s 5
-    $timeout = 60
-    Stop-VM -Name $vm.vmName -ComputerName $vm.hvServer -Force -TurnOff
-
-    while ($timeout -gt 0)
+    if ($noshutdown -eq "True")
     {
-        $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
-        if ( $($v.State) -eq "Off" )
+        $testName = $($vm.currentTest)
+        $testData = GetTestData $testName $xmlData
+        $completionCode = $Aborted
+        LogMsg 0 "Info : NoShutdown parameter is True. Skipping DoDiagnoseHungSystem($($vm.vmName))"
+        LogMsg 0 "Error: $($vm.vmName) did not boot for test $testName "
+        LogMsg 0 "Info : $($vm.vmName) Status for test $testName  = ${completionCode}"
+        if ($testData.OnError -eq "Abort")
         {
-            LogMsg 0 "Warn : $($vm.vmName) is now starting for the second time for test $($vm.currentTest)"
-            Start-VM $vm.vmName -ComputerName $vm.hvServer | out-null
-            $timeout_startVM = 60
-            while ($timeout_startVM -gt 0)
+            LogMsg 0 "Warn : Test is set to abort on error. Exiting"
+            $vm.currentTest = "done"
+        }
+        SetTestResult $currentTest $completionCode $xmlData
+        UpdateState $vm $Finished
+    }
+    else
+    {
+        #
+        # Proceed with restarting the VM
+        #
+        Start-Sleep -s 5
+        $timeout = 60
+        Stop-VM -Name $vm.vmName -ComputerName $vm.hvServer -Force -TurnOff
+        while ($timeout -gt 0)
+        {
+            $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
+            if ( $($v.State) -eq "Off" )
             {
-                #
-                # Check if the VM is in the Hyper-v Running state
-                #
-                $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
-                if ($($v.State) -eq "Running")
+                LogMsg 0 "Warn : $($vm.vmName) is now starting for the second time for test $($vm.currentTest)"
+                Start-VM $vm.vmName -ComputerName $vm.hvServer | out-null
+                $timeout_startVM = 60
+                while ($timeout_startVM -gt 0)
                 {
-                    break
+                    #
+                    # Check if the VM is in the Hyper-v Running state
+                    #
+                    $v = Get-VM $vm.vmName -ComputerName $vm.hvServer
+                    if ($($v.State) -eq "Running")
+                    {
+                        break
+                    }
+
+                    Start-Sleep -s 1
+                    $timeout_startVM -= 1
                 }
 
-                Start-Sleep -s 1
-                $timeout_startVM -= 1
-            }
-
-            $ipv4 = $null
-            $hasBooted = $false
-            [int]$timeoutBoot = 25
-            # Update the vm.ipv4 value if the VMs IP address changed
-            while (($hasBooted -eq $false) -and ($timeoutBoot -ge 0))
-            {
-                Start-Sleep -s 1
-                $ipv4 = GetIPv4 $vm.vmName $vm.hvServer
-                LogMsg 9 "Debug: vm.ipv4 = $($vm.ipv4)"
-                if ($ipv4 -and ($vm.ipv4 -ne [String] $ipv4))
+                $ipv4 = $null
+                $hasBooted = $false
+                [int]$timeoutBoot = 25
+                # Update the vm.ipv4 value if the VMs IP address changed
+                while (($hasBooted -eq $false) -and ($timeoutBoot -ge 0))
                 {
-                    LogMsg 9 "Updating VM IP from $($vm.ipv4) to ${ipv4}"
-                    $vm.ipv4 = [String] $ipv4
+                    Start-Sleep -s 1
+                    $ipv4 = GetIPv4 $vm.vmName $vm.hvServer
+                    LogMsg 9 "Debug: vm.ipv4 = $($vm.ipv4)"
+                    if ($ipv4 -and ($vm.ipv4 -ne [String] $ipv4))
+                    {
+                        LogMsg 9 "Updating VM IP from $($vm.ipv4) to ${ipv4}"
+                        $vm.ipv4 = [String] $ipv4
+                    }
+                    $sts = TestPort $vm.ipv4 -port 22 -timeout 5
+                    if ($sts)
+                    {
+                        $hasBooted = $true
+                    }
+                    $timeoutBoot -= 1
                 }
-                $sts = TestPort $vm.ipv4 -port 22 -timeout 5
-                if ($sts)
-                {
-                    $hasBooted = $true
-                }
-                $timeoutBoot -= 1
-            }
 
-            if ($hasBooted -eq $true)
-            {
-                UpdateState $vm $SystemUp
+                if ($hasBooted -eq $true)
+                {
+                    UpdateState $vm $SystemUp
+                }
+                else
+                {
+                    $testName = $($vm.currentTest)
+                    $testData = GetTestData $testName  $xmlData
+                    $completionCode = $Aborted
+
+                    LogMsg 0 "Error: $($vm.vmName) did not boot after second try for test $testName "
+                    LogMsg 0 "Info : $($vm.vmName) Status for test $testName  = ${completionCode}"
+
+                    if ($testData.OnError -eq "Abort") {
+                        LogMsg 0 "Warn : Test is set to abort on error. Exiting"
+                        $vm.currentTest = "done"
+                        # UpdateState $vm $ForceShutdown
+                        UpdateState $vm $Disabled
+                    }
+                    SetTestResult $vm.suite $currentTest $completionCode $xmlData
+                    $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
+                    UpdateState $vm $ForceShutdown
+                }
             }
             else
             {
-                $testName = $($vm.currentTest)
-                $testData = GetTestData $testName  $xmlData
-                $completionCode = $Aborted
-
-                LogMsg 0 "Error: $($vm.vmName) did not boot after second try for test $testName "
-                LogMsg 0 "Info : $($vm.vmName) Status for test $testName  = ${completionCode}"
-
-                if ($testData.OnError -eq "Abort") {
-                    LogMsg 0 "Warn : Test is set to abort on error. Exiting"
-                    $vm.currentTest = "done"
-                    # UpdateState $vm $ForceShutdown
-                    UpdateState $vm $Disabled
-                }
-                SetTestResult $vm.suite $currentTest $completionCode $xmlData
-                $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
-                UpdateState $vm $ForceShutdown
+                $timeout -= 1
+                Start-Sleep -S 1
             }
-    }
-        else
-        {
-            $timeout -= 1
-            Start-Sleep -S 1
         }
     }
 }
-
 
 ########################################################################
 #
@@ -2906,7 +2931,7 @@ function DoDetermineReboot([System.Xml.XmlElement] $vm, [XML] $xmlData)
 # DoShutdownSystem
 #
 ########################################################################
-function DoShutdownSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
+function DoShutdownSystem([System.Xml.XmlElement] $vm, [XML] $xmlData, [string] $noshutdown)
 {
     <#
     .Synopsis
@@ -2923,11 +2948,15 @@ function DoShutdownSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     if (-not $vm -or $vm -isnot [System.Xml.XmlElement])
     {
-        LogMsg 0 "Error: DoShutdownSystem received an bad vm parameter"
+        LogMsg 0 "Error: DoShutdownSystem received a bad vm parameter"
         return
     }
-
-    LogMsg 9 "Info : DoShutdownSystem($($vm.vmName))"
+     if ($noshutdown -eq "True") {
+         LogMsg 0 "Info : NoShutdown parameter is True. Skipping DoShutdownSystem($($vm.vmName))"
+     }
+    else {
+        LogMsg 9 "Info : DoShutdownSystem($($vm.vmName))"
+    }
 
     if (-not $xmlData -or $xmlData -isnot [XML])
     {
@@ -2937,8 +2966,13 @@ function DoShutdownSystem([System.Xml.XmlElement] $vm, [XML] $xmlData)
         UpdateState $vm $ForceShutdown
     }
 
-    ShutDownVM $vm
-    UpdateState $vm $ShuttingDown
+    if ($noshutdown -eq "True") {
+         UpdateState $vm $Finished
+    }
+    else {
+        ShutDownVM $vm
+        UpdateState $vm $ShuttingDown
+    }
 }
 
 ########################################################################

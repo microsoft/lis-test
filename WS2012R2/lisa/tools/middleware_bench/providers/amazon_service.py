@@ -59,6 +59,7 @@ class AWSConnector:
         self.instancetype = instancetype
         self.user = user
         self.localpath = localpath
+        self.host_key_file = os.path.join(self.localpath, 'known_hosts')
         if not region:
             self.region = 'eu-west-1'
         else:
@@ -289,7 +290,6 @@ class AWSConnector:
         :param user: SSH user to use with the created key
         :return: SSHClient or None on error
         """
-        host_key_file = os.path.join(self.localpath, 'known_hosts')
         ping_arg = '-n'
         if os.name == 'posix':
             ping_arg = '-c'
@@ -299,13 +299,12 @@ class AWSConnector:
         ping_cmd = 'ping {} 1 {}'.format(ping_arg, instance.ip_address)
         try:
             timeout = 0
-            while os.system(ping_cmd) != 0 or timeout >= 60:
+            while os.system(ping_cmd) != 0 and timeout < 60:
                 time.sleep(5)
                 timeout += 5
             # artificial wait for ssh service up status
             time.sleep(60)
-            open(host_key_file, 'w').close()
-            client = SSHClient(server=instance.ip_address, host_key_file=host_key_file,
+            client = SSHClient(server=instance.ip_address, host_key_file=self.host_key_file,
                                user=user or self.user,
                                ssh_key_file=os.path.join(self.localpath, self.key_name + '.pem'))
         except Exception as e:

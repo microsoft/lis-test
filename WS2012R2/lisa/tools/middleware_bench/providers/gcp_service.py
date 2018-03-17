@@ -247,23 +247,21 @@ class GCPConnector:
         :param instance: instance to wait for sshd start
         :return: SSHClient or None on error
         """
-        host_key_file = os.path.join(self.localpath, 'known_hosts')
         ping_arg = '-n'
         if os.name == 'posix':
             ping_arg = '-c'
         nat_ip = instance['networkInterfaces'][0]['accessConfigs'][0].get('natIP', None)
         if not nat_ip:
             log.error("Spawned instance was not allocated a NAT IP. Please try again.")
-            raise
+            raise Exception("Spawned instance was not allocated a public IP. Please try again.")
         ping_cmd = 'ping {} 1 {}'.format(ping_arg, nat_ip)
         try:
             timeout = 0
-            while os.system(ping_cmd) != 0 or timeout >= 60:
+            while os.system(ping_cmd) != 0 and timeout < 60:
                 time.sleep(5)
                 timeout += 5
             # artificial wait for ssh service up status
             time.sleep(30)
-            open(host_key_file, 'w').close()
             client = SSHClient(server=nat_ip, host_key_file=self.host_key_file, user=self.user,
                                ssh_key_file=os.path.join(self.localpath, self.key_name + '.pem'))
         except Exception as e:
