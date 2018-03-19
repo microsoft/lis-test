@@ -139,7 +139,7 @@ del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "Info: Covers ${tcCovered}" | Out-File $summaryLog
 
 $retVal = ConfigTimeSync -sshKey $sshKey -ipv4 $ipv4
-if (-not $retVal) 
+if (-not $retVal)
 {
     Write-Output "Error: Failed to config time sync."
     return $False
@@ -202,6 +202,7 @@ if ($status.PrimaryOperationalStatus -ne "Ok")
 }
 "Info : Integrated Time Sync Service successfully Enabled"
 
+Start-Sleep -seconds 5
 #
 # Now also save the VM for 60 seconds
 #
