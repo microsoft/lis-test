@@ -214,6 +214,9 @@ do {
     sleep 5
 } until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 
+#sleep more time
+sleep 5
+
 #
 # Prepare the kdump related
 #
@@ -281,6 +284,8 @@ do {
     sleep 5
 } until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 
+#sleep more time
+sleep 5
 #
 # Verifying if the kernel panic process creates a vmcore file of size 10M+
 #
