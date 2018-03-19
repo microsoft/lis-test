@@ -122,6 +122,19 @@ function install_lis {
 }
 
 function main {
+	# Check wget
+	wget -V > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		yum install wget -y
+		if [ $? -ne 0 ]; then
+			msg="ERROR: Failed to install wget"
+			LogMsg "$msg"
+			UpdateSummary "$msg"
+			SetTestStateFailed
+			exit 1
+		fi
+	fi
+
 	download_archive
 
 	install_lis
