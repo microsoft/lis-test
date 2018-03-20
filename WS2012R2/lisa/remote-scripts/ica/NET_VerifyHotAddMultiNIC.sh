@@ -62,6 +62,7 @@ function AddedNic
 
     echo "Info : Bringing up ${ethName}"
     ifup ${ethName}
+    sleep 5
 
     #
     # Verify the new NIC received an IP v4 address
