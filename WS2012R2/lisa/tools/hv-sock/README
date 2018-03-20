@@ -18,7 +18,9 @@ recommendations about building configuration:
 
 1. Build it with "Release" instead of "Debug"
 
-2. In project property, C/C++ -> Code Generation -> Runtime Library, choose
+2. Build it with "x64" instead of "x86"
+
+3. In project property, C/C++ -> Code Generation -> Runtime Library, choose
 "Multi-threaded(/MT)" instead of "Multi-threaded DLL(/MD)".
 
 These configuration recommendations are to make sure the program works
