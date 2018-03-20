@@ -30,7 +30,6 @@
 #
 # test result codes
 #
-
 New-Variable Passed              -value "Passed"              -option ReadOnly -Force
 New-Variable Skipped             -value "Skipped"             -option ReadOnly -Force
 New-Variable Aborted             -value "Aborted"             -option ReadOnly -Force
@@ -87,7 +86,8 @@ function GetFileFromVM([String] $ipv4, [String] $sshKey, [string] $remoteFile, [
         return $False
     }
 
-    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} root@${ipv4}:${remoteFile} ${localFile}" -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} root@${ipv4}:${remoteFile} ${localFile}" `
+	 -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut_${ipv4}.tmp -redirectStandardError lisaErr_${ipv4}.tmp
     if ($process.ExitCode -eq 0)
     {
         $retVal = $True
@@ -98,8 +98,8 @@ function GetFileFromVM([String] $ipv4, [String] $sshKey, [string] $remoteFile, [
         return $False
     }
 
-    del lisaOut.tmp -ErrorAction "SilentlyContinue"
-    del lisaErr.tmp -ErrorAction "SilentlyContinue"
+    del lisaOut_${ipv4}.tmp -ErrorAction "SilentlyContinue"
+    del lisaErr_${ipv4}.tmp -ErrorAction "SilentlyContinue"
 
     return $retVal
 }
@@ -113,7 +113,7 @@ function GetIPv4([String] $vmName, [String] $server)
 {
     <#
     .Synopsis
-        Try to determin a VMs IPv4 address
+        Try to determine a VMs IPv4 address
     .Description
         Use various techniques to determine a VMs IPv4 address
     .Parameter vmName
@@ -137,7 +137,7 @@ function GetIPv4([String] $vmName, [String] $server)
             if (-not $addr)
             {
                 $errMsg += ("`n" + $error[0].Exception.Message)
-                Write-Error -Message ("GetIPv4: Unable to determin IP address for VM ${vmNAme}`n" + $errmsg) -Category ReadError -ErrorAction SilentlyContinue
+                Write-Error -Message ("GetIPv4: Unable to determine IP address for VM ${vmName}`n" + $errmsg) -Category ReadError -ErrorAction SilentlyContinue
                 return $null
             }
         }
@@ -690,7 +690,8 @@ function SendCommandToVM([String] $ipv4, [String] $sshKey, [string] $command)
 
     # get around plink questions
     echo y | bin\plink.exe -i ssh\${sshKey} root@${ipv4} 'exit 0'
-    $process = Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${ipv4} ${command}" -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process = Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${ipv4} ${command}" `
+	 -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut_${ipv4}.tmp -redirectStandardError lisaErr_${ipv4}.tmp
     if ($process.ExitCode -eq 0)
     {
         $retVal = $True
@@ -700,8 +701,8 @@ function SendCommandToVM([String] $ipv4, [String] $sshKey, [string] $command)
          Write-Error -Message "Unable to send command to ${ipv4}. Command = '${command}'" -Category SyntaxError -ErrorAction SilentlyContinue
     }
 
-    del lisaOut.tmp -ErrorAction "SilentlyContinue"
-    del lisaErr.tmp -ErrorAction "SilentlyContinue"
+    del lisaOut_${ipv4}.tmp -ErrorAction "SilentlyContinue"
+    del lisaErr_${ipv4}.tmp -ErrorAction "SilentlyContinue"
 
     return $retVal
 }
@@ -764,7 +765,8 @@ function SendFileToVM([String] $ipv4, [String] $sshkey, [string] $localFile, [st
     # get around plink questions
     echo y | bin\plink.exe -i ssh\${sshKey} root@${ipv4} "exit 0"
 
-    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} ${localFile} root@${ipv4}:${remoteFile}" -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} ${localFile} root@${ipv4}:${remoteFile}" `
+	 -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut_${ipv4}.tmp -redirectStandardError lisaErr_${ipv4}.tmp
     if ($process.ExitCode -eq 0)
     {
         $retVal = $True
@@ -774,8 +776,8 @@ function SendFileToVM([String] $ipv4, [String] $sshkey, [string] $localFile, [st
         Write-Error -Message "Unable to send file '${localFile}' to ${ipv4}" -Category ConnectionError -ErrorAction SilentlyContinue
     }
 
-    del lisaOut.tmp -ErrorAction "SilentlyContinue"
-    del lisaErr.tmp -ErrorAction "SilentlyContinue"
+    del lisaOut_${ipv4}.tmp -ErrorAction "SilentlyContinue"
+    del lisaErr_${ipv4}.tmp -ErrorAction "SilentlyContinue"
 
     if ($ChangeEOL)
     {
