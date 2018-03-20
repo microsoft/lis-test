@@ -1263,15 +1263,11 @@ function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [strin
     #>
 
     $retVal = $False
-
-    $vmName = $vm.vmName
     $hostname = $vm.ipv4
     $sshKey = $vm.sshKey
 
-    #bin\pscp -q -i ssh\${sshKey} root@${hostname}:${remoteFile} $localFile
-    #if ($?)
-
-    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} root@${hostname}:${remoteFile} ${localFile}" -PassThru -NoNewWindow -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} root@${hostname}:${remoteFile} ${localFile}" `
+	 -PassThru -NoNewWindow -redirectStandardOutput lisaOut_$($vm.vmName).tmp -redirectStandardError lisaErr_$($vm.vmName).tmp
     $process | Wait-process -timeout 4 -ErrorAction 0 -ErrorVariable hangFlag
     if ($hangFlag) {
         $process | kill
@@ -1283,12 +1279,12 @@ function GetFileFromVM([System.Xml.XmlElement] $vm, [string] $remoteFile, [strin
     else
     {
         LogMsg 1 "ERROR: GetFileFromVM failed. Error message from pscp: "
-        $error = Get-Content .\lisaErr.tmp
+        $error = Get-Content .\lisaErr_$($vm.vmName).tmp
         LogMsg 1 $error
     }
 
-    del lisaOut.tmp -ErrorAction "SilentlyContinue"
-    del lisaErr.tmp -ErrorAction "SilentlyContinue"
+    del lisaOut_$($vm.vmName).tmp -ErrorAction "SilentlyContinue"
+    del lisaErr_$($vm.vmName).tmp -ErrorAction "SilentlyContinue"
 
     return $retVal
 }
@@ -1316,8 +1312,6 @@ function SendFileToVM([System.Xml.XmlElement] $vm, [string] $localFile, [string]
    #>
 
     $retVal = $False
-
-    $vmName = $vm.vmName
     $hostname = $vm.ipv4
     $sshKey = $vm.sshKey
 
@@ -1327,10 +1321,8 @@ function SendFileToVM([System.Xml.XmlElement] $vm, [string] $localFile, [string]
         $recurse = "-r"
     }
 
-    #bin\pscp -q $recurse -i ssh\${sshKey} $localFile root@${hostname}:${remoteFile}
-    #if ($?)
-
-    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} ${localFile} root@${hostname}:${remoteFile}" -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process = Start-Process bin\pscp -ArgumentList "-i ssh\${sshKey} ${localFile} root@${hostname}:${remoteFile}" `
+	 -PassThru -NoNewWindow -Wait -redirectStandardOutput lisaOut_$($vm.vmName).tmp -redirectStandardError lisaErr_$($vm.vmName).tmp
     if ($process.ExitCode -eq 0)
     {
         $retVal = $True
@@ -1338,12 +1330,12 @@ function SendFileToVM([System.Xml.XmlElement] $vm, [string] $localFile, [string]
     else
     {
         LogMsg 1 "ERROR: SendFileToVM failed. Error message from pscp: "
-        $error = Get-Content .\lisaErr.tmp
+        $error = Get-Content .\lisaErr_$($vm.vmName).tmp
         LogMsg 1 $error
     }
 
-    del lisaOut.tmp -ErrorAction "SilentlyContinue"
-    del lisaErr.tmp -ErrorAction "SilentlyContinue"
+    del lisaOut_$($vm.vmName).tmp -ErrorAction "SilentlyContinue"
+    del lisaErr_$($vm.vmName).tmp -ErrorAction "SilentlyContinue"
 
     return $retVal
 }
@@ -1374,7 +1366,8 @@ function SendCommandToVM([System.Xml.XmlElement] $vm, [string] $command)
     $hostname = $vm.ipv4
     $sshKey = $vm.sshKey
 
-    $process = Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${hostname} ${command}" -PassThru -NoNewWindow -redirectStandardOutput lisaOut.tmp -redirectStandardError lisaErr.tmp
+    $process = Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${hostname} ${command}" `
+	 -PassThru -NoNewWindow -redirectStandardOutput lisaOut_$($vm.vmName).tmp -redirectStandardError lisaErr_$($vm.vmName).tmp
     $commandTimeout = 30
     while(!$process.hasExited)
     {
@@ -1395,8 +1388,8 @@ function SendCommandToVM([System.Xml.XmlElement] $vm, [string] $command)
         LogMsg 2 "Success: $vmName successfully sent command to VM. Command = '$command'"
     }
 
-    del lisaOut.tmp -ErrorAction "SilentlyContinue"
-    del lisaErr.tmp -ErrorAction "SilentlyContinue"
+    del lisaOut_$($vm.vmName).tmp -ErrorAction "SilentlyContinue"
+    del lisaErr_$($vm.vmName).tmp -ErrorAction "SilentlyContinue"
 
     return $retVal
 }
