@@ -1,0 +1,31 @@
+This readme file contians information about building the host-end program for
+hv-sock case. This case tests bidirectional connection between hosts and
+guests.
+
+*Source Files*
+server_on_host.cpp
+client on host.cpp
+
+This test case and source code is originally provided by Dexuan Cui
+(decui@microsoft.com) within visual studio project(Some modifications has been
+made to fit in this auto case). However, building from these source code does
+not rely much on the vs project itself, thus we are not bringing the whole
+project into the this git repo.
+
+Generally,it would not be difficult to build it in vs: creating a new vs
+project and put the source code in, then build it. However, We do have some
+recommendations about building configuration:
+
+1. Build it with "Release" instead of "Debug"
+
+2. Build it with "x64" instead of "x86"
+
+3. In project property, C/C++ -> Code Generation -> Runtime Library, choose
+"Multi-threaded(/MT)" instead of "Multi-threaded DLL(/MD)".
+
+These configuration recommendations are to make sure the program works
+correctly on hyperv server core without extra runtime environment.
+
+We also added the built binary executables into the repo since it would be an
+overkill to require all testing hosts to install compiling environment. The
+binary was built with x64 Release, static lib.
