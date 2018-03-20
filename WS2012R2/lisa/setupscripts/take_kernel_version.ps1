@@ -41,6 +41,9 @@
 
 param ([String] $LatestVersionFile)
 
+#site security requires TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 $downloadToPath = "package.html"
 $remoteFileLocation = "https://access.redhat.com/downloads/content/kernel/2.6.32-642.15.1.el6/x86_64/fd431d51/package"
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
