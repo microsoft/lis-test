@@ -179,6 +179,7 @@
          <suiteName>Memory</suiteName>
          <suiteTests>
             <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>kexec_git_install</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <!-- WS 2016 TESTS -->
             <suiteTest>DM_loaded</suiteTest>
@@ -186,15 +187,15 @@
             <!-- Basic Hot Add tests -->
             <suiteTest>HotAdd</suiteTest>
             <!--<suiteTest>HotAddStressapptest</suiteTest> 
-		<suiteTest>DemandPressure</suiteTest>-->
-            <!-- Complex Hot Add tests 
-		<suiteTest>HotRemove</suiteTest>-->
-            <!-- Dynamic Memory – Ballooning
-		<suiteTest>StartupLowCompete</suiteTest>
-		<suiteTest>MinMemHonored</suiteTest>
-		<suiteTest>MaxMemHonored</suiteTest>
-		<suiteTest>SaveRestore</suiteTest>
-		<suiteTest>CleanShutdown</suiteTest>-->
+			<suiteTest>DemandPressure</suiteTest>-->
+			<!-- Complex Hot Add tests 
+			<suiteTest>HotRemove</suiteTest>-->
+			<!-- Dynamic Memory – Ballooning
+			<suiteTest>StartupLowCompete</suiteTest>
+			<suiteTest>MinMemHonored</suiteTest>
+			<suiteTest>MaxMemHonored</suiteTest>
+			<suiteTest>SaveRestore</suiteTest>
+			<suiteTest>CleanShutdown</suiteTest>-->
             <suiteTest>Runtime_Mem_HotAdd</suiteTest>
             <suiteTest>Runtime_Mem_HotRemove</suiteTest>
             <suiteTest>Runtime_Mem_SmallIncrease128</suiteTest>
@@ -211,7 +212,6 @@
             <suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
             <suiteTest>ProductionCheckpoint_SCSI_vhdx</suiteTest>
             <suiteTest>ProductionCheckpoint_ISO_NoNetwork</suiteTest>
-            <suiteTest>kexec_git_install</suiteTest>
             <suiteTest>Crash_single_core</suiteTest>
             <suiteTest>Crash_SMP</suiteTest>
             <suiteTest>Crash_NMI</suiteTest>
@@ -1132,7 +1132,7 @@
          <testScript>NET_Copy_Both_Ways.sh</testScript>
          <files>remote-scripts/ica/NET_Copy_Both_Ways.sh,remote-scripts/ica/utils.sh</files>
          <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-         <timeout>800</timeout>
+         <timeout>1800</timeout>
          <onError>Continue</onError>
       </test>
       <test>

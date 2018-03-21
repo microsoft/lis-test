@@ -179,6 +179,7 @@
          <suiteName>Memory</suiteName>
          <suiteTests>
             <suiteTest>lis_install</suiteTest>
+            <suiteTest>kexec_git_install</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <!-- WS 2016 TESTS -->
             <suiteTest>DM_loaded</suiteTest>
@@ -211,7 +212,6 @@
             <suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
             <suiteTest>ProductionCheckpoint_SCSI_vhdx</suiteTest>
             <suiteTest>ProductionCheckpoint_ISO_NoNetwork</suiteTest>
-            <suiteTest>kexec_git_install</suiteTest>
             <suiteTest>Crash_single_core</suiteTest>
             <suiteTest>Crash_SMP</suiteTest>
             <suiteTest>Crash_NMI</suiteTest>
@@ -1137,7 +1137,7 @@
          <testScript>NET_Copy_Both_Ways.sh</testScript>
          <files>remote-scripts/ica/NET_Copy_Both_Ways.sh,remote-scripts/ica/utils.sh</files>
          <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-         <timeout>800</timeout>
+         <timeout>1800</timeout>
          <onError>Continue</onError>
       </test>
       <test>
