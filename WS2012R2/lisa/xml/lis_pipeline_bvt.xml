@@ -37,8 +37,8 @@
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
             <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
-
-            <suiteTest>StressReloadModules</suiteTest>
+            <!-- not running test until known issue with netvsc is fixed
+            <suiteTest>StressReloadModules</suiteTest>-->
             <suiteTest>LISShutdownVM</suiteTest>
             <suiteTest>Multi_Cpu_Test</suiteTest>
             <suiteTest>VCPU_verify_online</suiteTest>
