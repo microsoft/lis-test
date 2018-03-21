@@ -112,7 +112,6 @@ class AzureConnector:
         self.resource_client.resource_groups.create_or_update(self.group_name,
                                                               {'location': self.location})
 
-        log.info('Creating storage account: {}'.format(self.storage_account))
         storage_op = self.storage_client.storage_accounts.create(self.group_name,
                                                                  self.storage_account,
                                                                  {'sku': {'name': 'premium_lrs'},
@@ -120,14 +119,12 @@ class AzureConnector:
                                                                   'location': self.location})
         storage_op.wait()
 
-        log.info('Creating virtual network: {}'.format(self.vmnet_name))
         create_vmnet = self.network_client.virtual_networks.create_or_update(
                 self.group_name, self.vmnet_name,
                 {'location': self.location,
                  'address_space': {'address_prefixes': ['10.10.0.0/16']}})
         create_vmnet.wait()
 
-        log.info('Creating subnet: {}'.format(self.subnet_name))
         create_subnet = self.network_client.subnets.create_or_update(
                 self.group_name, self.vmnet_name, self.subnet_name,
                 {'address_prefix': '10.10.10.0/24'})
@@ -159,7 +156,6 @@ class AzureConnector:
                         config.get('Image', 'resource_group'), config.get('Image', 'name'))
                 imageid = {'id': private_image.id}
             vm_name = config.get('Windows', 'name')
-            log.info('Creating Windows VM: {}'.format(vm_name))
             nic = self.create_nic(vm_name, nsg=True)
             vm_parameters = {
                 'location': self.location,
@@ -181,7 +177,6 @@ class AzureConnector:
                 'network_profile': {'network_interfaces': [{'id': nic.id}]}
             }
         else:
-            log.info('Creating VM: {}'.format(self.imageid))
             vm_name = self.imageid['offer'].lower() + str(time.time()).replace('.', '')
             nic = self.create_nic(vm_name)
             with open(os.path.join(self.localpath, self.key_name + '.pub'), 'r') as f:
@@ -244,7 +239,6 @@ class AzureConnector:
         :param nsg <dict> containing security rules {}
         :return: NetworkInterface ClientRawResponse
         """
-        log.info('Creating VM network interface: {}'.format(self.nic_name))
         create_public_ip = self.network_client.public_ip_addresses.create_or_update(
                 self.group_name, vm_name + '-ip',
                 {'location': self.location,
@@ -263,12 +257,10 @@ class AzureConnector:
             log.info('Adding Accelerated Networking')
             nic_parameters['enable_accelerated_networking'] = True
         if nsg:
-            log.info('Creating network security group')
             create_nsg = self.network_client.network_security_groups.create_or_update(
                     self.group_name, vm_name + '-nsg',
                     {'location': self.location})
             log.info(create_nsg.result())
-            log.info('Creating rdp security rule')
             self.network_client.security_rules.create_or_update(
                     self.group_name, create_nsg.result().name, 'default-allow-rdp',
                     {'protocol': 'Tcp',
@@ -279,7 +271,6 @@ class AzureConnector:
                      'source_port_range': '*',
                      'destination_port_range': '3389',
                      'priority': 1000})
-            log.info('Creating wsman https security rule')
             self.network_client.security_rules.create_or_update(
                     self.group_name, create_nsg.result().name, 'wsman-https',
                     {'protocol': 'Tcp',
@@ -298,19 +289,19 @@ class AzureConnector:
         log.info('Created NIC: {}'.format(nic_name))
         return nic_op.result()
 
-    def attach_disk(self, vm_instance, disk_size, lun=0):
+    def attach_disk(self, vm_instance, disk_size=0, device=0):
         """
         Creates and attached a disk to VM.
         :param vm_instance: VirtualMachine obj to attach the disk to
         :param disk_size: disk size in GB
-        :param lun: disk lun
+        :param device: disk lun device
         :return disk_name: given disk name
         """
         disk_name = vm_instance.name + '_disk_' + str(time.time())
         disk_profile = {'name': disk_name,
                         'disk_size_gb': disk_size,
                         'caching': 'None',
-                        'lun': lun,
+                        'lun': device,
                         'vhd': {'uri': "http://{}.blob.core.windows.net/vhds/{}.vhd".format(
                                 self.storage_account, disk_name)},
                         'create_option': 'Empty'}
@@ -321,7 +312,8 @@ class AzureConnector:
                                                                           vm_instance)
         vm_update.wait()
         try:
-            log.info(vm_update.result())
+            vm_update.result()
+            log.info('Created disk: {}'.format(disk_name))
         except Exception as de:
             log.info(de)
         return disk_name

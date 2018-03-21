@@ -61,6 +61,8 @@ CLI_SRIOV_OPT = '--sriov'
 CLI_SRIOV_OPT_SH = '-sr'
 CLI_KERNEL_OPT = '--kernel'
 CLI_KERNEL_OPT_SH = '-kr'
+CLI_SUITE_OPT = '--suite'
+CLI_SUITE_OPT_SH = '-su'
 
 AWS = 'aws'
 AZURE = 'azure'
@@ -69,6 +71,9 @@ GCE = 'gce'
 HVM = 'hvm'
 MSAZURE = 'MS Azure'
 KVM = 'kvm'
+
+SYNTHETIC_TESTS = ['test_orion', 'test_orion_raid', 'test_sysbench', 'test_sysbench_raid',
+                   'test_scheduler', 'test_storage']
 
 DEVICE_AWS = '/dev/sdx'
 DEVICE_AZURE = '/dev/sdc'

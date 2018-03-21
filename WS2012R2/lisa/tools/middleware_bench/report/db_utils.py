@@ -168,7 +168,7 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
     Connect to DB and upload results
     """
     if localpath:
-        log.info('Looking up DB credentials for results upload in {}.' .format(localpath))
+        log.info('Looking up DB details in {}*.config.' .format(localpath))
         db_creds_file = [os.path.join(localpath, c) for c in os.listdir(localpath)
                          if c.endswith('.config')][0]
         # read credentials from file - should be present in the localpath provided to runner
@@ -217,7 +217,7 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
         try:
             session.commit()
         except Exception as ex:
-            log.error(ex)
+            log.exception(ex)
             print("Failed to commit {} data. Rolling back.".format(row))
             session.rollback()
             raise
