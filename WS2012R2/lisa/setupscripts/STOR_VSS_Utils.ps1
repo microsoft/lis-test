@@ -117,7 +117,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 		return $False
 	}
 
-	$logger.info(":Backup successful!")
+	$logger.info("Backup successful!")
 	# Let's wait a few Seconds
 	Start-Sleep -Seconds 70
 
@@ -157,65 +157,79 @@ function restoreBackup([string] $backupLocation)
 
 function checkResults([string] $vmName, [string] $hvServer)
 {
-   # Review the results
+	# Review the results
 	$RestoreTime = (New-Timespan -Start (Get-WBJob -Previous 1).StartTime -End (Get-WBJob -Previous 1).EndTime).Minutes
 	$logger.info("Restore duration: $RestoreTime minutes")
 
 	# Make sure VM exists after VSS backup/restore operation
 	$vm = Get-VM -Name $vmName -ComputerName $hvServer
-		if (-not $vm)
-		{
-			$logger.error("VM ${vmName} does not exist after restore")
-			return $False
-		}
-	$logger.info("Restore success!")
-
-	# After Backup Restore VM must be off make sure that.
-	if (-not $vm.state) {
-		$logger.info("Waiting for vm to turn off")
-		Start-Sleep -Seconds 60
-
-		if ( $vm.state -ne "Off" )
-		{
-			$logger.error("VM is not in OFF state, current state is " + $vm.state)
-			return $False
-		}
-	}
-
-	# Now Start the VM
-	$timeout = 300
-	$sts = Start-VM -Name $vmName -ComputerName $hvServer
-	if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
+	if (-not $vm)
 	{
-		$logger.error("${vmName} failed to start")
+		$logger.error("VM ${vmName} does not exist after restore")
 		return $False
 	}
-	else
+	$logger.info("Restore success!")
+
+	$vmState = (Get-VM -name $vmName -ComputerName $hvServer).state
+	$logger.info("VM state is $vmState")
+	$ip_address = GetIPv4 $vmName $hvServer
+	$timeout = 300
+	if ($vmState -eq "Running")
 	{
-		$logger.info("Started VM ${vmName}")
+		if ($ip_address -eq $null)
+		{  
+			$logger.info("Restarting VM to bring up network")
+			Restart-VM -vmName $vmName -ComputerName $hvServer -Force
+			WaitForVMToStartKVP $vmName $hvServer $timeout
+			$ip_address = GetIPv4 $vmName $hvServer
+		}
 	}
-
-	Start-Sleep -s 60
-
-	# Now Check the boot logs in VM to verify if there is no Recovering journals in it .
+	elseif ($vmState -eq "Off")
+	{
+		$logger.info("VM starting")
+		Start-VM -vmName $vmName -ComputerName $hvServer
+		if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
+		{
+			$logger.error("${vmName} failed to start")
+			return $False
+		}
+		else
+		{
+			$ip_address = GetIPv4 $vmName $hvServer
+		}
+	elseif ($vmState -eq "Paused")
+	{
+		$logger.info("VM resuming")
+		Resume-VM -vmName $vmName -ComputerName $hvServer
+		if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout ))
+		{
+			$logger.error("${vmName} failed to resume")
+			return $False
+        }
+		else
+		{
+			$ip_address = GetIPv4 $vmName $hvServer
+		}
+	}
+	}
+	$logger.info("VM IP is $ip_address")
 
 	$sts= GetSelinuxAVCLog
 	if ($sts[-1])
     {
-        $logger.error("There is selinux avc denied log in audit log")
-        return $False
+		$logger.error("There is selinux avc denied log in audit log")
+		return $False
     }
     else
     {
-        $logger.info("no selinux avc deny log in audit logs")
+		$logger.info("no selinux avc deny log in audit logs")
     }
 	# only check restore file when ip available
-	#$ipv4 = GetIPv4 $vmName $hvServer
 	$stsipv4 = Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue
-	if ($stsipv4.PingSucceeded)
+	if ($stsipv4.TcpTestSucceeded)
 	{
-		$sts= CheckFile "/root/1"
-		if (-not $sts[-1])
+		$sts= CheckFile /root/1
+		if ($sts -eq $false)
 		{
 			$logger.error("No /root/1 file after restore")
 			return $False
