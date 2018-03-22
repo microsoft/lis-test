@@ -454,9 +454,15 @@ switch ($scenario) {
     }
 
     "3" {
-        # Stop VM and revert checkpoint
-        RevertSnapshot "LIS_UPGRADE"
-
+        $snap = Get-VMSnapshot -VMName $vmName -Name "LIS_UPGRADE" -EA SilentlyContinue
+        if (-not $?) {
+            Write-Output "Aborting: Snapshot LIS_UPGRADE missing (expected if LISDeploy-02 TC failed)" | Tee-Object -Append -file $summaryLog
+            return $aborted   
+        } else {
+            # Stop VM and revert checkpoint
+            RevertSnapshot "LIS_UPGRADE"
+        }
+        
         # Uninstall LIS
         $LIS_version_upgraded = CheckLISVersion
         $LIS_version_upgraded = $LIS_version_old[($LIS_version_old.count -1)] -split " " | Select-Object -Last 1
@@ -547,8 +553,14 @@ switch ($scenario) {
     }
 
     "5"{
-        # Stop VM and revert checkpoint
-        RevertSnapshot "LIS_INSTALLED"
+        $snap = Get-VMSnapshot -VMName $vmName -Name "LIS_INSTALLED" -EA SilentlyContinue
+        if (-not $?) {
+            Write-Output "Aborting: Snapshot LIS_INSTALLED missing (expected if LISDeploy-01 TC failed)" | Tee-Object -Append -file $summaryLog
+            return $aborted     
+        } else {
+            # Stop VM and revert checkpoint
+            RevertSnapshot "LIS_INSTALLED"   
+        }
 
         # Upgrade kernel
         $sts = UpgradeKernel
@@ -567,8 +579,14 @@ switch ($scenario) {
     }
 
     "6" {
-        # Stop VM and revert checkpoint
-        RevertSnapshot "LIS_UPGRADE"
+        $snap = Get-VMSnapshot -VMName $vmName -Name "LIS_UPGRADE" -EA SilentlyContinue
+        if (-not $?) {
+            Write-Output "Aborting: Snapshot LIS_UPGRADE missing (expected if LISDeploy-02 TC failed)" | Tee-Object -Append -file $summaryLog
+            return $aborted   
+        } else {
+            # Stop VM and revert checkpoint
+            RevertSnapshot "LIS_UPGRADE"
+        }
 
         # Upgrade kernel
         $sts = UpgradeKernel
@@ -622,8 +640,14 @@ switch ($scenario) {
     }
 
     "8"{
-        # Stop VM and revert checkpoint
-        RevertSnapshot "LIS_INSTALLED"
+        $snap = Get-VMSnapshot -VMName $vmName -Name "LIS_INSTALLED" -EA SilentlyContinue
+        if (-not $?) {
+            Write-Output "Aborting: Snapshot LIS_INSTALLED missing (expected if LISDeploy-01 TC failed)" | Tee-Object -Append -file $summaryLog
+            return $aborted     
+        } else {
+            # Stop VM and revert checkpoint
+            RevertSnapshot "LIS_INSTALLED"   
+        }
 
         # Uninstall lis
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=uninstall/g' constants.sh"

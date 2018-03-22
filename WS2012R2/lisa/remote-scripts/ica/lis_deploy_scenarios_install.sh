@@ -29,7 +29,7 @@
 #
 ################################################################
 # The following versions support selinux and can handle custom LIS policy
-release_versions=("6.6" "6.7" "6.8" "7.1" "7.2" "7.3" "7.4" "7.5")
+release_versions=("6.6" "6.7" "6.8" "7.0" "7.1" "7.2" "7.3" "7.4" "7.5")
 
 # Convert eol
 dos2unix utils.sh
@@ -69,7 +69,7 @@ popd
 # Do a double check to see if script finished running
 is_finished=false
 while [ $is_finished == false ]; do
-    cat ~/LIS_scenario_${scenario}.log | tail -2 | grep reboot
+    cat ~/LIS_scenario_${scenario}.log | tail -2 | grep "reboot\|aborting"
     if [ $? -eq 0 ]; then
         is_finished=true
     else
