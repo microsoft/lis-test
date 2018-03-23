@@ -113,6 +113,13 @@ else
   "Error: Could not find setupScripts\TCUtils.ps1"
   return $false
 }
+$BuildNumber = GetHostBuildNumber $hvServer
+
+# WS2012 does not support Debug-VM NMI injection
+if ( ($BuildNumber -eq "9200") -and ($nmi -eq 1) ) {
+    Write-Output "Info: WS2012 does not support Debug-VM NMI injection" | Tee-Object -Append -file $summaryLog
+    return $Skipped
+}
 
 #
 # Confirm the second VM and NFS
@@ -151,7 +158,7 @@ if ($vm2Name -And $use_nfs -eq "yes")
     $timeout = 200 #seconds
     if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
     {
-        "Error: VM ${vm2Name} never started"
+        "Error: VM ${vm2Name} (nfs server) never started"
         Stop-VM $vm2Name -ComputerName $hvServer -force | out-null
         return $false
     }
@@ -183,8 +190,15 @@ if ($vm2Name -And $use_nfs -eq "yes")
 #
 # Configure kdump on the VM
 #
+
+# Append host build number to constants.sh
+$retVal = SendCommandToVM $ipv4 $sshkey "echo BuildNumber=$BuildNumber >> /root/constants.sh"
+if (-not $retVal[-1]){
+    Write-Output "Error: Could not echo BuildNumber=$BuildNumber to vm's constants.sh."
+    return $False
+}
+
 $retVal = RunRemoteScript "kdump_config.sh"
-#$retVal = SendCommandToVM $ipv4 $sshKey "cd /root && dos2unix kdump_config.sh && chmod u+x kdump_config.sh && ./kdump_config.sh $crashkernel $vm2ipv4"
 if ($retVal[-1] -eq $false )
 {
     Write-Output "Error: Failed to configure kdump. Check logs for details." | Tee-Object -Append -file $summaryLog
@@ -210,12 +224,15 @@ Write-Output "Rebooting the VM."
 # Waiting the VM to start up
 #
 Write-Output "Waiting the VM to have a connection..."
-do {
-    sleep 5
-} until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
+sleep 10 # Make sure sshd has stopped
 
-#sleep more time
-sleep 5
+$timeout = 200
+if (-not (WaitForVMToStartSSH $ipv4 $timeout))
+{
+    "Error: VM ${vmName} never started after config"
+    return $false
+}
+sleep 5 # Make sure system properly started
 
 #
 # Prepare the kdump related
@@ -257,6 +274,7 @@ else {
 # Give the host a few seconds to record the event
 #
 Write-Output "Waiting seconds to record the event..."
+Start-Sleep 10
 
 $timeout = 240
 while ( $timeout -gt 0)
@@ -280,12 +298,22 @@ while ( $timeout -gt 0)
 # Waiting the VM to have a connection
 #
 Write-Output "Info: Checking the VM connection after kernel panic"
-do {
-    sleep 5
-} until(Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue | ? { $_.TcpTestSucceeded } )
 
-#sleep more time
-sleep 5
+$timeout = 200 #seconds
+if (-not (WaitForVMToStartSSH $ipv4 $timeout))
+{
+    "Error: VM ${vmName} never started after kernel panic"
+    return $false
+}
+
+# Make sure SSH is still functional
+sleep 5 # Make sure system properly started
+$TestConnection = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo Connected"
+if ($TestConnection -ne "Connected"){
+    Write-Output "Error: SSH failed after kernel panic." | Tee-Object -Append -file $summaryLog
+    return $Failed
+}
+
 #
 # Verifying if the kernel panic process creates a vmcore file of size 10M+
 #
