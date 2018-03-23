@@ -68,37 +68,32 @@ if [ $? -ne 0 ];then
 fi
 
 # Configure VM1
-echo '0' >/proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
+ifconfig eth1 allmulti
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not enable broadcast listening on VM1!"
+    msg="ERROR: Could not enable ALLMULTI on VM1"
     LogMsg "$msg"
     UpdateSummary "$msg"
-    SetTestStateFailed
-fi
-
-echo '1' > /proc/sys/net/ipv4/ip_forward
-if [ $? -ne 0 ]; then
-    msg="ERROR: Could not enable IP forwarding on VM1!"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-fi
-
-ip route add 224.0.0.0/4 dev eth1
-if [ $? -ne 0 ]; then
-    msg="ERROR: Could not add new route to Routing Table on VM1!"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
+    SetTestStateAborted
+    exit 1
 fi
 
 # Configure VM2
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "ifconfig eth1 allmulti"
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not enable ALLMULTI on VM1"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateAborted
+    exit 1
+fi
+
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "echo '1' > /proc/sys/net/ipv4/ip_forward"
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not enable IP Forwarding on VM2!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "ip route add 224.0.0.0/4 dev eth1"
@@ -107,6 +102,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "echo '0' > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts"
@@ -115,6 +111,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 # Multicast testing
@@ -124,6 +121,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 ping -I eth1 224.0.0.1 -c 299 > out.client
@@ -132,12 +130,13 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 LogMsg "Info: ping was started on both VMs. Results will be checked in a few seconds"
 sleep 5
  
-# Check results - Summary must show a 0% loss of packets and duplicate packets (DUP!)
+# Check results - Summary must show a 0% loss of packets
 multicastSummary=$(cat out.client | grep 0%)
 if [ $? -ne 0 ]; then
     msg="ERROR: VM1 shows that packets were lost!"
@@ -146,19 +145,10 @@ if [ $? -ne 0 ]; then
     UpdateSummary "$msg"
     UpdateSummary "${multicastSummary}"
     SetTestStateFailed
+    exit 1
 fi
-
 LogMsg "Multicast summary"
 LogMsg "${multicastSummary}"
-
-# Check results on VM2
-ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "cat out.client | grep '0%'"
-if [ $? -ne 0 ]; then
-    msg="ERROR: VM2 shows that packets were lost!"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-    SetTestStateFailed
-fi
 
 msg="Info: Multicast packets were successfully sent, 0% loss"
 LogMsg $msg

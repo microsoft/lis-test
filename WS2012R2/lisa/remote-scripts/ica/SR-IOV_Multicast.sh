@@ -52,6 +52,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 # Check if the SR-IOV driver is in use
@@ -61,6 +62,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 UpdateSummary "VF is present on VM!"
 
@@ -71,17 +73,37 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 LogMsg "INFO: All configuration completed successfully. Will proceed with the testing"
+# Configure VM1
+ifconfig eth1 allmulti
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not enable ALLMULTI on VM1"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateAborted
+    exit 1
+fi
 
 # Configure VM2
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" "ifconfig eth1 allmulti"
+if [ $? -ne 0 ]; then
+    msg="ERROR: Could not enable ALLMULTI on VM2"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateAborted
+    exit 1
+fi
+
 ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" "echo '1' > /proc/sys/net/ipv4/ip_forward"
 if [ $? -ne 0 ]; then
     msg="ERROR: Could not enable IP Forwarding on VM2!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" "ip route add 224.0.0.0/4 dev eth1"
@@ -90,6 +112,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" "echo '0' > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts"
@@ -98,6 +121,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 # Multicast testing
@@ -107,6 +131,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 ping -I eth1 224.0.0.1 -c 11 > out.client
@@ -115,6 +140,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 LogMsg "INFO: Ping was started on both VMs. Results will be checked in a few seconds"
