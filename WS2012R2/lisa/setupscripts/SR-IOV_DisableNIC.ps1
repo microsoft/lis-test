@@ -74,11 +74,6 @@ $leaveTrail = "no"
 #
 # Check the required input args are present
 #
-
-# Write out test Params
-$testParams
-
-
 if ($hvServer -eq $null)
 {
     "ERROR: hvServer is null"
@@ -160,6 +155,9 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Write out test Params
+$testParams
+
 # Get IPs
 $ipv4 = GetIPv4 $vmName $hvServer
 "${vmName} IPADDRESS: ${ipv4}"
@@ -234,7 +232,7 @@ if (-not $?) {
 }
 
 # Check if module and VF device are still in use
-Start-Sleep -s 10
+Start-Sleep -s 80
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "lspci -vvv | grep -e ixgbevf -e mlx4_core"
 if ($?) {
     "ERROR: The VF module is still in use!" | Tee-Object -Append -file $summaryLog
@@ -260,7 +258,7 @@ if (-not $?) {
 }
 
 # Start iperf again
-Start-Sleep -s 5
+Start-Sleep -s 50
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
 
 # Read the throughput again, it should be higher than before
