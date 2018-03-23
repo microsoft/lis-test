@@ -73,11 +73,6 @@ $leaveTrail = "no"
 #
 # Check the required input args are present
 #
-
-# Write out test Params
-$testParams
-
-
 if ($hvServer -eq $null)
 {
     "ERROR: hvServer is null"
@@ -159,6 +154,9 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Write out test Params
+$testParams
+
 # Get IPs
 $ipv4 = GetIPv4 $vmName $hvServer
 "${vmName} IPADDRESS: ${ipv4}"
@@ -230,7 +228,7 @@ if (-not $?) {
 }
 
 # Read the throughput with SR-IOV disabled; it should be lower
-Start-Sleep -s 60
+Start-Sleep -s 80
 [decimal]$vfDisabledThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 if (-not $vfDisabledThroughput){
     "ERROR: No result was logged after SR-IOV was disabled!" | Tee-Object -Append -file $summaryLog
@@ -256,7 +254,7 @@ if (-not $?) {
     return $false 
 }
 
-Start-Sleep -s 20
+Start-Sleep -s 50
 
 # Read the throughput again, it should be higher than before
 # We should see a throughput at least 70% higher
