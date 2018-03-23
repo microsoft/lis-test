@@ -87,7 +87,7 @@ class GCPConnector:
         Obtain the GCE service clients by authenticating, and setup prerequisites like bucket,
         net, subnet and fw rules.
         """
-        log.info('Creating compute client')
+        log.info('Creating compute client and artifacts')
         self.compute = discovery.build('compute', 'v1', credentials=self.credentials,
                                        cache_discovery=False)
 
@@ -106,7 +106,6 @@ class GCPConnector:
                       }
         net = self.compute.networks().insert(project=self.projectid, body=net_config).execute()
         self.wait_for_operation(net['name'])
-        log.info(net)
         subnet_config = {'name': self.subnet_name,
                          'ipCidrRange': '10.10.10.0/24',
                          'network': net['targetLink']
@@ -114,7 +113,6 @@ class GCPConnector:
         subnet = self.compute.subnetworks().insert(project=self.projectid, region=self.region,
                                                    body=subnet_config).execute()
         self.wait_for_operation(subnet['name'], region=self.region)
-        log.info(subnet)
 
         fw_config = {'name': 'all-traffic-' + self.net_name,
                      'network': net['targetLink'],
@@ -128,7 +126,6 @@ class GCPConnector:
                      }
         fw = self.compute.firewalls().insert(project=self.projectid, body=fw_config).execute()
         self.wait_for_operation(fw['name'])
-        log.info(fw)
 
     def create_vm(self):
         """
@@ -193,7 +190,6 @@ class GCPConnector:
 
         create_disk = self.compute.disks().insert(project=self.projectid, zone=self.zone,
                                                   body=disk_config).execute()
-        log.info(create_disk)
         self.wait_for_operation(create_disk['name'], zone=self.zone)
 
         log.info('Attaching disk {} to VM {}'.format(disk_name, vm_instance['name']))

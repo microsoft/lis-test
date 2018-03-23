@@ -110,7 +110,7 @@ class AWSConnector:
         # artificial wait for public ip
         time.sleep(5)
         instance.update()
-        log.info('Created instance: {}'.format(instance.__dict__))
+        log.info('Created instance: {}'.format(instance.id))
         self.instances.append(instance)
 
         return instance
@@ -160,7 +160,7 @@ class AWSConnector:
         # artificial wait for ip
         time.sleep(5)
         instance.update()
-        log.info('Created instance: {}'.format(instance.__dict__))
+        log.info('Created instance id: {}'.format(instance.id))
 
         return instance
 
@@ -246,7 +246,6 @@ class AWSConnector:
                                       aws_secret_access_key=self.secret)
                 client.modify_instance_attribute(InstanceId=instance.id, Attribute='enaSupport',
                                                  Value='true')
-                log.info('ENA support: {}'.format(client.__dict__))
                 try:
                     log.info(conn.get_instance_attribute(instance.id, 'enaSupport'))
                 except Exception as e:
@@ -379,17 +378,17 @@ class AWSConnector:
                     self.vpc_conn.delete_route(route_table.id, '10.10.0.0/16')
                     log.info('deleted 10.10.0.0 route from table {}'.format(route_table.id))
                 except Exception as e:
-                    pass
+                    log.debug(e)
                 try:
                     self.vpc_conn.delete_route(route_table.id, '0.0.0.0/0')
                     log.info('deleted 0.0.0.0 route from table {}'.format(route_table.id))
                 except Exception as e:
-                    pass
+                    log.debug(e)
                 try:
                     self.vpc_conn.delete_route_table(route_table.id)
                     log.info('deleted route table {}'.format(route_table.id))
                 except Exception as e:
-                    pass
+                    log.debug(e)
 
             try:
                 internet_gateways = self.vpc_conn.get_all_internet_gateways(

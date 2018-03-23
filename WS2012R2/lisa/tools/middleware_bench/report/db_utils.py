@@ -20,6 +20,7 @@ permissions and limitations under the License.
 """
 import os
 import sys
+import pprint
 import logging
 import ConfigParser
 
@@ -168,7 +169,7 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
     Connect to DB and upload results
     """
     if localpath:
-        log.info('Looking up DB details in {}*.config.' .format(localpath))
+        log.info('Looking up DB details in {}\*.config.' .format(localpath))
         db_creds_file = [os.path.join(localpath, c) for c in os.listdir(localpath)
                          if c.endswith('.config')][0]
         # read credentials from file - should be present in the localpath provided to runner
@@ -180,7 +181,6 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
 
     test_results = parser(log_path=results_path, **kwargs).process_logs()
 
-    import pprint
     pprint.pprint(test_results)
     if 'linux' in sys.platform:
         driver = config.get('Credentials', 'Driver_linux')

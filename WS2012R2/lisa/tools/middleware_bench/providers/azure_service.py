@@ -140,7 +140,7 @@ class AzureConnector:
         config = None
         if config_file:
             log.info('Assuming Windows Vm creation')
-            log.info('Looking up Windows VM credentials in {}.'.format(config_file))
+            log.info('Looking up Windows VM credentials in {}\*.windows.'.format(config_file))
             vm_file = [os.path.join(config_file, c) for c in os.listdir(config_file)
                        if c.endswith('.windows')][0]
             # read credentials from file - should be present in the localpath provided to runner
@@ -260,7 +260,6 @@ class AzureConnector:
             create_nsg = self.network_client.network_security_groups.create_or_update(
                     self.group_name, vm_name + '-nsg',
                     {'location': self.location})
-            log.info(create_nsg.result())
             self.network_client.security_rules.create_or_update(
                     self.group_name, create_nsg.result().name, 'default-allow-rdp',
                     {'protocol': 'Tcp',
