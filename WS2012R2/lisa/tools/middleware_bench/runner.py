@@ -133,7 +133,8 @@ def run(options):
             raise Exception('Suite {} not defined. Use "runner.py -h" to list all '
                             'supported suites.'.format(current_suite))
         for test in test_names[current_suite]:
-            if test_args['sriov'] == constants.ENABLED and test in constants.SYNTHETIC_TESTS:
+            if test_args['provider'] == constants.AZURE and\
+                    test_args['sriov'] == constants.ENABLED and test in constants.SYNTHETIC_TESTS:
                 log.info('Skipping synthetic test: {}, for SRIOV enabled.'.format(test))
                 continue
             else:
