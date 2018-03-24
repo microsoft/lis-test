@@ -155,14 +155,6 @@ COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            ]
 
 
-class TestResults(object):
-    def __getitem__(self, item):
-        return getattr(self, item)
-
-    def __setitem__(self, item, value):
-        return setattr(self, item, value)
-
-
 def upload_results(localpath=None, table_name=None, results_path=None, parser=None,
                    other_table=False, **kwargs):
     """
@@ -206,13 +198,20 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
     # When creating db is also necessary
     # metadata.create_all(checkfirst=True)
 
+    class TestResults(object):
+        def __getitem__(self, item):
+            return getattr(self, item)
+
+        def __setitem__(self, item, value):
+            return setattr(self, item, value)
+
     mapper(TestResults, t)
     session = create_session(bind=e, autocommit=False, autoflush=True)
 
     for row in test_results:
         test_data = TestResults()
-        for key, value in row.items():
-            test_data[key] = value
+        for k, v in row.items():
+            test_data[k] = v
         session.add(test_data)
         try:
             session.commit()
