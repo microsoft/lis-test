@@ -694,7 +694,7 @@ def test_zookeeper(provider, keyid, secret, token, imageid, subscription, tenant
     test_cmd = '/tmp/run_zookeeper.sh {} {}'.format(user, zk_servers)
     results_path = os.path.join(localpath, 'zookeeper{}_{}_{}.zip'.format(
             str(time.time()), instancetype, sriov))
-    test_env.run_test(ssh_vm_conf=7, testname='zookeeper', test_cmd=test_cmd,
+    test_env.run_test(ssh_vm_conf=6, testname='zookeeper', test_cmd=test_cmd,
                       results_path=results_path, timeout=constants.TIMEOUT)
     upload_results(localpath=localpath, table_name='Perf_{}_Zookeeper'.format(provider),
                    results_path=results_path, parser=ZookeeperLogsReader,
@@ -740,7 +740,7 @@ def test_terasort(provider, keyid, secret, token, imageid, subscription, tenant,
     test_cmd = '/tmp/run_terasort.sh {} {} {}'.format(user, test_env.device, slaves)
     results_path = os.path.join(localpath, 'terasort{}_{}_{}.zip'.format(
             str(time.time()), instancetype, sriov))
-    test_env.run_test(ssh_vm_conf=7, testname='terasort', test_cmd=test_cmd,
+    test_env.run_test(ssh_vm_conf=6, testname='terasort', test_cmd=test_cmd,
                       results_path=results_path, timeout=constants.TIMEOUT)
     upload_results(localpath=localpath, table_name='Perf_{}_Terasort'.format(provider),
                    results_path=results_path, parser=TerasortLogsReader,
