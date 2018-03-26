@@ -55,6 +55,7 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
+    sudo apt update
     sudo apt -y install libaio1 sysstat zip sysbench >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then

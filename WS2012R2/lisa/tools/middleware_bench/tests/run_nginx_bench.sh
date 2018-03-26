@@ -45,8 +45,10 @@ distro="$(head -1 /etc/issue)"
 web_server="nginx"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
+    sudo apt update
     sudo apt -y install libaio1 sysstat zip nginx apache2-utils >> ${LOG_FILE}
 
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install sysstat zip nginx apache2-utils" >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then

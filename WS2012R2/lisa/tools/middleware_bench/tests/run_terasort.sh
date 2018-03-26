@@ -55,6 +55,7 @@ sudo rm -rf ${hadoop_store}
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
+    sudo apt update
     sudo apt install -y zip maven libssl-dev build-essential rsync pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk-headless bc
     if [ $? != 0 ]; then
         LogMsg "ERROR: Dependencies install failed."

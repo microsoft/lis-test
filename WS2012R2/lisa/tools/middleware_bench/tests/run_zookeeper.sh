@@ -47,6 +47,7 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
+    sudo apt update
     sudo apt -y install libaio1 sysstat zip default-jdk git python-dev libzookeeper-mt-dev python-pip >> ${LOG_FILE}
     sudo -H pip install zkpython >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
