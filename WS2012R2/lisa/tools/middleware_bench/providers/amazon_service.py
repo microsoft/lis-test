@@ -110,7 +110,7 @@ class AWSConnector:
         # artificial wait for public ip
         time.sleep(5)
         instance.update()
-        log.info('Created instance: {}'.format(instance.__dict__))
+        log.info('Created instance: {}'.format(instance.id))
         self.instances.append(instance)
 
         return instance
@@ -160,7 +160,7 @@ class AWSConnector:
         # artificial wait for ip
         time.sleep(5)
         instance.update()
-        log.info('Created instance: {}'.format(instance.__dict__))
+        log.info('Created instance id: {}'.format(instance.id))
 
         return instance
 
@@ -200,11 +200,11 @@ class AWSConnector:
             else:
                 raise
 
-    def attach_disk(self, instance, size=10, volume_type=None, iops=None, device=None):
+    def attach_disk(self, vm_instance, disk_size=10, volume_type=None, iops=None, device=None):
         """
         Create and attach an EBS volume to a given instance.
-        :param instance: Instance object to attach the volume to
-        :param size: size in GB of the volume
+        :param vm_instance: Instance object to attach the volume to
+        :param disk_size: size in GB of the volume
         :param volume_type: volume type: gp2 - SSD, st1 - HDD, sc1 - cold HDD;
                             defaults to magnetic disk
         :param iops: IOPS to associate with this volume.
@@ -213,11 +213,11 @@ class AWSConnector:
         """
         conn = self.conn or self.vpc_conn
         # Add EBS volume DONE
-        ebs_vol = conn.create_volume(size, self.zone, volume_type=volume_type, iops=iops)
+        ebs_vol = conn.create_volume(disk_size, self.zone, volume_type=volume_type, iops=iops)
         self.wait_for_state(ebs_vol, 'status', 'available')
         if not device:
             device = '/dev/sdx'
-        conn.attach_volume(ebs_vol.id, instance.id, device=device)
+        conn.attach_volume(ebs_vol.id, vm_instance.id, device=device)
         self.ebs_vols.append(ebs_vol)
         return ebs_vol
 
@@ -246,7 +246,6 @@ class AWSConnector:
                                       aws_secret_access_key=self.secret)
                 client.modify_instance_attribute(InstanceId=instance.id, Attribute='enaSupport',
                                                  Value='true')
-                log.info('ENA support: {}'.format(client.__dict__))
                 try:
                     log.info(conn.get_instance_attribute(instance.id, 'enaSupport'))
                 except Exception as e:
@@ -300,16 +299,16 @@ class AWSConnector:
         try:
             timeout = 0
             while os.system(ping_cmd) != 0 and timeout < 60:
-                time.sleep(5)
-                timeout += 5
+                time.sleep(10)
+                timeout += 10
             # artificial wait for ssh service up status
             time.sleep(60)
             client = SSHClient(server=instance.ip_address, host_key_file=self.host_key_file,
                                user=user or self.user,
                                ssh_key_file=os.path.join(self.localpath, self.key_name + '.pem'))
         except Exception as e:
-            log.error(e)
-            client = None
+            log.exception(e)
+            raise
         return client
 
     def restart_vm(self, instance):
@@ -379,17 +378,17 @@ class AWSConnector:
                     self.vpc_conn.delete_route(route_table.id, '10.10.0.0/16')
                     log.info('deleted 10.10.0.0 route from table {}'.format(route_table.id))
                 except Exception as e:
-                    log.info(e)
+                    log.debug(e)
                 try:
                     self.vpc_conn.delete_route(route_table.id, '0.0.0.0/0')
                     log.info('deleted 0.0.0.0 route from table {}'.format(route_table.id))
                 except Exception as e:
-                    log.info(e)
+                    log.debug(e)
                 try:
                     self.vpc_conn.delete_route_table(route_table.id)
                     log.info('deleted route table {}'.format(route_table.id))
                 except Exception as e:
-                    log.info(e)
+                    log.debug(e)
 
             try:
                 internet_gateways = self.vpc_conn.get_all_internet_gateways(

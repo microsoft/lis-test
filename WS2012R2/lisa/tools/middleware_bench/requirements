@@ -11,4 +11,5 @@ pyodbc<=3.0.10
 pywinrm<=0.2.2
 msrest<=0.4.8
 msrestazure<=0.4.7
+junit_xml<=1.8
 # create __init__ in azure and azure.mgmt site-packages

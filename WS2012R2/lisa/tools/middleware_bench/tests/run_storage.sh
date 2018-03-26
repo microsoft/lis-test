@@ -45,6 +45,7 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
+    sudo apt update
     sudo apt -y install sysstat zip fio blktrace bc libaio1 >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then

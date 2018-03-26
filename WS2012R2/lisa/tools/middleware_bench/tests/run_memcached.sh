@@ -43,9 +43,11 @@ fi
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
+    sudo apt update
     sudo apt -y install libaio1 sysstat zip memcached libmemcached-tools >> ${LOG_FILE}
     sudo apt -y install build-essential autoconf automake libpcre3-dev libevent-dev pkg-config zlib1g-dev >> ${LOG_FILE}
 
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install libaio1 sysstat zip memcached" >> ${LOG_FILE}
 elif [[ ${distro} == *"Amazon"* ]]
 then

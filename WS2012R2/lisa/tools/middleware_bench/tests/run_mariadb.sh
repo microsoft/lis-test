@@ -60,8 +60,10 @@ escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
+    sudo apt update
     sudo apt -y install libaio1 sysstat zip sysbench mysql-client* >> ${LOG_FILE}
 
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install libaio1 sysstat zip mariadb-server" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service mysql stop" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/datadir/c\datadir = ${escaped_path}' /etc/mysql/mariadb.conf.d/50-server.cnf" >> ${LOG_FILE}

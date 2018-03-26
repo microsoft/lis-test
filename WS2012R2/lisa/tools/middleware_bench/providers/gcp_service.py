@@ -87,7 +87,7 @@ class GCPConnector:
         Obtain the GCE service clients by authenticating, and setup prerequisites like bucket,
         net, subnet and fw rules.
         """
-        log.info('Creating compute client')
+        log.info('Creating compute client and artifacts')
         self.compute = discovery.build('compute', 'v1', credentials=self.credentials,
                                        cache_discovery=False)
 
@@ -101,14 +101,11 @@ class GCPConnector:
         # bucket = self.storage.buckets().insert(project=self.projectid,
         #                                        body=bucket_config).execute()
 
-        log.info('Creating virtual network: {}'.format(self.net_name))
         net_config = {'name': self.net_name,
                       'autoCreateSubnetworks': False
                       }
         net = self.compute.networks().insert(project=self.projectid, body=net_config).execute()
         self.wait_for_operation(net['name'])
-        log.info(net)
-        log.info('Creating subnet: {}'.format(self.subnet_name))
         subnet_config = {'name': self.subnet_name,
                          'ipCidrRange': '10.10.10.0/24',
                          'network': net['targetLink']
@@ -116,9 +113,7 @@ class GCPConnector:
         subnet = self.compute.subnetworks().insert(project=self.projectid, region=self.region,
                                                    body=subnet_config).execute()
         self.wait_for_operation(subnet['name'], region=self.region)
-        log.info(subnet)
 
-        log.info('Creating firewall rules.')
         fw_config = {'name': 'all-traffic-' + self.net_name,
                      'network': net['targetLink'],
                      'allowed': [{'IPProtocol': 'tcp',
@@ -131,7 +126,6 @@ class GCPConnector:
                      }
         fw = self.compute.firewalls().insert(project=self.projectid, body=fw_config).execute()
         self.wait_for_operation(fw['name'])
-        log.info(fw)
 
     def create_vm(self):
         """
@@ -139,7 +133,6 @@ class GCPConnector:
         :return: VirtualMachine object
         """
         vm_name = self.imageid.lower() + '-' + str(time.time()).replace('.', '')
-        log.info('Creating instance: {}'.format(vm_name))
         image = self.compute.images().getFromFamily(project='ubuntu-os-cloud',
                                                     family=self.imageid).execute()
         machine_type = 'zones/{}/machineTypes/{}'.format(self.zone, self.instancetype)
@@ -175,20 +168,20 @@ class GCPConnector:
 
         vm_details = self.compute.instances().get(instance=vm_name, project=self.projectid,
                                                   zone=self.zone).execute()
-        log.info('VM {} details are: {}'.format(vm_name, vm_details))
+        log.info('Created VM: {}'.format(vm_name))
         self.vms.append(vm_details)
 
         return vm_details
 
-    def attach_disk(self, vm_name, disk_size):
+    def attach_disk(self, vm_instance, disk_size=0, device=None):
         """
         Creates and attached a disk to VM.
-        :param vm_name: VM name to attach the disk to
+        :param vm_instance: VM instance to attach the disk to
         :param disk_size: disk size in GB
+        :param device: provide disk name
         :return disk_name: given disk name
         """
         disk_name = 'disk-' + str(time.time()).replace('.', '')
-        log.info('Creating disk {}'.format(disk_name))
         disk_config = {'name': disk_name,
                        'sizeGb': disk_size,
                        'zone': 'projects/{}/zones/{}'.format(self.projectid, self.zone),
@@ -197,19 +190,17 @@ class GCPConnector:
 
         create_disk = self.compute.disks().insert(project=self.projectid, zone=self.zone,
                                                   body=disk_config).execute()
-        log.info(create_disk)
         self.wait_for_operation(create_disk['name'], zone=self.zone)
 
-        log.info('Attaching disk {} to VM {}'.format(disk_name, vm_name))
+        log.info('Attaching disk {} to VM {}'.format(disk_name, vm_instance['name']))
         source_config = {
             'source': '/compute/v1/projects/{}/zones/{}/disks/{}'.format(self.projectid,
                                                                          self.zone, disk_name),
             'autoDelete': True
         }
-        attach_disk = self.compute.instances().attachDisk(instance=vm_name, project=self.projectid,
-                                                          zone=self.zone,
+        attach_disk = self.compute.instances().attachDisk(instance=vm_instance['name'],
+                                                          project=self.projectid, zone=self.zone,
                                                           body=source_config).execute()
-        log.info(attach_disk)
         self.wait_for_operation(attach_disk['name'], zone=self.zone)
 
         return disk_name
@@ -222,7 +213,6 @@ class GCPConnector:
        :param region: region of the operation(optional - default to global operations)
        :return: result zoneOperations status response
        """
-        log.info('Waiting for operation {} to finish...'.format(operation))
         while True:
             time.sleep(10)
             if zone:
@@ -258,14 +248,14 @@ class GCPConnector:
         try:
             timeout = 0
             while os.system(ping_cmd) != 0 and timeout < 60:
-                time.sleep(5)
-                timeout += 5
+                time.sleep(10)
+                timeout += 10
             # artificial wait for ssh service up status
-            time.sleep(30)
+            time.sleep(60)
             client = SSHClient(server=nat_ip, host_key_file=self.host_key_file, user=self.user,
                                ssh_key_file=os.path.join(self.localpath, self.key_name + '.pem'))
         except Exception as e:
-            log.error(e)
+            log.exception(e)
             raise
         return client
 

@@ -61,7 +61,9 @@ escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
+    sudo apt update
     sudo apt -y install libaio1 sysstat zip curl python default-jdk >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt update" >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install libaio1 sysstat zip mongodb-server" >> ${LOG_FILE}
     db_conf="/etc/mongodb.conf"
     db_service="mongodb"

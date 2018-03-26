@@ -19,16 +19,18 @@ limitations under the License.
 See the Apache Version 2.0 License for specific language governing
 permissions and limitations under the License.
 """
-import argparse
-import copy
-import logging
+import os
 import sys
+import copy
+import argparse
+import logging
+import pkgutil
+import importlib
 
-import connector
+from junit_xml import TestSuite, TestCase
+
+import suites
 from utils import constants
-from args_validation import TestAction, ProviderAction, KeyIdAction, SecretAction,\
-    SubscriptionAction, TenantAction, LocalPathAction, RegionAction, ZoneAction, InstTypeAction,\
-    ImageIdAction, UserAction, ProjectAction, TokenAction, KernelAction, SriovAction
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -37,132 +39,124 @@ log = logging.getLogger(__name__)
 
 def run(options):
     """
-    Main point of entry for running middleware benchmarking tests.
-    :param options:
-            optional arguments:
-              -h, --help
-                        show this help message and exit
-              -r REGION, --region REGION
-                        AWS specific region or
-                        Azure specific location to connect to.
-              -z ZONE, --zone ZONE
-                        AWS specific zone where to create resources o
-                        GCE specific zone e.g. us-west1-a
-              -b SUBSCRIPTION, --subscription SUBSCRIPTION
-                        Azure specific subscription id.
-              -n TENANT, --tenant TENANT
-                        Azure tenant id.
-              -j PROJECTID, --project PROJECTID
-                        GCE project ID
-              -o TOKEN, --token TOKEN
-                        GCE refresh token obtained with gcloud sdk.
-              -sr SRIOV, --sriov SRIOV
-                        Bool to enable or disable SRIOV.
-              -kr KERNEL, --kernel KERNEL
-                        Custom kernel to install from localpath.
-
-            mandatory arguments:
-              -t TEST, --test TEST
-                        Test name to be run - defined in connector.py as a method starting with
-                        'test_*'. E.g.: ['test_orion', 'test_sysbench', 'test_test']
-              -p PROVIDER, --provider PROVIDER
-                        Service provider to be used e.g. azure, aws, gce.
-              -k KEYID, --keyid KEYID
-                        AWS access key id or Azure client id.
-              -s SECRET, --secret SECRET
-                        AWS secret access key or Azure client secret.
-              -l LOCALPATH, --localpath LOCALPATH
-                        Local path for saving data.
-              -i INSTANCETYPE, --instancetype INSTANCETYPE
-                        AWS instance resource type or
-                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
-              -g IMAGEID, --imageid IMAGEID
-                        AWS OS AMI image id or
-                        Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS' or
-                        GCE image family e.g. 'ubuntu-1604-lts'
-              -u USER, --user USER
-                        Instance/VM login username.
+    Main point of entry for running benchmark tests.
     """
-    # validate options
-    # log.info('Options are {}'.format(options))
     sys.stdout.flush()
+    # lookup suites and tests
+    suite_names = [suite for _, suite, _ in pkgutil.iter_modules(suites.__path__)]
+    test_names = {}
+    for suite in suite_names:
+        test_names[suite] = [test
+                             for test in dir(importlib.import_module('suites.{}'.format(suite)))
+                             if 'test_' in test]
+    # validate options
     parser = argparse.ArgumentParser(description='Run middleware benchmarking tests.')
     mandatory_args = parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument(constants.CLI_TEST_OPT_SH,
-                                constants.CLI_TEST_OPT, type=str,
-                                action=TestAction, required=True,
-                                help="Test name to be run - defined in "
-                                     "connector.py as a method starting with "
-                                     "'test_*'. E.g.: {}".format(
-                                        [a for a in dir(connector) if 'test' in a]))
-    mandatory_args.add_argument(constants.CLI_PROVIDER_OPT_SH,
-                                constants.CLI_PROVIDER_OPT, type=str,
-                                action=ProviderAction, required=True,
-                                help='Service provider to be used e.g. azure, middleware_bench, '
-                                     'gce.')
-    mandatory_args.add_argument(constants.CLI_KEYID_OPT_SH,
-                                constants.CLI_KEYID_OPT, type=str,
-                                action=KeyIdAction, required=True,
-                                help='AWS access key id or Azure client id.')
-    mandatory_args.add_argument(constants.CLI_SECRET_OPT_SH,
-                                constants.CLI_SECRET_OPT, type=str,
-                                action=SecretAction, required=True,
-                                help='AWS secret access key or Azure client secret.')
-    mandatory_args.add_argument(constants.CLI_LOCAL_PATH_OPT_SH,
-                                constants.CLI_LOCAL_PATH_OPT, type=str,
-                                action=LocalPathAction, required=True,
-                                help='Local path for saving data.')
-    mandatory_args.add_argument(constants.CLI_INST_TYPE_OPT_SH,
-                                constants.CLI_INST_TYPE_OPT, type=str,
-                                action=InstTypeAction, required=True,
-                                help='AWS instance resource type or'
-                                     'Azure hardware profile vm size e.g. "Standard_DS1".')
-    mandatory_args.add_argument(constants.CLI_IMAGEID_OPT_SH,
-                                constants.CLI_IMAGEID_OPT, type=str,
-                                action=ImageIdAction, required=True,
-                                help='AWS OS AMI image id or'
-                                     'Azure image references offer and sku:'
-                                     'e.g. "UbuntuServer#16.04.0-LTS".')
-    mandatory_args.add_argument(constants.CLI_USER_OPT_SH,
-                                constants.CLI_USER_OPT, type=str,
-                                action=UserAction, required=True,
-                                help='Instance/VM login username.')
+    mandatory_args.add_argument(constants.CLI_SUITE_OPT_SH, constants.CLI_SUITE_OPT,
+                                type=str, default='specific',
+                                help='Provide suite to execute. Defaults to "specific" when '
+                                     '"--test" arg is used to execute specific tests.'
+                                     'Suites available: {}'.format(
+                                        [suite for suite in suite_names]))
+    mandatory_args.add_argument(constants.CLI_TEST_OPT_SH, constants.CLI_TEST_OPT,
+                                type=str, default='all',
+                                help='When using "--suite specific", a test name or a comma '
+                                     'separated list of tests must be provided for execution. '
+                                     'Tests available: {}'.format(
+                                        [test for suite in suite_names
+                                         for test in test_names[suite]]))
+    mandatory_args.add_argument(constants.CLI_PROVIDER_OPT_SH, constants.CLI_PROVIDER_OPT,
+                                type=str, required=True,
+                                help='Service provider to be used e.g. azure/aws/gce.')
+    mandatory_args.add_argument(constants.CLI_KEYID_OPT_SH, constants.CLI_KEYID_OPT,
+                                type=str, required=True, help='Azure/aws/gce key id.')
+    mandatory_args.add_argument(constants.CLI_SECRET_OPT_SH, constants.CLI_SECRET_OPT,
+                                type=str, required=True, help='Azure/aws/gce client secret.')
+    mandatory_args.add_argument(constants.CLI_LOCAL_PATH_OPT_SH, constants.CLI_LOCAL_PATH_OPT,
+                                type=str, required=True, help='Local path for saving data.')
+    mandatory_args.add_argument(constants.CLI_INST_TYPE_OPT_SH, constants.CLI_INST_TYPE_OPT,
+                                type=str, required=True,
+                                help='Azure/aws/gce instance size e.g. "Standard_DS1".')
+    mandatory_args.add_argument(constants.CLI_IMAGEID_OPT_SH, constants.CLI_IMAGEID_OPT,
+                                type=str, required=True,
+                                help='Azure/aws/gce image id or os version e.g. '
+                                     '"UbuntuServer#16.04.0-LTS".')
+    mandatory_args.add_argument(constants.CLI_USER_OPT_SH, constants.CLI_USER_OPT,
+                                type=str, required=True, help='Instance login user.')
 
-    parser.add_argument(constants.CLI_TOKEN_OPT_SH,
-                        constants.CLI_TOKEN_OPT, type=str,
-                        action=TokenAction,
-                        help='GCE refresh token obtained with gcloud sdk.')
-    parser.add_argument(constants.CLI_SUBSCRIPTION_OPT_SH,
-                        constants.CLI_SUBSCRIPTION_OPT, type=str,
-                        action=SubscriptionAction,
-                        help='Azure specific subscription id.')
-    parser.add_argument(constants.CLI_TENANT_OPT_SH,
-                        constants.CLI_TENANT_OPT, type=str,
-                        action=TenantAction,
-                        help='Azure specific tenant id.')
+    parser.add_argument(constants.CLI_TOKEN_OPT_SH, constants.CLI_TOKEN_OPT,
+                        type=str, default='', help='GCE refresh token.')
+    parser.add_argument(constants.CLI_SUBSCRIPTION_OPT_SH, constants.CLI_SUBSCRIPTION_OPT,
+                        type=str, default='', help='Azure subscription id.')
+    parser.add_argument(constants.CLI_TENANT_OPT_SH, constants.CLI_TENANT_OPT,
+                        type=str, default='', help='Azure tenant id.')
     parser.add_argument(constants.CLI_PROJECTID_OPT_SH, constants.CLI_PROJECTID_OPT,
-                        type=str, action=ProjectAction,
-                        help='GCE project id.')
+                        type=str, default='', help='GCE project id.')
     parser.add_argument(constants.CLI_REGION_OPT_SH, constants.CLI_REGION_OPT,
-                        type=str, action=RegionAction,
-                        help='AWS specific region to connect to or '
-                             'Azure specific location to connect to.')
+                        type=str, default='', help='Azure/aws/gce region to connect to.')
     parser.add_argument(constants.CLI_ZONE_OPT_SH, constants.CLI_ZONE_OPT,
-                        type=str, action=ZoneAction,
-                        help='AWS specific zone where to create resources or '
-                             'GCE specific zone e.g. us-west1-a.')
+                        type=str, default='',
+                        help='Aws/gce specific zone where to create resources e.g. us-west1-a.')
     parser.add_argument(constants.CLI_SRIOV_OPT_SH, constants.CLI_SRIOV_OPT,
-                        type=str, action=SriovAction,
-                        help='Bool to enable or disable SRIOV.')
+                        type=str, default='disabled', help='Enabled/disabled SRIOV feature.')
     parser.add_argument(constants.CLI_KERNEL_OPT_SH, constants.CLI_KERNEL_OPT,
-                        type=str, action=KernelAction,
-                        help='Custom kernel to install from localpath.')
+                        type=str, default='', help='Kernel to install from localpath.')
 
     args = parser.parse_args(options)
-    # log.info('Options are {}'.format(vars(args)))
     test_args = copy.deepcopy(vars(args))
+    current_suite = test_args['suite']
+    test_args.pop('suite', None)
+    current_tests = test_args['test']
     test_args.pop('test', None)
-    getattr(connector, args.test)(**test_args)
+    junit_testcases = []
+    if current_suite == 'specific':
+        selected_tests = current_tests.split(',')
+        all_tests = [t for s in test_names.values() for t in s]
+        if not all(sel_test in all_tests for sel_test in selected_tests):
+            raise Exception('Could not validated all the "specific" tests provided. '
+                            'Use "runner.py -h" to list all the currently supported tests.')
+        log.info('Tests to run: {}'.format(selected_tests))
+        for test in selected_tests:
+            log.info('Running test: {}'.format(test))
+            try:
+                module = [k for k, v in test_names.items() if test in v][0]
+                getattr(importlib.import_module('suites.{}'.format(module)), test)(**test_args)
+            except Exception as e:
+                junit_testcase = TestCase(test)
+                junit_testcase.add_failure_info(e)
+                junit_testcases.append(junit_testcase)
+                continue
+            junit_testcases.append(TestCase(test))
+    else:
+        log.info('Suite to run: {}'.format(current_suite))
+        if not test_names.get(current_suite, None):
+            raise Exception('Suite {} not defined. Use "runner.py -h" to list all '
+                            'supported suites.'.format(current_suite))
+        for test in test_names[current_suite]:
+            if test_args['provider'] == constants.AZURE and\
+                    test_args['sriov'] == constants.ENABLED and test in constants.SYNTHETIC_TESTS:
+                log.info('Skipping synthetic test: {}, for SRIOV enabled.'.format(test))
+                continue
+            elif test_args['provider'] != constants.AZURE and test in constants.AZURE_TESTS:
+                log.info('Skipping Azure specific test: {}.'.format(test))
+                continue
+            else:
+                log.info('Running test: {}'.format(test))
+            try:
+                getattr(importlib.import_module('suites.{}'.format(current_suite)),
+                        test)(**test_args)
+            except Exception as e:
+                junit_testcase = TestCase(test)
+                junit_testcase.add_failure_info(e)
+                junit_testcases.append(junit_testcase)
+                continue
+            junit_testcases.append(TestCase(test))
+
+    # generate junit xml
+    junit_suite = [TestSuite(current_suite, junit_testcases)]
+    with open(os.path.join(test_args['localpath'], 'junit_{}.xml'.format(current_suite)),
+              mode='w') as f:
+        TestSuite.to_file(f, junit_suite, prettyprint=False)
 
 
 if __name__ == "__main__":

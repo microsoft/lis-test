@@ -20,6 +20,7 @@ permissions and limitations under the License.
 """
 import os
 import sys
+import pprint
 import logging
 import ConfigParser
 
@@ -154,21 +155,13 @@ COLUMNS = [{'name': 'TestCaseName', 'type': NVARCHAR(50)},
            ]
 
 
-class TestResults(object):
-    def __getitem__(self, item):
-        return getattr(self, item)
-
-    def __setitem__(self, item, value):
-        return setattr(self, item, value)
-
-
 def upload_results(localpath=None, table_name=None, results_path=None, parser=None,
                    other_table=False, **kwargs):
     """
     Connect to DB and upload results
     """
     if localpath:
-        log.info('Looking up DB credentials for results upload in {}.' .format(localpath))
+        log.info('Looking up DB details in {}\*.config.' .format(localpath))
         db_creds_file = [os.path.join(localpath, c) for c in os.listdir(localpath)
                          if c.endswith('.config')][0]
         # read credentials from file - should be present in the localpath provided to runner
@@ -180,7 +173,6 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
 
     test_results = parser(log_path=results_path, **kwargs).process_logs()
 
-    import pprint
     pprint.pprint(test_results)
     if 'linux' in sys.platform:
         driver = config.get('Credentials', 'Driver_linux')
@@ -206,18 +198,25 @@ def upload_results(localpath=None, table_name=None, results_path=None, parser=No
     # When creating db is also necessary
     # metadata.create_all(checkfirst=True)
 
+    class TestResults(object):
+        def __getitem__(self, item):
+            return getattr(self, item)
+
+        def __setitem__(self, item, value):
+            return setattr(self, item, value)
+
     mapper(TestResults, t)
     session = create_session(bind=e, autocommit=False, autoflush=True)
 
     for row in test_results:
         test_data = TestResults()
-        for key, value in row.items():
-            test_data[key] = value
+        for k, v in row.items():
+            test_data[k] = v
         session.add(test_data)
         try:
             session.commit()
         except Exception as ex:
-            log.error(ex)
+            log.exception(ex)
             print("Failed to commit {} data. Rolling back.".format(row))
             session.rollback()
             raise

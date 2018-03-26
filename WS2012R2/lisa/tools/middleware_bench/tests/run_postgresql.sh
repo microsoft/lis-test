@@ -62,7 +62,6 @@ if [[ ${distro} == *"Ubuntu"* ]]
 then
     echo -e "deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main" | sudo tee --append /etc/apt/sources.list
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-    sudo apt update
     sudo apt -y install bc sysstat zip postgresql-client-${POSTGRES_VERSION} postgresql-contrib-${POSTGRES_VERSION} >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install sysstat zip"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' | sudo tee --append /etc/apt/sources.list"

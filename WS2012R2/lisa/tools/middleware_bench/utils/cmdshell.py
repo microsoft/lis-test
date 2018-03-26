@@ -24,6 +24,8 @@ import logging
 import paramiko
 import socket
 
+from paramiko.ssh_exception import NoValidConnectionsError
+
 from winrm import protocol
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -57,7 +59,7 @@ class SSHClient(object):
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.connect()
 
-    def connect(self, num_retries=5):
+    def connect(self, num_retries=10):
         """
         Connect to an SSH server and authenticate with it.
         :type num_retries: int
@@ -69,11 +71,15 @@ class SSHClient(object):
                 self._ssh_client.connect(self.server, username=self.user, pkey=self._pkey,
                                          timeout=self._timeout)
                 return
+            except NoValidConnectionsError:
+                log.error('NoValidConnectionsError, will retry in 10 seconds')
+                time.sleep(10)
+                retry += 1
             except socket.error as se:
                 (value, message) = se.args
                 if value in (51, 61, 111):
-                    log.error('SSH Connection refused, will retry in 5 seconds')
-                    time.sleep(5)
+                    log.error('SSH Connection refused, will retry in 10 seconds')
+                    time.sleep(10)
                     retry += 1
                 else:
                     raise
@@ -82,8 +88,8 @@ class SSHClient(object):
                         self.server))
                 retry += 1
             except EOFError:
-                log.error('Unexpected Error from SSH Connection, retry in 5 seconds')
-                time.sleep(5)
+                log.error('Unexpected Error from SSH Connection, retry in 10 seconds')
+                time.sleep(10)
                 retry += 1
         log.error('Could not establish SSH connection')
 
