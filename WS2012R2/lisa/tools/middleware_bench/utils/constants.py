@@ -74,6 +74,7 @@ KVM = 'kvm'
 
 SYNTHETIC_TESTS = ['test_orion', 'test_orion_raid', 'test_sysbench', 'test_sysbench_raid',
                    'test_scheduler', 'test_storage']
+AZURE_TESTS = ['test_sql_server_inmemdb']
 
 DEVICE_AWS = '/dev/sdx'
 DEVICE_AZURE = '/dev/sdc'

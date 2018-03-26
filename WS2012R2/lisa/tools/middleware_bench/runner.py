@@ -137,6 +137,9 @@ def run(options):
                     test_args['sriov'] == constants.ENABLED and test in constants.SYNTHETIC_TESTS:
                 log.info('Skipping synthetic test: {}, for SRIOV enabled.'.format(test))
                 continue
+            elif test_args['provider'] != constants.AZURE and test in constants.AZURE_TESTS:
+                log.info('Skipping Azure specific test: {}.'.format(test))
+                continue
             else:
                 log.info('Running test: {}'.format(test))
             try:
