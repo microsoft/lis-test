@@ -70,9 +70,15 @@ function CheckResult()
     $stateFile     = "state_${vmName}.txt"
     $TestCompleted = "TestCompleted"
     $TestAborted   = "TestAborted"
+    $TestFailed   = "TestFailed"
     $attempts      = 200
 
     while ($attempts -ne 0 ){
+        $newIP = GetIPv4 $vmName $hvServer
+        if ($ipv4 -ne $newIP -and $newIP -ne $null) {
+            $ipv4 = $newIP
+            Write-Output "Info: IP address of $vmName has been changed to $ipv4"
+        }
         bin\pscp -q -i ssh\${sshKey} root@${ipv4}:state.txt ".\$stateFile" 2>&1 | out-null
         $sts = $?
 
@@ -85,8 +91,8 @@ function CheckResult()
                         $retVal = $True
                         break
                     }
-                    if ($contents -eq $TestAborted) {
-                        Write-Output "Info: State file contains TestAborted failed"
+                    if ($contents -eq $TestAborted -or $contents -eq $TestFailed) {
+                        Write-Output "Info: State file contains TestAborted or TestFailed"
                         break
                     }
                 }
@@ -154,13 +160,13 @@ function setupTest ()
     }
 
     $result = Execute("dos2unix ${remoteScript} && chmod +x ${remoteScript} 2> /dev/null");
-    if (-not $result) {
+    if (-not $?) {
         Write-Error -Message "Error: Unable to run dos2unix or chmod on ${remoteScript}" -ErrorAction SilentlyContinue
         return $False
     }
 
     $result = Execute("dos2unix runtest.sh && chmod +x runtest.sh 2> /dev/null");
-    if (-not $result) {
+    if (-not $?) {
         Write-Error -Message "Error: Unable to run dos2unix or chmod on runtest.sh" -ErrorAction SilentlyContinue
         return $False
     }
