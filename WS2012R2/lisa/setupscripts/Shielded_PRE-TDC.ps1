@@ -89,7 +89,7 @@ function Create_Test_VM ([string] $encrypted_vhd)
     if (-not $?) {
         return $false
     }
-    Set-VMProcessor 'Shielded_PRE-TDC' -Count 4 -CompatibilityForMigrationEnabled $true
+    Set-VMProcessor 'Shielded_PRE-TDC' -Count 4 -CompatibilityForMigrationEnabled $False
 	Set-VMFirmware -VMName 'Shielded_PRE-TDC' -EnableSecureBoot Off
     return $true
 }
@@ -171,7 +171,7 @@ function Verify_not_encrypted ([string]$ipv4, [string]$sshKey, [string]$rhel_fol
     $rootDir = $pwd.Path
     # Run test script
     $sts = ./setupScripts/Shielded_not_encrypted_vhd.ps1 -vmName 'Shielded_PRE-TDC' -hvServer 'localhost' `
-        -testParams "rootDir=${rootDir}; lsvm_folder_path=${lsvm_folder_path}; ipv4=${ipv4}; sshKey=${sshKey}; sles_folder_path=${sles_folder_path}; ubuntu_folder_path=${ubuntu_folder_path}; rhel_folder_path={$rhel_folder_path}"
+        -testParams "rootDir=${rootDir}; lsvm_folder_path=${lsvm_folder_path}; ipv4=${ipv4}; sshKey=${sshKey}; sles_folder_path=${sles_folder_path}; ubuntu_folder_path=${ubuntu_folder_path}; rhel_folder_path=${rhel_folder_path}"
     if (-not $sts[-1]) {
         return $false
     }

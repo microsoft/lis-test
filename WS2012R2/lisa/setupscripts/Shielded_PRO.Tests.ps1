@@ -125,11 +125,18 @@ Describe "Verify a provisioned Linux Shielded VM boots successfully" {
             Copy_Files_to_GH $guardedHostIP $sharePath $gh_creds $share_creds | Should be $true
             
             # Provision the Shielded VM
-            Provision_VM $guardedHostIP $gh_creds 'no' | Should be $true
+            $provisionStatus = Provision_VM $guardedHostIP $gh_creds 'no'
+            if ($provisionStatus -eq $false) {
+                Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
+                $provisionStatus | Should be $true
+            }
             
             # Get ipv4 from the provisioned VM
             $vm_ipv4 = Get_VM_ipv4 $guardedHostIP $gh_creds
-            $vm_ipv4 | Should not Be $null
+            if (-not $vm_ipv4) {
+                Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
+                $vm_ipv4 | Should not Be $null
+            }
             
             # Login to the provisioned VM and verify logs for errors
             $provisioned_vm_traces = Verify_provisioned_VM $vm_ipv4 $sshKey 
@@ -174,7 +181,11 @@ Describe "Modify VSC, verify a VM created from the Linux VHDX template fails pro
             Copy_Files_to_GH $guardedHostIP $sharePath $gh_creds $share_creds | Should be $true
             
             # Provision the Shielded VM
-            Provision_VM $guardedHostIP $gh_creds 'no' | Should be $false
+            $provisionStatus = Provision_VM $guardedHostIP $gh_creds 'no'
+            if ($provisionStatus -eq $true) {
+                Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
+                $provisionStatus | Should be $false
+            }
             
             # Clean the Shielded VM
             Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
@@ -216,7 +227,11 @@ Describe "Modify file in boot partition of Linux VHDX template and verify provis
             Copy_Files_to_GH $guardedHostIP $sharePath $gh_creds $share_creds | Should be $true
             
             # Provision the Shielded VM
-            Provision_VM $guardedHostIP $gh_creds 'no' | Should be $false
+            $provisionStatus = Provision_VM $guardedHostIP $gh_creds 'no'
+            if ($provisionStatus -eq $true) {
+                Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
+                $provisionStatus | Should be $false
+            }
             
             # Clean the Shielded VM
             Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
@@ -258,7 +273,11 @@ Describe "Modify file in root partition of Linux VHDX template and verify provis
             Copy_Files_to_GH $guardedHostIP $sharePath $gh_creds $share_creds | Should be $true
             
             # Provision the Shielded VM
-            Provision_VM $guardedHostIP $gh_creds 'no' | Should be $false
+            $provisionStatus = Provision_VM $guardedHostIP $gh_creds 'no'
+            if ($provisionStatus -eq $true) {
+                Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
+                $provisionStatus | Should be $false
+            }
             
             # Clean the Shielded VM
             Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
@@ -292,7 +311,11 @@ Describe "VM fails to boot if the specialization file has been modified" {
             Copy_Files_to_GH $guardedHostIP $sharePath $gh_creds $share_creds | Should be $true
             
             # Provision the Shielded VM
-            Provision_VM $guardedHostIP $gh_creds 'yes'| Should be $false
+            $provisionStatus = Provision_VM $guardedHostIP $gh_creds 'yes'
+            if ($provisionStatus -eq $true) {
+                Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
+                $provisionStatus | Should be $false
+            }
             
             # Clean the Shielded VM
             Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
@@ -327,7 +350,11 @@ Describe "Unsupported specialization items are logged" {
             Copy_Files_to_GH $guardedHostIP $sharePath $gh_creds $share_creds | Should be $true
             
             # Provision the Shielded VM
-            Provision_VM $guardedHostIP $gh_creds 'extra' | Should be $true
+            $provisionStatus = Provision_VM $guardedHostIP $gh_creds 'extra'
+            if ($provisionStatus -eq $false) {
+                Clean_provisioned_VM $guardedHostIP $gh_creds | Should be $true
+                $provisionStatus | Should be $true
+            }
             
             # Get ipv4 from the provisioned VM
             $vm_ipv4 = Get_VM_ipv4 $guardedHostIP $gh_creds
