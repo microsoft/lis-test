@@ -1017,24 +1017,18 @@
          <timeout>800</timeout>
          <onError>Continue</onError>
       </test>
-      <test>
-         <testName>CopyFileScp</testName>
-         <setupScript>
-            <file>setupscripts\RevertSnapshot.ps1</file>
-            <file>setupScripts\Add-VHDXForResize.ps1</file>
-         </setupScript>
-         <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
-         <testParams>
-            <param>TC_COVERED=NET-19</param>
-            <param>Type=Dynamic</param>
-            <param>SectorSize=512</param>
-            <param>DefaultSize=25GB</param>
-            <param>ControllerType=SCSI</param>
-         </testParams>
-         <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-         <timeout>2400</timeout>
-         <onError>Continue</onError>
-      </test>
+        <test>
+            <testName>CopyFileScp</testName>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+            <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=NET-19</param>
+                <param>SCSI=0,1,Dynamic,512,25GB</param>
+            </testParams>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <timeout>2400</timeout>
+            <onError>Continue</onError>
+        </test>
       <test>
          <testName>CheckKeywithEthtool</testName>
          <setupScript>
@@ -1231,7 +1225,7 @@
             <testparams>
                 <param>IDE=0,1,Fixed,512</param>
                 <param>NewSize=2GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-105</param>
              </testparams>
        </test>
@@ -1265,7 +1259,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>NewSize=2GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
@@ -1282,7 +1276,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,4096,3GB</param>
                 <param>NewSize=2GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
@@ -1300,7 +1294,7 @@
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>growSize=4GB</param>
                 <param>shrinkSize=3GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-03a</param>
             </testparams>
         </test>
@@ -1510,7 +1504,7 @@
             <testParams>
                 <param>IDE=0,1,Fixed,512</param>
                 <param>IDE=1,1,Fixed,512</param>
-                <param>fileSystems=(ext3 ext4 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-24</param>
             </testParams>
             <timeout>1800</timeout>
@@ -1558,7 +1552,7 @@
             <testparams>
                 <param>SCSI=0,0,Diff</param>
                 <param>TC_COVERED=STOR-27</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
                 <param>vhdFormat=vhdx</param>
             </testparams>
             <timeout>3600</timeout>
@@ -2420,27 +2414,21 @@
          <onError>Continue</onError>
          <noReboot>False</noReboot>
       </test>
-      <test>
-         <testName>FCOPY_large_file</testName>
-         <setupScript>
-            <file>setupscripts\RevertSnapshot.ps1</file>
-            <file>setupScripts\Add-VHDXForResize.ps1</file>
-         </setupScript>
-         <testScript>setupscripts\FCOPY_large_file.ps1</testScript>
-         <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-         <timeout>1200</timeout>
-         <testParams>
-            <param>TC_COVERED=FCopy-04</param>
-            <param>Type=Fixed</param>
-            <param>SectorSize=512</param>
-            <param>DefaultSize=15GB</param>
-            <param>ControllerType=SCSI</param>
-            <param>SCSI=1,0,Dynamic,512,15GB</param>
-            <param>snapshotName=ICABase</param>
-         </testParams>
-         <onError>Continue</onError>
-         <noReboot>False</noReboot>
-      </test>
+        <test>
+            <testName>FCOPY_large_file</testName>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+            <testScript>setupscripts\FCOPY_large_file.ps1</testScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <timeout>1200</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-04</param>
+                <param>SCSI=0,0,Fixed,512,15GB</param>
+                <!-- Customize file size if you wish, 10GB by default
+                <param>Large_File_Size_GB=11.3</param>
+                -->
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
       <test>
          <testName>FCOPY_non_ascii</testName>
          <testScript>setupscripts\FCOPY_non_ascii.ps1</testScript>
@@ -2451,42 +2439,35 @@
          </testParams>
          <noReboot>False</noReboot>
       </test>
-      <test>
-         <testName>FCOPY_repeat</testName>
-         <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
-         <testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
-         <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-         <timeout>1200</timeout>
-         <testParams>
-            <param>TC_COVERED=FCopy-06</param>
-            <param>Type=Fixed</param>
-            <param>SectorSize=512</param>
-            <param>DefaultSize=3GB</param>
-            <param>ControllerType=SCSI</param>
+        <test>
+            <testName>FCOPY_repeat</testName>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+            <testScript>setupscripts\FCOPY_repeated_delete.ps1</testScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-06</param>
+                <param>SCSI=0,0,Fixed,512,3GB</param>
             <!--Make sure DefaultSize is equal or bigger than FileSize-->
-            <param>FileSize=2GB</param>
-         </testParams>
-         <onError>Continue</onError>
-         <noReboot>False</noReboot>
-      </test>
-      <test>
-         <testName>FCOPY_disableEnable</testName>
-         <setupScript>setupScripts\Add-VHDXForResize.ps1</setupScript>
-         <testScript>setupscripts\FCOPY_disableEnable.ps1</testScript>
-         <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
-         <files>remote-scripts\ica\utils.sh,remote-scripts\ica\check_traces.sh</files>
-         <timeout>1200</timeout>
-         <testParams>
-            <param>TC_COVERED=FCopy-07</param>
-            <param>Type=Fixed</param>
-            <param>SectorSize=512</param>
-            <param>DefaultSize=7GB</param>
-            <param>ControllerType=SCSI</param>
-            <param>FcopyFileSize=5GB</param>
-            <param>CycleCount=20</param>
-         </testParams>
-         <noReboot>False</noReboot>
-      </test>
+                <param>FileSize=2GB</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+        <test>
+            <testName>FCOPY_disableEnable</testName>
+            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+            <testScript>setupscripts\FCOPY_disableEnable.ps1</testScript>
+            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+            <files>remote-scripts\ica\utils.sh,remote-scripts\ica\check_traces.sh</files>
+            <timeout>900</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-07</param>
+                <param>SCSI=0,0,Fixed,512,7GB</param>
+                <param>FcopyFileSize=5GB</param>
+                <param>CycleCount=20</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
       <!-- KDUMP -->
         <test>
             <testName>kexec_git_install</testName>
