@@ -185,6 +185,8 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
             $clusterNodes = Get-ClusterNode
             if ($currentNode -eq $clusterNodes[0].Name.ToLower()) {
                 $destinationNode = $clusterNodes[1].Name.ToLower()
+            } else {
+                $destinationNode = $clusterNodes[0].Name.ToLower() 
             }
 
             if (Get-VM -Name $vmName -ComputerName $destinationNode -ErrorAction SilentlyContinue) {
