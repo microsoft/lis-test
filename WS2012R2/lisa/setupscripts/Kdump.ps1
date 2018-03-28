@@ -18,7 +18,6 @@
 # permissions and limitations under the License.
 #
 #####################################################################
-
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $retVal = $false
@@ -114,8 +113,9 @@ else
   return $false
 }
 $BuildNumber = GetHostBuildNumber $hvServer
+$RHEL7_Above = GetVMFeatureSupportStatus $ipv4 $sshKey "3.10.0-123"
 
-# WS2012 does not support Debug-VM NMI injection
+# WS2012 does not support Debug-VM NMI injection, skipping
 if ( ($BuildNumber -eq "9200") -and ($nmi -eq 1) ) {
     Write-Output "Info: WS2012 does not support Debug-VM NMI injection" | Tee-Object -Append -file $summaryLog
     return $Skipped
@@ -137,30 +137,15 @@ if ($vm2Name -And $use_nfs -eq "yes")
             $error[0].Exception
             return $false
         }
-        $timeout = 240 # seconds
-        if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
-        {
-            "Warning: $vm2Name never started KVP"
-        }
 
         "Info: Succesfully started dependency VM ${vm2Name}"
     }
 
-    Start-Sleep 10
-
-    $vm2ipv4 = GetIPv4 $vm2Name $hvServer
-    if (-not $?)
-    {
-        "Error: Unable to get IP for VM2."
-        return $False
-    }
-
-    $timeout = 200 #seconds
-    if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
-    {
-        "Error: VM ${vm2Name} (nfs server) never started"
-        Stop-VM $vm2Name -ComputerName $hvServer -force | out-null
-        return $false
+    $new_ip = GetIPv4AndWaitForSSHStart $vm2Name $hvServer $sshKey 360
+    if ($new_ip) {$vm2ipv4 = $new_ip}
+    else {
+        Write-Output "Error: Failed to boot up NFS Server $vm2Name" | Tee-Object -Append -file $summaryLog
+        return $Failed
     }
 
     $retVal = SendCommandToVM $ipv4 $sshKey "echo 'vm2ipv4=$vm2ipv4' >> ~/constants.sh"
@@ -195,7 +180,7 @@ if ($vm2Name -And $use_nfs -eq "yes")
 $retVal = SendCommandToVM $ipv4 $sshkey "echo BuildNumber=$BuildNumber >> /root/constants.sh"
 if (-not $retVal[-1]){
     Write-Output "Error: Could not echo BuildNumber=$BuildNumber to vm's constants.sh."
-    return $False
+    return $Failed
 }
 
 $retVal = RunRemoteScript "kdump_config.sh"
@@ -203,7 +188,7 @@ if ($retVal[-1] -eq $false )
 {
     Write-Output "Error: Failed to configure kdump. Check logs for details." | Tee-Object -Append -file $summaryLog
     bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_config_fail_summary.log
-    return $false
+    return $Failed
 }
 
 if ($Skipped -eq $retVal[-1])
@@ -218,21 +203,16 @@ bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_conf
 # Rebooting the VM in order to apply the kdump settings
 #
 $retVal = SendCommandToVM $ipv4 $sshKey "reboot"
-Write-Output "Rebooting the VM."
+Write-Output "Rebooting VM $vmName after kdump configuration..."
+Start-Sleep 10 # Wait for kvp & ssh services stop
 
-#
-# Waiting the VM to start up
-#
-Write-Output "Waiting the VM to have a connection..."
-sleep 10 # Make sure sshd has stopped
-
-$timeout = 200
-if (-not (WaitForVMToStartSSH $ipv4 $timeout))
-{
-    "Error: VM ${vmName} never started after config"
-    return $false
+# Wait for VM boot up and update ip address
+$new_ip = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 360
+if ($new_ip) {$ipv4 = $new_ip}
+else{
+    Write-Output "Error: VM $vmName failed at reboot after kdump configuration" | Tee-Object -Append -file $summaryLog
+    return $Failed
 }
-sleep 5 # Make sure system properly started
 
 #
 # Prepare the kdump related
@@ -276,41 +256,19 @@ else {
 Write-Output "Waiting seconds to record the event..."
 Start-Sleep 10
 
-$timeout = 240
-while ( $timeout -gt 0)
-{
-    if ((Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK") {
-
-        Write-Output "Info: VM Heartbeat is OK"
-        break
-    }
-    Start-Sleep -S 6
-    $timeout = $timeout -6
-    if ($timeout -eq 0)
-    {
-        Write-Output "Error : Lost Communication to VM" | Tee-Object -Append -file $summaryLog
-        Stop-VM -Name $vmName -ComputerName $hvServer -Force
-        return $false
-    }
+# Workaround a won't be fixed bug on WS2016 - RHEL6:
+# https://bugzilla.redhat.com/show_bug.cgi?id=1383037
+if ( (-not $RHEL7_Above) -and ($BuildNumber -eq "14393") ){
+    Start-Sleep 120 # Make sure dump completed
+    Stop-VM -vmName $vmName -ComputerName $hvServer -TurnOff
+    Start-VM -vmName $vmName -ComputerName $hvServer
 }
 
-#
-# Waiting the VM to have a connection
-#
-Write-Output "Info: Checking the VM connection after kernel panic"
-
-$timeout = 200 #seconds
-if (-not (WaitForVMToStartSSH $ipv4 $timeout))
-{
-    "Error: VM ${vmName} never started after kernel panic"
-    return $false
-}
-
-# Make sure SSH is still functional
-sleep 5 # Make sure system properly started
-$TestConnection = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo Connected"
-if ($TestConnection -ne "Connected"){
-    Write-Output "Error: SSH failed after kernel panic." | Tee-Object -Append -file $summaryLog
+# Wait for VM boot up and update ip address
+$new_ip = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 360
+if ($new_ip) {$ipv4 = $new_ip}
+else{
+    Write-Output "Error: VM $vmName failed at reboot after configuration" | Tee-Object -Append -file $summaryLog
     return $Failed
 }
 

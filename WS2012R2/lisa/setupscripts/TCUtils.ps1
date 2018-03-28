@@ -1070,6 +1070,65 @@ function WaitForVMToStartSSH([String] $ipv4addr, [int] $timeout)
 
 #######################################################################
 #
+# GetIPv4AndWaitForSSHStart()
+#
+#######################################################################
+function GetIPv4AndWaitForSSHStart([String] $vmName, [String] $hvServer, [String] $sshKey, [int] $stepTimeout)
+{
+    <#
+    .Synopsis
+        Get ipv4 from kvp, wait for VM kvp and ssh start, return ipv4
+    .Description
+        Wait for KVP start and
+        Get ipv4 via kvp
+        Wait for ssh start, test ssh.
+        Returns [String]ipv4 address if succeeded or $False if failed
+    .Parameter vmName
+        Name of the VM to test.
+    .Parameter server
+        Server hosting the VM.
+    .Parameter sshKey
+        sshKey for ssh connection to VM
+    .Parameter stepTimeout
+        Timeout for each waiting step (kvp & ssh)
+    .Example
+        $new_ip = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 360
+        if ($new_ip) {$ipv4 = $new_ip}
+        else {...}
+    #>
+
+    # Wait for KVP to start and able to get ipv4 addr
+    if (-not (WaitForVMToStartKVP $vmName $hvServer $stepTimeout)) {
+        Write-Error "GetIPv4AndWaitForSSHStart: Unable to get ipv4 from VM ${vmName} via KVP within timeout period ($timeout)" -Category OperationTimeout -ErrorAction SilentlyContinue
+        return $False
+    }
+
+    # Get new ipv4 in case an new ip is allocated to vm after reboot
+    $new_ip = GetIPv4 $vmName $hvServer
+    if (-not ($new_ip)){
+        Write-Error "GetIPv4AndWaitForSSHStart: Unable to get ipv4 from VM ${vmName} via KVP" -Category OperationTimeout -ErrorAction SilentlyContinue
+        return $False
+    }
+
+    # Wait for port 22 open
+    if (-not (WaitForVMToStartSSH $new_ip $stepTimeout)) {
+        Write-Error "GetIPv4AndWaitForSSHStart: Failed to connect $new_ip port 22 within timeout period ($timeout)" -Category OperationTimeout -ErrorAction SilentlyContinue
+        return $False
+    }
+
+    # Cache fingerprint, Check ssh is functional after reboot
+    echo y | bin\plink.exe -i ssh\$sshKey root@$new_ip 'exit 0'
+    $TestConnection = bin\plink.exe -i ssh\$sshKey root@$new_ip "echo Connected"
+    if ($TestConnection -ne "Connected"){
+        Write-Error "GetIPv4AndWaitForSSHStart: SSH is not working correctly after boot up" -Category OperationTimeout -ErrorAction SilentlyContinue
+        return $False
+    }
+
+    return $new_ip
+}
+
+#######################################################################
+#
 # WaiForVMToStop()
 #
 #######################################################################
@@ -2104,6 +2163,7 @@ function GetVMFeatureSupportStatus([String] $ipv4, [String] $sshKey, [String]$su
     .Example
         GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
     #>
+    echo y | bin\plink.exe -i ssh\${sshKey} root@${ipv4} 'exit 0'
     $currentKernel = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "uname -r"
     if( $? -eq $false){
         Write-Output "Warning: Could not get kernel version".
