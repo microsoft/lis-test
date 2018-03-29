@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<config>
+	<global>
+		<defaultSnapshot>ICABase</defaultSnapshot>
+		<LisaInitScript>
+			<file>.\setupScripts\CreateVMs.ps1</file>
+		</LisaInitScript>
+		<imageStoreDir>\\unc\path</imageStoreDir>
+	</global>  
+
+	<testSuites>
+		<suite>
+			<suiteName>MSFT</suiteName>
+			<suiteTests>
+				<suiteTest>Install_MSFT_kernel</suiteTest>
+				<suiteTest>Setup-UploadVHD</suiteTest>
+			</suiteTests>
+		</suite>
+	</testSuites>
+
+	<testCases>
+		<test>
+			<testName>Install_MSFT_kernel</testName>
+			<testScript>SetupScripts\install_kernel_rpm.ps1</testScript>
+			<files>remote-scripts/ica/utils.sh</files>
+			<timeout>1200</timeout>
+			<OnError>Abort</OnError>
+			<noReboot>False</noReboot>
+		</test>
+
+		<test>
+			<testName>Setup-UploadVHD</testName>
+			<testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
+			<timeout>600</timeout>
+			<testParams>
+				<param>TC_COVERED=Upload-VHD</param>
+			</testParams>
+			<OnError>Abort</OnError>
+			<cleanupScript>
+				<file>Infrastructure\Upload-VHD.ps1</file>
+			</cleanupScript>
+		</test>
+	</testCases>
+
+	<VMs>        
+		<vm>
+			<hvServer>localhost</hvServer>
+			<vmName>comp-image-build</vmName>
+			<os>Linux</os>
+			<ipv4></ipv4>
+			<sshKey>rhel5_id_rsa.ppk</sshKey>
+			<suite>MSFT</suite>
+			<hardware>
+				<create>true</create>
+				<numCPUs>4</numCPUs>
+				<memSize>2048</memSize>
+				<disableDiff>true</disableDiff>
+				<nic>VMBus,Vm.Enterprise</nic>
+				<generation>1</generation>
+			</hardware>
+		</vm>
+	</VMs>
+</config>
