@@ -73,11 +73,6 @@ $leaveTrail = "no"
 #
 # Check the required input args are present
 #
-
-# Write out test Params
-$testParams
-
-
 if ($hvServer -eq $null)
 {
     "ERROR: hvServer is null"
@@ -159,6 +154,9 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Write out test Params
+$testParams
+
 # Get IPs
 $ipv4 = GetIPv4 $vmName $hvServer
 "${vmName} IPADDRESS: ${ipv4}"
@@ -212,7 +210,7 @@ if (-not $?) {
 Start-Sleep -s 10
 
 # Check if the  SR-IOV module is still loaded
-.\bin\plink.exe -i .\ssh\$sshKey root@${ipv4} "lspci -vvv | grep 'mlx4_core\|ixgbevf'"
+.\bin\plink.exe -i .\ssh\$sshKey root@${ipv4} "lspci -vvv | grep 'mlx4_core\|mlx4_en\|ixgbevf'"
 if ($?) {
     "ERROR: SR-IOV module is still loaded on the VM after the NIC switch!" | Tee-Object -Append -file $summaryLog
     return $false 

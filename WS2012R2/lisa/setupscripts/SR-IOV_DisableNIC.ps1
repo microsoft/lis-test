@@ -233,7 +233,7 @@ if (-not $?) {
 
 # Check if module and VF device are still in use
 Start-Sleep -s 80
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "lspci -vvv | grep -e ixgbevf -e mlx4_core"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "lspci -vvv | grep 'mlx4_core\|mlx4_en\|ixgbevf'"
 if ($?) {
     "ERROR: The VF module is still in use!" | Tee-Object -Append -file $summaryLog
     return $false 
