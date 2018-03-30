@@ -240,13 +240,10 @@ else {
         "Kdump will be triggered on VCPU 3 of 4"
         $retVal = SendCommandToVM $ipv4 $sshKey "taskset -c 2 echo c > /proc/sysrq-trigger 2>/dev/null &"
     }
-    elseif ($vcpu -eq 1){
-        # if vcpu=1, directly use plink to trigger kdump, command fails to exit, so use start-process
+    else {
+        # If directly use plink to trigger kdump, command fails to exit, so use start-process
         $tmpCmd = "echo c > /proc/sysrq-trigger 2>/dev/null &"
         Start-Process bin\plink -ArgumentList "-i ssh\${sshKey} root@${ipv4} ${tmpCmd}" -NoNewWindow
-    }
-    else {
-        $retVal = SendCommandToVM $ipv4 $sshKey "echo c > /proc/sysrq-trigger 2>/dev/null &"
     }
 }
 
@@ -260,7 +257,7 @@ Start-Sleep 10
 # https://bugzilla.redhat.com/show_bug.cgi?id=1383037
 if ( (-not $RHEL7_Above) -and ($BuildNumber -eq "14393") ){
     Start-Sleep 120 # Make sure dump completed
-    Stop-VM -vmName $vmName -ComputerName $hvServer -TurnOff
+    Stop-VM -vmName $vmName -ComputerName $hvServer -TurnOff -Force
     Start-VM -vmName $vmName -ComputerName $hvServer
 }
 
@@ -268,7 +265,7 @@ if ( (-not $RHEL7_Above) -and ($BuildNumber -eq "14393") ){
 $new_ip = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 360
 if ($new_ip) {$ipv4 = $new_ip}
 else{
-    Write-Output "Error: VM $vmName failed at reboot after configuration" | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: VM $vmName failed at reboot after kernel panic" | Tee-Object -Append -file $summaryLog
     return $Failed
 }
 
