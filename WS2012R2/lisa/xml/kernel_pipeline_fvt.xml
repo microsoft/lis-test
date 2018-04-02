@@ -147,6 +147,7 @@
             <suiteTest>DependencyVM_Checkpoint</suiteTest>
             <!-- Network tests -->
             <suiteTest>External</suiteTest>
+            <suiteTest>External_ipv6</suiteTest>
             <suiteTest>InternalNetwork</suiteTest>
             <suiteTest>GuestOnlyNetwork</suiteTest>
             <suiteTest>MultipleNIC</suiteTest>
@@ -156,7 +157,7 @@
             <suiteTest>ChangeNetTypeGuest</suiteTest>
             <suiteTest>JumboFrame</suiteTest>
             <suiteTest>OperState</suiteTest>
-            <suiteTest>CopyLargeFile</suiteTest>
+            <suiteTest>CopyLargeFile_ipv6</suiteTest>
             <suiteTest>CopyFileDifferentMTU</suiteTest>
             <suiteTest>CopyBothWays</suiteTest>
             <suiteTest>VlanTagging</suiteTest>
@@ -216,8 +217,7 @@
             <suiteTest>Crash_SMP</suiteTest>
             <suiteTest>Crash_NMI</suiteTest>
             <suiteTest>Crash_differentVCPU</suiteTest>
-            <!-- temporarily disable test
-            <suiteTest>Crash_16cores</suiteTest> -->
+            <suiteTest>Crash_16cores</suiteTest>
          </suiteTests>
       </suite>
    </testSuites>
@@ -227,10 +227,6 @@
          <testScript>install_kernel.sh</testScript>
          <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
          <timeout>2500</timeout>
-         <testParams>
-            <param>SHARE_URL="https://kernel.file.core.windows.net/stable-kernels"</param>
-            <param>KERNEL_FOLDER="msft-4.14.18-0ea7311-08022018"</param>
-         </testParams>
          <onError>Abort</onError>
          <noReboot>False</noReboot>
       </test>
@@ -742,6 +738,20 @@
          <timeout>800</timeout>
          <onError>Continue</onError>
       </test>
+        <test>
+            <testName>External_ipv6</testName>
+            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>TC_COVERED=NET-02</param>
+                <param>AddressFamily=IPv6</param>
+            </testParams>
+            <testScript>NET_TEST_NETWORK.sh</testScript>
+            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>800</timeout>
+        </test>
       <test>
          <testName>InternalNetwork</testName>
          <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -920,26 +930,26 @@
          <timeout>800</timeout>
          <onError>Continue</onError>
       </test>
-      <test>
-         <testName>CopyLargeFile</testName>
-         <setupScript>
-            <file>setupscripts\RevertSnapshot.ps1</file>
-            <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
-            <file>setupscripts\StartVM.ps1</file>
-         </setupScript>
-         <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
-         <testParams>
-            <param>NIC=NetworkAdapter,External,External</param>
-            <param>TC_COVERED=NET-12</param>
-            <param>ZERO_FILE=yes</param>
-            <param>FILE_SIZE_GB=2</param>
-         </testParams>
-         <testScript>NET_COPY_LARGE.sh</testScript>
-         <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
-         <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-         <timeout>8000</timeout>
-         <onError>Continue</onError>
-      </test>
+        <test>
+            <testName>CopyLargeFile_ipv6</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>TC_COVERED=NET-12</param>
+                <param>ZERO_FILE=yes</param>
+                <param>FILE_SIZE_GB=2</param>
+                <param>TestIPV6=yes</param>
+            </testParams>
+            <testScript>NET_COPY_LARGE.sh</testScript>
+            <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>8000</timeout>
+        </test>
       <test>
          <testName>CopyFileDifferentMTU</testName>
          <setupScript>
@@ -2675,20 +2685,6 @@
          <testScript>setupscripts\Production_checkpoint_3Chain_VHD.ps1</testScript>
          <testParams>
             <param>TC_COVERED=PC-09</param>
-         </testParams>
-         <timeout>2400</timeout>
-         <OnError>Continue</OnError>
-      </test>
-      <test>
-         <testName>ProductionCheckpoint_iSCSI</testName>
-         <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-         <files>remote-scripts/ica/utils.sh</files>
-         <testScript>setupscripts\Production_checkpoint_iSCSI.ps1</testScript>
-         <testParams>
-            <param>TC_COVERED=PC-10</param>
-            <param>TargetIP=TARGET_IP</param>
-            <param>IQN=TARGET_IQN</param>
-            <param>FILESYS=ext4</param>
          </testParams>
          <timeout>2400</timeout>
          <OnError>Continue</OnError>
