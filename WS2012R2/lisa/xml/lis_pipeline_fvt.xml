@@ -349,9 +349,11 @@
       </test>
       <test>
          <testName>Multi_Cpu_Test</testName>
+         <setupscript>setupscripts\Config-VM.ps1</setupscript>
          <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
          <testParams>
             <param>TC_COVERED=CORE-11</param>
+            <param>vmMemory=4GB</param>
          </testParams>
          <timeout>1600</timeout>
          <noReboot>False</noReboot>
