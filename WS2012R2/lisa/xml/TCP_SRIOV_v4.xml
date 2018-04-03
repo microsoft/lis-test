@@ -57,7 +57,7 @@
         <param>TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024 2048 4096 6144 8192 10240)</param>
         <param>MAX_THREADS=64</param>
         <param>ETH_NAME=eth1</param>
-        <param>MAC=001600112204</param>
+        <param>MAC=001600112205</param>
         <param>log_folder=logs_ipv4</param>
         <param>VM2NAME=SRIOV-Server</param>
         <param>VM2SERVER=43f13-36</param>
@@ -91,7 +91,7 @@
         <param>TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024 2048 4096 6144 8192 10240)</param>
         <param>MAX_THREADS=64</param>
         <param>ETH_NAME=eth1</param>
-        <param>MAC=001600112204</param>
+        <param>MAC=001600112205</param>
         <param>log_folder=logs_ipv6</param>
         <param>VM2NAME=SRIOV-Server</param>
         <param>VM2SERVER=LIS-PERF09</param>
@@ -136,7 +136,7 @@
         <numCPUs>8</numCPUs>
         <memSize>8192</memSize>
         <disableDiff>True</disableDiff>
-        <nic>VMBus,Vm.Enterprise,001600112204</nic>
+        <nic>VMBus,Vm.Enterprise,001600112205</nic>
         <nic>VMBus,SRIOV,001600112233</nic>
       </hardware>
     </vm>

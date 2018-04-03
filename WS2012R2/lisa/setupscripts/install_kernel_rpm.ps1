@@ -126,13 +126,13 @@ if ($distro -eq "rhel" -or $distro -or $distro -eq "centos") {
     SendCommandToVM $ipv4 $sshKey "grub2-mkconfig -o /boot/grub2/grub.cfg ; grub2-set-default 0"
 
     # Modify GRUB
-    Start-Sleep -s 20
+    Start-Sleep -s 200
 }
 if ($distro -eq "ubuntu") {
     # Install deb packages & extract source files
     SendCommandToVM $ipv4 $sshKey "apt -y remove linux-cloud-tools-common"
     SendCommandToVM $ipv4 $sshKey "dpkg -i /tmp/$kernel/linux-*image-*"
-	SendCommandToVM $ipv4 $sshKey "dpkg -i /tmp/$kernel/*hyperv-daemons*"
+    SendCommandToVM $ipv4 $sshKey "dpkg -i /tmp/$kernel/*hyperv-daemons*"
     Start-Sleep -s 120
 }
 
