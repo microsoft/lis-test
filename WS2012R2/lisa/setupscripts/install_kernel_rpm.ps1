@@ -91,7 +91,6 @@ if ($distro -eq "rhel" -or $distro -eq "centos") {
 if ($distro -eq "ubuntu") {
     $fileExtension = "deb"
 }
-$fileExtension = "deb" ############
 if (Test-Path $localPath\*.$fileExtension)
 {
     $files = Get-ChildItem $localPath -Filter *.${fileExtension}
