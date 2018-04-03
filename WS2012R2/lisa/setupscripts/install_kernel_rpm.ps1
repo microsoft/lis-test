@@ -114,8 +114,7 @@ Write-Output "All files have been sent to VM. Will proceed with installing the n
 
 if ($distro -eq "rhel" -or $distro -or $distro -eq "centos") {
     # Install RPMs
-    SendCommandToVM $ipv4 $sshKey "yum localinstall -y /tmp/$kernel/kernel-*"
-	SendCommandToVM $ipv4 $sshKey "yum localinstall -y /tmp/$kernel/msft-daemons-*"
+    SendCommandToVM $ipv4 $sshKey "yum localinstall -y /tmp/$kernel/*.rpm"
     Start-Sleep -s 100
 
     # Update daemon startup paths
