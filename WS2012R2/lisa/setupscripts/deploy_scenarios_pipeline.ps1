@@ -58,7 +58,7 @@ function VerifyDaemons() {
     # Verify LIS Modules and daemons
     $remoteScript = "CORE_LISmodules_version.sh"
     $sts = RunRemoteScript $remoteScript
-    if(-not $sts[-1]) {
+    if (-not $sts[-1]) {
         Write-Output "Error: Cannot verify LIS modules version on ${vmName}" | Tee-Object -Append -file $summaryLog
         GetLogs
         return $false
@@ -107,7 +107,7 @@ function CheckSelinux() {
 
 function GetUpgradeKernelLogs() {
     $completed = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "cat kernel_install_scenario_$scenario.log | grep 'Complete!'"
-    if(-not $completed) {
+    if (-not $completed) {
         Write-output "Kernel upgrade failed"| Tee-Object -Append -file $summaryLog
         GetLogs
         return $false
@@ -145,7 +145,7 @@ function StartRestartVM () {
         return $false
     }
 
-    Start-Sleep -s 15
+    Start-Sleep -s 35
     # Get the ipv4, maybe it may change after the reboot
     $ipv4 = Getipv4 $vmName $hvServer
     Write-Output "${vmName} IP Address after reboot: ${ipv4}"
@@ -178,19 +178,19 @@ function CheckBondingErrors() {
     $timer = 0
     while(true) {
         SendCommandToVM $ipv4 $sshkey "dmesg | grep -q 'bond0: Error'"
-        if($sts[-1]) {
+        if ($sts[-1]) {
             Write-Output "Error: Error found after kernel upgrade" | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         SendCommandToVM $ipv4 $sshkey "grep -qi 'Call Trace' /var/log/messages"
-        if($sts[-1]) {
+        if ($sts[-1]) {
             Write-Output "Error: Call Trace found after kernel upgrade" | Tee-Object -Append -file $summaryLog
             return $false
         }
         $timer = $timer + 5
         Start-Sleep -s 5
-        if($timer -gt 300) {
+        if ($timer -gt 300) {
             Write-Output "Info: No errors found after kernel upgrade" | Tee-Object -Append -file $summaryLog
             break
         }
@@ -204,13 +204,13 @@ function UpgradeLIS() {
     )
     # Mount and install LIS
     $sts = SendCommandToVM $ipv4 $sshkey "echo -e 'action=install\nlis_folder=OLD_LISISO' >> ~/constants.sh"
-    if(-not $sts[-1]){
+    if (-not $sts[-1]){
         Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
         return $false
     }
 
     $sts = InstallLIS
-    if( -not $sts[-1]){
+    if (-not $sts[-1]){
         Write-Output "Error: Cannot install LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
         return $false
     }
@@ -220,7 +220,7 @@ function UpgradeLIS() {
     StartRestartVM "restart"
 
     $sts = VerifyDaemons
-    if( -not $sts[-1]){
+    if (-not $sts[-1]){
         Write-Output "Error: Daemons/Modules verification failed for ${vmName}" | Tee-Object -Append -file $summaryLog
         return $false
     }
@@ -245,13 +245,13 @@ function UpgradeLIS() {
 
     $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/lis_folder=\S*/lis_folder=NEW_LISISO/g' constants.sh"
     $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=upgrade/g' constants.sh"
-    if(-not $sts[-1]){
+    if (-not $sts[-1]){
         Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
         return $false
     }
 
     $sts = InstallLIS
-    if( -not $sts[-1]){
+    if (-not $sts[-1]){
         Write-Output "Error: Cannot upgrade LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
         return $false
     }
@@ -260,7 +260,7 @@ function UpgradeLIS() {
     # Reboot the VM and check LIS
     StartRestartVM "restart"
     $sts = VerifyDaemons
-    if( -not $sts[-1]){
+    if (-not $sts[-1]){
         Write-Output "Error: Daemons/Modules verification failed for ${vmName}" | Tee-Object -Append -file $summaryLog
         return $false
     }
@@ -283,13 +283,13 @@ function UpgradeKernel() {
 
     # Upgrade kernel
     $sts = SendCommandToVM $ipv4 $sshkey "yum install -y kernel >> ~/kernel_install_scenario_$scenario.log"
-    if(-not $sts[-1]){
+    if (-not $sts[-1]){
         Write-Output "Error: Unable to upgrade kernel on ${vmName}" | Tee-Object -Append -file $summaryLog
         return $false
     }
 
     SendCommandToVM $ipv4 $sshkey "echo `"---kernel version before upgrade:`$(uname -r)---`" >> kernel_install_scenario_$scenario.log"
-    if(-not $sts[-1]){
+    if (-not $sts[-1]){
         Write-Output "Error: Unable to add kernel version before upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
         return $false
     }
@@ -301,17 +301,16 @@ function UpgradeKernel() {
     Start-Sleep -s 30
     # Check if kernel was upgraded
     $sts = GetUpgradeKernelLogs
-    if(-not $sts[-1]){
+    if (-not $sts[-1]){
         Write-Output  "Error: Kernel was not upgraded" | Tee-Object -Append -file $summaryLog
         return $false
     }
     Write-Output "Successfully upgraded kernel."
 
-    # Reboot the VM and check LIS version
+    # Reboot the VM
     StartRestartVM "restart"
-
-    SendCommandToVM $ipv4 $sshkey "echo `"---kernel version after upgrade:`$(uname -r)---`" >> kernel_install_scenario_$scenario.log"
-    if(-not $sts[-1]){
+    $sts = SendCommandToVM $ipv4 $sshkey "echo `"---kernel version after upgrade:`$(uname -r)---`" >> kernel_install_scenario_$scenario.log"
+    if (-not $sts){
         Write-Output "Error: Unable to add kernel version after upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
         return $false
     }
@@ -397,14 +396,14 @@ switch ($scenario) {
         # Append variables to constants.sh
         Write-Output "Starting LIS installation"
         $sts = SendCommandToVM $ipv4 $sshkey "echo -e 'action=install\nlis_folder=NEW_LISISO' >> ~/constants.sh"
-        if(-not $sts[-1]) {
+        if (-not $sts[-1]) {
             Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         # Install LIS
         $sts = InstallLIS
-        if( -not $sts[-1]) {
+        if (-not $sts[-1]) {
             Write-Output "Error: Cannot install LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -413,13 +412,13 @@ switch ($scenario) {
         # Reboot the VM and check LIS
         StartRestartVM "restart"
         $sts = CheckSelinux
-        if(-not $sts[-1]) {
+        if (-not $sts[-1]) {
             Write-Output "Error: Check failed. SELinux may prevent daemons from running." | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         $sts = VerifyDaemons
-        if( -not $sts[-1]) {
+        if (-not $sts[-1]) {
             Write-Output "Error: Daemons/Modules verification failed for ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -442,7 +441,7 @@ switch ($scenario) {
     "2" {
         # Upgrade LIS
         $sts = UpgradeLIS "no"
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Upgrading LIS on ${vmName} failed" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -467,13 +466,13 @@ switch ($scenario) {
         $LIS_version_upgraded = CheckLISVersion
         $LIS_version_upgraded = $LIS_version_old[($LIS_version_old.count -1)] -split " " | Select-Object -Last 1
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=uninstall/g' constants.sh"
-        if(-not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         $sts = InstallLIS
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Cannot uninstall LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -482,13 +481,13 @@ switch ($scenario) {
         # Install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/lis_folder=\S*/lis_folder=OLD_LISISO/g' constants.sh"
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=install/g' constants.sh"
-        if(-not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         $sts = InstallLIS
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Cannot install LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -496,7 +495,7 @@ switch ($scenario) {
         # Reboot the VM and check LIS
         StartRestartVM "restart"
         $sts = VerifyDaemons
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Daemons/Modules verification failed for ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -514,13 +513,13 @@ switch ($scenario) {
     "4"{
         # Upgrade kernel
         $sts = SendCommandToVM $ipv4 $sshkey "yum install -y kernel >> ~/kernel_install_scenario_$scenario.log"
-        if(-not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Unable to upgrade kernel on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         SendCommandToVM $ipv4 $sshkey "echo `"---kernel version before upgrade:`$(uname -r)---`" >> kernel_install_scenario_$scenario.log"
-        if(-not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Unable to add kernel version before upgrade to log on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -531,7 +530,7 @@ switch ($scenario) {
 
         # Check if kernel was upgraded
         $sts = GetUpgradeKernelLogs
-        if(-not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Kernel was not upgraded" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -539,13 +538,13 @@ switch ($scenario) {
 
         # Try to install LIS. It is expected to fail
         $sts = SendCommandToVM $ipv4 $sshkey "echo -e 'action=install\nlis_folder=NEW_LISISO' >> ~/constants.sh"
-        if(-not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         $sts = InstallLIS
-        if($sts[-1]){
+        if ($sts[-1]){
             Write-Output "Error: LIS installation succeded ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -564,7 +563,7 @@ switch ($scenario) {
 
         # Upgrade kernel
         $sts = UpgradeKernel
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Upgrading kernel on ${vmName} failed" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -572,8 +571,7 @@ switch ($scenario) {
         $LIS_version_afterUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
         if ($LIS_version_afterUpgrade -eq $LIS_version_beforeUpgrade){
             Write-Output "Error: After upgrading the kernel, VM booted with LIS drivers $LIS_version_afterUpgrade " | Tee-Object -Append -file $summaryLog    
-        }
-        else{
+        } else {
             Write-Output "VM booted with built-in LIS drivers after kernel upgrade" | Tee-Object -Append -file $summaryLog   
         }
     }
@@ -590,7 +588,7 @@ switch ($scenario) {
 
         # Upgrade kernel
         $sts = UpgradeKernel
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Upgrading kernel on ${vmName} failed" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -598,8 +596,7 @@ switch ($scenario) {
         $LIS_version_afterUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
         if ($LIS_version_afterUpgrade -eq $LIS_version_beforeUpgrade){
             Write-Output "Error: After upgrading the kernel, VM booted with LIS drivers $LIS_version_afterUpgrade " | Tee-Object -Append -file $summaryLog    
-        }
-        else{
+        } else {
             Write-Output "VM booted with built-in LIS drivers after kernel upgrade" | Tee-Object -Append -file $summaryLog   
         }
     }
@@ -616,7 +613,7 @@ switch ($scenario) {
         Write-Output "Upgrading minor kernel"
         $initial_kernel_version = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "uname -r"
         $sts = SendCommandToVM $ipv4 $sshkey "dos2unix utils.sh && . utils.sh && UpgradeMinorKernel >> kernel_install_scenario_$scenario.log"
-        if(-not $sts[-1]) {
+        if (-not $sts[-1]) {
             Write-Output "Error: Unable to upgrade the kernel on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -633,7 +630,7 @@ switch ($scenario) {
 
         # Upgrade LIS
         $sts = UpgradeLIS "no"
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Upgrading LIS on ${vmName} failed" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -651,13 +648,13 @@ switch ($scenario) {
 
         # Uninstall lis
         $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/action=\S*/action=uninstall/g' constants.sh"
-        if(-not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         $sts = InstallLIS
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Cannot uninstall LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -681,19 +678,19 @@ switch ($scenario) {
         
         # Run bonding script and install LIS
         $sts = SendCommandToVM $ipv4 $sshkey "~/bondvf.sh"
-        if(-not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Bonding script exited with error code" | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         $sts = SendCommandToVM $ipv4 $sshkey "echo -e 'action=install\nlis_folder=NEW_LISISO' >> ~/constants.sh"
-        if(-not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Unable to add action in constants.sh on ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         $sts = InstallLIS
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Cannot install LIS for ${vmName}" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -702,13 +699,13 @@ switch ($scenario) {
         # Reboot the VM and check LIS
         StartRestartVM "restart"
         $sts = VerifyDaemons
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Daemons/Modules verification failed for ${vmName} after install." | Tee-Object -Append -file $summaryLog
             return $false
         }
 
         $sts = CheckBondingErrors
-        if( -not $sts[-1]) {
+        if (-not $sts[-1]) {
             Write-Output "Error: Bond errors found after LIS install." | Tee-Object -Append -file $summaryLog
             return $false
         } else {
@@ -720,7 +717,7 @@ switch ($scenario) {
 
         # Upgrade kernel
         $sts = UpgradeKernel
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Upgrading kernel on ${vmName} failed" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -728,13 +725,12 @@ switch ($scenario) {
         $LIS_version_afterUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
         if ($LIS_version_afterUpgrade -eq $LIS_version_beforeUpgrade){
             Write-Output "Error: After upgrading the kernel, VM booted with LIS drivers $LIS_version_afterUpgrade " | Tee-Object -Append -file $summaryLog    
-        }
-        else{
+        } else {
             Write-Output "VM booted with built-in LIS drivers after kernel upgrade" | Tee-Object -Append -file $summaryLog   
         }
 
         $sts = CheckBondingErrors
-        if(-not $sts[-1]) {
+        if (-not $sts[-1]) {
             Write-Output "Error: Bond errors found after kernel upgrade." | Tee-Object -Append -file $summaryLog
             return $false
         } else {
@@ -751,13 +747,13 @@ switch ($scenario) {
 
         # Upgrade LIS
         $sts = UpgradeLIS "yes"
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Upgrading LIS on ${vmName} failed" | Tee-Object -Append -file $summaryLog
             return $false
         }
         
         $sts = CheckBondingErrors
-        if( -not $sts[-1]) {
+        if (-not $sts[-1]) {
             Write-Output "Error: Bond errors found after lis upgrade" | Tee-Object -Append -file $summaryLog
             return $false
         } else {
@@ -766,7 +762,7 @@ switch ($scenario) {
         
         # Upgrade kernel
         $sts = UpgradeKernel
-        if( -not $sts[-1]){
+        if (-not $sts[-1]){
             Write-Output "Error: Upgrading kernel on ${vmName} failed" | Tee-Object -Append -file $summaryLog
             return $false
         }
@@ -774,13 +770,12 @@ switch ($scenario) {
         $LIS_version_afterUpgrade = .\bin\plink.exe -i ssh\${sshkey} root@${ipv4} "modinfo hv_vmbus | grep -w version:"
         if ($LIS_version_afterUpgrade -eq $LIS_version_beforeUpgrade){
             Write-Output "Error: After upgrading the kernel, VM booted with LIS drivers $LIS_version_afterUpgrade " | Tee-Object -Append -file $summaryLog    
-        }
-        else{
+        } else {
             Write-Output "VM booted with built-in LIS drivers after kernel upgrade" | Tee-Object -Append -file $summaryLog   
         }
 
         $sts = CheckBondingErrors
-        if( -not $sts[-1]) {
+        if (-not $sts[-1]) {
             Write-Output "Error: Bond errors found after kernel upgrade." | Tee-Object -Append -file $summaryLog
             return $false
         } else {
