@@ -135,14 +135,14 @@ if(-not $ParentVHD) {
 
 # Get VHD size
 $VHDSize = (Get-VHD -Path $ParentVHD -ComputerName $hvServer).FileSize
-[uint64]$newsize = [math]::round($VHDSize /1Gb, 1)
+# [uint64]$newsize = [math]::round($VHDSize /1Gb, 1)
 
 $baseVhdPath = $(Get-VMHost).VirtualHardDiskPath
 if (-not $baseVhdPath.EndsWith("\")) {
     $baseVhdPath += "\"
 }
 
-$newsize = ($newsize * 1GB) + 1GB
+$newsize = ($VHDSize + 1GB)
 
 # Check if VHD path exists and is being used by another process
 while(-not $foundName) {
@@ -245,7 +245,8 @@ Start-Sleep 15
 # Get partition size
 $disk = Get-WmiObject Win32_LogicalDisk -ComputerName $hvServer -Filter "DeviceID='${driveletter}'" | Select-Object FreeSpace
 
-$filesize = $disk.FreeSpace - 100000
+# Leave 52428800 bytes (50 MB) of free space after filling the partition
+$filesize = $disk.FreeSpace - 52428800
 $file_path_formatted = $driveletter[0] + '$\' + 'testfile'
 
 # Fill up the partition
@@ -256,10 +257,34 @@ if ($createfile -notlike "File *testfile* is created")
     return $False
 }
 Write-Output "Info: Created test file on \\$hvServer\$file_path_formatted with the size $filesize"
-
 Write-Output "Info: Writing data on the VM disk in order to hit the disk limit"
-SendCommandToVM $ipv4vm1 $sshKey "nohup dd if=/dev/urandom of=/root/data2 bs=1M count=500 &>/dev/null &"
-Start-Sleep 30
+
+# Get the used space reported by the VM on the root partition
+$usedSpaceVM = .\bin\plink.exe -i ssh\$sshKey root@$ipv4vm1 "df -B1 | grep '[A-Za-z]*root'| awk '/root/ {print `$3}'"
+if (-not $usedSpaceVM) {
+    # If the used space cannot be found using the above query, try searching for sda2 disk
+    $usedSpaceVM = (.\bin\plink.exe -i ssh\$sshKey root@$ipv4vm1 "df -B1| grep 'sda2'| awk '{print `$3}'")[0]
+}
+# Divide by 1 to convert string to double
+$usedSpaceVM = ($usedSpaceVM/1)
+$vmFileSize = ($VHDSize - $usedSpaceVM)
+$ddFileSize = [math]::Round($vmFileSize/1MB) #The value supplied to dd command has to be in MB
+
+if ($ddFileSize -le 0) {
+    Write-Output "Warning: The difference between the created partition size and the used VM space is negative."
+    # If the number is negative, convert it to possitive and if it is a one or two digit number use the filesize value
+    $ddFileSize = $ddFileSize * -1
+    if ($ddFileSize.length -eq 1 -or $ddFileSize.length -eq 2) {
+        $ddFileSize = $filesize
+    }
+}
+
+Write-Output "Info: Filling $vmName with $ddFileSize MB of data."
+SendCommandToVM $ipv4vm1 $sshKey "nohup dd if=/dev/urandom of=/root/data2 bs=1M count=$ddFileSize &>/dev/null &"
+if ($? -ne "True") {
+    Write-Output "Error: Unable to send dd command to $vmName ."
+}
+Start-Sleep 90
 
 $vm1 = Get-VM -Name $vmName1 -ComputerName $hvServer
 if ($vm1.State -ne "PausedCritical")
@@ -285,7 +310,7 @@ if (-not $?)
 }
 
 # Check Heartbeat
-Start-Sleep 10
+Start-Sleep 5
 if ($vm1.Heartbeat -eq "OkApplicationsUnknown")
 {
     "Info: Heartbeat detected, status OK."
