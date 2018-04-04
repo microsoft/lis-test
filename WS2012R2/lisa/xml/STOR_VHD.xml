@@ -50,8 +50,10 @@
             <cleanupScript>SetupScripts\Remove-VHDXHardDisk.ps1</cleanupScript>
             <testParams>
                 <param>TC_COVERED=STOR-21</param>
+                <!--
                 <param>TargetIP=valid_iscsi_target_ip</param>
                 <param>IQN=valid_iqn</param>
+                -->
                 <param>SSH_PRIVATE_KEY=sshKey</param>
             </testParams>
             <testScript>STOR_pass_offline.sh</testScript>
