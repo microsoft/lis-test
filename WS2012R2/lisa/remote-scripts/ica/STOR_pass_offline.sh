@@ -24,6 +24,7 @@
 ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
+ICA_TESTSKIPPED="TestSkipped"
 count=0
 
 #######################################################################
@@ -211,18 +212,12 @@ else
     exit 1
 fi
 
-if [ ! ${TargetIP} ]; then
-    LogMsg "No TargetIP variable in constants.sh"
-    UpdateTestState "TestAborted"
-    exit 1
-else
-    LogMsg "Target IP: ${TargetIP}"
-fi
-
-if [ ! ${IQN} ]; then
-    LogMsg "No IQN variable in constants.sh. Will try to autodiscover it"
-else
-    LogMsg "IQN: ${IQN}"
+if [[ ( ! ${TargetIP} ) && ( ! ${IQN} ) ]];
+then
+    LogMsg "INFO: No TargetIP and IQN have been specified. Skipping tests."
+    UpdateSummary "INFO: No TargetIP and IQN have been specified."
+    UpdateTestState $ICA_TESTSKIPPED
+    exit 0
 fi
 
 # Connect to the iSCSI Target
