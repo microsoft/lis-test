@@ -31,12 +31,12 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 # Check input arguments
 if ($vmName -eq $null) {
     "Error: VM name is null"
-    return $retVal
+    return $False
 }
 
 if ($hvServer -eq $null) {
     "Error: hvServer is null"
-    return $retVal
+    return $False
 }
 
 $params = $testParams.Split(";")
@@ -44,11 +44,11 @@ foreach ($p in $params) {
     $fields = $p.Split("=")
 
     switch ($fields[0].Trim()) {
-        "rootDir"   { $rootDir = $fields[1].Trim() }
+        "rootDir" { $rootDir = $fields[1].Trim() }
         "sshKey" { $sshKey  = $fields[1].Trim() }
-        "ipv4"   {$ipv4 = $fields[1].Trim()}
-        "distro"   {$distro = $fields[1].Trim()}
-		"localPath"   {$localPath = $fields[1].Trim()}
+        "ipv4" { $ipv4 = $fields[1].Trim() }
+        "distro" { $distro = $fields[1].Trim() }
+        "localPath" { $localPath = $fields[1].Trim() }
         default  {}
     }
 }
@@ -70,16 +70,14 @@ else {
     cd $rootDir
 }
 
-$summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
+$summaryLog = ("{0}_summary.log" -f @($vmName))
+Remove-Item -Force $summaryLog -ErrorAction SilentlyContinue
 
 # Source TCUtils.ps1 for getipv4 and other functions
-if (Test-Path ".\setupScripts\TCUtils.ps1")
-{
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
     . .\setupScripts\TCUtils.ps1
 }
-else
-{
+else {
     "ERROR: Could not find setupScripts\TCUtils.ps1"
     return $false
 }
@@ -91,18 +89,17 @@ if ($distro -eq "rhel" -or $distro -eq "centos") {
 if ($distro -eq "ubuntu") {
     $fileExtension = "deb"
 }
-if (Test-Path $localPath\*.$fileExtension)
-{
+if (Test-Path $localPath\*.$fileExtension) {
     $files = Get-ChildItem $localPath -Filter *.${fileExtension}
 }
 else {
-    $test = (ls $localPath) #########
-    Write-Output "Error: $fileExtension files are not present! $test" | Tee-Object -Append -file $summaryLog
+    Write-Output "Error: $fileExtension files are not present! $test" `
+        | Tee-Object -Append -file $summaryLog
     return $false
 }
 
 SendCommandToVM $ipv4 $sshKey "mkdir /tmp/$kernel/"
-foreach ($file in $files){
+foreach ($file in $files) {
     $filePath = $file.FullName
 
     # Copy file to VM
@@ -110,7 +107,8 @@ foreach ($file in $files){
 
     Start-Sleep -s 1
 }
-Write-Output "All files have been sent to VM. Will proceed with installing the new kernel" | Tee-Object -Append -file $summaryLog
+Write-Output "All files have been sent to VM. Will proceed with installing the new kernel" `
+    | Tee-Object -Append -file $summaryLog
 
 if ($distro -eq "rhel" -or $distro -or $distro -eq "centos") {
     # Install RPMs
@@ -118,14 +116,16 @@ if ($distro -eq "rhel" -or $distro -or $distro -eq "centos") {
     Start-Sleep -s 100
 
     # Update daemon startup paths
-    SendCommandToVM $ipv4 $sshKey "sed -i 's,ExecStart=/usr/sbin/hypervkvpd,ExecStart=/usr/sbin/hypervkvpd -n,' /usr/lib/systemd/system/hypervkvpd.service"
-    SendCommandToVM $ipv4 $sshKey "sed -i 's,ExecStart=/usr/sbin/hypervvssd,ExecStart=/usr/sbin/hypervvssd -n,' /usr/lib/systemd/system/hypervvssd.service"
-    SendCommandToVM $ipv4 $sshKey "sed -i 's,ExecStart=/usr/sbin/hypervfcopyd,ExecStart=/usr/sbin/hypervfcopyd -n,' /usr/lib/systemd/system/hypervfcopyd.service"
+    $daemons = ('hypervkvpd', 'hypervvssd', 'hypervfcopyd')
+    foreach ($daemon in $daemons) {
+        $command = ("sed -i 's,ExecStart=/usr/sbin/{0},ExecStart=/usr/sbin/{0} -n,' /usr/lib/systemd/system/{0}.service" `
+            -f @($daemon))
+        SendCommandToVM $ipv4 $sshKey $command
+    }
 
     # Modify GRUB2
     SendCommandToVM $ipv4 $sshKey "grub2-mkconfig -o /boot/grub2/grub.cfg ; grub2-set-default 0"
 
-    # Modify GRUB
     Start-Sleep -s 200
 }
 if ($distro -eq "ubuntu") {
@@ -140,7 +140,8 @@ if ($distro -eq "ubuntu") {
 Start-Sleep -s 10
 Restart-VM -VMName $vmName -ComputerName $hvServer -Force
 $sts = WaitForVMToStartKVP $vmName $hvServer 100
-if( -not $sts[-1]){
-    "Error: VM $vmName has not booted after the restart" | Tee-Object -Append -file $summaryLog
+if( -not $sts[-1]) {
+    Write-Output "Error: VM $vmName has not booted after the restart" `
+        | Tee-Object -Append -file $summaryLog
     return $False
 }

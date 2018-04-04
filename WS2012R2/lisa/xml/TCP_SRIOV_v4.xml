@@ -31,7 +31,7 @@
       <suiteName>TCP</suiteName>
       <suiteTests>
         <suiteTest>TCP_v4_sriov</suiteTest>
-        <!--<suiteTest>TCP_v6_sriov</suiteTest>-->
+        <suiteTest>TCP_v6_sriov</suiteTest>
       </suiteTests>
     </suite>
   </testSuites>

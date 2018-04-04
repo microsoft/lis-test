@@ -24,7 +24,7 @@
 			<testName>Install_MSFT_kernel</testName>
 			<testScript>SetupScripts\install_kernel_rpm.ps1</testScript>
 			<files>remote-scripts/ica/utils.sh</files>
-			<timeout>1200</timeout>
+			<timeout>2500</timeout>
 			<OnError>Abort</OnError>
 			<noReboot>False</noReboot>
 		</test>
@@ -32,7 +32,7 @@
 		<test>
 			<testName>Setup-UploadVHD</testName>
 			<testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
-			<timeout>600</timeout>
+			<timeout>1200</timeout>
 			<testParams>
 				<param>TC_COVERED=Upload-VHD</param>
 			</testParams>
@@ -53,8 +53,8 @@
 			<suite>MSFT</suite>
 			<hardware>
 				<create>true</create>
-				<numCPUs>4</numCPUs>
-				<memSize>2048</memSize>
+				<numCPUs>8</numCPUs>
+				<memSize>4096</memSize>
 				<disableDiff>true</disableDiff>
 				<nic>VMBus,Vm.Enterprise</nic>
 				<generation>1</generation>

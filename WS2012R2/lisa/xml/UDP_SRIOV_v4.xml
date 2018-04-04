@@ -1,0 +1,251 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+ Copyright (c) Microsoft Corporation
+
+ All rights reserved.
+ Licensed under the Apache License, Version 2.0 (the ""License"");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+ ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+ PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+ See the Apache Version 2.0 License for specific language governing
+ permissions and limitations under the License.
+-->
+<config>
+  <global>
+    <defaultSnapshot>ICABase</defaultSnapshot>
+    <LisaInitScript>
+      <file>.\setupScripts\CreateVMs.ps1</file>
+    </LisaInitScript>
+    <!-- Optional testParams go here -->
+    <imageStoreDir>\\43f13-35\C$\workspace\d48PR-200-perf\vhd-destination\</imageStoreDir>
+  </global>
+  <testSuites>
+    <suite>
+      <suiteName>UDP</suiteName>
+      <suiteTests>
+        <suiteTest>UDP_v4_1k_sriov</suiteTest>
+        <suiteTest>UDP_v4_8k_sriov</suiteTest>
+        <suiteTest>UDP_v6_1k_sriov</suiteTest>
+        <suiteTest>UDP_v6_8k_sriov</suiteTest>
+      </suiteTests>
+    </suite>
+  </testSuites>
+  <testCases>
+    <test>
+      <testName>UDP_v4_1k_sriov</testName>
+      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
+      <setupScript>
+        <file>setupscripts\perf_SRIOV_enable.ps1</file>
+      </setupScript>
+      <testScript>perf_iperf_client.sh</testScript>
+      <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
+      <files>Tools/iperf-3.1.3.tar.gz</files>
+      <testParams>
+        <param>TC_COVERED=IPv4</param>
+        <param>NETWORK_NAME=SRIOV</param>
+        <param>SRIOV=yes</param>
+        <param>SnapshotName=ICABase</param>
+        <param>IPERF_PACKAGE=iperf-3.1.3.tar.gz</param>
+        <param>STATIC_IP=10.10.10.20</param>
+        <param>IPERF3_SERVER_IP=10.10.10.10</param>
+        <param>NETMASK=255.255.255.0</param>
+        <param>SERVER_OS_USERNAME=root</param>
+        <param>BANDWIDTH=40g</param>
+        <param>ETH_NAME=eth1</param>
+        <param>MAC=001600444416</param>
+        <param>IPERF3_BUFFER=1k</param>
+        <param>VM2NAME=SRIOV-Server</param>
+        <param>VM2SERVER=43f13-36</param>
+        <param>REMOTE_SERVER=43f13-36</param>
+        <param>IPERF3_PROTOCOL=UDP</param>
+        <param>INDIVIDUAL_TEST_DURATION=60</param>
+        <param>CONNECTIONS_PER_IPERF3=128</param>
+        <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
+        <param>TEST_RUN_LOG_FOLDER=iperf3-test-logs_1k</param>
+        <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+        <param>IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024)</param>
+      </testParams>
+      <uploadFiles>
+        <file>iPerf3_Client_Logs.zip</file>
+        <file>iPerf3_Panorama_ServerSideScript.log</file>
+        <file>iperf3-UDP-1k.log</file>
+      </uploadFiles>
+      <timeout>14400</timeout>
+      <OnError>Continue</OnError>
+    </test>
+    <test>
+      <testName>UDP_v4_8k_sriov</testName>
+      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
+      <!--<setupScript>
+                 <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>setupscripts\perf_SRIOV_enable.ps1</file>
+            </setupScript>-->
+      <testScript>perf_iperf_client.sh</testScript>
+      <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
+      <files>Tools/iperf-3.1.3.tar.gz</files>
+      <testParams>
+        <param>TC_COVERED=IPv4</param>
+        <param>SRIOV=yes</param>
+        <param>NETWORK_NAME=SRIOV</param>
+        <param>SnapshotName=ICABase</param>
+        <param>IPERF_PACKAGE=iperf-3.1.3.tar.gz</param>
+        <param>STATIC_IP=10.10.10.20</param>
+        <param>IPERF3_SERVER_IP=10.10.10.10</param>
+        <param>NETMASK=255.255.255.0</param>
+        <param>SERVER_OS_USERNAME=root</param>
+        <param>BANDWIDTH=40g</param>
+        <param>ETH_NAME=eth1</param>
+        <param>MAC=001600444416</param>
+        <param>IPERF3_BUFFER=8k</param>
+        <param>VM2NAME=SRIOV-Server</param>
+        <param>VM2SERVER=LIS-PERF09</param>
+        <param>REMOTE_SERVER=LIS-PERF09</param>
+        <param>IPERF3_PROTOCOL=UDP</param>
+        <param>INDIVIDUAL_TEST_DURATION=60</param>
+        <param>CONNECTIONS_PER_IPERF3=128</param>
+        <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
+        <param>TEST_RUN_LOG_FOLDER=iperf3-test-logs_8k</param>
+        <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+        <param>IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024)</param>
+      </testParams>
+      <uploadFiles>
+        <file>iPerf3_Client_Logs.zip</file>
+        <file>iPerf3_Panorama_ServerSideScript.log</file>
+        <file>iperf3-UDP-8k.log</file>
+      </uploadFiles>
+      <timeout>14400</timeout>
+      <OnError>Continue</OnError>
+    </test>
+    <test>
+      <testName>UDP_v6_1k_sriov</testName>
+      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
+      <setupScript>
+        <file>setupScripts\Check_PowerPlan.ps1</file>
+        <file>setupscripts\perf_SRIOV_enable.ps1</file>
+      </setupScript>
+      <testScript>perf_iperf_client.sh</testScript>
+      <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
+      <files>Tools/iperf-3.1.3.tar.gz</files>
+      <testParams>
+        <param>TC_COVERED=IPv6</param>
+        <param>SRIOV=yes</param>
+        <param>NETWORK_NAME=SRIOV</param>
+        <param>IPERF_PACKAGE=iperf-3.1.3.tar.gz</param>
+        <param>STATIC_IP=fd00::4:100</param>
+        <param>IPERF3_SERVER_IP=fd00::4:10</param>
+        <param>NETMASK=64</param>
+        <param>SERVER_OS_USERNAME=root</param>
+        <param>MAC=001600112267</param>
+        <param>BANDWIDTH=40g</param>
+        <param>ETH_NAME=eth1</param>
+        <param>MAC=001600444416</param>
+        <param>IPERF3_BUFFER=1k</param>
+        <param>IPERF3_PROTOCOL=UDP</param>
+        <param>VM2NAME=SRIOV-Server</param>
+        <param>VM2SERVER=LIS-PERF09</param>
+        <param>REMOTE_SERVER=LIS-PERF09</param>
+        <param>INDIVIDUAL_TEST_DURATION=60</param>
+        <param>CONNECTIONS_PER_IPERF3=128</param>
+        <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
+        <param>TEST_RUN_LOG_FOLDER=iperf3-logs_v6_1k</param>
+        <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+        <param>IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024)</param>
+      </testParams>
+      <uploadFiles>
+        <file>iPerf3_Client_Logs.zip</file>
+        <file>iPerf3_Panorama_ServerSideScript.log</file>
+        <file>iperf3-UDP-ipv6-1k.log</file>
+      </uploadFiles>
+      <timeout>14400</timeout>
+      <OnError>Continue</OnError>
+    </test>
+    <test>
+      <testName>UDP_v6_8k_sriov</testName>
+      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
+      <!--<setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file> 
+                <file>setupscripts\perf_SRIOV_enable.ps1</file> 
+            </setupScript>-->
+      <testScript>perf_iperf_client.sh</testScript>
+      <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
+      <files>Tools/iperf-3.1.3.tar.gz</files>
+      <testParams>
+        <param>TC_COVERED=IPv6</param>
+        <param>SRIOV=yes</param>
+        <param>NETWORK_NAME=SRIOV</param>
+        <param>IPERF_PACKAGE=iperf-3.1.3.tar.gz</param>
+        <param>STATIC_IP=fd00::4:100</param>
+        <param>IPERF3_SERVER_IP=fd00::4:10</param>
+        <param>NETMASK=64</param>
+        <param>SERVER_OS_USERNAME=root</param>
+        <param>MAC=001600112267</param>
+        <param>BANDWIDTH=40g</param>
+        <param>ETH_NAME=eth1</param>
+        <param>MAC=001600444416</param>
+        <param>IPERF3_BUFFER=8k</param>
+        <param>IPERF3_PROTOCOL=UDP</param>
+        <param>VM2NAME=SRIOV-Server</param>
+        <param>VM2SERVER=LIS-PERF09</param>
+        <param>REMOTE_SERVER=LIS-PERF09</param>
+        <param>INDIVIDUAL_TEST_DURATION=60</param>
+        <param>CONNECTIONS_PER_IPERF3=128</param>
+        <param>TEST_SIGNAL_FILE=iperf3.test.signal</param>
+        <param>TEST_RUN_LOG_FOLDER=iperf3-logs_v6_8k</param>
+        <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+        <param>IPERF3_TEST_CONNECTION_POOL=(1 2 4 8 16 32 64 128 256 512 1024)</param>
+      </testParams>
+      <uploadFiles>
+        <file>iPerf3_Client_Logs.zip</file>
+        <file>iPerf3_Panorama_ServerSideScript.log</file>
+        <file>perf3-UDP-ipv6-8k.log</file>
+      </uploadFiles>
+      <timeout>14400</timeout>
+      <OnError>Continue</OnError>
+      <noReboot>True</noReboot>
+    </test>
+  </testCases>
+  <VMs>
+    <vm>
+      <role>SUT1</role>
+      <hvServer>43f13-35</hvServer>
+      <vmName>SRIOV-Client</vmName>
+      <os>Linux</os>
+      <ipv4>
+      </ipv4>
+      <sshKey>rhel5_id_rsa.ppk</sshKey>
+      <suite>UDP</suite>
+      <hardware>
+        <create>true</create>
+        <numCPUs>8</numCPUs>
+        <memSize>8192</memSize>
+        <disableDiff>True</disableDiff>
+        <nic>VMBus,Vm.Enterprise</nic>
+        <nic>VMBus,SRIOV,001600114232</nic>
+      </hardware>
+    </vm>
+    <vm>
+      <role>NonSUT1</role>
+      <hvServer>43f13-36</hvServer>
+      <vmName>SRIOV-Server</vmName>
+      <os>Linux</os>
+      <ipv4>
+      </ipv4>
+      <sshKey>rhel5_id_rsa.ppk</sshKey>
+      <hardware>
+        <create>true</create>
+        <numCPUs>8</numCPUs>
+        <memSize>8192</memSize>
+        <disableDiff>True</disableDiff>
+        <nic>VMBus,Vm.Enterprise,001600444416</nic>
+        <nic>VMBus,SRIOV,001600114233</nic>
+      </hardware>
+    </vm>
+  </VMs>
+</config>
