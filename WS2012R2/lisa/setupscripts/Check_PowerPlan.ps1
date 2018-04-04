@@ -44,8 +44,12 @@ if ($status -eq $True)
     $retVal = $true
 }
 else{
-    $pp = Get-CimInstance -Name root\cimv2\power -Class win32_PowerPlan -Filter "ElementName = 'High Performance'"
-    $hp = Invoke-CimMethod -InputObject $pp -MethodName Activate
+    $process = Start-Process powercfg.exe -ArgumentList "/setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" -PassThru -NoNewWindow -Wait
+    if ($process.ExitCode -ne 0)
+    {
+       Throw "Error: Failed to set PowerPlan to High Performance"
+    }
+    $hp = Get-CimInstance -Name root\cimv2\power -Class win32_PowerPlan -Filter "ElementName = 'High Performance'" | select -ExpandProperty IsActive
     if ($hp -eq $True)
     {
         Write-Output "Success : PowerPlan High Performance activated."
