@@ -138,8 +138,21 @@ ConfigRhel()
         GetOSVersion
     fi
 
+    # Extra config for RHEL5 RHEL6.1 RHEL6.2
     if [[ $os_RELEASE.$os_UPDATE =~ ^5.* ]] || [[ $os_RELEASE.$os_UPDATE =~ ^6.[0-2][^0-9] ]] ; then
         RhelExtraSettings
+    # Extra config for WS2012 - RHEL6.3+
+    elif [[ $os_RELEASE.$os_UPDATE =~ ^6.* ]] && [[ $BuildNumber == "9200" ]] ; then
+        echo "extra_modules ata_piix sr_mod sd_mod" >> /etc/kdump.conf
+        echo "options ata_piix prefer_ms_hyperv=0" >> /etc/kdump.conf
+        echo "blacklist hv_vmbus hv_storvsc hv_utils hv_netvsc hid-hyperv" >> /etc/kdump.conf
+        echo "disk_timeout 100" >> /etc/kdump.conf
+    fi
+
+    # Extra config for WS2012 - RHEL7
+    if [[ $os_RELEASE.$os_UPDATE =~ ^7.* ]] && [[ $BuildNumber == "9200" ]] ; then
+        echo "extra_modules ata_piix sr_mod sd_mod" >> /etc/kdump.conf
+        echo "KDUMP_COMMANDLINE_APPEND=\"ata_piix.prefer_ms_hyperv=0 disk_timeout=100 rd.driver.blacklist=hv_vmbus,hv_storvsc,hv_utils,hv_netvsc,hid-hyperv\"" >> /etc/sysconfig/kdump
     fi
 
     GetGuestGeneration
