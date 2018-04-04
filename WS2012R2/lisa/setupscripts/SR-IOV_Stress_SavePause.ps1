@@ -226,7 +226,7 @@ Start-Sleep -s 5
 
 "Start Server"
 # Start iPerf3 testing
-.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 1800 -c `$VF_IP2 --logfile PerfResults.log &' > runIperf.sh"
+.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "echo 'source constants.sh && iperf3 -t 2400 -c `$VF_IP2 --logfile PerfResults.log &' > runIperf.sh"
 Start-Sleep -s 5
 .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash ~/runIperf.sh > ~/iPerf.log 2>&1"
 
@@ -250,6 +250,7 @@ Start-Sleep -s 10
 #
 $isDone = $False
 [int]$counter = 0
+$expiration = (Get-Date).AddMinutes(30)
 while ($isDone -eq $False) 
 {
     [int]$timeToSwitch = 0
@@ -261,10 +262,11 @@ while ($isDone -eq $False)
 
     # Change state
     iex $cmd_StateChange
-    Start-Sleep -s 5
+    Start-Sleep -s 10
     
     # Resume initial state
     iex $cmd_StateResume
+    Start-Sleep -s 10
     $hasResumed = 0
 
     # Check if the VM is running. If after 10 seconds it's not running, fail the test
@@ -287,9 +289,9 @@ while ($isDone -eq $False)
     # Start measuring the time to switch between netvsc and VF
     # Throughput  will also be measured
     while ($hasSwitched -eq $false){
-        # This check is made to determine if iPerf3 is still running
-        $iperfDone = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -1 PerfResults.log | grep Done"
-        if ($iperfDone) {
+        # This check is made to determine if 30 minutes have passed
+        # The test ends once we get past by 30 minute mark
+        if ((Get-Date) -gt $expiration) {
             $isDone = $true
             $hasSwitched = $true
             break
