@@ -2128,3 +2128,103 @@ UpgradeMinorKernel() {
 
 	return 0
 }
+
+VerifyIsEthtool()
+{
+    # Check for ethtool. If it's not on the system, install it.
+    ethtool --version
+    if [ $? -ne 0 ]; then
+        LogMsg "INFO: Ethtool not found. Trying to install it."
+        GetDistro
+        case "$DISTRO" in
+            suse*)
+                zypper --non-interactive in ethtool
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to install Ethtool"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                fi
+                ;;
+            ubuntu*)
+                apt-get install ethtool -y
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to install Ethtool"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                fi
+                ;;
+            redhat*|centos*)
+                yum install ethtool -y
+                if [ $? -ne 0 ]; then
+                    msg="ERROR: Failed to install Ethtool"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                fi
+                ;;
+                *)
+                    msg="ERROR: OS Version not supported"
+                    LogMsg "$msg"
+                    UpdateSummary "$msg"
+                    SetTestStateFailed
+                    exit 1
+                ;;
+        esac
+    fi
+    LogMsg "Info: Ethtool is installed!"
+}
+
+
+#list all network interfaces without eth0
+ListInterfaces()
+{
+    # Parameter provided in constants file
+    #    ipv4 is the IP Address of the interface used to communicate with the VM, which needs to remain unchanged
+    #    it is not touched during this test (no dhcp or static ip assigned to it)
+
+    if [ "${ipv4:-UNDEFINED}" = "UNDEFINED" ]; then
+        msg="The test parameter ipv4 is not defined in constants file!"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateAborted
+        exit 30
+    else
+
+        CheckIP "$ipv4"
+        if [ 0 -ne $? ]; then
+            msg="Test parameter ipv4 = $ipv4 is not a valid IP Address"
+            LogMsg "$msg"
+            UpdateSummary "$msg"
+            SetTestStateAborted
+            exit 10
+        fi
+
+        # Get the interface associated with the given ipv4
+        __iface_ignore=$(ip -o addr show | grep "$ipv4" | cut -d ' ' -f2)
+    fi
+
+    GetSynthNetInterfaces
+    if [ 0 -ne $? ]; then
+        msg="No synthetic network interfaces found"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 10
+    fi
+    # Remove interface if present
+    SYNTH_NET_INTERFACES=(${SYNTH_NET_INTERFACES[@]/$__iface_ignore/})
+
+    if [ ${#SYNTH_NET_INTERFACES[@]} -eq 0 ]; then
+        msg="The only synthetic interface is the one which LIS uses to send files/commands to the VM."
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateAborted
+        exit 10
+    fi
+    LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
+}
