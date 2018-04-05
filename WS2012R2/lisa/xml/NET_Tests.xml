@@ -61,7 +61,12 @@ permissions and limitations under the License.
                 <suiteTest>Network_Hang_Vxlan</suiteTest>
                 <suiteTest>TCP_Corruption</suiteTest>
                 <suiteTest>Multicast</suiteTest>
-                <suiteTest>CheckKeywithEthtool</suiteTest>
+                <suiteTest>Ethtool_Check_Keys</suiteTest>
+                <suiteTest>Ethtool_Change_RingBuffer</suiteTest>
+                <suiteTest>Ethtool_SetGet_TCP_HashLevels</suiteTest>
+                <suiteTest>Ethtool_SetGet_UDP_HashLevels</suiteTest>
+                <suiteTest>Ethtool_Change_GRO_LRO</suiteTest>
+                <suiteTest>Ethtool_Check_Channels</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
@@ -119,7 +124,7 @@ permissions and limitations under the License.
                 <param>STATIC_IP=10.10.10.1</param>
                 <param>STATIC_IP2=10.10.10.2</param>
                 <param>NETMASK=255.255.255.0</param>
-				<param>PING_FAIL=8.8.4.4</param>
+                <param>PING_FAIL=8.8.4.4</param>
                 <param>PING_FAIL2=192.168.0.1</param>
             </testParams>
             <testScript>setupscripts\NET_PRIVATE_NETWORK.ps1</testScript>
@@ -400,7 +405,7 @@ permissions and limitations under the License.
         </test>
 
         <test>
-            <testName>CheckKeywithEthtool</testName>
+            <testName>Ethtool_Check_Keys</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
@@ -414,6 +419,78 @@ permissions and limitations under the License.
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>800</timeout>
             <onError>Continue</onError>
+        </test>
+
+        <test>
+            <testName>Ethtool_Change_RingBuffer</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            </setupScript>
+            <testScript>Ring_buffer_size.sh</testScript>
+            <files>remote-scripts/ica/Ring_buffer_size.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>TC_COVERED=NET-28</param>
+                <param>rx=10000</param>
+                <param>tx=200</param>
+            </testParams>
+            <noReboot>True</noReboot>
+            <timeout>800</timeout>
+            <onError>Continue</onError>
+        </test>
+
+        <test>
+            <testName>Ethtool_SetGet_TCP_HashLevels</testName>
+            <testScript>Ethtool_Handler_HashLevels.sh</testScript>
+            <files>remote-scripts/ica/Ethtool_Handler_HashLevels.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=NET-29a</param>
+                <param>protocol=tcp4</param>
+            </testParams>
+            <noReboot>True</noReboot>
+            <onError>Continue</onError>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>Ethtool_SetGet_UDP_HashLevels</testName>
+            <testScript>Ethtool_Handler_HashLevels.sh</testScript>
+            <files>remote-scripts/ica/Ethtool_Handler_HashLevels.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=NET-29b</param>
+                <param>protocol=udp4</param>
+            </testParams>
+            <noReboot>True</noReboot>
+            <onError>Continue</onError>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>Ethtool_Change_GRO_LRO</testName>
+            <testScript>Disable_enable_GRO_LRO.sh</testScript>
+            <files>remote-scripts/ica/Disable_enable_GRO_LRO.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=NET-30</param>
+            </testParams>
+            <noReboot>False</noReboot>
+            <onError>Continue</onError>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
+            <testName>Ethtool_Check_Channels</testName>
+            <setupScript>
+                <file>setupScripts\ChangeCPU.ps1</file>
+            </setupScript>
+            <testScript>Check_number_of_channel.sh</testScript>
+            <files>remote-scripts/ica/Check_number_of_channel.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=NET-31</param>
+                <param>vCPU=8</param>
+            </testParams>
+            <onError>Continue</onError>
+            <timeout>800</timeout>
         </test>
 
         <test>

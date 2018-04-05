@@ -44,6 +44,7 @@
             <suiteTests>
                 <!-- Basic SR-IOV test -->
                 <suiteTest>VerifyVF_basic</suiteTest>
+                <suiteTest>Ethtool_VerifyVF_basic</suiteTest>
 
                 <!-- Failover tests group -->
                 <suiteTest>DisableVF</suiteTest>
@@ -116,6 +117,24 @@
             <timeout>1000</timeout>
         </test>
 
+
+        <test>
+            <testName>Ethtool_VerifyVF_basic</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\SR-IOV_enable.ps1</file>
+            </setupScript>
+            <testScript>SR-IOV_VerifyVF_Ethtool.sh</testScript>
+            <files>remote-scripts/ica/SR-IOV_VerifyVF_Ethtool.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,SRIOV_Intel,001600112800</param>
+                <param>TC_COVERED=NET-32</param>
+            </testParams>
+            <noReboot>False</noReboot>
+            <onError>Continue</onError>
+            <timeout>1000</timeout>
+        </test>
+
         <test>
             <testName>DisableVF</testName>
             <testScript>SR-IOV_DisableVF.sh</testScript>
@@ -143,7 +162,7 @@
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-5</param>                                   
+                <param>TC_COVERED=SRIOV-5</param>
             </testParams>
             <timeout>1000</timeout>
         </test>
