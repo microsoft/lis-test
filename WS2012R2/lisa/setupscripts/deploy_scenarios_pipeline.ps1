@@ -140,17 +140,14 @@ function StartRestartVM () {
         Restart-VM -VMName $vmName -ComputerName $hvServer -Force   
     }
    
-    $timeout = 200
-    if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout )) {
-        return $false
-    }
-
-    Start-Sleep -s 35
-    # Get the ipv4, maybe it may change after the reboot
-    $ipv4 = Getipv4 $vmName $hvServer
-    Write-Output "${vmName} IP Address after reboot: ${ipv4}"
-    Set-Variable -Name "ipv4" -Value $ipv4 -Scope Global
-    return $true
+    $new_ipv4 = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 120
+    if ($new_ipv4) {
+		# In some cases the IP changes after a reboot
+		Write-Output "${vmName} IP Address after reboot: ${new_ipv4}"
+		Set-Variable -Name "ipv4" -Value $new_ipv4 -Scope Global
+    } 
+	# If KVP data is not available, assume it's the same IP
+	return $true
 }
 
 function RevertSnapshot () {
