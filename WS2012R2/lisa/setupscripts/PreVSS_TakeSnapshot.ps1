@@ -62,20 +62,17 @@ $REMOTE_SERVER = $null
 #
 # Check input arguments
 #
-if (-not $vmName)
-{
+if (-not $vmName) {
     "Error: VM name is null."
     return $retVal
 }
 
-if (-not $hvServer)
-{
+if (-not $hvServer) {
     "Error: hvServer is null."
     return $retVal
 }
 
-if (-not $testParams)
-{
+if (-not $testParams) {
     "Error: No testParams provided!"
     "This script requires the test case ID and the logs folder as the test parameters."
     return $retVal
@@ -89,21 +86,18 @@ $vm = ""
 # Checking the mandatory testParams
 #
 $params = $testParams.Split(";")
-foreach ($p in $params)
-{
+foreach ($p in $params) {
     $fields = $p.Split("=")
-        switch -wildcard ($fields[0].Trim())
-        {
-        "ipv4" { $ipv4 = $fields[1].Trim() }
-        "rootdir" { $rootDir = $fields[1].Trim() }
-        "VM[0-9]NAME" { $vm = $fields[1].Trim() }
-        "snapshotName" { $snapshot = $fields[1].Trim() }
-        "snapshotVm" { $snapshot_vm = $fields[1].Trim() }
-		"REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
-        default  {}
+        switch -wildcard ($fields[0].Trim()) {
+            "ipv4" { $ipv4 = $fields[1].Trim() }
+            "rootdir" { $rootDir = $fields[1].Trim() }
+            "VM[0-9]NAME" { $vm = $fields[1].Trim() }
+            "snapshotName" { $snapshot = $fields[1].Trim() }
+            "snapshotVm" { $snapshot_vm = $fields[1].Trim() }
+    		"REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
+            default  {}
         }
-    if ($vm -ne "")
-    {
+    if ($vm -ne "") {
         $vms.Add($vm)
         $vm = ""
     }
@@ -114,30 +108,25 @@ if ( $snapshot_vm -eq "dependency" -and $remoteServer ) {
     $hvServer = $remoteServer
 }
 
-if ($snapshot_vm -ne "dependency")
-{
+if ($snapshot_vm -ne "dependency") {
     $vms.Clear()
 }
 
-if ($snapshot_vm -eq "" -or $snapshot_vm -eq "main")
-{
+if ($snapshot_vm -eq "" -or $snapshot_vm -eq "main") {
     $vms.Add($vmName)
 }
 
-if (-not $rootDir)
-{
+if (-not $rootDir) {
     "Error: Missing testParam rootDir value"
 }
 
-if (-not $ipv4)
-{
+if (-not $ipv4) {
     "Error: Missing testParam ipv4 value"
     return $retVal
 }
 
 # Change the working directory for the log files
-if (-not (Test-Path $rootDir))
-{
+if (-not (Test-Path $rootDir)) {
     "Error: The directory `"${rootDir}`" does not exist"
     return $retVal
 }
@@ -152,9 +141,7 @@ del $summaryLog -ErrorAction SilentlyContinue
 # Source the TCUtils.ps1 file
 . .\setupscripts\TCUtils.ps1
 
-foreach ($vmName in $vms)
-{
-
+foreach ($vmName in $vms) {
     Write-Host "Waiting for VM $vmName to stop..."
     if ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "Off") {
         Stop-VM -ComputerName $hvServer -Name $vmName -Force -Confirm:$false
@@ -163,8 +150,7 @@ foreach ($vmName in $vms)
     #
     # Waiting until the VM is off
     #
-    if (-not (WaitForVmToStop $vmName $hvServer 300))
-    {
+    if (-not (WaitForVmToStop $vmName $hvServer 300)) {
         Write-Output "Error: Unable to stop VM"
         return $False
     }
@@ -175,8 +161,7 @@ foreach ($vmName in $vms)
     "Info: Taking Snapshot of VM $vmName"
 
     Checkpoint-VM -Name $vmName -SnapshotName $snapshot -ComputerName $hvServer
-    if (-not $?)
-    {
+    if (-not $?) {
         Write-Output "Error taking snapshot!" | Out-File -Append $summaryLog
         return $False
     }
@@ -185,30 +170,14 @@ foreach ($vmName in $vms)
     # Waiting for the VM to run again and respond to SSH - port 22
     #
     Start-VM $vmName -ComputerName $hvServer
-
-    $timeout = 180
-    while ($timeout -gt 0)
-    {
-        #
-        # Check if the VM is in the Hyper-v Running state
-        #
-        $ipv4 = GetIPv4 $vmName $hvServer
-        if ($ipv4)
-        {
-            break
-        }
-        start-sleep -seconds 1
-        $timeout -= 1
-    }
-
-    if ($timeout -eq 0) {
+    $new_ipv4 = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 300
+    if (-not $new_ipv4) {
         Write-Output "Error: Test case timed out waiting for VM to boot" | Out-File -Append $summaryLog
         return $False
     }
 
     $retVal = $True
     Write-Output "Snapshot has been created on $vmName." | Out-File -Append $summaryLog
-    Stop-VM $vmName -ComputerName $hvServer
-
+    Stop-VM $vmName -ComputerName $hvServer -Force -Confirm:$false
 }
 return $retVal
