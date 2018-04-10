@@ -108,6 +108,7 @@ class SetupTestEnv:
             self.device = self.get_disk_devices()
             self.ssh_client, self.vm_ips = self.get_instance_details()
             self.perf_tuning()
+            self.reconnect_sshclient()
         except Exception as e:
             log.exception(e)
             if self.connector:
@@ -151,6 +152,12 @@ class SetupTestEnv:
         for i in xrange(1, self.vm_count + 1):
             vms[i] = self.connector.create_vm()
         return vms
+
+    def reconnect_sshclient(self):
+        if self.provider == constants.AWS:
+            log.info('The provider is AWS, reconnect sshclient')
+            for i in xrange(1, self.vm_count + 1):
+                self.ssh_client[i].connect()
 
     def get_instance_details(self):
         """
@@ -237,6 +244,7 @@ class SetupTestEnv:
         current_path = os.path.dirname(sys.modules['__main__'].__file__)
         for i in range(1, self.vm_count + 1):
             log.info('Running perf tuning on {}'.format(self.vm_ips[i]))
+            self.ssh_client[i].connect()
             self.ssh_client[i].put_file(os.path.join(current_path, 'tests', 'perf_tuning.sh'),
                                         '/tmp/perf_tuning.sh')
             self.ssh_client[i].run('chmod +x /tmp/perf_tuning.sh')

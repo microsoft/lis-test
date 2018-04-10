@@ -36,7 +36,7 @@ STORE="$2"
 declare -a SLAVES=("${@:3}")
 LogMsg "slaves are: ${SLAVES}"
 teragen_records=500000000
-hadoop_version="hadoop-2.8.2"
+hadoop_version="hadoop-2.8.3"
 hadoop_store="/hadoop_store"
 hadoop_tmp="${hadoop_store}/hdfs/tmp"
 hadoop_namenode="${hadoop_store}/hdfs/namenode"

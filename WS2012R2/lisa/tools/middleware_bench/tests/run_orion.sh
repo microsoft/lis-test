@@ -40,6 +40,10 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
+if [ $# -gt 1 ]; then
+    sudo mdadm --stop /dev/md0
+    sudo umount /raid
+fi
 
 declare -a DISKS=("${@:1}")
 ORION_SCENARIO_FILE="orion"
@@ -98,7 +102,11 @@ chmod 755 /tmp/orion_linux_x86-64
 mkdir -p /tmp/orion
 for i in "${!DISKS[@]}"
 do
-    sudo mkfs.ext4 ${DISKS[$i]}
+    if [ $# -gt 1 ]; then
+        sudo sh -c 'echo y | mkfs.ext4 '"${DISKS[$i]}"''
+    else
+        sudo mkfs.ext4 ${DISKS[$i]}
+    fi
     sudo mkdir /stor${i}
     sudo mount ${DISKS[$i]} /stor${i}
     echo ${DISKS[$i]} >> /tmp/${ORION_SCENARIO_FILE}.lun
