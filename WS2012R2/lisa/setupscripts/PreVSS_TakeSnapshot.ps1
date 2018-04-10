@@ -21,11 +21,10 @@
 
 <#
 .Synopsis
-    Creates a quick snapshot, to not revert to the default ICABase snapshot.
+    Creates a VM snapshot.
 
 .Description
-    Modified version of STOR_TakeRevert_Snapshot.ps1 to only create a snapshot.
-    This is usefull if the default snapshot represents a clean state,
+    This is useful if the default snapshot represents a clean state,
     then a temporary additional snapshot is needed before further changes.
     A typical test case definition for this test script would look
     similar to the following:
@@ -58,6 +57,7 @@ $rootDir = $null
 $ipv4 = $null
 $sshKey = $null
 $REMOTE_SERVER = $null
+$snapshot_vm = ""
 
 #
 # Check input arguments
@@ -78,7 +78,6 @@ if (-not $testParams) {
     return $retVal
 }
 
-$snapshot_vm = ""
 $vms = New-Object System.Collections.ArrayList
 $vm = ""
 
@@ -158,26 +157,26 @@ foreach ($vmName in $vms) {
     #
     # Take a snapshot then restore the VM to the snapshot
     #
-    "Info: Taking Snapshot of VM $vmName"
+    "Info: Taking snapshot of VM $vmName"
 
-    Checkpoint-VM -Name $vmName -SnapshotName $snapshot -ComputerName $hvServer
-    if (-not $?) {
+	try {
+    Checkpoint-VM -Name $vmName -SnapshotName $snapshot -ComputerName $hvServer -ErrorAction Stop
+	} catch {
         Write-Output "Error taking snapshot!" | Out-File -Append $summaryLog
+		Write-Output $_
         return $False
     }
 
     #
-    # Waiting for the VM to run again and respond to SSH - port 22
+    # Verify that the snapshot is present
     #
-    Start-VM $vmName -ComputerName $hvServer
-    $new_ipv4 = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 300
-    if (-not $new_ipv4) {
-        Write-Output "Error: Test case timed out waiting for VM to boot" | Out-File -Append $summaryLog
+    $snapshot_check = Get-VMSnapshot $vmName -ComputerName $hvServer -Name $snapshot
+    if ([string]::IsNullOrEmpty($snapshot_check)) {
+        Write-Output "Error: Could not find a VM snapshot $snapshot" | Out-File -Append $summaryLog
         return $False
     }
 
-    $retVal = $True
     Write-Output "Snapshot has been created on $vmName." | Out-File -Append $summaryLog
-    Stop-VM $vmName -ComputerName $hvServer -Force -Confirm:$false
+    $retVal = $True
 }
 return $retVal
