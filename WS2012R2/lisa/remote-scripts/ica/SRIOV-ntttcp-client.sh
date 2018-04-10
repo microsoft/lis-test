@@ -47,7 +47,6 @@ ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 HOME="/root"
 
-
 LogMsg() {
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
@@ -55,7 +54,6 @@ LogMsg() {
 UpdateTestState() {
     echo $1 > ~/state.txt
 }
-
 
 #######################################################################
 #
@@ -319,7 +317,7 @@ chmod 755 ~/*.sh
 
 # set static IPs for test interfaces
 LogMsg "Copy files to server: ${STATIC_IP2}"
-scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ~/SRIOV-ntttcp-server.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$sshKey -o StrictHostKeyChecking=no ~/SRIOV-ntttcp-server.sh ${REMOTE_USER}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
     msg="ERROR: Unable to copy test scripts to target server machine: ${STATIC_IP2}. scp command failed."
     LogMsg "${msg}"
@@ -327,16 +325,16 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 130
 fi
-scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ~/constants.sh ${REMOTE_USER}@[${STATIC_IP2}]:
-scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ~/utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
-scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ~/perf_utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$sshKey -o StrictHostKeyChecking=no ~/constants.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$sshKey -o StrictHostKeyChecking=no ~/utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i $HOME/.ssh/$sshKey -o StrictHostKeyChecking=no ~/perf_utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
 
 
 #
 # Start ntttcp in server mode on the Target server side
 #
 LogMsg "Starting ntttcp in server mode on ${BOND_IP2}"
-ssh -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo '~/SRIOV-ntttcp-server.sh > ntttcp_ServerSideScript.log' | at now"
+ssh -i $HOME/.ssh/$sshKey -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo '~/SRIOV-ntttcp-server.sh > ntttcp_ServerSideScript.log' | at now"
 if [ $? -ne 0 ]; then
     msg="ERROR: Unable to start ntttcp server scripts on the target server machine"
     LogMsg "${msg}"
@@ -350,7 +348,7 @@ wait_for_server=600
 server_state_file=serverstate.txt
 while [ $wait_for_server -gt 0 ]; do
     # Try to copy and understand server state
-    scp -i $HOME/.ssh/$sshKey -v -o StrictHostKeyChecking=no ${REMOTE_USER}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
+    scp -i $HOME/.ssh/$sshKey -o StrictHostKeyChecking=no ${REMOTE_USER}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
 
     if [ -f ~/${server_state_file} ];
     then
@@ -380,7 +378,7 @@ fi
 #Starting test
 previous_tx_bytes=$(get_tx_bytes $ETH_NAME)
 previous_tx_pkts=$(get_tx_pkts $ETH_NAME)
-ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "mkdir /root/$log_folder"
+ssh -i $HOME/.ssh/${sshKey} -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "mkdir /root/$log_folder"
 
 i=0
 while [ "x${TEST_THREADS[$i]}" != "x" ]
@@ -399,11 +397,11 @@ do
     echo "Running Test: $num_threads_P X $num_threads_n"
     echo "======================================"
 
-    ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "pkill -f ntttcp"
-    ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "ntttcp -r${BOND_IP2} -P $num_threads_P ${ipVersion} -e > $HOME/$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log" &
+    ssh -i $HOME/.ssh/${sshKey} -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "pkill -f ntttcp"
+    ssh -i $HOME/.ssh/${sshKey} -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "ntttcp -r${BOND_IP2} -P $num_threads_P ${ipVersion} -e > $HOME/$log_folder/ntttcp-receiver-p${num_threads_P}X${num_threads_n}.log" &
 
-    ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "pkill -f lagscope"
-    ssh -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "lagscope -r${BOND_IP2} ${ipVersion}" &
+    ssh -i $HOME/.ssh/${sshKey} -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "pkill -f lagscope"
+    ssh -i $HOME/.ssh/${sshKey} -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "lagscope -r${BOND_IP2} ${ipVersion}" &
 
     sleep 2
     lagscope -s${BOND_IP2} -t ${TEST_DURATION} -V ${ipVersion} > "./$log_folder/lagscope-ntttcp-p${num_threads_P}X${num_threads_n}.log" &
@@ -431,7 +429,7 @@ if [ $sts -eq 0 ]; then
     LogMsg "Ntttcp succeeded with all connections."
     echo "Ntttcp succeeded with all connections." >> ~/summary.log
     cd $HOME
-    scp -i $HOME/.ssh/${sshKey} -v -o StrictHostKeyChecking=no ${REMOTE_USER}@[${STATIC_IP2}]:/root/$log_folder/* /root/$log_folder
+    scp -i $HOME/.ssh/${sshKey} -o StrictHostKeyChecking=no ${REMOTE_USER}@[${STATIC_IP2}]:/root/$log_folder/* /root/$log_folder
     if [ $? -ne 0 ]; then
         echo "ERROR: Unable to trnsfer server side logs."
         UpdateTestState $ICA_TESTFAILED
