@@ -258,6 +258,16 @@ del $summaryLog -ErrorAction SilentlyContinue
 
 Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Skip the test if host is lower than WS2016
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0) {
+    return $False
+}
+elseif ($BuildNumber -lt 10500) {
+	"Info: Feature supported only on WS2016 and newer" | Tee-Object -Append -file $summaryLog
+    return $Skipped
+}
+
 $vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
 if (-not $vm1){

@@ -135,6 +135,9 @@ function main {
 		fi
 	fi
 
+	# Disable SELinux to avoid issues after LIS install
+	sed -i 's/SELINUX=\S*/SELINUX=disabled/g' /etc/selinux/config
+
 	download_archive
 
 	install_lis
