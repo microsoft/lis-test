@@ -71,6 +71,17 @@ else {
   return $false
 }
 
+# Return true if host is not WS2016 and treat this particular
+# case in the test script
+$BuildNumber = GetHostBuildNumber $hvServer
+if ($BuildNumber -eq 0) {
+    return $False
+}
+elseif ($BuildNumber -lt 10500) {
+	"Info: Feature supported only on WS2016 and newer"
+    return $true
+}
+
 #
 # Parse the testParams string, then process each parameter
 #
