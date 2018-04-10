@@ -51,13 +51,11 @@ ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
-LogMsg()
-{
+LogMsg() {
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
 
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
 
@@ -106,7 +104,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Allowing more time for the 2nd VM to start
-sleep 60
+sleep 90
 
 # Source constants file and initialize most common variables
 UtilsInit
@@ -311,6 +309,7 @@ cd ${rootDir}
 
 iptables -F
 ip6tables -F
+
 #
 # Distro specific setup
 #
@@ -319,10 +318,10 @@ GetDistro
 case "$DISTRO" in
 debian*|ubuntu*)
     LogMsg "Updating apt repositories"
-    apt-get update & wait
+    apt update & wait
 
     LogMsg "Installing sar on Ubuntu"
-    apt-get install sysstat -y
+    apt install sysstat -y
     if [ $? -ne 0 ]; then
         msg="Error: sysstat failed to install"
         LogMsg "${msg}"
@@ -330,7 +329,7 @@ debian*|ubuntu*)
         UpdateTestState $ICA_TESTFAILED
         exit 85
     fi
-    apt-get install zip build-essential -y
+    apt install zip build-essential -y
     if [ $? -ne 0 ]; then
         msg="Error: Build essential failed to install"
         LogMsg "${msg}"
@@ -513,21 +512,12 @@ if [ $? -ne 0 ]; then
     exit 110
 fi
 
-#if [ $DISTRO -eq "suse_12" ]; then
-#    ldconfig
-#    if [ $? -ne 0 ]; then
-#        msg="Warning: Couldn't run ldconfig, there might be shared library errors"
-#        LogMsg "${msg}"
-#        echo "${msg}" >> ~/summary.log
-#    fi
-#fi
-
 # Make all bash scripts executable
 cd ~
 dos2unix ~/*.sh
 chmod 755 ~/*.sh
 
-function get_tx_bytes(){
+function get_tx_bytes() {
     # RX bytes:66132495566 (66.1 GB)  TX bytes:3067606320236 (3.0 TB)
     Tx_bytes=`ifconfig $ETH_NAME | grep "TX bytes"   | awk -F':' '{print $3}' | awk -F' ' ' {print $1}'`
 
@@ -537,10 +527,9 @@ function get_tx_bytes(){
         Tx_bytes=`ifconfig $ETH_NAME| grep "TX packets"| awk '{print $5}'`
     fi
     echo $Tx_bytes
-
 }
 
-function get_tx_pkts(){
+function get_tx_pkts() {
     # TX packets:543924452 errors:0 dropped:0 overruns:0 carrier:0
     Tx_pkts=`ifconfig $ETH_NAME | grep "TX packets" | awk -F':' '{print $2}' | awk -F' ' ' {print $1}'`
 
@@ -554,7 +543,7 @@ function get_tx_pkts(){
 
 
 LogMsg "Copy files to server: ${STATIC_IP2}"
-scp -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no ~/sriov-perf_iperf_server.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no ~/sriov-perf_iperf_server.sh ${REMOTE_USER}@[${STATIC_IP2}]:
 if [ $? -ne 0 ]; then
     msg="Error: Unable to copy test scripts to target server machine: ${STATIC_IP2}. scp command failed."
     LogMsg "${msg}"
@@ -562,16 +551,16 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTFAILED
     exit 130
 fi
-scp -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${REMOTE_USER}@[${STATIC_IP2}]:
-scp -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no ~/constants.sh ${REMOTE_USER}@[${STATIC_IP2}]:
-scp -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no ~/utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no ~/${IPERF_PACKAGE} ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no ~/constants.sh ${REMOTE_USER}@[${STATIC_IP2}]:
+scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no ~/utils.sh ${REMOTE_USER}@[${STATIC_IP2}]:
 
 
 #
 # Start iPerf in server mode on the Target server side
 #
 LogMsg "Starting iPerf in server mode on ${BOND_IP2}"
-ssh -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo '~/sriov-perf_iperf_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo '~/sriov-perf_iperf_server.sh > iPerf3_Panorama_ServerSideScript.log' | at now"
 if [ $? -ne 0 ]; then
     msg="Error: Unable to start iPerf3 server scripts on the target server machine"
     LogMsg "${msg}"
@@ -587,7 +576,7 @@ wait_for_server=600
 server_state_file=serverstate.txt
 while [ $wait_for_server -gt 0 ]; do
     # Try to copy and understand server state
-    scp -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no ${REMOTE_USER}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
+    scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no ${REMOTE_USER}@[${STATIC_IP2}]:~/state.txt ~/${server_state_file}
 
     if [ -f ~/${server_state_file} ];
     then
@@ -662,6 +651,7 @@ do
     echo "Clients test just finished. Sleep 10 seconds for next test..."
     sleep 60
 done
+
 current_tx_bytes=$(get_tx_bytes)
 current_tx_pkts=$(get_tx_pkts)
 bytes_new=`(expr $current_tx_bytes - $previous_tx_bytes)`
@@ -672,17 +662,18 @@ if [ -f iPerf3_Client_Logs.zip ]
 then
     rm -f iPerf3_Client_Logs.zip
 fi
+
 # Test Finished. Collect logs, zip client side logs
 sleep 60
 
 zip -r iPerf3_Client_Logs.zip ${TEST_RUN_LOG_FOLDER}/*
 
 # Get logs from server side
-ssh -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo 'if [ -f iPerf3_Server_Logs.zip  ]; then rm -f iPerf3_Server_Logs.zip; fi' | at now"
-ssh -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}/*' | at now"
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo 'if [ -f iPerf3_Server_Logs.zip  ]; then rm -f iPerf3_Server_Logs.zip; fi' | at now"
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo 'zip -r ~/iPerf3_Server_Logs.zip ~/${TEST_RUN_LOG_FOLDER}/*' | at now"
 sleep 60
-scp -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no -r ${REMOTE_USER}@[${STATIC_IP2}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
-scp -i "$HOME"/.ssh/"$sshKey" -v -o StrictHostKeyChecking=no -r ${REMOTE_USER}@[${STATIC_IP2}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
+scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no -r ${REMOTE_USER}@[${STATIC_IP2}]:~/iPerf3_Server_Logs.zip ~/iPerf3_Server_Logs.zip
+scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no -r ${REMOTE_USER}@[${STATIC_IP2}]:~/iPerf3_Panorama_ServerSideScript.log ~/iPerf3_Panorama_ServerSideScript.log
 
 UpdateSummary "Distribution: $DISTRO"
 UpdateSummary "Kernel: $(uname -r)"
