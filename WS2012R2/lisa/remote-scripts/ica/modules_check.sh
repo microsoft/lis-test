@@ -200,7 +200,7 @@ case $img_type in
         if [ $? -eq 0 ]; then
             LogMsg "Info: Successfully unpacked the image."
         else
-            LogMsg "Error: Failed to unpack the initramfs image with gunzip."
+            LogMsg "Error: Failed to unpack the initramfs image with xzcat."
             echo "Error: Failed to unpack the initramfs image." >> /root/summary.log
             SetTestStateFailed
             exit 1
