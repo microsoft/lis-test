@@ -454,7 +454,14 @@ if is_fedora ; then
     else
         echo "ERROR: iptables cannot be turned off" >> summary.log
     fi
-    
+
+    if [ $os_RELEASE -eq 7 ]; then
+        systemctl disable firewalld
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Cannot disable firewalld service" >> summary.log
+        fi
+    fi
+
     #
     # Removing /var/log/messages
     #
