@@ -25,6 +25,7 @@ ICA_TESTRUNNING="TestRunning"
 ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
+ICA_TESTSKIPPED="TestSkipped"
 CONSTANTS_FILE="constants.sh"
 
 function LogMsg()
@@ -217,6 +218,12 @@ do
     if [[ $lowStr == ide* ]];
     then
         diskCount=$((diskCount+1))
+        # Generation 2 VM does not support IDE disk
+        if [ -d /sys/firmware/efi ]; then
+            UpdateSummary "Generation 2 VM does not support IDE disk, skip test"
+            UpdateTestState $ICA_TESTSKIPPED
+            exit 0
+        fi
     fi
 
     if [[ $lowStr == scsi* ]];
@@ -225,7 +232,8 @@ do
     fi
 done
 
-echo "constants disk count= $diskCount"
+echo "constants disk count = $diskCount"
+
 
 # Compute the number of sd* drives on the system.
 sdCount=0
