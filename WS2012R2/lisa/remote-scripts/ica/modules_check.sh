@@ -153,7 +153,17 @@ fi
 if [ -f /boot/initramfs-0-rescue* ]; then
     img=/boot/initramfs-0-rescue*
 else
-    [[ -f "/boot/initrd-`uname -r`" ]] && img="/boot/initrd-`uname -r`" || [[ -f "/boot/initramfs-`uname -r`.img" ]] && img="/boot/initramfs-`uname -r`.img" || img="/boot/initrd.img-`uname -r`"
+  if [ -f "/boot/initrd-`uname -r`" ]; then
+    img="/boot/initrd-`uname -r`"
+  fi
+
+  if [ -f "/boot/initramfs-`uname -r`.img" ]; then
+    img="/boot/initramfs-`uname -r`.img"
+  fi
+
+  if [ -f "/boot/initrd.img-`uname -r`" ]; then
+    img="/boot/initrd.img-`uname -r`"
+  fi
 fi
 
 echo "The initrd test image is: $img" >> summary.log
