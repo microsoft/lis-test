@@ -42,7 +42,7 @@ CheckVMFeatureSupportStatus "3.10.0-692"
 if [ $? -ne 0 ]; then
     LogMsg "INFO: this kernel version does not support uio feature, skip test"
     UpdateSummary "INFO: this kernel version does not support uio feature, skip test"
-    UpdateTestState $ICA_TESTSKIPPED
+    SetTestStateSkipped
     exit 1
 fi
 
