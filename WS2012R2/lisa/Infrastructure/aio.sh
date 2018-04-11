@@ -211,7 +211,7 @@ function is_ubuntu {
 # Determine if keys were successfully copied
 #
 ########################################################################
-function copy_check (){
+function copy_check () {
     if [ $? == 0 ] ; then
         echo "$1 successfully copied $2" >> summary.log
     else
@@ -225,7 +225,7 @@ fi
 # Set up SSH keys
 #
 ########################################################################
-function rsa_keys(){
+function rsa_keys() {
     cd /root/
     if [ ! -d /root/.ssh ] ; then
         mkdir /root/.ssh
@@ -254,7 +254,7 @@ function rsa_keys(){
 # Set up SSH
 #
 ########################################################################
-function configure_ssh(){
+function configure_ssh() {
     echo "Uncommenting #Port 22..."
     sed -i -e 's/#Port/Port/g' /etc/ssh/sshd_config
     if [ $? -eq 0 ]
@@ -327,7 +327,7 @@ function configure_ssh(){
 # Function which verifies if an install was successfull
 #
 ########################################################################
-function verify_install (){
+function verify_install () {
     if [ $1 -eq 0 ]; then
         echo "$2 was successfully installed." >> summary.log
     else
@@ -340,7 +340,7 @@ function verify_install (){
 # Install stressapp test
 #
 ########################################################################
-function install_stressapptest(){
+function install_stressapptest() {
     echo "Installing stressapptest..." >> summary.log
     
     if [ ! -d $work_directory ] ; then
@@ -361,7 +361,7 @@ function install_stressapptest(){
 # Install stress-ng
 #
 ########################################################################
-function install_stress_ng(){
+function install_stress_ng() {
     echo "Installing stress-ng..." >> summary.log
 
     if [ ! -d $work_directory ] ; then
@@ -382,7 +382,7 @@ function install_stress_ng(){
 # Add crashkernel parameter to grub
 #
 ########################################################################
-function configure_grub(){
+function configure_grub() {
     echo "Configuring GRUB..." >> summary.log
     if is_ubuntu ; then
         sed -i -e 's/DEFAULT=""/DEFAULT="console=tty0 console=ttyS1 crashkernel=256M@128M"/g' /etc/default/grub
@@ -413,7 +413,7 @@ function configure_grub(){
 # Create script to remove net udev rules at shutdown
 #
 ########################################################################
-function remove_udev(){
+function remove_udev() {
     echo "#!/bin/bash" >> /etc/init.d/remove_udev
     echo "rm -rf /etc/udev/rules.d/70-persistent-net.rules" >> /etc/init.d/remove_udev
     chmod 775 /etc/init.d/remove_udev
@@ -430,7 +430,7 @@ function remove_udev(){
 ########################################################################
 #Check if commands execute correctly
 ########################################################################
-function check_exec(){
+function check_exec() {
     $1 --help > /dev/null 2>&1
     if [ $? -eq 0 ] ; then
         echo $?
@@ -528,12 +528,17 @@ if is_fedora ; then
         chkconfig network on
     fi
 
+    # This is required for hyperv-tools package on newer RHEL 7.x
+    if [ "$os_VENDOR" = "Red Hat" ] && [ $os_RELEASE -eq 7 ]; then
+        subscription-manager repos --enable rhel-7-server-optional-rpms
+    fi
+
     # vim installs xxd which is required to build sysbench
     echo "Installing packages..." >> summary.log
     rpm_packages=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc dosfstools 
     selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake nano parted
     kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-utils omping nc 
-    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel)
+    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel hyperv-tools)
     sudo yum -y install ${rpm_packages[@]}
     yum groups mark install "Development Tools"
     yum groups mark convert "Development Tools"
