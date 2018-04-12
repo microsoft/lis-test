@@ -64,8 +64,18 @@ foreach($cook in $content_cookies) {
 
 #downloading page
 Write-Host "Downloading.."
-Invoke-WebRequest $remoteFileLocation -WebSession $session -UseBasicParsing -TimeoutSec 900 -OutFile $downloadToPath
+$status = Invoke-WebRequest $remoteFileLocation -WebSession $session -UseBasicParsing -TimeoutSec 900 -OutFile $downloadToPath -PassThru | select StatusCode, StatusDescription
 Start-Sleep 20
+
+#check status code
+if ($status.StatusCode -ne "200")
+{
+    Write-Host "Error Status Code: $($status.StatusCode)"
+    Write-Host "Description Code: $($status.StatusDescription)"
+    exit 1
+}
+Write-Host "Status Code: $($status.StatusCode)"
+Write-Host "Description Code: $($status.StatusDescription)"
 
 #get list of kernel version rhel
 Write-Host "Generating list.."
