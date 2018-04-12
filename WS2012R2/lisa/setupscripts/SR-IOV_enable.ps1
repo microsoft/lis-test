@@ -270,6 +270,7 @@ foreach ($p in $params)
     "LEAVE_TRAIL" { $leaveTrail = $fields[1].Trim() }
     "SnapshotName" { $SnapshotName = $fields[1].Trim() }
     "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
+    "Switch_Name"{ $vSwitchName = $fields[1].Trim()}
     "Clean_Dependency"{ $cleanDependency = $fields[1].Trim()}
     "NIC"
     {
@@ -359,7 +360,7 @@ foreach ($p in $params)
 if ($maxNICs -eq "yes") {
     $nicIterator = 7
     $vfIterator = 14
-    $networkName = "SRIOV"
+    $networkName = $vSwitchName
 }
 
 if (-not $vm2Name) {
@@ -485,13 +486,13 @@ for ($i=0; $i -lt $nicIterator; $i++){
         }
     }
     else {
-        Add-VMNetworkAdapter -VMName $vmName -SwitchName "SRIOV" -IsLegacy:$false -ComputerName $hvServer
+        Add-VMNetworkAdapter -VMName $vmName -SwitchName $vSwitchName -IsLegacy:$false -ComputerName $hvServer
         if ($? -ne "True") {
             "Error: Add-VmNic to $vmName failed"
             $retVal = $False
         }
 
-        Add-VMNetworkAdapter -VMName $vm2Name -SwitchName "SRIOV" -IsLegacy:$false -ComputerName $remoteServer 
+        Add-VMNetworkAdapter -VMName $vm2Name -SwitchName $vSwitchName -IsLegacy:$false -ComputerName $remoteServer 
         if ($? -ne "True") {
             "Error: Add-VmNic to $vm2Name failed"
             $retVal = $False
