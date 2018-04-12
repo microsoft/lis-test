@@ -473,7 +473,7 @@ if (-not $check[-1]) {
     return $false
 }
 
-Start-Sleep -S 450
+Start-Sleep -S 180
 $timeout=200
 do {
     sleep 5
@@ -530,7 +530,7 @@ Add-Content $filename "$cmdToVM"
 $retVal = SendFileToVM $vm2ipv4 $sshKey $filename "/root/${$filename}"
 
 # execute command
-$retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename} $STATIC_IP"
+$retVal = SendCommandToVM $vm2ipv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
 
 bin\pscp -q -i ssh\${sshKey} root@${vm2ipv4}:summary.log $logdir
 Rename-Item $logdir\summary.log "${vm2Name}_Vxlan_Hang.log"
