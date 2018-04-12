@@ -33,6 +33,7 @@ fi
 
 USER="$1"
 STORE="$2"
+
 declare -a SLAVES=("${@:3}")
 LogMsg "slaves are: ${SLAVES}"
 teragen_records=500000000
@@ -57,6 +58,7 @@ if [[ ${distro} == *"Ubuntu"* ]]
 then
     sudo apt update
     sudo apt install -y zip maven libssl-dev build-essential rsync pkgconf cmake protobuf-compiler libprotobuf-dev default-jdk openjdk-8-jdk-headless bc
+    sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
     if [ $? != 0 ]; then
         LogMsg "ERROR: Dependencies install failed."
     fi
@@ -307,6 +309,7 @@ do
         if [ $? != 0 ]; then
             LogMsg "ERROR: Dependencies install failed."
         fi
+        ssh -T -o StrictHostKeyChecking=no ${USER}@${SLAVES[$i]} "sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' dist-upgrade" >> ${LOG_FILE}
         ssh -T -o StrictHostKeyChecking=no ${USER}@${SLAVES[$i]} "sudo apt upgrade -y procps" >> ${LOG_FILE}
     elif [[ ${distro} == *"Amazon"* ]]
     then
