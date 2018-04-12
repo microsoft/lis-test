@@ -1421,7 +1421,7 @@ class PostgreSQLLogsReader(BaseLogsReader):
         with open(log_file, 'r') as fl:
             for f_line in fl:
                 if not log_dict.get('TransactionType', None):
-                    transaction = re.match('\s*transaction\s*type:\s*(.+)', f_line)
+                    transaction = re.match('\s*transaction\s*type:\s*<builtin:\s*(\S+\s*\S+|\S+)(\s*\(.*|\s*)>', f_line)
                     if transaction:
                         log_dict['TransactionType'] = transaction.group(1).strip()
                 if not log_dict.get('ScalingFactor', None):
