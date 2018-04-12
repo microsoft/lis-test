@@ -128,6 +128,7 @@ case "$DISTRO" in
         ufw disable
         ;;
     redhat* | centos* | fedora*)
+        service firewalld stop
         iptables -F
         iptables -X
         ;;
