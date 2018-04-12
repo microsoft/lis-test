@@ -59,7 +59,7 @@ CheckVmcore()
 VerifyRemoteStatus()
 {
     array_status=( $status )
-    exit_code=${array_status[1]}
+    exit_code=${array_status[-1]}
     if [ $exit_code -eq 0 ]; then
         LogMsg "Test Successful. Proper file was found on nfs server."
         UpdateSummary "Test Successful. Proper file was found on nfs server."
