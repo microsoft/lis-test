@@ -217,10 +217,14 @@ for ($numCPUs = $maxCPUs ;$numCPUs -gt 1 ;[int]$numCPUs = $numCPUs /2 )
 
     Start-VM -Name $vmName -ComputerName $hvServer
     #wait for ssh to start
-    if (-not (WaitForVMToStartSSH $ipv4 $timeout))
-    {
-        "Error: Test case timed out for VM to be running again!"
-        return $False
+    $new_ipv4 = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 300
+    if ($new_ipv4) {
+        # In some cases the IP changes after a reboot
+        Write-Output "${vmName} IP Address after reboot: ${new_ipv4}"
+        Set-Variable -Name "ipv4" -Value $new_ipv4 -Scope Global
+    } else {
+        "Error: VM $vmName failed to start after setting $numCPUs vCPUs"
+        return $False  
     }
 
     "Info: VM $vmName started with $numCPUs cores"
