@@ -498,6 +498,7 @@
             <testParams>
                 <param>TC_COVERED=SRIOV-26</param>
                 <param>MAX_NICS=yes</param>
+                <param>Switch_Name=SRIOV</param>
                 <param>Clean_Dependency=yes</param>
             </testParams>
             <timeout>1600</timeout>
@@ -516,6 +517,7 @@
             <testParams>
                 <param>TC_COVERED=SRIOV-26B</param>
                 <param>MAX_NICS=yes</param>
+                <param>Switch_Name=SRIOV</param>
                 <param>Clean_Dependency=yes</param>
                 <!-- This is based on the physical CPU hardware topology -->
                 <param>vCPU=max</param>
