@@ -59,9 +59,11 @@ function UpdateTestState()
 
    if [ "$?" = "0" ]; then
        LogMsg "Mount nfs successfully... from $NFS_Path"
+       # generate a random file name
+       filename=$(date |md5sum |cut -c 1-10)
        # dd 5G file
-       dd if=/dev/zero of=/mnt/data bs=$File_DD_Bs count=$File_DD_Count
-       file_size=`ls -l /mnt/data | awk '{ print $5}' | tr -d '\r'`
+       dd if=/dev/zero of=/mnt/$filename bs=$File_DD_Bs count=$File_DD_Count
+       file_size=`ls -l /mnt/$filename | awk '{ print $5}' | tr -d '\r'`
        # check file size
        calulate_size=$(( $File_DD_Bs * $File_DD_Count))
 
@@ -73,7 +75,7 @@ function UpdateTestState()
            echo "DD in mouted nfs bs=$File_DD_Bs count=$File_DD_Count  failed..." >> ~/summary.log
            UpdateTestState $ICA_TESTFAILED
        fi
-       rm -rf /mnt/*
+       rm -f /mnt/$filename
        umount /mnt
    else
        LogMsg "Mount nfs ... from $NFS_Path failed"
