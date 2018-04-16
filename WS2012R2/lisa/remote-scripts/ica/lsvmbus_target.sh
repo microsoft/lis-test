@@ -77,6 +77,14 @@ echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 dos2unix utils.sh
 . utils.sh
 
+vmbus_version=`dmesg | grep "Vmbus version" | awk -F: '{print $(NF)}' | awk -F. '{print $1}'`
+if [ $vmbus_version -lt 3 ]; then
+	LogMsg "Info: Host version older than 2012R2. Skipping test."
+	UpdateSummary "Info: Host version older than 2012R2. Skipping test."
+	SetTestStateSkipped
+	exit 1
+fi
+
 GetDistro
 case $DISTRO in
     redhat_5|centos_5*)
