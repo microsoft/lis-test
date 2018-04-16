@@ -51,24 +51,36 @@ UpdateTestState()
 
 CheckResults()
 {
-	action=$1
-	sts=$(ethtool -n ${SYNTH_NET_INTERFACES[$__iterator]} rx-flow-hash $protocol 2>&1)
-	if [ $action == "excluded" ] && [[ $sts = *"[TCP/UDP src port]"* && $sts = *"[TCP/UDP dst port]"* ]]; then
-		LogMsg "$sts"
-		LogMsg "Protocol: $protocol NOT excluded."
-		UpdateSummary "Protocol: $protocol NOT excluded."
-		UpdateTestState $ICA_TESTFAILED
-		exit 1 
-	elif [ $action == "included" ] && ! [[ $sts = *"[TCP/UDP src port]"* && $sts = *"[TCP/UDP dst port]"* ]]; then 
-		LogMsg "$sts"
-		LogMsg "Protocol: $protocol NOT included."
-		UpdateSummary "Protocol: $protocol NOT included."
-		UpdateTestState $ICA_TESTFAILED
-		exit 1
-	else
-		LogMsg "$sts"
-		LogMsg "Protocol: $protocol $action."
-		UpdateSummary "Protocol: $protocol $action."
+	action=$2
+	status=$1
+	if [[ $status = *"Operation not supported"* ]]; then
+		LogMsg "$status"
+		LogMsg "Operation not supported. Test Skipped."
+		UpdateSummary "Operation not supported. Test Skipped."
+		UpdateTestState $ICA_TESTSKIPPED
+		exit 2
+	fi
+	LogMsg "$status"
+
+	if [[ $action ]]; then
+		sts=$(ethtool -n ${SYNTH_NET_INTERFACES[$__iterator]} rx-flow-hash $protocol 2>&1)
+		if [ $action == "excluded" ] && [[ $sts = *"[TCP/UDP src port]"* && $sts = *"[TCP/UDP dst port]"* ]]; then
+			LogMsg "$sts"
+			LogMsg "Protocol: $protocol NOT excluded."
+			UpdateSummary "Protocol: $protocol NOT excluded."
+			UpdateTestState $ICA_TESTFAILED
+			exit 1
+		elif [ $action == "included" ] && ! [[ $sts = *"[TCP/UDP src port]"* && $sts = *"[TCP/UDP dst port]"* ]]; then
+			LogMsg "$sts"
+			LogMsg "Protocol: $protocol NOT included."
+			UpdateSummary "Protocol: $protocol NOT included."
+			UpdateTestState $ICA_TESTFAILED
+			exit 1
+		else
+			LogMsg "$sts"
+			LogMsg "Protocol: $protocol $action."
+			UpdateSummary "Protocol: $protocol $action."
+		fi
 	fi
 }
 
@@ -112,18 +124,11 @@ ListInterfaces
 
 #Check if kernel support network flow hashing options with ethtool
 sts=$(ethtool -n ${SYNTH_NET_INTERFACES[$__iterator]} rx-flow-hash $protocol 2>&1)
-if [[ $sts = *"Operation not supported"* ]]; then
-	LogMsg "$sts"
-	LogMsg "Operation not supported. Test Skipped."
-	UpdateSummary "Operation not supported. Test Skipped."
-	UpdateTestState $ICA_TESTSKIPPED
-	exit 2
-fi
-LogMsg "$sts"
+CheckResults "$sts"
 
 #L4 hash is enabled as default
 #try to exclude TCP/UDP port numbers in hashing
-ethtool -N ${SYNTH_NET_INTERFACES[$__iterator]} rx-flow-hash $protocol sd
+sts=$(ethtool -N ${SYNTH_NET_INTERFACES[$__iterator]} rx-flow-hash $protocol sd 2>&1)
 if [ $? -ne 0 ]; then
 	LogMsg "Error: Cannot exclude $protocol!"
 	UpdateSummary "Error: Cannot exclude $protocol!"
@@ -131,11 +136,11 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-#check if was excluded
-CheckResults "excluded"
+#check if operation is supported and if was excluded
+CheckResults "$sts" "excluded"
 
 #try to include TCP/UDP port numbers in hashing
-ethtool -N ${SYNTH_NET_INTERFACES[$__iterator]} rx-flow-hash $protocol sdfn
+sts=$(ethtool -N ${SYNTH_NET_INTERFACES[$__iterator]} rx-flow-hash $protocol sdfn 2>&1)
 if [ $? -ne 0 ]; then
 	LogMsg "Error: Cannot include $protocol!"
 	UpdateSummary "Error: Cannot include $protocol!"
@@ -143,8 +148,8 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-#check if was included
-CheckResults "included"
+#check if operation is supported and if was included
+CheckResults "$sts" "included"
 
 LogMsg "Exclude/Include $protocol on ${SYNTH_NET_INTERFACES[$__iterator]} successfully."
 UpdateSummary "Exclude/Include $protocol on ${SYNTH_NET_INTERFACES[$__iterator]} successfully."
