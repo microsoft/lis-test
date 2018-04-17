@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+<config>
+  <global>
+    <defaultSnapshot>ICABase</defaultSnapshot>
+    <LisaInitScript>
+      <file>.\setupScripts\CreateVMs.ps1</file>
+    </LisaInitScript>
+    <!-- Optional testParams go here -->
+	<imageStoreDir>\\unc\path</imageStoreDir>
+  </global>
+  <testSuites>
+    <suite>
+      <suiteName>TCP</suiteName>
+      <suiteTests>
+        <suiteTest>TCP_v4_sriov</suiteTest>
+        <suiteTest>TCP_v6_sriov</suiteTest>
+      </suiteTests>
+    </suite>
+  </testSuites>
+  <testCases>
+    <test>
+      <testName>TCP_v4_sriov</testName>
+      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
+      <setupScript>
+        <file>setupScripts\perf_SRIOV_enable.ps1</file>
+      </setupScript>
+      <testScript>perf_ntttcp_client.sh</testScript>
+      <files>remote-scripts/ica/perf_ntttcp_client.sh,remote-scripts/ica/perf_ntttcp_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
+      <testParams>
+        <param>SRIOV=yes</param>
+        <param>TC_COVERED=IPv4</param>
+        <param>NETWORK_NAME=SRIOV</param>
+        <param>SnapshotName=ICABase</param>
+        <param>STATIC_IP=192.168.12.3</param>
+        <param>SERVER_IP=192.168.12.4</param>
+        <param>NETMASK=255.255.255.0</param>
+        <param>SERVER_OS_USERNAME=root</param>
+        <param>TEST_DURATION=60</param>
+        <param>TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024 2048 4096 6144 8192 10240)</param>
+        <param>MAX_THREADS=64</param>
+        <param>ETH_NAME=eth1</param>
+        <param>MAC=001600112205</param>
+        <param>log_folder=logs_ipv4</param>
+        <param>VM2NAME=SRIOV-Server</param>
+        <param>VM2SERVER=43f13-36</param>
+        <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+      </testParams>
+      <uploadFiles>
+        <file>logs_ipv4.zip</file>
+      </uploadFiles>
+      <timeout>14400</timeout>
+      <OnError>Continue</OnError>
+    </test>
+    <test>
+      <testName>TCP_v6_sriov</testName>
+      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
+      <setupScript>
+        <file>setupScripts\Check_PowerPlan.ps1</file>
+        <file>setupscripts\perf_SRIOV_enable.ps1</file>
+      </setupScript>
+      <testScript>perf_ntttcp_client.sh</testScript>
+      <files>remote-scripts/ica/perf_ntttcp_client.sh,remote-scripts/ica/perf_ntttcp_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
+      <testParams>
+        <param>SRIOV=yes</param>
+        <param>TC_COVERED=IPv6</param>
+        <param>NETWORK_NAME=SRIOV</param>
+        <param>SnapshotName=ICABase</param>
+        <param>STATIC_IP=fd00::4:10</param>
+        <param>SERVER_IP=fd00::4:100</param>
+        <param>NETMASK=64</param>
+        <param>SERVER_OS_USERNAME=root</param>
+        <param>TEST_DURATION=60</param>
+        <param>TEST_THREADS=(1 2 4 8 16 32 64 128 256 512 1024 2048 4096 6144 8192 10240)</param>
+        <param>MAX_THREADS=64</param>
+        <param>ETH_NAME=eth1</param>
+        <param>MAC=001600112205</param>
+        <param>log_folder=logs_ipv6</param>
+        <param>VM2NAME=SRIOV-Server</param>
+        <param>VM2SERVER=LIS-PERF09</param>
+        <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+      </testParams>
+      <uploadFiles>
+        <file>logs_ipv6.zip</file>
+      </uploadFiles>
+      <timeout>14400</timeout>
+      <OnError>Continue</OnError>
+    </test>
+  </testCases>
+  <VMs>
+    <vm>
+      <role>SUT1</role>
+      <hvServer>43f13-35</hvServer>
+      <vmName>SRIOV-Client</vmName>
+      <os>Linux</os>
+      <ipv4>
+      </ipv4>
+      <sshKey>rhel5_id_rsa.ppk</sshKey>
+      <suite>TCP</suite>
+      <hardware>
+        <create>true</create>
+        <numCPUs>8</numCPUs>
+        <memSize>8192</memSize>
+        <disableDiff>True</disableDiff>
+        <nic>VMBus,Vm.Enterprise</nic>
+        <nic>VMBus,SRIOV,001600112232</nic>
+      </hardware>
+    </vm>
+    <vm>
+      <role>NonSUT1</role>
+      <hvServer>43f13-36</hvServer>
+      <vmName>SRIOV-Server</vmName>
+      <os>Linux</os>
+      <ipv4>
+      </ipv4>
+      <sshKey>rhel5_id_rsa.ppk</sshKey>
+      <hardware>
+        <create>true</create>
+        <numCPUs>8</numCPUs>
+        <memSize>8192</memSize>
+        <disableDiff>True</disableDiff>
+        <nic>VMBus,Vm.Enterprise,001600112205</nic>
+        <nic>VMBus,SRIOV,001600112233</nic>
+      </hardware>
+    </vm>
+  </VMs>
+</config>
