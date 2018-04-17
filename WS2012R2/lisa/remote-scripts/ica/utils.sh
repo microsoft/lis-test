@@ -2228,3 +2228,23 @@ ListInterfaces()
     fi
     LogMsg "Found ${#SYNTH_NET_INTERFACES[@]} synthetic interface(s): ${SYNTH_NET_INTERFACES[*]} in VM"
 }
+
+# Function that will check for Call Traces on VM after 2 minutes
+# This function assumes that check_traces.sh is already on the VM
+CheckCallTracesWithDelay()
+{
+    dos2unix -q check_traces.sh
+    echo 'sleep 5 && bash ~/check_traces.sh ~/check_traces.log &' > runtest_traces.sh
+    bash runtest_traces.sh > check_traces.log 2>&1
+    sleep $1
+    cat ~/check_traces.log | grep ERROR
+    if [ $? -eq 0 ]; then
+        msg="ERROR: Call traces have been found on VM after the test run"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    else
+        return 0
+    fi
+}

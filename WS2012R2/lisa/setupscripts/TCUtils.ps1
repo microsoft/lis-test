@@ -2225,6 +2225,23 @@ function StartDependencyVM([String] $dep_vmName, [String] $server, [int]$tries)
     }
 }
 
+# Function that will check for Call Traces on VM after 2 minutes
+# This function assumes that check_traces.sh is already on the VM
+function CheckCallTracesWithDelay ([String]$sshKey, [String]$ipv4)
+{
+    .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "dos2unix -q check_traces.sh && echo 'sleep 5 && bash ~/check_traces.sh ~/check_traces.log &' > runtest.sh"
+    .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "bash runtest.sh > check_traces.log 2>&1"
+    Start-Sleep -s 120
+    $ErrorActionPreference = 'silentlycontinue'
+    $sts = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat ~/check_traces.log | grep ERROR"
+    if ($sts.Contains("ERROR")) {
+        return $false 
+    }
+    if ($sts -eq $NULL) {
+        return $true
+    }
+}
+
 # ScriptBlock used for Dynamic Memory test cases
 $DM_scriptBlock = {
   # function for starting stresstestapp

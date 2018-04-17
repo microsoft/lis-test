@@ -138,7 +138,7 @@
         <test>
             <testName>DisableVF</testName>
             <testScript>SR-IOV_DisableVF.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_DisableVF.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_DisableVF.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -154,7 +154,7 @@
         <test>
             <testName>ModuleReload</testName>
             <testScript>SR-IOV_ModuleReload.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_ModuleReload.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_ModuleReload.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -170,7 +170,7 @@
         <test>
             <testName>Ping_DisableVF</testName>
             <testScript>setupscripts\SR-IOV_Ping_DisableVF.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files>  
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -186,7 +186,7 @@
         <test>
             <testName>iPerf_DisableVF</testName>
             <testScript>setupscripts\SR-IOV_iPerf_DisableVF.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files>  
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -202,7 +202,7 @@
         <test>
             <testName>Deattach_Attach_NIC</testName>
             <testScript>setupscripts\SR-IOV_Deattach_NIC.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files>  
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -218,7 +218,7 @@
         <test>
             <testName>Host_Disable_SRIOV</testName>
             <testScript>setupscripts\SR-IOV_Host_Disable.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -234,7 +234,7 @@
         <test>
             <testName>DisableNIC</testName>
             <testScript>setupscripts\SR-IOV_DisableNIC.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -489,7 +489,7 @@
         <test>
             <testName>MaxNICS</testName>
             <testScript>SR-IOV_MaxNIC.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_MaxNIC.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_MaxNIC.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -507,7 +507,7 @@
         <test>
             <testName>MaxNICS_vCPU</testName>
             <testScript>SR-IOV_MaxNIC.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_MaxNIC.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_MaxNIC.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupScripts\ChangeCPU.ps1</file>
@@ -529,7 +529,7 @@
         <test>
             <testName>Single_PauseVM</testName>
             <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files>  
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -548,7 +548,7 @@
         <test>
             <testName>Stress_PauseVM</testName>
             <testScript>setupScripts\SR-IOV_Stress_SavePause.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -566,7 +566,7 @@
         <test>
             <testName>Single_SaveVM</testName>
             <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files>  
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -584,7 +584,7 @@
         <test>
             <testName>Stress_SaveVM</testName>
             <testScript>setupScripts\SR-IOV_Stress_SavePause.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files> 
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>

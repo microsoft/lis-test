@@ -177,6 +177,9 @@ while [ $__iterator -le $vfCount ]; do
     : $((__iterator++))
 done
 
+# Check for Call traces
+CheckCallTracesWithDelay 120
+
 LogMsg "Updating test case state to completed"
 SetTestStateCompleted
 exit 0

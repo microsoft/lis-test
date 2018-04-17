@@ -254,7 +254,7 @@ if (-not $?) {
     return $false 
 }
 
-Start-Sleep -s 50
+Start-Sleep -s 70
 
 # Read the throughput again, it should be higher than before
 # We should see a throughput at least 70% higher
@@ -271,4 +271,12 @@ if ($vfFinalThroughput -lt  $vfInitialThroughput) {
     return $false 
 }
 
+# Wait 2 minutes and check call traces
+$retVal = CheckCallTracesWithDelay $sshKey $ipv4
+if (-not $retVal) {
+    Write-Output "ERROR: Call traces have been found on VM after the test run" | Tee-Object -Append -file $summaryLog
+    return $false
+} else {
+    Write-Output "Info: No Call Traces have been found on VM" | Tee-Object -Append -file $summaryLog
+}
 return $true
