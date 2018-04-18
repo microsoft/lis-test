@@ -217,6 +217,9 @@ if [ 0 -ne $? ]; then
     SetTestStateFailed
 fi
 
+# Check for Call traces
+CheckCallTracesWithDelay 120
+
 # Ping the remote host after bringing down the VF
 ping -I "eth1" -c 10 "$VF_IP2" >/dev/null 2>&1
 if [ 0 -eq $? ]; then

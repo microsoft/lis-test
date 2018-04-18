@@ -294,4 +294,14 @@ if (-not $retVal)
 
 Start-Sleep -s 10
 "File was successfully sent from VM1 to VM2 after resuming VM" | Tee-Object -Append -file $summaryLog
+
+# Wait 2 minutes and check call traces
+$retVal = CheckCallTracesWithDelay $sshKey $ipv4
+if (-not $retVal) {
+    Write-Output "ERROR: Call traces have been found on VM after the test run" | Tee-Object -Append -file $summaryLog
+    return $false
+} else {
+    Write-Output "Info: No Call Traces have been found on VM" | Tee-Object -Append -file $summaryLog
+}
+
 return $true

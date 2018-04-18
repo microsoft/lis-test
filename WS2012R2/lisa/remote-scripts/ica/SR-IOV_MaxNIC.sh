@@ -120,4 +120,7 @@ LogMsg $msg
 UpdateSummary "$msg"
 sleep 5
 
+# Check for Call traces
+CheckCallTracesWithDelay 120
+
 SetTestStateCompleted
