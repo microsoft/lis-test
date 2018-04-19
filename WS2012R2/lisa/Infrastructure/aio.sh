@@ -605,20 +605,12 @@ elif is_suse ; then
     #
     # SLES ISO must be mounted for BETA releases
     #
-    chkconfig atd on
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Unable to enable atd service to start on startup." >> summary.log
-    fi
-    service atd start
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Unable to start AT daemon." >> summary.log
-    fi
-    
+
     #
     # Removing /var/log/messages
     #
     rm -f /var/log/messages
-    
+
     echo "Registering the system..." >> summary.log
     if [ $# -ne 2 ]; then
         echo "ERRROR: Incorrect number of arguments!" >> summary.log
@@ -662,6 +654,16 @@ elif is_suse ; then
         zypper --non-interactive in $item
         verify_install $? $item
     done
+
+    # Enable atd daemon
+    chkconfig atd on
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Unable to enable atd service to start on startup." >> summary.log
+    fi
+    service atd start
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Unable to start AT daemon." >> summary.log
+    fi
 
     #
     # Installing dependencies for stress-ng to work
