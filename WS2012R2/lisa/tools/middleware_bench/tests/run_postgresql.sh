@@ -108,7 +108,7 @@ if [[ ${distro} == *"Ubuntu"* ]]
 then
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mv /var/lib/postgresql/${POSTGRES_VERSION}/main ${db_path}"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/${path_var}/c\\${path_var} = \x27${escaped_path}/main\x27' ${db_conf}"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e 'host    all    ${USER}    ${client_ip}/32    trust' | sudo tee --append /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e 'host    all    ${newDBUser}    ${client_ip}/32    trust' | sudo tee --append /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf"
 elif [[ ${distro} == *"Amazon"* ]]
 then
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mv /var/lib/pgsql96/data ${db_path}"
