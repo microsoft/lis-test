@@ -1646,7 +1646,7 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData, [Stri
                         # UpdateState $vm $ForceShutdown
                         UpdateState $vm $Disabled
                     }
-                    SetTestResult $vm.suite $currentTest $completionCode $xmlData
+                    SetTestResult $vm.suite $vm.currentTest $completionCode $xmlData
                     $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
                     UpdateState $vm $ForceShutdown
                 }
@@ -2086,7 +2086,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     }
                     else # Original syntax of <pretest>setupscripts\myPretest.ps1</pretest>
                     {
-                        LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.setupScript)"
+                        LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.preTest)"
 
                         $sts = RunPSScript $vm $($testData.preTest) $xmlData "PreTest"
                         if (-not $sts)
