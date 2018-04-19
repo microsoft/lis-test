@@ -1597,7 +1597,8 @@ function GetParentVHD($vmName, $hvServer)
        return $False
     }
 
-    if ( $VmInfo.Generation -eq "" -or $VmInfo.Generation -eq 1  ) {
+    $vmGen = GetVMGeneration $vmName $hvServer
+    if ( $vmGen -eq 1  ) {
         $Disks = $VmInfo.HardDrives
         foreach ($VHD in $Disks) {
             if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "IDE"  )) {
@@ -1613,7 +1614,7 @@ function GetParentVHD($vmName, $hvServer)
             }
         }
     }
-    if ( $VmInfo.Generation -eq 2 ) {
+    if ( $vmGen -eq 2 ) {
         $Disks = $VmInfo.HardDrives
         foreach ($VHD in $Disks) {
             if ( ($VHD.ControllerLocation -eq 0 ) -and ($VHD.ControllerType -eq "SCSI"  )) {
