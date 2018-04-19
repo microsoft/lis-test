@@ -108,6 +108,13 @@ Write-Output "This script covers test case: ${tcCovered}" | Tee-Object -Append -
 # Source the TCUtils.ps1 file
 . .\setupscripts\TCUtils.ps1
 
+# Check host version and skipp TC in case of WS2012 or older
+$hostVersion = GetHostBuildNumber $hvServer
+if ($hostVersion -le 9200) {
+    Write-Output "Info: Host is WS2012 or older. Skipping test case." | Tee-Object -Append -file $summaryLog
+    return $Skipped
+}
+
 # check what drive letter is available and pick one randomly
 $driveletter = ls function:[g-y]: -n | ?{ !(test-path $_) } | random
 
@@ -200,7 +207,7 @@ if (-not $?)
 }
 
 #Get VM Generation
-$vm_gen = Get-VM $vmName -ComputerName $hvServer | select -ExpandProperty Generation -ErrorAction SilentlyContinue
+$vm_gen = GetVMGeneration $vmName $hvServer
 
 $vmName1 = "${vmName}_ChildVM"
 # Remove old VM
