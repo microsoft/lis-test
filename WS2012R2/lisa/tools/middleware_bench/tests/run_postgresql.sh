@@ -103,7 +103,7 @@ ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${db_service}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R ${db_user}:${db_user} ${db_path}"
 
 newDBUser='testuser'
-
+#Postgresql in Amazon Linux doesn't accept db user containing hyphen'
 if [[ ${distro} == *"Ubuntu"* ]]
 then
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mv /var/lib/postgresql/${POSTGRES_VERSION}/main ${db_path}"
