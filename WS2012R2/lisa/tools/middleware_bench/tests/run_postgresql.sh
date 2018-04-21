@@ -42,6 +42,7 @@ if [ -e /tmp/summary.log ]; then
     rm -rf /tmp/summary.log
 fi
 
+
 if [[ ${DISK} == *"xvd"* || ${DISK} == *"sd"* ]]
 then
     db_path="/postgres/db"
@@ -57,12 +58,18 @@ else
     exit 70
 fi
 
+escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
+client_ip=`ip route get ${SERVER} | awk '{print $NF; exit}'`
+cd /tmp
+mkdir -p /tmp/postgresql
+ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/postgresql"
+
 distro="$(head -1 /etc/issue)"
 if [[ ${distro} == *"Ubuntu"* ]]
 then
     echo -e "deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main" | sudo tee --append /etc/apt/sources.list
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-    sudo apt-get update
+    sudo apt-get update 
     sudo apt -y install bc sysstat zip postgresql-client-${POSTGRES_VERSION} postgresql-contrib-${POSTGRES_VERSION} >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo apt -y install sysstat zip"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' | sudo tee --append /etc/apt/sources.list"
@@ -76,33 +83,46 @@ then
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache
-    sudo yum install https://download.postgresql.org/pub/repos/yum/${POSTGRES_VERSION}/redhat/rhel-6-x86_64/pgdg-ami201503-96-9.6-2.noarch.rpm
-    sudo yum -y install bc sysstat zip postgresql96 >> ${LOG_FILE}
+    sudo yum install -y https://download.postgresql.org/pub/repos/yum/${POSTGRES_VERSION}/redhat/rhel-6-x86_64/pgdg-ami201503-96-9.6-2.noarch.rpm
+    sudo yum -y install bc sysstat zip postgresql96 postgresql96-contrib >> ${LOG_FILE}
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum clean dbcache"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum install https://download.postgresql.org/pub/repos/yum/${POSTGRES_VERSION}/redhat/rhel-6-x86_64/pgdg-ami201503-96-9.6-2.noarch.rpm"
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip postgresql96-server" >> ${LOG_FILE}
-    db_conf="/etc/init.d/postgresql"
-    db_service="postgres"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum install -y https://download.postgresql.org/pub/repos/yum/${POSTGRES_VERSION}/redhat/rhel-6-x86_64/pgdg-ami201503-96-9.6-2.noarch.rpm"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install sysstat zip postgresql96-server postgresql96-contrib" >> ${LOG_FILE}
+
+    db_conf="/postgres/db/data/postgresql.conf"
+    db_service="postgresql96"
     db_user="postgres"
     path_var="PGDATA"
-    db_utils="/usr/lib/postgresql/${POSTGRES_VERSION}/bin"
+    db_utils="/usr/lib64/pgsql96/bin"
 else
     LogMsg "Unsupported distribution: ${distro}."
 fi
 
-escaped_path=$(echo "${db_path}" | sed 's/\//\\\//g')
-client_ip=`ip route get ${SERVER} | awk '{print $NF; exit}'`
-cd /tmp
-mkdir -p /tmp/postgresql
-ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/postgresql"
 
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${db_service} stop" >> ${LOG_FILE}
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo chown -R ${db_user}:${db_user} ${db_path}"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mv /var/lib/postgresql/${POSTGRES_VERSION}/main ${db_path}"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/${path_var}/c\\${path_var} = \x27${escaped_path}/main\x27' ${db_conf}"
+
+newDBUser='testuser'
+#Postgresql in Amazon Linux doesn't accept db user containing hyphen'
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mv /var/lib/postgresql/${POSTGRES_VERSION}/main ${db_path}"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/${path_var}/c\\${path_var} = \x27${escaped_path}/main\x27' ${db_conf}"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e 'host    all    ${newDBUser}    ${client_ip}/32    trust' | sudo tee --append /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf"
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo mv /var/lib/pgsql96/data ${db_path}"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i 's/^${path_var}.*/${path_var}=${escaped_path}\/data/g' /etc/init.d/postgresql96"
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${db_service} initdb -D ${db_path}"
+    client_ip=$(hostname -I)
+    client_ip=`echo ${client_ip//[[:blank:]]/}`
+    LogMsg  ${client_ip}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e 'host    all    ${newDBUser}    ${client_ip}/32    trust' | sudo tee --append ${escaped_path}/data/pg_hba.conf"
+fi
+
 #ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/stats_temp_directory/c\stats_temp_directory = \x27${escaped_path}\x27' ${db_conf}"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/listen_addresses/c\listen_addresses = \x27*\x27' ${db_conf}"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "echo -e 'host    all    ${USER}    ${client_ip}/32    trust' | sudo tee --append /etc/postgresql/${POSTGRES_VERSION}/main//pg_hba.conf"
+
 # PostgreSQL tuning
 shared_buffers=$(printf '%.*f\n' 0 $(free -m | grep Mem | awk '{print $2 * 0.25}'))MB
 cache_size=$(printf '%.*f\n' 0 $(free -m | grep Mem | awk '{print $2 * 0.75}'))MB
@@ -118,22 +138,36 @@ ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/max_wal_size
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/min_wal_size/c\min_wal_size = 100GB' ${db_conf}"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo sed -i '/checkpoint_timeout/c\checkpoint_timeout = 50min' ${db_conf}"
 
+
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo service ${db_service} start" >> ${LOG_FILE}
+
 # Wait for postgres server to create its artifacts at the new location
 sleep 30
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createuser ${newDBUser}"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} psql -c \"alter user ${newDBUser} with encrypted password '${DB_PASS}';\""
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${newDBUser} test_db"
 
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createuser ${USER}"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} psql -c \"alter user ${USER} with encrypted password '${DB_PASS}';\""
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${USER} test_db"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} pg_lsclusters" >> ${LOG_FILE}
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} pg_conftool show all" >> ${LOG_FILE}
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} pg_lsclusters" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} pg_conftool show all" >> ${LOG_FILE}
+fi
 
 #disk required scale / 75 = 1GB database
 scale=$((1 * 75))
-buffer_scale=$(printf '%.*f\n' 0 $(echo "$(free -h | grep Mem | awk '{print $2 * 0.1}') * ${scale}" | bc))
-conn_scale=$(printf '%.*f\n' 0 $(echo "$(free -h | grep Mem | awk '{print $2 * 0.4}') * ${scale}" | bc))
-cache_scale=$(printf '%.*f\n' 0 $(echo "$(free -h | grep Mem | awk '{print $2 * 0.9}') * ${scale}" | bc))
-disk_scale=$(printf '%.*f\n' 0 $(echo "$(free -h | grep Mem | awk '{print $2 * 4}') * ${scale}" | bc))
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    buffer_scale=$(printf '%.*f\n' 0 $(echo "$(free -h | grep Mem | awk '{print $2 * 0.1}') * ${scale}" | bc))
+    conn_scale=$(printf '%.*f\n' 0 $(echo "$(free -h | grep Mem | awk '{print $2 * 0.4}') * ${scale}" | bc))
+    cache_scale=$(printf '%.*f\n' 0 $(echo "$(free -h | grep Mem | awk '{print $2 * 0.9}') * ${scale}" | bc))
+    disk_scale=$(printf '%.*f\n' 0 $(echo "$(free -h | grep Mem | awk '{print $2 * 4}') * ${scale}" | bc))
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    buffer_scale=$(printf '%.*f\n' 0 $(echo "$(free -o -g | grep Mem | awk '{print $2 * 0.1}') * ${scale}" | bc))
+    conn_scale=$(printf '%.*f\n' 0 $(echo "$(free -o -g | grep Mem | awk '{print $2 * 0.4}') * ${scale}" | bc))
+    cache_scale=$(printf '%.*f\n' 0 $(echo "$(free -o -g | grep Mem | awk '{print $2 * 0.9}') * ${scale}" | bc))
+    disk_scale=$(printf '%.*f\n' 0 $(echo "$(free -o -g | grep Mem | awk '{print $2 * 4}') * ${scale}" | bc))
+fi
 # For each core available on the database server, it is suggested to use 1 thread and 2 clients
 threads=$(grep -c ^processor /proc/cpuinfo)
 clients=$((2 * $threads))
@@ -142,15 +176,15 @@ clients=$((2 * $threads))
 # Memory vs. Disk Performance
 LogMsg "Running Memory vs. Disk Performance"
 LogMsg "Running In Buffer Test"
-pgbench --host=${SERVER} --username=${USER} -i -s ${buffer_scale} test_db
-pgbench --host=${SERVER} --username=${USER} -c ${clients} -j ${threads} -T ${DURATION} test_db > /tmp/postgresql/mem_disk.in_buffer.log
+pgbench --host=${SERVER} --username=${newDBUser} -i -s ${buffer_scale} test_db
+pgbench --host=${SERVER} --username=${newDBUser} -c ${clients} -j ${threads} -T ${DURATION} test_db > /tmp/postgresql/mem_disk.in_buffer.log
 sleep 20
 LogMsg "Running Mostly Cache Test"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/dropdb test_db"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${USER} test_db"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${newDBUser} test_db"
 sleep 10
-pgbench --host=${SERVER} --username=${USER} -i -s ${cache_scale} test_db
-pgbench --host=${SERVER} --username=${USER} -c ${clients} -j ${threads} -T ${DURATION} test_db > /tmp/postgresql/mem_disk.mostly_cache.log
+pgbench --host=${SERVER} --username=${newDBUser} -i -s ${cache_scale} test_db
+pgbench --host=${SERVER} --username=${newDBUser} -c ${clients} -j ${threads} -T ${DURATION} test_db > /tmp/postgresql/mem_disk.mostly_cache.log
 sleep 20
 #LogMsg "Running On-Disk Test"
 #ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/dropdb test_db"
@@ -171,27 +205,27 @@ LogMsg "Running Read vs. Write Performance"
 #sleep 20
 LogMsg "Running Simple Write Test"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/dropdb test_db"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${USER} test_db"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${newDBUser} test_db"
 sleep 10
-pgbench --host=${SERVER} --username=${USER} -i -s ${cache_scale} test_db
-pgbench --host=${SERVER} --username=${USER} -c ${clients} -j ${threads} -T ${DURATION} -N test_db > /tmp/postgresql/rw_perf.simple_write.log
+pgbench --host=${SERVER} --username=${newDBUser} -i -s ${cache_scale} test_db
+pgbench --host=${SERVER} --username=${newDBUser} -c ${clients} -j ${threads} -T ${DURATION} -N test_db > /tmp/postgresql/rw_perf.simple_write.log
 sleep 20
 
 #Connections and Contention
 LogMsg "Running Connections and Contention"
 LogMsg "Running Single-Threaded"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/dropdb test_db"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${USER} test_db"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${newDBUser} test_db"
 sleep 10
-pgbench --host=${SERVER} --username=${USER} -i -s ${conn_scale} test_db
-pgbench --host=${SERVER} --username=${USER} -c 1 -T ${DURATION} test_db > /tmp/postgresql/conn.single_connection.log
+pgbench --host=${SERVER} --username=${newDBUser} -i -s ${conn_scale} test_db
+pgbench --host=${SERVER} --username=${newDBUser} -c 1 -T ${DURATION} test_db > /tmp/postgresql/conn.single_connection.log
 sleep 20
 LogMsg "Running Normal Load"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/dropdb test_db"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${USER} test_db"
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/createdb -O ${newDBUser} test_db"
 sleep 10
-pgbench --host=${SERVER} --username=${USER} -i -s ${conn_scale} test_db
-pgbench --host=${SERVER} --username=${USER} -c $((${clients} * 2)) -j ${threads} -T ${DURATION} test_db > /tmp/postgresql/conn.normal_load.log
+pgbench --host=${SERVER} --username=${newDBUser} -i -s ${conn_scale} test_db
+pgbench --host=${SERVER} --username=${newDBUser} -c $((${clients} * 2)) -j ${threads} -T ${DURATION} test_db > /tmp/postgresql/conn.normal_load.log
 sleep 20
 #LogMsg "Running Heavy Contention"
 #ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo -u ${db_user} ${db_utils}/dropdb test_db"
