@@ -1571,7 +1571,8 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData, [Stri
             LogMsg 0 "Warn : Test is set to abort on error. Exiting"
             $vm.currentTest = "done"
         }
-        SetTestResult $currentTest $completionCode $xmlData
+        SetTestResult $vm.suite $vm.currentTest $completionCode $xmlData
+        $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
         UpdateState $vm $Finished
     }
     else
