@@ -18,17 +18,18 @@
 #
 ####################################################################################
 # 
-# hyperv-commit-finder.py
+# lis-commit-finder.py
 #
-# Discription:
-# This script to find missing commit id's in distro source code compared to linux-next
-# You need to provide distro source and linux next saource 
-# e.g.  source1path="/root/src/linux-3.10.0-223.el7/"
-#       source2path="/root/linux-next/" 
-# This script has dependecies on config file which contain the files to be comapred
-# currently config is provided with this script, you should edit it if you want to 
-# compare something else. 
-# it will create a result file in your HOME directory names commit-result.
+# Description:
+# This script finds missing commit id's in distro source code compared to linux-next.
+# You need to provide distro source, linux next source and config absolute paths.
+# e.g.  please enter path to distro source code: "/home/ubuntu/src/linux-3.10.0-223.el7/"
+#       please enter path to linux-next source code: "/home/ubuntu/linux-next/"
+#       please enter path to config file: "/home/ubuntu/config"
+# This script requires a config file which has to contain all the files (line by line)
+# you want to compare.
+# The script will create a result file in your HOME directory named: commit-result.
+# Pythin 2.x is required to run this script.
 #
 ####################################################################################
 
@@ -216,6 +217,7 @@ def listtofile():
 
 source1path = raw_input("please enter path to distro source code: ")
 source2path = raw_input("please enter path to linux-next source code: ")
+config_file_path = raw_input("please enter path to config file: ")
 
 if not source1path.endswith('/'):
     source1path=source1path+'/'
@@ -231,13 +233,12 @@ if not os.path.exists(tmp):
 
 # Creating list from config file, it will contain all the file name we need to
 # process
-configfilename = "/root/config"
 
 outfilename = home + "/commit-result"
 if os.path.isfile(outfilename):
     os.remove(outfilename)
 
-with open(configfilename) as configfile:
+with open(config_file_path) as configfile:
     for line in configfile:
         if line == '\n':
             continue
@@ -259,7 +260,7 @@ with open(configfilename) as configfile:
         filename_diff = tmp + "/git_" + filename
 
         #### now write git log file .
-        os.chdir(home + "/linux-next")
+        os.chdir(source2path)
         run("git log -p " + filepath + " >" + filename_diff)
 
         # create a list to store newfile name
@@ -308,4 +309,4 @@ with open(configfilename) as configfile:
 
 shutil.rmtree(tmp)
 
-print '\033[1;32m' + 'Missing commit id is in '  +outfilename+ ' file' + '\033[1;m'
+print ('\033[1;32m' + 'Missing commit id is in '  + outfilename + ' file' + '\033[1;m')
