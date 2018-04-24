@@ -46,7 +46,8 @@ function AddedNic
             sed -i -- "s/eth0/${ethName}/g" /etc/sysconfig/network-scripts/ifcfg-${ethName}
             sed -i -e "s/HWADDR/#HWADDR/" /etc/sysconfig/network-scripts/ifcfg-${ethName}
             sed -i -e "s/UUID/#UUID/" /etc/sysconfig/network-scripts/ifcfg-${ethName}
-    elif [ "$os_VENDOR" == "SUSE LINUX" ]; then
+    elif [ "$os_VENDOR" == "SUSE LINUX" ] || \
+	     [ "$os_VENDOR" == "SLE" ]; then
             echo "Info : Creating ifcfg-${ethName}"
             cp /etc/sysconfig/network/ifcfg-eth0 /etc/sysconfig/network/ifcfg-${ethName}
             sed -i -- "s/eth0/${ethName}/g" /etc/sysconfig/network/ifcfg-${ethName}
@@ -100,7 +101,8 @@ function RemovedNic
             if [ $? -eq 0 ]; then
                 echo "Error: /var/log/messages reported netvsc throwed errors"
             fi
-    elif [ "$os_VENDOR" == "SUSE LINUX" ]; then
+    elif [ "$os_VENDOR" == "SUSE LINUX" ] || \
+		 [ "$os_VENDOR" == "SLE" ]; then
             rm -f /etc/sysconfig/network/ifcfg-${ethName}
             cat /var/log/messages | grep "unable to close device (ret -110)"
             if [ $? -eq 0 ]; then
