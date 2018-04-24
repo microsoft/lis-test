@@ -162,12 +162,6 @@ if ($null -eq $ipv4)
     return $False
 }
 
-if ($null -eq $driveletter)
-{
-    Write-Output "ERROR: Test parameter driveletter was not specified."
-    return $False
-}
-
 # Change the working directory to where we need to be
 if (-not (Test-Path $rootDir))
 {
@@ -203,11 +197,18 @@ else {
 	return $false
 }
 
-
-$sts = runSetup $vmName $hvServer $driveletter
+$sts = runSetup $vmName $hvServer
 if (-not $sts[-1])
 {
 	return $False
+}
+
+$driveletter = $global:driveletter
+
+if ($null -eq $driveletter)
+{
+    Write-Output "ERROR: Test parameter driveletter was not specified."
+    return $False
 }
 
 # Stop the running VM so we can create New VM from this parent disk.

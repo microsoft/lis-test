@@ -118,12 +118,6 @@ if ($null -eq $rootdir)
     return $False
 }
 
-if ($null -eq $driveletter)
-{
-    Write-Output "ERROR: Test parameter driveletter was not specified."
-    return $False
-}
-
 if ($null -eq $FILESYS)
 {
     Write-Output "ERROR: Test parameter FILESYS was not specified."
@@ -163,9 +157,17 @@ else {
 	return $false
 }
 
-$sts = runSetup $vmName $hvServer $driveletter
+$sts = runSetup $vmName $hvServer
 if (-not $sts[-1])
 {
+    return $False
+}
+
+$driveletter = $global:driveletter
+
+if ($null -eq $driveletter)
+{
+    Write-Output "ERROR: Test parameter driveletter was not specified."
     return $False
 }
 

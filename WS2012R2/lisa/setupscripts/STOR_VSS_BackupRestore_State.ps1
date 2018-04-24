@@ -151,12 +151,6 @@ if ($null -eq $rootdir)
     return $False
 }
 
-if ($null -eq $driveletter)
-{
-    "ERROR: Backup driveletter is not specified."
-    return $False
-}
-
 if ($null -eq $vmState)
 {
     "ERROR: vmState param is not specified."
@@ -190,13 +184,20 @@ else {
 	return $false
 }
 
-
-$sts = runSetup $vmName $hvServer $driveletter
+$sts = runSetup $vmName $hvServer
 if (-not $sts[-1])
 {
     return $False
 }
 
+$driveletter = $global:driveletter
+Write-Output "Driveletter in VSS_BackupRestore_State is $driveletter"
+
+if ($null -eq $driveletter)
+{
+    "ERROR: Backup driveletter is not specified."
+    return $False
+}
 
 # Check if VM is Started
 $vm = Get-VM -Name $vmName

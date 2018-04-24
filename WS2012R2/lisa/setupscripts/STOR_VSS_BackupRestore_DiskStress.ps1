@@ -24,19 +24,19 @@
     This script tests VSS backup functionality.
 
 .Description
-    This script will push VSS_Disk_Stress.sh script to the vm. 
-    While the script is running it will perform the backup/restore operation. 
-    
-    It uses a second partition as target. 
+    This script will push VSS_Disk_Stress.sh script to the vm.
+    While the script is running it will perform the backup/restore operation.
+
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     A typical xml entry looks like this:
 
     <test>
     <testName>VSS_BackupRestore_DiskStress</testName>
-        <testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript> 
+        <testScript>setupscripts\VSS_BackupRestore_DiskStress.ps1</testScript>
         <testParams>
             <param>driveletter=F:</param>
             <param>iOzoneVers=3_424</param>
@@ -45,8 +45,8 @@
         <timeout>1200</timeout>
         <OnERROR>Continue</OnERROR>
     </test>
-    
-    The iOzoneVers param is needed for the download of the correct iOzone version. 
+
+    The iOzoneVers param is needed for the download of the correct iOzone version.
 
 .Parameter vmName
     Name of the VM to backup/restore.
@@ -67,10 +67,10 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $retVal = $false
 $remoteScript = "STOR_VSS_Disk_Stress.sh"
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Check input arguments
@@ -95,7 +95,7 @@ foreach ($p in $params)
         "driveletter" { $driveletter = $fields[1].Trim() }
         "iOzoneVers" { $iOzoneVers = $fields[1].Trim() }
         "TestLogDir" { $TestLogDir = $fields[1].Trim() }
-        default  {}          
+        default  {}
         }
 }
 
@@ -114,12 +114,6 @@ if ($null -eq $ipv4)
 if ($null -eq $rootdir)
 {
     Write-Output "ERROR: Test parameter rootdir was not specified"
-    return $False
-}
-
-if ($null -eq $driveletter)
-{
-    Write-Output "ERROR: Test parameter driveletter was not specified."
     return $False
 }
 
@@ -162,9 +156,17 @@ else {
 	return $false
 }
 
-$sts = runSetup $vmName $hvServer $driveletter
-if (-not $sts[-1]) 
+$sts = runSetup $vmName $hvServer
+if (-not $sts[-1])
 {
+    return $False
+}
+
+$driveletter = $global:driveletter
+
+if ($null -eq $driveletter)
+{
+    Write-Output "ERROR: Test parameter driveletter was not specified."
     return $False
 }
 
@@ -193,7 +195,7 @@ if (-not $sts[-1])
 {
     return $False
 }
-else 
+else
 {
     $backupLocation = $sts
 }
@@ -207,11 +209,11 @@ if (-not $sts[-1])
 }
 
 $sts = checkResults $vmName $hvServer
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
     $retVal = $False
-} 
-else 
+}
+else
 {
 	$retVal = $True
     $results = $sts

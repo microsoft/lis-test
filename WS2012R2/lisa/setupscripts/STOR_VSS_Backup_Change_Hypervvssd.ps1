@@ -110,12 +110,6 @@ if ($null -eq $rootdir)
     return $False
 }
 
-if ($null -eq $driveletter)
-{
-    "ERROR: Backup driveletter is not specified."
-    return $False
-}
-
 # Change the working directory to where we need to be
 cd $rootDir
 # Source TCUtils.ps1 for common functions
@@ -142,10 +136,19 @@ else {
 	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
+
 # run set up
-$sts = runSetup $vmName $hvServer $driveletter
+$sts = runSetup $vmName $hvServer
 if (-not $sts[-1])
 {
+    return $False
+}
+
+$driveletter = $global:driveletter
+
+if ($null -eq $driveletter)
+{
+    "ERROR: Backup driveletter is not specified."
     return $False
 }
 

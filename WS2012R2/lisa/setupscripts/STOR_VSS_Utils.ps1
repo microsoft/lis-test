@@ -29,14 +29,14 @@
     commonly used by PowerShell scripts in VSS tests.
 #>
 
-function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter, [boolean] $check_vssd = $True)
+function runSetup([string] $vmName, [string] $hvServer, [boolean] $check_vssd = $True)
 {
-	$sts = Test-Path $driveletter
-	if (-not $sts)
-	{
-		$logger.error("Error: Drive ${driveletter} does not exist")
-		return $False
-	}
+	# $sts = Test-Path $driveletter
+	# if (-not $sts)
+	# {
+	# 	$logger.error("Error: Drive ${driveletter} does not exist")
+	# 	return $False
+	# }
 	$logger.info("Removing old backups")
 	try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
 	Catch { $logger.info("No existing backup's to remove") }
@@ -49,11 +49,21 @@ function runSetup([string] $vmName, [string] $hvServer, [string] $driveletter, [
 		return $False
 	}
 
+	# Get drive letter
+	$sts = getDriveLetter $vmName $hvServer
+	$driveletter = $global:driveletter
+
+	if (-not $sts[-1])
+	{
+		$logger.error("Cannot get the drive letter")
+		return $False
+	}
+
 	foreach ($drive in $vm.HardDrives)
 	{
-		if ( $drive.Path.StartsWith("${driveLetter}"))
+		if ( $drive.Path.StartsWith("$driveletter"))
 		{
-			$logger.error("Backup partition ${driveLetter} is same as partition hosting the VMs disk $($drive.Path)")
+			$logger.error("Backup partition $driveletter is same as partition hosting the VMs disk $($drive.Path)")
 			return $False
 		}
 	}
@@ -177,7 +187,7 @@ function checkResults([string] $vmName, [string] $hvServer)
 	if ($vmState -eq "Running")
 	{
 		if ($ip_address -eq $null)
-		{  
+		{
 			$logger.info("Restarting VM to bring up network")
 			Restart-VM -vmName $vmName -ComputerName $hvServer -Force
 			WaitForVMToStartKVP $vmName $hvServer $timeout
@@ -245,27 +255,15 @@ function checkResults([string] $vmName, [string] $hvServer)
 		$logger.info("Ignore checking file /root/1 when no network")
 	}
 
-	# Now Check the boot logs in VM to verify if there is no Recovering journals in it .
-	$sts=CheckRecoveringJ
-    if ($sts[-1])
-    {
-        $logger.error("No Recovering Journal in boot logs")
-        return $False
-    }
-    else
-    {
-        $results = "Passed"
-        $logger.info("Recovering Journal in boot msg: Success")
-		$logger.info("INFO: VSS Back/Restore: Success")
-        return $results
-    }
+	return $True
 }
 
 function runCleanup([string] $backupLocation)
 {
     # Remove Created Backup
     $logger.info("Removing old backups from $backupLocation")
-    try { Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
+    try {
+    	Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
     Catch { $logger.info("No existing backup's to remove")}
 }
 
@@ -296,4 +294,27 @@ function getBackupType()
 		}
 	}
 	return $backupType
+}
+
+function getDriveLetter([string] $vmName, [string] $hvServer)
+{
+
+	if ($null -eq $vmName)
+	{
+        $logger.error("VM name was not specified.")
+        return $False
+	}
+
+	# Get the letter of the mounted backup drive
+	$tempFile = (get-vmhost -ComputerName $hvServer).VirtualHardDiskPath + "\" + $vmName + "_DRIVE_LETTER.txt"
+
+	if(Test-Path ($tempFile))
+	{
+		$global:driveletter = Get-Content -Path $tempFile
+		return $True
+	}
+	else
+	{
+		return $False
+	}
 }

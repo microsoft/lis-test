@@ -107,12 +107,6 @@ if ($null -eq $rootdir)
     return $False
 }
 
-if ($null -eq $driveletter)
-{
-    "ERROR: Backup driveletter is not specified."
-    return $False
-}
-
 # Change the working directory to where we need to be
 cd $rootDir
 
@@ -140,6 +134,7 @@ else {
 	$logger.error("Could not find setupScripts\STOR_VSS_Utils.ps1")
 	return $false
 }
+
 # set the backup type array, if set Integration Service VSS
 # as disabled/unchecked, it exectes offline backup, if VSS is
 # enabled/checked and hypervvssd is running, it executes online backup.
@@ -187,10 +182,18 @@ for ($i = 0; $i -le 1; $i++ )
        	Start-Sleep -s 3
    }
     ## run set up
-    $sts = runSetup $vmName $hvServer $driveletter $checkVSSD[$i]
+    $sts = runSetup $vmName $hvServer $checkVSSD[$i]
     if (-not $sts[-1])
     {
         return $False
+    }
+
+    $driveletter = $global:driveletter
+
+    if ($null -eq $driveletter)
+    {
+      "ERROR: Backup driveletter is not specified."
+      return $False
     }
 
     $sts = startBackup $vmName $driveLetter
