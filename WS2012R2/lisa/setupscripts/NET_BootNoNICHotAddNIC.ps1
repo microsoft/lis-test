@@ -155,9 +155,22 @@ function SetupStartupScript()
     }
     elseif ($linuxRelease -eq "SLES")
     {
-        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo 'dos2unix /root/NET_VerifyBootNoNIC.sh'  >> /etc/init.d/after.local"
-        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo 'chmod 755 /root/NET_VerifyBootNoNIC.sh' >> /etc/init.d/after.local"
-        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo 'bash /root/NET_VerifyBootNoNIC.sh &'         >> /etc/init.d/after.local" 
+        $cmdToVM = @"
+[Unit]
+ConditionFileIsExecutable=/root/NET_VerifyBootNoNIC.sh
+After=getty.target
+
+[Service]
+Type=idle
+ExecStart=/root/NET_VerifyBootNoNIC.sh
+TimeoutSec=0
+RemainAfterExit=yes
+"@
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "echo '$cmdToVM' > /etc/systemd/system/after-local.service"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "chmod +x /etc/systemd/system/after-local.service"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "dos2unix /root/NET_VerifyBootNoNIC.sh"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "chmod 755 /root/NET_VerifyBootNoNIC.sh"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "systemctl daemon-reload && systemctl enable after-local.service"
     }
     else
     {
@@ -617,7 +630,7 @@ try
     #
     # Wait for the guest OS to start the SSH daemon
     #
-    $sts = WaitForVMToStartSSH $ipv4 300
+    $sts = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 300
     if (-not $sts)
     {
         Throw "Error: SSH start not detected on SUT after Hot Add/Remove tests"
