@@ -33,9 +33,8 @@ fi
 
 USER="$1"
 STORE="$2"
-
 declare -a SLAVES=("${@:3}")
-LogMsg "slaves are: ${SLAVES}"
+LogMsg "slaves are: ${SLAVES[*]}"
 teragen_records=500000000
 hadoop_version="hadoop-2.8.3"
 hadoop_store="/hadoop_store"
@@ -93,8 +92,9 @@ export PATH=\$PATH:\${HADOOP_HOME}/bin\n
 export PATH=\$PATH:\${HADOOP_HOME}/sbin\n
 export HADOOP_OPTS=\"-Djava.library.path=\${HADOOP_HOME}/lib\"\n
 "
-ping -c 5 ${SLAVES[0]} >> ${LOG_FILE}
-master_ip=`ip route get ${SLAVES[0]} | awk '{print $NF; exit}'`
+
+master_ip=$(hostname -I)
+master_ip=`echo ${master_ip//[[:blank:]]/}`
 
 grep -q "Hadoop exports start" ~/.bashrc
 if [ $? -ne 0 ]; then
@@ -367,7 +367,15 @@ LogMsg "Info : Formatting HDFS"
 /tmp/${hadoop_version}/bin/hdfs namenode -format
 sleep 10
 LogMsg "Info : Starting DFS"
-/tmp/${hadoop_version}/sbin/start-dfs.sh >> ${LOG_FILE}
+if [[ ${distro} == *"Ubuntu"* ]]
+then
+    /tmp/${hadoop_version}/sbin/start-dfs.sh >> ${LOG_FILE}
+elif [[ ${distro} == *"Amazon"* ]]
+then
+    sudo sed -i 1,2d /etc/hosts
+    sudo sed -i '1 i\127.0.0.1   localhost' /etc/hosts
+    echo -ne 'yes\nyes\n' | /tmp/${hadoop_version}/sbin/start-dfs.sh >> ${LOG_FILE}
+fi
 sleep 10
 LogMsg "Info : Starting Yarn"
 /tmp/${hadoop_version}/sbin/start-yarn.sh >> ${LOG_FILE}
