@@ -791,7 +791,7 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
     results_path = None
     try:
         # TODO add Windows VM support for the other cloud providers
-        win_user, password, win_vm = test_env.connector.create_vm(config_file=localpath)
+        win_user, password, win_vm = test_env.connector.create_vm(config_file=localpath, dns_suffix=test_env.connector.dns_suffix)
         log.info(win_vm)
         if all(client for client in test_env.ssh_client.values()):
             current_path = os.path.dirname(sys.modules['__main__'].__file__)
