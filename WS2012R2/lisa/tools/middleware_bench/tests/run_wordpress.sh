@@ -64,15 +64,15 @@ then
 else
     LogMsg "Unsupported distribution: ${distro}."
 fi
-LogMsg "Start to install ${SOFTWARES} + wordpress"
+LogMsg "Start to install ${SOFTWARES} + WordPress"
 ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "/tmp/install_${SOFTWARES}_WordPress.sh ${SERVER}" >> ${LOG_FILE}
 if [ $? -ne 0 ]; then
     LogMsg "Failed to setup Wordpress, please check ${LOG_FILE} for details"
     exit 1
 fi
 sudo pkill -f ab
-mkdir -p /tmp/LAMP_WordPress
-ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/LAMP_WordPress"
+mkdir -p /tmp/wordpress
+ssh -o StrictHostKeyChecking=no ${USER}@${SERVER} "mkdir -p /tmp/wordpress"
 function run_ab ()
 {
     current_concurrency=$1
@@ -124,17 +124,17 @@ function run_wordpress_workload ()
     current_concurrency=$1
 
     LogMsg "======================================"
-    LogMsg "Running LAMP_WordPress test with current concurrency: ${current_concurrency}"
+    LogMsg "Running wordpress test with current concurrency: ${current_concurrency}"
     LogMsg "======================================"
 
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 2>&1 > /tmp/LAMP_WordPress/${current_concurrency}.sar.netio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 2>&1 > /tmp/LAMP_WordPress/${current_concurrency}.iostat.diskio.log"
-    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 2>&1 > /tmp/LAMP_WordPress/${current_concurrency}.vmstat.memory.cpu.log"
-    sar -n DEV 1 2>&1 > /tmp/LAMP_WordPress/${current_concurrency}.sar.netio.log &
-    iostat -x -d 1 2>&1 > /tmp/LAMP_WordPress/${current_concurrency}.iostat.netio.log &
-    vmstat 1 2>&1 > /tmp/LAMP_WordPress/${current_concurrency}.vmstat.netio.log &
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "sar -n DEV 1 2>&1 > /tmp/wordpress/${current_concurrency}.sar.netio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "iostat -x -d 1 2>&1 > /tmp/wordpress/${current_concurrency}.iostat.diskio.log"
+    ssh -f -o StrictHostKeyChecking=no ${USER}@${SERVER} "vmstat 1 2>&1 > /tmp/wordpress/${current_concurrency}.vmstat.memory.cpu.log"
+    sar -n DEV 1 2>&1 > /tmp/wordpress/${current_concurrency}.sar.netio.log &
+    iostat -x -d 1 2>&1 > /tmp/wordpress/${current_concurrency}.iostat.netio.log &
+    vmstat 1 2>&1 > /tmp/wordpress/${current_concurrency}.vmstat.netio.log &
 
-    run_ab ${current_concurrency} > /tmp/LAMP_WordPress/${current_concurrency}.apache.bench.log
+    run_ab ${current_concurrency} > /tmp/wordpress/${current_concurrency}.apache.bench.log
 
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f sar"
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo pkill -f iostat"
@@ -157,6 +157,6 @@ LogMsg "Kernel Version : `uname -r`"
 LogMsg "Guest OS : ${distro}"
 
 cd /tmp
-zip -r LAMP_WordPress.zip . -i LAMP_WordPress/* >> ${LOG_FILE}
-zip -r LAMP_WordPress.zip . -i summary.log >> ${LOG_FILE}
+zip -r wordpress.zip . -i wordpress/* >> ${LOG_FILE}
+zip -r wordpress.zip . -i summary.log >> ${LOG_FILE}
 
