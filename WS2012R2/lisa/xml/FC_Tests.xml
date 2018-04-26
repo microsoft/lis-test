@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
     Linux on Hyper-V and Azure Test Code, ver. 1.0.0
     Copyright (c) Microsoft Corporation
@@ -18,23 +17,25 @@
     See the Apache Version 2.0 License for specific language governing
     permissions and limitations under the License.
 -->
-
 <config>
-    <global>
-        <logfileRootDir>TestResults</logfileRootDir>
-        <defaultSnapshot>ICABase</defaultSnapshot>
-        <email>
-            <recipients>
-                <to>myself@mycompany.com</to>
-            </recipients>
-            <sender>myself@mycompany.com</sender>
-            <subject>LIS Fibre Channel test results on WS2012R2</subject>
-            <smtpServer>mysmtphost.mycompany.com</smtpServer>
-        </email>
-    </global>
-
-    <testSuites>
-        <suite>
+	<global>
+		<logfileRootDir>TestResults</logfileRootDir>
+		<defaultSnapshot>ICABase</defaultSnapshot>
+		<LisaInitScript>
+			<file>.\setupScripts\CreateVMs.ps1</file>
+		</LisaInitScript>
+		<email>
+			<recipients>
+			<to>myself@mycompany.com</to>
+			</recipients>
+			<sender>myself@mycompany.com</sender>
+			<subject>LIS Fibre Channel test results on WS2012R2</subject>
+			<smtpServer>mysmtphost.mycompany.com</smtpServer>
+		</email>
+		<imageStoreDir>\\path\vhd</imageStoreDir>
+	</global>
+	<testSuites>
+		<suite>
 		<suiteName>FC</suiteName>
 		<suiteTests>
 			<suiteTest>FC_disks_detection</suiteTest>
@@ -43,87 +44,89 @@
 			<suiteTest>FC_disks_multipath_detection</suiteTest>
 			<suiteTest>FC_WWN_basic</suiteTest>
 		</suiteTests>
-        </suite>
-    </testSuites>
-
+		</suite>
+	</testSuites>
 	<testCases>
 		<test>
-			<testName>FC_disks_detection</testName>
-			<testScript>FC_disks.sh</testScript>
-			<files>remote-scripts\ica\FC_disks.sh</files>
-			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-			<timeout>3600</timeout>
-			<testParams>
-				<param>TC_COVERED=FC-01,FC-02</param>
-			</testParams>
+		<testName>FC_disks_detection</testName>
+		<testScript>FC_disks.sh</testScript>
+		<files>remote-scripts\ica\FC_disks.sh</files>
+		<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+		<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+		<timeout>3600</timeout>
+		<testParams>
+			<param>TC_COVERED=FC-01,FC-02</param>
+		</testParams>
 		</test>
-
-        <test>
-            <testName>FC_stressTest</testName>
-            <testScript>FC_stressTest.sh</testScript>
-            <files>remote-scripts\ica\FC_stressTest.sh</files>
-            <files>Tools/iozone3_420.tar</files>
-            <setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-            <timeout>7200</timeout>
-            <testParams>
-                <param>TC_COVERED=FC-04</param>
-                <param>FILE_NAME=iozone3_420.tar</param>
-            </testParams>
-        </test>
-
 		<test>
-			<testName>FC_SaveRestore_VM</testName>
-			<testScript>FC_disks.sh</testScript>
-			<files>remote-scripts\ica\FC_disks.sh</files>
-			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-			<posttest>setupScripts\FC_SaveRestoreVM.ps1</posttest>
-			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-			<timeout>7200</timeout>
-			<testParams>
-				<param>TC_COVERED=FC-07</param>
-			</testParams>
+		<testName>FC_stressTest</testName>
+		<testScript>FC_stressTest.sh</testScript>
+		<files>remote-scripts\ica\FC_stressTest.sh</files>
+		<files>Tools/iozone3_420.tar</files>
+		<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+		<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+		<timeout>7200</timeout>
+		<testParams>
+			<param>TC_COVERED=FC-04</param>
+			<param>FILE_NAME=iozone3_420.tar</param>
+		</testParams>
 		</test>
-
 		<test>
-			<testName>FC_disks_multipath_detection</testName>
-			<testScript>setupscripts\FC_MultipathDetection.ps1</testScript>
-			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-            <cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-            <files>remote-scripts\ica\utils.sh</files>
-			<timeout>3600</timeout>
-			<testParams>
-				<param>TC_COVERED=FC-08</param>
-			</testParams>
+		<testName>FC_SaveRestore_VM</testName>
+		<testScript>FC_disks.sh</testScript>
+		<files>remote-scripts\ica\FC_disks.sh</files>
+		<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+		<posttest>setupScripts\FC_SaveRestoreVM.ps1</posttest>
+		<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+		<timeout>7200</timeout>
+		<testParams>
+			<param>TC_COVERED=FC-07</param>
+		</testParams>
 		</test>
-
 		<test>
-			<testName>FC_WWN_basic</testName>
-			<testScript>setupScripts\FC_WWN.ps1</testScript>
-			<files>remote-scripts\ica\fc_wwn.sh,remote-scripts/ica/utils.sh</files>
-			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
-			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
-			<timeout>800</timeout>
-			<testParams>
-				<param>TC_COVERED=FC-09</param>
-			</testParams>
+		<testName>FC_disks_multipath_detection</testName>
+		<testScript>setupscripts\FC_MultipathDetection.ps1</testScript>
+		<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+		<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+		<files>remote-scripts\ica\utils.sh</files>
+		<timeout>3600</timeout>
+		<testParams>
+			<param>TC_COVERED=FC-08</param>
+		</testParams>
+		</test>
+		<test>
+		<testName>FC_WWN_basic</testName>
+		<testScript>setupScripts\FC_WWN.ps1</testScript>
+		<files>remote-scripts\ica\fc_wwn.sh,remote-scripts/ica/utils.sh</files>
+		<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+		<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+		<timeout>800</timeout>
+		<testParams>
+			<param>TC_COVERED=FC-09</param>
+		</testParams>
 		</test>
 	</testCases>
-
-    <VMs>
-        <vm>
-            <hvServer>localhost</hvServer>
-            <vmName>VM_NAME</vmName>
-            <os>Linux</os>
-            <ipv4></ipv4>
-            <sshKey>PKI_id_rsa.ppk</sshKey>
-            <suite>FC</suite>
-            <testParams>
-				<!-- <param>WWNN=portA,portB</param> -->
-                <!-- <param>WWPN=portA,portB</param> -->
-                <param>vSANName=FC_NAME</param>
-            </testParams>
-        </vm>
-    </VMs>
+	<VMs>
+		<vm>
+		<hvServer>localhost</hvServer>
+		<vmName>VM_NAME</vmName>
+		<os>Linux</os>
+		<ipv4 />
+		<sshKey>linux_id_rsa.ppk</sshKey>
+		<suite>FC</suite>
+		<testParams>
+			<!-- <param>WWNN=portA,portB</param> -->
+			<!-- <param>WWPN=portA,portB</param> -->
+			<param>vSANName=FC_NAME</param>
+		</testParams>
+		<hardware>
+			<create>true</create>
+			<numCPUs>4</numCPUs>
+			<memSize>2048</memSize>
+			<disableDiff>True</disableDiff>
+			<generation>1</generation>
+			<nic>VMBus,External</nic>
+		</hardware>
+		</vm>
+	</VMs>
 </config>
