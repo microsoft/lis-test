@@ -56,10 +56,10 @@ then
 elif [[ ${distro} == *"Amazon"* ]]
 then
     sudo yum clean dbcache>> ${LOG_FILE}
-    sudo yum -y install git sysstat zip httpd-tools >> ${LOG_FILE}
+    sudo yum -y install git sysstat zip httpd24-tools >> ${LOG_FILE}
 
     ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum clean dbcache" >> ${LOG_FILE}
-    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install git sysstat zip httpd-tools" >> ${LOG_FILE}
+    ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "sudo yum -y install git sysstat zip" >> ${LOG_FILE}
     web_server="httpd"
 else
     LogMsg "Unsupported distribution: ${distro}."
@@ -105,14 +105,14 @@ function run_ab ()
         concurrency_left=$(($concurrency_left - $concurrency_per_ab))
         requests_left=$(($requests_left - $total_request_per_ab))
         LogMsg "Running parallel ab command for: ${total_request_per_ab} X ${concurrency_per_ab}"
-        ab -n ${total_request_per_ab} -r -c ${concurrency_per_ab} http://${SERVER}/?p=4 & pid=$!
+        ab -n ${total_request_per_ab} -r -s 60 -c ${concurrency_per_ab} http://${SERVER}/?p=1 & pid=$!
         PID_LIST+=" $pid"
     done
 
     if [ ${concurrency_left} -gt 0 ]
     then
         LogMsg "Running parallel ab command left for: ${requests_left} X ${concurrency_left}"
-        ab -n ${requests_left} -r -c ${concurrency_left} http://${SERVER}/?p=4 & pid=$!
+        ab -n ${requests_left} -r -s 60 -c ${concurrency_left} http://${SERVER}/?p=1 & pid=$!
         PID_LIST+=" $pid";
     fi
     trap "sudo kill ${PID_LIST}" SIGINT

@@ -7,7 +7,6 @@ git clone https://github.com/WordPress/WordPress
 curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
 chmod +x wp-cli.phar
 sudo mv wp-cli.phar /usr/local/bin/wp
-wget https://ciwestusv2.blob.core.windows.net/scripts/wltest.jpg
 
 
 if [[ ${distro} == *"Ubuntu"* ]]
@@ -55,12 +54,6 @@ EOF
 	sudo wp core config --dbhost=127.0.0.1 --dbname=wordpress --dbuser=wordpressuser --dbpass=p@ssw0rd0507 --allow-root --path='/var/www/html' 
 	sudo wp core install --url=http://$1 --title="My Test WordPress" --admin_name=wordpress_admin --admin_password='4Long&Strong1' --admin_email=you@example.com --allow-root --path='/var/www/html' 
 
-	imageID=$(sudo wp media import ./wltest.jpg --porcelain --allow-root --path='/var/www/html')
-	imageLINK=$(wp db query "SELECT guid FROM wp_posts WHERE ID='$imageID'" --silent --skip-column-names --allow-root --path='/var/www/html')
-	echo $imageLINK
-	postID=`wp post create --post_title="workloadtest" --post_status=publish --post_content="<a href=""$imageLINK""><img class=""size-full"" src=""$imageLINK"" /></a>" --allow-root --path='/var/www/html'`
-	echo $postID
-
 	# Restart Apache
 	sudo systemctl stop apache2
 	sleep 30
@@ -81,10 +74,6 @@ then
 	wp core config --dbhost=127.0.0.1 --dbname=wordpress --dbuser=wordpressuser --dbpass=p@ssw0rd0507 --allow-root --path='/var/www/html' 
 	wp core install --url=http://$1 --title="My Test WordPress" --admin_name=wordpress_admin --admin_password='4Long&Strong1' --admin_email=you@example.com --allow-root --path='/var/www/html' 
 
-	imageID=$(wp media import ./wltest.jpg --porcelain --allow-root --path='/var/www/html')
-	imageLINK=$(wp db query "SELECT guid FROM wp_posts WHERE ID='$imageID'" --silent --skip-column-names --allow-root --path='/var/www/html')
-	postID=`wp post create --post_title="workloadtest" --post_status=publish --post_content="<a href=""$imageLINK""><img class=""size-full"" src=""$imageLINK"" /></a>" --allow-root --path='/var/www/html'`
-
 	# Restart Apache
 	sudo service httpd stop
 	sleep 30
@@ -95,10 +84,10 @@ fi
 
 echo "PHP Version: `php -v`"
 echo "MySQL Version: `mysql -V`"
-wget --spider -q -o /dev/null  --tries=1 -T 5 http://$1/?p=4
+wget --spider -q -o /dev/null  --tries=1 -T 5 http://$1/?p=1
 if [ $? -eq 0 ]; then
-    echo -e "http://$1/?p=4 is reachable!"
+    echo -e "http://$1/?p=1 is reachable!"
 else
-    echo -e "Error: http://$1/?p=4 is unreachable!"
+    echo -e "Error: http://$1/?p=1 is unreachable!"
     exit 1
 fi
