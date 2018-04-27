@@ -885,7 +885,7 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
                        host_type=shortcut.host_type(provider), instance_size=instancetype,
                        disk_setup='1 x SSD {}GB'.format(disk_size), report=report)
 
-def test_LAMP_Wordpress(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+def test_lamp_wordpress(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
                   instancetype, user, localpath, region, zone, sriov, kernel):
     """
     Run Apache Benchmark on LAMP+Wordpress server.
@@ -918,7 +918,7 @@ def test_LAMP_Wordpress(provider, keyid, secret, token, imageid, subscription, t
     software_bundle = 'lamp'
     test_cmd = '/tmp/run_wordpress.sh {} {} {}'.format(test_env.ssh_client[2].server, user, software_bundle)
     current_path = os.getcwd()
-    results_path = os.path.join(localpath, 'LAMP_WordPress{}_{}_{}.zip'.format(str(time.time()), instancetype, sriov))    
+    results_path = os.path.join(localpath, 'lamp_wordpress{}_{}_{}.zip'.format(str(time.time()), instancetype, sriov))    
     test_env.ssh_client[2].put_file(os.path.join(current_path, 'tests', 'install_lamp_wordpress.sh'), '/tmp/install_lamp_wordpress.sh')
     test_env.ssh_client[2].run('chmod +x /tmp/install_lamp_wordpress.sh')
     test_env.ssh_client[2].run("sed -i 's/\r//' /tmp/install_lamp_wordpress.sh")
@@ -931,7 +931,7 @@ def test_LAMP_Wordpress(provider, keyid, secret, token, imageid, subscription, t
                    data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                    instance_size=instancetype)
 
-def test_LEMP_Wordpress(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+def test_lemp_wordpress(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
                   instancetype, user, localpath, region, zone, sriov, kernel):
     """
     Run Apache Benchmark on LEMP+Wordpress server.
@@ -964,7 +964,7 @@ def test_LEMP_Wordpress(provider, keyid, secret, token, imageid, subscription, t
     software_bundle = 'lemp'
     test_cmd = '/tmp/run_wordpress.sh {} {} {}'.format(test_env.ssh_client[2].server, user, software_bundle)
     current_path = os.getcwd()
-    results_path = os.path.join(localpath, 'LEMP_WordPress{}_{}_{}.zip'.format(str(time.time()), instancetype, sriov))    
+    results_path = os.path.join(localpath, 'lemp_wordpress{}_{}_{}.zip'.format(str(time.time()), instancetype, sriov))    
     test_env.ssh_client[2].put_file(os.path.join(current_path, 'tests', 'install_lemp_wordpress.sh'), '/tmp/install_lemp_wordpress.sh')
     test_env.ssh_client[2].run('chmod +x /tmp/install_lemp_wordpress.sh')
     test_env.ssh_client[2].run("sed -i 's/\r//' /tmp/install_lemp_wordpress.sh")
