@@ -1062,7 +1062,7 @@ def test_kafka(provider, keyid, secret, token, imageid, subscription, tenant, pr
     test_env.run_test(ssh_vm_conf=5, testname='kafka', test_cmd=test_cmd,
                       results_path=results_path, timeout=constants.TIMEOUT * 2)
     upload_results(localpath=localpath, table_name='Perf_{}_Kafka'.format(provider),
-                   results_path=results_path, parser=kafkaLogsReader,
+                   results_path=results_path, parser=KafkaLogsReader,
                    other_table=('.deb' in kernel),
                    test_case_name='{}_Kafka_perf_tuned'.format(provider),
                    data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),

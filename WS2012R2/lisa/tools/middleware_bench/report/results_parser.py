@@ -1781,14 +1781,14 @@ class ElasticsearchLogsReader(BaseLogsReader):
         
         return log_dict_list
 
-class kafkaLogsReader(BaseLogsReader):
+class KafkaLogsReader(BaseLogsReader):
     """
     Subclass for parsing Apache bench log files e.g.
     1.apache.bench.log
     """
     def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
                  instance_size=None, cluster_setup=None):
-        super(kafkaLogsReader, self).__init__(log_path)
+        super(KafkaLogsReader, self).__init__(log_path)
         self.headers = ['PartitionNum', 'ReplicationFactor', 'RecordSize',
                         'BatchSize', 'BufferMem', 'RecordNum', 'RecordsPerSec',
                         'Throughput_MBps', 'AverageLatency_ms', 'MaxLatency_ms',
