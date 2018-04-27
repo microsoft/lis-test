@@ -915,13 +915,13 @@ def test_LAMP_Wordpress(provider, keyid, secret, token, imageid, subscription, t
                             imageid=imageid, instancetype=instancetype, user=user,
                             localpath=localpath, region=region, zone=zone, sriov=sriov,
                             kernel=kernel)
-    software_bundle = 'LAMP'
+    software_bundle = 'lamp'
     test_cmd = '/tmp/run_wordpress.sh {} {} {}'.format(test_env.ssh_client[2].server, user, software_bundle)
     current_path = os.getcwd()
     results_path = os.path.join(localpath, 'LAMP_WordPress{}_{}_{}.zip'.format(str(time.time()), instancetype, sriov))    
-    test_env.ssh_client[2].put_file(os.path.join(current_path, 'tests', 'install_LAMP_WordPress.sh'), '/tmp/install_LAMP_WordPress.sh')
-    test_env.ssh_client[2].run('chmod +x /tmp/install_LAMP_WordPress.sh')
-    test_env.ssh_client[2].run("sed -i 's/\r//' /tmp/install_LAMP_WordPress.sh")
+    test_env.ssh_client[2].put_file(os.path.join(current_path, 'tests', 'install_lamp_wordpress.sh'), '/tmp/install_lamp_wordpress.sh')
+    test_env.ssh_client[2].run('chmod +x /tmp/install_lamp_wordpress.sh')
+    test_env.ssh_client[2].run("sed -i 's/\r//' /tmp/install_lamp_wordpress.sh")
     test_env.run_test(ssh_vm_conf=1, testname='wordpress', test_cmd=test_cmd,
                       results_path=results_path, timeout=constants.TIMEOUT * 5)
     upload_results(localpath=localpath, table_name='Perf_{}_LAMP_Wordpress'.format(provider),
@@ -961,13 +961,13 @@ def test_LEMP_Wordpress(provider, keyid, secret, token, imageid, subscription, t
                             imageid=imageid, instancetype=instancetype, user=user,
                             localpath=localpath, region=region, zone=zone, sriov=sriov,
                             kernel=kernel)
-    software_bundle = 'LEMP'
+    software_bundle = 'lemp'
     test_cmd = '/tmp/run_wordpress.sh {} {} {}'.format(test_env.ssh_client[2].server, user, software_bundle)
     current_path = os.getcwd()
     results_path = os.path.join(localpath, 'LEMP_WordPress{}_{}_{}.zip'.format(str(time.time()), instancetype, sriov))    
-    test_env.ssh_client[2].put_file(os.path.join(current_path, 'tests', 'install_LEMP_WordPress.sh'), '/tmp/install_LEMP_WordPress.sh')
-    test_env.ssh_client[2].run('chmod +x /tmp/install_LEMP_WordPress.sh')
-    test_env.ssh_client[2].run("sed -i 's/\r//' /tmp/install_LEMP_WordPress.sh")
+    test_env.ssh_client[2].put_file(os.path.join(current_path, 'tests', 'install_lemp_wordpress.sh'), '/tmp/install_lemp_wordpress.sh')
+    test_env.ssh_client[2].run('chmod +x /tmp/install_lemp_wordpress.sh')
+    test_env.ssh_client[2].run("sed -i 's/\r//' /tmp/install_lemp_wordpress.sh")
     test_env.run_test(ssh_vm_conf=1, testname='wordpress', test_cmd=test_cmd,
                       results_path=results_path, timeout=constants.TIMEOUT * 5)
     upload_results(localpath=localpath, table_name='Perf_{}_LEMP_Wordpress'.format(provider),

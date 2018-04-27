@@ -1611,12 +1611,7 @@ class LAMPWordpressLogsReader(BaseLogsReader):
                 if web_server_version:
                     if not log_dict.get('WebServerVersion', None):
                         log_dict['WebServerVersion'] = web_server_version.group(1)
-                '''
-                doc_len = re.match('\s*Document\s*Length:\s*([0-9]+)\s*bytes\s*', line)
-                if doc_len:
-                    if not log_dict.get('Document_bytes', None):
-                        log_dict['Document_bytes'] = doc_len.group(1)
-                '''
+
                 concurrency = re.match('\s*Concurrency\s*Level:\s*([0-9]+)', line)
                 if concurrency:
                     if not log_dict.get('ConcurrencyPerAbInstance', None):

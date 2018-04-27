@@ -65,7 +65,7 @@ else
     LogMsg "Unsupported distribution: ${distro}."
 fi
 LogMsg "Start to install ${SOFTWARES} + WordPress"
-ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "/tmp/install_${SOFTWARES}_WordPress.sh ${SERVER}" >> ${LOG_FILE}
+ssh -T -o StrictHostKeyChecking=no ${USER}@${SERVER} "/tmp/install_${SOFTWARES}_wordpress.sh ${SERVER}" >> ${LOG_FILE}
 if [ $? -ne 0 ]; then
     LogMsg "Failed to setup Wordpress, please check ${LOG_FILE} for details"
     exit 1
