@@ -24,6 +24,8 @@ import time
 import logging
 import ConfigParser
 import uuid
+import random
+import string
 
 from utils import constants
 from azure.common.credentials import ServicePrincipalCredentials
@@ -130,7 +132,7 @@ class AzureConnector:
                 {'address_prefix': '10.10.10.0/24'})
         self.subnet = create_subnet.result()
 
-    def create_vm(self, config_file=None):
+    def create_vm(self, config_file=None, dns_suffix=None):
         """
         Create an Azure VM instance.
         :return: VirtualMachine object
@@ -155,7 +157,7 @@ class AzureConnector:
                 private_image = self.compute_client.images.get(
                         config.get('Image', 'resource_group'), config.get('Image', 'name'))
                 imageid = {'id': private_image.id}
-            vm_name = config.get('Windows', 'name')
+            vm_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(10))
             nic = self.create_nic(vm_name, nsg=True)
             vm_parameters = {
                 'location': self.location,
@@ -225,7 +227,7 @@ class AzureConnector:
                          'fileUris': ['https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vm-winrm-windows/ConfigureWinRM.ps1',
                                       'https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vm-winrm-windows/makecert.exe',
                                       'https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vm-winrm-windows/winrmconf.cmd'],
-                         'commandToExecute': 'powershell -ExecutionPolicy Unrestricted -file ConfigureWinRM.ps1 {vm}'.format(vm=vm_name)}
+                         'commandToExecute': 'powershell -ExecutionPolicy Unrestricted -file ConfigureWinRM.ps1 {vm}'.format(vm='*'+dns_suffix)}
                      })
             log.info('Ran custom script on VM: {}'.format(ext.result()))
             return config.get('Windows', 'user'), config.get('Windows', 'password'), vm_instance
