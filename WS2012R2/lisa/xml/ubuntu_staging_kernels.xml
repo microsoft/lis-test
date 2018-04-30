@@ -52,10 +52,10 @@
     <testCases>
         <test>
             <testName>ubuntu_proposed_kernel</testName>
-            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>ubuntu_proposed_kernel.sh</testScript>
             <files>remote-scripts\ica\ubuntu_proposed_kernel.sh</files>
             <!-- required only for 2 VMs configuration
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testParams>
                 <param>SERVER_OS_USERNAME=username</param>
                 <param>MAC=001600112233</param>
