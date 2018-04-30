@@ -100,6 +100,7 @@
                <memSize>2048</memSize>
                <disableDiff>True</disableDiff>
                <nic>VMBus,External</nic>
+               <generation>1</generation>
             </hardware>
         </vm>
         <!-- required only for 2 VMs configuration
