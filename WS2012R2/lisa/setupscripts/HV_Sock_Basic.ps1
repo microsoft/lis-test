@@ -345,15 +345,15 @@ if ($kernelSupport -ne "True") {
 
 # Connect to remote host
 $ReturnCode = Create_PSSession
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
+if (@($ReturnCode)[-1] -ne $Passed){ return $ReturnCode }
 
 # Copy host-end app to remote host temp path
 $ReturnCode = Copy_Executables_To_Host
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
+if (@($ReturnCode)[-1] -ne $Passed){ return $ReturnCode }
 
 # Insert communication service register entry on host
 $ReturnCode = Insert_Register_Entry
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
+if (@($ReturnCode)[-1] -ne $Passed){ return $ReturnCode }
 
 # Guest linux load hv_sock module
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "modprobe hv_sock"
@@ -364,11 +364,11 @@ if ($ReturnCode -ne $Passed){ return $ReturnCode }
 
 # Test Part I: Client app on guest connects server app on host
 $ReturnCode = Test_Part_I
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
+if (@($ReturnCode)[-1] -ne $Passed){ return $ReturnCode }
 
 # Test Part II: Server app on guest connect to client app on host
 $ReturnCode = Test_Part_II
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
+if (@($ReturnCode)[-1] -ne $Passed){ return $ReturnCode }
 
 Cleanup_Host
 return $Passed
