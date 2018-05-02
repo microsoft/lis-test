@@ -538,8 +538,9 @@ if is_fedora ; then
     rpm_packages=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc dosfstools
     selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake nano parted
     kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-utils omping nc
-    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel hyperv-tools)
+    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel hyperv-tools kernel-devel-`uname -r`)
     sudo yum -y install ${rpm_packages[@]}
+
     yum groups mark install "Development Tools"
     yum groups mark convert "Development Tools"
     yum -y groupinstall "Development Tools"
