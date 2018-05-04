@@ -63,7 +63,7 @@ EOF
 
 elif [[ ${distro} == *"Amazon"* ]]
 then
-	sudo yum -y install mysql-server apache2 php libapache2-mod-php php-mcrypt php-mysql php-gd
+	sudo yum -y install mysql57-server httpd24 php70 php70-mysqlnd php70-gd php70-mcrypt
 	sudo service mysqld start
 	# Create a MySQL Database and User for WordPress
 	sudo mysql -u root -e "CREATE DATABASE wordpress DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;"

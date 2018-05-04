@@ -75,7 +75,7 @@ EOF
 
 elif [[ ${distro} == *"Amazon"* ]]
 then
-	sudo yum -y install mysql-server nginx php php-mysql php-fpm php-gd
+	sudo yum -y install mysql57-server nginx php70 php70-mysqlnd php70-fpm php70-gd
 	sudo service mysqld start
 	sudo service nginx start
 	# Create a MySQL Database and User for WordPress
