@@ -98,13 +98,22 @@ apply_proposed_kernel_azure() {
         exit 1
     fi
 }
+apply_proposed_kernel_azure_edge() {
+    candidate_kernel=$(apt-cache policy linux-azure-edge | grep "Candidate")
+    apt-get install -qq linux-azure-edge/$release
+    if [[ $? -ne 0 ]]; then
+        UpdateSummary "Error: Unable to install the proposed kernel azure-edge!"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
+}
 
 modify_grub() {
     #
     # Due to Ubuntu inconsistencies in the naming conventions,
     # we must slightly change the kernel version and parse it further
     #
-    version=$(echo $candidate_kernel | awk  '{print $2}' |cut -c 1-9 | sed 's/\.\([^.]*\)$/-\1/')
+    version=$(echo $candidate_kernel | awk  '{print $2}' | cut -c 1-9 | sed 's/\.\([^.]*\)$/-\1/')
     if [[ $version == *- ]]; then
         version=${version::-1}
     fi
@@ -144,7 +153,22 @@ apt-get -qq update
 #
 # Installing the proposed kernel
 #
-if [ $azure_kernel == "yes" ]; then
+if [ $azure_kernel_edge == "yes" ]; then
+    apply_proposed_kernel_azure_edge
+    if [ 0 -ne $? ]; then
+        dbgprint 1 "Error: Couldn't install the proposed kernel: ${sts}"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
+    dbgprint 3 ""
+    dbgprint 3 "Proposed kernel azure_edge = ${candidate_kernel}"
+    dbgprint 3 ""
+
+    UpdateSummary "Proposed kernel azure_edge = ${candidate_kernel}"
+    UpdateSummary "Proposed kernel azure_edge has been successfully installed."
+
+
+elif [ $azure_kernel == "yes" ] && [ $azure_kernel_edge == "no" ]; then
     apply_proposed_kernel_azure
     if [ 0 -ne $? ]; then
         dbgprint 1 "Error: Couldn't install the proposed kernel: ${sts}"
@@ -158,6 +182,7 @@ if [ $azure_kernel == "yes" ]; then
 
     UpdateSummary "Proposed kernel azure = ${candidate_kernel}"
     UpdateSummary "Proposed kernel azure has been successfully installed."
+
 else
     apply_proposed_kernel
     if [ 0 -ne $? ]; then
