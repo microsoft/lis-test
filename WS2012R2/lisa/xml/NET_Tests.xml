@@ -494,6 +494,27 @@ permissions and limitations under the License.
         </test>
 
         <test>
+            <testName>Ethtool_Check_Statistics</testName>
+            <setupScript>
+                <file>setupscripts\RevertSnapshot.ps1</file>
+                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+                <file>setupscripts\StartVM.ps1</file>
+            </setupScript>
+            <testScript>Ethtool_check_statistics.sh</testScript>
+            <files>remote-scripts/ica/Ethtool_check_statistics.sh,remote-scripts/ica/netperf_server.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=NET-32</param>
+                <param>NIC=NetworkAdapter,Private,Private</param>
+                <param>STATIC_IP=10.10.10.1</param>
+                <param>STATIC_IP2=10.10.10.2</param>
+                <param>NETMASK=255.255.255.0</param>
+            </testParams>
+            <noReboot>False</noReboot>
+            <onError>Continue</onError>
+            <timeout>800</timeout>
+        </test>
+
+        <test>
             <testName>IPInjection</testName>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
