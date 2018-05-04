@@ -94,6 +94,11 @@
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>ubuntu-kernel</suite>
+            <!-- <testParams> -->
+            <!--Only 1 kernel type can be set to yes at a time-->
+                <!-- <param>azure_kernel=no</param> -->
+                <!-- <param>azure_kernel_edge=yes</param> -->
+            <!-- </testParams> -->
             <hardware>
                <create>true</create>
                <numCPUs>2</numCPUs>
