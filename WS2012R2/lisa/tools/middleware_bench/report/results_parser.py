@@ -1783,7 +1783,7 @@ class ElasticsearchLogsReader(BaseLogsReader):
 
 class KafkaLogsReader(BaseLogsReader):
     """
-    Subclass for parsing Apache bench log files e.g.
+    Subclass for parsing kafka log files e.g.
     1.apache.bench.log
     """
     def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
@@ -1804,7 +1804,7 @@ class KafkaLogsReader(BaseLogsReader):
 
     def collect_data(self, f_match, log_file, log_dict):
         """
-        Customized data collect for LAMP+Wordpress test case.
+        Customized data collect for kfaka test case.
         :param f_match: regex file matcher
         :param log_file: full path log file name
         :param log_dict: dict constructed from the defined headers
