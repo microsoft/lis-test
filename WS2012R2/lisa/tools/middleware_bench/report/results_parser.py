@@ -113,7 +113,13 @@ class BaseLogsReader(object):
                                     '[0-9]{2}:[0-9]{2}:[0-9]{2}\s*([0-9]{4})', line)
                     if date:
                         month = time.strptime(date.group(1), '%b').tm_mon
-                        log_dict['date'] = date.group(3) + '-' + str(month) + '-' + date.group(2)
+                        str_mon = str(month)
+                        str_day = date.group(2)
+                        if len(str_mon) < 2:
+                            str_mon = '0' + str_mon
+                        if len(str_day) < 2:
+                            str_day = '0' + str_day
+                        log_dict['date'] = date.group(3) + '-' + str_mon + '-' + str_day
                 if not log_dict.get('kernel', None):
                     kernel = re.match('.+:\s*Kernel\s*Version\s*:\s*([a-z0-9-.]+)', line)
                     if kernel:
@@ -141,6 +147,26 @@ class BaseLogsReader(object):
                                                   'PostgreSQL\s*([0-9.]+)\s*', line)
                     if postgresql_version:
                         log_dict['postgresql_version'] = postgresql_version.group(1).strip()
+                if not log_dict.get('php_version', None):
+                    php_version = re.match('PHP Version:\s+PHP\s+(\d+\.\d+\.\d+).*',line)
+
+                    if php_version:
+                        log_dict['php_version'] = php_version.group(1).strip()
+                if not log_dict.get('mysql_version', None):
+                    mysql_version = re.match('MySQL Version:.*(\d\.\d\.\d+),.*',line)
+
+                    if mysql_version:
+                        log_dict['mysql_version'] = mysql_version.group(1).strip()
+                if not log_dict.get('NodejsVersion', None):
+                    NodejsVersion = re.match('.*Nodejs Version: (.*)',line)
+
+                    if NodejsVersion:
+                        log_dict['NodejsVersion'] = NodejsVersion.group(1).strip()
+                if not log_dict.get('BenchmarkCommitHash', None):
+                    BenchmarkCommitHash = re.match('.*Benchmark Commit Hash: (.*)',line)
+
+                    if BenchmarkCommitHash:
+                        log_dict['BenchmarkCommitHash'] = BenchmarkCommitHash.group(1).strip()
 
         return log_dict
 
@@ -1532,4 +1558,307 @@ class SchedulerLogsReader(BaseLogsReader):
                         if lat_99:
                             log_dict['Latency99thPercentile_us'] = float(lat_99.group(1).strip())
 
+        return log_dict
+
+class LAMPWordpressLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing Apache bench log files e.g.
+    1.apache.bench.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None):
+        super(LAMPWordpressLogsReader, self).__init__(log_path)
+        self.headers = ['TestConcurrency', 'NumberOfAbInstances', 'ConcurrencyPerAbInstance',
+                        'WebServerVersion', 'CompleteRequests',
+                        'RequestsPerSec', 'TransferRate_KBps', 'MeanConnectionTimes_ms']
+        self.sorter = ['TestConcurrency']
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.log_matcher = '([0-9]+).apache.bench.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for LAMP+Wordpress test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
+        log_dict['HostType'] = self.host_type
+        log_dict['InstanceSize'] = self.instance_size
+        log_dict['TestConcurrency'] = f_match.group(1)
+        log_dict['NumberOfAbInstances'] = 0
+        log_dict['ConcurrencyPerAbInstance'] = 0
+        log_dict['CompleteRequests'] = 0
+        log_dict['RequestsPerSec'] = 0
+        log_dict['TransferRate_KBps'] = 0
+        log_dict['MeanConnectionTimes_ms'] = 0
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestOS'] = summary['guest_os']
+        log_dict['MySqlVersion'] = summary['mysql_version']
+        log_dict['PhpVersion'] = summary['php_version']
+
+        with open(log_file, 'r') as fl:
+            for line in fl:
+                web_server_version = re.match('\s*Server\s*Software:\s*([a-zA-Z0-9./]+)', line)
+                if web_server_version:
+                    if not log_dict.get('WebServerVersion', None):
+                        log_dict['WebServerVersion'] = web_server_version.group(1)
+
+                concurrency = re.match('\s*Concurrency\s*Level:\s*([0-9]+)', line)
+                if concurrency:
+                    if not log_dict.get('ConcurrencyPerAbInstance', None):
+                        log_dict['ConcurrencyPerAbInstance'] = concurrency.group(1)
+
+                requests = re.match('\s*Complete\s*requests:\s*([0-9]+)', line)
+                if requests:
+                    log_dict['CompleteRequests'] += int(requests.group(1))
+                    log_dict['NumberOfAbInstances'] += 1
+                req_sec = re.match('\s*Requests\s*per\s*second:\s*([0-9.]+)\s*', line)
+                if req_sec:
+                    r = round(log_dict['RequestsPerSec'] + float(req_sec.group(1)), 3)
+                    log_dict['RequestsPerSec'] = r
+                transfer = re.match('\s*Transfer\s*rate:\s*([0-9.]+)\s*', line)
+                if transfer:
+                    t = round(log_dict['TransferRate_KBps'] + float(transfer.group(1)), 3)
+                    log_dict['TransferRate_KBps'] = t
+                lat = re.match('\s*Total:\s*([0-9.]+)\s*([0-9.]+)\s*([0-9.]+)'
+                               '\s*([0-9.]+)\s*([0-9.]+)*', line)
+                if lat:
+                    if log_dict.get('MeanConnectionTimes_ms', None) == 0:
+                        log_dict['MeanConnectionTimes_ms'] = float(lat.group(2))
+                    else:
+                        mean = round((log_dict['MeanConnectionTimes_ms'] + float(
+                                lat.group(2))) / 2, 3)
+                        log_dict['MeanConnectionTimes_ms'] = mean
+        return log_dict
+
+
+class NodejsLogsReader(BaseLogsReader):
+    """
+    Subclass for web tool benchmark log files e.g.
+    web_tooling_benchmark.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None):
+        super(NodejsLogsReader, self).__init__(log_path)
+        self.headers = ['WorkloadName', 'RunsPerSec']
+        self.sorter = []
+        self.test_case_name = test_case_name
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.log_matcher = 'web_tooling_benchmark.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for Nodejs test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['HostType'] = self.host_type
+        log_dict['InstanceSize'] = self.instance_size
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestOS'] = summary['guest_os']
+        log_dict['NodejsVersion'] = summary['NodejsVersion']
+        log_dict['BenchmarkCommitHash'] = summary['BenchmarkCommitHash']
+        log_dict_list = []
+        with open(log_file, 'r') as fl:
+            for line in fl:
+                match = re.match('\s*(\S+.*):\s*(\S+)\s*\S+',line)
+                if match:
+                    temp_dict = log_dict.copy()
+                    if not temp_dict.get('WorkloadName', None):
+                        temp_dict['WorkloadName'] = match.group(1)
+                    if not temp_dict.get('RunsPerSec', None):
+                        temp_dict['RunsPerSec'] = float(match.group(2))
+                    log_dict_list.append(temp_dict)
+  
+        return log_dict_list
+
+class ElasticsearchLogsReader(BaseLogsReader):
+    """
+    Subclass for Elasticsearch log files e.g.
+    rally_out_*.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None):
+        super(ElasticsearchLogsReader, self).__init__(log_path)
+        self.headers = ['TotalYoungGenGC_s', 'TotalOldGenGC_s', 'IndexSize_GB', 'TotallyWritten_GB',
+                        'IndexMinDocsPerSec', 'IndexMedianDocsPerSec', 'IndexMaxDocsPerSec', 'Latency50thPercentile_ms',
+                        'Latency90thPercentile_ms', 'Latency99thPercentile_ms', 'Latency999thPercentile_ms', 'Latency100thPercentile_ms',
+                        'ServiceTime50thPercentile_ms', 'ServiceTime90thPercentile_ms', 'ServiceTime99thPercentile_ms', 'ServiceTime999thPercentile_ms',
+                        'ServiceTime100thPercentile_ms', 'ErrorRate_percent', 'MinOpsPerSec', 'MedianOpsPerSec', 'MaxOpsPerSec']
+        self.sorter = []
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.log_matcher = 'rally_out_\S+.log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for Elasticsearch test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
+        log_dict['HostType'] = self.host_type
+        log_dict['InstanceSize'] = self.instance_size
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestOS'] = summary['guest_os']
+        log_dict_list = []
+        dict_vars_list = []
+        table_field_name = {'Total Young Gen GC':'TotalYoungGenGC_s',
+                            'Total Old Gen GC':'TotalOldGenGC_s',
+                            'Index size':'IndexSize_GB',
+                            'Totally written':'TotallyWritten_GB',
+                            '50th percentile latency':'Latency50thPercentile_ms',
+                            '90th percentile latency':'Latency90thPercentile_ms',
+                            '99th percentile latency':'Latency99thPercentile_ms',
+                            '99.9th percentile latency':'Latency999thPercentile_ms',
+                            '100th percentile latency':'Latency100thPercentile_ms',
+                            '50th percentile service time':'ServiceTime50thPercentile_ms',
+                            '90th percentile service time':'ServiceTime90thPercentile_ms',
+                            '99th percentile service time':'ServiceTime99thPercentile_ms',
+                            '99.9th percentile service time':'ServiceTime999thPercentile_ms',
+                            '100th percentile service time':'ServiceTime100thPercentile_ms',
+                            'error rate':'ErrorRate_percent',
+                            'Min Throughput':'MinOpsPerSec',
+                            'Median Throughput':'MedianOpsPerSec',
+                            'Max Throughput':'MaxOpsPerSec'
+                           }
+        createVar = locals()
+        with open(log_file, 'r') as fl:
+            for line in fl:
+                match = re.match(r".*distribution_version='(\S+)'.*track='(\S+)'.*",line)
+                if match:
+                    log_dict['ElasticsearchVersion'] =  match.group(1)
+                    log_dict['TrackName'] =  match.group(2)
+                match = re.match(r'\|\s+All\s+\|\s+(\S+.*\S+)\s+\|\s+\|\s+(\S+)\s+\|.*\|',line)
+                if match:
+                    if match.group(1) in table_field_name:
+                        log_dict[table_field_name[match.group(1)]] = float(match.group(2))
+        
+        with open(log_file, 'r') as fl:
+            for line in fl:
+                match = re.match(r'\|\s+All\s+\|\s+(\S+.*\S+)\s+\|\s+(\S+)\s+\|\s+(\S+)\s+\|.*\|',line)
+                if match:
+                    dict_name = 'dict_' + match.group(2)
+                    if not dict_name in dict_vars_list:
+                        dict_vars_list.append(dict_name)
+                        createVar[dict_name] = log_dict.copy()
+                        createVar[dict_name]['taskName'] = match.group(2)
+                    if 'index-append' ==  match.group(2) and 'Min Throughput' == match.group(1):
+                        createVar[dict_name]['IndexMinDocsPerSec'] = float(match.group(3))
+                    elif 'index-append' ==  match.group(2) and 'Median Throughput' == match.group(1):
+                        createVar[dict_name]['IndexMedianDocsPerSec'] = float( match.group(3))
+                    elif 'index-append' ==  match.group(2) and 'Max Throughput' == match.group(1):
+                        createVar[dict_name]['IndexMaxDocsPerSec'] = float(match.group(3))
+                    else: 
+                        createVar[dict_name][table_field_name[match.group(1)]] = float(match.group(3))
+        
+        for dict_var in dict_vars_list:
+            log_dict_list.append(createVar[dict_var])
+        
+        return log_dict_list
+
+class KafkaLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing kafka log files e.g.
+    1.apache.bench.log
+    """
+    def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
+                 instance_size=None, cluster_setup=None):
+        super(KafkaLogsReader, self).__init__(log_path)
+        self.headers = ['PartitionNum', 'ReplicationFactor', 'RecordSize',
+                        'BatchSize', 'BufferMem', 'RecordNum', 'RecordsPerSec',
+                        'Throughput_MBps', 'AverageLatency_ms', 'MaxLatency_ms',
+                        'Latency50Percentile_ms', 'Latency95Percentile_ms',
+                        'Latency99Percentile_ms', 'Latency999Percentile_ms' ]
+        self.sorter = ['RecordSize']
+        self.test_case_name = test_case_name
+        self.data_path = data_path
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.cluster_setup = cluster_setup
+        self.log_matcher = 'kafka([0-9.]+)_([0-9]+)_([0-9]+)_([0-9]+)_([0-9]+)_([0-9]+).log'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for kfaka test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['DataPath'] = self.data_path
+        log_dict['HostType'] = self.host_type
+        log_dict['InstanceSize'] = self.instance_size
+        log_dict['ClusterSetup'] = self.cluster_setup       
+        log_dict['KafkaVersion'] = f_match.group(1)
+        log_dict['ReplicationFactor'] = int(f_match.group(2))
+        log_dict['PartitionNum'] = int(f_match.group(3))
+        log_dict['BufferMem'] = int(f_match.group(4))
+        log_dict['RecordSize'] = int(f_match.group(5))
+        log_dict['BatchSize'] = int(f_match.group(6))
+        log_dict['RecordNum'] = None
+        log_dict['RecordsPerSec'] = None
+        log_dict['Throughput_MBps'] = None
+        log_dict['AverageLatency_ms'] = None
+        log_dict['MaxLatency_ms'] = None
+        log_dict['Latency50Percentile_ms'] = None
+        log_dict['Latency95Percentile_ms'] = None
+        log_dict['Latency99Percentile_ms'] = None
+        log_dict['Latency999Percentile_ms'] = None
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestOS'] = summary['guest_os']
+
+        with open(log_file, 'r') as fl:
+            for line in fl:
+                match=re.match('([0-9]+)\s*records\s*sent,\s*([0-9.]+)\s*records/sec\s*\(([0-9.]+)\s*MB/sec\),'
+                               '\s*([0-9.]+)\s*ms\s*avg\s*latency,\s*([0-9.]+)\s+ms\s*max\s*latency,'
+                               '\s*([0-9.]+)\s*ms\s*50th,\s*([0-9.]+)\s*ms\s*95th,\s*([0-9.]+)\s*ms\s*99th,'
+                               '\s*([0-9.]+)\s*ms\s*99.9th.*',line)
+                if match:
+                    if not log_dict.get('RecordNum', None):
+                        log_dict['RecordNum'] = int(match.group(1))
+                    if not log_dict.get('RecordsPerSec', None):
+                        log_dict['RecordsPerSec'] = float(match.group(2))
+                    if not log_dict.get('Throughput_MBps', None):
+                        log_dict['Throughput_MBps'] = float(match.group(3))
+                    if not log_dict.get('AverageLatency_ms', None):
+                        log_dict['AverageLatency_ms'] = float(match.group(4))
+                    if not log_dict.get('MaxLatency_ms', None):
+                        log_dict['MaxLatency_ms'] = float(match.group(5))
+                    if not log_dict.get('Latency50Percentile_ms', None):
+                        log_dict['Latency50Percentile_ms'] = float(match.group(6))
+                    if not log_dict.get('Latency95Percentile_ms', None):
+                        log_dict['Latency95Percentile_ms'] = float(match.group(7))
+                    if not log_dict.get('Latency99Percentile_ms', None):
+                        log_dict['Latency99Percentile_ms'] = float(match.group(8))
+                    if not log_dict.get('Latency999Percentile_ms', None):
+                        log_dict['Latency999Percentile_ms'] = float(match.group(9))
         return log_dict
