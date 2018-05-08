@@ -129,6 +129,9 @@ if (-not $vSANName) {
 #
 #############################################################
 
+# Opt out of virtualization-based security to add FC
+Set-VMSecurity -VmName $vmName -ComputerName $hvServer -VirtualizationBasedSecurityOptOut $true
+
 # Add the FC adapter, if the command is successful there is no output
 Write-Output "Adding the Fibre Channel adapter..."
 if ((Add-VMFibreChannelHba -VmName $vmName -SanName $vSANName -ComputerName $hvServer)-ne $null) {
@@ -138,7 +141,7 @@ if ((Add-VMFibreChannelHba -VmName $vmName -SanName $vSANName -ComputerName $hvS
 
 # If specific port addresses are used check to see if they are available
 if (($WWNN -ne $null) -and ($WWPN -ne $null)) {
-    $FCList = Get-VMFibreChannelHba -VMName (Get-VM).name -ComputerName $hvServer
+    $FCList = Get-VMFibreChannelHba -VMName (Get-VM -ComputerName $hvServer).name -ComputerName $hvServer
     foreach ($fcNIC in $FCList) {
         if ($WWPN -contains $fcNIC.WorldWidePortNameSetA) {
             $usedVM = $fcNIC.VMName
