@@ -307,6 +307,9 @@ foreach ($p in $params) {
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
+    if ($fields[0].Trim() -eq "TEST_TYPE") {
+        $TEST_TYPE = $fields[1].Trim()
+    }
     if ($fields[0].Trim() -eq "rootDir") {
         $rootDir = $fields[1].Trim()
     }
@@ -404,7 +407,7 @@ if (@($ReturnCode)[-1] -ne $True) {
 #   Main Test
 ################################################
 
-switch ($TC_COVERED[-1])
+switch ($TEST_TYPE)
 {
     # Test Part I: Client app on guest connects server app on host
     1 { $retVal = Test_Part_I; break }
