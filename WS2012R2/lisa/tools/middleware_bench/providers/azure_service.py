@@ -113,10 +113,13 @@ class AzureConnector:
                                                                                  self.location))
         self.resource_client.resource_groups.create_or_update(self.group_name,
                                                               {'location': self.location})
-
+        if self.instancetype == 'Standard_NC6':
+            sku = 'standard_lrs'
+        else:
+            sku = 'premium_lrs'
         storage_op = self.storage_client.storage_accounts.create(self.group_name,
                                                                  self.storage_account,
-                                                                 {'sku': {'name': 'premium_lrs'},
+                                                                 {'sku': {'name': sku},
                                                                   'kind': 'storage',
                                                                   'location': self.location})
         storage_op.wait()
