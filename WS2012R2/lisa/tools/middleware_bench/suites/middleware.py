@@ -1139,8 +1139,7 @@ def test_tensorflow_gpu(provider, keyid, secret, token, imageid, subscription, t
     vm_count = 1
     disk_size = 0
     if provider == constants.AWS:
-        if imageid == 'ami-f2d3638a':
-            imageid = 'ami-f0bed688'
+        imageid = 'amazon_linux_gpu'
         instancetype = 'p2.xlarge'
         disk_size = 100
     elif provider == constants.AZURE:
@@ -1198,11 +1197,11 @@ def test_elasticsearch(provider, keyid, secret, token, imageid, subscription, te
     vm_count = 1
     disk_size = 0
     if provider == constants.AWS:
-        disk_size = 500
+        disk_size = 100
     elif provider == constants.AZURE:
-        disk_size = 500
+        disk_size = 513
     elif provider == constants.GCE:
-        disk_size = 500
+        disk_size = 167
     test_env = SetupTestEnv(provider=provider, vm_count=vm_count,
                             test_type=constants.VM_DISK, disk_size=disk_size, raid=False,
                             keyid=keyid, secret=secret, token=token,

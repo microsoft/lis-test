@@ -29,6 +29,7 @@ from boto import ec2
 from boto import vpc
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from utils.cmdshell import SSHClient
+from dateutil import parser
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%y/%m/%d %H:%M:%S', level=logging.INFO)
@@ -82,6 +83,8 @@ class AWSConnector:
         self.elastic_ips = []
         self.instances = []
         self.ebs_vols = []
+        self.latestimage = None
+        self.device_map = BlockDeviceMapping()
 
     def ec2_connect(self, region=None):
         """
@@ -136,6 +139,49 @@ class AWSConnector:
         self.vpc_conn.create_route(route_table.id, '0.0.0.0/0', gateway.id)
         self.create_security_group(self.vpc_conn, vpc_id=self.vpc_zone.id)
         self.create_key_pair(self.vpc_conn)
+        self.latestimage = self.newest_image(self.vpc_conn, os_type = self.imageid)
+
+    def newest_image(self, conn, os_type = None):
+        filters = {}
+        if os_type == 'ubuntu_1604':
+            filters={'name':'ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server*', 'root_device_type':'ebs', 'owner-id':'099720109477'}
+            log.info("ubuntu_1604")
+        elif os_type == 'amazon_linux':
+            filters={'name':'amzn-ami-hvm-*-x86_64-gp2', 'architecture': 'x86_64','root_device_type':'ebs'}
+            log.info("amazon_linux")
+        elif os_type == 'amazon_linux_gpu':
+            filters={'name':'Deep Learning AMI (Amazon Linux) Version*', 'architecture': 'x86_64','root_device_type':'ebs'}
+            log.info("amazon_linux_gpu")
+        else:
+            log.info("os_type {} not support".format(os_type))
+            return
+        images = conn.get_all_images(filters=filters)
+        filters_images = []
+        for image in images:
+            if image.platform != 'windows' and "test" not in image.name:
+                filters_images.append(image)
+
+        latest = None
+        for image in filters_images:
+            if not latest:
+                latest = image
+                continue
+            if parser.parse(image.creationDate) > parser.parse(latest.creationDate):
+                latest = image
+
+        root_device_name = latest.root_device_name
+        if os_type == 'ubuntu_1604':
+            self.device_map[root_device_name] = BlockDeviceType(delete_on_termination = True, size = 30, volume_type = "gp2")
+            log.info("device_map ubuntu_1604")
+        elif os_type == 'amazon_linux':
+            self.device_map[root_device_name] = BlockDeviceType(delete_on_termination = True, size = 30, volume_type = "gp2")
+            log.info("device_map amazon_linux")
+        elif os_type == 'amazon_linux_gpu':
+            self.device_map[root_device_name] = BlockDeviceType(delete_on_termination = True, size = 75, volume_type = "gp2")
+            log.info("device_map amazon_linux_gpu")
+        else:
+            log.info("device_map {} not support".format(os_type))
+        return latest
 
     def create_vm(self, user_data=None):
         """
@@ -143,14 +189,14 @@ class AWSConnector:
         :param user_data: routines to be executed upon spawning the instance
         :return: EC2Instance object
         """
-        device_map = BlockDeviceMapping()
-        if self.imageid == 'ami-79873901':
-            device_map['/dev/sda1'] = BlockDeviceType(delete_on_termination = True, size = 30, volume_type = "gp2")
-        else:
-            device_map['/dev/xvda'] = BlockDeviceType(delete_on_termination = True, size = 75, volume_type = "gp2")
+        self.imageid = self.latestimage.id
+        log.info("Used image id {}".format(self.imageid))
+        log.info("Used image name {}".format(self.latestimage.name))
+        log.info("Used image creationDate {}".format(self.latestimage.creationDate))
+
         reservation = self.vpc_conn.run_instances(self.imageid, key_name=self.key_name,
                                                   instance_type=self.instancetype,
-                                                  block_device_map = device_map,
+                                                  block_device_map=self.device_map,
                                                   placement=self.zone,
                                                   security_group_ids=[self.security_group.id],
                                                   subnet_id=self.subnet.id, user_data=user_data)
