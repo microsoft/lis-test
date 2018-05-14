@@ -73,8 +73,10 @@ MSAZURE = 'MS Azure'
 KVM = 'kvm'
 
 SYNTHETIC_TESTS = ['test_orion', 'test_orion_raid', 'test_sysbench', 'test_sysbench_raid',
-                   'test_scheduler', 'test_storage']
+                   'test_scheduler', 'test_storage', 'test_tensorflow_gpu', 'test_tensorflow_cpu', 'test_nodejs', 'test_elasticsearch']
 AZURE_TESTS = ['test_sql_server_inmemdb']
+NOT_GCE_TESTS = ['test_tensorflow_gpu']
+# GCE doesn't have quota for gpu
 
 DEVICE_AWS = '/dev/sdx'
 DEVICE_AZURE = '/dev/sdc'

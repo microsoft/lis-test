@@ -167,7 +167,13 @@ class BaseLogsReader(object):
 
                     if BenchmarkCommitHash:
                         log_dict['BenchmarkCommitHash'] = BenchmarkCommitHash.group(1).strip()
+                if not log_dict.get('gpucount', None):
+                    gpu_count = re.match('.+:\s*Gpu Count :\s*(.*)\s*', line)
 
+                    if gpu_count:
+                        log_dict['gpucount'] = gpu_count.group(1).strip()
+                    else:
+                        log_dict['gpucount'] = 0
         return log_dict
 
     def teardown(self):
@@ -229,7 +235,9 @@ class BaseLogsReader(object):
                 continue
             log_dict = dict.fromkeys(self.headers, '')
             collected_data = self.collect_data(f_match, log_file, log_dict)
-            if type(collected_data) is list:
+            if collected_data == None:
+                continue
+            elif type(collected_data) is list:
                 list_log_dict += collected_data
             else:
                 list_log_dict.append(collected_data)
@@ -1694,7 +1702,7 @@ class ElasticsearchLogsReader(BaseLogsReader):
     rally_out_*.log
     """
     def __init__(self, log_path=None, test_case_name=None, data_path=None, host_type=None,
-                 instance_size=None):
+                 instance_size=None, cluster_setup=None):
         super(ElasticsearchLogsReader, self).__init__(log_path)
         self.headers = ['TotalYoungGenGC_s', 'TotalOldGenGC_s', 'IndexSize_GB', 'TotallyWritten_GB',
                         'IndexMinDocsPerSec', 'IndexMedianDocsPerSec', 'IndexMaxDocsPerSec', 'Latency50thPercentile_ms',
@@ -1706,6 +1714,7 @@ class ElasticsearchLogsReader(BaseLogsReader):
         self.data_path = data_path
         self.host_type = host_type
         self.instance_size = instance_size
+        self.cluster_setup = cluster_setup
         self.log_matcher = 'rally_out_\S+.log'
 
     def collect_data(self, f_match, log_file, log_dict):
@@ -1720,6 +1729,18 @@ class ElasticsearchLogsReader(BaseLogsReader):
         log_dict['DataPath'] = self.data_path
         log_dict['HostType'] = self.host_type
         log_dict['InstanceSize'] = self.instance_size
+        log_dict['ClusterSetup'] = self.cluster_setup
+        log_dict['IndexMinDocsPerSec'] = None
+        log_dict['IndexMedianDocsPerSec'] = None
+        log_dict['IndexMaxDocsPerSec'] = None
+
+        log_dict['MinOpsPerSec'] = None
+        log_dict['MedianOpsPerSec'] = None
+        log_dict['MaxOpsPerSec'] = None
+        log_dict['Latency999thPercentile_ms'] = None
+        log_dict['ServiceTime999thPercentile_ms'] = None
+        log_dict['Latency99thPercentile_ms'] = None
+        log_dict['ServiceTime99thPercentile_ms'] = None
 
         summary = self.get_summary_log()
         log_dict['KernelVersion'] = summary['kernel']
@@ -1757,28 +1778,30 @@ class ElasticsearchLogsReader(BaseLogsReader):
                 if match:
                     if match.group(1) in table_field_name:
                         log_dict[table_field_name[match.group(1)]] = float(match.group(2))
-        
+
         with open(log_file, 'r') as fl:
             for line in fl:
                 match = re.match(r'\|\s+All\s+\|\s+(\S+.*\S+)\s+\|\s+(\S+)\s+\|\s+(\S+)\s+\|.*\|',line)
                 if match:
                     dict_name = 'dict_' + match.group(2)
+                    if match.group(1) == '99.99th percentile latency' or match.group(1) == '99.99th percentile service time':
+                        continue
                     if not dict_name in dict_vars_list:
                         dict_vars_list.append(dict_name)
                         createVar[dict_name] = log_dict.copy()
-                        createVar[dict_name]['taskName'] = match.group(2)
+                        createVar[dict_name]['TaskName'] = match.group(2)
                     if 'index-append' ==  match.group(2) and 'Min Throughput' == match.group(1):
                         createVar[dict_name]['IndexMinDocsPerSec'] = float(match.group(3))
                     elif 'index-append' ==  match.group(2) and 'Median Throughput' == match.group(1):
                         createVar[dict_name]['IndexMedianDocsPerSec'] = float( match.group(3))
                     elif 'index-append' ==  match.group(2) and 'Max Throughput' == match.group(1):
                         createVar[dict_name]['IndexMaxDocsPerSec'] = float(match.group(3))
-                    else: 
+                    else:
                         createVar[dict_name][table_field_name[match.group(1)]] = float(match.group(3))
-        
+
         for dict_var in dict_vars_list:
             log_dict_list.append(createVar[dict_var])
-        
+
         return log_dict_list
 
 class KafkaLogsReader(BaseLogsReader):
@@ -1862,3 +1885,82 @@ class KafkaLogsReader(BaseLogsReader):
                     if not log_dict.get('Latency999Percentile_ms', None):
                         log_dict['Latency999Percentile_ms'] = float(match.group(9))
         return log_dict
+
+class TensorflowLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing Tensorflow bench log files
+    """
+    def __init__(self, log_path=None, test_case_name=None, host_type=None,
+                 instance_size=None):
+        super(TensorflowLogsReader, self).__init__(log_path)
+        self.headers = ['Device', 'BenchmarkCommitHash', 'BatchSize',
+                        'Model', 'TensorflowVersion','ImagesPerSec', 'NumGpus',
+                        'DataFormat','Distortions','RuntimeSec']
+        self.sorter = []
+        self.test_case_name = test_case_name
+        self.host_type = host_type
+        self.instance_size = instance_size
+        self.log_matcher = '.*.stdout'
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        Customized data collect for Tensorflow bench test case.
+        :param f_match: regex file matcher
+        :param log_file: full path log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+        log_dict['TestCaseName'] = self.test_case_name
+        log_dict['HostType'] = self.host_type
+        log_dict['InstanceSize'] = self.instance_size
+
+        log_dict['Device'] = None
+        log_dict['BenchmarkCommitHash'] = "abe3c808933c85e6db1719cdb92fcbbd9eac6dec"
+        log_dict['BatchSize'] = None
+        log_dict['Model'] = None
+        log_dict['TensorflowVersion'] = None
+        log_dict['ImagesPerSec'] = None
+        log_dict['DataFormat'] = None
+        log_dict['Distortions'] = 1
+        log_dict['RuntimeSec'] = 0
+
+        summary = self.get_summary_log()
+        log_dict['KernelVersion'] = summary['kernel']
+        log_dict['TestDate'] = summary['date']
+        log_dict['GuestOS'] = summary['guest_os']
+        log_dict['NumGpus'] = summary['gpucount']
+
+        with open(log_file, 'r') as fl:
+            for line in fl:
+                tensorflow_version = re.match('\s*TensorFlow:\s*(.*)\s*', line)
+                if tensorflow_version:
+                    if not log_dict.get('TensorflowVersion', None):
+                        log_dict['TensorflowVersion'] = tensorflow_version.group(1)
+                batchsize = re.match('\s*Batch size:\s*(\d+)\s*', line)
+                if batchsize:
+                    if not log_dict.get('BatchSize', None):
+                        log_dict['BatchSize'] = int(batchsize.group(1))
+                model = re.match('\s*Model:\s*(.*)\s*', line)
+                if model:
+                    if not log_dict.get('Model', None):
+                        log_dict['Model'] = model.group(1)
+                device = re.match(r'\s*Devices:.*/(.*):\s*', line)
+                if device:
+                    if not log_dict.get('Device', None):
+                        log_dict['Device'] = device.group(1)
+                dataformat = re.match('\s*Data format:\s*(.*)\s*', line)
+                if dataformat:
+                    if not log_dict.get('DataFormat', None):
+                        log_dict['DataFormat'] = dataformat.group(1)
+                image_per_sec = re.match('\s*total images/sec:\s*(.*)\s*', line)
+                if image_per_sec:
+                    if not log_dict.get('ImagesPerSec', None):
+                        log_dict['ImagesPerSec'] = image_per_sec.group(1)
+                runtime_sec = re.match('\s*RuntimeSec:\s*(.*)\s*', line)
+                if runtime_sec:
+                    if not log_dict.get('RuntimeSec', None):
+                        log_dict['RuntimeSec'] = runtime_sec.group(1)
+        if log_dict['ImagesPerSec'] == None:
+            return None
+        else:
+            return log_dict
