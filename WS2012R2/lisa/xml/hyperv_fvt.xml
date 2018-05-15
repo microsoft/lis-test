@@ -160,12 +160,20 @@
             <suiteTest>VlanTrunking</suiteTest>
             <suiteTest>Network_Hang_Vxlan</suiteTest>
             <suiteTest>CopyFileScp</suiteTest>
-            <suiteTest>CheckKeywithEthtool</suiteTest>
+            <suiteTest>IPInjection</suiteTest>
+            <suiteTest>Ethtool_Check_Keys</suiteTest>
+            <suiteTest>Ethtool_Change_RingBuffer</suiteTest>
+            <suiteTest>Ethtool_SetGet_TCP_HashLevels</suiteTest>
+            <suiteTest>Ethtool_SetGet_UDP_HashLevels</suiteTest>
+            <suiteTest>Ethtool_Change_GRO_LRO</suiteTest>
+            <suiteTest>Ethtool_Check_Channels</suiteTest>
+            <suiteTest>Ethtool_Check_Statistics</suiteTest>
             <suiteTest>MaxSyntheticNIC</suiteTest>
             <suiteTest>MaxLegacyNIC</suiteTest>
             <suiteTest>MaxNIC</suiteTest>
             <suiteTest>TCP_Corruption</suiteTest>
             <suiteTest>Multicast</suiteTest>
+
             <!-- VM Stress tests -->
             <suiteTest>Sysbench</suiteTest>
             <suiteTest>LTPBasic</suiteTest>
@@ -1003,34 +1011,138 @@
          <timeout>800</timeout>
          <onError>Continue</onError>
       </test>
-        <test>
-            <testName>CopyFileScp</testName>
-            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
-            <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
-            <testParams>
-                <param>TC_COVERED=NET-19</param>
-                <param>SCSI=0,1,Dynamic,512,25GB</param>
-            </testParams>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-            <timeout>2400</timeout>
-            <onError>Continue</onError>
-        </test>
-      <test>
-         <testName>CheckKeywithEthtool</testName>
-         <setupScript>
+    <test>
+        <testName>CopyFileScp</testName>
+        <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+        <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
+        <testParams>
+            <param>TC_COVERED=NET-19</param>
+            <param>SCSI=0,1,Dynamic,512,25GB</param>
+        </testParams>
+        <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+        <timeout>2400</timeout>
+        <onError>Continue</onError>
+    </test>
+    <test>
+        <testName>IPInjection</testName>
+        <setupScript>
+            <file>setupscripts\RevertSnapshot.ps1</file>
+        </setupScript>
+        <testParams>
+            <param>TC_COVERED=NET_LIVEMIG-09</param>
+            <param>ipv4address=192.168.1.14</param>
+            <param>ipv4subnet=255.255.255.0</param>
+            <param>ipv4Gateway=192.168.1.1</param>
+            <param>dnsserver=192.168.1.2</param>
+        </testParams>
+        <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh</files>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+    </test>
+  <test>
+     <testName>Ethtool_Check_Keys</testName>
+     <setupScript>
+        <file>setupscripts\RevertSnapshot.ps1</file>
+        <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+     </setupScript>
+     <testScript>NET_ETHTOOLS.sh</testScript>
+     <files>remote-scripts/ica/NET_ETHTOOLS.sh,remote-scripts/ica/utils.sh</files>
+     <testParams>
+        <param>NIC=NetworkAdapter,None,None</param>
+        <param>TC_COVERED=NET-27</param>
+     </testParams>
+     <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+     <timeout>800</timeout>
+     <onError>Continue</onError>
+  </test>
+    <test>
+        <testName>Ethtool_Change_RingBuffer</testName>
+        <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
-         </setupScript>
-         <testScript>NET_ETHTOOLS.sh</testScript>
-         <files>remote-scripts/ica/NET_ETHTOOLS.sh,remote-scripts/ica/utils.sh</files>
-         <testParams>
-            <param>NIC=NetworkAdapter,None,None</param>
-            <param>TC_COVERED=NET-20</param>
-         </testParams>
-         <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-         <timeout>800</timeout>
-         <onError>Continue</onError>
-      </test>
+        </setupScript>
+        <testScript>Ring_buffer_size.sh</testScript>
+        <files>remote-scripts/ica/Ring_buffer_size.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>NIC=NetworkAdapter,External,External</param>
+            <param>TC_COVERED=NET-28</param>
+            <param>rx=10000</param>
+            <param>tx=200</param>
+        </testParams>
+        <noReboot>True</noReboot>
+        <timeout>800</timeout>
+        <onError>Continue</onError>
+    </test>
+    <test>
+        <testName>Ethtool_SetGet_TCP_HashLevels</testName>
+        <testScript>Ethtool_Handler_HashLevels.sh</testScript>
+        <files>remote-scripts/ica/Ethtool_Handler_HashLevels.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=NET-29a</param>
+            <param>protocol=tcp4</param>
+        </testParams>
+        <noReboot>True</noReboot>
+        <onError>Continue</onError>
+        <timeout>800</timeout>
+    </test>
+    <test>
+        <testName>Ethtool_SetGet_UDP_HashLevels</testName>
+        <testScript>Ethtool_Handler_HashLevels.sh</testScript>
+        <files>remote-scripts/ica/Ethtool_Handler_HashLevels.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=NET-29b</param>
+            <param>protocol=udp4</param>
+        </testParams>
+        <noReboot>True</noReboot>
+        <onError>Continue</onError>
+        <timeout>800</timeout>
+    </test>
+    <test>
+        <testName>Ethtool_Change_GRO_LRO</testName>
+        <testScript>Disable_enable_GRO_LRO.sh</testScript>
+        <files>remote-scripts/ica/Disable_enable_GRO_LRO.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=NET-30</param>
+        </testParams>
+        <noReboot>False</noReboot>
+        <onError>Continue</onError>
+        <timeout>800</timeout>
+    </test>
+    <test>
+        <testName>Ethtool_Check_Channels</testName>
+        <setupScript>
+            <file>setupScripts\ChangeCPU.ps1</file>
+        </setupScript>
+        <testScript>Check_number_of_channel.sh</testScript>
+        <files>remote-scripts/ica/Check_number_of_channel.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=NET-31</param>
+            <param>vCPU=8</param>
+        </testParams>
+        <onError>Continue</onError>
+        <timeout>800</timeout>
+    </test>
+    <test>
+        <testName>Ethtool_Check_Statistics</testName>
+        <setupScript>
+            <file>setupscripts\RevertSnapshot.ps1</file>
+            <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            <file>setupscripts\StartVM.ps1</file>
+        </setupScript>
+        <testScript>Ethtool_check_statistics.sh</testScript>
+        <files>remote-scripts/ica/Ethtool_check_statistics.sh,remote-scripts/ica/netperf_server.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=NET-32</param>
+            <param>NIC=NetworkAdapter,Private,Private</param>
+            <param>STATIC_IP=10.10.10.1</param>
+            <param>STATIC_IP2=10.10.10.2</param>
+            <param>NETMASK=255.255.255.0</param>
+        </testParams>
+        <noReboot>False</noReboot>
+        <onError>Continue</onError>
+        <timeout>800</timeout>
+    </test>
       <test>
          <testName>MaxSyntheticNIC</testName>
          <setupScript>

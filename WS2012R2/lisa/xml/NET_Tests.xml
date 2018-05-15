@@ -67,6 +67,7 @@ permissions and limitations under the License.
                 <suiteTest>Ethtool_SetGet_UDP_HashLevels</suiteTest>
                 <suiteTest>Ethtool_Change_GRO_LRO</suiteTest>
                 <suiteTest>Ethtool_Check_Channels</suiteTest>
+                <suiteTest>Ethtool_Check_Statistics</suiteTest>
                 <!-- The following tests require a Generation 2 VM -->
                 <suiteTest>HotAddMultiNIC</suiteTest>
                 <suiteTest>HotAddRemoveNic</suiteTest>
