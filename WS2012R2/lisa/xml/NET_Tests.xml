@@ -23,6 +23,10 @@ permissions and limitations under the License.
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <imageStoreDir>\\unc\path</imageStoreDir>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>
@@ -33,7 +37,6 @@ permissions and limitations under the License.
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
-
     <testSuites>
         <suite>
             <suiteName>Network</suiteName>
@@ -76,7 +79,6 @@ permissions and limitations under the License.
             </suiteTests>
         </suite>
     </testSuites>
-
     <testCases>
         <test>
             <testName>External</testName>
@@ -95,7 +97,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>InternalNetwork</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -111,7 +112,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>GuestOnlyNetwork</testName>
             <setupScript>
@@ -134,7 +134,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>MultipleNIC</testName>
             <setupScript>
@@ -155,7 +154,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>LegacySyntheticNetwork</testName>
             <setupScript>
@@ -178,7 +176,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>NetworkMode</testName>
             <setupScript>
@@ -198,9 +195,7 @@ permissions and limitations under the License.
             <timeout>600</timeout>
             <onError>Continue</onError>
         </test>
-
         <!-- The following two tests are actually one single TC -->
-
         <test>
             <testName>ChangeNetTypeInternal</testName>
             <setupScript>
@@ -223,7 +218,6 @@ permissions and limitations under the License.
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-
         <test>
             <testName>ChangeNetTypeGuest</testName>
             <setupScript>
@@ -248,7 +242,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>JumboFrame</testName>
             <setupScript>
@@ -271,7 +264,6 @@ permissions and limitations under the License.
             <noReboot>False</noReboot>
             <timeout>1800</timeout>
         </test>
-
         <test>
             <testName>OperState</testName>
             <setupScript>
@@ -288,7 +280,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>CopyLargeFile</testName>
             <setupScript>
@@ -309,7 +300,6 @@ permissions and limitations under the License.
             <timeout>8000</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>CopyFileDifferentMTU</testName>
             <setupScript>
@@ -330,7 +320,6 @@ permissions and limitations under the License.
             <timeout>1800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>VlanTagging</testName>
             <setupScript>
@@ -350,7 +339,6 @@ permissions and limitations under the License.
             <timeout>1000</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>VlanTrunking</testName>
             <setupScript>
@@ -372,7 +360,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>Network_Hang_Vxlan</testName>
             <setupScript>
@@ -391,7 +378,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>CopyFileScp</testName>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
@@ -404,7 +390,6 @@ permissions and limitations under the License.
             <timeout>2400</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>Ethtool_Check_Keys</testName>
             <setupScript>
@@ -421,7 +406,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>Ethtool_Change_RingBuffer</testName>
             <setupScript>
@@ -440,7 +424,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>Ethtool_SetGet_TCP_HashLevels</testName>
             <testScript>Ethtool_Handler_HashLevels.sh</testScript>
@@ -453,7 +436,6 @@ permissions and limitations under the License.
             <onError>Continue</onError>
             <timeout>800</timeout>
         </test>
-
         <test>
             <testName>Ethtool_SetGet_UDP_HashLevels</testName>
             <testScript>Ethtool_Handler_HashLevels.sh</testScript>
@@ -466,7 +448,6 @@ permissions and limitations under the License.
             <onError>Continue</onError>
             <timeout>800</timeout>
         </test>
-
         <test>
             <testName>Ethtool_Change_GRO_LRO</testName>
             <testScript>Disable_enable_GRO_LRO.sh</testScript>
@@ -478,7 +459,6 @@ permissions and limitations under the License.
             <onError>Continue</onError>
             <timeout>800</timeout>
         </test>
-
         <test>
             <testName>Ethtool_Check_Channels</testName>
             <setupScript>
@@ -493,7 +473,6 @@ permissions and limitations under the License.
             <onError>Continue</onError>
             <timeout>800</timeout>
         </test>
-
         <test>
             <testName>Ethtool_Check_Statistics</testName>
             <setupScript>
@@ -514,7 +493,6 @@ permissions and limitations under the License.
             <onError>Continue</onError>
             <timeout>800</timeout>
         </test>
-
         <test>
             <testName>IPInjection</testName>
             <setupScript>
@@ -532,7 +510,6 @@ permissions and limitations under the License.
             <timeout>600</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>MaxSyntheticNIC</testName>
             <setupScript>
@@ -550,7 +527,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>MaxLegacyNIC</testName>
             <setupScript>
@@ -570,7 +546,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>MaxNIC</testName>
             <setupScript>
@@ -591,7 +566,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>TCP_Corruption</testName>
             <setupScript>
@@ -609,7 +583,6 @@ permissions and limitations under the License.
             <timeout>800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>CopyBothWays</testName>
             <setupScript>
@@ -630,7 +603,6 @@ permissions and limitations under the License.
             <timeout>1800</timeout>
             <onError>Continue</onError>
         </test>
-
         <test>
             <testName>Multicast</testName>
             <setupScript>
@@ -652,7 +624,6 @@ permissions and limitations under the License.
             <onError>Continue</onError>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
         </test>
-
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>HotAddMultiNIC</testName>
@@ -668,7 +639,6 @@ permissions and limitations under the License.
                 <param>Switch_Name=External</param>
             </testparams>
         </test>
-
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>HotAddRemoveNIC</testName>
@@ -684,7 +654,6 @@ permissions and limitations under the License.
                 <param>Switch_Name=External</param>
             </testparams>
         </test>
-
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>BootNoNicHotAddNic</testName>
@@ -698,7 +667,6 @@ permissions and limitations under the License.
                 <param>Switch_Name=External</param>
             </testparams>
         </test>
-
         <!-- The following test requires a Gen 2 VM -->
         <test>
             <testName>HotAddRemoveMaxNIC</testName>
@@ -716,24 +684,46 @@ permissions and limitations under the License.
                 <param>Switch_Name=external</param>
             </testParams>
         </test>
-
     </testCases>
-
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>VMName</vmName>
+            <vmName>net_vm</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
-                <param>VM2NAME=vm2Name</param>
-                <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
+                <param>VM2NAME=aux_net_vm</param>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
                 <param>SnapshotName=ICABase</param>
-                <!-- user to use to connect with the private key to the dependency VM -->
+                <!-- user to connect with the private key to the dependency VM -->
                 <param>REMOTE_USER=root</param>
             </testParams>
             <suite>Network</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>2</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>aux_net_vm</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <role>nonSUT</role>
+            <hardware>
+                <create>true</create>
+                <numCPUs>2</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
         </vm>
     </VMs>
 </config>
