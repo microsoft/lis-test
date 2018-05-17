@@ -1084,7 +1084,6 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
         logMsg 0 ("Error: RunPSScript() script file '$scriptName' does not exist.")
         return $False
     }
-
     $vmName = $vm.vmName
     $hvServer = $vm.hvServer
     $testData = GetTestData $vm.currentTest $xmlData
@@ -1122,8 +1121,41 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
         $cmd += " -testParams `"$params`""
     }
 
-    LogMsg 6 ("Info : Invoke-Expression $cmd")
-    $sts = Invoke-Expression $cmd
+    #   Run job in debug script context if "debugScript" set to current script
+    if( $debugConfig -And
+        (
+            ($debugConfig.script -like "All") -or
+            ($debugConfig.script.trim(" .\") -like $scriptName.trim(" .\"))
+        )
+    ){
+        LogMsg 6 ("Info : Debugging script: $scriptName")
+        $job = Start-Job -ScriptBlock{
+            Set-Location $Using:pwd
+            . .\DebugScript.ps1 $Using:scriptName $Using:vmName $Using:hvServer $Using:params $Using:debugConfig
+        }
+        While ($job.State -ne "Completed"){
+            # Enter debug mode if job hits a breakpoint
+            if ($job.State -eq "AtBreakPoint"){
+                Debug-Job $job
+            }
+            else{
+                LogMsg 6 ("Info : Script running: $scriptName")
+                Start-Sleep 1
+            }
+        }
+        $sts = Receive-Job $job *>&1
+        if ($logFilename){
+            foreach ($line in $sts){
+                if ($line -ne $null){
+                    $line.ToString() | out-file -encoding ASCII -append -filePath $logFilename
+                }
+            }
+        }
+    }
+    else{
+        LogMsg 6 ("Info : Invoke-Expression $cmd")
+        $sts = Invoke-Expression $cmd
+    }
 
     $numItems = $sts.length
     LogMsg 6 "Debug: $vmName - Invoke-Expression returned array with $($sts.length) elements"

@@ -201,6 +201,16 @@
     Default value is to not collect these information.
 .Parameter noshutdown
     True/False to leave the VM running regardless of a testcase status.
+.Parameter debugScript
+    Path to the powershell script to debug( use "All" to debug all scripts ).
+.Parameter traceLevel
+    Debug trace level for debugging script.
+.Parameter breakLine
+    Set breakpoint at specified line in debug script.
+.Parameter breakVariable
+    Set breakpoint at specified variable in debug script.
+.Parameter breakCommand
+    Set breakpoint at specified command/function in debug script.
 .Example
     .\lisa.ps1 run xml\myTests.xml
 
@@ -212,25 +222,31 @@
 #>
 
 
-param([string] $cmdVerb,
-      [string] $cmdNoun,
-      [string] $VMs,
-      [string] $vmName,
-      [string] $hvServer,
-      [string] $ipv4,
-      [string] $sshKey,
-      [string] $suite,
-      [string] $testParams,
-      [switch] $email,
-      [switch] $examples,
-      [string] $CLIlogDir,
-      [string] $CLImageStorDir,
-      [string] $VhdPath,
-      [string] $os,
-      [switch] $help,
-      [string] $collect="False",
-      [string] $noshutdown="False",
-      [int]    $dbgLevel=0
+param([string]      $cmdVerb,
+      [string]      $cmdNoun,
+      [string]      $VMs,
+      [string]      $vmName,
+      [string]      $hvServer,
+      [string]      $ipv4,
+      [string]      $sshKey,
+      [string]      $suite,
+      [string]      $testParams,
+      [switch]      $email,
+      [switch]      $examples,
+      [string]      $CLIlogDir,
+      [string]      $CLImageStorDir,
+      [string]      $VhdPath,
+      [string]      $os,
+      [switch]      $help,
+      [string]      $collect="False",
+      [string]      $noshutdown="False",
+      [int]         $dbgLevel=0,
+      [string]      $debugScript="False",
+      [ValidateSet(1, 2)]`
+      [string]      $traceLevel=1,
+      [int[]]       $breakLine=@(),
+      [string[]]    $breakVariable=@(),
+      [string[]]    $breakCommand=@()
      )
 
 
@@ -332,7 +348,12 @@ function Usage()
     write-host "                                           which the VHD will be copied when CreateVMs script is used"
     write-host "                          -CLImageStorDir: Global parameter representing the directory of the VHD"
     write-host "                                           file used to create a VM with CreateVMs"
-    write-host "                          -noshutdown : True/False to leave the VM running regardless of a testcase status"
+    write-host "                          -noshutdown    : True/False to leave the VM running regardless of a testcase status"
+    write-host "                          -debugScript   : Path to the powershell script to debug( use `"All`" to debug all scripts )."
+    write-host "                          -traceLevel    : Debug trace level for debugging script."
+    write-host "                          -breakLine     : Set breakpoint at specified line in debug script."
+    write-host "                          -breakVariable : Set breakpoint at specified variable in debug script."
+    write-host "                          -breakCommand  : Set breakpoint at specified command/function in debug script."
     write-host
     write-host "  Common options"
     write-host "         -dbgLevel   : Specifies the level of debug messages"
@@ -360,24 +381,29 @@ function Usage()
 #####################################################################
 function    DumpParams()
 {
-    LogMsg 0 "Info : cmdVerb:    $cmdVerb"
-    LogMsg 0 "Info : cmdNoun:    $cmdNoun"
-    LogMsg 0 "Info : VMs:        $VMs"
-    LogMsg 0 "Info : vmName:     $vmName"
-    LogMsg 0 "Info : hvServer:   $hvServer"
-    LogMsg 0 "Info : ipv4:       $ipv4"
-    LogMsg 0 "Info : sshKey:     $sshKey"
-    LogMsg 0 "Info : suite:      $suite"
-    LogMsg 0 "Info : testParams: $testParams"
-    LogMsg 0 "Info : email:      $email"
-    LogMsg 0 "Info : examples:   $examples"
-    LogMsg 0 "Info : CLIlogDir:  $CLIlogDir"
-    LogMsg 0 "Info : CLImageStorDir: $CLImageStorDir"
-    LogMsg 0 "Info : VhdPath: $VhdPath"
-    LogMsg 0 "Info : os:         $os"
-    LogMsg 0 "Info : dbgLevel:   $dbgLevel"
-    LogMsg 0 "Info : collect:    $collect"
-    LogMsg 0 "Info : noshutdown: $noshutdown"
+    LogMsg 0 "Info : cmdVerb:       $cmdVerb"
+    LogMsg 0 "Info : cmdNoun:       $cmdNoun"
+    LogMsg 0 "Info : VMs:           $VMs"
+    LogMsg 0 "Info : vmName:        $vmName"
+    LogMsg 0 "Info : hvServer:      $hvServer"
+    LogMsg 0 "Info : ipv4:          $ipv4"
+    LogMsg 0 "Info : sshKey:        $sshKey"
+    LogMsg 0 "Info : suite:         $suite"
+    LogMsg 0 "Info : testParams:    $testParams"
+    LogMsg 0 "Info : email:         $email"
+    LogMsg 0 "Info : examples:      $examples"
+    LogMsg 0 "Info : CLIlogDir:     $CLIlogDir"
+    LogMsg 0 "Info : CLImageStorDir:$CLImageStorDir"
+    LogMsg 0 "Info : VhdPath:       $VhdPath"
+    LogMsg 0 "Info : os:            $os"
+    LogMsg 0 "Info : dbgLevel:      $dbgLevel"
+    LogMsg 0 "Info : collect:       $collect"
+    LogMsg 0 "Info : noshutdown:    $noshutdown"
+    LogMsg 0 "Info : debugScript:   $debugScript"
+    LogMsg 0 "Info : traceLevel:    $traceLevel"
+    LogMsg 0 "Info : breakLine:     $breakLine"
+    LogMsg 0 "Info : breakVariable: $breakVariable"
+    LogMsg 0 "Info : breakCommand:  $breakCommand"
 }
 
 
@@ -866,6 +892,17 @@ function RunTests ([String] $xmlFilename )
     }
 
     #
+    # Collect debug config
+    #
+    $debugConfig = @{
+        script=$debugScript;
+        traceLevel=$traceLevel;
+        line=$breakLine;
+        variable=$breakVariable;
+        command=$breakCommand
+    }
+
+    #
     # Run any init scripts specified in the global data.  This change supports the original
     # syntax that only allowed a single init script, and a new syntax that allows the user
     # to specify multiple init scripts.
@@ -934,7 +971,7 @@ function RunTests ([String] $xmlFilename )
     
     LogMsg 10 "Info : Calling RunICTests"
     . .\stateEngine.ps1
-    RunICTests $xmlConfig $collect $noshutdown
+    RunICTests $xmlConfig $collect $noshutdown $debugConfig
 
     # Stop icaserial jobs
     foreach($job in $jobs) {
