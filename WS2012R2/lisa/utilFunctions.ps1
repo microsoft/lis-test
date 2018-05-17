@@ -1144,9 +1144,11 @@ function RunPSScript([System.Xml.XmlElement] $vm, [string] $scriptName, [XML] $x
             }
         }
         $sts = Receive-Job $job *>&1
-        foreach ($line in $sts){
-            if ($line -ne $null){
-                $line.ToString() | out-file -encoding ASCII -append -filePath $logFilename
+        if ($logFilename){
+            foreach ($line in $sts){
+                if ($line -ne $null){
+                    $line.ToString() | out-file -encoding ASCII -append -filePath $logFilename
+                }
             }
         }
     }
