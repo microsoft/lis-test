@@ -29,10 +29,16 @@ then
 	sudo mysql -u root -e "GRANT ALL ON wordpress.* TO 'wordpressuser'@'localhost' IDENTIFIED BY 'p@ssw0rd0507';"
 	sudo mysql -u root -e "FLUSH PRIVILEGES;"
 
-    echo 'cgi.fix_pathinfo=0'| sudo tee -a /etc/php/7.0/fpm/php.ini	
+	echo 'cgi.fix_pathinfo=0'| sudo tee -a /etc/php/7.0/fpm/php.ini	
+	echo 'listen.backlog = 1024'| sudo tee -a /etc/php/7.0/fpm/pool.d/www.conf
+
+	#Configure Nginx to allow more connections
+	sudo sed -i '/^worker_processes/a\worker_rlimit_nofile 262144;' /etc/nginx/nginx.conf
+	sudo sed -i '/worker_connections/d' /etc/nginx/nginx.conf
+	sudo sed -i '/events {/a\\tworker_connections 16384;' /etc/nginx/nginx.conf
 
 	#Configure Nginx to Use the PHP Processor
-    sudo sed -i s'/^/#/' /etc/nginx/sites-available/default
+	sudo sed -i s'/^/#/' /etc/nginx/sites-available/default
 	echo | sudo tee -a /etc/nginx/sites-available/default << EOF
 server {
     listen 80 default_server;
@@ -58,14 +64,15 @@ server {
 }
 EOF
 
-    sudo systemctl reload nginx
+	sudo systemctl reload nginx
 
 	#Download and configure wordpress
 	sudo cp -a WordPress/. /var/www/html
 
 	sudo wp core config --dbhost=127.0.0.1 --dbname=wordpress --dbuser=wordpressuser --dbpass=p@ssw0rd0507 --allow-root --path='/var/www/html' 
 	sudo wp core install --url=http://$1 --title="My Test WordPress" --admin_name=wordpress_admin --admin_password='4Long&Strong1' --admin_email=you@example.com --allow-root --path='/var/www/html' 
-
+	# Restart php-fpm
+	sudo systemctl restart php7.0-fpm
 	# Restart nginx
 	sudo systemctl stop nginx
 	sleep 30
@@ -83,22 +90,28 @@ then
 	sudo mysql -u root -e "GRANT ALL ON wordpress.* TO 'wordpressuser'@'localhost' IDENTIFIED BY 'p@ssw0rd0507';"
 	sudo mysql -u root -e "FLUSH PRIVILEGES;"
 
-    #Configure the PHP Processor
-    echo 'cgi.fix_pathinfo=0'| sudo tee -a /etc/php.ini
-    sudo sed -i s'/listen =/;listen =/' /etc/php-fpm.d/www.conf
+	#Configure the PHP Processor
+	echo 'cgi.fix_pathinfo=0'| sudo tee -a /etc/php.ini
+	sudo sed -i s'/listen =/;listen =/' /etc/php-fpm.d/www.conf
 	echo | sudo tee -a /etc/php-fpm.d/www.conf << EOF
 listen = /var/run/php-fpm/php-fpm.sock
 listen.owner = nobody
 listen.group = nobody
 listen.mode = 0666
+listen.backlog = 1024
 EOF
-    sudo sed -i s'/user = apache/user = nginx/' /etc/php-fpm.d/www.conf
-    sudo sed -i s'/group = apache/group = nginx/' /etc/php-fpm.d/www.conf
-    sudo service php-fpm start
+	sudo sed -i s'/user = apache/user = nginx/' /etc/php-fpm.d/www.conf
+	sudo sed -i s'/group = apache/group = nginx/' /etc/php-fpm.d/www.conf
+	sudo service php-fpm-7.0 start
 
-    #Configure Nginx to Process PHP Pages
-    sudo sed -i '/^http {/a\    server_names_hash_bucket_size 128;' /etc/nginx/nginx.conf
-    echo | sudo tee -a /etc/nginx/conf.d/default.conf << EOF
+	#Configure Nginx to allow more connections
+	sudo sed -i '/^worker_processes/a\worker_rlimit_nofile 262144;' /etc/nginx/nginx.conf
+	sudo sed -i '/worker_connections/d' /etc/nginx/nginx.conf
+	sudo sed -i '/events {/a\\tworker_connections 16384;' /etc/nginx/nginx.conf
+
+	#Configure Nginx to Process PHP Pages
+	sudo sed -i '/^http {/a\    server_names_hash_bucket_size 128;' /etc/nginx/nginx.conf
+	echo | sudo tee -a /etc/nginx/conf.d/default.conf << EOF
 server {
     listen       80;
     server_name  $1;
@@ -130,6 +143,8 @@ EOF
 	wp core config --dbhost=127.0.0.1 --dbname=wordpress --dbuser=wordpressuser --dbpass=p@ssw0rd0507 --allow-root --path='/usr/share/nginx/html' 
 	wp core install --url=http://$1 --title="My Test WordPress" --admin_name=wordpress_admin --admin_password='4Long&Strong1' --admin_email=you@example.com --allow-root --path='/usr/share/nginx/html' 
 
+	# Restart php-fpm
+	sudo service php-fpm-7.0 restart
 	# Restart nginx
 	sudo service nginx stop
 	sleep 30
@@ -142,8 +157,8 @@ echo "PHP Version: `php -v`"
 echo "MySQL Version: `mysql -V`"
 wget --spider -q -o /dev/null  --tries=1 -T 5 http://$1/?p=1
 if [ $? -eq 0 ]; then
-    echo -e "http://$1/?p=1 is reachable!"
+	echo -e "http://$1/?p=1 is reachable!"
 else
-    echo -e "Error: http://$1/?p=1 is unreachable!"
-    exit 1
+	echo -e "Error: http://$1/?p=1 is unreachable!"
+	exit 1
 fi

@@ -916,7 +916,7 @@ def test_lamp_wordpress(provider, keyid, secret, token, imageid, subscription, t
                             localpath=localpath, region=region, zone=zone, sriov=sriov,
                             kernel=kernel)
     software_bundle = 'lamp'
-    test_cmd = '/tmp/run_wordpress.sh {} {} {}'.format(test_env.ssh_client[2].server, user, software_bundle)
+    test_cmd = '/tmp/run_wordpress.sh {} {} {}'.format(test_env.vm_ips[2], user, software_bundle)
     current_path = os.getcwd()
     results_path = os.path.join(localpath, 'lamp_wordpress{}_{}_{}.zip'.format(str(time.time()), instancetype, sriov))    
     test_env.ssh_client[2].put_file(os.path.join(current_path, 'tests', 'install_lamp_wordpress.sh'), '/tmp/install_lamp_wordpress.sh')
@@ -962,7 +962,7 @@ def test_lemp_wordpress(provider, keyid, secret, token, imageid, subscription, t
                             localpath=localpath, region=region, zone=zone, sriov=sriov,
                             kernel=kernel)
     software_bundle = 'lemp'
-    test_cmd = '/tmp/run_wordpress.sh {} {} {}'.format(test_env.ssh_client[2].server, user, software_bundle)
+    test_cmd = '/tmp/run_wordpress.sh {} {} {}'.format(test_env.vm_ips[2], user, software_bundle)
     current_path = os.getcwd()
     results_path = os.path.join(localpath, 'lemp_wordpress{}_{}_{}.zip'.format(str(time.time()), instancetype, sriov))    
     test_env.ssh_client[2].put_file(os.path.join(current_path, 'tests', 'install_lemp_wordpress.sh'), '/tmp/install_lemp_wordpress.sh')
