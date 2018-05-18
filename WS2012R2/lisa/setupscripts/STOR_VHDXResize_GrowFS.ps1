@@ -121,8 +121,11 @@ foreach ($p in $params)
     "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
     "TestLogDir" { $TestLogDir = $fields[1].Trim() }
     "TestName"   { $TestName = $fields[1].Trim() }
+    "fileSystems"   { $fileSystems = $fields[1].Trim("(",")")
+                      $fileSystems = @($fileSystems.Split(" "))}
     "SCSI"  { $controllerType = "SCSI" }
     "IDE"  { $controllerType = "IDE" }
+
     default     {}  # unknown param - just ignore it
     }
 }
@@ -172,11 +175,6 @@ else
 Write-Output "Covers: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #
-# Convert the new size
-#
-$newVhdxSize = ConvertStringToUInt64 $newSize
-
-#
 # Make sure the VM has a SCSI 0 controller, and that
 # Lun 0 on the controller has a .vhdx file attached.
 #
@@ -217,125 +215,164 @@ if (-not $vhdPath.EndsWith(".vhdx") -and -not $vhdPath.EndsWith(".avhdx"))
 }
 
 #
-# Make sure there is sufficient disk space to grow the VHDX to the specified size
+# Convert the new size
 #
-$deviceID = $vhdxInfo.Drive
-$diskInfo = Get-WmiObject -Query "SELECT * FROM Win32_LogicalDisk Where DeviceID = '${deviceID}'" -ComputerName $hvServer
-if (-not $diskInfo)
-{
-    "Error: Unable to collect information on drive ${deviceID}" | Tee-Object -Append -file $summaryLog
-    return $False
-}
-
-if ($diskInfo.FreeSpace -le $newVhdxSize + 10MB)
-{
-    "Error: Insufficent disk free space" | Tee-Object -Append -file $summaryLog
-    "       This test case requires ${newSize} free"
-    "       Current free space is $($diskInfo.FreeSpace)"
-    return $False
-}
-
-#
-# Make sure if we can perform Read/Write operations on the guest VM
-#
-$guest_script = "STOR_VHDXResize_PartitionDisk"
-
-$sts = RunTest $guest_script
-if (-not $($sts[-1]))
-{
-    $sts = SummaryLog
-    if (-not $($sts[-1]))
-    {
-        "Warning : Failed getting summary.log from VM"
-    }
-    "Error: Running '${guest_script}' script failed on VM " | Tee-Object -Append -file $summaryLog
-    return $False
-}
-
-$CheckResultsts = CheckResult
-
-$sts = RunTestLog $guest_script $TestLogDir $TestName
-if (-not $($sts[-1]))
-{
-    "Warning : Getting RunTestLog.log from VM, will not exit test case execution "
-}
-
-if (-not $($CheckResultsts[-1]))
-{
-    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution " | Tee-Object -Append -file $summaryLog
-    return $False
-}
-
-"Info : Resizing the VHDX to ${newSize}"
-Resize-VHD -Path $vhdPath -SizeBytes ($newVhdxSize) -ComputerName $hvServer -ErrorAction SilentlyContinue
-if (-not $?)
-{
-   "Error: Unable to grow VHDX file '${vhdPath}" | Tee-Object -Append -file $summaryLog
-   return $False
-}
-
-
-#
-# Let system have some time for the volume change to be indicated
-#
-Start-Sleep -s 60
-
-#
-# Check if the guest sees the added space
-#
-"Info : Check if the guest sees the new space"
-.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
-if (-not $?)
-{
-    "Error: Failed to force SCSI device rescan" | Tee-Object -Append -file $summaryLog
-    return $False
-}
-
-$diskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
-if (-not $?)
-{
-    "Error: Unable to determine disk size from within the guest after growing the VHDX" | Tee-Object -Append -file $summaryLog
-    return $False
-}
-
-if ($diskSize -ne $newVhdxSize)
-{
-    "Error: VM ${vmName} sees a disk size of ${diskSize}, not the expected size of ${newVhdxSize}" | Tee-Object -Append -file $summaryLog
-    return $False
-}
-
-#
-# Make sure if we can perform Read/Write operations on the guest VM
-#
+$newVhdxSize = ConvertStringToUInt64 $newSize
 $guest_script = "STOR_VHDXResize_GrowFSAfterResize"
 
-$sts = RunTest $guest_script
-if (-not $($sts[-1]))
-{
-    $sts = SummaryLog
-    if (-not $($sts[-1]))
-    {
-        "Warning : Failed getting summary.log from VM"
-    }
-    "Error: Running '${guest_script}' script failed on VM " | Tee-Object -Append -file $summaryLog
-    return $False
+foreach ($fs in $fileSystems){
+
+	"Info: Start testing $fs with resize VHD to $newVhdxSize."
+	$addParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'fs=$fs' >> constants.sh"
+	if ($? -ne "True")
+	{
+		"Error: Unable to add $fs to constants.sh." | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+
+	#
+	# Make sure there is sufficient disk space to grow the VHDX to the specified size
+	#
+	$deviceID = $vhdxInfo.Drive
+	$diskInfo = Get-WmiObject -Query "SELECT * FROM Win32_LogicalDisk Where DeviceID = '${deviceID}'" -ComputerName $hvServer
+	if (-not $diskInfo)
+	{
+		"Error: Unable to collect information on drive ${deviceID}" | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+
+	if ($diskInfo.FreeSpace -le $newVhdxSize + 10MB)
+	{
+		"Error: Insufficent disk free space" | Tee-Object -Append -file $summaryLog
+		"       This test case requires ${newVhdxSize} free"
+		"       Current free space is $($diskInfo.FreeSpace)"
+		return $False
+	}
+
+	#
+	# Make sure if we can perform Read/Write operations on the guest VM
+	#
+	"Info: Make sure if we can perform Read/Write operations on the guest VM"
+	$removeParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sed -i '/rerun=yes/d' constants.sh"
+	if ($? -ne "True")
+	{
+		"Error: Unable to alter constants.sh for $guest_script run. " | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+
+	$sts = RunTest $guest_script
+	if (-not $($sts[-1]))
+	{
+		$sts = SummaryLog
+		if (-not $($sts[-1]))
+		{
+			"Warning : Failed getting summary.log from VM"
+		}
+		"Error: Running '${guest_script}' script failed on VM " | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+
+	$CheckResultsts = CheckResult
+
+	$add_logs = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat ${guest_script}.log >> ${guest_script}-log.log"
+	if ($? -ne "True")
+	{
+		"Warn: Unable to add logs to ${guest_script}-log.log." | Tee-Object -Append -file $summaryLog
+	}
+
+	if (-not $($CheckResultsts[-1]))
+	{
+		"Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution " | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+
+	"Info : Resizing the VHDX to ${newVhdxSize}"
+	Resize-VHD -Path $vhdPath -SizeBytes ($newVhdxSize) -ComputerName $hvServer -ErrorAction SilentlyContinue
+	if (-not $?)
+	{
+	   "Error: Unable to grow VHDX file '${vhdPath}" | Tee-Object -Append -file $summaryLog
+	   return $False
+	}
+
+	#
+	# Let system have some time for the volume change to be indicated
+	#
+	Start-Sleep -s 60
+
+	#
+	# Check if the guest sees the added space
+	#
+	.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 1 > /sys/block/sdb/device/rescan"
+	if (-not $?)
+	{
+		"Error: Failed to force SCSI device rescan" | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+
+	$diskSize = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "fdisk -l /dev/sdb  2> /dev/null | grep Disk | grep sdb | cut -f 5 -d ' '"
+	if (-not $?)
+	{
+		"Error: Unable to determine disk size from within the guest after growing the VHDX" | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+
+	if ($diskSize -ne $newVhdxSize)
+	{
+		"Error: VM ${vmName} sees a disk size of ${diskSize}, not the expected size of ${newVhdxSize}" | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+	"Info : The guest sees the new size after resizing ($diskSize). Filesystem $fs." | Tee-Object -Append -file $summaryLog
+
+	#
+	# Make sure if we can perform Read/Write operations on the guest VM
+	#
+	"Info: Performing read/write operations on the test VHD after resize "
+	$addParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "echo 'rerun=yes' >> constants.sh"
+	if ($? -ne "True")
+		{
+			"Error: Unable to alter constants.sh for second run of $guest_script. " | Tee-Object -Append -file $summaryLog
+			return $False
+		}
+	$sts = RunTest $guest_script
+	if (-not $($sts[-1]))
+	{
+		$sts = SummaryLog
+		if (-not $($sts[-1]))
+		{
+			"Warning : Failed getting summary.log from VM"
+		}
+		"Error: Running '${guest_script}' script failed on VM " | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+
+	$CheckResultsts = CheckResult
+
+	$add_logs = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat ${guest_script}.log >> ${guest_script}-log.log"
+	if ($? -ne "True")
+	{
+		"Warn: Unable to add logs to ${guest_script}-log.log." | Tee-Object -Append -file $summaryLog
+	}
+
+	if (-not $($CheckResultsts[-1]))
+	{
+		"Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution " | Tee-Object -Append -file $summaryLog
+		return $False
+	}
+
+	$newVhdxSize = $newVhdxSize + 1GB
+	$removeParam = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "sed -i '/fs=$fs/d' constants.sh"
+	if ($? -ne "True")
+	{
+		"Error: Unable to alter constants.sh for $guest_script run. " | Tee-Object -Append -file $summaryLog
+		return $False
+	}
 }
 
-$CheckResultsts = CheckResult
-
-$sts = RunTestLog $guest_script $TestLogDir $TestName
+$sts = RunTestLog "$guest_script-log" $TestLogDir $TestName
 if (-not $($sts[-1]))
 {
     "Warning : Getting RunTestLog.log from VM, will not exit test case execution "
 }
 
-if (-not $($CheckResultsts[-1]))
-{
-    "Error: Running '${guest_script}'script failed on VM. check VM logs , exiting test case execution " | Tee-Object -Append -file $summaryLog
-    return $False
-}
-
-"Info : The guest sees the new size after resizing ($diskSize)" | Tee-Object -Append -file $summaryLog
 "Info : VHDx Resize - ${TC_COVERED} is Done"
-
 return $True

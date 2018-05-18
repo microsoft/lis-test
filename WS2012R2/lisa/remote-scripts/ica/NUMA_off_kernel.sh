@@ -134,6 +134,7 @@ ConfigSles()
             fi
             grub2-mkconfig -o /boot/grub2/grub.cfg
         elif [ $VmGeneration -eq 2 ]; then
+            grub_file=$(find /boot/efi -name grub.cfg)
             LogMsg "Update SLES Gen$VmGeneration grub"
             sed -i '/^GRUB_CMDLINE_LINUX=/ s/"$/ numa=off"/' /etc/default/grub
             if [ $? -ne 0 ]; then
@@ -145,7 +146,7 @@ ConfigSles()
                 LogMsg "Success: added the 'numa=off' value."
                 UpdateSummary "Success: added the 'numa=off' value."
             fi
-            grub2-mkconfig -o /boot/efi/EFI/sles12/grub.cfg
+            grub2-mkconfig -o $grub_file
         else
             LogMsg "FAILED: Could not find VmGeneration variable."
             UpdateSummary "FAILED: Could not find VmGeneration variable."
@@ -233,7 +234,7 @@ case $DISTRO in
         ConfigCentos
     ;;
 
-    "redhat_7" | "centos_7" | "fedora_x")
+    "redhat_7" | "redhat_8" | "centos_7" | "fedora_x")
         ConfigRhel
     ;;
 

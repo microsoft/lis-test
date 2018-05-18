@@ -19,7 +19,7 @@
 #
 ########################################################################
 
-<# 
+<#
 .Synopsis
  This script will gather information about the Mellanox driver from the host.
 
@@ -27,14 +27,20 @@
  This script will use the MLNXProvider module to collect information about the
  Mellanox driver installed on the host and will output it to HostMellanoxInfo.log
 
+ .Parameter vmName
+     Name of the test VM.
+
+ .Parameter hvServer
+     Name of the Hyper-V server hosting the VM.
+
 .Parameter testParams
  Test data for this test case
 
 .Example
- setupScripts\SR-IOV_GetMLNXInfo.ps1 -testParams "rootDir=C:\myFolder\"
+ setupScripts\SR-IOV_GetMLNXInfo.ps1 -vmName vmNmae -hvServer hvserver -testParams "rootDir=C:\myFolder\"
 #>
 
-param([string] $testParams)
+param ([String] $vmName, [String] $hvServer, [string] $testParams)
 
 $params = $testParams.Split(";")
 foreach ($p in $params) {
@@ -55,14 +61,18 @@ if (Test-Path $summaryLog) {
     del $summaryLog
 }
 
-$checkModule = Get-Module -ListAvailable | Select-String -Pattern MLNXProvider -quiet
+$remoteSession = New-PSSession -ComputerName $hvServer
+
+$checkModule = Get-Module -ListAvailable -PSSession $remoteSession | Select-String -Pattern MLNXProvider -quiet
 if ($checkModule) {
-    Import-Module MLNXProvider
+    Import-Module MLNXProvider -PSSession $remoteSession
 } else {
     Write-Output "Error: No Mellanox module found."
+    Remove-PSSession $remoteSession -ErrorAction SilentlyContinue
     Exit 0
 }
 
+# After import-module, the imported commands run implicitly in the current session
 $driverVersion = (Get-MLNXPCIDevice).DriverVersion
 if ($? -ne "True") {
     $driverVersion = "Error: Cannot get driver version."
@@ -94,4 +104,5 @@ if ($? -ne "True") {
     $vmFriendlyName = "Error: Cannot get VM Friendly name."
 }
 
+Remove-PSSession $remoteSession -ErrorAction SilentlyContinue
 return $true

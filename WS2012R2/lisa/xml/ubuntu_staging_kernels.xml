@@ -40,7 +40,7 @@
 
     <testSuites>
         <suite>
-            <suiteName>ubuntu</suiteName>
+            <suiteName>ubuntu-kernel</suiteName>
             <suiteTests>
                 <!-- RUN ONLY ONE OF THE FOLLOWING TESTS -->
                 <suiteTest>ubuntu_proposed_kernel</suiteTest>
@@ -52,9 +52,10 @@
     <testCases>
         <test>
             <testName>ubuntu_proposed_kernel</testName>
-            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>ubuntu_proposed_kernel.sh</testScript>
             <files>remote-scripts\ica\ubuntu_proposed_kernel.sh</files>
+            <!-- required only for 2 VMs configuration
+            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testParams>
                 <param>SERVER_OS_USERNAME=username</param>
                 <param>MAC=001600112233</param>
@@ -62,6 +63,7 @@
                 <param>VM2NAME=VM_2</param>
                 <param>VM2SERVER=SERVER_2</param>
             </testParams>
+            -->
             <timeout>900</timeout>
             <OnError>Continue</OnError>
         </test>
@@ -86,21 +88,27 @@
 
     <VMs>
         <vm>
-            <hvServer>SERVER_NAME</hvServer>
-            <vmName>VM1NAME</vmName>
+            <hvServer>localhost</hvServer>
+            <vmName>ubuntu_staging</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>pki_id_rsa.ppk</sshKey>
-            <suite>ubuntu</suite>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <suite>ubuntu-kernel</suite>
+            <!-- <testParams> -->
+            <!--Only 1 kernel type can be set to yes at a time-->
+                <!-- <param>azure_kernel=no</param> -->
+                <!-- <param>azure_kernel_edge=yes</param> -->
+            <!-- </testParams> -->
             <hardware>
                <create>true</create>
                <numCPUs>2</numCPUs>
                <memSize>2048</memSize>
                <disableDiff>True</disableDiff>
                <nic>VMBus,External</nic>
+               <generation>1</generation>
             </hardware>
         </vm>
-
+        <!-- required only for 2 VMs configuration
         <vm>
             <hvServer>SERVER_NAME</hvServer>
             <vmName>VM2NAME</vmName>
@@ -116,5 +124,6 @@
                <nic>VMBus,External,001600112233</nic>
             </hardware>
         </vm>
+        -->
     </VMs>
 </config>

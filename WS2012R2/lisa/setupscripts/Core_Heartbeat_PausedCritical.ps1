@@ -27,6 +27,8 @@
    We create a new partition, copy the VHD and fill up the partition.
    After the VM enters in PausedCritical state we free some space and the VM
    should return to normal OK Heartbeat.
+   This feature to recover from the PauseCritical state is a new feature implemented
+   since Windows Server 2016.
 
    .Parameter vmName
     Name of the VM to configure.
@@ -35,7 +37,7 @@
     .Parameter testParams
     Test data for this test case
     .Example
-    setupScripts\PausedCritical.ps1 -vmName vm -hvServer localhost -testParams "sshkey=linux_id_rsa;"
+    setupScripts\Core_Heartbeat_PausedCritical.ps1 -vmName vm -hvServer localhost -testParams "sshkey=linux_id_rsa;"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -110,8 +112,8 @@ Write-Output "This script covers test case: ${tcCovered}" | Tee-Object -Append -
 
 # Check host version and skipp TC in case of WS2012 or older
 $hostVersion = GetHostBuildNumber $hvServer
-if ($hostVersion -le 9200) {
-    Write-Output "Info: Host is WS2012 or older. Skipping test case." | Tee-Object -Append -file $summaryLog
+if ($hostVersion -le 9600) {
+    Write-Output "Info: Host is WS2012R2 or older. Skipping test case." | Tee-Object -Append -file $summaryLog
     return $Skipped
 }
 
@@ -125,10 +127,9 @@ if ([string]::IsNullOrEmpty($driveletter)) {
     Write-Output "The drive letter of test volume is $driveletter" | Tee-Object -Append -file $summaryLog
 }
 
-# Shutdown gracefully so we dont corrupt VHD
+# Shutdown gracefully so we don't corrupt the VHD
 Stop-VM -Name $vmName -ComputerName $hvServer
-if (-not $?)
-{
+if (-not $?) {
     Write-Output "Error: Unable to Shut Down VM" | Tee-Object -Append -file $summaryLog
     return $False
 }

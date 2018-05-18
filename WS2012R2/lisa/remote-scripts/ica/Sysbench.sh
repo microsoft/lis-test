@@ -221,6 +221,7 @@ elif is_ubuntu ; then
     LogMsg "Sysbench installed successfully!"
 
 elif is_suse ; then
+    zypper install -y vim
     pushd "$ROOT_DIR/sysbench-$Sysbench_Version"
     bash ./autogen.sh
     bash ./configure --without-mysql

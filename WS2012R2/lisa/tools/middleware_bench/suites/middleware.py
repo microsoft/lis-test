@@ -789,7 +789,7 @@ def test_sql_server_inmemdb(provider, keyid, secret, token, imageid, subscriptio
     results_path = None
     try:
         # TODO add Windows VM support for the other cloud providers
-        win_user, password, win_vm = test_env.connector.create_vm(config_file=localpath)
+        win_user, password, win_vm = test_env.connector.create_vm(config_file=localpath, dns_suffix=test_env.connector.dns_suffix)
         log.info(win_vm)
         if all(client for client in test_env.ssh_client.values()):
             current_path = os.path.dirname(sys.modules['__main__'].__file__)
@@ -1068,3 +1068,163 @@ def test_kafka(provider, keyid, secret, token, imageid, subscription, tenant, pr
                    data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
                    instance_size=instancetype,
                    cluster_setup='1 zookeeper + {} brokers'.format(vm_count - 2))
+
+def test_tensorflow_cpu(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                      instancetype, user, localpath, region, zone, sriov, kernel):
+    """
+    Run Tensorflow Benchmark - cpu.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    :param sriov: Enable or disable SR-IOV
+    :param kernel: custom kernel name provided in localpath
+    """
+    vm_count = 1
+    test_env = SetupTestEnv(provider=provider, vm_count=vm_count,
+                                                      test_type=None, disk_size=None, raid=False,
+                                                      keyid=keyid, secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone, sriov=sriov, kernel=kernel)
+    test_cmd = '/tmp/run_tensorflow_cpu.sh'
+    current_path = os.getcwd()
+    results_path = os.path.join(localpath, 'tensorflow_cpu{}_{}_{}.zip'.format(str(time.time()),instancetype, sriov))
+    test_env.ssh_client[1].put_file(os.path.join(current_path, 'tests', 'install_tensorflow_cpu.sh'), '/tmp/install_tensorflow_cpu.sh')
+    test_env.ssh_client[1].run('chmod +x /tmp/install_tensorflow_cpu.sh')
+    test_env.run_test(ssh_vm_conf=1, testname='tensorflow_cpu', test_cmd=test_cmd,
+                      results_path=results_path, timeout=constants.TIMEOUT * 10)
+    upload_results(localpath=localpath, table_name='Perf_{}_Tensorflow'.format(provider),
+                    results_path=results_path, parser=TensorflowLogsReader, other_table=('.deb' in kernel),
+                    test_case_name='{}_Tensorflow_perf'.format(provider), host_type=shortcut.host_type(provider),
+                    instance_size=instancetype)
+
+def test_tensorflow_gpu(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                      instancetype, user, localpath, region, zone, sriov, kernel):
+    """
+    Run Tensorflow Benchmark - gpu.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    :param sriov: Enable or disable SR-IOV
+    :param kernel: custom kernel name provided in localpath
+    """
+    vm_count = 1
+    disk_size = 0
+    if provider == constants.AWS:
+        imageid = 'amazon_linux_gpu'
+        instancetype = 'p2.xlarge'
+        disk_size = 100
+    elif provider == constants.AZURE:
+        instancetype = 'Standard_NC6'
+        region = 'eastus'
+        disk_size = 30
+    elif provider == constants.GCE:
+        instancetype = 'n1-highmem-8'
+        zone = 'us-east1-d'
+        disk_size = 30
+
+    test_env = SetupTestEnv(provider=provider, vm_count=vm_count,
+                                                      test_type=constants.VM_DISK, disk_size=disk_size, raid=False,
+                                                      keyid=keyid, secret=secret, token=token,
+                                                      subscriptionid=subscription, tenantid=tenant,
+                                                      projectid=projectid, imageid=imageid,
+                                                      instancetype=instancetype, user=user,
+                                                      localpath=localpath, region=region,
+                                                      zone=zone, sriov=sriov, kernel=kernel)
+    test_cmd = '/tmp/run_tensorflow_gpu.sh {} {}'.format(test_env.device, user)
+    current_path = os.getcwd()
+    results_path = os.path.join(localpath, 'tensorflow_gpu{}_{}_{}.zip'.format(str(time.time()),instancetype, sriov))
+    test_env.ssh_client[1].put_file(os.path.join(current_path, 'tests', 'install_tensorflow_gpu.sh'), '/tmp/install_tensorflow_gpu.sh')
+    test_env.ssh_client[1].run('chmod +x /tmp/install_tensorflow_gpu.sh')
+    test_env.run_test(ssh_vm_conf=1, testname='tensorflow_gpu', test_cmd=test_cmd,
+                      results_path=results_path, timeout=constants.TIMEOUT)
+    upload_results(localpath=localpath, table_name='Perf_{}_Tensorflow'.format(provider),
+                    results_path=results_path, parser=TensorflowLogsReader, other_table=('.deb' in kernel),
+                    test_case_name='{}_Tensorflow_perf'.format(provider), host_type=shortcut.host_type(provider),
+                    instance_size=instancetype)
+
+def test_elasticsearch(provider, keyid, secret, token, imageid, subscription, tenant, projectid,
+                      instancetype, user, localpath, region, zone, sriov, kernel):
+    """
+    Run elasticsearch Benchmark.
+    :param provider Service provider to be used e.g. azure, aws, gce.
+    :param keyid: user key for executing remote connection
+    :param secret: user secret for executing remote connection
+    :param token: GCE refresh token obtained with gcloud sdk
+    :param subscription: Azure specific subscription id
+    :param tenant: Azure specific tenant id
+    :param projectid: GCE specific project id
+    :param imageid: AWS OS AMI image id or
+                    Azure image references offer and sku: e.g. 'UbuntuServer#16.04.0-LTS'.
+    :param instancetype: AWS instance resource type e.g 'd2.4xlarge' or
+                        Azure hardware profile vm size e.g. 'Standard_DS14_v2'.
+    :param user: remote ssh user for the instance
+    :param localpath: localpath where the logs should be downloaded, and the
+                        default path for other necessary tools
+    :param region: EC2 region to connect to
+    :param zone: EC2 zone where other resources should be available
+    :param sriov: Enable or disable SR-IOV
+    :param kernel: custom kernel name provided in localpath
+    """
+    vm_count = 1
+    disk_size = 0
+    if provider == constants.AWS:
+        disk_size = 100
+    elif provider == constants.AZURE:
+        disk_size = 513
+    elif provider == constants.GCE:
+        disk_size = 167
+    test_env = SetupTestEnv(provider=provider, vm_count=vm_count,
+                            test_type=constants.VM_DISK, disk_size=disk_size, raid=False,
+                            keyid=keyid, secret=secret, token=token,
+                            subscriptionid=subscription, tenantid=tenant,
+                            projectid=projectid, imageid=imageid,
+                            instancetype=instancetype, user=user,
+                            localpath=localpath, region=region,
+                            zone=zone, sriov=sriov, kernel=kernel)
+    current_path = os.getcwd()
+    results_path = os.path.join(localpath, 'elasticsearch{}_{}_{}.zip'.format(str(time.time()), instancetype, sriov))
+    test_env.ssh_client[1].put_file(os.path.join(current_path, 'tests', 'install_elasticsearch.sh'), '/tmp/install_elasticsearch.sh')
+    test_env.ssh_client[1].run('chmod +x /tmp/install_elasticsearch.sh')
+    test_env.ssh_client[1].run('/tmp/install_elasticsearch.sh {} {}'.format(user, test_env.device))
+    tracks = ["pmc", "geonames", "nested", "geopoint", "http_logs", "noaa", "nyc_taxis", "percolator"]
+    for track in tracks:
+        test_env.ssh_client[1].connect()
+        test_cmd = "nohup esrally --distribution-version=6.2.2 --track {} >/dev/null 2>&1 &".format(track)
+        test_env.run_test_nohup(ssh_vm_conf=1, test_cmd=test_cmd, timeout=constants.TIMEOUT, track=track)
+    test_cmd = '/tmp/run_elasticsearch.sh {} '.format(user)
+    test_env.run_test(ssh_vm_conf=1, testname='elasticsearch', test_cmd=test_cmd,
+                      results_path=results_path, timeout=constants.TIMEOUT)
+    upload_results(localpath=localpath, table_name='Perf_{}_Elasticsearch'.format(provider),
+                    results_path=results_path, parser=ElasticsearchLogsReader,
+                    test_case_name='{}_elasticsearch_perf'.format(provider),
+                    data_path=shortcut.data_path(sriov), host_type=shortcut.host_type(provider),
+                    instance_size=instancetype, cluster_setup='{} node'.format(vm_count))

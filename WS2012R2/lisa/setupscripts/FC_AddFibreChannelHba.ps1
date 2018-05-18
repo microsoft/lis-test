@@ -129,6 +129,15 @@ if (-not $vSANName) {
 #
 #############################################################
 
+# Set-VMSecurity to add FC adapter for Generation 2 vm on Hyper-v 2016 host
+Get-Command "Set-VMSecurity" -ErrorAction SilentlyContinue
+if ($?) {
+    $gen = (Get-VM -Name $vmName -ComputerName $hvserver).Generation
+    if ($gen -eq 2){
+        Set-VMSecurity -VmName $vmName -ComputerName $hvServer -VirtualizationBasedSecurityOptOut $true
+    }
+}
+
 # Add the FC adapter, if the command is successful there is no output
 Write-Output "Adding the Fibre Channel adapter..."
 if ((Add-VMFibreChannelHba -VmName $vmName -SanName $vSANName -ComputerName $hvServer)-ne $null) {
@@ -138,7 +147,7 @@ if ((Add-VMFibreChannelHba -VmName $vmName -SanName $vSANName -ComputerName $hvS
 
 # If specific port addresses are used check to see if they are available
 if (($WWNN -ne $null) -and ($WWPN -ne $null)) {
-    $FCList = Get-VMFibreChannelHba -VMName (Get-VM).name -ComputerName $hvServer
+    $FCList = Get-VMFibreChannelHba -VMName (Get-VM -ComputerName $hvServer).name -ComputerName $hvServer
     foreach ($fcNIC in $FCList) {
         if ($WWPN -contains $fcNIC.WorldWidePortNameSetA) {
             $usedVM = $fcNIC.VMName

@@ -74,6 +74,15 @@ dos2unix utils.sh
 #Source constants file and initialize most common variables
 UtilsInit
 
+#skipp when host older than 2012R2
+vmbus_version=`dmesg | grep "Vmbus version" | awk -F: '{print $(NF)}' | awk -F. '{print $1}'`
+if [ $vmbus_version -lt 3 ]; then
+	LogMsg "Info: Host version older than 2012R2. Skipping test."
+	UpdateSummary "Info: Host version older than 2012R2. Skipping test."
+	UpdateTestState $ICA_TESTSKIPPED
+	exit 1
+fi
+
 #Check if ethtool exist and install it if not
 VerifyIsEthtool
 

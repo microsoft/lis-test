@@ -135,8 +135,8 @@ if (-not $hostInfo) {
 
 # Check for floppy support. If it's not present, test will be skipped
 
-$sts = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /boot/config-`$(uname -r) | grep '# CONFIG_BLK_DEV_FD is not set'"
-if ($sts){
+$sts = SendCommandToVM ${ipv4} ${sshKey} "cat /boot/config-`$(uname -r) | grep -e CONFIG_BLK_DEV_FD=y -e CONFIG_BLK_DEV_FD=m"
+if ($sts -ne "True")  {
     $msg = "Warning: Support for floppy does not exist! Test skipped!"
     Write-Output $msg | Tee-Object -Append -file $summaryLog
     return $Skipped

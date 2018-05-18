@@ -160,9 +160,9 @@ ConfigRhel()
         boot_filepath=/boot/efi/EFI/BOOT/bootx64.conf
     elif [ $os_GENERATION -eq 1 ] && [ $os_RELEASE -eq 6 ]; then
         boot_filepath=/boot/grub/grub.conf
-    elif [ $os_GENERATION -eq 1 ] && [ $os_RELEASE -eq 7 ]; then
+    elif [ $os_GENERATION -eq 1 ] && [ $os_RELEASE -eq 7 -o $os_RELEASE -eq 8 ]; then
         boot_filepath=/boot/grub2/grub.cfg
-    elif [ $os_GENERATION -eq 2 ] && [ $os_RELEASE -eq 7 ]; then
+    elif [ $os_GENERATION -eq 2 ] && [ $os_RELEASE -eq 7 -o $os_RELEASE -eq 8 ]; then
         boot_filepath=/boot/efi/EFI/redhat/grub.cfg
     else
 	boot_filepath=`find /boot -name grub.cfg`

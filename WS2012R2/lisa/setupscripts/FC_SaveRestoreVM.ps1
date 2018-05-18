@@ -24,7 +24,7 @@
     Saves and restores a VM while the fibre channel is connected.
 
 .Description
-    This is a postTest script to check for save/restore VM operation 
+    This is a postTest script to check for save/restore VM operation
     functionality.
 
 .Parameter vmName
@@ -73,9 +73,9 @@ while ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "On") {
    Start-Sleep -Seconds 5
 }
 do {
-	Start-Sleep -Seconds 5 
+	Start-Sleep -Seconds 5
 }
-until ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK")
+until ((Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK")
 
 try {
 	# Saving the VM
@@ -90,7 +90,7 @@ try {
         Start-Sleep -Seconds 5
     }
 }
-catch [system.exception] 
+catch [system.exception]
 {
        Write-Host "Error: VM $vmName could not be saved!" | Tee-Object -Append -file $summaryLog
        return $False
@@ -98,7 +98,7 @@ catch [system.exception]
 
 if ((Get-VM -ComputerName $hvServer -Name $vmName).State -ne "On") {
     #Resuming VM from saved state
-    Start-VM -ComputerName $hvServer -Name $vmName 
+    Start-VM -ComputerName $hvServer -Name $vmName
     if (-not $?) {
         write-output "Error: Unable to resume VM $vmName"
         return $False
@@ -111,8 +111,8 @@ while ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "On") {
    Start-Sleep -Seconds 5
 }
 do {
-    Start-Sleep -Seconds 5 
+    Start-Sleep -Seconds 5
 }
-until ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK")
+until ((Get-VMIntegrationService -ComputerName $hvServer -VMName $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK")
 Write-Output "Machine successfully resumed."
 return $True

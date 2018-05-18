@@ -13,7 +13,7 @@
             <to>myself@mycompany.com</to>
          </recipients>
          <sender>myself@mycompany.com</sender>
-         <subject>LISA FVT Test Run</subject>
+         <subject>LISA FVT Tests Run</subject>
          <smtpServer>mysmtphost.mycompany.com</smtpServer>
       </email>
       <!-- Global test params -->
@@ -28,7 +28,6 @@
       <suite>
          <suiteName>Core</suiteName>
          <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <suiteTest>VMHeartbeat</suiteTest>
             <suiteTest>Verify_LISModules_Version</suiteTest>
@@ -81,7 +80,6 @@
       <suite>
          <suiteName>Storage</suiteName>
          <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <!-- VHD Resize tests -->
             <suiteTest>VHDxResizeToBigger512</suiteTest>
@@ -142,12 +140,10 @@
       <suite>
          <suiteName>Network_and_Stress</suiteName>
          <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <suiteTest>DependencyVM_Checkpoint</suiteTest>
             <!-- Network tests -->
             <suiteTest>External</suiteTest>
-            <suiteTest>External_ipv6</suiteTest>
             <suiteTest>InternalNetwork</suiteTest>
             <suiteTest>GuestOnlyNetwork</suiteTest>
             <suiteTest>MultipleNIC</suiteTest>
@@ -157,7 +153,7 @@
             <suiteTest>ChangeNetTypeGuest</suiteTest>
             <suiteTest>JumboFrame</suiteTest>
             <suiteTest>OperState</suiteTest>
-            <suiteTest>CopyLargeFile_ipv6</suiteTest>
+            <suiteTest>CopyLargeFile</suiteTest>
             <suiteTest>CopyFileDifferentMTU</suiteTest>
             <suiteTest>CopyBothWays</suiteTest>
             <suiteTest>VlanTagging</suiteTest>
@@ -177,6 +173,7 @@
             <suiteTest>MaxNIC</suiteTest>
             <suiteTest>TCP_Corruption</suiteTest>
             <suiteTest>Multicast</suiteTest>
+
             <!-- VM Stress tests -->
             <suiteTest>Sysbench</suiteTest>
             <suiteTest>LTPBasic</suiteTest>
@@ -186,24 +183,22 @@
       <suite>
          <suiteName>Memory</suiteName>
          <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
-            <suiteTest>kexec_git_install</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <!-- WS 2016 TESTS -->
             <suiteTest>DM_loaded</suiteTest>
             <suiteTest>HotAdd_Verify_udev</suiteTest>
             <!-- Basic Hot Add tests -->
             <suiteTest>HotAdd</suiteTest>
-            <!--<suiteTest>HotAddStressapptest</suiteTest> 
-			<suiteTest>DemandPressure</suiteTest>-->
-			<!-- Complex Hot Add tests 
-			<suiteTest>HotRemove</suiteTest>-->
-			<!-- Dynamic Memory – Ballooning
-			<suiteTest>StartupLowCompete</suiteTest>
-			<suiteTest>MinMemHonored</suiteTest>
-			<suiteTest>MaxMemHonored</suiteTest>
-			<suiteTest>SaveRestore</suiteTest>
-			<suiteTest>CleanShutdown</suiteTest>-->
+            <suiteTest>HotAddStressapptest</suiteTest>
+            <suiteTest>DemandPressure</suiteTest>
+            <!-- Complex Hot Add tests -->
+            <suiteTest>HotRemove</suiteTest>
+            <!-- Dynamic Memory – Ballooning
+		<suiteTest>StartupLowCompete</suiteTest>
+		<suiteTest>MinMemHonored</suiteTest>
+		<suiteTest>MaxMemHonored</suiteTest>
+		<suiteTest>SaveRestore</suiteTest>
+		<suiteTest>CleanShutdown</suiteTest>-->
             <suiteTest>Runtime_Mem_HotAdd</suiteTest>
             <suiteTest>Runtime_Mem_HotRemove</suiteTest>
             <suiteTest>Runtime_Mem_SmallIncrease128</suiteTest>
@@ -230,14 +225,6 @@
    </testSuites>
    <testCases>
       <test>
-         <testName>InstallKernel</testName>
-         <testScript>install_kernel.sh</testScript>
-         <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
-         <timeout>2500</timeout>
-         <onError>Abort</onError>
-         <noReboot>False</noReboot>
-      </test>
-      <test>
          <testName>MainVM_Checkpoint</testName>
          <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
          <timeout>600</timeout>
@@ -246,7 +233,7 @@
             <param>snapshotVm=main</param>
             <param>snapshotName=ICABase</param>
          </testParams>
-         <onError>Continue</onError>
+         <onError>Abort</onError>
          <noReboot>False</noReboot>
       </test>
       <test>
@@ -517,6 +504,7 @@
          <testScript>SetupScripts\Core_Heartbeat_PausedCritical.ps1</testScript>
          <testParams>
             <param>TC_COVERED=CORE-32</param>
+            <param>DriveLetter=K:</param>
          </testParams>
          <timeout>1200</timeout>
          <cleanupScript>SetupScripts\Core_Heartbeat_Cleanup.ps1</cleanupScript>
@@ -747,20 +735,6 @@
          <timeout>800</timeout>
          <onError>Continue</onError>
       </test>
-        <test>
-            <testName>External_ipv6</testName>
-            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
-            <pretest>SetupScripts\InjectIPconstants.ps1</pretest>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,External</param>
-                <param>TC_COVERED=NET-02</param>
-                <param>AddressFamily=IPv6</param>
-            </testParams>
-            <testScript>NET_TEST_NETWORK.sh</testScript>
-            <files>remote-scripts/ica/NET_TEST_NETWORK.sh,remote-scripts/ica/utils.sh</files>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>800</timeout>
-        </test>
       <test>
          <testName>InternalNetwork</testName>
          <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
@@ -939,26 +913,26 @@
          <timeout>800</timeout>
          <onError>Continue</onError>
       </test>
-        <test>
-            <testName>CopyLargeFile_ipv6</testName>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
-                <file>setupscripts\StartVM.ps1</file>
-            </setupScript>
-            <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,External</param>
-                <param>TC_COVERED=NET-12</param>
-                <param>ZERO_FILE=yes</param>
-                <param>FILE_SIZE_GB=2</param>
-                <param>TestIPV6=yes</param>
-            </testParams>
-            <testScript>NET_COPY_LARGE.sh</testScript>
-            <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
-            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-            <timeout>8000</timeout>
-        </test>
+      <test>
+         <testName>CopyLargeFile</testName>
+         <setupScript>
+            <file>setupscripts\RevertSnapshot.ps1</file>
+            <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+            <file>setupscripts\StartVM.ps1</file>
+         </setupScript>
+         <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
+         <testParams>
+            <param>NIC=NetworkAdapter,External,External</param>
+            <param>TC_COVERED=NET-12</param>
+            <param>ZERO_FILE=yes</param>
+            <param>FILE_SIZE_GB=2</param>
+         </testParams>
+         <testScript>NET_COPY_LARGE.sh</testScript>
+         <files>remote-scripts/ica/NET_COPY_LARGE.sh,remote-scripts/ica/utils.sh</files>
+         <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+         <timeout>8000</timeout>
+         <onError>Continue</onError>
+      </test>
       <test>
          <testName>CopyFileDifferentMTU</testName>
          <setupScript>
@@ -989,7 +963,7 @@
             <param>NIC=NetworkAdapter,Private,Private</param>
             <param>TC_COVERED=NET-14</param>
             <param>VLAN_ID=2</param>
-            <param>STATIC_IP=10.10.10.11</param>
+            <param>STATIC_IP=10.10.10.100</param>
             <param>NETMASK=255.255.255.0</param>
          </testParams>
          <testScript>SetupScripts\NET_VLAN_TAGGING.ps1</testScript>
@@ -1009,8 +983,8 @@
          <testParams>
             <param>NIC=NetworkAdapter,Private,Private</param>
             <param>TC_COVERED=NET-15</param>
-            <!-- <param>STATIC_IP=10.10.10.11</param> -->
-            <!-- <param>STATIC_IP2=10.10.10.22</param> -->
+            <!-- <param>STATIC_IP=10.10.10.1</param> -->
+            <!-- <param>STATIC_IP2=10.10.10.2</param> -->
             <!-- <param>NETMASK=255.255.255.0</param> -->
             <param>VM_VLAN_ID=2</param>
             <param>NATIVE_VLAN_ID=10</param>
@@ -1030,25 +1004,25 @@
          <testParams>
             <param>TC_COVERED=NET-24</param>
             <param>NIC=NetworkAdapter,Private,Private</param>
-            <param>STATIC_IP1=10.10.10.101</param>
-            <param>STATIC_IP2=10.10.10.201</param>
+            <param>STATIC_IP1=10.10.10.10</param>
+            <param>STATIC_IP2=10.10.10.20</param>
             <param>NETMASK=255.255.255.0</param>
          </testParams>
          <timeout>800</timeout>
          <onError>Continue</onError>
       </test>
-        <test>
-            <testName>CopyFileScp</testName>
-            <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
-            <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
-            <testParams>
-                <param>TC_COVERED=NET-19</param>
-                <param>SCSI=0,1,Dynamic,512,25GB</param>
-            </testParams>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-            <timeout>2400</timeout>
-            <onError>Continue</onError>
-        </test>
+    <test>
+        <testName>CopyFileScp</testName>
+        <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
+        <testScript>setupscripts\NET_filecopy_scp.ps1</testScript>
+        <testParams>
+            <param>TC_COVERED=NET-19</param>
+            <param>SCSI=0,1,Dynamic,512,25GB</param>
+        </testParams>
+        <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+        <timeout>2400</timeout>
+        <onError>Continue</onError>
+    </test>
     <test>
         <testName>IPInjection</testName>
         <setupScript>
@@ -1059,29 +1033,29 @@
             <param>ipv4address=192.168.1.14</param>
             <param>ipv4subnet=255.255.255.0</param>
             <param>ipv4Gateway=192.168.1.1</param>
-              <param>dnsserver=192.168.1.2</param>
-         </testParams>
-         <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
-         <files>remote-scripts/ica/utils.sh</files>
-         <timeout>600</timeout>
+            <param>dnsserver=192.168.1.2</param>
+        </testParams>
+        <testScript>SetupScripts\NET_ipinjection.ps1</testScript>
+        <files>remote-scripts/ica/utils.sh</files>
+        <timeout>600</timeout>
         <onError>Continue</onError>
     </test>
-    <test>
-         <testName>Ethtool_Check_Keys</testName>
-         <setupScript>
-            <file>setupscripts\RevertSnapshot.ps1</file>
-            <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
-         </setupScript>
-         <testScript>NET_ETHTOOLS.sh</testScript>
-         <files>remote-scripts/ica/NET_ETHTOOLS.sh,remote-scripts/ica/utils.sh</files>
-         <testParams>
-            <param>NIC=NetworkAdapter,None,None</param>
-            <param>TC_COVERED=NET-27</param>
-         </testParams>
-         <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
-         <timeout>800</timeout>
-         <onError>Continue</onError>
-    </test>
+  <test>
+     <testName>Ethtool_Check_Keys</testName>
+     <setupScript>
+        <file>setupscripts\RevertSnapshot.ps1</file>
+        <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
+     </setupScript>
+     <testScript>NET_ETHTOOLS.sh</testScript>
+     <files>remote-scripts/ica/NET_ETHTOOLS.sh,remote-scripts/ica/utils.sh</files>
+     <testParams>
+        <param>NIC=NetworkAdapter,None,None</param>
+        <param>TC_COVERED=NET-27</param>
+     </testParams>
+     <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+     <timeout>800</timeout>
+     <onError>Continue</onError>
+  </test>
     <test>
         <testName>Ethtool_Change_RingBuffer</testName>
         <setupScript>
@@ -1349,7 +1323,7 @@
             <testparams>
                 <param>IDE=0,1,Fixed,512</param>
                 <param>NewSize=2GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-105</param>
              </testparams>
        </test>
@@ -1383,7 +1357,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>NewSize=2GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
@@ -1400,7 +1374,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,4096,3GB</param>
                 <param>NewSize=2GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
@@ -1418,7 +1392,7 @@
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>growSize=4GB</param>
                 <param>shrinkSize=3GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-03a</param>
             </testparams>
         </test>
@@ -1628,7 +1602,7 @@
             <testParams>
                 <param>IDE=0,1,Fixed,512</param>
                 <param>IDE=1,1,Fixed,512</param>
-                <param>fileSystems=(ext3 ext4 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-24</param>
             </testParams>
             <timeout>1800</timeout>
@@ -1676,7 +1650,7 @@
             <testparams>
                 <param>SCSI=0,0,Diff</param>
                 <param>TC_COVERED=STOR-27</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
                 <param>vhdFormat=vhdx</param>
             </testparams>
             <timeout>3600</timeout>
@@ -2360,7 +2334,7 @@
             <param>startupMem=2048MB</param>
             <param>memWeight=100</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=85%</param>
@@ -2384,7 +2358,7 @@
             <param>startupMem=80%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=50%</param>
@@ -2424,7 +2398,7 @@
             <param>startupMem=70%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=50%</param>
@@ -2447,7 +2421,7 @@
             <param>startupMem=80%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=40%</param>
@@ -2470,7 +2444,7 @@
             <param>startupMem=80%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=20%</param>
@@ -2493,7 +2467,7 @@
             <param>startupMem=20%</param>
             <param>memWeight=0</param>
             <param>staticMem=2048MB</param>
-            <param>vmName=aux_vm</param>
+            <param>vmName=lis_aux_vm</param>
             <param>enableDM=yes</param>
             <param>minMem=2048MB</param>
             <param>maxMem=80%</param>
@@ -2593,15 +2567,6 @@
             <noReboot>False</noReboot>
         </test>
       <!-- KDUMP -->
-        <test>
-            <testName>kexec_git_install</testName>
-            <testScript>kexec_git_install.sh</testScript>
-            <files>remote-scripts/ica/kexec_git_install.sh,remote-scripts/ica/utils.sh</files>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test>
-	   
       <test>
          <testName>Crash_single_core</testName>
          <setupScript>
@@ -2712,6 +2677,23 @@
          <OnError>Continue</OnError>
       </test>
       <test>
+         <testName>ProductionCheckpoint_ext3</testName>
+         <setupScript>
+            <file>setupscripts\RevertSnapshot.ps1</file>
+            <file>setupscripts\AddVhdxHardDisk.ps1</file>
+         </setupScript>
+         <files>remote-scripts/ica/utils.sh</files>
+         <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript>
+         <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
+         <testParams>
+            <param>TC_COVERED=PC-03</param>
+            <param>SCSI=0,1,Dynamic,512</param>
+            <param>FILESYS=ext3</param>
+         </testParams>
+         <timeout>2400</timeout>
+         <OnError>Continue</OnError>
+      </test>
+      <test>
          <testName>ProductionCheckpoint_ext4</testName>
          <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
@@ -2798,6 +2780,20 @@
          <testScript>setupscripts\Production_checkpoint_3Chain_VHD.ps1</testScript>
          <testParams>
             <param>TC_COVERED=PC-09</param>
+         </testParams>
+         <timeout>2400</timeout>
+         <OnError>Continue</OnError>
+      </test>
+      <test>
+         <testName>ProductionCheckpoint_iSCSI</testName>
+         <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+         <files>remote-scripts/ica/utils.sh</files>
+         <testScript>setupscripts\Production_checkpoint_iSCSI.ps1</testScript>
+         <testParams>
+            <param>TC_COVERED=PC-10</param>
+            <param>TargetIP=TARGET_IP</param>
+            <param>IQN=TARGET_IQN</param>
+            <param>FILESYS=ext4</param>
          </testParams>
          <timeout>2400</timeout>
          <OnError>Continue</OnError>
@@ -2904,10 +2900,11 @@
          <timeout>1200</timeout>
       </test>
    </testCases>
+
    <VMs>
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>core_vm</vmName>
+         <vmName>hv_core_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -2923,7 +2920,7 @@
       </vm>
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>stor_vm</vmName>
+         <vmName>hv_stor_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -2939,7 +2936,7 @@
       </vm>
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>mem_vm</vmName>
+         <vmName>hv_mem_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
@@ -2955,12 +2952,12 @@
       </vm>
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>net_vm</vmName>
+         <vmName>hv_net_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
          <testParams>
-            <param>VM2Name=aux_vm</param>
+            <param>VM2Name=hv_aux_vm</param>
          </testParams>
          <hardware>
             <create>true</create>
@@ -2975,7 +2972,7 @@
       <!-- Used only by the Network tests -->
       <vm>
          <hvServer>localhost</hvServer>
-         <vmName>aux_vm</vmName>
+         <vmName>hv_aux_vm</vmName>
          <os>Linux</os>
          <ipv4></ipv4>
          <sshKey>rhel5_id_rsa.ppk</sshKey>
