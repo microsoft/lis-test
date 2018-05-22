@@ -24,6 +24,10 @@
             <!-- Only Windows Server 2012 R2 and newer supports this feature -->
             <hostVersion>6.3.9600</hostVersion>
         </dependency>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <imageStoreDir>\\unc\path</imageStoreDir>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>
@@ -34,11 +38,11 @@
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
-
     <testSuites>
         <suite>
         <suiteName>File_Copy</suiteName>
         <suiteTests>
+            <suiteTest>MainVM_Checkpoint</suiteTest>
             <suiteTest>FCOPY_basic</suiteTest>
             <suiteTest>FCOPY_file_exists</suiteTest>
             <suiteTest>FCOPY_overwrite</suiteTest>
@@ -49,8 +53,19 @@
         </suiteTests>
         </suite>
     </testSuites>
-
     <testCases>
+        <test>
+            <testName>MainVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
         <test>
             <testName>FCOPY_basic</testName>
             <testScript>setupscripts\FCOPY_basic.ps1</testScript>
@@ -60,7 +75,6 @@
             </testParams>
             <noReboot>True</noReboot>
         </test>
-
         <test>
             <testName>FCOPY_file_exists</testName>
             <testScript>setupscripts\FCOPY_file_exists.ps1</testScript>
@@ -70,7 +84,6 @@
             </testParams>
             <noReboot>True</noReboot>
         </test>
-
         <test>
             <testName>FCOPY_overwrite</testName>
             <testScript>setupscripts\FCOPY_overwrite.ps1</testScript>
@@ -80,7 +93,6 @@
             </testParams>
             <noReboot>False</noReboot>
         </test>
-
         <test>
             <testName>FCOPY_large_file</testName>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
@@ -96,7 +108,6 @@
             </testParams>
             <noReboot>False</noReboot>
         </test>
-
         <test>
             <testName>FCOPY_non_ascii</testName>
             <testScript>setupscripts\FCOPY_non_ascii.ps1</testScript>
@@ -107,7 +118,6 @@
             </testParams>
             <noReboot>False</noReboot>
         </test>
-
         <test>
             <testName>FCOPY_repeat</testName>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
@@ -122,7 +132,6 @@
             </testParams>
             <noReboot>False</noReboot>
         </test>
-
         <test>
             <testName>FCOPY_disableEnable</testName>
             <setupScript>SetupScripts\AddVhdxHardDisk.ps1</setupScript>
@@ -139,7 +148,6 @@
             <noReboot>False</noReboot>
         </test>
     </testCases>
-
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
@@ -148,7 +156,14 @@
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <suite>File_Copy</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>2</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
         </vm>
     </VMs>
-
 </config>
