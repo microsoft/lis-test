@@ -28,8 +28,8 @@
 #
 # Steps:
 #   Use ping to test multicast
-#   On the 2nd VM: ping -I eth1 224.0.0.1 -c 11 > out.client &
-#   On the TEST VM: ping -I eth1 224.0.0.1 -c 11 > out.client
+#   On the 2nd VM: ping -I eth1 224.0.0.1 -c 299 > out.client &
+#   On the TEST VM: ping -I eth1 224.0.0.1 -c 299 > out.client
 #   Check results:
 #   On the TEST VM: cat out.client | grep 0%
 #   On the 2nd VM: cat out.client | grep 0%
@@ -57,9 +57,9 @@ if [ "${REMOTE_USER:-UNDEFINED}" = "UNDEFINED" ]; then
     REMOTE_USER=root
 fi
 
-dos2unix NET_set_static_ip.sh
-chmod +x NET_set_static_ip.sh
-./NET_set_static_ip.sh
+ListInterfaces
+
+CreateIfupConfigFile ${SYNTH_NET_INTERFACES[*]} static $STATIC_IP $NETMASK
 if [ $? -ne 0 ];then
     msg="ERROR: Could not set static IP on VM1!"
     LogMsg "$msg"
@@ -80,7 +80,7 @@ fi
 # Configure VM2
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "ifconfig eth1 allmulti"
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not enable ALLMULTI on VM1"
+    msg="ERROR: Could not enable ALLMULTI on VM2"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateAborted
@@ -147,6 +147,10 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
     exit 1
 fi
+
+# Turn off dependency VM
+ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$STATIC_IP2" "init 0"
+
 LogMsg "Multicast summary"
 LogMsg "${multicastSummary}"
 
