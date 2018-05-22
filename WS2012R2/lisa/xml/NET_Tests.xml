@@ -637,8 +637,7 @@ permissions and limitations under the License.
                 <file>setupscripts\StartVM.ps1</file>
             </setupScript>
             <testScript>NET_Multicast.sh</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/NET_set_static_ip.sh,
-                remote-scripts/ica/NET_Multicast.sh</files>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/NET_Multicast.sh</files>
             <testparams>
                 <param>NIC=NetworkAdapter,Private,Private</param>
                 <param>TC_COVERED=NET-26</param>
