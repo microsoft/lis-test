@@ -64,7 +64,17 @@ $client_on_host_local_path = ".\tools\hv-sock\client_on_host.exe"
 
 # Setup: Create PSSession, connect to remote host
 function Create_PSSession{
-    $Script:RemoteSession = New-PSSession -ComputerName $hvServer
+    # Work around "Kerberos Double Hop" issue
+    # Use fresh identity (if defined in environment) instead of delegation
+    if($env:HostUser -and $env:HostPassword){
+        $SecurePass = $env:HostPassword| ConvertTo-SecureString -AsPlainText -Force
+        $cred = New-Object System.Management.Automation.PSCredential -ArgumentList $env:HostUser, $SecurePass
+        $Script:RemoteSession = New-PSSession -ComputerName $hvServer -Credential $cred
+    }
+    else{
+        $Script:RemoteSession = New-PSSession -ComputerName $hvServer
+    }
+
     if ($? -ne $True){
         Write-Output "Error: Failed to create PSSession!"| Tee-Object -Append -file $summaryLog
         Cleanup_Host
