@@ -45,16 +45,6 @@ dos2unix utils.sh
 UtilsInit
 
 function download_archive {
-	# Check URL
-	wget -q --spider "$LIS_URL$AZURE_TOKEN"
-	if [ $? -ne 0 ]; then
-		msg="ERROR: Archive URL is not valid"
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateFailed
-		exit 1
-	fi
-
 	# Download file
 	TAR_NAME="${LIS_URL##*/}"
 	wget "$LIS_URL$AZURE_TOKEN" -O "$TAR_NAME"
