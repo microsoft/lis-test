@@ -2150,7 +2150,7 @@ VerifyIsEthtool()
                     exit 1
                 fi
                 ;;
-            ubuntu*)
+            ubuntu*|debian*)
                 apt-get install ethtool -y
                 if [ $? -ne 0 ]; then
                     msg="ERROR: Failed to install Ethtool"
