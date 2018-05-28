@@ -61,7 +61,16 @@ if (Test-Path $summaryLog) {
     del $summaryLog
 }
 
-$remoteSession = New-PSSession -ComputerName $hvServer
+# Work around "Kerberos Double Hop" issue
+# Use fresh identity (if defined in environment) instead of delegation
+if($env:HostUser -and $env:HostPassword){
+    $SecurePass = $env:HostPassword| ConvertTo-SecureString -AsPlainText -Force
+    $cred = New-Object System.Management.Automation.PSCredential -ArgumentList $env:HostUser, $SecurePass
+    $remoteSession = New-PSSession -ComputerName $hvServer -Credential $cred
+}
+else{
+    $remoteSession = New-PSSession -ComputerName $hvServer
+}
 
 $checkModule = Get-Module -ListAvailable -PSSession $remoteSession | Select-String -Pattern MLNXProvider -quiet
 if ($checkModule) {
