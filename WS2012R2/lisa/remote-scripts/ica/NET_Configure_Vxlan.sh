@@ -124,7 +124,7 @@ case "$DISTRO" in
         fi
         service atd start
         ;;
-    ubuntu*)
+    ubuntu*|debian*)
         ufw disable
         ;;
     redhat* | centos* | fedora*)
