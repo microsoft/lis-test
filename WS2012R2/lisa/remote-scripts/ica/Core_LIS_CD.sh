@@ -29,49 +29,27 @@
 #
 ################################################################
 
-LogMsg()
-{
-    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
+dos2unix utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    exit 1
 }
 
-UpdateTestState()
-{
-    echo $1 > $HOME/state.txt
-}
+#
+# Source constants file and initialize most common variables
+#
+UtilsInit
 
-UpdateSummary()
-{
-    echo $1 >> ~/summary.log
-}
-
-cd ~
-UpdateTestState "TestRunning"
-
-if [ -e ~/summary.log ]; then
-    LogMsg "Cleaning up previous copies of summary.log"
-    rm -rf ~/summary.log
-fi
-
-if [ -e $HOME/constants.sh ]; then
-    . $HOME/constants.sh
-else
-    LogMsg "ERROR: Unable to source the constants file."
-    UpdateTestState "TestAborted"
+GetGuestGeneration
+if [ $os_GENERATION -eq 1 ] && [ $HotAdd = "True" ]; then
+    SetTestStateSkipped
     exit 1
 fi
-
-#Check for Testcase count
-if [ ! ${TC_COVERED} ]; then
-    LogMsg "Error: The TC_COVERED variable is not defined."
-    echo "Error: The TC_COVERED variable is not defined." >> ~/summary.log
-fi
-
-echo "Covers: ${TC_COVERED}" >> ~/summary.log
 
 #
 # Check if the CDROM module is loaded
 #
-if [[ -x $(which lsb_release 2>/dev/null) ]]; then 
+if [[ -x $(which lsb_release 2>/dev/null) ]]; then
     os_VENDOR=$(lsb_release -i -s)
 fi
 if [ $os_VENDOR != "Ubuntu" ] && [ $os_VENDOR != "Debian" ]; then
@@ -88,7 +66,7 @@ if [ $os_VENDOR != "Ubuntu" ] && [ $os_VENDOR != "Debian" ]; then
             LogMsg "Unable to load ata_piix module"
             LogMsg "Aborting test."
             UpdateSummary "ata_piix load : Failed"
-            UpdateTestState "TestFailed"
+            SetTestStateFailed
             exit 1
         else
             LogMsg "ata_piix module loaded inside the VM"
@@ -105,13 +83,13 @@ do
         LogMsg "Mount the CDROM ${drive}"
         break
     fi
-done    
+done
 sts=$?
 if [ 0 -ne ${sts} ]; then
     LogMsg "Unable to mount the CDROM"
     LogMsg "Mount CDROM failed: ${sts}"
     LogMsg "Aborting test."
-    UpdateTestState "TestFailed"
+    SetTestStateFailed
     exit 1
 else
     LogMsg  "CDROM is mounted successfully inside the VM"
@@ -126,7 +104,7 @@ sts=$?
 if [ 0 -ne ${sts} ]; then
     LogMsg "Unable to read data from the CDROM"
     LogMsg "Read data from CDROM failed: ${sts}"
-    UpdateTestState "TestFailed"
+    SetTestStateFailed
     exit 1
 else
     LogMsg "Data read successfully from the CDROM"
@@ -139,12 +117,31 @@ if [ 0 -ne ${sts} ]; then
     LogMsg "Unable to unmount the CDROM"
     LogMsg "umount failed: ${sts}"
     LogMsg "Aborting test."
-    UpdateTestState "TestFailed"
+    SetTestStateFailed
     exit 1
 else
     LogMsg  "CDROM unmounted successfully"
 fi
 
 UpdateSummary "CDROM mount, read and remove operations returned no errors."
+
+<<<<<<< HEAD
+#
+# Check without multiple "medium not present" in dmesg log
+# Refer to https://lkml.org/lkml/2016/5/23/332
+#
+=======
+# Check the dmesg log
+>>>>>>> 654d7146f12f90f5bd0badae33e7f6a1283d2b15
+logNum=`dmesg | grep -i "Medium not present" | wc -l`
+if [ $logNum -gt 1 ];then
+    LogMsg  "Multiple medium not present log show in the dmesg"
+    SetTestStateFailed
+    exit 1
+fi
+
+# Check for Call traces
+CheckCallTracesWithDelay 20
+
 LogMsg "Result: Test Completed Successfully"
-UpdateTestState "TestCompleted"
+SetTestStateCompleted
