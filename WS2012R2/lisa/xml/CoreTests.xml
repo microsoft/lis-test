@@ -59,6 +59,7 @@
             <suiteTest>VerifyIntegratedShutdownService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
             <suiteTest>CDmount</suiteTest>
+            <suiteTest>CDmountHotAdd</suiteTest>
             <suiteTest>CheckNuma</suiteTest>
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
@@ -248,7 +249,7 @@
         <test>
             <testName>CDmount</testName>
             <testScript>Core_LIS_CD.sh</testScript>
-            <files>remote-scripts/ica/Core_LIS_CD.sh</files>
+            <files>remote-scripts/ica/Core_LIS_CD.sh,remote-scripts\ica\check_traces.sh,remote-scripts/ica/utils.sh</files>
             <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testparams>
@@ -258,7 +259,20 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-
+        <test>
+            <testName>CDmountHotAdd</testName>
+            <testScript>Core_LIS_CD.sh</testScript>
+            <files>remote-scripts/ica/Core_LIS_CD.sh,remote-scripts\ica\check_traces.sh,remote-scripts/ica/utils.sh</files>
+            <preTest>setupscripts\InsertIsoInDvd.ps1</preTest>
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
+            <testparams>
+                <param>TC_COVERED=CORE-35</param>
+                <param>HotAdd=True</param>
+            </testparams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
         <test>
             <testName>VCPU_verify_online</testName>
             <testScript>vcpu_verify_online.sh</testScript>
