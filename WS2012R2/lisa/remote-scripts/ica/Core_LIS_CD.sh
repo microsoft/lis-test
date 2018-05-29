@@ -125,10 +125,14 @@ fi
 
 UpdateSummary "CDROM mount, read and remove operations returned no errors."
 
+<<<<<<< HEAD
 #
 # Check without multiple "medium not present" in dmesg log
 # Refer to https://lkml.org/lkml/2016/5/23/332
 #
+=======
+# Check the dmesg log
+>>>>>>> 654d7146f12f90f5bd0badae33e7f6a1283d2b15
 logNum=`dmesg | grep -i "Medium not present" | wc -l`
 if [ $logNum -gt 1 ];then
     LogMsg  "Multiple medium not present log show in the dmesg"
