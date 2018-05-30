@@ -23,6 +23,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+	<imageStoreDir>\\unc\path</imageStoreDir>
         <dependency>
             <!-- Only Windows Server 2012 R2 and newer supports this feature -->
             <hostVersion>6.3.9600</hostVersion>
@@ -369,8 +373,16 @@
             <vmName>VM</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>linux_id_rsa.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>VHDxResize</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>4</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
         </vm>
     </VMs>
 </config>

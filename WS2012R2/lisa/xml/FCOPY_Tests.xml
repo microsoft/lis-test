@@ -20,6 +20,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+	<imageStoreDir>\\unc\path</imageStoreDir>
         <dependency>
             <!-- Only Windows Server 2012 R2 and newer supports this feature -->
             <hostVersion>6.3.9600</hostVersion>
@@ -149,12 +153,12 @@
         </test>
     </testCases>
     <VMs>
-        <vm>
+	<vm>
             <hvServer>localhost</hvServer>
-            <vmName>vmName</vmName>
+            <vmName>VM_NAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>linux_id_rsa.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>File_Copy</suite>
             <hardware>
                 <create>true</create>

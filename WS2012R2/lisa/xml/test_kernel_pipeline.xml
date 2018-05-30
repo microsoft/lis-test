@@ -23,7 +23,7 @@
     <suite>
         <suiteName>kernel_validation_minimal</suiteName>
         <suiteTests>
-            <suiteTest>InstallKernel</suiteTest>
+            <suiteTest>Install_MSFT_Kernel</suiteTest>
             <suiteTest>VMHeartbeat</suiteTest>
             <suiteTest>VHDx_MultiDiskSCSI_Dynamic</suiteTest>
         </suiteTests>
@@ -32,11 +32,11 @@
 
     <testCases>
         <test>
-            <testName>InstallKernel</testName>
-            <testScript>install_kernel.sh</testScript>
-            <files>remote-scripts\ica\install_kernel.sh,remote-scripts\ica\utils.sh</files>
-            <timeout>2000</timeout>
-            <onError>Abort</onError>
+            <testName>Install_MSFT_kernel</testName>
+            <testScript>SetupScripts\install_kernel_rpm.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh</files>
+            <timeout>2500</timeout>
+            <OnError>Abort</OnError>
             <noReboot>False</noReboot>
         </test>
         
