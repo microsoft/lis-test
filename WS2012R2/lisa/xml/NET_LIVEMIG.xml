@@ -212,8 +212,8 @@
             <hvServer>localhost</hvServer>
             <vmName>VM_NAME</vmName>
             <os>Linux</os>
-            <ipv4 />
-            <sshKey>linux_id_rsa.ppk</sshKey>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>LiveMigration</suite>
             <hardware>
                 <create>true</create>
