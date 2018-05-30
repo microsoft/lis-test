@@ -66,12 +66,15 @@ CheckPTPSupport()
 
 ConfigRhel()
 {
-    yum install chrony -y
+    chronyd -v
     if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Failed to install chrony"
-        UpdateSummary "ERROR: Failed to install chrony"
-        UpdateTestState $ICA_TESTFAILED
-        exit 1
+        yum install chrony -y
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Failed to install chrony"
+            UpdateSummary "ERROR: Failed to install chrony"
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
     fi
     
     CheckPTPSupport
@@ -108,12 +111,15 @@ ConfigRhel()
 
 ConfigSles()
 {
-    zypper install -y chrony
+    chronyd -v
     if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Failed to install chrony"
-        UpdateSummary "ERROR: Failed to install chrony"
-        UpdateTestState $ICA_TESTFAILED
-        exit 1
+        zypper install -y chrony
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Failed to install chrony"
+            UpdateSummary "ERROR: Failed to install chrony"
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
     fi
 
     CheckPTPSupport
@@ -152,12 +158,15 @@ ConfigSles()
 
 ConfigUbuntu()
 {
-    apt-get install chrony -y
+    chronyd -v
     if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Failed to install chrony"
-        UpdateSummary "ERROR: Failed to install chrony"
-        UpdateTestState $ICA_TESTFAILED
-        exit 1
+        apt-get install chrony -y
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Failed to install chrony"
+            UpdateSummary "ERROR: Failed to install chrony"
+            UpdateTestState $ICA_TESTFAILED
+            exit 1
+        fi
     fi
 
     CheckPTPSupport
