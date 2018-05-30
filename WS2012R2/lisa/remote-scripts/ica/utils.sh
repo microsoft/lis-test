@@ -40,7 +40,8 @@ IFS=$' \t\n'
 
 ##################################### Global variables #####################################
 
-# Because functions can only return a status code, global vars will be used for communicating with the caller
+# Because functions can only return a status code,
+# global vars will be used for communicating with the caller
 # All vars are first defined here
 
 # Directory containing all files pushed by LIS framework
@@ -265,7 +266,7 @@ GetDistro()
 		*CentOS*6.*)
 			DISTRO=centos_6
 			;;
-		*CentOS*7*)
+		*CentOS*7.*)
 			DISTRO=centos_7
 			;;
 		*CentOS*)
@@ -289,10 +290,10 @@ GetDistro()
 		*Red*6.*)
 			DISTRO=redhat_6
 			;;
-		*Red*7*)
+		*Red*7.*)
 			DISTRO=redhat_7
 			;;
-		*Red*8*)
+		*Red*8.*)
 			DISTRO=redhat_8
 			;;
 		*Red*)
@@ -497,7 +498,6 @@ CheckIPV6()
 # Check that $1 is a MAC address
 CheckMAC()
 {
-
 	if [ 1 -ne $# ]; then
 		LogMsg "CheckIP accepts 1 arguments: IP address"
 		return 100
@@ -529,21 +529,7 @@ SetIPfromDHCP()
 
 	GetDistro
 	case $DISTRO in
-		redhat*|fedora*)
-			dhclient -r "$1" ; dhclient "$1"
-			if [ 0 -ne $? ]; then
-				LogMsg "Unable to get dhcpd address for interface $1"
-				return 2
-			fi
-			;;
-		centos*)
-			dhclient -r "$1" ; dhclient "$1"
-			if [ 0 -ne $? ]; then
-				LogMsg "Unable to get dhcpd address for interface $1"
-				return 2
-			fi
-			;;
-		debian*)
+		redhat*|fedora*|centos*|ubuntu*|debian*)
 			dhclient -r "$1" ; dhclient "$1"
 			if [ 0 -ne $? ]; then
 				LogMsg "Unable to get dhcpd address for interface $1"
@@ -552,13 +538,6 @@ SetIPfromDHCP()
 			;;
 		suse*)
 			dhcpcd -k "$1" ; dhcpcd "$1"
-			if [ 0 -ne $? ]; then
-				LogMsg "Unable to get dhcpd address for interface $1"
-				return 2
-			fi
-			;;
-		debian*|ubuntu*)
-			dhclient -r "$1" ; dhclient "$1"
 			if [ 0 -ne $? ]; then
 				LogMsg "Unable to get dhcpd address for interface $1"
 				return 2
@@ -730,7 +709,7 @@ RemoveDefaultGateway()
 CreateDefaultGateway()
 {
 	if [ 2 -ne $# ]; then
-		LogMsg "CreateDefaultGateway expects 2 argument"
+		LogMsg "CreateDefaultGateway expects 2 arguments"
 		return 100
 	fi
 
@@ -787,7 +766,7 @@ CreateDefaultGateway()
 CreateVlanConfig()
 {
 	if [ 4 -ne $# ]; then
-		LogMsg "CreateVlanConfig expects 4 argument"
+		LogMsg "CreateVlanConfig expects 4 arguments"
 		return 100
 	fi
 
@@ -799,8 +778,6 @@ CreateVlanConfig()
 	fi
 
 	# check that $2 is an IP address
-
-
 	CheckIP "$2"
 	if [[ $? -eq 0 ]]; then
 	    netmaskConf="NETMASK"
@@ -826,7 +803,6 @@ CreateVlanConfig()
 	fi
 
 	# check that vlan driver is loaded
-
 	lsmod | grep 8021q
 
 	if [ 0 -ne $? ]; then
@@ -996,7 +972,7 @@ CreateVlanConfig()
 			#Check for vlan package and install it in case of absence
 			dpkg -s vlan
 			if [ 0 -ne $? ]; then
-				apt-get -y install vlan
+				apt -y install vlan
 				if [ 0 -ne $? ]; then
 					LogMsg "Failed to install VLAN package. Please try manually."
 					return 90
@@ -1105,7 +1081,7 @@ EOF
 RemoveVlanConfig()
 {
 	if [ 2 -ne $# ]; then
-		LogMsg "RemoveVlanConfig expects 2 argument"
+		LogMsg "RemoveVlanConfig expects 2 arguments"
 		return 100
 	fi
 
@@ -1342,7 +1318,7 @@ CreateIfupConfigFile()
 				ifup "$__interface_name"
 
 				;;
-			redhat_7|redhat_8|centos_7|fedora*)
+			redhat_7|redhat_8|centos_7|centos_8|fedora*)
 				__file_path="/etc/sysconfig/network-scripts/ifcfg-$__interface_name"
 				if [ ! -d "$(dirname $__file_path)" ]; then
 					LogMsg "CreateIfupConfigFile: $(dirname $__file_path) does not exist! Something is wrong with the network config!"
@@ -1633,23 +1609,7 @@ ControlNetworkManager()
 
 	GetDistro
 	case $DISTRO in
-		redhat*|fedora*)
-			# check that we have a NetworkManager service running
-			service NetworkManager status
-			if [ 0 -ne $? ]; then
-				LogMsg "NetworkManager does not appear to be running."
-				return 0
-			fi
-			# now try to start|stop the service
-			service NetworkManager $1
-			if [ 0 -ne $? ]; then
-				LogMsg "Unable to $1 NetworkManager."
-				return 1
-			else
-				LogMsg "Successfully ${1}ed NetworkManager."
-			fi
-			;;
-		centos*)
+		redhat*|fedora*|centos*)
 			# check that we have a NetworkManager service running
 			service NetworkManager status
 			if [ 0 -ne $? ]; then
@@ -1741,7 +1701,6 @@ EnableNetworkManager()
 # if no parameter is given outside of IP and Netmask, all interfaces will be added (except lo)
 SetupBridge()
 {
-
 	if [ $# -lt 2 ]; then
 		LogMsg "SetupBridge needs at least 2 parameters"
 		return 1
@@ -1860,14 +1819,12 @@ SetupBridge()
 TearDownBridge()
 {
 	ip link show br0 >/dev/null 2>&1
-
 	if [ 0 -ne $? ]; then
 		LogMsg "TearDownBridge: No interface br0 found"
 		return 1
 	fi
 
 	brctl show br0
-
 	if [ 0 -ne $? ]; then
 		LogMsg "TearDownBridge: No bridge br0 found"
 		return 2
@@ -1895,7 +1852,6 @@ TearDownBridge()
 		__bridge_interfaces=$(basename "$(dirname "$__sys_interface")")
 
 		ip link show "$__bridge_interfaces" >/dev/null 2>&1
-
 		if [ 0 -ne $? ]; then
 			LogMsg "TearDownBridge: Could not find interface $__bridge_interfaces"
 			return 4
@@ -2151,7 +2107,7 @@ VerifyIsEthtool()
                 fi
                 ;;
             ubuntu*|debian*)
-                apt-get install ethtool -y
+                apt install ethtool -y
                 if [ $? -ne 0 ]; then
                     msg="ERROR: Failed to install Ethtool"
                     LogMsg "$msg"
