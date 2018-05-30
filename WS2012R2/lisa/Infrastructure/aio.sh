@@ -579,7 +579,8 @@ elif is_ubuntu ; then
     deb_packages=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 at autoconf
     multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm automake libtool pkg-config ifupdown
     bridge-utils btrfs-tools libkeyutils-dev xfsprogs reiserfsprogs sysstat build-essential bc numactl python3 pciutils tcpdump
-    nfs-client parted netcat squashfs-tools bison flex linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r`)
+    nfs-client parted netcat squashfs-tools bison flex linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r`
+    net-tools)
     DEBIAN_FRONTEND=noninteractive sudo apt -y install ${deb_packages[@]}
 
     if [ -e /etc/multipath.conf ]; then
