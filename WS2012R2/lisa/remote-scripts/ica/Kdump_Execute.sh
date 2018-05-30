@@ -218,7 +218,7 @@ case $DISTRO in
         kdump_loaded
         Rhel
     ;;
-    ubuntu*)
+    ubuntu*|debian*)
         kdump_loaded
         Ubuntu
     ;;

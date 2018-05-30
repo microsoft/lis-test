@@ -349,7 +349,7 @@ case $DISTRO in
     centos* | redhat*)
         ConfigRhel
     ;;
-    ubuntu*)
+    ubuntu*|debian*)
         if [ "$crashkernel" == "auto" ]; then
             LogMsg "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y."
             UpdateSummary "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y."
