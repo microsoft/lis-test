@@ -32,7 +32,8 @@ function InstallNetcat
     elif [ "$os_VENDOR" == "SUSE LINUX" ] || \
     [ "$os_VENDOR" == "SLE" ]; then
         zypper install -y netcat
-    elif [ "$os_VENDOR" == "Ubuntu" ]; then
+    elif [ "$os_VENDOR" == "Ubuntu" ] || \
+    [ "$os_VENDOR" == "Debian" ]; then
         apt-get install netcat -y
     else
         LogMsg "Warning: Linux Distro not supported!"
@@ -50,7 +51,7 @@ function ConfigInterface
     sleep 5
 
     if [ $? -eq 0 ]; then
-        ip_address=$(ip addr show $IFACE | grep "inet\b" | grep -v '127.0.0.1' | awk '{print $2}' | cut -d/ -f1)
+        ip_address=$(ip addr show $IFACE | grep "inet\b" | grep -v '127.0.0.1' | awk '{print $2}' | cut -d/ -f1 | sed -n 2p)
         msg="Info : Successfully set IP address - ${ip_address}"
         LogMsg "${msg}"
         UpdateSummary "${msg}"
@@ -64,6 +65,9 @@ function ConfigInterface
     sysctl -w net.ipv4.conf.eth0.rp_filter=0
     sysctl -w net.ipv4.conf.eth1.rp_filter=0
     sleep 2
+
+    #Check if ethtool exist and install it if not
+    VerifyIsEthtool
 
     # Disable tcp segmentation offload
     ethtool -K eth1 tso off
@@ -96,7 +100,8 @@ function AddNIC
         sed -i -- "s/eth0/${ifName}/g" /etc/sysconfig/network/ifcfg-${ifName}
         sed -i -e "s/HWADDR/#HWADDR/" /etc/sysconfig/network/ifcfg-${ifName}
         sed -i -e "s/UUID/#UUID/" /etc/sysconfig/network/ifcfg-${ifName}
-    elif [ "$os_VENDOR" == "Ubuntu" ]; then
+    elif [ "$os_VENDOR" == "Ubuntu" ] || \
+    [ "$os_VENDOR" == "Debian" ]; then
         echo "auto ${ifName}" >> /etc/network/interfaces
         echo "iface ${ifName} inet dhcp" >> /etc/network/interfaces
     else
@@ -217,7 +222,7 @@ if [ 0 -ne $? ]; then
 fi
 
 UpdateSummary "Starting to listen on port 1234"
-echo "nc -v -w 30 -l $port < $filePath &" > $3
+echo "nc -v -w 30 -l -p $port < $filePath &" > $3
 chmod +x $3
 LogMsg "Setup completed"
 UpdateSummary "Setup completed"
