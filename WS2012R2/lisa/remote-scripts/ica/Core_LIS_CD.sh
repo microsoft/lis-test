@@ -131,7 +131,8 @@ UpdateSummary "CDROM mount, read and remove operations returned no errors."
 #
 logNum=`dmesg | grep -i "Medium not present" | wc -l`
 if [ $logNum -gt 1 ];then
-    LogMsg  "Multiple medium not present log show in the dmesg"
+    LogMsg  "Error: Multiple 'medium not present' messages found in dmesg"
+    UpdateSummary "Error: Multiple 'medium not present' messages found in dmesg"
     SetTestStateFailed
     exit 1
 fi
