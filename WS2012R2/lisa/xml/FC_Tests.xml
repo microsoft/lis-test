@@ -38,19 +38,21 @@
 		<suite>
 		<suiteName>FC</suiteName>
 		<suiteTests>
-			<suiteTest>FC_disks_detection</suiteTest>
-			<suiteTest>FC_stressTest</suiteTest>
+			<suiteTest>FC_Disks_Detection</suiteTest>
+			<suiteTest>FC_StressTest</suiteTest>
 			<suiteTest>FC_SaveRestore_VM</suiteTest>
-			<suiteTest>FC_disks_multipath_detection</suiteTest>
-			<suiteTest>FC_WWN_basic</suiteTest>
+			<suiteTest>FC_Disks_Multipath_Detection</suiteTest>
+			<suiteTest>FC_WWN_Basic</suiteTest>
+			<suiteTest>FC_WWN_Basic_Multi_Adapters</suiteTest>
+			<suiteTest>FC_Disks_Detection_Multi_Adapters</suiteTest>
 		</suiteTests>
 		</suite>
 	</testSuites>
 	<testCases>
 		<test>
-		<testName>FC_disks_detection</testName>
+		<testName>FC_Disks_Detection</testName>
 		<testScript>FC_disks.sh</testScript>
-		<files>remote-scripts\ica\FC_disks.sh</files>
+		<files>remote-scripts\ica\FC_disks.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files>
 		<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
 		<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
 		<timeout>3600</timeout>
@@ -58,8 +60,9 @@
 			<param>TC_COVERED=FC-01,FC-02</param>
 		</testParams>
 		</test>
+
 		<test>
-		<testName>FC_stressTest</testName>
+		<testName>FC_StressTest</testName>
 		<testScript>FC_stressTest.sh</testScript>
 		<files>remote-scripts\ica\FC_stressTest.sh</files>
 		<files>Tools/iozone3_420.tar</files>
@@ -71,10 +74,11 @@
 			<param>FILE_NAME=iozone3_420.tar</param>
 		</testParams>
 		</test>
+
 		<test>
 		<testName>FC_SaveRestore_VM</testName>
 		<testScript>FC_disks.sh</testScript>
-		<files>remote-scripts\ica\FC_disks.sh</files>
+		<files>remote-scripts\ica\FC_disks.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files>
 		<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
 		<posttest>setupScripts\FC_SaveRestoreVM.ps1</posttest>
 		<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
@@ -83,8 +87,9 @@
 			<param>TC_COVERED=FC-07</param>
 		</testParams>
 		</test>
+
 		<test>
-		<testName>FC_disks_multipath_detection</testName>
+		<testName>FC_Disks_Multipath_Detection</testName>
 		<testScript>setupscripts\FC_MultipathDetection.ps1</testScript>
 		<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
 		<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
@@ -94,8 +99,9 @@
 			<param>TC_COVERED=FC-08</param>
 		</testParams>
 		</test>
+
 		<test>
-		<testName>FC_WWN_basic</testName>
+		<testName>FC_WWN_Basic</testName>
 		<testScript>setupScripts\FC_WWN.ps1</testScript>
 		<files>remote-scripts\ica\fc_wwn.sh,remote-scripts/ica/utils.sh</files>
 		<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
@@ -105,6 +111,47 @@
 			<param>TC_COVERED=FC-09</param>
 		</testParams>
 		</test>
+
+		<test>
+			<testName>FC_Disks_Detection_Multi_Adapters</testName>
+			<testScript>FC_disks.sh</testScript>
+			<files>remote-scripts\ica\FC_disks.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files>
+			<setupScript>
+				<file>setupscripts\FC_AddFibreChannelHba.ps1</file>
+				<file>setupScripts\ChangeCPU.ps1</file>
+			</setupScript>
+			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+			<timeout>3600</timeout>
+			<testParams>
+				<param>TC_COVERED=FC-10</param>
+				<param>WWNN1=C003FFCBF9850025</param>
+				<param>WWPN1=C003FFCBF9850025</param>
+				<param>WWNN2=C003FFCBF9850027</param>
+				<param>WWPN2=C003FFCBF9850027</param>
+				<param>WWNN3=C003FFCBF9850029</param>
+				<param>WWPN3=C003FFCBF9850029</param>
+				<param>vCPU=4</param>
+			</testParams>
+		</test>
+
+		<test>
+			<testName>FC_WWN_Basic_Multi_Adapters</testName>
+			<testScript>setupScripts\FC_WWN.ps1</testScript>
+			<files>remote-scripts\ica\fc_wwn.sh,remote-scripts/ica/utils.sh</files>
+			<setupScript>setupscripts\FC_AddFibreChannelHba.ps1</setupScript>
+			<cleanupScript>setupScripts\FC_RemoveFibreChannelHba.ps1</cleanupScript>
+			<timeout>800</timeout>
+			<testParams>
+				<param>TC_COVERED=FC-11</param>
+				<param>WWNN1=C003FFCBF9850025</param>
+				<param>WWPN1=C003FFCBF9850025</param>
+				<param>WWNN2=C003FFCBF9850027</param>
+				<param>WWPN2=C003FFCBF9850027</param>
+				<param>WWNN3=C003FFCBF9850029</param>
+				<param>WWPN3=C003FFCBF9850029</param>
+			</testParams>
+		</test>
+
 	</testCases>
 	<VMs>
 		<vm>
