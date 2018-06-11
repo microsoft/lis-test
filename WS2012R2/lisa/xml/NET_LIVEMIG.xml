@@ -222,6 +222,7 @@
                 <memSize>2048</memSize>
                 <disableDiff>True</disableDiff>
                 <nic>VMBus,External</nic>
+                <generation>1</generation>
             </hardware>
         </vm>
     </VMs>

@@ -260,13 +260,13 @@ GetDistro()
 		*SUSE*)
 			DISTRO=suse_x
 			;;
-		*CentOS*5.*)
+		*CentOS*release*5.*)
 			DISTRO=centos_5
 			;;
-		*CentOS*6.*)
+		*CentOS*release*6.*)
 			DISTRO=centos_6
 			;;
-		*CentOS*7.*)
+		*CentOS*Linux*7.*)
 			DISTRO=centos_7
 			;;
 		*CentOS*)

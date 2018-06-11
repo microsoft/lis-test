@@ -199,7 +199,7 @@ if ($vmGeneration -eq 1)
 }
 else
 {
-    Add-VMDvdDrive -VMName $vmName -Path $isoFilename -ControllerNumber 0 -ControllerLocation 2 -ComputerName $hvServer -Confirm:$False
+    Add-VMDvdDrive -VMName $vmName -Path $isoFilename -ControllerNumber 0 -ControllerLocation 1 -ComputerName $hvServer -Confirm:$False
 }
 if ($? -ne "True")
 {

@@ -53,8 +53,8 @@ CheckClockEvent()
     else
         __clockevent=$(cat $current_clockevent)
         if [[ "$__clockevent" == "Hyper-V clockevent" ]]; then
-            LogMsg "Test successful. Proper file was found. Clockevent file content is $__clockevent"
-            UpdateSummary "Clockevent file content is $__clockevent"
+            LogMsg "Test successful. Proper file was found. Clockevent file content is: $__clockevent"
+            UpdateSummary "Clockevent file content is: $__clockevent"
         else
             LogMsg "Test failed. Proper file was NOT found."
             UpdateSummary "Test failed. Proper file was NOT found."
@@ -70,23 +70,24 @@ CheckClockEvent()
 #
 GetDistro
 case $DISTRO in
-    redhat_6)
+    redhat_6 | centos_6)
         LogMsg "WARNING: $DISTRO does not support clockevent."
         UpdateSummary "WARNING: $DISTRO does not support clockevent."
         SetTestStateSkipped
         exit 1
         ;;
-    redhat_7 | redhat_8)
+    redhat_7|redhat_8|centos_7|centos_8|fedora*)
         CheckClockEvent
         ;;
-    fedora_* )
+    ubuntu* )
         CheckClockEvent
         ;;
     *)
-        msg="WARNING: Distro '$DISTRO' not supported, defaulting to RedHat"
+        msg="ERROR: Distro '$DISTRO' not supported"
         LogMsg "${msg}"
         UpdateSummary "${msg}"
-        CheckClockEvent
+        SetTestStateFailed
+        exit 1
         ;;
 esac
 LogMsg "Test completed successfully"

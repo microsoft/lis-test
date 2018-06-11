@@ -386,8 +386,7 @@
         <test>
             <testName>check_clockevent</testName>
             <testScript>check_clockevent.sh</testScript>
-            <files>remote-scripts/ica/check_clockevent.sh</files>
-            <files>remote-scripts/ica/utils.sh</files>
+            <files>remote-scripts/ica/check_clockevent.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=CORE-36</param>
             </testParams>
