@@ -43,6 +43,7 @@
             <suiteTest>Verify_LIS_Modules</suiteTest>
             <suiteTest>initrd_modules_check</suiteTest>
             <suiteTest>check_clocksource</suiteTest>
+            <suiteTest>check_clockevent</suiteTest>
             <suiteTest>TimeSync</suiteTest>
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
@@ -376,6 +377,18 @@
             <files>remote-scripts/ica/check_clocksource.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=CORE-26</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+        </test>
+
+        <test>
+            <testName>check_clockevent</testName>
+            <testScript>check_clockevent.sh</testScript>
+            <files>remote-scripts/ica/check_clockevent.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=CORE-36</param>
             </testParams>
             <timeout>600</timeout>
             <onError>Continue</onError>
