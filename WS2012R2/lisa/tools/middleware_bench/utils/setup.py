@@ -255,7 +255,7 @@ class SetupTestEnv:
                 self.ssh_client[i].put_file(os.path.join(self.localpath, self.kernel),
                                             '/tmp/{}'.format(self.kernel))
                 params.append('/tmp/{}'.format(self.kernel))
-                self.ssh_client[i].run('/tmp/perf_tuning.sh {}'.format(' '.join(params)))
+            self.ssh_client[i].run('/tmp/perf_tuning.sh {}'.format(' '.join(params)))
             if self.provider in [constants.AWS, constants.GCE]:
                 self.ssh_client[i] = self.connector.restart_vm(self.vms[i])
             elif self.provider == constants.AZURE:
