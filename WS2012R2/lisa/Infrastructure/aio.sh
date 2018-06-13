@@ -597,6 +597,15 @@ elif is_ubuntu ; then
         fi
     fi
 
+    # Disable automatic updates if they are not disabled by default
+    cat /etc/apt/apt.conf.d/20auto-upgrades | grep "1" > /dev/null
+    if [ $? -eq 0 ]; then
+        sed -i 's/1/0/g' /etc/apt/apt.conf.d/20auto-upgrades
+        if [ $? -ne 0 ]; then
+            echo "ERRROR: Unable to disable automatic updates" >> summary.log
+        fi
+    fi
+
     #
     # Removing /var/log/syslog
     #
@@ -692,7 +701,6 @@ elif is_suse ; then
             mv /boot/efi/EFI/BOOT/grubx64.efi /boot/efi/EFI/boot/bootx64.efi
         elif [ -e /boot/efi/EFI/BOOT/elilo.efi]; then
             mv /boot/efi/EFI/BOOT/elilo.efi /boot/efi/EFI/boot/bootx64.efi
-       
         fi
     fi
 fi
