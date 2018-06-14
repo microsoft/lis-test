@@ -139,6 +139,9 @@ InstallRHELDependencies() {
     yum install -y gcc
 }
 
+# Convert eol
+dos2unix utils.sh
+
 # Source utils.sh
 . utils.sh || {
     echo "ERROR: unable to source utils.sh!"
