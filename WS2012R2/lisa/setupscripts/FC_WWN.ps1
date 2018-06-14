@@ -100,7 +100,7 @@ if (-not $testParams) {
 $params = $testParams.Split(";")
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    
+
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
@@ -149,6 +149,8 @@ $retVal = $True
 $WorldWideNodeNameSet = Get-VMFibreChannelHba -VMName $vmName -ComputerName $hvServer | Select -ExpandProperty WorldWideNodeNameSetA
 $WorldWidePortNameSet = Get-VMFibreChannelHba -VMName $vmName -ComputerName $hvServer | Select -ExpandProperty WorldWidePortNameSetA
 
+$WorldWideNodeNameSet=[system.string]::Join(",",$WorldWideNodeNameSet)
+$WorldWidePortNameSet=[system.string]::Join(",",$WorldWidePortNameSet)
 #
 # Send the WWNN and WWNP values from the host to the guest VM
 #
