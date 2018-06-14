@@ -1370,7 +1370,7 @@ function checkApp([string]$appName, [string]$customIP)
     else {
         $targetIP = $customIP
     }
-    .\bin\plink -i ssh\${sshKey} root@${targetIP} "command -v ${appName} > /dev/null 2>&1"
+    echo y | .\bin\plink -i ssh\${sshKey} root@${targetIP} "command -v ${appName} > /dev/null 2>&1"
     if (-not $?) {
         return $False
     }
