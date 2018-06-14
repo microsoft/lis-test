@@ -641,7 +641,7 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 #
 # Check if the distro version is unsupported
 #
-$sts = SendCommandToVM $ipv4 $sshKey "cat /etc/redhat-release | grep -v '7.\|6.[7-9]\|Fedora'"
+$sts = SendCommandToVM $ipv4 $sshKey "cat /etc/redhat-release | grep -v '8.\|7.\|6.[7-9]\|Fedora'"
 if ($sts[-1]){
     Write-Output "VLAN Trunking is not supported on RHEL/CentOS 6.x and below" | Tee-Object -Append -file $summaryLog
     return $Skipped
