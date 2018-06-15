@@ -70,6 +70,14 @@ if [ $sdCount -lt 1 ]; then
     exit 1
 fi
 
+# exclude specific disks from being multipathed
+if [ -e /etc/multipath.conf ]; then
+    rm /etc/multipath.conf
+fi
+echo -e "blacklist {\n\tdevnode \"^sd[a-z]\"\n}" > /etc/multipath.conf
+service multipathd restart
+sleep 5
+
 #
 # For each drive, run fdisk -l and extract the drive size in bytes
 #
