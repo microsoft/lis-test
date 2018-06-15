@@ -158,7 +158,7 @@
 		<hvServer>localhost</hvServer>
 		<vmName>VM_NAME</vmName>
 		<os>Linux</os>
-		<ipv4 />
+		<ipv4></ipv4>
 		<sshKey>linux_id_rsa.ppk</sshKey>
 		<suite>FC</suite>
 		<testParams>

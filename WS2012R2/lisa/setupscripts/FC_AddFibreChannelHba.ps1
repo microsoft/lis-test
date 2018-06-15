@@ -81,7 +81,7 @@ if (-not $testParams) {
 #
 # Checking the mandatory testParams. New parameters must be validated here.
 #
-$params = $testParams.Split(';')
+$params = $testParams.Split(';') | select -skiplast 1
 foreach ($p in $params)
 {
     if ($p.Trim().Length -eq 0) {
