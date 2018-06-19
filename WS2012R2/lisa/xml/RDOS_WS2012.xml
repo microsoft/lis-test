@@ -113,8 +113,8 @@
 		<test>
 			<testName>ReadKVPData_BasicTest</testName>
 			<testScript>KVP_BasicTest.sh</testScript>
-			<files>remote-scripts\ica\KVP_BasicTest.sh</files>
-			<files>Tools\kvptool.tar.gz</files>
+			<files>remote-scripts\ica\KVP_BasicTest.sh,remote-scripts/ica/utils.sh,
+				tools/KVP/kvp_client64,tools/KVP/kvp_client32</files>
 			<timeout>600</timeout>
 			<onError>Abort</onError>
 			<noReboot>False</noReboot>
@@ -122,7 +122,7 @@
 				<param>TC_COVERED=BVT-21</param>
 			</testparams>
 		</test>
-		
+
 		<test>
 			<testName>WriteKVPDataToGuest</testName>
 			<testScript>KVP_VerifyKeyValue.sh</testScript>
@@ -138,7 +138,7 @@
 				<param>Pool=0</param>
 			</testparams>
 		</test>
-		
+
 		<test>
 			<testName>ModifyPool0KVPDataOnGuest</testName>
 			<testScript>KVP_VerifyKeyValue.sh</testScript>
@@ -154,7 +154,7 @@
 				<param>Pool=0</param>
 			</testparams>
 		</test>
-		
+
 		<test>
 			<testName>WriteNonIntrinsicKVPData</testName>
 			<testScript>KVP_AddKeyValue.sh</testScript>
@@ -169,7 +169,7 @@
 				<param>Pool=1</param>
 			</testparams>
 		</test>
-		
+
 		<test>
 			<testName>ReadNonIntrinsicKVPData</testName>
 			<testScript>setupScripts\KVP_Basic.ps1</testScript>
@@ -181,7 +181,7 @@
 				<param>nonintrinsic</param>
 			</testparams>
 		</test>
-		
+
 		<test>
 			<testName>ReadIntrinsicKVPData</testName>
 			<testScript>setupScripts\KVP_Basic.ps1</testScript>
@@ -192,7 +192,7 @@
 				<param>TC_COVERED=36</param>
 			</testparams>
 		</test>
-		
+
 		<test>
 			<testName>HostCanWriteKVPToOnly_P0</testName>
 			<testScript>KVP_VerifyKeyValue.sh</testScript>
@@ -208,7 +208,7 @@
 				<param>Pool=0</param>
 			</testparams>
 		</test>
-		
+
 		<test>
 			<testName>DeletePool0KVPDataOnGuest</testName>
 			<testScript>setupScripts\KVP_DeleteKeyValue.ps1</testScript>
@@ -222,7 +222,7 @@
 				<param>Pool=0</param>
 			</testparams>
 		</test>
-		
+
 		<test>
 			<testName>ReadHostKVPDataOnGuest</testName>
 			<testScript>KVP_VerifyKeyValue.sh</testScript>
@@ -237,7 +237,7 @@
 				<param>Pool=3</param>
 			</testparams>
 		</test>
-		
+
 		<test>
 			<testName>DeleteNonExistKVPOnGuest</testName>
 			<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
@@ -250,8 +250,8 @@
 				<param>Value=000</param>
 				<param>Pool=0</param>
 			</testparams>
-		</test>	
-		
+		</test>
+
 		<test>
 			<testName>ModifyNonExistKVPOnGuest</testName>
 			<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
@@ -273,7 +273,7 @@
 			<onError>Continue</onError>
 			<noReboot>True</noReboot>
 		</test>
-		
+
 		<test>
 			<testName>TimeSync_SavedVM</testName>
 			<testScript>setupScripts\INST_timesync_savedVM.ps1</testScript>
@@ -282,16 +282,16 @@
 			<noReboot>True</noReboot>
 		</test>
 
-		<!-- VHD disk Tests -->               
+		<!-- VHD disk Tests -->
 		<test>
 			<testName>AddDisk_SCSI_DYNAMIC</testName>
 			<setupScript>SetupScripts\AddHardDisk.ps1</setupScript>
-			<testParams>              
+			<testParams>
 				<param>SCSI=0,1,Dynamic</param>
 				<param>NO=1</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TC_COVERED=DSK_VHD-37</param>
-			</testParams> 	  
+			</testParams>
 			<testScript>STOR_Lis_Disk.sh</testScript>
 			<files>remote-scripts/ica/STOR_Lis_Disk.sh</files>
             <files>remote-scripts/ica/check_traces.sh</files>
@@ -543,7 +543,7 @@
 			<timeout>18000</timeout>
 			<testparams>
 				<param>SCSI=0,0,Fixed</param>
-				<param>SCSI=0,1,Fixed</param> 
+				<param>SCSI=0,1,Fixed</param>
 				<param>TC_COVERED=DSK_VHD-51,DSK_VHD-53</param>
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
@@ -563,7 +563,7 @@
 			<timeout>18000</timeout>
 			<testparams>
 				<param>SCSI=0,0,Fixed</param>
-				<param>SCSI=0,1,Fixed</param> 
+				<param>SCSI=0,1,Fixed</param>
 				<param>TC_COVERED=DSK_VHD-52,DSK_VHD-54</param>
 			</testparams>
 			<onError>Continue</onError>
@@ -580,7 +580,7 @@
 			<timeout>18000</timeout>
 			<testparams>
 				<param>SCSI=0,0,Dynamic</param>
-				<param>SCSI=0,1,Dynamic</param>  
+				<param>SCSI=0,1,Dynamic</param>
 				<param>NO=2</param>
 				<param>TEST_DEVICE1=/dev/sdb</param>
 				<param>TEST_DEVICE2=/dev/sdc</param>
