@@ -25,16 +25,9 @@
 #
 # FC_disks.sh
 # Description:
-#	This script was created to automate the testing of a Linux
-#	Integration services. This script will identify the number of
-#	total disks detected inside the guest VM.
-#	It will then format one FC disk and perform read/write checks on it.
-#   This test verifies the first FC disk, if you want to check every disk
-#   move the exit statement from line 215 to line 217.
-#
-#	 To pass test parameters into test cases, the host will create
-#    a file named constants.sh. This file contains one or more
-#    variable definition.
+# This script will identify the number of total disks detected inside the guest VM.
+# It will then format the FC disks, perform read/write checks and check
+# Call Trace.
 #
 ################################################################
 
@@ -59,7 +52,7 @@ do
 done
 
 #
-# Subtract the boot disk from the sdCount, then make sure the two disk counts match
+# Subtract the boot disk from the sdCount
 #
 sdCount=$((sdCount-1))
 echo "/dev/sd* disk count = $sdCount"
@@ -146,11 +139,9 @@ do
         SetTestStateFailed
         exit 90
     fi
-
-# Check for Call traces
-CheckCallTracesWithDelay 20
-
-SetTestStateCompleted
-
-exit 0
 done
+
+# Check for Call Trace
+CheckCallTracesWithDelay 20
+SetTestStateCompleted
+exit 0
