@@ -43,7 +43,8 @@
             <suiteTest>Verify_LIS_Modules</suiteTest>
             <suiteTest>initrd_modules_check</suiteTest>
             <suiteTest>check_clocksource</suiteTest>
-            <suiteTest>check_clockevent</suiteTest>
+            <suiteTest>check_clockevent_UP</suiteTest>
+            <suiteTest>check_clockevent_SMP</suiteTest>
             <suiteTest>TimeSync</suiteTest>
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
@@ -372,27 +373,31 @@
        </test>
 
         <test>
-            <testName>check_clocksource</testName>
-            <testScript>check_clocksource.sh</testScript>
-            <files>remote-scripts/ica/check_clocksource.sh,remote-scripts/ica/utils.sh</files>
-            <testParams>
-                <param>TC_COVERED=CORE-26</param>
-            </testParams>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>
-        </test>
-
-        <test>
-            <testName>check_clockevent</testName>
+            <testName>check_clockevent_UP</testName>
             <testScript>check_clockevent.sh</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
             <files>remote-scripts/ica/check_clockevent.sh,remote-scripts/ica/utils.sh</files>
             <testParams>
                 <param>TC_COVERED=CORE-36</param>
+                <param>VCPU=1</param>
             </testParams>
             <timeout>600</timeout>
             <onError>Continue</onError>
-            <noReboot>True</noReboot>
+            <noReboot>false</noReboot>
+        </test>
+
+        <test>
+            <testName>check_clockevent_SMP</testName>
+            <testScript>check_clockevent.sh</testScript>
+            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+            <files>remote-scripts/ica/check_clockevent.sh,remote-scripts/ica/utils.sh</files>
+            <testParams>
+                <param>TC_COVERED=CORE-37</param>
+                <param>VCPU=8</param>
+            </testParams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>false</noReboot>
         </test>
 
         <test>

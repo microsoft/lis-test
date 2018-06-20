@@ -62,6 +62,23 @@ CheckClockEvent()
             exit 1
         fi
     fi
+}
+
+# check timer info in /proc/timer_list compares vcpu count
+CheckTimerInfo()
+{
+    timer_list="/proc/timer_list"
+    clockevent_count=`cat $timer_list | grep "Hyper-V clockevent" | wc -l`
+    event_handler_count=`cat $timer_list | grep "hrtimer_interrupt" | wc -l`
+    if [ $clockevent_count -eq $VCPU ] && [ $event_handler_count -eq $VCPU ]; then
+        LogMsg "Test successful. Check both clockevent count and event_handler count equal vcpu count."
+        UpdateSummary "Test successful. clockevent count is $clockevent_count,event_handler count is $event_handler_count, vcpu is $VCPU"
+    else
+        LogMsg "Test failed. Check clockevent count or event_handler count does not equal vcpu count."
+        UpdateSummary "Test failed. clockevent count is $clockevent_count,event_handler count is $event_handler_count, vcpu is $VCPU"
+        SetTestStateFailed
+        exit 1
+    fi
 
 }
 
@@ -78,9 +95,11 @@ case $DISTRO in
         ;;
     redhat_7|redhat_8|centos_7|centos_8|fedora*)
         CheckClockEvent
+        CheckTimerInfo
         ;;
     ubuntu* )
         CheckClockEvent
+        CheckTimerInfo
         ;;
     *)
         msg="ERROR: Distro '$DISTRO' not supported"
@@ -91,6 +110,6 @@ case $DISTRO in
         ;;
 esac
 LogMsg "Test completed successfully"
-UpdateSummary "Test passed: the current_clockevent is not null and value is right."
+UpdateSummary "Test passed."
 SetTestStateCompleted
 exit 0
