@@ -391,7 +391,7 @@
            <files>remote-scripts/ica/Core_Time_Clockevent.sh</files>
            <files>remote-scripts/ica/utils.sh</files>
            <testParams>
-               <param>TC_COVERED=CORE-36</param>
+               <param>TC_COVERED=CORE-36a</param>
                <param>VCPU=1</param>
            </testParams>
            <timeout>600</timeout>
@@ -405,7 +405,7 @@
            <files>remote-scripts/ica/Core_Time_Clockevent.sh</files>
            <files>remote-scripts/ica/utils.sh</files>
            <testParams>
-               <param>TC_COVERED=CORE-37</param>
+               <param>TC_COVERED=CORE-36b</param>
                <param>VCPU=8</param>
            </testParams>
            <timeout>600</timeout>
