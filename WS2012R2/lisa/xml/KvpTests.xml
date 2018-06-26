@@ -42,6 +42,7 @@
             <suiteTests>
                 <suiteTest>SQM_Basic</suiteTest>
                 <suiteTest>KVP_Basic</suiteTest>
+                <suiteTest>ReadKVPData_BasicTest</suiteTest>
                 <suiteTest>KVP_Add_Key_Values</suiteTest>
                 <suiteTest>KVP_Modify_Key_Values</suiteTest>
                 <suiteTest>KVP_Remove_Key_Values</suiteTest>
@@ -75,6 +76,19 @@
             <noReboot>True</noReboot>
             <testparams>
                 <param>TC_COVERED=KVP-01</param>
+            </testparams>
+        </test>
+
+        <test>
+            <testName>ReadKVPData_BasicTest</testName>
+            <testScript>KVP_BasicTest.sh</testScript>
+            <files>remote-scripts\ica\KVP_BasicTest.sh,remote-scripts/ica/utils.sh,
+                tools/KVP/kvp_client64,tools/KVP/kvp_client32</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=BVT-21</param>
             </testparams>
         </test>
 
@@ -206,7 +220,7 @@
             <testparams>
                 <param>TC_COVERED=KVP-12</param>
                 <param>Pool=1</param>
-                <!-- Number of key pairs to be added in the kvp pool -->  
+                <!-- Number of key pairs to be added in the kvp pool -->
                 <param>Entries=250</param>
             </testparams>
         </test>
