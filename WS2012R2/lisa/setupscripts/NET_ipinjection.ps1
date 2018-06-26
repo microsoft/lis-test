@@ -465,16 +465,6 @@ for ($i=0; $i -le 2; $i++)
     }
 }
 
-# check selinux denied log after ip injection.
-$sts = GetSelinuxAVCLog
-if ($sts[-1]) {
-    "Error: There is selinux avc denied log in audit log after ip injection"
-    $isPassed = $false
-}
-else {
-    "Info: no selinux avc deny log in audit logs after ip injection"
-}
-
 if ($isPassed -eq $false) {
     "Error: All attempts failed"
     exit 1

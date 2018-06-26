@@ -177,7 +177,7 @@ function checkResults([string] $vmName, [string] $hvServer)
 	if ($vmState -eq "Running")
 	{
 		if ($ip_address -eq $null)
-		{  
+		{
 			$logger.info("Restarting VM to bring up network")
 			Restart-VM -vmName $vmName -ComputerName $hvServer -Force
 			WaitForVMToStartKVP $vmName $hvServer $timeout
@@ -214,15 +214,15 @@ function checkResults([string] $vmName, [string] $hvServer)
 	}
 	$logger.info("VM IP is $ip_address")
 
-	$sts= GetSelinuxAVCLog
+	$sts= GetSelinuxAVCLog $ip_address $sshkey
 	if ($sts[-1])
     {
-		$logger.error("There is selinux avc denied log in audit log")
+		$logger.error("$($sts[-2])")
 		return $False
     }
     else
     {
-		$logger.info("no selinux avc deny log in audit logs")
+		$logger.info("$($sts[-2])")
     }
 	# only check restore file when ip available
 	$stsipv4 = Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue

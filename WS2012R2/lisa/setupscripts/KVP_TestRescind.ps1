@@ -229,12 +229,10 @@ if ($gsi.PrimaryOperationalStatus -ne "OK") {
 }
 
 # check selinux denied log after ip injection.
-$sts = GetSelinuxAVCLog
+$sts = GetSelinuxAVCLog $ipv4 $sshkey
+write-output $sts[-2] | Tee-Object -Append -file $summaryLog
 if ($sts[-1]) {
-    "Error: There is selinux avc denied log in audit log after disable/enable kvp"
      return $Failed
 }
-else {
-    "Info: no selinux avc deny log in audit logs after disable/enable kvp"
-}
+
 return $Passed
