@@ -118,13 +118,13 @@ foreach ($p in $params)
 {
     $fields = $p.Split("=")
     switch ($fields[0].Trim())
-    {      
+    {
     "ipv4"      { $ipv4    = $fields[1].Trim() }
     "sshKey"    { $sshKey  = $fields[1].Trim() }
     "rootdir"      { $rootDir   = $fields[1].Trim() }
     "TC_COVERED"   { $tcCovered = $fields[1].Trim() }
     "CycleCount"    { $CycleCount = $fields[1].Trim() }
-    default  {}       
+    default  {}
     }
 }
 
@@ -150,81 +150,89 @@ else {
 }
 
 $checkVM = Check-Systemd
-if ($checkVM -eq "True") {
-    # Get KVP Service status
-    $gsi = Get-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
-    if ($? -ne "True") {
-        Write-Output "Error: Unable to get Key-Value Pair status on $vmName ($hvServer)" | Tee-Object -Append -file $summaryLog
-        return $Failed
-    }
-
-    # Check if VM is RedHat 7.3 or later (and if not, check external LIS exists)
-    $supportkernel = "3.10.0.514" #kernel version for RHEL 7.3
-    $isRHEL = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "yum --version 2> /dev/null"
-    if ($? -eq "True") {
-        $kernelSupport = GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
-        if ($kernelSupport -ne "True") {
-            Write-Output "Info: Kernels older than 3.10.0-514 require LIS-4.x drivers." | Tee-Object -Append -file $summaryLog
-            $checkExternal = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rpm -qa | grep kmod-microsoft-hyper-v && rpm -qa | grep microsoft-hyper-v"
-            if ($? -ne "True") {
-                Write-Output "Error: No LIS-4.x drivers detected. Skipping test." | Tee-Object -Append -file $summaryLog
-                return $Skipped
-            }
-        }
-    }
-
-    # If KVP is not enabled, enable it
-    if ($gsi.Enabled -ne "True") {
-        Enable-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
-        if ($? -ne "True") {
-            Write-Output "Error: Unable to enable Key-Value Pair on $vmName ($hvServer)" | Tee-Object -Append -file $summaryLog
-            return $Failed
-        }
-    }
-
-    # Disable and Enable KVP according to the given parameter
-        $counter = 0
-        while ($counter -lt $CycleCount) {
-            Disable-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
-            if ($? -ne "True") {
-                Write-Output "Error: Unable to disable VMIntegrationService on $vmName ($hvServer) on $counter run" | Tee-Object -Append -file $summaryLog
-                return $Failed
-            }
-            Start-Sleep 5
-
-            Enable-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
-            if ($? -ne "True") {
-                Write-Output "Error: Unable to enable VMIntegrationService on $vmName ($hvServer) on $counter run" | Tee-Object -Append -file $summaryLog
-                return $Failed
-            }
-            Start-Sleep 5
-            $counter += 1
-        }
-
-        Write-Output "Disabled and Enabled KVP Exchange $counter times" | Tee-Object -Append -file $summaryLog
-
-    #Check KVP service status after disable/enable
-    $gsi = Get-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
-    if ($gsi.PrimaryOperationalStatus -ne "OK") {
-        Write-Output "Error: Key-Value Pair service is not operational after disable/enable cycle. `
-        Current status: $gsi.PrimaryOperationalStatus" | Tee-Object -Append -file $summaryLog
-        return $Failed
-    } else {
-        # Daemon name might vary. Get the correct daemon name based on systemctl output
-        $daemonName = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl list-unit-files | grep kvp"
-        $daemonName = $daemonName.Split(".")[0]
-
-        #If the KVP service is OK, check the KVP daemon on the VM
-        $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active $daemonName"
-        if ($checkProcess -ne "active") {
-             Write-Output "Error: $daemonName is not running on $vmName after disable/enable cycle" | Tee-Object -Append -file $summaryLog
-             return $Failed
-        } else {
-            Write-Output "Info: KVP service and $daemonName are operational after disable/enable cycle" | Tee-Object -Append -file $summaryLog
-            return $Passed
-        }
-    }
-} else {
+if ( -not $checkVM[-1]) {
     Write-Output "Systemd is not being used. Test Skipped" | Tee-Object -Append -file $summaryLog
     return $Skipped
 }
+
+# Get KVP Service status
+$gsi = Get-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
+if ($? -ne "True") {
+    Write-Output "Error: Unable to get Key-Value Pair status on $vmName ($hvServer)" | Tee-Object -Append -file $summaryLog
+    return $Failed
+}
+
+# Check if VM is RedHat 7.3 or later (and if not, check external LIS exists)
+$supportkernel = "3.10.0.514" #kernel version for RHEL 7.3
+$isRHEL = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "yum --version 2> /dev/null"
+if ($? -eq "True") {
+    $kernelSupport = GetVMFeatureSupportStatus $ipv4 $sshKey $supportkernel
+    if ($kernelSupport -ne "True") {
+        Write-Output "Info: Kernels older than 3.10.0-514 require LIS-4.x drivers." | Tee-Object -Append -file $summaryLog
+        $checkExternal = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rpm -qa | grep kmod-microsoft-hyper-v && rpm -qa | grep microsoft-hyper-v"
+        if ($? -ne "True") {
+            Write-Output "Error: No LIS-4.x drivers detected. Skipping test." | Tee-Object -Append -file $summaryLog
+            return $Skipped
+        }
+    }
+}
+
+# If KVP is not enabled, enable it
+if ($gsi.Enabled -ne "True") {
+    Enable-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
+    if ($? -ne "True") {
+        Write-Output "Error: Unable to enable Key-Value Pair on $vmName ($hvServer)" | Tee-Object -Append -file $summaryLog
+        return $Failed
+    }
+}
+
+# Disable and Enable KVP according to the given parameter
+$counter = 0
+while ($counter -lt $CycleCount) {
+    Disable-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
+    if ($? -ne "True") {
+        Write-Output "Error: Unable to disable VMIntegrationService on $vmName ($hvServer) on $counter run" | Tee-Object -Append -file $summaryLog
+        return $Failed
+    }
+    Start-Sleep 5
+
+    Enable-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
+    if ($? -ne "True") {
+        Write-Output "Error: Unable to enable VMIntegrationService on $vmName ($hvServer) on $counter run" | Tee-Object -Append -file $summaryLog
+        return $Failed
+    }
+    Start-Sleep 5
+    $counter += 1
+}
+
+Write-Output "Disabled and Enabled KVP Exchange $counter times" | Tee-Object -Append -file $summaryLog
+
+#Check KVP service status after disable/enable
+$gsi = Get-VMIntegrationService -Name "Key-Value Pair Exchange" -vmName $vmName -ComputerName $hvServer
+if ($gsi.PrimaryOperationalStatus -ne "OK") {
+    Write-Output "Error: Key-Value Pair service is not operational after disable/enable cycle. `
+    Current status: $gsi.PrimaryOperationalStatus" | Tee-Object -Append -file $summaryLog
+    return $Failed
+} else {
+    # Daemon name might vary. Get the correct daemon name based on systemctl output
+    $daemonName = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl list-unit-files | grep kvp"
+    $daemonName = $daemonName.Split(".")[0]
+
+    #If the KVP service is OK, check the KVP daemon on the VM
+    $checkProcess = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemctl is-active $daemonName"
+    if ($checkProcess -ne "active") {
+         Write-Output "Error: $daemonName is not running on $vmName after disable/enable cycle" | Tee-Object -Append -file $summaryLog
+         return $Failed
+    } else {
+        Write-Output "Info: KVP service and $daemonName are operational after disable/enable cycle" | Tee-Object -Append -file $summaryLog
+    }
+}
+
+# check selinux denied log after ip injection.
+$sts = GetSelinuxAVCLog $ipv4 $sshkey
+write-output $sts[-2] | Tee-Object -Append -file $summaryLog
+if ($sts[-1]) {
+     return $Failed
+}
+
+return $Passed

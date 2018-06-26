@@ -2126,26 +2126,28 @@ function GetSelinuxAVCLog([String] $ipv4, [String] $sshKey)
     $filename = ".\audit.log"
     $text_hv = "hyperv"
     $text_avc = "type=avc"
-    echo y | .\bin\pscp -i ssh\${sshKey}  root@${ipv4}:/var/log/audit.log $filename
 
+    echo y | .\bin\plink -i ssh\${sshKey} root@${ipv4} "ls /var/log/audit/audit.log"
+    if (-not $?) {
+        Write-Output "Warning: Unable to find audit.log from the VM, ignore audit log check"
+        return $False
+    }
+
+    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/var/log/audit/audit.log $filename
     if (-not $?) {
         Write-Output "ERROR: Unable to copy audit.log from the VM"
         return $False
     }
 
     $file = Get-Content $filename
-    if (-not $file) {
-        Write-Error -Message "Error: Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-     foreach ($line in $file) {
+    del $filename
+    foreach ($line in $file) {
         if ($line -match $text_hv -and $line -match $text_avc){
-            write-output "Warning: get the avc denied log: $line"
+            write-output "ERROR: get the avc denied log: $line"
             return $True
         }
     }
-    del $filename
+    write-output "Info: no avc denied log in audit log as expected"
     return $False
 }
 
@@ -2236,7 +2238,7 @@ function CheckCallTracesWithDelay ([String]$sshKey, [String]$ipv4)
     $ErrorActionPreference = 'silentlycontinue'
     $sts = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat ~/check_traces.log | grep ERROR"
     if ($sts.Contains("ERROR")) {
-        return $false 
+        return $false
     }
     if ($sts -eq $NULL) {
         return $true
