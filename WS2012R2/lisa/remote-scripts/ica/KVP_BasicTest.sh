@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ################################################################
+#
 # KVP_BasicTest.sh
 # Description:
 # 1. verify that the KVP Daemon is running
@@ -8,18 +9,20 @@
 # 3. check kvp_pool file permission is 644
 # 4. check kernel version supports hv_kvp
 # 5. Use lsof to check the opened file number belonging to hypervkvp process does not increase
-#    continually. If this number increased, maybe file descriptor is not closed properly.
-#    Here check duraiton is 2 minutes.
+#    continually. If this number increases, maybe file descriptors are not closed properly.
+#    Here check duration is after 2 minutes.
+#
 ################################################################
+
 InstallLsof()
 {
     case $DISTRO in
 
-        redhat*|centos*|fedora*)
+        redhat* | centos* | fedora*)
             yum install lsof -y
             ;;
-        ubuntu* )
-            apt-get install -y lsof
+        ubuntu* | debian*)
+            apt update; apt install -y lsof
             ;;
         suse* )
             zypper install -y lsof
@@ -85,13 +88,13 @@ fi
 chmod +x /root/kvp_client*
 poolCount=`/root/$kvp_client | grep -i pool | wc -l`
 if [ $poolCount -ne 5 ]; then
-    msg="Error: Could not find a total of 5 KVP pools"
+    msg="Error: Could not find a total of 5 KVP data pools"
     LogMsg $msg
     UpdateSummary $msg
     SetTestStateFailed
     exit 10
 fi
-LogMsg "Verified that the 0-4 all the 5 data pools are listed properly"
+LogMsg "Verified that all 5 KVP data pools are listed properly"
 
 #
 # 3. check kvp_pool file permission is 644
@@ -103,7 +106,7 @@ if [ $permCount -ne 5 ]; then
     SetTestStateFailed
     exit 10
 fi
-LogMsg "Verified that .kvp_pool file permission is 644"
+LogMsg "Verified that .kvp_pool files permission is 644"
 
 #
 # 4. check kernel version supports hv_kvp
@@ -134,7 +137,7 @@ lsofCountBegin=`lsof | grep -c kvp`
 sleep 120
 lsofCountEnd=`lsof | grep -c kvp`
 if [ $lsofCountBegin -ne $lsofCountEnd ]; then
-    msg="ERROR: hypervkvp opend file number has changed from $lsofCountBegin to $lsofCountEnd"
+    msg="ERROR: hypervkvp opened file number has changed from $lsofCountBegin to $lsofCountEnd"
     LogMsg "${msg}"
     UpdateSummary "${msg}"
     SetTestStateFailed
