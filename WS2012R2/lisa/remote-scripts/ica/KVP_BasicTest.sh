@@ -7,7 +7,9 @@
 # 2. run the KVP client tool and verify that the data pools are created and accessible
 # 3. check kvp_pool file permission is 644
 # 4. check kernel version supports hv_kvp
-# 5. check lsof number for kvp after sleep 2 minutes
+# 5. Use lsof to check the opened file number belonging to hypervkvp process does not increase
+#    continually. If this number increased, maybe file descriptor is not closed properly.
+#    Here check duraiton is 2 minutes.
 ################################################################
 InstallLsof()
 {
@@ -26,7 +28,7 @@ InstallLsof()
             msg="ERROR: Distro '$DISTRO' not supported"
             LogMsg "${msg}"
             UpdateSummary "${msg}"
-            SetTestStateFailed
+            SetTestStateAborted
             exit 1
             ;;
     esac
@@ -54,10 +56,10 @@ UtilsInit
 #
 pid=`pgrep "hypervkvpd|hv_kvp_daemon"`
 if [ $? -ne 0 ]; then
-	LogMsg "KVP Daemon is not running by default"
-	UpdateSummary "KVP daemon not running by default, basic test: Failed"
-	SetTestStateFailed
-	exit 10
+    LogMsg "KVP Daemon is not running by default"
+    UpdateSummary "KVP daemon not running by default, basic test: Failed"
+    SetTestStateFailed
+    exit 10
 fi
 LogMsg "KVP Daemon is started on boot and it is running"
 
@@ -83,10 +85,11 @@ fi
 chmod +x /root/kvp_client*
 poolCount=`/root/$kvp_client | grep -i pool | wc -l`
 if [ $poolCount -ne 5 ]; then
-	LogMsg "pools are not created properly"
-	UpdateSummary "Pools are not listed properly, KVP Basic test: Failed"
-	SetTestStateFailed
-	exit 10
+    msg="Error: Could not find a total of 5 KVP pools"
+    LogMsg $msg
+    UpdateSummary $msg
+    SetTestStateFailed
+    exit 10
 fi
 LogMsg "Verified that the 0-4 all the 5 data pools are listed properly"
 
@@ -95,10 +98,10 @@ LogMsg "Verified that the 0-4 all the 5 data pools are listed properly"
 #
 permCount=`stat -c %a /var/lib/hyperv/.kvp_pool* | grep 644 | wc -l`
 if [ $permCount -ne 5 ]; then
-        LogMsg ".kvp_pool file permission is incorrect "
-    	UpdateSummary ".kvp_pool file permission is incorrect"
-    	SetTestStateFailed
-        exit 10
+    LogMsg ".kvp_pool file permission is incorrect "
+    UpdateSummary ".kvp_pool file permission is incorrect"
+    SetTestStateFailed
+    exit 10
 fi
 LogMsg "Verified that .kvp_pool file permission is 644"
 
@@ -119,23 +122,26 @@ else
 fi
 
 #
-# 5. check lsof number for kvp after sleep 2 minutes
+# 5. check lsof number for kvp whether increase or not after sleep 2 minutes
 #
 GetDistro
-InstallLsof
+command -v lsof
+if [ $? -ne 0 ]; then
+    InstallLsof
+fi
 
 lsofCountBegin=`lsof | grep -c kvp`
 sleep 120
 lsofCountEnd=`lsof | grep -c kvp`
 if [ $lsofCountBegin -ne $lsofCountEnd ]; then
-        msg="ERROR: kvp file number has changed from $lsofCountBegin to $lsofCountEnd"
-        LogMsg "${msg}"
-        UpdateSummary "${msg}"
-    	SetTestStateFailed
-        exit 10
+    msg="ERROR: hypervkvp opend file number has changed from $lsofCountBegin to $lsofCountEnd"
+    LogMsg "${msg}"
+    UpdateSummary "${msg}"
+    SetTestStateFailed
+    exit 10
 fi
 LogMsg "Verified that lsof for kvp is $lsofCountBegin, after 2 minutes is $lsofCountEnd"
 
-UpdateSummary "KVP Daemon running, correct data pools permissions and reasonable lsof number of kvp"
+UpdateSummary "KVP Daemon running, correct data pools permissions and reasonable lsof number for kvp"
 SetTestStateCompleted
 exit 0
