@@ -650,6 +650,7 @@ permissions and limitations under the License.
             <onError>Continue</onError>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
         </test>
+        <test>
         <testName>Ifdown-ifup-regression</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
             <testParams>
