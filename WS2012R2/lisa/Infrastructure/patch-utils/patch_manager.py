@@ -69,21 +69,17 @@ class PatchManager(object):
     def compile(self):
         for build_folder in os.listdir(self.builds_path):
             build_path = os.path.join(self.builds_path, build_folder)
+            work_path = os.path.join(build_path, 'hv-rhel7.x/hv')
             try:
-                build(build_path)
-                logger.info('Successfully compiled %s' % build_path)
+                logger.info('Trying to build in %s' % work_path)
+                build(work_path)
+                logger.info('Successfully compiled %s' % work_path)
             except RuntimeError as exc:
-                logger.error('Unable to build %s' % build_path)
+                logger.error('Unable to build %s' % work_path)
                 logger.error(exc)
+                logger.error('Moving %s to %s ' % (build_path, self.failures_path))
                 move(build_path, self.failures_path)
             
-            try:
-                build(build_path, clean=True)
-            except RuntimeError as exc:
-                logger.error('Error while running cleanup for %s' % build_path)
-                move(build_path, self.failures_path)
-                logger.error(exc)
-
     def commit(self):
         commit_message = "RH7: {} <upstream:{}>"
         for project in os.listdir(self.builds_folder):
