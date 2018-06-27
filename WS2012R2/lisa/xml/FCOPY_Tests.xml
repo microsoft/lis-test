@@ -23,15 +23,11 @@
         <LisaInitScript>
             <file>.\setupScripts\CreateVMs.ps1</file>
         </LisaInitScript>
-	<imageStoreDir>\\unc\path</imageStoreDir>
+        <imageStoreDir>\\unc\path</imageStoreDir>
         <dependency>
             <!-- Only Windows Server 2012 R2 and newer supports this feature -->
             <hostVersion>6.3.9600</hostVersion>
         </dependency>
-        <LisaInitScript>
-            <file>.\setupScripts\CreateVMs.ps1</file>
-        </LisaInitScript>
-        <imageStoreDir>\\unc\path</imageStoreDir>
         <email>
             <recipients>
                 <to>myboss@mycompany.com</to>
