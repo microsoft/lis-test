@@ -201,6 +201,7 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <files>tools\bondvf.sh</files>
             <timeout>2600</timeout>
             <testParams>
                 <param>TC_COVERED=LISDeploy-09</param>
@@ -216,6 +217,7 @@
                 <file>setupscripts\NET_ADD_NIC_MAC.ps1</file>
             </setupScript>
             <testScript>setupscripts\deploy_scenarios_pipeline.ps1</testScript>
+            <files>tools\bondvf.sh</files>
             <timeout>2600</timeout>
             <testParams>
                 <param>TC_COVERED=LISDeploy-10</param>
