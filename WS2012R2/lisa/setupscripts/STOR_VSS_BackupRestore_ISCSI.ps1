@@ -25,18 +25,18 @@
 
 .Description
     This script will connect to a iSCSI target, format and mount the iSCSI disk.
-    After that it will proceed with backup/restore operation. 
-    
-    It uses a second partition as target. 
+    After that it will proceed with backup/restore operation.
+
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     A typical xml entry looks like this:
 
     <test>
         <testName>VSS_BackupRestore_ISCSI</testName>
-        <testScript>setupscripts\VSS_BackupRestore_ISCSI.ps1</testScript> 
+        <testScript>setupscripts\VSS_BackupRestore_ISCSI.ps1</testScript>
         <testParams>
             <param>driveletter=F:</param>
             <param>TargetIP=10.7.1.10</param>
@@ -65,10 +65,10 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $retVal = $false
 $remoteScript = "STOR_VSS_ISCSI_PartitionDisks.sh"
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Check input arguments
@@ -94,7 +94,7 @@ foreach ($p in $params)
         "FILESYS" { $FILESYS = $fields[1].Trim() }
         "TargetIP" { $TargetIP = $fields[1].Trim() }
         "TestLogDir" { $TestLogDir = $fields[1].Trim() }
-        default  {}          
+        default  {}
         }
 }
 
@@ -116,12 +116,6 @@ if ($null -eq $rootdir)
     return $False
 }
 
-if ($null -eq $driveletter)
-{
-    "ERROR: Test parameter driveletter was not specified."
-    return $False
-}
-
 if ($null -eq $FILESYS)
 {
     "ERROR: Test parameter FILESYS was not specified"
@@ -136,6 +130,7 @@ if ($null -eq $TargetIP)
 
 # Change the working directory to where we need to be
 cd $rootDir
+
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
@@ -161,10 +156,17 @@ else {
 	return $false
 }
 
-
-$sts = runSetup $vmName $hvServer $driveletter
-if (-not $sts[-1]) 
+$sts = runSetup $vmName $hvServer
+if (-not $sts[-1])
 {
+    return $False
+}
+
+$driveletter = $global:driveletter
+
+if ($null -eq $driveletter)
+{
+    "ERROR: Test parameter driveletter was not specified."
     return $False
 }
 
@@ -196,7 +198,7 @@ if (-not $sts[-1])
 {
     return $False
 }
-else 
+else
 {
     $backupLocation = $sts
 }
@@ -208,11 +210,11 @@ if (-not $sts[-1])
 }
 
 $sts = checkResults $vmName $hvServer
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
     $retVal = $False
-} 
-else 
+}
+else
 {
 	$retVal = $True
     $results = $sts

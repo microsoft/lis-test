@@ -129,14 +129,11 @@ foreach ($vmName in $vms)
     Restore-VMSnapshot $snap[-1] -Confirm:$false -Verbose
     if ($? -ne "True")
     {
-    write-host "Error while reverting VM snapshot on $vmName"
-    return $False
+        return $False
     }
     else
     {
-        Write-Output "VM snapshot reverted on $vmName"
         $retVal = $true
     }
 }
-
 return $retVal

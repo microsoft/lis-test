@@ -25,19 +25,19 @@
 
 .Description
     This script will format and mount connected disk in the VM.
-    After that it will proceed with backup/restore operation. 
-    
-    It uses a second partition as target. 
+    After that it will proceed with backup/restore operation.
+
+    It uses a second partition as target.
 
     Note: The script has to be run on the host. A second partition
-    different from the Hyper-V one has to be available. 
+    different from the Hyper-V one has to be available.
 
     A typical xml entry looks like this:
 
     <test>
         <testName>VSS_BackupRestore_ext4_vhdx</testName>
         <setupScript>setupscripts\AddVhdxHardDisk.ps1</setupScript>
-        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript> 
+        <testScript>setupscripts\VSS_BackupRestore_Partition.ps1</testScript>
         <testParams>
             <param>driveletter=F:</param>
             <param>SCSI=0,1,Dynamic</param>
@@ -67,12 +67,12 @@
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 $retVal = $false
-$remoteScript = "PartitionDisks.sh"
+$remoteScript = "PartitionMultipleDisks.sh"
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 
 # Check input arguments
@@ -95,8 +95,8 @@ foreach ($p in $params)
         "ipv4" { $ipv4 = $fields[1].Trim() }
         "rootdir" { $rootDir = $fields[1].Trim() }
         "driveletter" { $driveletter = $fields[1].Trim() }
-        "FILESYS" { $FILESYS = $fields[1].Trim() }
-        default  {}          
+        "fileSystems" { $fileSystems = $fields[1].Trim() }
+        default  {}
         }
 }
 
@@ -118,15 +118,9 @@ if ($null -eq $rootdir)
     return $False
 }
 
-if ($null -eq $driveletter)
+if ($null -eq $fileSystems)
 {
-    "ERROR: Test parameter driveletter was not specified."
-    return $False
-}
-
-if ($null -eq $FILESYS)
-{
-    "ERROR: Test parameter FILESYS was not specified"
+    "ERROR: Test parameter fileSystems was not specified"
     return $False
 }
 
@@ -136,7 +130,7 @@ cd $rootDir
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
 	. .\setupScripts\TCUtils.ps1
-	"Info: Sourced TCUtils.ps1"
+	"Info: Sourced TCUtils.ps1 in STOR_VSS_BackupRestore_Partition.ps1"
 }
 else {
 	"Error: Could not find setupScripts\TCUtils.ps1"
@@ -158,11 +152,18 @@ else {
 	return $false
 }
 
-
-$sts = runSetup $vmName $hvServer $driveletter
-if (-not $sts[-1]) 
+$sts = runSetup $vmName $hvServer
+if (-not $sts[-1])
 {
 	return $False
+}
+
+$driveletter = $global:driveletter
+
+if ($null -eq $driveletter)
+{
+    "ERROR: Backup driveletter is not specified."
+    return $False
 }
 
 # Run the remote script
@@ -178,8 +179,9 @@ $logger.info("Here are the remote logs:")
 $logger.info($(Get-Content $logfilename))
 del $remoteScript.log
 
+
 $sts = startBackup $vmName $driveletter
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	return $False
 } else {
@@ -187,19 +189,19 @@ if (-not $sts[-1])
 }
 
 $sts = restoreBackup $backupLocation
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	$logger.error("Restore backup action failed")
 	return $False
 }
 
 $sts = checkResults $vmName $hvServer
-if (-not $sts[-1]) 
+if (-not $sts[-1])
 {
 	$logger.error("Backup evaluation failed")
 	$retVal = $False
 }
-else 
+else
 {
 	$retVal = $True
     $results = $sts

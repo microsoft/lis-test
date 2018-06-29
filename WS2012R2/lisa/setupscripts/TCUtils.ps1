@@ -1452,42 +1452,6 @@ function ConvertStringToDecimal([string] $str)
 }
 
 #######################################################################
-#
-# Check boot.msg in Linux VM for Recovering journal
-#
-#######################################################################
-function CheckRecoveringJ()
-{
-    $retValue = $False
-    $filename = ".\boot.msg"
-    $text = "recovering journal"
-
-    echo y | .\bin\pscp -i ssh\${sshKey}  root@${ipv4}:/var/log/boot.* ./boot.msg
-
-    if (-not $?) {
-		Write-Output "ERROR: Unable to copy boot.msg from the VM"
-		return $False
-    }
-
-    $file = Get-Content $filename
-    if (-not $file) {
-        Write-Error -Message "Error: Unable to read file" -Category InvalidArgument -ErrorAction SilentlyContinue
-        return $null
-    }
-
-     foreach ($line in $file) {
-        if ($line -match $text) {
-            $retValue = $True
-            Write-Output "$line"
-        }
-    }
-
-    del $filename
-    return $retValue
-}
-
-
-#######################################################################
 # Create a file on the VM.
 #######################################################################
 function CreateFile([string] $fileName)
