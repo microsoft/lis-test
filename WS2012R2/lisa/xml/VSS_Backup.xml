@@ -20,6 +20,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+        <imageStoreDir>\\unc\path</imageStoreDir>
         <dependency>
             <!-- Only Windows Server 2012 R2 and newer supports this feature -->
             <hostVersion>6.3.9600</hostVersion>
@@ -38,97 +42,71 @@
         <suite>
             <suiteName>STOR_VSS</suiteName>
             <suiteTests>
-                <suiteTest>STOR_VSS_BackupRestore_ext3_vhd</suiteTest>
-                <suiteTest>STOR_VSS_BackupRestore_ext4_vhd</suiteTest>
-                <suiteTest>STOR_VSS_BackupRestore_reiserfs_vhd</suiteTest>
-                <suiteTest>STOR_VSS_BackupRestore_ext4_vhdx</suiteTest>
+                <suiteTest>MainVM_Checkpoint</suiteTest>
+                <suiteTest>STOR_VSS_Setup_Backup_Disk</suiteTest>
+                <suiteTest>STOR_VSS_BackupRestore_multiFS_vhdx</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_ISO_NoNetwork</suiteTest>
+                <suiteTest>STOR_VSS_BackupRestore_DiskStress</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_3Chain_VHD</suiteTest>
-                <suiteTest>STOR_VSS_BackupRestore_State_Off</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_State_Paused</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_Fail</suiteTest>
-                <suiteTest>STOR_VSS_BackupRestore_ISCSI</suiteTest>
-                <suiteTest>STOR_VSS_BackupRestore_DiskStress</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_Mount_Multi_Paths</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_Mount_Squashfs</suiteTest>
                 <suiteTest>STOR_VSS_Backup_Disable_Enable_VSS</suiteTest>
                 <suiteTest>STOR_VSS_Backup_Change_Hypervvssd</suiteTest>
 
                 <!-- Live backup operations can fail silently if the VM has an
-                attached iSCSI device or direct-attached storage (pass-through disk)
-                <suiteTest>STOR_VSS_BackupRestore_PassTru</suiteTest> -->
+                attached iSCSI device or direct-attached storage (pass-through disk).
+                iSCSI test requires an iSCSI server and target setup information.
+
+                <suiteTest>STOR_VSS_BackupRestore_PassTru</suiteTest>
+                <suiteTest>STOR_VSS_BackupRestore_iSCSI</suiteTest> -->
+
+                <suiteTest>STOR_VSS_Cleanup_Backup_Disk</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
         <test>
-            <testName>STOR_VSS_BackupRestore_ext3_vhd</testName>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\AddHardDisk.ps1</file>
-            </setupScript>
-            <files>remote-scripts/ica/utils.sh</files>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
+            <testName>MainVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
             <testParams>
-                <param>TC_COVERED=VSS-01</param>
-                <param>SCSI=0,1,Dynamic</param>
-                <param>IDE=0,1,Dynamic</param>
-                <param>FILESYS=ext3</param>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
             </testParams>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
+        <test>
+            <testName>STOR_VSS_Setup_Backup_Disk</testName>
+            <testScript>setupscripts\Setup_Backup_Disk.ps1</testScript>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
         <test>
-            <testName>STOR_VSS_BackupRestore_ext4_vhd</testName>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\AddHardDisk.ps1</file>
-            </setupScript>
-            <files>remote-scripts/ica/utils.sh</files>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
-            <testParams>
-                <param>TC_COVERED=VSS-02</param>
-                <param>SCSI=0,1,Dynamic</param>
-                <param>IDE=0,1,Dynamic</param>
-                <param>FILESYS=ext4</param>
-            </testParams>
+            <testName>STOR_VSS_Cleanup_Backup_Disk</testName>
+            <testScript>setupscripts\Cleanup_Backup_Disk.ps1</testScript>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
 
         <test>
-            <testName>STOR_VSS_BackupRestore_reiserfs_vhd</testName>
+            <testName>STOR_VSS_BackupRestore_MultiFS_vhdx</testName>
             <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\AddHardDisk.ps1</file>
-            </setupScript>
-            <files>remote-scripts/ica/utils.sh</files>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
-            <testParams>
-                <param>TC_COVERED=VSS-03</param>
-                <param>SCSI=0,1,Dynamic</param>
-                <param>IDE=0,1,Dynamic</param>
-                <param>FILESYS=reiserfs</param>
-            </testParams>
-            <timeout>3000</timeout>
-            <OnError>Continue</OnError>
-        </test>
-
-        <test>
-            <testName>STOR_VSS_BackupRestore_ext4_vhdx</testName>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddVhdxHardDisk.ps1</file>
             </setupScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=VSS-05</param>
-                <param>SCSI=0,1,Dynamic</param>
-                <param>IDE=0,1,Dynamic</param>
-                <param>FILESYS=ext4</param>
+                <param>SCSI=0,0,Dynamic</param>
+                <param>SCSI=1,0,Dynamic</param>
+                <param>SCSI=2,0,Dynamic</param>
+                <param>fileSystems=(ext4 xfs btrfs)</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
@@ -186,20 +164,6 @@
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
-
-        <test>
-            <testName>STOR_VSS_BackupRestore_State_Off</testName>
-            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files>
-            <testParams>
-                <param>TC_COVERED=VSS-15</param>
-                <param>vmState=Off</param>
-            </testParams>
-            <timeout>3000</timeout>
-            <OnError>Continue</OnError>
-        </test>
-
         <test>
             <testName>STOR_VSS_BackupRestore_State_Paused</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
@@ -224,7 +188,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-16</param>
                 <param>SCSI=0,1,PassThrough</param>
-                <param>FILESYS=ext3</param>
+                <param>fileSystems=(ext4)</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
@@ -241,7 +205,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-18</param>
                 <param>IDE=0,1,Dynamic</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
@@ -258,7 +222,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-19</param>
                 <param>IDE=0,1,Dynamic</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
@@ -299,7 +263,6 @@
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
-
     </testCases>
 
     <VMs>
@@ -308,15 +271,20 @@
             <vmName>VM_NAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>linux_id_rsa.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>STOR_VSS</suite>
             <testParams>
-                <param>SSH_PRIVATE_KEY=linux_id_rsa</param>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
                 <param>snapshotName=ICABase</param>
-                <!-- The below param represents the backup location
-                Usually this is a separate disk not holding any VM data -->
-                <param>DriveLetter=V:</param>
             </testParams>
+            <hardware>
+                <create>true</create>
+                <numCPUs>2</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
         </vm>
     </VMs>
 </config>

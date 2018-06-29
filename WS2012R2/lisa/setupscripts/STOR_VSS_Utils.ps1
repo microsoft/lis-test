@@ -31,17 +31,11 @@
 
 function runSetup([string] $vmName, [string] $hvServer, [boolean] $check_vssd = $True)
 {
-	# $sts = Test-Path $driveletter
-	# if (-not $sts)
-	# {
-	# 	$logger.error("Error: Drive ${driveletter} does not exist")
-	# 	return $False
-	# }
 	$logger.info("Removing old backups")
 	try { Remove-WBBackupSet -Force -WarningAction SilentlyContinue }
 	Catch { $logger.info("No existing backup's to remove") }
 
-	# Check if the Vm VHD in not on the same drive as the backup destination
+	# Check if the VM VHD in not on the same drive as the backup destination
 	$vm = Get-VM -Name $vmName -ComputerName $hvServer
 	if (-not $vm)
 	{
@@ -80,12 +74,12 @@ function runSetup([string] $vmName, [string] $hvServer, [boolean] $check_vssd = 
 	}
 
 	# Create a file on the VM before backup
- 	$sts = CreateFile "/root/1"
- 	if (-not $sts[-1])
+	$sts = CreateFile "/root/1"
+	if (-not $sts[-1])
 	{
 		$logger.error("Cannot create test file")
 		return $False
- 	}
+	}
 
 	$logger.info("File created on VM: $vmname")
 	return $True
@@ -107,7 +101,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 	Set-WBVssBackupOptions -Policy $policy -VssCopyBackup
 
 	# Add the Virtual machines to the list
-	$VM = Get-WBVirtualMachine | where vmname -like $vmName
+	$VM = Get-WBVirtualMachine | Where-Object VMName -like $vmName
 	Add-WBVirtualMachine -Policy $policy -VirtualMachine $VM
 	Add-WBBackupTarget -Policy $policy -Target $backupLocation
 
@@ -133,7 +127,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 
 	# Delete file on the VM
 	$vmState = $(Get-VM -name $vmName -ComputerName $hvServer).state
-    if (-not $vmState) {
+	if (-not $vmState) {
 		$sts = DeleteFile
 		if (-not $sts[-1])
 		{
@@ -147,7 +141,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 
 function restoreBackup([string] $backupLocation)
 {
-    # Start the Restore
+	# Start the Restore
 	$logger.info("Now let's restore the VM from backup.")
 
 	# Get BackupSet
@@ -215,7 +209,7 @@ function checkResults([string] $vmName, [string] $hvServer)
 		{
 			$logger.error("${vmName} failed to resume")
 			return $False
-        }
+		}
 		else
 		{
 			$ip_address = GetIPv4 $vmName $hvServer
@@ -226,14 +220,14 @@ function checkResults([string] $vmName, [string] $hvServer)
 
 	$sts= GetSelinuxAVCLog $ip_address $sshkey
 	if ($sts[-1])
-    {
+	{
 		$logger.error("$($sts[-2])")
 		return $False
-    }
-    else
-    {
+	}
+	else
+	{
 		$logger.info("$($sts[-2])")
-    }
+	}
 	# only check restore file when ip available
 	$stsipv4 = Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue
 	if ($stsipv4.TcpTestSucceeded)
@@ -260,11 +254,12 @@ function checkResults([string] $vmName, [string] $hvServer)
 
 function runCleanup([string] $backupLocation)
 {
-    # Remove Created Backup
-    $logger.info("Removing old backups from $backupLocation")
-    try {
-    	Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue }
-    Catch { $logger.info("No existing backup's to remove")}
+	# Remove Created Backup
+	$logger.info("Removing old backups from $backupLocation")
+	try {
+		Remove-WBBackupSet -BackupTarget $backupLocation -Force -WarningAction SilentlyContinue
+	}
+	Catch { $logger.info("No existing backups to remove")}
 }
 
 function getBackupType()
@@ -298,11 +293,10 @@ function getBackupType()
 
 function getDriveLetter([string] $vmName, [string] $hvServer)
 {
-
 	if ($null -eq $vmName)
 	{
-        $logger.error("VM name was not specified.")
-        return $False
+		$logger.error("VM name was not specified.")
+		return $False
 	}
 
 	# Get the letter of the mounted backup drive

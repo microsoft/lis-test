@@ -1190,9 +1190,9 @@ function RunRemoteScript($remoteScript)
     $timeout       = 6000
     $params        = $scriptParam
 
-    "./${remoteScript} ${params} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest.sh
+    "./${remoteScript} ${params} > ${remoteScript}.log" | out-file -encoding ASCII -filepath runtest_${ipv4}.sh
 
-    .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
+    .\bin\pscp -i ssh\${sshKey} .\runtest_${ipv4}.sh root@${ipv4}:/root/runtest.sh
     if (-not $?)
     {
        Write-Output "ERROR: Unable to copy runtest.sh to the VM"
@@ -1239,13 +1239,13 @@ function RunRemoteScript($remoteScript)
     # Return the state file
     while ($timeout -ne 0 )
     {
-    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} . #| out-null
+    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} ./state_{ipv4}.txt #| out-null
     $sts = $?
     if ($sts)
     {
-        if (test-path $stateFile)
+        if (test-path ./state_{ipv4}.txt)
         {
-            $contents = Get-Content -Path $stateFile
+            $contents = Get-Content -Path ./state_{ipv4}.txt
             if ($null -ne $contents)
             {
                     if ($contents -eq $TestCompleted)
@@ -1314,16 +1314,14 @@ function RunRemoteScript($remoteScript)
             $contents = Get-Content -Path $remoteScriptLog
             if ($null -ne $contents)
             {
-                    if ($null -ne ${TestLogDir})
-                    {
-                        move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
-                    }
-
-                    else
-                    {
-                        Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
-                    }
-
+                if ($null -ne ${TestLogDir})
+                {
+                    move "${remoteScriptLog}" "${TestLogDir}\${remoteScriptLog}"
+                }
+                else
+                {
+                    Write-Output "INFO: $remoteScriptLog is copied in ${rootDir}"
+                }
             }
             else
             {
@@ -1337,9 +1335,8 @@ function RunRemoteScript($remoteScript)
     }
 
     # Cleanup
-    del state.txt -ErrorAction "SilentlyContinue"
-    del runtest.sh -ErrorAction "SilentlyContinue"
-
+    del state_{ipv4}.txt -ErrorAction "SilentlyContinue"
+    del runtest_${ipv4}.sh -ErrorAction "SilentlyContinue"
     return $retValue
 }
 
@@ -1452,7 +1449,9 @@ function ConvertStringToDecimal([string] $str)
 }
 
 #######################################################################
-# Create a file on the VM.
+#
+# Create a file on the VM
+#
 #######################################################################
 function CreateFile([string] $fileName)
 {
@@ -1750,8 +1749,6 @@ function GetNumaSupportStatus([string] $kernel)
     return $true
 }
 
-
-
 #####################################################################
 #
 # GetHostBuildNumber
@@ -1819,7 +1816,6 @@ function AskVmForTime([String] $sshKey, [String] $ipv4, [string] $command)
     #>
 
     $retVal = $null
-
     $sshKeyPath = Resolve-Path $sshKey
 
     #
@@ -2091,7 +2087,7 @@ function GetSelinuxAVCLog([String] $ipv4, [String] $sshKey)
     $text_hv = "hyperv"
     $text_avc = "type=avc"
 
-    echo y | .\bin\plink -i ssh\${sshKey} root@${ipv4} "ls /var/log/audit/audit.log"
+    echo y | .\bin\plink -i ssh\${sshKey} root@${ipv4} "ls /var/log/audit/audit.log > /dev/null 2>&1"
     if (-not $?) {
         Write-Output "Warning: Unable to find audit.log from the VM, ignore audit log check"
         return $False
