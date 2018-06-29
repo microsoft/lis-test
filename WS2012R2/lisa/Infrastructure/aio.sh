@@ -152,7 +152,7 @@ function GetOSVersion {
             os_VENDOR=""
         done
         os_PACKAGE="rpm"
-    
+
     #
     # If lsb_release is not installed, we should be able to detect Debian OS
     #
@@ -346,7 +346,7 @@ function install_stressapptest() {
     if [ ! -d $work_directory ] ; then
         mkdir $work_directory
     fi
-    
+
     git clone $stressapptest_githubLink $work_directory/stressapptest
     cd $work_directory/stressapptest
     ./configure
@@ -367,7 +367,7 @@ function install_stress_ng() {
     if [ ! -d $work_directory ] ; then
         mkdir $work_directory
     fi
-    
+
     git clone $stressng_githubLink $work_directory/stress-ng
     cd $work_directory/stress-ng
     git checkout tags/$stressng_version
@@ -466,7 +466,7 @@ if is_fedora ; then
     # Removing /var/log/messages
     #
     rm -f /var/log/messages
-    
+
     if [ $os_RELEASE -eq 6 ]; then
         echo "Changing ONBOOT..."
         sed -i -e 's/ONBOOT=no/ONBOOT=yes/g' /etc/sysconfig/network-scripts/ifcfg-eth0
@@ -535,16 +535,17 @@ if is_fedora ; then
 
     # vim installs xxd which is required to build sysbench
     echo "Installing packages..." >> summary.log
-    rpm_packages=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc dosfstools 
+    rpm_packages=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc dosfstools
     selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake nano parted
-    kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-utils omping nc 
-    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel hyperv-tools)
+    kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-utils omping nc
+    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel hyperv-tools kernel-devel-`uname -r`)
     sudo yum -y install ${rpm_packages[@]}
+
     yum groups mark install "Development Tools"
     yum groups mark convert "Development Tools"
     yum -y groupinstall "Development Tools"
     verify_install $? "Development Tools"
-    
+
     if [ ! -d $work_directory ] ; then
         mkdir $work_directory
     fi
@@ -554,7 +555,7 @@ if is_fedora ; then
     make install
     cd ~
     install_stressapptest
-    
+
     if [ -e /boot/efi ]; then
         mkdir /boot/efi/EFI/boot/
         cp /boot/efi/EFI/redhat/grub.efi /boot/efi/EFI/boot/bootx64.efi
@@ -565,7 +566,7 @@ elif is_ubuntu ; then
     echo "Starting the configuration..."
     echo "Disable IPv6 for apt-get"
     echo "Acquire::ForceIPv4 "true";" > /etc/apt/apt.conf.d/99force-ipv4
-    
+
     #
     # Because Ubuntu has a 100 seconds delay waiting for a new network interface,
     # we're disabling the delays in order to not conflict with the automation
@@ -575,10 +576,11 @@ elif is_ubuntu ; then
         sed -i -e 's/sleep 59/#sleep 59/g' /etc/init/failsafe.conf
     fi
 
-    deb_packages=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 at autoconf 
+    deb_packages=(kdump-tools openssh-server tofrodos dosfstools dos2unix ntp gcc open-iscsi iperf gpm vlan iozone3 at autoconf
     multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm automake libtool pkg-config ifupdown
     bridge-utils btrfs-tools libkeyutils-dev xfsprogs reiserfsprogs sysstat build-essential bc numactl python3 pciutils tcpdump
-    nfs-client parted netcat squashfs-tools bison flex linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r`)
+    nfs-client parted netcat squashfs-tools bison flex linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r`
+    net-tools)
     DEBIAN_FRONTEND=noninteractive sudo apt -y install ${deb_packages[@]}
 
     if [ -e /etc/multipath.conf ]; then
@@ -594,12 +596,21 @@ elif is_ubuntu ; then
             mv /boot/efi/EFI/boot/grubx64.efi /boot/efi/EFI/boot/bootx64.efi
         fi
     fi
-    
+
+    # Disable automatic updates if they are not disabled by default
+    cat /etc/apt/apt.conf.d/20auto-upgrades | grep "1" > /dev/null
+    if [ $? -eq 0 ]; then
+        sed -i 's/1/0/g' /etc/apt/apt.conf.d/20auto-upgrades
+        if [ $? -ne 0 ]; then
+            echo "ERRROR: Unable to disable automatic updates" >> summary.log
+        fi
+    fi
+
     #
     # Removing /var/log/syslog
     #
     rm -f /var/log/syslog*
-    
+
 elif is_suse ; then
 
     #
@@ -647,7 +658,7 @@ elif is_suse ; then
 
     PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3
     nfs-client pciutils libaio-devel parted squashfs-tools unzip parted python-curses dstat net-tools-deprecated ethtool
-    libidn11 iputils automake make libtool zip sudo squashfs)
+    libidn11 iputils automake make libtool zip sudo squashfs vim)
     for item in ${PACK_LIST[*]}
     do
         echo "Starting to install $item... " >> summary.log
@@ -690,7 +701,6 @@ elif is_suse ; then
             mv /boot/efi/EFI/BOOT/grubx64.efi /boot/efi/EFI/boot/bootx64.efi
         elif [ -e /boot/efi/EFI/BOOT/elilo.efi]; then
             mv /boot/efi/EFI/BOOT/elilo.efi /boot/efi/EFI/boot/bootx64.efi
-       
         fi
     fi
 fi

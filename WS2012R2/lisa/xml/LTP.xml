@@ -10,8 +10,8 @@
             <subject>LIS LTP Tests Results</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
-		
-	<!-- Optional testParams go here -->
+
+    <!-- Optional testParams go here -->
         <testParams>
             <param>vmCpuNumber=8</param>
             <param>vmMemory=8GB</param>
@@ -22,24 +22,24 @@
         <suite>
             <suiteName>LTP</suiteName>
             <suiteTests>
-		<suiteTest>LTPBasic</suiteTest>
+                <suiteTest>LTPBasic</suiteTest>
                 <suiteTest>LTP_network</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
     <testCases>
-	<test>
+        <test>
             <testName>LTPBasic</testName>
             <testScript>LTP_test.sh</testScript>
             <files>remote-scripts/ica/LTP_test.sh,remote-scripts\ica\utils.sh</files>
             <timeout>7200</timeout>
             <onError>Continue</onError>
             <testparams>
-		<param>TC_COVERED=LTP-01</param>
+                <param>TC_COVERED=LTP-01</param>
             </testparams>
         </test>
-	
+
         <test>
             <testName>LTP_network</testName>
             <testScript>ltp_run.sh</testScript>
@@ -52,7 +52,7 @@
                 <file>nfs.log</file>
             </uploadFiles>
             <testParams>
-	<param>TC_COVERED=LTP-02</param>
+                <param>TC_COVERED=LTP-02</param>
                 <param>TESTS=(sctp rpc multicast nfs tcp)</param>
                 <param>LTP_SERVER_IP=255.255.255.255</param>
                 <param>SSH_PRIVATE_KEY=key_id_rsa</param>
@@ -73,9 +73,9 @@
             <ipv4></ipv4>
             <sshKey>key_id_rsa.ppk</sshKey>
             <suite>LTP</suite>
-		<preStartConfig>
-			<file>.\setupscripts\Config-VM.ps1</file>
-		</preStartConfig>
+            <preStartConfig>
+                <file>.\setupscripts\Config-VM.ps1</file>
+            </preStartConfig>
         </vm>
         <vm>
             <role>NonSUT1</role>
@@ -84,9 +84,9 @@
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>key_id_rsa.ppk</sshKey>
-		<preStartConfig>
-			<file>.\setupscripts\Config-VM.ps1</file>
-		</preStartConfig>
+            <preStartConfig>
+                <file>.\setupscripts\Config-VM.ps1</file>
+            </preStartConfig>
         </vm>
     </VMs>
 </config>

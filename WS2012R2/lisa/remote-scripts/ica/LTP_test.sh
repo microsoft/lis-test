@@ -79,34 +79,6 @@ UpdateTestState() {
 }
 
 #######################################################################
-# Checks what Linux distro we are running
-#######################################################################
-LinuxRelease() {
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
-
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        *Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-        *)
-            LogMsg "Unknown Distro"
-            UpdateTestState "TestAborted"
-            UpdateSummary "Unknown Distro, test aborted"
-            exit 1
-            ;; 
-    esac
-}
-
-#######################################################################
 # Installs SLES LTP dependencies
 #######################################################################
 InstallSLESDependencies() {
@@ -167,6 +139,16 @@ InstallRHELDependencies() {
     yum install -y gcc
 }
 
+# Convert eol
+dos2unix utils.sh
+
+# Source utils.sh
+. utils.sh || {
+    echo "ERROR: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
+}
+
 if [ -e ~/summary.log ]; then
     LogMsg "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
@@ -188,15 +170,16 @@ fi
 
 echo "Covers ${TC_COVERED}" > ~/summary.log
 
+# Checks what Linux distro we are running on
+GetDistro
+
 LogMsg "Installing dependencies"
-case $(LinuxRelease) in
-    "SLES")
+case $DISTRO in
+    "suse"*)
         InstallSLESDependencies;;
-    "UBUNTU" | "DEBIAN")
+    "ubuntu"* | "debian"*)
         InstallUbuntuDependencies;;
-    "RHEL")
-        InstallRHELDependencies;;
-    "CENTOS")
+    "redhat"* | "centos"* | "fedora"*)
         InstallRHELDependencies;;
     *)
         LogMsg "Unknown Distro"
@@ -214,7 +197,7 @@ git clone https://github.com/linux-test-project/ltp.git
 TOP_SRCDIR="$HOME/src/ltp"
 
 cd $TOP_SRCDIR
-git -c advice.detachedHead=false checkout tags/$ltp_version
+git checkout tags/$ltp_version
 
 LogMsg "Configuring LTP..."
 # use autoreconf to match the installed package versions

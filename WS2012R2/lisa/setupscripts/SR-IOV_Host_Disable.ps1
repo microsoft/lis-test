@@ -24,10 +24,10 @@
     Continuous iPerf, disable SR-IOV, enable SR-IOV
 
 .Description
-    Disable SR-IOV while transferring data of the device, then enable SR-IOV. 
-    While disabled, the traffic should fallback to the synthetic device and throughput should drop. 
+    Disable SR-IOV while transferring data of the device, then enable SR-IOV.
+    While disabled, the traffic should fallback to the synthetic device and throughput should drop.
     Once SR-IOV is enabled again, traffic should handled by the SR-IOV device and throughput increase.
-   
+
 .Parameter vmName
     Name of the test VM.
 
@@ -42,11 +42,11 @@
     <test>
         <testName>iPerf_DisableVF</testName>
         <testScript>setupscripts\SR-IOV_iPerf_DisableVF.ps1</testScript>
-        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
-        </setupScript> 
+        </setupScript>
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
@@ -73,6 +73,10 @@ $leaveTrail = "no"
 #
 # Check the required input args are present
 #
+
+# Write out test Params
+$testParams
+
 if ($hvServer -eq $null)
 {
     "ERROR: hvServer is null"
@@ -140,7 +144,7 @@ foreach ($p in $params)
     switch ($fields[0].Trim())
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
-        "ipv4" { $ipv4 = $fields[1].Trim() }   
+        "ipv4" { $ipv4 = $fields[1].Trim() }
         "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
         "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
@@ -154,12 +158,15 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
-# Write out test Params
-$testParams
-
 # Get IPs
 $ipv4 = GetIPv4 $vmName $hvServer
 "${vmName} IPADDRESS: ${ipv4}"
+
+if ($remoteServer -eq $null)
+{
+    $remoteServer = $hvServer
+}
+
 $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 "${vm2Name} IPADDRESS: ${vm2ipv4}"
 
@@ -209,7 +216,7 @@ if (-not $vfInitialThroughput){
     return $false
 }
 
-"The throughput before starting the stress test is $vfInitialThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
+#"The throughput before starting the stress test is $vfInitialThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
 
 Start-Sleep -s 10
 
@@ -218,13 +225,13 @@ Start-Sleep -s 10
 #
 # Get the physical NIC description
 $switchName = Get-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer | Where-Object {$_.SwitchName -like 'SRIOV*'} | Select -ExpandProperty SwitchName
-$hostNIC_name = Get-VMSwitch -Name $switchName | Select -ExpandProperty NetAdapterInterfaceDescription
+$hostNIC_name = Get-VMSwitch -Name $switchName -ComputerName $hvServer| Select -ExpandProperty NetAdapterInterfaceDescription
 
 "Disabling VF on $hostNIC_name"
-Disable-NetAdapterSriov -InterfaceDescription $hostNIC_name
+Disable-NetAdapterSriov -InterfaceDescription $hostNIC_name -CIMsession $hvServer
 if (-not $?) {
     "ERROR: Failed to disable SR-IOV on $hostNIC_name!" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 # Read the throughput with SR-IOV disabled; it should be lower
@@ -232,15 +239,15 @@ Start-Sleep -s 80
 [decimal]$vfDisabledThroughput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PerfResults.log | head -1 | awk '{print `$7}'"
 if (-not $vfDisabledThroughput){
     "ERROR: No result was logged after SR-IOV was disabled!" | Tee-Object -Append -file $summaryLog
-    Enable-NetAdapterSriov -InterfaceDescription $hostNIC_name
+    Enable-NetAdapterSriov -InterfaceDescription $hostNIC_name -CIMsession $hvServer
     return $false
 }
 
 "The throughput with SR-IOV disabled is $vfDisabledThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
 if ($vfDisabledThroughput -ge $vfInitialThroughput) {
     "ERROR: The throughput was higher with SR-IOV disabled, it should be lower" | Tee-Object -Append -file $summaryLog
-    Enable-NetAdapterSriov -InterfaceDescription $hostNIC_name
-    return $false 
+    Enable-NetAdapterSriov -InterfaceDescription $hostNIC_name -CIMsession $hvServer
+    return $false
 }
 Start-Sleep -s 10
 
@@ -248,10 +255,10 @@ Start-Sleep -s 10
 # Enable SR-IOV on both VMs
 #
 "Enable VF on vm1"
-Enable-NetAdapterSriov -InterfaceDescription $hostNIC_name
+Enable-NetAdapterSriov -InterfaceDescription $hostNIC_name -CIMsession $hvServer
 if (-not $?) {
     "ERROR: Failed to enable SR-IOV on $hostNIC_name! Please try to manually enable it" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 Start-Sleep -s 70
@@ -266,9 +273,9 @@ Start-Sleep -s 70
 
 "The throughput after re-enabling SR-IOV is $vfFinalThroughput Gbits/sec" | Tee-Object -Append -file $summaryLog
 if ($vfFinalThroughput -lt  $vfInitialThroughput) {
-    "ERROR: After re-enabling SR-IOV, the throughput has not increased enough 
+    "ERROR: After re-enabling SR-IOV, the throughput has not increased enough
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 # Wait 2 minutes and check call traces

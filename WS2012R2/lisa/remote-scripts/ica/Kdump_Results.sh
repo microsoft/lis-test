@@ -92,7 +92,7 @@ case $DISTRO in
             CheckVmcore
         fi
     ;;
-    ubuntu*)
+    ubuntu*|debian*)
         if [[ $vm2ipv4 != "" ]]; then
             status=`ssh -i /root/.ssh/${SSH_PRIVATE_KEY} -o StrictHostKeyChecking=no root@${vm2ipv4} "find /mnt/* -type f -size +10M; echo $?"`
             VerifyRemoteStatus

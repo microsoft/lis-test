@@ -142,7 +142,7 @@ class GCPConnector:
                      'machineType': machine_type,
                      'disks': [{'boot': True,
                                 'autoDelete': True,
-                                'initializeParams': {'sourceImage': image['selfLink']}}],
+                                'initializeParams': {'sourceImage': image['selfLink'],'diskSizeGb': 30}}],
                      'networkInterfaces': [{'network': 'global/networks/{}'.format(self.net_name),
                                             'subnetwork': 'regions/{}/subnetworks/{}'.format(
                                                     self.region, self.subnet_name),

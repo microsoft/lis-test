@@ -71,49 +71,56 @@ else
 fi
 
 apply_proposed_kernel() {
-	candidate_kernel=$(apt-cache policy linux-image-generic | grep "Candidate")
+    candidate_kernel=$(apt-cache policy linux-image-generic | grep "Candidate")
+    apt-get install -y -qq linux-image-generic/$release-proposed
+    if [[ $? -ne 0 ]]; then
+        UpdateSummary "Error: Unable to install the proposed kernel!"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
 
-	apt-get install -y -qq linux-image-generic/$release-proposed
-	if [[ $? -ne 0 ]]; then
-		UpdateSummary "Error: Unable to install the proposed kernel!"
-		UpdateTestState $ICA_TESTABORTED
-		exit 1
-	fi
-
-	apt-get install -y -qq linux-tools-generic/$release-proposed
-	apt-get install -y -qq linux-cloud-tools-generic/$release-proposed
-	apt-get install -y -qq linux-cloud-tools-common/$release-proposed
-	if [[ $? -ne 0 ]]; then
-		UpdateSummary "Error: Unable to install the proposed LIS daemons packages!"
-		UpdateTestState $ICA_TESTABORTED
-		exit 1
-	fi
+    apt-get install -y -qq linux-tools-generic/$release-proposed
+    apt-get install -y -qq linux-cloud-tools-generic/$release-proposed
+    apt-get install -y -qq linux-cloud-tools-common/$release-proposed
+    if [[ $? -ne 0 ]]; then
+        UpdateSummary "Error: Unable to install the proposed LIS daemons packages!"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
 }
 
 apply_proposed_kernel_azure() {
     candidate_kernel=$(apt-cache policy linux-azure | grep "Candidate")
-
-    apt-get install -qq linux-azure/$release-proposed
-	if [[ $? -ne 0 ]]; then
-		UpdateSummary "Error: Unable to install the proposed kernel azure!"
-		UpdateTestState $ICA_TESTABORTED
-		exit 1
-	fi
- }
+    apt-get install -qq linux-azure/$release
+    if [[ $? -ne 0 ]]; then
+        UpdateSummary "Error: Unable to install the proposed kernel azure!"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
+}
+apply_proposed_kernel_azure_edge() {
+    candidate_kernel=$(apt-cache policy linux-azure-edge | grep "Candidate")
+    apt-get install -qq linux-azure-edge/$release
+    if [[ $? -ne 0 ]]; then
+        UpdateSummary "Error: Unable to install the proposed kernel azure-edge!"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
+}
 
 modify_grub() {
-	#
-	# Due to Ubuntu inconsistencies in the naming conventions,
-	# we must slightly change the kernel version and parse it further
-	#
-	version=$(echo $candidate_kernel | awk  '{print $2}' |cut -c 1-9 | sed 's/\.\([^.]*\)$/-\1/')
+    #
+    # Due to Ubuntu inconsistencies in the naming conventions,
+    # we must slightly change the kernel version and parse it further
+    #
+    version=$(echo $candidate_kernel | awk  '{print $2}' | cut -c 1-9 | sed 's/\.\([^.]*\)$/-\1/')
     if [[ $version == *- ]]; then
         version=${version::-1}
     fi
 
-	# Grub will boot the installed kernel as a permanent change
-	sed -i.bak 's/GRUB_DEFAULT=.*/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux '$version'-generic"/g' /etc/default/grub
-	update-grub
+    # Grub will boot the installed kernel as a permanent change
+    sed -i.bak 's/GRUB_DEFAULT=.*/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux '$version'-generic"/g' /etc/default/grub
+    update-grub
 }
 
 #
@@ -123,7 +130,6 @@ UpdateTestState "TestRunning"
 
 # Check for summary.log
 if [ -e ~/summary.log ]; then
-    dbgprint 1 "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
 fi
 
@@ -147,7 +153,22 @@ apt-get -qq update
 #
 # Installing the proposed kernel
 #
-if [ $azure_kernel == "yes" ]; then
+if [ $azure_kernel_edge == "yes" ]; then
+    apply_proposed_kernel_azure_edge
+    if [ 0 -ne $? ]; then
+        dbgprint 1 "Error: Couldn't install the proposed kernel: ${sts}"
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
+    dbgprint 3 ""
+    dbgprint 3 "Proposed kernel azure_edge = ${candidate_kernel}"
+    dbgprint 3 ""
+
+    UpdateSummary "Proposed kernel azure_edge = ${candidate_kernel}"
+    UpdateSummary "Proposed kernel azure_edge has been successfully installed."
+
+
+elif [ $azure_kernel == "yes" ] && [ $azure_kernel_edge == "no" ]; then
     apply_proposed_kernel_azure
     if [ 0 -ne $? ]; then
         dbgprint 1 "Error: Couldn't install the proposed kernel: ${sts}"
@@ -161,6 +182,7 @@ if [ $azure_kernel == "yes" ]; then
 
     UpdateSummary "Proposed kernel azure = ${candidate_kernel}"
     UpdateSummary "Proposed kernel azure has been successfully installed."
+
 else
     apply_proposed_kernel
     if [ 0 -ne $? ]; then
@@ -183,8 +205,8 @@ fi
 modify_grub
 if [ 0 -ne $? ]; then
     dbgprint 1 "Error: Couldn't modify the grub config: ${sts}"
-	UpdateTestState $ICA_TESTABORTED
-	exit 1
+    UpdateTestState $ICA_TESTABORTED
+    exit 1
 fi
 
 echo "Grub configuration has been successfully modified."
@@ -192,13 +214,13 @@ echo "Grub configuration has been successfully modified."
 
 # Send the script on the secondary vm if it's the case
 if [ $willInstall -eq 0 ]; then
-	. ~/constants.sh || {
+    . ~/constants.sh || {
     echo "ERROR: unable to source constants.sh!"
     echo "TestAborted" > state.txt
     exit 2
-	}
+    }
 
-	scp -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ~/ubuntu_proposed_kernel.sh "$SERVER_OS_USERNAME"@"$STATIC_IP2":/tmp/ubuntu_proposed_kernel.sh
+    scp -i ~/.ssh/"$SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no ~/ubuntu_proposed_kernel.sh "$SERVER_OS_USERNAME"@"$STATIC_IP2":/tmp/ubuntu_proposed_kernel.sh
     if [ 0 -ne $? ]; then
         msg="ERROR: Unable to send the file from VM1 to VM2"
         LogMsg "$msg"

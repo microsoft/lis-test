@@ -57,7 +57,8 @@
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 $retVal = $False
 $vSANName = $null
-
+$WWNNList=@()
+$WWPNList=@()
 #
 # Check input arguments
 #
@@ -80,7 +81,7 @@ if (-not $testParams) {
 #
 # Checking the mandatory testParams. New parameters must be validated here.
 #
-$params = $testParams.Split(';')
+$params = $testParams.Split(';') | select -skiplast 1
 foreach ($p in $params)
 {
     if ($p.Trim().Length -eq 0) {
@@ -97,24 +98,13 @@ foreach ($p in $params)
     $lValue = $tokens[0].Trim()
     $rValue = $tokens[1].Trim()
 
-    #
-    # fcName test param
-    #
-    if ($lValue -eq "vSANName") {
-        $vSANName = $rValue
-        continue
+    switch -wildcard ($lValue) {
+        "WWNN*"    { $WWNNList = $WWNNList + $lValue }
+        "WWPN*"    { $WWPNList = $WWPNList + $lValue }
+        "vSANName" { $vSANName = $rValue }
+        default    {}  # unknown param - just ignore it
     }
-    if ($lValue -eq "WWNN") {
-    		$WWNN = $rValue.split(',')
-    		continue
-	}
-
-    if ($lValue -eq "WWPN") {
-    	$WWPN = $rValue.split(',')
-		continue
-	}
 }
-
 #
 # Make sure we have all the required data to do our job
 #
@@ -129,43 +119,74 @@ if (-not $vSANName) {
 #
 #############################################################
 
-# Add the FC adapter, if the command is successful there is no output
-Write-Output "Adding the Fibre Channel adapter..."
-if ((Add-VMFibreChannelHba -VmName $vmName -SanName $vSANName -ComputerName $hvServer)-ne $null) {
-    write-output "Error: Unable to add Fibre Channel with name $vSANName"
-    return $retVal
+# Set-VMSecurity to add FC adapter for Generation 2 vm on Hyper-v 2016 host
+Get-Command "Set-VMSecurity" -ErrorAction SilentlyContinue
+if ($?) {
+    $gen = (Get-VM -Name $vmName -ComputerName $hvserver).Generation
+    if ($gen -eq 2){
+        Set-VMSecurity -VmName $vmName -ComputerName $hvServer -VirtualizationBasedSecurityOptOut $true
+    }
 }
 
-# If specific port addresses are used check to see if they are available
-if (($WWNN -ne $null) -and ($WWPN -ne $null)) {
-    $FCList = Get-VMFibreChannelHba -VMName (Get-VM).name -ComputerName $hvServer
-    foreach ($fcNIC in $FCList) {
-        if ($WWPN -contains $fcNIC.WorldWidePortNameSetA) {
-            $usedVM = $fcNIC.VMName
-			$state = (Get-VM -name $usedVM -ComputerName $hvServer).State
+# support adding multiple fc adapters with same SanName
+for ($i=0; $i -lt $WWNNList.Count ; $i++) {
 
-			if ($state -ne "off") {
-				Write-Host "Error: Specified WWPN is being used on $usedVM" -foregroundcolor "red"
- 				return $retVal
-			} else {
-				Write-Host "Warning: Specified WWPN is being used on $usedVM which is currently in an off state." -foregroundcolor "yellow"
-			}
-    	}
-    }
-    if ($WWPN.Count -eq 2) {
-    	$sts = Get-VMFibreChannelHba -VMName $vmName -ComputerName $hvServer | Set-VMFibreChannelHba -NewWorldWideNodeNameSetA $WWNN[0] -NewWorldWidePortNameSetA $WWPN[0] -NewWorldWideNodeNameSetB $WWNN[1] -NewWorldWidePortNameSetB $WWPN[1]
-    } else {
-    	$sts = Get-VMFibreChannelHba -VMName $vmName -ComputerName $hvServer | Set-VMFibreChannelHba -NewWorldWideNodeNameSetA $WWNN[0] -NewWorldWidePortNameSetA $WWPN[0]
-    }
-
-    # Check if values were successfully modified
+    # Add the FC adapter, if the command is successful there is no output
     Write-Output "Adding the Fibre Channel adapter..."
-    if ($sts -ne $null) {
+    if ((Add-VMFibreChannelHba -VmName $vmName -SanName $vSANName -ComputerName $hvServer)-ne $null) {
         write-output "Error: Unable to add Fibre Channel with name $vSANName"
         return $retVal
     }
-}
 
+    # Go through params to find the WWNN and WWPN defined
+    foreach ($p in $params) {
+        $tokens = $p.Trim().Split('=')
+        if ($tokens.Length -ne 2) {
+             continue
+        }
+
+        $lValue = $tokens[0].Trim()
+        $rValue = $tokens[1].Trim()
+        #
+        switch ($lValue) {
+            $WWNNlist[$i]    { $WWNN = $rValue.split(',') }
+            $WWPNlist[$i]    { $WWPN = $rvalue.split(',') }
+            default    {}  # unknown param - just ignore it
+        }
+    }
+
+    # If specific port addresses are used check to see if they are available
+    if (($WWNN -ne $null) -and ($WWPN -ne $null)) {
+        $FCList = Get-VMFibreChannelHba -VMName (Get-VM -ComputerName $hvServer).name -ComputerName $hvServer
+        foreach ($fcNIC in $FCList) {
+            if ($WWPN -contains $fcNIC.WorldWidePortNameSetA) {
+                $usedVM = $fcNIC.VMName
+                $state = (Get-VM -name $usedVM -ComputerName $hvServer).State
+
+            if ($state -ne "off") {
+                Write-Host "Error: Specified WWPN is being used on $usedVM" -foregroundcolor "red"
+                return $retVal
+            }
+            else {
+                Write-Host "Warning: Specified WWPN is being used on $usedVM which is currently in an off state." -foregroundcolor "yellow"
+            }
+            }
+        }
+        if ($WWPN.Count -eq 2) {
+            $sts = (Get-VMFibreChannelHba -VMName $vmName -ComputerName $hvServer)[$i] | Set-VMFibreChannelHba -NewWorldWideNodeNameSetA $WWNN[0] -NewWorldWidePortNameSetA $WWPN[0] -NewWorldWideNodeNameSetB $WWNN[1] -NewWorldWidePortNameSetB $WWPN[1]
+        }
+        else {
+        	$sts = (Get-VMFibreChannelHba -VMName $vmName -ComputerName $hvServer)[$i] | Set-VMFibreChannelHba -NewWorldWideNodeNameSetA $WWNN[0] -NewWorldWidePortNameSetA $WWPN[0]
+        }
+
+        # Check if values were successfully modified
+        Write-Output "Adding the Fibre Channel adapter..."
+        if ($sts -ne $null) {
+            write-output "Error: Unable to add Fibre Channel with name $vSANName"
+            return $retVal
+        }
+    }
+}
 #
 # Verify the FC adapter
 #

@@ -248,7 +248,7 @@ redhat_5|redhat_6)
         fi
     fi
     ;;
-redhat_7)
+redhat_7|redhat_8)
     LogMsg "Check iptables status on RHEL"
     systemctl status firewalld
     if [ $? -ne 3 ]; then
@@ -351,5 +351,3 @@ sleep 3
 LogMsg "Ping server is OK.."
 UpdateTestState $ICA_PINGRUNNING
 LogMsg "Ping server instances are now ready to run"
-
-

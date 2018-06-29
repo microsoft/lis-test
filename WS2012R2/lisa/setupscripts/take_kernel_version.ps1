@@ -41,6 +41,9 @@
 
 param ([String] $LatestVersionFile)
 
+#handling errors
+$ErrorActionPreference="Stop"
+
 #site security requires TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 

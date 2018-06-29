@@ -140,6 +140,9 @@ def run(options):
             elif test_args['provider'] != constants.AZURE and test in constants.AZURE_TESTS:
                 log.info('Skipping Azure specific test: {}.'.format(test))
                 continue
+            elif test_args['provider'] == constants.GCE and test in constants.NOT_GCE_TESTS:
+                log.info('Skipping GCE specific test: {}.'.format(test))
+                continue
             else:
                 log.info('Running test: {}'.format(test))
             try:

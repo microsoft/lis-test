@@ -183,7 +183,7 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
         if (Get-ClusterGroup -ErrorAction SilentlyContinue){
             $currentNode = (Get-Clusternode -Name $env:computername).Name.ToLower()
             $clusterNodes = Get-ClusterNode
-            if ($currentNode -eq $clusterNodes[0].Name.ToLower()) {
+            if (($currentNode -eq $clusterNodes[0].Name.ToLower()) -and ($clusterNodes[1] -ne $null)) {
                 $destinationNode = $clusterNodes[1].Name.ToLower()
             } else {
                 $destinationNode = $clusterNodes[0].Name.ToLower() 
@@ -206,7 +206,7 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
                 }
             }
             
-	    LogMsg 0 "Info: Cleanup: Deleting existing VM.."
+	LogMsg 0 "Info: Cleanup: Deleting existing VM.."
         Remove-VM $vmName -ComputerName $hvServer -Force
     }
 

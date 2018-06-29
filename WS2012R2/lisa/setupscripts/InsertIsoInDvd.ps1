@@ -44,7 +44,7 @@ param ([String] $vmName, [String] $hvServer, [String] $testParams)
 $retVal = $False
 $isoFilename = $null
 $vmGeneration = $null
-
+$hotAdd = $False
 #######################################################################
 #
 # Main script body
@@ -92,19 +92,23 @@ foreach ($p in $params)
     }
 
     $tokens = $p.Trim().Split('=')
-    
+
     if ($tokens.Length -ne 2)
     {
 	# Just ignore it
 	continue
     }
-    
+
     $lValue = $tokens[0].Trim()
     $rValue = $tokens[1].Trim()
-    
+
     if ($lValue -eq "IsoFilename")
     {
         $isoFilename = $rValue
+    }
+    if ($lValue -eq "HotAdd")
+    {
+        $hotAdd = $rValue
     }
 }
 
@@ -123,6 +127,13 @@ $vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty G
 if ($? -eq $False)
 {
    $vmGeneration = 1
+}
+
+
+if ( $hotAdd -eq "True" -and $vmGeneration -eq 1)
+{
+    "Info: Generation 1 VM does not support hot add DVD, please skip this case in the test script"
+    return $True
 }
 
 #
@@ -153,24 +164,24 @@ if ($dvd)
 if (-not ([System.IO.Path]::IsPathRooted($isoFilename)))
 {
     $obj = Get-WmiObject -ComputerName $hvServer -Namespace "root\virtualization\v2" -Class "MsVM_VirtualSystemManagementServiceSettingData"
-        
+
     $defaultVhdPath = $obj.DefaultVirtualHardDiskPath
-	
+
     if (-not $defaultVhdPath)
     {
         "Error: Unable to determine VhdDefaultPath on Hyper-V server ${hvServer}"
         $error[0].Exception
         return $False
     }
-   
+
     if (-not $defaultVhdPath.EndsWith("\"))
     {
         $defaultVhdPath += "\"
     }
-  
+
     $isoFilename = $defaultVhdPath + $isoFilename
-   
-}   
+
+}
 
 $isoFileInfo = GetRemoteFileInfo $isoFilename $hvServer
 if (-not $isoFileInfo)
@@ -188,7 +199,7 @@ if ($vmGeneration -eq 1)
 }
 else
 {
-    Add-VMDvdDrive -VMName $vmName -Path $isoFilename -ControllerNumber 0 -ControllerLocation 2 -ComputerName $hvServer -Confirm:$False
+    Add-VMDvdDrive -VMName $vmName -Path $isoFilename -ControllerNumber 0 -ControllerLocation 1 -ComputerName $hvServer -Confirm:$False
 }
 if ($? -ne "True")
 {

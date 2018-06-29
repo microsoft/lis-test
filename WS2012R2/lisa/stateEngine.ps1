@@ -257,7 +257,7 @@ $testResult = GetJUnitXML
 # RunICTests()
 #
 ########################################################################
-function RunICTests([XML] $xmlConfig, [string] $collect, [string] $noshutdown)
+function RunICTests([XML] $xmlConfig, [string] $collect, [string] $noshutdown, [hashtable] $debugConfig)
 {
     <#
     .Synopsis
@@ -443,7 +443,7 @@ function RunICTests([XML] $xmlConfig, [string] $collect, [string] $noshutdown)
     #
     # run the state engine
     #
-    DoStateMachine $xmlConfig $collect $noshutdown
+    DoStateMachine $xmlConfig $collect $noshutdown $debugConfig
 
     #
     # Add LIS version to the email summary text
@@ -587,7 +587,7 @@ function ResetVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 # DoStateMachine()
 #
 ########################################################################
-function DoStateMachine([XML] $xmlConfig, [string] $collect, [string] $noshutdown)
+function DoStateMachine([XML] $xmlConfig, [string] $collect, [string] $noshutdown, [hashtable] $debugConfig)
 {
     <#
     .Synopsis
@@ -739,7 +739,7 @@ function DoStateMachine([XML] $xmlConfig, [string] $collect, [string] $noshutdow
 
             $StartPS1Test
                 {
-                    DoStartPS1Test $vm $xmlConfig
+                    DoStartPS1Test $vm $xmlConfig $debugConfig
                     $done = $false
                 }
 
@@ -751,7 +751,7 @@ function DoStateMachine([XML] $xmlConfig, [string] $collect, [string] $noshutdow
 
             $PS1TestCompleted
                 {
-                    DoPS1TestCompleted $vm $xmlConfig
+                    DoPS1TestCompleted $vm $xmlConfig $debugConfig
                     $done = $false
                 }
 
@@ -1571,7 +1571,8 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData, [Stri
             LogMsg 0 "Warn : Test is set to abort on error. Exiting"
             $vm.currentTest = "done"
         }
-        SetTestResult $currentTest $completionCode $xmlData
+        SetTestResult $vm.suite $vm.currentTest $completionCode $xmlData
+        $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
         UpdateState $vm $Finished
     }
     else
@@ -1646,7 +1647,7 @@ function DoDiagnoseHungSystem([System.Xml.XmlElement] $vm, [XML] $xmlData, [Stri
                         # UpdateState $vm $ForceShutdown
                         UpdateState $vm $Disabled
                     }
-                    SetTestResult $vm.suite $currentTest $completionCode $xmlData
+                    SetTestResult $vm.suite $vm.currentTest $completionCode $xmlData
                     $vm.emailSummary += ("    Test {0,-25} : {1}<br />" -f $testName, $completionCode)
                     UpdateState $vm $ForceShutdown
                 }
@@ -2086,7 +2087,7 @@ function DoRunPreTestScript([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     }
                     else # Original syntax of <pretest>setupscripts\myPretest.ps1</pretest>
                     {
-                        LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.setupScript)"
+                        LogMsg 3 "Info : $($vm.vmName) - starting preTest script $($testData.preTest)"
 
                         $sts = RunPSScript $vm $($testData.preTest) $xmlData "PreTest"
                         if (-not $sts)
@@ -3276,7 +3277,7 @@ function DoFinished([System.Xml.XmlElement] $vm, [XML] $xmlData)
 # DoStartPS1Test()
 #
 ########################################################################
-function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData)
+function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData, [hashtable] $debugConfig)
 {
     <#
     .Synopsis
@@ -3347,7 +3348,20 @@ function DoStartPS1Test([System.Xml.XmlElement] $vm, [XML] $xmlData)
         LogMsg 3 "Info : hvServer: $hvServer"
         LogMsg 3 "Info : params: $params"
 
-        $job = Start-Job -filepath $testScript -argumentList $vmName, $hvServer, $params
+
+        # Run test script in background job
+        #   Run job in debug context if "debugScript" enabled for current script
+        if( ($debugConfig.script -Like "All") -or ($debugConfig.script.trim(" .\") -like $testScript.trim(" .\")) ){
+            $job = Start-Job -ScriptBlock{
+                Set-Location $Using:pwd
+                . .\DebugScript.ps1 $Using:testScript $Using:vmName $Using:hvServer $Using:params $Using:debugConfig
+            }
+        }
+        else{
+            $job = Start-Job -filepath $testScript -argumentList $vmName, $hvServer, $params
+        }
+
+
         if ($job)
         {
             $vm.jobID = [string] $job.id
@@ -3484,6 +3498,11 @@ function DoPS1TestRunning ([System.Xml.XmlElement] $vm, [XML] $xmlData)
         return
     }
 
+    # Enter debug mode if job hits a breakpoint
+    if ($jobStatus.State -eq "AtBreakPoint"){
+        Debug-Job $jobStatus
+    }
+
     if ($jobStatus.State -eq "Completed")
     {
         UpdateState $vm $PS1TestCompleted
@@ -3495,7 +3514,7 @@ function DoPS1TestRunning ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 # DoPS1TestCompleted()
 #
 ########################################################################
-function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
+function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData, [hashtable] $debugConfig)
 {
     <#
     .Synopsis
@@ -3530,6 +3549,8 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
 
     $vmName = $vm.vmName
     $currentTest = $vm.currentTest
+    $testData = GetTestData $currentTest $xmlData
+    $testScript = $testData.testScript
     $logFilename = "${TestDir}\${vmName}_${currentTest}_ps.log"
     $summaryLog  = "${vmName}_summary.log"
 
@@ -3540,21 +3561,29 @@ function DoPS1TestCompleted ([System.Xml.XmlElement] $vm, [XML] $xmlData)
     $jobID = $vm.jobID
     if ($jobID -ne "none")
     {
+        # Retrieve job
         $error.Clear()
-        $jobResults = @(Receive-Job -id $jobID -ErrorAction SilentlyContinue)
+        #   Print debug job content if debugging current script
+        if( ($debugConfig.script -like "All") -or ($debugConfig.script.trim(" .\") -like $testScript.trim(" .\")) ){
+            Receive-Job -id $jobID *>&1 |Tee-Object -Variable jobResults
+            $jobResults = @($jobResults)
+        }
+        else{
+            $jobResults = @(Receive-Job -id $jobID *>&1)
+        }
+
         if ($jobResults)
         {
             if ($error.Count -gt 0)
             {
                 "Error: ${currentTest} script encountered an error"
-                $error[0].Exception.Message | out-file -encoding ASCII -append -filePath $logFilename
             }
 
             foreach ($line in $jobResults)
             {
                 if ($line -ne $null)
                 {
-                    $line | out-file -encoding ASCII -append -filePath $logFilename
+                    $line |Out-File -encoding ASCII -append -filePath $logFilename
                 }
                 else
                 {

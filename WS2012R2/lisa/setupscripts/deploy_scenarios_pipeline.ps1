@@ -232,6 +232,7 @@ function UpgradeLIS() {
 
     if ($runBond -eq "yes") {
         # Run bonding script
+        SendCommandToVM $ipv4 $sshkey "chmod 775 bondvf.sh"
         $sts = SendCommandToVM $ipv4 $sshkey "~/bondvf.sh"
         if(-not $sts[-1]){
             Write-Output "Error: Bonding script exited with error code" | Tee-Object -Append -file $summaryLog
@@ -674,6 +675,7 @@ switch ($scenario) {
         }
         
         # Run bonding script and install LIS
+        SendCommandToVM $ipv4 $sshkey "chmod 775 bondvf.sh"
         $sts = SendCommandToVM $ipv4 $sshkey "~/bondvf.sh"
         if (-not $sts[-1]){
             Write-Output "Error: Bonding script exited with error code" | Tee-Object -Append -file $summaryLog

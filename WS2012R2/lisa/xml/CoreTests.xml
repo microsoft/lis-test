@@ -42,7 +42,9 @@
             <suiteTest>Verify_LISModules_Version</suiteTest>
             <suiteTest>Verify_LIS_Modules</suiteTest>
             <suiteTest>initrd_modules_check</suiteTest>
-            <suiteTest>check_clocksource</suiteTest>
+            <suiteTest>Core_Time_Clocksource</suiteTest>
+            <suiteTest>Core_Time_Clockevent_UP</suiteTest>
+            <suiteTest>Core_Time_Clockevent_SMP</suiteTest>
             <suiteTest>TimeSync</suiteTest>
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
@@ -59,6 +61,7 @@
             <suiteTest>VerifyIntegratedShutdownService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
             <suiteTest>CDmount</suiteTest>
+            <suiteTest>CDmountHotAdd</suiteTest>
             <suiteTest>CheckNuma</suiteTest>
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
@@ -248,7 +251,7 @@
         <test>
             <testName>CDmount</testName>
             <testScript>Core_LIS_CD.sh</testScript>
-            <files>remote-scripts/ica/Core_LIS_CD.sh</files>
+            <files>remote-scripts/ica/Core_LIS_CD.sh,remote-scripts\ica\check_traces.sh,remote-scripts/ica/utils.sh</files>
             <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
             <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
             <testparams>
@@ -258,7 +261,20 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-
+        <test>
+            <testName>CDmountHotAdd</testName>
+            <testScript>Core_LIS_CD.sh</testScript>
+            <files>remote-scripts/ica/Core_LIS_CD.sh,remote-scripts\ica\check_traces.sh,remote-scripts/ica/utils.sh</files>
+            <preTest>setupscripts\InsertIsoInDvd.ps1</preTest>
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
+            <testparams>
+                <param>TC_COVERED=CORE-35</param>
+                <param>HotAdd=True</param>
+            </testparams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
         <test>
             <testName>VCPU_verify_online</testName>
             <testScript>vcpu_verify_online.sh</testScript>
@@ -356,17 +372,46 @@
            </testparams>
        </test>
 
-        <test>
-            <testName>check_clocksource</testName>
-            <testScript>check_clocksource.sh</testScript>
-            <files>remote-scripts/ica/check_clocksource.sh,remote-scripts/ica/utils.sh</files>
-            <testParams>
-                <param>TC_COVERED=CORE-26</param>
-            </testParams>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>
-        </test>
+       <test>
+           <testName>Core_Time_Clocksource</testName>
+           <testScript>Core_Time_Clocksource.sh</testScript>
+           <files>remote-scripts/ica/Core_Time_Clocksource.sh</files>
+           <files>remote-scripts/ica/utils.sh</files>
+           <testParams>
+               <param>TC_COVERED=CORE-26</param>
+           </testParams>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <noReboot>false</noReboot>
+       </test>
+       <test>
+           <testName>Core_Time_Clockevent_UP</testName>
+           <testScript>Core_Time_Clockevent.sh</testScript>
+           <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+           <files>remote-scripts/ica/Core_Time_Clockevent.sh</files>
+           <files>remote-scripts/ica/utils.sh</files>
+           <testParams>
+               <param>TC_COVERED=CORE-36a</param>
+               <param>VCPU=1</param>
+           </testParams>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <noReboot>false</noReboot>
+       </test>
+       <test>
+           <testName>Core_Time_Clockevent_SMP</testName>
+           <testScript>Core_Time_Clockevent.sh</testScript>
+           <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
+           <files>remote-scripts/ica/Core_Time_Clockevent.sh</files>
+           <files>remote-scripts/ica/utils.sh</files>
+           <testParams>
+               <param>TC_COVERED=CORE-36b</param>
+               <param>VCPU=8</param>
+           </testParams>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <noReboot>false</noReboot>
+       </test>
 
         <test>
             <testName>TimeSync_PausedVM</testName>

@@ -235,7 +235,7 @@ if [[ $? -eq 0 ]]; then
     CheckIPV6 "$VM2TEST_IP"
     if [[ $? -eq 0 ]]; then
         ipVersion="6"
-        
+
     else
         msg="Error: Not both test IPs are IPV6"
         LogMsg "${msg}"
@@ -299,7 +299,7 @@ redhat_5|redhat_6)
         fi
     fi
     ;;
-redhat_7)
+redhat_7|redhat_8)
     LogMsg "Check iptables status on RHEL"
     systemctl status firewalld
     if [ $? -ne 3 ]; then
@@ -394,7 +394,7 @@ while [ $__iterator -lt ${#SYNTH_NET_INTERFACES[@]} ]; do
         UpdateSummary "$msg"
         SetTestStateFailed
         exit 10
-                    else 
+                    else
                         PING_INTERFACE=${SYNTH_NET_INTERFACES[$__iterator]}
     fi
 
@@ -478,7 +478,7 @@ fi
 # Get logs from server side
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${SERVER_OS_USERNAME}@[${STATIC_IP2}]:~/ping_logServer.log ~/ping_logServer.log
 RESULT_STATISTICS=$(cat ping_logs.log |grep statistics)
-RESULT_PACK=$(cat ping_logs.log |grep packets) 
+RESULT_PACK=$(cat ping_logs.log |grep packets)
 RESULT=$(cat ping_logs.log |grep rtt)
 
 UpdateSummary "$RESULT_STATISTICS"

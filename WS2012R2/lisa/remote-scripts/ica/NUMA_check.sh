@@ -95,7 +95,7 @@ case $DISTRO in
    ubuntu*)
         numactl -s
             if [ $? -ne 0 ]; then
-                 apt-get -y install numactl
+                 apt -y install numactl
                      if [ $? -ne 0 ]; then
                         LogMsg "Error: numactl cannot be installed."
                         UpdateSummary "Error: numactl cannot be installed."
@@ -134,8 +134,8 @@ LogMsg "Info : Expected NUMA nodes = ${expected_number}"
 # We do a matching on the values from host and guest
 #
 if ! [[ $NumaNodes = $expected_number ]]; then
-	LogMsg "Error: Guest VM presented value $NumaNodesm and the host has $expected_number . Test Failed!"
-	UpdateSummary "Error: Guest VM presented value $NumaNodesm and the host has $expected_number . Test Failed!"
+	LogMsg "Error: Guest VM presented value $NumaNodes and the host has $expected_number . Test Failed!"
+	UpdateSummary "Error: Guest VM presented value $NumaNodes and the host has $expected_number . Test Failed!"
     UpdateTestState $ICA_TESTFAILED
     exit 30
 else

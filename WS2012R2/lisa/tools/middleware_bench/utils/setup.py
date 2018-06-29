@@ -255,7 +255,7 @@ class SetupTestEnv:
                 self.ssh_client[i].put_file(os.path.join(self.localpath, self.kernel),
                                             '/tmp/{}'.format(self.kernel))
                 params.append('/tmp/{}'.format(self.kernel))
-                self.ssh_client[i].run('/tmp/perf_tuning.sh {}'.format(' '.join(params)))
+            self.ssh_client[i].run('/tmp/perf_tuning.sh {}'.format(' '.join(params)))
             if self.provider in [constants.AWS, constants.GCE]:
                 self.ssh_client[i] = self.connector.restart_vm(self.vms[i])
             elif self.provider == constants.AZURE:
@@ -318,6 +318,44 @@ class SetupTestEnv:
                         "ps aux | grep -v grep | grep {} | awk '{{print $2}}'".format(
                                 bash_testname))
                 if new_pid != pid:
+                    return
+            except NoValidConnectionsError:
+                log.debug('NoValidConnectionsError, will retry in 60 seconds')
+                time.sleep(60)
+                t += 60
+            time.sleep(60)
+            t += 60
+        else:
+            raise Exception('Timeout waiting for process to end.'.format(timeout))
+
+    def run_test_nohup(self, ssh_vm_conf=0, test_cmd=None, timeout=constants.TIMEOUT, track=None):
+        try:
+            if all(client is not None for client in self.ssh_client.values()):
+                current_path = os.path.dirname(sys.modules['__main__'].__file__)
+                # enable key auth between instances
+                for i in xrange(1, ssh_vm_conf + 1):
+                    self.ssh_client[i].put_file(os.path.join(self.localpath,
+                                                             self.connector.key_name + '.pem'),
+                                                '/home/{}/.ssh/id_rsa'.format(self.user))
+                    self.ssh_client[i].run('chmod 0600 /home/{0}/.ssh/id_rsa'.format(self.user))
+                log.info('Starting run nohup command {}'.format(test_cmd))
+                self.ssh_client[1].run(test_cmd)
+                self._wait_for_command(self.ssh_client[1], track, timeout=timeout)
+        except Exception as e:
+            log.exception(e)
+            raise
+        finally:
+            log.info('Finish to run nohup command {}'.format(test_cmd))
+
+    @staticmethod
+    def _wait_for_command(ssh_client, track, timeout=constants.TIMEOUT):
+        t = 0
+        while t < timeout:
+            try:
+                _, p_count, _  = ssh_client.run(
+                        "ps aux | grep -v grep | grep {} | awk '{{print $2}}' | wc -l".format(
+                                track))
+                if int(p_count) == 0 :
                     return
             except NoValidConnectionsError:
                 log.debug('NoValidConnectionsError, will retry in 60 seconds')

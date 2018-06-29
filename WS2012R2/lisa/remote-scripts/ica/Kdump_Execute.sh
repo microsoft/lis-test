@@ -70,7 +70,7 @@ Rhel()
             UpdateSummary "Success: kdump service is active after reboot."
         fi
         ;;
-    "redhat_7" | "centos_7" | fedora*)
+    "redhat_7" | "redhat_8" | "centos_7" | fedora*)
         #
         # RHEL7, kdump status has "Active: active" and "Active: inactive"
         # So, select "Active: active" to check active
@@ -218,7 +218,7 @@ case $DISTRO in
         kdump_loaded
         Rhel
     ;;
-    ubuntu*)
+    ubuntu*|debian*)
         kdump_loaded
         Ubuntu
     ;;

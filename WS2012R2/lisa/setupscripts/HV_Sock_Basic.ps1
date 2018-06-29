@@ -56,7 +56,7 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-$retVal = $false
+$retVal = $False
 
 # Default location for host-end app
 $server_on_host_local_path = ".\tools\hv-sock\server_on_host.exe"
@@ -64,13 +64,23 @@ $client_on_host_local_path = ".\tools\hv-sock\client_on_host.exe"
 
 # Setup: Create PSSession, connect to remote host
 function Create_PSSession{
-    $Script:RemoteSession = New-PSSession -ComputerName $hvServer
+    # Work around "Kerberos Double Hop" issue
+    # Use fresh identity (if defined in environment) instead of delegation
+    if($env:HostUser -and $env:HostPassword){
+        $SecurePass = $env:HostPassword| ConvertTo-SecureString -AsPlainText -Force
+        $cred = New-Object System.Management.Automation.PSCredential -ArgumentList $env:HostUser, $SecurePass
+        $Script:RemoteSession = New-PSSession -ComputerName $hvServer -Credential $cred
+    }
+    else{
+        $Script:RemoteSession = New-PSSession -ComputerName $hvServer
+    }
+
     if ($? -ne $True){
-        Write-Output "[Error] Failed to create PSSession!"| Tee-Object -Append -file $summaryLog
+        Write-Output "Error: Failed to create PSSession!"| Tee-Object -Append -file $summaryLog
         Cleanup_Host
         return $Aborted
     }
-    return $Passed
+    return $True
 }
 
 # Setup: Copy host-end app to remote host temp path
@@ -79,12 +89,12 @@ function Create_PSSession{
 function Copy_Executables_To_Host{
     # Check local files exist
     if ( -not (Test-Path $server_on_host_local_path) ){
-        Write-Output "[Error] server_on_host.exe does not exist in tools!"| Tee-Object -Append -file $summaryLog
+        Write-Output "Error: server_on_host.exe does not exist in tools!"| Tee-Object -Append -file $summaryLog
         Cleanup_Host
         return $Aborted
     }
     if ( -not (Test-Path $client_on_host_local_path) ){
-        Write-Output "[Error] client_on_host.exe does not exist in tools!"| Tee-Object -Append -file $summaryLog
+        Write-Output "Error: client_on_host.exe does not exist in tools!"| Tee-Object -Append -file $summaryLog
         Cleanup_Host
         return $Aborted
     }
@@ -114,7 +124,7 @@ function Copy_Executables_To_Host{
             return $Aborted
         }
     }
-    return $Passed
+    return $True
 }
 
 # Setup: Insert communication service register entry on host
@@ -145,7 +155,7 @@ function Insert_Register_Entry{
         Cleanup_Host
         return $Aborted
     }
-    return $Passed
+    return $True
 }
 
 # Test Part I: Client app on guest connects server app on host
@@ -158,7 +168,25 @@ function Test_Part_I{
 
     # Start client on vm
     sleep 2 # Make sure server process started before client tries to connect
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "gcc client_on_vm.c -o client_on_vm"
+
+    # Check if compiled file is on the VM. If it isn't, send it and compile it.
+    $checkFile = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -e client_on_vm ]; echo `$?"
+    if ($checkFile -ne 0) {
+        Write-Output "Info: Unable to find client_on_vm. Sending source file for compilation."
+        $checkCFile = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -e client_on_vm.c ]; echo `$?"
+        if ($checkFile -ne 0) {
+            SendFileToVM $ipv4 $sshKey ".\tools\hv-sock\client_on_vm.c" "/root/client_on_vm.c"
+            if ($? -ne "True") {
+                Write-Output "Error: Unable to send client_on_vm.c to $vmName" | Tee-Object -Append -file $summaryLog
+                return $Aborted
+            }
+        }
+        .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "gcc client_on_vm.c -o client_on_vm"
+        if ($? -ne "True") {
+            Write-Output "Error: Unable to compile client_on_vm.c" | Tee-Object -Append -file $summaryLog
+            return $Aborted
+        }
+    }
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod 700 client_on_vm"
     $exec = ".\bin\plink.exe"
     $exec_arg = "-i ssh\${sshKey} root@${ipv4} ""./client_on_vm"""
@@ -166,31 +194,46 @@ function Test_Part_I{
 
     # Check test result
     Wait-Process -Id $client_process.Id -ErrorAction SilentlyContinue
-    # Server sould exit with code 0 when client finished connection.
+    # Server should exit with code 0 when client finished connection.
     sleep 2
     $server_exit_code = Invoke-Command -Session $RemoteSession -ScriptBlock{ $server_process_remote.ExitCode }
     $client_exit_code = $client_process.ExitCode
 
     if (($server_exit_code -eq 0) -and ($client_exit_code -eq 0)) {
-        Write-Output "Test host as server passed."| Tee-Object -Append -file $summaryLog
-        return $Passed
+        Write-Output "Test host as server passed." | Tee-Object -Append -file $summaryLog
+        return $True
     }
     else {
         $errInfo = "Test host as server failed!`n"
         $errInfo += "Server Process Exit Code: $server_exit_code`n"
         $errInfo += "Client Process Exit Code: $client_exit_code`n"
-        Write-Output $errInfo| Tee-Object -Append -file $summaryLog
+        Write-Output $errInfo | Tee-Object -Append -file $summaryLog
         Cleanup_Host
         return $Failed
     }
-
 }
 
 # Test Part II: Server app on guest connect to client app on host
 function Test_Part_II{
 
-    # Start server on vm
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "gcc server_on_vm.c -o server_on_vm"
+    # Check if compiled file is on the VM. If it isn't, send it and compile it.
+    $checkFile = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -e server_on_vm ]; echo `$?"
+    if ($checkFile -ne 0) {
+        Write-Output "Info: Unable to find server_on_vm. Sending source file for compilation."
+        $checkCFile = .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -e server_on_vm.c ]; echo `$?"
+        if ($checkFile -ne 0) {
+            SendFileToVM $ipv4 $sshKey ".\tools\hv-sock\server_on_vm.c" "/root/server_on_vm.c"
+            if ($? -ne "True") {
+                Write-Output "Error: Unable to send server_on_vm.c to $vmName" | Tee-Object -Append -file $summaryLog
+                return $Aborted
+            }
+        }
+        .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "gcc server_on_vm.c -o server_on_vm"
+        if ($? -ne "True") {
+            Write-Output "Error: Unable to compile server_on_vm.c" | Tee-Object -Append -file $summaryLog
+            return $Aborted
+        }
+    }
     .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "chmod 700 server_on_vm"
     $exec = ".\bin\plink.exe"
     $exec_arg = "-i ssh\${sshKey} root@${ipv4} ""./server_on_vm"""
@@ -209,14 +252,14 @@ function Test_Part_II{
     $server_exit_code = $server_process.ExitCode
     $client_exit_code = Invoke-Command -Session $RemoteSession -ScriptBlock{ $client_process_remote.ExitCode }
     if (($server_exit_code -eq 0) -and ($client_exit_code -eq 0)) {
-        Write-Output "Test vm as server passed."| Tee-Object -Append -file $summaryLog
-        return $Passed
+        Write-Output "Test vm as server passed." | Tee-Object -Append -file $summaryLog
+        return $True
     }
     else {
         $errInfo = "Test vm as server failed!`n"
         $errInfo += "Server Process Exit Code: $server_exit_code`n"
         $errInfo += "Client Process Exit Code: $client_exit_code`n"
-        Write-Output $errInfo| Tee-Object -Append -file $summaryLog
+        Write-Output $errInfo | Tee-Object -Append -file $summaryLog
         Cleanup_Host
         return $Failed
     }
@@ -250,18 +293,18 @@ function Cleanup_Host {
 # Checking the input arguments
 if (-not $vmName) {
     "Error: VM name is null!"
-    return $retVal
+    return $Failed
 }
 
 if (-not $hvServer) {
     "Error: hvServer is null!"
-    return $retVal
+    return $Failed
 }
 
 if (-not $testParams) {
     "Error: No testParams provided!"
     "This script requires the test case ID and VM details as the test parameters."
-    return $retVal
+    return $Failed
 }
 
 #
@@ -274,16 +317,18 @@ foreach ($p in $params) {
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
-	if ($fields[0].Trim() -eq "rootDir") {
+    if ($fields[0].Trim() -eq "TEST_TYPE") {
+        $TEST_TYPE = $fields[1].Trim()
+    }
+    if ($fields[0].Trim() -eq "rootDir") {
         $rootDir = $fields[1].Trim()
     }
-	if ($fields[0].Trim() -eq "ipv4") {
-		$IPv4 = $fields[1].Trim()
+    if ($fields[0].Trim() -eq "ipv4") {
+        $IPv4 = $fields[1].Trim()
     }
-	if ($fields[0].Trim() -eq "sshkey") {
+    if ($fields[0].Trim() -eq "sshkey") {
         $sshkey = $fields[1].Trim()
     }
-
     if ($fields[0].Trim() -eq "TestLogDir") {
         $TestLogDir = $fields[1].Trim()
     }
@@ -295,7 +340,7 @@ foreach ($p in $params) {
 #
 if (-not (Test-Path $rootDir)) {
     "Error: The directory `"${rootDir}`" does not exist"
-    return $retVal
+    return $Failed
 }
 cd $rootDir
 
@@ -307,7 +352,7 @@ if (Test-Path ".\setupscripts\TCUtils.ps1")
 else
 {
     "Error: Could not find setupScripts\TCUtils.ps1"
-    return $False
+    return $Failed
 }
 
 # Delete any previous summary.log file, then create a new one
@@ -320,13 +365,14 @@ $BuildNumber = GetHostBuildNumber $hvServer
 
 if ($BuildNumber -eq 0)
 {
-    return $False
+    Write-Output "Error: Unable to get Host build number. Aborting test." | Tee-Object -Append -file $summaryLog
+    return $Aborted
 }
 
 # HV-Socket supported from Windows Server 2016
 if ($BuildNumber -lt 14393)
 {
-    Write-Output "[INFO] Host version not supporting hv-sock, skipping test"| Tee-Object -Append -file $summaryLog
+    Write-Output "Info: Host does not support hv-sock. Skipping test" | Tee-Object -Append -file $summaryLog
     return $Skipped
 }
 
@@ -345,15 +391,24 @@ if ($kernelSupport -ne "True") {
 
 # Connect to remote host
 $ReturnCode = Create_PSSession
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
+if (@($ReturnCode)[-1] -ne $True) {
+    Write-Output "Error: Unable to create PSSession. Exit code: $ReturnCode"
+    $retVal = $False
+}
 
 # Copy host-end app to remote host temp path
 $ReturnCode = Copy_Executables_To_Host
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
+if (@($ReturnCode)[-1] -ne $True) {
+    Write-Output "Error: Unable to copy executables to host. Exit code: $ReturnCode"
+    $retVal = $False
+}
 
 # Insert communication service register entry on host
 $ReturnCode = Insert_Register_Entry
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
+if (@($ReturnCode)[-1] -ne $True) {
+    Write-Output "Error: Unable to insert registry entry. Exit code: $ReturnCode"
+    $retVal = $False
+}
 
 # Guest linux load hv_sock module
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "modprobe hv_sock"
@@ -362,13 +417,15 @@ if ($ReturnCode -ne $Passed){ return $ReturnCode }
 #   Main Test
 ################################################
 
-# Test Part I: Client app on guest connects server app on host
-$ReturnCode = Test_Part_I
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
+switch ($TEST_TYPE)
+{
+    # Test Part I: Client app on guest connects server app on host
+    1 { $retVal = Test_Part_I; break }
+    # Test Part II: Server app on guest connect to client app on host
+    2 { $retVal = Test_Part_II; break }
+    default { Write-Output "Error: Wrong scenario specified. Aborting test."; return $Aborted; break}
+}
 
-# Test Part II: Server app on guest connect to client app on host
-$ReturnCode = Test_Part_II
-if ($ReturnCode -ne $Passed){ return $ReturnCode }
-
+# If we get here it means everything worked
 Cleanup_Host
-return $Passed
+$retVal

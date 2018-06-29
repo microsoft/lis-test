@@ -122,9 +122,11 @@ NODE_NAME_VM=$(cat /sys/class/fc_host/host*/node_name)
 PORT_NAME_VM=$(cat /sys/class/fc_host/host*/port_name)
 
 #
-# We do a pattern wildcard matching on the values, as the host system doesn't use the 0x notation
+# as the host system doesn't use the 0x notation, remove 0x and replace space to comma
 #
-if ! [[ $NODE_NAME_VM =~ ($expectedWWNN) ]]; then
+NODE_NAME_VM_WWNN=$(echo $NODE_NAME_VM | sed 's/\s/,/g' | sed 's/0x//g')
+PORT_NAME_VM_WWNP=$(echo $PORT_NAME_VM | sed 's/\s/,/g' | sed 's/0x//g')
+if ! [[ $NODE_NAME_VM_WWNN = $expectedWWNN ]]; then
 	echo "Error: Guest VM presented value $NODE_NAME_VM and the host has $expectedWWNN . Test Failed!"
     SetTestStateFailed
     exit 1
@@ -132,7 +134,7 @@ else
     echo "Info: WWNN value is matching with the host. VM presented value is $NODE_NAME_VM"
 fi
 
-if ! [[ $PORT_NAME_VM =~ ($expectedWWNP) ]]; then
+if ! [[ $PORT_NAME_VM_WWNP = $expectedWWNP ]]; then
 	echo "Error: Guest VM presented value $PORT_NAME_VM and the host has $expectedWWNP . Test Failed!"
     SetTestStateFailed
     exit 1

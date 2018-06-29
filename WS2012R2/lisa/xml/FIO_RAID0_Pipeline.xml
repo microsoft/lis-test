@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+  <global>
+    <defaultSnapshot>ICABase</defaultSnapshot>
+    <LisaInitScript>
+      <file>.\setupScripts\CreateVMs.ps1</file>
+    </LisaInitScript>
+    <imageStoreDir>\\unc\path</imageStoreDir>
+  </global>
+  <testSuites>
+    <suite>
+      <suiteName>fio-raid0-4disks</suiteName>
+      <suiteTests>
+        <suiteTest>fio-raid0-4disks</suiteTest>
+      </suiteTests>
+    </suite>
+  </testSuites>
+  <testCases>
+    <test>
+      <testName>fio-raid0-4disks</testName>
+      <testScript>Performance_FIO.sh</testScript>
+      <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
+      <setupScript>
+        <file>setupScripts\AddHardDisk.ps1</file>
+      </setupScript>
+      <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
+      <timeout>48000</timeout>
+      <testParams>
+        <param>TC_COVERED=FIO_RAID</param>
+        <param>PHYSICAL_NUMBER=1</param>
+        <param>SCSI=0,0,RAID</param>
+        <param>DISKS=4</param>
+        <!-- ignore this disk -->
+        <param>IO_SIZE=(4 1024)</param>
+        <param>FILE_SIZE=(16)</param>
+        <param>Q_DEPTH=(1 2 4 8 16 32 64 128 256)</param>
+        <param>IO_MODE=(read randread write randwrite)</param>
+        <param>RAID_NAME=md127</param>
+        <param>RAID_DEVICES=(b c d e)</param>
+        <param>LOG_FOLDER=fio_logs_raid</param>
+        <param>FS=ext4</param>
+        <param>FIO_VERSION=fio-3.5</param>
+      </testParams>
+      <uploadFiles>
+        <file>fio_logs_raid.zip</file>
+      </uploadFiles>
+      <onError>Continue</onError>
+    </test>
+  </testCases>
+  <VMs>
+    <vm>
+      <hvServer>localhost</hvServer>
+      <vmName>FIO-RAID</vmName>
+      <os>Linux</os>
+      <ipv4>
+      </ipv4>
+      <sshKey>rhel5_id_rsa.ppk</sshKey>
+      <hardware>
+        <generation>1</generation>
+        <create>true</create>
+        <numCPUs>8</numCPUs>
+        <memSize>8192</memSize>
+        <disableDiff>True</disableDiff>
+        <nic>VMBus,Vm.Enterprise</nic>
+      </hardware>
+      <suite>fio-raid0-4disks</suite>
+    </vm>
+  </VMs>
+</config>

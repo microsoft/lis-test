@@ -42,23 +42,35 @@
         <suite>
             <suiteName>HV_Sock</suiteName>
             <suiteTests>
-                <suiteTest>HV_Sock_Basic</suiteTest>
+                <suiteTest>hvsock_host_as_server</suiteTest>
+                <suiteTest>hvsock_vm_as_server</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
 
-	<testCases>
+    <testCases>
         <test>
-            <testName>HV_Sock_Basic</testName>
+            <testName>hvsock_host_as_server</testName>
             <testScript>setupscripts\HV_Sock_Basic.ps1</testScript>
-            <files>tools/hv-sock/server_on_vm.c</files>
             <files>tools/hv-sock/client_on_vm.c</files>
             <testParams>
                 <param>TC_COVERED=HV-Sock-01</param>
+                <param>TEST_TYPE=1</param>
             </testParams>
             <timeout>400</timeout>
         </test>
-	</testCases>
+
+        <test>
+            <testName>hvsock_vm_as_server</testName>
+            <testScript>setupscripts\HV_Sock_Basic.ps1</testScript>
+            <files>tools/hv-sock/server_on_vm.c</files>
+            <testParams>
+                <param>TC_COVERED=HV-Sock-02</param>
+                <param>TEST_TYPE=2</param>
+            </testParams>
+            <timeout>400</timeout>
+        </test>
+    </testCases>
 
     <VMs>
         <vm>

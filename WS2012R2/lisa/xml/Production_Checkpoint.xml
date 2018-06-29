@@ -26,6 +26,10 @@
     <global>
         <logfileRootDir>TestResults</logfileRootDir>
         <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+	<imageStoreDir>\\unc\path</imageStoreDir>
         <dependency>
             <!-- Only Windows Server 2016 supports this feature -->
             <hostVersion>10.0.14393</hostVersion>
@@ -44,6 +48,7 @@
         <suite>
             <suiteName>Production_Checkpoint</suiteName>
             <suiteTests>
+                <suiteTest>MainVM_Checkpoint</suiteTest>
                 <suiteTest>ProductionCheckpoint</suiteTest>   
                 <suiteTest>ProductionCheckpoint_Failback</suiteTest>
                 <suiteTest>ProductionCheckpoint_ext3</suiteTest>
@@ -59,6 +64,18 @@
     </testSuites>
 
     <testCases>
+        <test>
+            <testName>MainVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <onError>Abort</onError>
+            <noReboot>False</noReboot>
+        </test>
         <test>
             <testName>ProductionCheckpoint</testName>
             <testScript>setupscripts\Production_checkpoint.ps1</testScript>
@@ -218,11 +235,19 @@
             <vmName>VMNAME</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>linux_id_rsa.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>Production_Checkpoint</suite>
             <testParams>
                 <param>SnapshotName=ICABase</param>
             </testParams>
+            <hardware>
+                <create>true</create>
+                <numCPUs>4</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
         </vm>
     </VMs>
 </config>

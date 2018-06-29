@@ -145,7 +145,7 @@ function Execute ([string] $command)
 ######################################################################
 function setupTest ()
 {
-    "./${remoteScript} &> CORE_StressReloadModules.log " | out-file -encoding ASCII -filepath runtest.sh
+    "./${remoteScript} > CORE_StressReloadModules.log " | out-file -encoding ASCII -filepath runtest.sh
 
     .\bin\pscp -i ssh\${sshKey} .\runtest.sh root@${ipv4}:
     if (-not $?) {

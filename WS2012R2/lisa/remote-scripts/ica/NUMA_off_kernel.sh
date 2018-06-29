@@ -234,7 +234,7 @@ case $DISTRO in
         ConfigCentos
     ;;
 
-    "redhat_7" | "centos_7" | "fedora_x")
+    "redhat_7" | "redhat_8" | "centos_7" | "fedora_x")
         ConfigRhel
     ;;
 

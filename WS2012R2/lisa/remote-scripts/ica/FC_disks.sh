@@ -25,75 +25,24 @@
 #
 # FC_disks.sh
 # Description:
-#	This script was created to automate the testing of a Linux
-#	Integration services. This script will identify the number of
-#	total disks detected inside the guest VM.
-#	It will then format one FC disk and perform read/write checks on it.
-#   This test verifies the first FC disk, if you want to check every disk
-#   move the exit statement from line 215 to line 217.
-#
-#	 To pass test parameters into test cases, the host will create
-#    a file named constants.sh. This file contains one or more
-#    variable definition.
+# This script will identify the number of total disks detected inside the guest VM.
+# It will then format the FC disks, perform read/write checks and check
+# Call Trace.
 #
 ################################################################
 
-ICA_TESTRUNNING="TestRunning"      # The test is running
-ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
-ICA_TESTABORTED="TestAborted"      # Error during setup of test
-ICA_TESTFAILED="TestFailed"        # Error during execution of test
+dos2unix utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    exit 1
+}
 
-CONSTANTS_FILE="constants.sh"
+#
+# Source constants file and initialize most common variables
+#
+UtilsInit
+
 sdCount=0
-
-LogMsg()
-{
-    echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
-}
-
-UpdateTestState()
-{
-    echo $1 > $HOME/state.txt
-}
-
-#
-# Update LISA with the current status
-#
-cd ~
-UpdateTestState $ICA_TESTRUNNING
-LogMsg "Updating test case state to running"
-
-#
-# Source the constants file
-#
-if [ -e ./${CONSTANTS_FILE} ]; then
-    source ${CONSTANTS_FILE}
-else
-    ERRmsg="Error: no ${CONSTANTS_FILE} file"
-    LogMsg $ERRmsg
-    echo $ERRmsg >> ~/summary.log
-    UpdateTestState $ICA_TESTABORTED
-    exit 10
-fi
-
-if [ -e ~/summary.log ]; then
-    LogMsg "Cleaning up previous copies of summary.log"
-    rm -rf ~/summary.log
-fi
-
-#
-# Identifying the test-case ID
-#
-if [ ! ${TC_COVERED} ]; then
-    LogMsg "The TC_COVERED variable is not defined!"
-    echo "The TC_COVERED variable is not defined!" >> ~/summary.log
-fi
-
-#
-# Echo TCs we cover
-#
-echo "Covers ${TC_COVERED}" > ~/summary.log
-
 #
 # Compute the number of sd* drives on the system.
 #
@@ -103,16 +52,24 @@ do
 done
 
 #
-# Subtract the boot disk from the sdCount, then make sure the two disk counts match
+# Subtract the boot disk from the sdCount
 #
 sdCount=$((sdCount-1))
 echo "/dev/sd* disk count = $sdCount"
 
 if [ $sdCount -lt 1 ]; then
     echo " disk count from /dev/sd* ($sdCount) returns only the boot disk"
-    UpdateTestState $ICA_TESTABORTED
+    SetTestStateAborted
     exit 1
 fi
+
+# exclude specific disks from being multipathed
+if [ -e /etc/multipath.conf ]; then
+    rm /etc/multipath.conf
+fi
+echo -e "blacklist {\n\tdevnode \"^sd[a-z]\"\n}" > /etc/multipath.conf
+service multipathd restart
+sleep 5
 
 #
 # For each drive, run fdisk -l and extract the drive size in bytes
@@ -132,7 +89,7 @@ do
     if [ "$?" != "0" ]; then
         LogMsg "Error in executing fdisk on ${driveName} !"
         echo "Error in executing fdisk on ${driveName} !" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
+        SetTestStateFailed
         exit 60
     fi
 
@@ -157,32 +114,34 @@ do
                             LogMsg "Drive unmounted successfully..."
                      fi
                         LogMsg "Disk test completed for ${driveName}1"
-                        echo "Disk test is completed for ${driveName}1" >> ~/summary.log
+                        UpdateSummary "Disk test is completed for ${driveName}1"
                     else
                         LogMsg "Error in creating directory /mnt/Example!"
-                        echo "Error in creating directory /mnt/Example!" >> ~/summary.log
-                        UpdateTestState $ICA_TESTFAILED
+                        UpdateSummary "Error in creating directory /mnt/Example!"
+                        SetTestStateFailed
                         exit 60
                     fi
                 else
                     LogMsg "Error in mounting drive!"
-                    echo "Drive mount : Failed!" >> ~/summary.log
-                    UpdateTestState $ICA_TESTFAILED
+                    UpdateSummary "Drive mount : Failed!"
+                    SetTestStateFailed
                     exit 70
                 fi
         else
             LogMsg "Error in creating file-system!"
-            echo "Creating file-system has failed!" >> ~/summary.log
-            UpdateTestState $ICA_TESTFAILED
+            UpdateSummary "Creating file-system has failed!"
+            SetTestStateFailed
             exit 80
         fi
     else
         LogMsg "Error in executing fdisk  ${driveName}1"
-        echo "Error in executing fdisk  ${driveName}1" >> ~/summary.log
-        UpdateTestState $ICA_TESTFAILED
+        UpdateSummary "Error in executing fdisk  ${driveName}1"
+        SetTestStateFailed
         exit 90
     fi
-UpdateTestState $ICA_TESTCOMPLETED
-
-exit 0
 done
+
+# Check for Call Trace
+CheckCallTracesWithDelay 20
+SetTestStateCompleted
+exit 0

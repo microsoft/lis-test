@@ -465,10 +465,10 @@ for ($i=0; $i -le 2; $i++)
     }
 }
 
-if ($isPassed -eq $false){
+if ($isPassed -eq $false) {
     "Error: All attempts failed"
     exit 1
 }
 
-"Info : IP Injection test passed"
+"Info: IP Injection test passed"
 return $True

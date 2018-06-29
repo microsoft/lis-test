@@ -44,6 +44,40 @@ UtilsInit
 
 #######################################################################
 #
+# InstallKexec()
+#
+#######################################################################
+InstallKexec(){
+    GetDistro
+    case $DISTRO in
+        centos* | redhat* | fedora*)
+            yum install -y kexec-tools kdump-tools makedumpfile
+            if [ $? -ne 0 ]; then
+                UpdateSummary "Warning: Kexec-tools failed to install."
+            fi
+        ;;
+        ubuntu* | debian*)
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update; apt-get -y install kexec-tools kdump-tools makedumpfile
+            if [ $? -ne 0 ]; then
+                UpdateSummary "Warning: Kexec-tools failed to install."
+            fi
+        ;;
+        suse*)
+            zypper refresh; zypper --non-interactive install kexec-tools kdump makedumpfile
+            if [ $? -ne 0 ]; then
+                UpdateSummary "Warning: Kexec-tools failed to install."
+            fi
+        ;;
+        *)
+            msg="Warning: Distro '${distro}' not supported. Kexec-tools failed to install."
+            LogMsg "${msg}"
+            UpdateSummary "${msg}"
+        ;;
+    esac
+}
+#######################################################################
+#
 # RhelExtraSettings()
 #
 #######################################################################
@@ -156,16 +190,17 @@ ConfigRhel()
     fi
 
     GetGuestGeneration
-    if [ $os_GENERATION -eq 2 ] && [ $os_RELEASE -eq 6 ]; then
+
+    if [ $os_GENERATION -eq 2 ] && [[ $os_RELEASE =~ 6.* ]]; then
         boot_filepath=/boot/efi/EFI/BOOT/bootx64.conf
-    elif [ $os_GENERATION -eq 1 ] && [ $os_RELEASE -eq 6 ]; then
+    elif [ $os_GENERATION -eq 1 ] && [[ $os_RELEASE =~ 6.* ]]; then
         boot_filepath=/boot/grub/grub.conf
-    elif [ $os_GENERATION -eq 1 ] && [ $os_RELEASE -eq 7 ]; then
+    elif [ $os_GENERATION -eq 1 ] && [[ $os_RELEASE =~ 7.* || $os_RELEASE =~ 8.* ]]; then
         boot_filepath=/boot/grub2/grub.cfg
-    elif [ $os_GENERATION -eq 2 ] && [ $os_RELEASE -eq 7 ]; then
+    elif [ $os_GENERATION -eq 2 ] && [[ $os_RELEASE =~ 7.* || $os_RELEASE =~ 8.* ]]; then
         boot_filepath=/boot/efi/EFI/redhat/grub.cfg
     else
-	boot_filepath=`find /boot -name grub.cfg`
+        boot_filepath=`find /boot -name grub.cfg`
     fi
 
     # Enable kdump service
@@ -341,6 +376,8 @@ if [ "$vmbus_string" = "" ]; then
     UpdateSummary "WARNING: Full support for kdump is not present, test execution might not work as expected"
 fi
 
+InstallKexec
+
 #
 # Configure kdump - this has distro specific behaviour
 #
@@ -349,7 +386,7 @@ case $DISTRO in
     centos* | redhat*)
         ConfigRhel
     ;;
-    ubuntu*)
+    ubuntu*|debian*)
         if [ "$crashkernel" == "auto" ]; then
             LogMsg "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y."
             UpdateSummary "WARNING: crashkernel=auto doesn't work for Ubuntu. Please use this pattern: crashkernel=X@Y."
