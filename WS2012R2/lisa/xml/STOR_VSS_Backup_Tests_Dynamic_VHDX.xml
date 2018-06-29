@@ -40,23 +40,22 @@
             <suiteTests>
                 <suiteTest>STOR_VSS_Setup_Backup_Disk</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_multiFS_vhdx</suiteTest>
-                <suiteTest>STOR_VSS_BackupRestore_State_Off</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_ISO_NoNetwork</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_DiskStress</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_3Chain_VHD</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_State_Paused</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_Fail</suiteTest>
-
-                <suiteTest>STOR_VSS_BackupRestore_ISCSI</suiteTest>
-
                 <suiteTest>STOR_VSS_BackupRestore_Mount_Multi_Paths</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_Mount_Squashfs</suiteTest>
                 <suiteTest>STOR_VSS_Backup_Disable_Enable_VSS</suiteTest>
                 <suiteTest>STOR_VSS_Backup_Change_Hypervvssd</suiteTest>
 
                 <!-- Live backup operations can fail silently if the VM has an
-                attached iSCSI device or direct-attached storage (pass-through disk) -->
+                attached iSCSI device or direct-attached storage (pass-through disk).
+                iSCSI test requires an iSCSI server and target setup information.
+
                 <suiteTest>STOR_VSS_BackupRestore_PassTru</suiteTest>
+                <suiteTest>STOR_VSS_BackupRestore_iSCSI</suiteTest> -->
 
                 <suiteTest>STOR_VSS_Cleanup_Backup_Disk</suiteTest>
             </suiteTests>
@@ -149,20 +148,6 @@
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
-
-        <test>
-            <testName>STOR_VSS_BackupRestore_State_Off</testName>
-            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
-            <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh</files>
-            <testParams>
-                <param>TC_COVERED=VSS-15</param>
-                <param>vmState=Off</param>
-            </testParams>
-            <timeout>3000</timeout>
-            <OnError>Continue</OnError>
-        </test>
-
         <test>
             <testName>STOR_VSS_BackupRestore_State_Paused</testName>
             <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
@@ -187,7 +172,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-16</param>
                 <param>SCSI=0,1,PassThrough</param>
-                <param>fileSystems=(ext3)</param>
+                <param>fileSystems=(ext4)</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
@@ -204,7 +189,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-18</param>
                 <param>IDE=0,1,Dynamic</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
@@ -221,7 +206,7 @@
             <testParams>
                 <param>TC_COVERED=VSS-19</param>
                 <param>IDE=0,1,Dynamic</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
