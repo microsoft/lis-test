@@ -26,7 +26,7 @@ dos2unix utils.sh
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
-	SetTestStateAborted
+    SetTestStateAborted
     exit 1
 }
 
@@ -49,7 +49,6 @@ fi
 
 GetDistro
 case $DISTRO in
-
     "redhat_7" | "centos_7" | "Fedora" )
         serviceName=`systemctl list-unit-files | grep -e 'hypervvssd\|[h]v-vss-daemon\|[h]v_vss_daemon'| cut -d " " -f 1`
     ;;
@@ -57,10 +56,10 @@ case $DISTRO in
         serviceName=`chkconfig list | grep -e 'hypervvssd\|[h]v-vss-daemon\|[h]v_vss_daemon'| cut -d " " -f 1`
     ;;
     *)
-        LogMsg "Info: Distro $DISTRO is not supported."
-    	UpdateSummary "Distro $DISTRO is not supported, skip test."
-    	SetTestStateSkipped
-	    exit 1
+        LogMsg "Info: Distro $DISTRO is not supported, skipping test."
+        UpdateSummary "Distro $DISTRO is not supported, skipping test."
+        SetTestStateSkipped
+        exit 1
     ;;
     esac
 
