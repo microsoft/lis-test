@@ -113,7 +113,7 @@ function TestWgetFile()
   rm -rf /mnt/*
 }
 
-# test copy from nfs path, dd one 5G file to /mnt2 which is mounted to nfs, then copy to /mnt
+# test copy from nfs path, dd one file to /mnt2 which is mounted to nfs, then copy to /mnt
 # which is mounted to disk
 function TestNFSCopyFile()
 {
@@ -124,8 +124,8 @@ function TestNFSCopyFile()
 
   if [ "$?" = "0" ]; then
       LogMsg "Mount nfs successfully from $NFS_Path"
-      # dd 5G file
-      dd if=/dev/zero of=/mnt_2/data bs=2048 count=2500000
+      # dd file
+      dd if=/dev/zero of=/mnt_2/data bs=$File_DD_Bs count=$File_DD_Count
       sleep 2
 
       LogMsg "Finish dd file in nfs path, start to copy to drive..."
@@ -139,11 +139,11 @@ function TestNFSCopyFile()
 
       rm -rf /mnt/*
       if [ $file_size = $file_size1 ]; then
-          LogMsg "Drive mount nfs and copy 5G file successfully..."
-          echo "Drive mount nfs and copy 5G file successfully... ">> ~/summary.log
+          LogMsg "Drive mount nfs and copy file successfully"
+          echo "Drive mount nfs and copy file successfully">> ~/summary.log
       else
-          LogMsg "Drive mount nfs and copy 5G file  failed..."
-          echo "Drive mount nfs and copy 5G file  failed..." >> ~/summary.log
+          LogMsg "Drive mount nfs and copy file failed"
+          echo "Drive mount nfs and copy file failed" >> ~/summary.log
 
           UpdateTestState $ICA_TESTFAILED
           exit 80
@@ -151,6 +151,9 @@ function TestNFSCopyFile()
       umount /mnt_2
   else
       LogMsg "Mount nfs ... from $NFS_Path failed"
+      echo "Mount nfs ... from $NFS_Path failed" >> ~/summary.log
+      UpdateTestState $ICA_TESTFAILED
+      exit 80
   fi
 
 }
@@ -166,7 +169,7 @@ function TestFileSystemCopy()
         sleep 5
         wipefs -a "${driveName}1"
         # IntegrityCheck $driveName
-        mkfs.$fs   ${driveName}1
+        mkfs.$fs  ${driveName}1
         if [ "$?" = "0" ]; then
             LogMsg "mkfs.${fs}   ${driveName}1 successful..."
             mount ${driveName}1 /mnt
