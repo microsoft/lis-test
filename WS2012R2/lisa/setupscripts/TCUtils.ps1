@@ -1239,13 +1239,13 @@ function RunRemoteScript($remoteScript)
     # Return the state file
     while ($timeout -ne 0 )
     {
-    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} ./state_{ipv4}.txt #| out-null
+    .\bin\pscp -q -i ssh\${sshKey} root@${ipv4}:${stateFile} ./state_${ipv4}.txt #| out-null
     $sts = $?
     if ($sts)
     {
-        if (test-path ./state_{ipv4}.txt)
+        if (test-path ./state_${ipv4}.txt)
         {
-            $contents = Get-Content -Path ./state_{ipv4}.txt
+            $contents = Get-Content -Path ./state_${ipv4}.txt
             if ($null -ne $contents)
             {
                     if ($contents -eq $TestCompleted)
@@ -1335,7 +1335,7 @@ function RunRemoteScript($remoteScript)
     }
 
     # Cleanup
-    del state_{ipv4}.txt -ErrorAction "SilentlyContinue"
+    del state_${ipv4}.txt -ErrorAction "SilentlyContinue"
     del runtest_${ipv4}.sh -ErrorAction "SilentlyContinue"
     return $retValue
 }
