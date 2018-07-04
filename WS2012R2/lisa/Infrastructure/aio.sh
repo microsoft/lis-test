@@ -462,11 +462,6 @@ if is_fedora ; then
         fi
     fi
 
-    #
-    # Removing /var/log/messages
-    #
-    rm -f /var/log/messages
-
     if [ $os_RELEASE -eq 6 ]; then
         echo "Changing ONBOOT..."
         sed -i -e 's/ONBOOT=no/ONBOOT=yes/g' /etc/sysconfig/network-scripts/ifcfg-eth0
@@ -562,6 +557,11 @@ if is_fedora ; then
         cp /boot/efi/EFI/redhat/grub.conf /boot/efi/EFI/boot/bootx64.conf
     fi
 
+    #
+    # Removing /var/log/messages
+    #
+    rm -f /var/log/messages
+
 elif is_ubuntu ; then
     echo "Starting the configuration..."
     echo "Disable IPv6 for apt-get"
@@ -583,11 +583,17 @@ elif is_ubuntu ; then
     net-tools)
     DEBIAN_FRONTEND=noninteractive sudo apt -y install ${deb_packages[@]}
 
+    # multipathd daemon might cause conflicts with partitioning tools
+    # rewriting configuration for multipathd to exclude all disks
     if [ -e /etc/multipath.conf ]; then
         rm /etc/multipath.conf
     fi
     echo -e "blacklist {\n\tdevnode \"^sd[a-z]\"\n}" >> /etc/multipath.conf
     service multipath-tools restart
+
+    # grub configuration for gen2vm
+    # this is required if the vhdx is moved or if a new VM is created
+    # with a cloned gen2vm vhdx
     if [ -e /boot/efi ]; then
         cp -r /boot/efi/EFI/ubuntu/ /boot/efi/EFI/boot
         if [ -e /boot/efi/EFI/boot/shimx64.efi ]; then
@@ -612,16 +618,9 @@ elif is_ubuntu ; then
     rm -f /var/log/syslog*
 
 elif is_suse ; then
-
     #
     # SLES ISO must be mounted for BETA releases
     #
-
-    #
-    # Removing /var/log/messages
-    #
-    rm -f /var/log/messages
-
     echo "Registering the system..." >> summary.log
     if [ $# -ne 2 ]; then
         echo "ERRROR: Incorrect number of arguments!" >> summary.log
@@ -703,6 +702,10 @@ elif is_suse ; then
             mv /boot/efi/EFI/BOOT/elilo.efi /boot/efi/EFI/boot/bootx64.efi
         fi
     fi
+    #
+    # Removing /var/log/messages
+    #
+    rm -f /var/log/messages
 fi
 
 install_stress_ng
