@@ -176,6 +176,7 @@
             <suiteTest>MaxNIC</suiteTest>
             <suiteTest>TCP_Corruption</suiteTest>
             <suiteTest>Multicast</suiteTest>
+            <suiteTest>Ifdown-ifup-regression</suiteTest>
             <!-- VM Stress tests -->
             <suiteTest>Sysbench</suiteTest>
             <suiteTest>LTPBasic</suiteTest>
@@ -1267,6 +1268,19 @@
          <onError>Continue</onError>
          <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
       </test>
+        <test>
+        <testName>Ifdown-ifup-regression</testName>
+            <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testParams>
+                <param>NIC=NetworkAdapter,External,External</param>
+                <param>TC_COVERED=NET-34</param>
+            </testParams>
+            <testScript>verify_ifdown_ifup.sh</testScript>
+            <files>remote-scripts/ica/verify_ifdown_ifup.sh,remote-scripts/ica/utils.sh</files>
+            <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+        </test>
       <!-- NMI_Tests -->
       <test>
          <testName>NMI_Verify_Interrupt</testName>
