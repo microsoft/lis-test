@@ -4,6 +4,10 @@
 	<global>
 		<logfileRootDir>TestResults</logfileRootDir>
 		<defaultSnapshot>ICABase</defaultSnapshot>
+		<LisaInitScript>
+		    <file>.\setupScripts\CreateVMs.ps1</file>
+		</LisaInitScript>
+		<imageStoreDir>\\unc\path</imageStoreDir>
 		<email>
 			<recipients>
 			<to>myboss@mycompany.com</to>
@@ -14,7 +18,6 @@
 			<smtpServer>mysmtphost.mycompany.com</smtpServer>
 		</email>
 	</global>
-
 	<testSuites>
 		<suite>
 			<suiteName>DM</suiteName>
@@ -47,7 +50,6 @@
 			</suiteTests>
 		</suite>
 	</testSuites>
-
 	<testCases>
 		<test>
 			<testName>DM_loaded</testName>
@@ -66,7 +68,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>800</timeout>
 		</test>
-
 		<test>
 			<testName>HotAdd_Verify_udev</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -84,7 +85,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
-
 		<test>
 			<testName>HotAddStressapptest</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -103,7 +103,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
-
 		<test>
 			<testName>HotAdd</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -124,7 +123,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
-
 		<test>
 			<testName>HotRemove</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -150,7 +148,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
-
 		<test>
 			<testName>StartupLowCompete</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -173,7 +170,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
-
 		<test>
 			<testName>StartupHighCompete</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -205,7 +201,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
-
 		<test>
 			<testName>DemandPressure</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -225,7 +220,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
-
 		<test>
 			<testName>HighPriority</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -251,9 +245,8 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>2600</timeout>
 		</test>
-
 		<test>
-            <testName>MinMemHonored</testName>
+            	<testName>MinMemHonored</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
 				<param>TC_COVERED=DM-10</param>
@@ -274,7 +267,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
         	</test>
-
 		<test>
 			<testName>MaxMemHonored</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -299,7 +291,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>2600</timeout>
 		</test>
-
 		<test>
 			<testName>SaveRestore</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -322,7 +313,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1800</timeout>
 		</test>
-
 		<test>
 			<testName>CleanShutdown</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -345,7 +335,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
-
 		<test>
 			<testName>Stress_HotAdd_5seconds</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -366,7 +355,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
-
 		<test>
 			<testName>Stress_HotAdd_1second</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -387,7 +375,6 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
-
 		<test>
 			<testName>Stress_Large_Chunk</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
@@ -413,17 +400,40 @@
 	<VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>VMName</vmName>
+            <vmName>dm_vm</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>linux_id_rsa.ppk</sshKey>
             <testParams>
-                <param>VM2Name=vm2Name</param>
+                <param>VM2Name=aux_dm_vm</param>
                 <param>VM3Name=vm3Name</param>
                 <param>SnapshotName=ICABase</param>
             </testParams>
             <suite>DM</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>2</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>aux_dm_vm</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>linux_id_rsa.ppk</sshKey>
+            <role>nonSUT</role>
+            <hardware>
+                <create>true</create>
+                <numCPUs>2</numCPUs>
+                <memSize>2048</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
         </vm>
     </VMs>
-
 </config>
