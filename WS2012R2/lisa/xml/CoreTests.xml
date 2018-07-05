@@ -45,6 +45,7 @@
             <suiteTest>Core_Time_Clocksource</suiteTest>
             <suiteTest>Core_Time_Clockevent_UP</suiteTest>
             <suiteTest>Core_Time_Clockevent_SMP</suiteTest>
+            <suiteTest>Core_Time_VDSO</suiteTest>
             <suiteTest>TimeSync</suiteTest>
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
@@ -407,6 +408,17 @@
            <testParams>
                <param>TC_COVERED=CORE-36b</param>
                <param>VCPU=8</param>
+           </testParams>
+           <timeout>600</timeout>
+           <onError>Continue</onError>
+           <noReboot>false</noReboot>
+       </test>
+       <test>
+           <testName>Core_Time_VDSO</testName>
+           <testScript>SetupScripts\Core_Time_VDSO.ps1</testScript>
+           <files>tools/time/gettime.c</files>
+           <testParams>
+               <param>TC_COVERED=CORE-37</param>
            </testParams>
            <timeout>600</timeout>
            <onError>Continue</onError>
