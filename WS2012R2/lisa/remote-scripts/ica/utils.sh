@@ -1120,8 +1120,6 @@ RemoveVlanConfig()
 					rm -f "$__file_path"
 				fi
 			fi
-			service network restart 2>&1
-
 			# make sure the interface is down
 			ip link set "$__interface.$__vlanID" down
 			;;
