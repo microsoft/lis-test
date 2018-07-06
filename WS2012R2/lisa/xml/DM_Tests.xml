@@ -33,8 +33,9 @@
 
 				<!-- Complex Hot Add tests -->
 				<suiteTest>HotRemove</suiteTest>
-				<suiteTest>StartupHighCompete</suiteTest>
 				<suiteTest>HighPriority</suiteTest>
+				<!-- test requires a 3 VMs setup
+				<suiteTest>StartupHighCompete</suiteTest> -->
 
 				<!-- Stress Hot Add tests -->
 				<suiteTest>Stress_HotAdd_5seconds</suiteTest>
@@ -430,22 +431,6 @@
                 <create>true</create>
                 <numCPUs>2</numCPUs>
                 <memSize>2048</memSize>
-                <disableDiff>True</disableDiff>
-                <generation>1</generation>
-                <nic>VMBus,External</nic>
-            </hardware>
-        </vm>
-        <vm>
-            <hvServer>localhost</hvServer>
-            <vmName>aux2_dm_vm</vmName>
-            <os>Linux</os>
-            <ipv4></ipv4>
-            <sshKey>linux_id_rsa.ppk</sshKey>
-            <role>nonSUT</role>
-            <hardware>
-                <create>true</create>
-                <numCPUs>2</numCPUs>
-                <memSize>1024</memSize>
                 <disableDiff>True</disableDiff>
                 <generation>1</generation>
                 <nic>VMBus,External</nic>
