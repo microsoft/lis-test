@@ -45,7 +45,7 @@ def get_commit_info(patch_path):
 
 def build(build_folder, clean=False):
     base_build_cmd = ['cd', build_folder, '&&', 'make', '-C']
-    drivers = '/lib/modules/$(uname -r)/build M=`pwd`'
+    drivers = '/lib/modules/$(uname -r)/build M=$(pwd)'
     daemons = './tools'
     # First run the clean commands
     run_command(base_build_cmd + [drivers, 'clean'])
