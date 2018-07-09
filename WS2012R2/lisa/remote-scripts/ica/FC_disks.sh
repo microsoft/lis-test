@@ -24,12 +24,13 @@
 ########################################################################
 #
 # FC_disks.sh
+#
 # Description:
 # This script will identify the number of total disks detected inside the guest VM.
 # It will then format the FC disks, perform read/write checks and check
 # Call Trace.
 #
-################################################################
+########################################################################
 
 dos2unix utils.sh
 . utils.sh || {
@@ -79,26 +80,23 @@ do
     #
     # Skip /dev/sda
     #
-	if [ ${driveName} = "/dev/sda" ]; then
+    if [ ${driveName} = "/dev/sda" ]; then
         continue
     fi
     fdisk -l $driveName > fdisk.dat 2> /dev/null
-    # Format the Disk and Create a file system , Mount and create file on it .
 
-    (echo d;echo;echo w) | fdisk  $driveName
-    if [ "$?" != "0" ]; then
-        LogMsg "Error in executing fdisk on ${driveName} !"
-        echo "Error in executing fdisk on ${driveName} !" >> ~/summary.log
-        SetTestStateFailed
-        exit 60
-    fi
+    # Delete the existing partition
+    for (( c=1 ; c<=count; count--))
+        do
+            (echo d; echo $c ; echo ; echo w) |  fdisk $driveName
+        done
 
-    (echo n;echo p;echo 1;echo;echo;echo w)|fdisk  $driveName
+    (echo n;echo p;echo 1;echo;echo;echo w) | fdisk $driveName
     if [ "$?" = "0" ]; then
         sleep 5
-        mkfs.ext3  ${driveName}1
+        mkfs.ext4 -F ${driveName}1
         if [ "$?" = "0" ]; then
-            LogMsg "mkfs.ext3 ${driveName}1 successful..."
+            LogMsg "mkfs.ext4 ${driveName}1 successful..."
             mount   ${driveName}1 /mnt
                     if [ "$?" = "0" ]; then
                     LogMsg "Drive mounted successfully..."
@@ -108,7 +106,6 @@ do
                         LogMsg "Successful created directory /mnt/Example"
                         LogMsg "Listing directory: ls /mnt/Example"
                         ls /mnt/Example
-                        df -h
                         umount /mnt
                         if [ "$?" = "0" ]; then
                             LogMsg "Drive unmounted successfully..."
