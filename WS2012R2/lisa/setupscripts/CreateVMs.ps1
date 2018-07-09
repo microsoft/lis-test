@@ -143,9 +143,7 @@ function GetRemoteFileInfo([String] $filename, [String] $server )
     }
 
     $remoteFilename = $filename.Replace("\", "\\")
-    
     $fileInfo = Get-WmiObject -query "SELECT * FROM CIM_DataFile WHERE Name='${remoteFilename}'" -computer $server
-     
     return $fileInfo
 }
 
@@ -218,7 +216,7 @@ function DeleteVmAndVhd([String] $vmName, [String] $hvServer, [String] $vhdFilen
         $fileInfo = GetRemoteFileInfo $vhdFilename -server $hvServer
         if ($fileInfo)
         {
-            $fileInfo.Delete()  
+            $fileInfo.Delete()
         }
     }
 }
@@ -265,8 +263,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
         }
         $clusterDir = Get-ClusterSharedVolume
         $vhdDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
-    } 
-    else {
+    } else {
         $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
     }
 
@@ -310,9 +307,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
                 LogMsg 0 "Error: Remote parent vhd file ${parentVhd} does not exist."
                 return $False
             }
-        } 
-        else
-        {
+        } else {
             $fileInfo = GetRemoteFileInfo $parentVhd $hvServer
             if (-not $fileInfo)
             {
@@ -375,9 +370,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
             LogMsg 0 "Warn: Unable to determine the number of processors on HyperV server ${hvServer}. numCPUs has been set to 1"
             $vm.hardware.numCPUs = "1"
             
-        }
-        else
-        {
+        } else {
             $CPUs = $processors.NumberOfLogicalProcessors
             
             $maxCPUs = 0
@@ -424,9 +417,7 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
                     LogMsg 0 "Warn: Invalid memSize. MemSize defaulting to 1024MB"
                 } 
             }
-        }
-        else
-        {
+        } else {
             LogMsg 0 "Warn: Invalid memSize. MemSize defaulting to 1024 MB"
         }
 
@@ -510,15 +501,11 @@ function CheckRequiredParameters([System.Xml.XmlElement] $vm, [XML]$xmlData)
             #
             $validNetworks = @()
             $availableNetworks = Get-VMSwitch -ComputerName $hvServer
-            if ($availableNetworks)
-            {
-                foreach ($network in $availableNetworks)
-                {
+            if ($availableNetworks) {
+                foreach ($network in $availableNetworks) {
                     $validNetworks += $network.Name
                 }
-            }
-            else
-            {
+            } else {
                 LogMsg 0 "Error: Unable to determine available networks on HyperV server ${hvServer}"
                 "       The NIC will not be added (${nic})"
                 Continue
@@ -617,17 +604,13 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 if ( $vm.hardware.isCluster -eq "True") {
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Path $vmDir
-                }
-                else {
+                } else {
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer
                 }
-            }
-        else
-            {
+            } else {
                 if ( $vm.hardware.isCluster -eq "True") {
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration -Path $vmDir
-                }
-                else {
+                } else {
                     $newVm = New-VM -Name $vmName -ComputerName $hvServer -Generation $vmGeneration
                 }
                 # Enable Guest integration services - not enabled by default
@@ -643,12 +626,9 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         # Disable secure boot on VM unless explicitly told to enable it on Gen2 VMs
         #
         if (($newVM.Generation -eq 2)) {
-            if ($vm.hardware.secureBoot -eq "true")
-            {
+            if ($vm.hardware.secureBoot -eq "true") {
                 Set-VMFirmware -VM $newVm -EnableSecureBoot On
-            }
-            else
-            {
+            } else {
                 Set-VMFirmware -VM $newVm -EnableSecureBoot Off
             }
         } else {
@@ -662,8 +642,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
 				$pipePath = "\\.\pipe\${pipeName}"
 			}
 			Set-VMComPort -ComputerName $hvServer -VMName $vmName -Number 2 -Path $pipePath -ErrorAction SilentlyContinue
-			if(-not $?) 
-			{
+			if (-not $?) {
 				Write-Error "Error: Unable to set Com Port with the following path: ${pipePath}"
 			}
 		}
@@ -700,15 +679,19 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             # Or we find the last written file
             if (!$parentVhd)
             {
-                $latestFile = Join-Path $vhdDir "latest"
-                if (Test-Path $latestFile)
-                {
-                    $parentVhd = Get-Content $latestFile
-                }
-                else
-                {
+                #
+		# Always rely only on detection of latest vhdx and not rely on a vhdx name 
+		# found in the "latest" text file
+		#
+                #$latestFile = Join-Path $vhdDir "latest"
+                #if (Test-Path $latestFile)
+                #{
+                #    $parentVhd = Get-Content $latestFile
+                #}
+                #else
+                #{
                     $parentVhd = $(Get-ChildItem $vhdDir | Where-Object { $_.Extension -eq ".vhd" -or $_.Extension -eq ".vhdx"} | Sort LastWriteTime | Select -Last 1).Name
-                }
+                #}
             }
 
             $parentVhd = Join-Path $vhdDir $parentVhd
@@ -722,15 +705,15 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             if ( $vm.hardware.isCluster -eq "True") {
                 $clusterDir = Get-ClusterSharedVolume
                 $vhdDir = $clusterDir.SharedVolumeInfo.FriendlyVolumeName
-            }else {
-                if($xmlData.Config.global.VhdPath){
+            } else {
+                if($xmlData.Config.global.VhdPath) {
                     $vhdDir = $xmlData.Config.global.VhdPath
-                    if ( -not (Test-Path $vhdDir)){
+                    if ( -not (Test-Path $vhdDir)) {
                         LogMsg 0 "Error: Path $vhdDir given as parameter does not exist"
                         return $false
                     }
                 }
-                else{
+                else {
                     $vhdDir = $(Get-VMHost -ComputerName $hvServer).VirtualHardDiskPath
                 }
             }
@@ -762,7 +745,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             $vhdFilenameNetPath = "\\" + $hvServer + "\" + $vhdFilename.Replace(":","$")
 
             # Check if differencing boot disk exists, and if yes, delete it
-            if(Test-Path $vhdFilenameNetPath) {
+            if (Test-Path $vhdFilenameNetPath) {
                 Remove-Item -Path $vhdFilenameNetPath -Force
             }
             #
@@ -774,8 +757,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
             {
                 LogMsg 0 "Error: Failed to create $vhdFilename using parent $parentVhd for VM ${vmName}"
                 $fileInfo = GetRemoteFileInfo $vhdFilename $hvServer
-                if ($fileInfo)
-                {
+                if ($fileInfo) {
                     LogMsg 0 "Error: The file already exists"
                 }
     
@@ -854,8 +836,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                 $networkName = $tokens[1].Trim()
 
                 $legacyNIC = $False
-                if ($newVm.Generation -eq 1 -and $nicType -eq "Legacy")
-                {
+                if ($newVm.Generation -eq 1 -and $nicType -eq "Legacy") {
                     $legacyNIC = $True
                 }
 
@@ -869,23 +850,17 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
                     {
                         $macAddress = $tokens[2].Trim().ToLower() -replace '[^a-f0-9]',''  # Leave just hex digits
 
-                        if ($macAddress.Length -eq 12)
-                        {
+                        if ($macAddress.Length -eq 12) {
                             Set-VMNetworkAdapter -VMNetworkAdapter $newNic -StaticMAC $macAddress
-                        }
-                        else
-                        {
+                        } else {
                             LogMsg 0 "Warn: Invalid MAC address for NIC ${nic}. NIC left with dynamic MAC"
                         }
                     }
                 }
 
-                if ($newNic)
-                {
+                if ($newNic) {
                     $nicAdded = $True
-                }
-                else
-                {
+                } else {
                     LogMsg 0 "Warn: Unable to add legacy NIC (${nic}) to VM ${vmName}"
                 }
             }
@@ -901,7 +876,7 @@ function CreateVM([System.Xml.XmlElement] $vm, [XML] $xmlData)
         #
         # Configure VM for High Availability
         #
-        if( $vm.hardware.isCluster -eq "True"){
+        if ($vm.hardware.isCluster -eq "True") {
             Add-ClusterVirtualMachineRole -VirtualMachine $vmName
             if ($? -eq $False)
             {
