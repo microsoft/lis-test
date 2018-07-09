@@ -541,6 +541,11 @@ if is_fedora ; then
     yum -y groupinstall "Development Tools"
     verify_install $? "Development Tools"
 
+    if [ $os_RELEASE -eq 6 ]; then
+    echo "Installing hyperv-daemons for RedHat/CentOS 6.x..." >> summary.log
+        yum install -y hyperv-daemons
+    fi
+
     if [ ! -d $work_directory ] ; then
         mkdir $work_directory
     fi
