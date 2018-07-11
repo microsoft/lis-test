@@ -96,11 +96,14 @@ for module in ${HYPERV_MODULES[@]}; do
 
 	# Check to see if the module is loaded
 	if [[ $load_status =~ $module ]]; then
-		if [[ `rpm -qa | grep hyper-v` ]];then
-			version=$(modinfo $module | grep version: | head -1 | awk '{print $2}')
-			LogMsg "$module module: ${version}"
-			echo "$module module: ${version}" >> ~/summary.log
-			continue
+		rpm --help > /dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			if [[ `rpm -qa | grep hyper-v` ]];then
+				version=$(modinfo $module | grep version: | head -1 | awk '{print $2}')
+				LogMsg "$module module: ${version}"
+				echo "$module module: ${version}" >> ~/summary.log
+				continue
+			fi
 		fi
 
 		version=$(modinfo $module | grep vermagic: | awk '{print $2}')
