@@ -35,6 +35,8 @@
 #   3. setup_ntttcp - downlload and install ntttcp-for-linux
 #   4. setup_lagscope - download an install lagscope to monitoring latency
 ########################################################################
+ntttcp_version=v1.3.4
+
 
 declare -A sysctl_tcp_params=( ["net.core.netdev_max_backlog"]="30000"
                                ["net.core.rmem_default"]="67108864"
@@ -110,6 +112,7 @@ function setup_ntttcp {
       if [ $status -eq 0 ]; then
         echo "ntttcp-for-linux successfully downloaded." >> ~/summary.log
         cd ntttcp-for-linux/src
+	git checkout tags/$ntttcp_version
       else
         echo "ERROR: Unable to download ntttcp-for-linux" >> ~/summary.log
         UpdateTestState $ICA_TESTABORTED
