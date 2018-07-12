@@ -32,11 +32,14 @@
 #   1. setup_sysctl - setting and applying sysctl parameters
 #   2. setup_io_scheduler - setting noop i/o scheduler on all disk type devices
 # (this is not a permanent change - on reboot it needs to be reapplied)
-#   3. setup_ntttcp - downlload and install ntttcp-for-linux
+#   3. setup_ntttcp - download and install ntttcp-for-linux
 #   4. setup_lagscope - download an install lagscope to monitoring latency
+#
 ########################################################################
-ntttcp_version=v1.3.4
 
+# defines the git tag version of ntttcp for linux tool to be used
+# see https://github.com/Microsoft/ntttcp-for-linux/releases
+ntttcp_version=v1.3.4
 
 declare -A sysctl_tcp_params=( ["net.core.netdev_max_backlog"]="30000"
                                ["net.core.rmem_default"]="67108864"
@@ -103,7 +106,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     echo "Done."
 fi
 
-#Install ntttcp-for-linux
+# Install ntttcp-for-linux
 function setup_ntttcp {
     if [ "$(which ntttcp)" == "" ]; then
       rm -rf ntttcp-for-linux
@@ -112,7 +115,7 @@ function setup_ntttcp {
       if [ $status -eq 0 ]; then
         echo "ntttcp-for-linux successfully downloaded." >> ~/summary.log
         cd ntttcp-for-linux/src
-	git checkout tags/$ntttcp_version
+        git checkout tags/$ntttcp_version
       else
         echo "ERROR: Unable to download ntttcp-for-linux" >> ~/summary.log
         UpdateTestState $ICA_TESTABORTED
@@ -129,7 +132,7 @@ function setup_ntttcp {
     fi
 }
 
-#Install lagscope
+# Install lagscope
 function setup_lagscope {
     if [[ "$(which lagscope)" == "" ]]; then
       rm -rf lagscope
@@ -154,7 +157,7 @@ function setup_lagscope {
     fi
 }
 
-#Install FIO-tool
+# Install FIO-tool
 function setup_fio {
     git clone https://github.com/axboe/fio
     pushd fio
@@ -164,7 +167,7 @@ function setup_fio {
         UpdateTestState $ICA_TESTABORTED
         exit 20
     fi
-    #Compiling FIO
+    # Compiling FIO
     ./configure
     sts=$?
     if [ 0 -ne ${sts} ]; then
@@ -185,17 +188,18 @@ function setup_fio {
     fi
     popd
 }
-#Upgrade gcc to 4.8.1
+
+# Upgrade gcc to 4.8.1
 function upgrade_gcc {
-# for RHEL subscription this is available with the devtoolset-2 package
-# Import CERN's GPG key
+    # for RHEL subscription this is available with the devtoolset-2 package
+    # Import CERN's GPG key
     rpm --import http://ftp.scientificlinux.org/linux/scientific/obsolete/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
     if [ $? -ne 0 ]; then
         echo "Error: Failed to import CERN's GPG key." >> ~/summary.log
         UpdateTestState $ICA_TESTABORTED
         exit 1
     fi
-# Save repository information
+    # Save repository information
     wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
     if [ $? -ne 0 ]; then
         echo "Error: Failed to save repository information." >> ~/summary.log
@@ -203,7 +207,7 @@ function upgrade_gcc {
         exit 1
     fi
 
-# The below will also install all the required dependencies
+    # The below will also install all the required dependencies
     yum install -y devtoolset-2-gcc-c++
     if [[ $? -ne 0 ]]; then
         echo "Error: Failed to install the new version of gcc." >> ~/summary.log
@@ -214,8 +218,8 @@ function upgrade_gcc {
     source /root/.bashrc
 }
 
-#Function for TX Bytes
-function get_tx_bytes(){
+# Function for TX Bytes
+function get_tx_bytes() {
     # RX bytes:66132495566 (66.1 GB)  TX bytes:3067606320236 (3.0 TB)
     Tx_bytes=`ifconfig $1 | grep "TX bytes"   | awk -F':' '{print $3}' | awk -F' ' ' {print $1}'`
 
@@ -228,8 +232,8 @@ function get_tx_bytes(){
 
 }
 
-#Function for TX packets
-function get_tx_pkts(){
+# Function for TX packets
+function get_tx_pkts() {
     # TX packets:543924452 errors:0 dropped:0 overruns:0 carrier:0
     Tx_pkts=`ifconfig $1 | grep "TX packets" | awk -F':' '{print $2}' | awk -F' ' ' {print $1}'`
 
@@ -241,7 +245,7 @@ function get_tx_pkts(){
     echo $Tx_pkts
 }
 
-#Firewall and iptables for Ubuntu/CentOS6.x/RHEL6.x
+# Firewall and iptables for Ubuntu/CentOS6.x/RHEL6.x
 function disable_firewall {
     service ufw status | grep inactive
     if [[ $? -ne 0 ]]; then
@@ -257,16 +261,16 @@ function disable_firewall {
       echo "WARN: Service iptables active. Will disable it ..."
       service iptables stop
     else
-      echo "Iptables is disabled."
+      echo "iptables is disabled."
     fi
     service ip6tables status | grep inactive
     if [[ $? -ne 0 ]]; then
       echo "WARN: Service ip6tables active. Will disable it ..."
       service ip6tables stop
     else
-      echo "Ip6tables is disabled."
+      echo "ip6tables is disabled."
     fi
-    echo "Iptables and ip6tables disabled."
+    echo "iptables and ip6tables disabled."
 }
 
 # Set static IPs for test interfaces
@@ -285,7 +289,7 @@ function config_staticip {
     done
 }
 
-#Run FIO on single physical disk
+# Run FIO on single physical disk
 function fio_single_disk {
     #Create partition for test
     echo -e "o\nn\np\n1\n\n\nw" | fdisk ${TEST_DEVICE}
@@ -337,7 +341,8 @@ function fio_single_disk {
         exit 1
     fi
 }
-#Run FIO on multiple physical disks
+
+# Run FIO on multiple physical disks
 function fio_raid {
     echo "INFO: Searching for raid partition."
     FIND_RAID2=$(cat /proc/mdstat | grep md | awk -F:  '{ print $1 }')
@@ -439,8 +444,7 @@ function fio_raid {
     zip -r ${LOG_FOLDER}.zip ${LOG_FOLDER}/*
 }
 
-perf_ConfigureBond()
-{
+perf_ConfigureBond() {
     LogMsg "BondCount: $bondCount"
     ip_to_set=$1
     # Set static IPs for each bond created
@@ -493,8 +497,7 @@ EOF
 #
 # VerifyVF - check if the VF driver is use
 #
-VerifyVF()
-{
+VerifyVF() {
 	# Check for pciutils. If it's not on the system, install it
 	lspci --version
 	if [ $? -ne 0 ]; then
@@ -514,7 +517,7 @@ VerifyVF()
 	            fi
 	            ;;
 	        ubuntu*)
-	            apt-get install pciutils -y
+	            apt install pciutils -y
 	            if [ $? -ne 0 ]; then
 	                msg="ERROR: Failed to install pciutils"
 	                LogMsg "$msg"
@@ -581,8 +584,7 @@ VerifyVF()
 # presence of the bond between VF and eth after the bonding script ran.
 # NOTE: function returns the number of bonds present on VM, not "0"
 #
-RunBondingScript()
-{
+RunBondingScript() {
 	if is_ubuntu ; then
 	    bash /usr/src/linux-headers-*/tools/hv/bondvf.sh
 
