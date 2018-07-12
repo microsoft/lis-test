@@ -33,7 +33,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LIS_SR-IOV_tests_run_on_2012R2</subject>
+            <subject>LIS_SR-IOV_tests_run_on_WS2016</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
     </global>
@@ -77,10 +77,8 @@
                 <suiteTest>MaxNICS</suiteTest>
                 <suiteTest>MaxNICS_vCPU</suiteTest>
 
-                <!-- Pause/Save VM tests with Single/Multiple NICs -->
-                <suiteTest>Single_PauseVM</suiteTest>
+                <!-- Pause/Save VM stress tests -->
                 <suiteTest>Stress_PauseVM</suiteTest>
-                <suiteTest>Single_SaveVM</suiteTest>
                 <suiteTest>Stress_SaveVM</suiteTest>
 
                 <!-- Multiple VMs -->
@@ -527,25 +525,6 @@
         </test>
 
         <test>
-            <testName>Single_PauseVM</testName>
-            <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files>  
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
-            <noReboot>False</noReboot>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-27</param>
-                <param>Clean_Dependency=yes</param>
-                <!-- VM_STATE has to be 'pause' or 'save' -->
-                <param>VM_STATE=pause</param>
-            </testParams>
-            <timeout>1800</timeout>
-        </test>
-
-        <test>
             <testName>Stress_PauseVM</testName>
             <testScript>setupScripts\SR-IOV_Stress_SavePause.ps1</testScript>
             <files>remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files> 
@@ -561,24 +540,6 @@
                 <param>VM_STATE=pause</param>
             </testParams>
             <timeout>2400</timeout>
-        </test>
-
-        <test>
-            <testName>Single_SaveVM</testName>
-            <testScript>setupScripts\SR-IOV_SavePauseVM.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/check_traces.sh</files>  
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
-            <noReboot>False</noReboot>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>TC_COVERED=SRIOV-29</param>
-                <!-- VM_STATE has to be 'pause' or 'save' -->
-                <param>VM_STATE=save</param>
-            </testParams>
-            <timeout>1800</timeout>
         </test>
 
         <test>
