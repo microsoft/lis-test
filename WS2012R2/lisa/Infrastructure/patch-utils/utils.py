@@ -1,6 +1,7 @@
 import subprocess
 import logging
 import fileinput
+import os
 import re
 
 logger=logging.getLogger(__name__)
@@ -44,16 +45,13 @@ def get_commit_info(patch_path):
     return commit_id, commid_desc
 
 def build(build_folder, clean=False):
-    base_build_cmd = ['cd', build_folder, '&&', 'make', '-C']
-    drivers = '/lib/modules/$(uname -r)/build M=$(pwd)'
-    daemons = './tools'
-    # First run the clean commands
-    run_command(base_build_cmd + [drivers, 'clean'])
-    run_command(base_build_cmd + [daemons, 'clean'])
+    base_path = os.path.dirname(os.path.realpath(__file__))
+    build_script_path = os.path.join(base_path, 'compile.sh')
+    base_build_cmd = ['/bin/bash', build_script_path, build_folder]
+    run_command(base_build_cmd + ['clean'])
     
     if not clean:
-        run_command(base_build_cmd + [drivers])
-        run_command(base_build_cmd + [daemons])
+        run_command(base_build_cmd)
 
 def run_command(command_arguments, work_dir='./'):
     ps_command = subprocess.Popen(
@@ -62,10 +60,10 @@ def run_command(command_arguments, work_dir='./'):
     stderr=subprocess.PIPE,
     cwd=work_dir
     )
-    logger.debug('Running command {}'.format(command_arguments))
+    logger.info('Running command {}'.format(command_arguments))
     stdout_data, stderr_data = ps_command.communicate()
 
-    logger.debug('Command output %s', stdout_data)
+    logger.info('Command output %s', stdout_data)
     if ps_command.returncode != 0:
         raise RuntimeError(
             "Command failed, status code %s stdout %r stderr %r" % (

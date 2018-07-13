@@ -41,7 +41,10 @@ class PatchManager(object):
 
     def apply(self):
         patch_list = os.listdir(self.patches_folder)
-        
+        if len(patch_list) == 0:
+            logger.info('No patch files found at %s' % self.patches_folder)
+            return
+
         with open(self.normalize_paths, 'r') as data:
             normalize_dict = load(data)
 
@@ -64,10 +67,15 @@ class PatchManager(object):
                     log_file.write(exc[1])
                     log_file.write(exc[2])
                 move(repo_path, '%s/%s' % (self.failures_path, '%s-build' % patch_file))
-                logger.error('Logs cand be found at %s' % (self.failures_path+patch_file+'.log'))            
+                logger.error('Logs can be found at %s/%s.log' % (self.failures_path, patch_file))            
     
     def compile(self):
-        for build_folder in os.listdir(self.builds_path):
+        patch_folders = os.listdir(self.builds_path)
+        if len(patch_folders) == 0:
+            logger.info('No patch folders found at %s' % self.builds_path)
+            return
+
+        for build_folder in patch_folders:
             build_path = os.path.join(self.builds_path, build_folder)
             work_path = os.path.join(build_path, 'hv-rhel7.x/hv')
             try:
