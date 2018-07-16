@@ -34,7 +34,7 @@
 
     Acceptance Criteria:
         After the upgrade, the SR-IOV device works correctly.
- 
+
 .Parameter vmName
     Name of the test VM.
 
@@ -49,7 +49,7 @@
     <test>
         <testName>Upgrade_Linux_Kernel</testName>
         <testScript>setupscripts\SR-IOV_UpgradeKernel.ps1</testScript>
-        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/SR-IOV_UpgradeKernel.sh</files> 
+        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/SR-IOV_UpgradeKernel.sh</files>
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -78,14 +78,12 @@ param ([String] $vmName, [String] $hvServer, [string] $testParams)
 $retVal = $False
 $leaveTrail = "no"
 
-#
-# Check the required input args are present
-#
-
 # Write out test Params
 $testParams
 
-
+#
+# Check the required input args are present
+#
 if ($hvServer -eq $null)
 {
     "ERROR: hvServer is null"
@@ -153,7 +151,7 @@ foreach ($p in $params)
     switch ($fields[0].Trim())
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
-        "ipv4" { $ipv4 = $fields[1].Trim() }   
+        "ipv4" { $ipv4 = $fields[1].Trim() }
         "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
         "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
@@ -164,7 +162,7 @@ foreach ($p in $params)
 }
 
 $summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
+Remove-Item $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 # Get IPs
@@ -182,6 +180,7 @@ if (-not $retVal)
     "ERROR: Failed to configure VF on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
+
 $kernelVersionOld = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "uname -r"
 "Kernel version before upgrade: $kernelVersionOld" | Tee-Object -Append -file $summaryLog
 
@@ -194,9 +193,8 @@ Start-Sleep -s 5
 Start-Sleep -s 10
 
 [decimal]$beforeUpgradeRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
-if (-not $beforeUpgradeRTT){
+if (-not $beforeUpgradeRTT) {
     "ERROR: No result was logged before installing the kernel!" | Tee-Object -Append -file $summaryLog
-    .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig"
     return $false
 }
 
@@ -232,7 +230,7 @@ $kernelVersionNew = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "uname -r"
 
 if ($kernelVersionOld -eq $kernelVersionNew) {
     "ERROR: Kernel wasn't upgraded" | Tee-Object -Append -file $summaryLog
-    return $False    
+    return $False
 }
 
 #
@@ -244,7 +242,7 @@ Start-Sleep -s 5
 Start-Sleep -s 10
 
 [decimal]$afterUpgradeRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
-if (-not $afterUpgradeRTT){
+if (-not $afterUpgradeRTT) {
     "ERROR: No result was logged! Check if Ping was executed!" | Tee-Object -Append -file $summaryLog
     return $false
 }

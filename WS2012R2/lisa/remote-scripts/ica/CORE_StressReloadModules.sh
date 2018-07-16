@@ -180,7 +180,10 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 VerifyModules
-ipAddress=$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | cut -d: -f2 | cut -d' ' -f1 | sed -n 1p)
+
+#ipAddress=$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | cut -d: -f2 | cut -d' ' -f1 | sed -n 1p)
+# inet\b only shows the IPv4 address of the interface
+ipAddress=$(ip addr show eth0 | grep "inet\b")
 if [[ ${ipAddress} -eq '' ]]; then
     LogMsg "Info: Waiting for interface to receive an IP"
     sleep 30
@@ -188,7 +191,5 @@ fi
 
 echo "Info: Test ran for ${DIFF} seconds" >> ~/summary.log
 
-LogMsg "#########################################################"
-LogMsg "Result : Test Completed Successfully"
 LogMsg "Exiting with state: TestCompleted."
 UpdateTestState "TestCompleted"

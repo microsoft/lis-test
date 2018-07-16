@@ -24,7 +24,7 @@
     Continuous iPerf, disable SR-IOV, enable SR-IOV and measure time to switch
 
 .Description
-    Disable SR-IOV while transferring data of the device, then enable SR-IOV. 
+    Disable SR-IOV while transferring data of the device, then enable SR-IOV.
     For both operations, measure time between the switch.
     If the time is bigger than 10 seconds, fail the test
    
@@ -42,7 +42,7 @@
     <test>
         <testName>Measure_DisableVF</testName>
         <testScript>setupscripts\SR-IOV_MeasureDisableVF.ps1</testScript>
-        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -71,14 +71,12 @@ param ([String] $vmName, [String] $hvServer, [string] $testParams)
 $retVal = $False
 $leaveTrail = "no"
 
-#
-# Check the required input args are present
-#
-
 # Write out test Params
 $testParams
 
-
+#
+# Check the required input args are present
+#
 if ($hvServer -eq $null)
 {
     "ERROR: hvServer is null"
@@ -146,7 +144,7 @@ foreach ($p in $params)
     switch ($fields[0].Trim())
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
-        "ipv4" { $ipv4 = $fields[1].Trim() }   
+        "ipv4" { $ipv4 = $fields[1].Trim() }
         "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
         "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
@@ -157,7 +155,7 @@ foreach ($p in $params)
 }
 
 $summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
+Remove-Item $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 # Get IPs
@@ -189,7 +187,6 @@ Start-Sleep -s 10
 [decimal]$initialRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 if (-not $initialRTT){
     "ERROR: No result was logged! Check if VF is up!" | Tee-Object -Append -file $summaryLog
-    .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig"
     return $false
 }
 "The RTT before disabling VF is $initialRTT ms" | Tee-Object -Append -file $summaryLog
@@ -203,7 +200,7 @@ if (-not $initialRTT){
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 0
 if (-not $?) {
     "ERROR: Failed to disable SR-IOV on $vmName!" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 # icmp seq
@@ -212,7 +209,7 @@ if (-not $?) {
 # Read the throughput with SR-IOV disabled; it should be lower
 $timeToRun = 0
 $hasSwitched = $false
-while ($hasSwitched -eq $false){ 
+while ($hasSwitched -eq $false) {
     [decimal]$disabledRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -1 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
     [int]$disabled_icmpSeq = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -1 PingResults.log | head -1 | awk '{print `$5}' | sed 's/=/ /' | awk '{print `$2}'"
     if (($disabledRTT -ge $initialRTT) -and ($disabled_icmpSeq -ne $initial_icmpSeq)) {
@@ -222,7 +219,7 @@ while ($hasSwitched -eq $false){
     $timeToRun++
     if ($timeToRun -ge 100) {
         "ERROR: The switch beteen VF and netvsc was not made. RTT values show that traffic goes through VF!" | Tee-Object -Append -file $summaryLog
-        return $false 
+        return $false
     }
 
     if ($hasSwitched -eq $false){
@@ -247,7 +244,7 @@ Start-Sleep -s 10
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 1
 if (-not $?) {
     "ERROR: Failed to enable SR-IOV on $vmName!" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 # icmp seq
@@ -256,7 +253,7 @@ if (-not $?) {
 # Read the throughput with SR-IOV disabled; it should be lower
 $timeToRun = 0
 $hasSwitched = $false
-while ($hasSwitched -eq $false){ 
+while ($hasSwitched -eq $false) {
     [decimal]$enabledRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -1 PingResults.log | head -2 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
     [int]$enabled_icmpSeq = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -1 PingResults.log | head -2 | awk '{print `$5}' | sed 's/=/ /' | awk '{print `$2}'"
     if (($enabledRTT -le $initialRTT) -and ($enabled_icmpSeq -ne $initial_icmpSeq_2)){
@@ -270,7 +267,7 @@ while ($hasSwitched -eq $false){
         $hasSwitched = $true
     }
 
-    if ($hasSwitched -eq $false){
+    if ($hasSwitched -eq $false) {
         Start-Sleep -s 1
     }
 }

@@ -21,7 +21,7 @@
 #
 ########################################################################
 # Description:
-#   Basic SR-IOV test that checks if VF has loaded. 
+#   Basic SR-IOV test that checks if VF has loaded.
 #
 #   Steps:
 #   1. Verify/install pciutils package
@@ -30,7 +30,7 @@
 #   4. Check network capability
 #   5. Send a 1GB file from VM1 to VM2
 #
-#############################################################################################################
+########################################################################
 
 # Convert eol
 dos2unix SR-IOV_Utils.sh
@@ -116,12 +116,13 @@ while [ $__iterator -le $vfCount ]; do
 
     # Verify both eth1 on VM1 and VM2 to see if file was sent between them
     vfInterface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo')
-	ifconfig $vfInterface | grep bytes
+    # ifconfig $vfInterface | grep bytes
 
-    txValue=$(ifconfig $vfInterface | grep "TX packets" | sed 's/:/ /' | awk '{print $3}')
+    # txValue=$(ifconfig $vfInterface | grep "TX packets" | sed 's/:/ /' | awk '{print $3}')
+    txValue=$(cat /sys/class/net/${vfInterface}/statistics/tx_packets)
     LogMsg "TX value after sending the file: $txValue"
     if [ $txValue -lt 700000 ]; then
-        msg="ERROR: TX packets insufficient"
+        msg="ERROR: insufficient TX packets sent"
         LogMsg "$msg"
         UpdateSummary "$msg"
         SetTestStateFailed
@@ -129,10 +130,11 @@ while [ $__iterator -le $vfCount ]; do
     fi
 
     vfName=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" ls /sys/class/net | grep -v 'eth0\|eth1\|lo')
-    rxValue=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" ifconfig $vfName | grep "RX packets" | sed 's/:/ /' | awk '{print $3}')
+    #rxValue=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" ifconfig $vfName | grep "RX packets" | sed 's/:/ /' | awk '{print $3}')
+    rxValue=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" cat /sys/class/net/${vfName}/statistics/rx_packets)
     LogMsg "RX value after sending the file: $rxValue"
     if [ $rxValue -lt 700000 ]; then
-        msg="ERROR: RX packets insufficient"
+        msg="ERROR: insufficient RX packets received"
         LogMsg "$msg"
         UpdateSummary "$msg"
         SetTestStateFailed

@@ -20,11 +20,11 @@
 # permissions and limitations under the License.
 #
 ########################################################################
+
 #
 # AddedNic ($ethCount)
 #
-function AddedNic
-{
+function AddedNic {
     ethCount=$1
     ethName=$2
 
@@ -69,7 +69,8 @@ function AddedNic
     # Verify the new NIC received an IP v4 address
     #
     echo "Info : Verify the new NIC has an IPv4 address"
-    ifconfig ${ethName} | grep -s "inet " > /dev/null
+    #ifconfig ${ethName} | grep -s "inet " > /dev/null
+    ip addr show ${ethName} | grep "inet\b" > /dev/null
     if [ $? -ne 0 ]; then
         echo "Error: ${ethName} was not assigned an IPv4 address"
         exit 1
@@ -82,8 +83,7 @@ function AddedNic
 #
 # RemovedNic ($ethCount)
 #
-function RemovedNic
-{
+function RemovedNic {
     ethCount=$1
     ethName=$2
     if [ $ethCount -ne 1 ]; then
@@ -102,7 +102,7 @@ function RemovedNic
                 echo "Error: /var/log/messages reported netvsc throwed errors"
             fi
     elif [ "$os_VENDOR" == "SUSE LINUX" ] || \
-		 [ "$os_VENDOR" == "SLE" ]; then
+            [ "$os_VENDOR" == "SLE" ]; then
             rm -f /etc/sysconfig/network/ifcfg-${ethName}
             cat /var/log/messages | grep "unable to close device (ret -110)"
             if [ $? -eq 0 ]; then
@@ -139,12 +139,10 @@ fi
 #
 # Determine how many eth devices the OS sees
 #
-ethCount=$(ifconfig -a | grep "^eth" | wc -l)
+#ethCount=$(ifconfig -a | grep "^eth" | wc -l)
+ethCount=$(ls -d /sys/class/net/eth* | wc -l)
 echo "ethCount = ${ethCount}"
 
-#
-# Get data about Linux Distribution
-#
 # Convert eol
 dos2unix utils.sh
 
@@ -154,6 +152,9 @@ dos2unix utils.sh
     exit 2
 }
 
+#
+# Get data about Linux Distribution
+#
 GetOSVersion
 
 # Get the specific nic name as seen by the vm

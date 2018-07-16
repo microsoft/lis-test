@@ -24,7 +24,7 @@
     Change RSS settings during iPerf
 
 .Description
-    While a Linux VM is transferring data via iPerf, change on of the RSS settings 
+    While a Linux VM is transferring data via iPerf, change on of the RSS settings
     for the vSwitch and confirm network traffic continues to flow.
     Steps:
         1.  Configure a Linux VM with SR-IOV, and a second VM with SR-IOV (Windows or Linux).
@@ -46,11 +46,11 @@
     <test>
         <testName>Change_RSS</testName>
         <testScript>setupscripts\SR-IOV_ChangeRSS.ps1</testScript>
-        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
-        </setupScript> 
+        </setupScript>
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
@@ -74,14 +74,12 @@ param ([String] $vmName, [String] $hvServer, [string] $testParams)
 $retVal = $False
 $leaveTrail = "no"
 
-#
-# Check the required input args are present
-#
-
 # Write out test Params
 $testParams
 
-
+#
+# Check the required input args are present
+#
 if ($hvServer -eq $null)
 {
     "ERROR: hvServer is null"
@@ -149,7 +147,7 @@ foreach ($p in $params)
     switch ($fields[0].Trim())
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
-        "ipv4" { $ipv4 = $fields[1].Trim() }   
+        "ipv4" { $ipv4 = $fields[1].Trim() }
         "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
         "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
@@ -160,7 +158,7 @@ foreach ($p in $params)
 }
 
 $summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
+Remove-Item $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 # Get IPs
@@ -229,7 +227,7 @@ Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile ClosestStatic
 if (-not $?) {
     "ERROR: Failed to change RSS profile for SRIOV interface!" | Tee-Object -Append -file $summaryLog
     Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
-    return $false 
+    return $false
 }
 
 # Check if VF is still up & running
@@ -238,11 +236,11 @@ $vfName = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep 
 if (-not $vfName) {
     "INFO: Could not extract VF name from VM" | Tee-Object -Append -file $summaryLog
 }
-$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep $vfName"
+$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ip link show $vfName"
 if (-not $status) {
     "ERROR: The VF is down after changing RSS profile!" | Tee-Object -Append -file $summaryLog
     Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
-    return $false    
+    return $false
 }
 
 # Read the throughput with RSS profile changed
@@ -255,7 +253,7 @@ if (-not $vfFinalThroughput) {
     "ERROR: After changing RSS profile, the throughput is significantly lower
     Please check if the VF is still running" | Tee-Object -Append -file $summaryLog
     Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
-    return $false 
+    return $false
 }
 
 # Change back the RSS profile

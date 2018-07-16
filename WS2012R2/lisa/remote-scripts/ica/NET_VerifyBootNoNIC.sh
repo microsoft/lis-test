@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -65,7 +65,6 @@
 #
 ########################################################################
 
-
 ########################################################################
 #
 # LogMsg()
@@ -75,33 +74,6 @@ LogMsg()
 {
     echo `date "+%a %b %d %T %Y"` ": ${1}" >> /root/hotaddnic.log
 }
-
-
-####################################################################### 
-# 
-# LinuxRelease() 
-# 
-####################################################################### 
-LinuxRelease() 
-{ 
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}` 
-
- 
-    case $DISTRO in 
-        *buntu*) 
-            echo "UBUNTU";; 
-        Fedora*) 
-            echo "FEDORA";; 
-        CentOS*) 
-            echo "CENTOS";; 
-        *SUSE*) 
-            echo "SLES";; 
-        Red*Hat*) 
-            echo "RHEL";; 
-        Debian*) 
-            echo "DEBIAN";; 
-    esac 
-} 
 
 
 ########################################################################
@@ -125,7 +97,8 @@ chmod 755 ./kvp_client
 # Verify there are no eth devices
 #
 LogMsg "Info : Check count of eth devices"
-ethCount=$(ifconfig -a | grep '^eth' | wc -l)
+#ethCount=$(ifconfig -a | grep '^eth' | wc -l)
+ethCount=$(ls -d /sys/class/net/eth* | wc -l)
 
 LogMsg "Info : ethCount = ${ethCount}"
 if [ $ethCount -ne 0 ]; then
@@ -147,7 +120,7 @@ timeout=300
 noEthDevice=1
 while [ $noEthDevice -eq 1 ]
 do
-    ethCount=$(ip link | awk '{ print $2 }' | grep '^eth' | wc -l)
+    ethCount=$(ls -d /sys/class/net/eth* | wc -l)
     if [[ $ethCount -eq 1 ]]; then
         LogMsg "Info : an eth device was detected"
         break
@@ -170,7 +143,7 @@ ifup eth0
 # Verify the eth device received an IP address
 #
 LogMsg "Info : Verify the new NIC received an IPv4 address"
-ip addr show eth0 | grep -s "inet"
+ip addr show eth0 | grep "inet\b"
 if [ $? -ne 0 ]; then
     LogMsg "Error: eth0 was not assigned an IPv4 address"
     exit 1
@@ -192,7 +165,7 @@ timeout=300
 noEthDevice=1
 while [ $noEthDevice -eq 1 ]
 do
-    ethCount=$(ip link | awk '{ print $2 }' | grep '^eth' | wc -l)
+    ethCount=$(ls -d /sys/class/net/eth* | wc -l)
     if [ $ethCount -eq 0 ]; then
         LogMsg "Info : eth count is zero"
         break
@@ -212,9 +185,5 @@ done
 LogMsg "Info : Setting HotAddTest value to 'NoNICs'"
 ./kvp_client append 1 'HotAddTest' 'NoNICs'
 
-#
-# exit
-#
 LogMsg "Info : Test complete - exiting"
 exit 0
-
