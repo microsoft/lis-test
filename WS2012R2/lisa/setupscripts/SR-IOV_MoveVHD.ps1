@@ -24,8 +24,8 @@
     Move the VHD to another host, and build a new VM based on this VHD. The SR-IOV should work.
 
 .Description
-    Description:  
-    Create a new Linux VM from an existing VHDX file that has SR-IOV configured.  
+    Description:
+    Create a new Linux VM from an existing VHDX file that has SR-IOV configured.
     SR-IOV should be configured correctly and should work when the new VM is booted.
     Steps:
         1.  Configure SR-IOV on a Linux VM and confirm SR-IOV is working.
@@ -49,7 +49,7 @@
     <test>
         <testName>Move_VHD</testName>
         <testScript>setupscripts\SR-IOV_MoveVHD.ps1</testScript>
-        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -70,13 +70,12 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-function Cleanup($childVMName)
-{
+function Cleanup($childVMName) {
     # Clean up
-    $sts = Stop-VM -Name $childVMName -ComputerName $hvServer -TurnOff
+    Stop-VM -Name $childVMName -ComputerName $hvServer -TurnOff
 
     # Delete New VM created
-    $sts = Remove-VM -Name $childVMName -ComputerName $hvServer -Confirm:$false -Force
+    Remove-VM -Name $childVMName -ComputerName $hvServer -Confirm:$false -Force
 }
 
 #############################################################
@@ -84,14 +83,14 @@ function Cleanup($childVMName)
 # Main script body
 #
 #############################################################
-#
-# Check the required input args are present
-#
 $netmask = "255.255.255.0"
 
 # Write out test Params
 $testParams
 
+#
+# Check the required input args are present
+#
 if ($hvServer -eq $null) {
     "ERROR: hvServer is null"
     return $False
@@ -149,7 +148,7 @@ foreach ($p in $params)
     switch ($fields[0].Trim())
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
-        "ipv4" { $ipv4 = $fields[1].Trim() }   
+        "ipv4" { $ipv4 = $fields[1].Trim() }
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
         "REMOTE_SERVER" { $remoteServer = $fields[1].Trim() }
         "VF_IP1" { $vmVF_IP1 = $fields[1].Trim()}
@@ -160,7 +159,6 @@ foreach ($p in $params)
             if ($temp[0].Trim() -eq "NIC")
             {
                 $nicArgs = $temp[1].Split(',')
-
                 $networkName = $nicArgs[2].Trim()
             }
         }
@@ -169,7 +167,7 @@ foreach ($p in $params)
 }
 
 $summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
+Remove-Item $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 # Check if there are running old child VMs and stop them
@@ -205,9 +203,8 @@ Start-Sleep -s 5
 Start-Sleep -s 10
 
 [decimal]$initialRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
-if (-not $initialRTT){
+if (-not $initialRTT) {
     "ERROR: No result was logged! Check if VF is up!" | Tee-Object -Append -file $summaryLog
-    .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig"
     return $false
 }
 "The RTT before disabling VF is $initialRTT ms" | Tee-Object -Append -file $summaryLog
@@ -242,11 +239,12 @@ if (-not $?) {
 $ChildVHD = CreateChildVHD $ParentVHD $final_vhd_path $hvServer
 
 # Create the new VM
-$newVm = New-VM -Name "SRIOV_Child" -ComputerName $hvServer -VHDPath "${defaultVhdPath}\SRIOV_ChildRemote.vhdx" -MemoryStartupBytes 4096MB -SwitchName "External" -Generation $vm_gen
+$newVm = New-VM -Name "SRIOV_Child" -ComputerName $hvServer -VHDPath "${defaultVhdPath}\SRIOV_ChildRemote.vhdx" `
+            -MemoryStartupBytes 4096MB -SwitchName "External" -Generation $vm_gen
 if (-not $?) {
     Write-Output "Error: Creating New VM SRIOV_Child on $hvServer" | Tee-Object -Append -file $summaryLog
     return $False
-} 
+}
 
 # Disable secure boot if Gen2
 if ($vm_gen -eq 2) {
@@ -261,7 +259,7 @@ if ($vm_gen -eq 2) {
 ConfigureVMandVF "SRIOV_Child" $hvServer $sshKey $vmVF_IP1 $netmask
 Write-Output "Child VM Configured and started" | Tee-Object -Append -file $summaryLog
 
-$ipv4_child = GetIPv4 "SRIOV_Child" $hvServer 
+$ipv4_child = GetIPv4 "SRIOV_Child" $hvServer
 Write-Output "SRIOV_Child IP Address: $ipv4_child"
 Start-Sleep -s 10
 
@@ -272,17 +270,17 @@ Start-Sleep -s 5
 Start-Sleep -s 5
 [decimal]$vfEnabledRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4_child} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
 
-if (-not $vfEnabledRTT){
+if (-not $vfEnabledRTT) {
     Write-Output "ERROR: No result was logged on the Child VM!" | Tee-Object -Append -file $summaryLog
     Cleanup "SRIOV_Child"
-    return $false   
+    return $false
 }
 
 if ($vfEnabledRTT -le 0.11) {
     Write-Output "VF is up & running, RTT is $vfEnabledRTT ms" | Tee-Object -Append -file $summaryLog
     Cleanup "SRIOV_Child"
-    return $True    
-} 
+    return $True
+}
 else {
     Write-Output "ERROR: RTT value is too high, $vfEnabledRTT ms!" | Tee-Object -Append -file $summaryLog
     Cleanup "SRIOV_Child"

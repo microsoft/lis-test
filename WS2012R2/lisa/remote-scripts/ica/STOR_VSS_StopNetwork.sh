@@ -5,11 +5,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -63,27 +63,18 @@ if [ -e ~/summary.log ]; then
     rm -rf ~/summary.log
 fi
 
-# Load array with names of existing interfaces
-i=0
-for interface in $( /sbin/ifconfig | grep '^[a-z]' | sed 's/ .*//' )
-do
-    echo $interface > y
-    x=$(sed 's/://g' y)
-    interface=$x
-    if [ $interface != "lo" ]; then
-
-        ifconfig $interface down
-        sts=$?
-        if [ 0 -ne ${sts} ]; then
-            LogMsg "Error: ifdown failed on interface $interface : ${sts}"
-            UpdateTestState "TestAborted"
-            UpdateSummary "Taking interfaces down: Failed"
-            exit 1
-        else
-            LogMsg "Interface $interface : down"
-        fi
-
-        let i=i+1
+# Get a list of existing interfaces
+# exclude lo loopback device
+interfaces=(`ip link | grep '^[0-9]\+:' | awk '{ print $2 }' | grep -v lo | tr -d ':'`)
+for int in ${interfaces[*]}; do
+    ip link set $int down
+    if [ $? -ne 0 ]; then
+        LogMsg "Error: ifdown failed on interface $int"
+        UpdateSummary "Taking interfaces down: Failed"
+        UpdateTestState "TestAborted"
+        exit 1
+    else
+        LogMsg "Interface $int : down"
     fi
 done
 

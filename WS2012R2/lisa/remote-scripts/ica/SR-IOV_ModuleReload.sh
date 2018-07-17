@@ -120,7 +120,7 @@ if [ $? -eq 0 ]; then
     moduleName="mlx4"
 fi
 
-ifconfig $interface
+ip link show $interface
 if [ 0 -eq $? ]; then
     msg="ERROR: VF is still up after unloading the VF module"
     LogMsg "$msg"
@@ -142,7 +142,8 @@ else
 fi
 
 # Get TX value before sending the file
-txValueBefore=$(ifconfig eth1 | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
+#txValueBefore=$(ifconfig eth1 | grep "TX packets" | sed 's/:/ /' | awk '{print $3}')
+txValueBefore=$(cat /sys/class/net/eth1/statistics/tx_packets)
 LogMsg "TX value before sending file: $txValueBefore"
 
 # Send the file
@@ -159,11 +160,12 @@ else
 fi
 
 # Get TX value after sending the file
-txValueAfter=$(ifconfig eth1 | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
+#txValueAfter=$(ifconfig eth1 | grep "TX packets" | sed 's/:/ /' | awk '{print $3}')
+txValueAfter=$(cat /sys/class/net/eth1/statistics/tx_packets)
 LogMsg "TX value after sending the file: $txValueAfter"
 
 # Compare the values to see if TX increased as expected
-txValueBefore=$(($txValueBefore + 50))      
+txValueBefore=$(($txValueBefore + 50))
 
 if [ $txValueAfter -lt $txValueBefore ]; then
     msg="ERROR: TX packets insufficient"
@@ -171,7 +173,7 @@ if [ $txValueAfter -lt $txValueBefore ]; then
     UpdateSummary "$msg"
     SetTestStateFailed
     exit 10
-fi            
+fi
 
 msg="Successfully sent file from VM1 to VM2 through eth1 after unloading VF modules"
 LogMsg "$msg"
@@ -202,16 +204,16 @@ elif [ $moduleName == "mlx4" ]; then
         LogMsg "$msg"
         UpdateSummary "$msg"
         SetTestStateFailed
-    fi     
+    fi
 fi
 
 # Verify if VF is up
 sleep 5
 # Extract VF name
 interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo')
-ifconfig $interface
+ip link show $interface
 if [ 0 -ne $? ]; then
-    msg="ERROR: VF has not restarted from ifconfig after the module was loaded"
+    msg="ERROR: VF has not restarted after the module was loaded"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed

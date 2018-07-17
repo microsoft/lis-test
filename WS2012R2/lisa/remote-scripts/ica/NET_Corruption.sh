@@ -21,8 +21,7 @@
 #
 ########################################################################
 
-function InstallNetcat
-{
+function InstallNetcat {
     LogMsg "Installing netcat"
     SetTestStateRunning
     if [[ "$os_VENDOR" == "Red Hat" ]] || \
@@ -44,9 +43,7 @@ function InstallNetcat
 }
 
 
-
-function ConfigInterface
-{
+function ConfigInterface {
     AddNIC "eth1"
     sleep 5
 
@@ -76,8 +73,8 @@ function ConfigInterface
     return 0
 }
 
-function AddNIC
-{
+
+function AddNIC {
     ifName=$1
 
     #
@@ -121,10 +118,11 @@ function AddNIC
         ifup ${ifName}
 
         #
-        # Verify the new NIC received an IP v4 address
+        # Verify the new NIC received an IPv4 address
         #
-        LogMsg "Info : Verify the new NIC has an IPv4 address}"
-        ifconfig ${ifName} | grep -s "inet " > /dev/null
+        LogMsg "Info : Verify the new NIC has an IPv4 address"
+        # ifconfig ${ifName} | grep -s "inet " > /dev/null
+        ip addr show ${ifName} | grep "inet\b" > /dev/null
         if [ $? -ne 0 ]; then
             LogMsg "Error: ${ifName} was not assigned an IPv4 address"
             if [ $counter -eq $max_attempts ]; then
@@ -149,12 +147,9 @@ function AddNIC
 # Main script body
 #
 #######################################################################
-#
-# Get data about Linux Distribution
-#
-
 filePath=$1
 port=$2
+
 # Convert eol
 dos2unix utils.sh
 
