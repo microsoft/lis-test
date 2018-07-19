@@ -147,6 +147,17 @@
             </testParams>
             <noReboot>False</noReboot>
         </test>
+
+        <test>
+            <testName>FCOPY_negative</testName>
+            <testScript>setupscripts\FCOPY_negative.ps1</testScript>
+            <timeout>900</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-08</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+
     </testCases>
     <VMs>
 	<vm>
