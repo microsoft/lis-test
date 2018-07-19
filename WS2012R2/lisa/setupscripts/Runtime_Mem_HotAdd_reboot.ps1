@@ -21,17 +21,17 @@
 
 <#
 .Synopsis
-	Verify runtime memory hot add feature with Dynamic Memory disabled.
+    Verify runtime memory hot add feature with Dynamic Memory disabled.
 
  Description:
-   Verify that memory changes with non 128-MB aligned values. This test will
-   start a vm with 4000 MB and will hot add 1000 MB to it. After that, will
-   reboot the vm and hot add another 1000 MB. Test will pass if all hot add
-   operations work.
+    Verify that memory changes with non 128-MB aligned values. This test will
+    start a vm with 4000 MB and will hot add 1000 MB to it. After that, will
+    reboot the vm and hot add another 1000 MB. Test will pass if all hot add
+    operations work.
 
-   Only 1 VM is required for this test.
+    Only 1 VM is required for this test.
 
-   .Parameter vmName
+    .Parameter vmName
     Name of the VM to hot add memory to.
 
     .Parameter hvServer
@@ -55,17 +55,17 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 #
 # Check input arguments
 #
-if ($vmName -eq $null){
+if ($vmName -eq $null) {
     "Error: VM name is null"
     return $False
 }
 
-if ($hvServer -eq $null){
+if ($hvServer -eq $null) {
     "Error: hvServer is null"
     return $False
 }
 
-if ($testParams -eq $null){
+if ($testParams -eq $null) {
     "Error: testParams is null"
     return $False
 }
@@ -81,15 +81,15 @@ $ipv4 = $null
 
 # change working directory to root dir
 $testParams -match "RootDir=([^;]+)"
-if (-not $?){
+if (-not $?) {
   "Mandatory param RootDir=Path; not found!"
   return $false
 }
 $rootDir = $Matches[1]
 
-if (Test-Path $rootDir){
+if (Test-Path $rootDir) {
   Set-Location -Path $rootDir
-  if (-not $?){
+  if (-not $?) {
     "Error: Could not change directory to $rootDir !"
     return $false
   }
@@ -110,17 +110,17 @@ else {
 }
 
 $params = $testParams.Split(";")
-foreach ($p in $params){
+foreach ($p in $params) {
     $fields = $p.Split("=")
 
-    switch ($fields[0].Trim()){
+    switch ($fields[0].Trim()) {
       "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() }
       "ipv4"          { $ipv4       = $fields[1].Trim() }
       "sshKey"        { $sshKey     = $fields[1].Trim() }
       "startupMem"  { 
         $startupMem = ConvertToMemSize $fields[1].Trim() $hvServer
 
-        if ($startupMem -le 0){
+        if ($startupMem -le 0) {
           "Error: Unable to convert startupMem to int64."
           return $false
         }
@@ -129,12 +129,12 @@ foreach ($p in $params){
     }
 }
 
-if (-not $sshKey){
+if (-not $sshKey) {
   "Error: Please pass the sshKey to the script."
   return $false
 }
 
-if (-not $startupMem){
+if (-not $startupMem) {
   "Error: startupMem is not set!"
   return $false
 }
@@ -151,13 +151,13 @@ if ($BuildNumber -eq 0) {
     return $False
 }
 elseif ($BuildNumber -lt 10500) {
-	"Info: Feature supported only on WS2016 and newer" | Tee-Object -Append -file $summaryLog
+    "Info: Feature supported only on WS2016 and newer" | Tee-Object -Append -file $summaryLog
     return $Skipped
 }
 
 $vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
-if (-not $vm1){
+if (-not $vm1) {
   "Error: VM $vmName does not exist"
   return $false
 }
@@ -173,7 +173,7 @@ $sleepPeriod = 60
 "Free memory reported by guest VM before increase: $vm1BeforeIncrease"
 
 # Check memory values
-if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm1BeforeIncrease -le 0){
+if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm1BeforeIncrease -le 0) {
   "Error: vm1 $vmName reported 0 memory (assigned or demand)."
   return $False
 }
@@ -184,10 +184,10 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm1BeforeIncrease -
 $testMem = $startupMem + 1048576000
 
 # Set new memory value
-for ($i=0; $i -lt 3; $i++){
+for ($i=0; $i -lt 3; $i++) {
   Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
   Start-sleep -s 5
-  if ($vm1.MemoryAssigned -eq $testMem){
+  if ($vm1.MemoryAssigned -eq $testMem) {
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
     [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
 
@@ -197,20 +197,20 @@ for ($i=0; $i -lt 3; $i++){
   }
 }
 
-if ( $i -eq 3 ){
+if ( $i -eq 3 ) {
   "Error: VM failed to change memory!"
   "LIS 4.1 or kernel version 4.4 required"
   return $false
 }
 
-if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
+if ( $vm1AfterAssigned -ne ($testMem/1MB)  ) {
     "Error: Memory assigned doesn't match the memory set as parameter!"
     "Memory stats after $vmName memory was changed "
     "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
     return $false
 }
 
-if ( ($vm1AfterIncrease - $vm1BeforeIncrease) -le 700000){
+if ( ($vm1AfterIncrease - $vm1BeforeIncrease) -le 700000) {
     "Error: Guest reports that memory value hasn't increased enough!"
     "Memory stats after $vmName memory was changed "
     "  ${vmName}: Initial Memory - $vm1BeforeIncrease KB :: After setting new value - $vm1AfterIncrease"
@@ -219,22 +219,13 @@ if ( ($vm1AfterIncrease - $vm1BeforeIncrease) -le 700000){
 "Memory stats after $vmName memory was increased by 1000MB"
 "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
 
-# Reboot the VM
-$sts = SendCommandToVM $ipv4 $sshKey "reboot now"
-
-# If the VM has no IP it means it rebooted
-$sts = GetIPv4 $vmName $hvServer
-if (-not $sts[-1]) {
-Write-Output "ERROR: Failed to reboot VM" | Tee-Object -Append -file $summaryLog
-$retVal = $False
-    break
-}
-
-$sts = get_vmip
-if (-not $sts[-1]) {
-    Write-output "Error: VM timeout at GetIPv4 operation after rebooting" | Tee-Object -Append -file $summaryLog
-    $retVal = $False
-    break
+# Restart VM
+Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+$sts = WaitForVMToStartKVP $vmName $hvServer 120
+if( -not $sts[-1]) {
+    Write-Output "Error: VM $vmName has not booted after the restart" `
+        | Tee-Object -Append -file $summaryLog
+    return $False
 }
 "$vmName rebooted successfully! Next, we'll try to add another 1000MB of memory"
 
@@ -243,10 +234,10 @@ Start-sleep -s 60
 $testMem = $testMem + 1048576000
 
 # Set new memory value
-for ($i=0; $i -lt 3; $i++){
+for ($i=0; $i -lt 3; $i++) {
   Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
   Start-sleep -s 5
-  if ($vm1.MemoryAssigned -eq $testMem){
+  if ($vm1.MemoryAssigned -eq $testMem) {
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
     [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
 
@@ -256,7 +247,7 @@ for ($i=0; $i -lt 3; $i++){
   }
 }
 
-if ( $i -eq 3 ){
+if ( $i -eq 3 ) {
   "Error: VM failed to change memory!"
   bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dmesg | grep hot_add"
   return $false
