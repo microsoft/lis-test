@@ -8,20 +8,17 @@
 # - creates and configures private, internal and external switches
 #
 # How to run:
-#		.\config_server.ps1 
-#
-# -DomainName and -DomainUser are optional parameters
+#	.\config_server.ps1 -DomainName x -DomainUser y -UsersList "domain\user"
 #
 ############################################################################
 
 param(
 [String] $DomainName,
 [String] $DomainUser,
-[parameter(Mandatory=$true)]
 [String[]] $UsersList,
 [String[]]$Roles = @("Failover-Clustering","Windows-Server-Backup","RSAT-Clustering"),
-# Java Version 8 Updated 171
-[String] $JavaURL = "http://javadl.oracle.com/webapps/download/AutoDL?BundleId=233172_512cd62ec5174c3487ac17c61aaa89e8",
+# Java Version 8 Updated 181
+[String] $JavaURL = "http://javadl.oracle.com/webapps/download/AutoDL?BundleId=234474_96a7b8442fe848ef90c96a2fad6ed6d1",
 [String] $GitURL = "https://github.com/git-for-windows/git/releases/download/v2.18.0.windows.1/Git-2.18.0-64-bit.exe",
 [String] $PythonURL = "https://www.python.org/ftp/python/2.7.14/python-2.7.14.amd64.msi"
 )
@@ -41,8 +38,6 @@ if ($statefile -eq $null) {
 		Write-Host "Installing JAVA"
 		Start-Process -FilePath  "C:\Windows\temp\java.exe" -Wait -ArgumentList "/s"
 		$javaVersion = (Get-WmiObject Win32_Product | Where {$_.Name -match "Java"}).Version
-		$env:Path += ";C:\Program Files\Java\jre1.8.0_151\bin"
-		Write-Host "Java Path: $env:Path"
 	}
 	else {
 		Write-Host "Java is already installed"
@@ -110,7 +105,7 @@ if ($statefile -eq $null) {
 	netsh advfirewall firewall set rule group="Windows Management Instrumentation (WMI)" new enable=yes
 	netsh advfirewall firewall set rule group="Remote Event Log Management" new enable=yes
 
-	write-Host "Installing HYPER-V"
+	Write-Host "Installing HYPER-V"
 	Install-WindowsFeature -Name Hyper-V -IncludeManagementTools 
 	if (($DomainName -ne '') -and ($DomainUser -ne '')) {
 		Write-Host "Add computer to domain"
