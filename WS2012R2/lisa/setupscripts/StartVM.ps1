@@ -24,10 +24,11 @@
  Run the StartVM test.
 
  Description:
-    This script sets up additional Network Adapters for a second (dependency) VM, starts it first and configures the interface files
-    in the OS. Afterwards the main test is started together with the main VM.
+    This script sets up additional Network Adapters for a second (dependency) VM,
+    starts it first and configures the interface files in the OS.
+    Afterwards the main test is started together with the main VM.
 
-    It can be used with the main Linux distributions. For the time being it is customized for use with the Networking tests.
+    For the time being it is customized for use with the Networking tests.
 
     The following testParams are mandatory:
 
@@ -398,28 +399,12 @@ if ( Test-Path ".\setupscripts\NET_ADD_NIC_MAC.ps1")
     # Make sure VM2 is shutdown
     if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -like "Running" })
     {
-        Stop-VM $vm2Name -force
-
+        Stop-VM $vm2Name -ComputerName $hvServer -Force
         if (-not $?)
         {
             "Error: Unable to shut $vm2Name down (in order to add a new network Adapter)"
             return $false
         }
-
-        # wait for VM to finish shutting down
-        $timeout = 60
-        while (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "Off" })
-        {
-            if ($timeout -le 0)
-            {
-                "Error: Unable to shutdown $vm2Name"
-                return $false
-            }
-
-            start-sleep -s 5
-            $timeout = $timeout - 5
-        }
-
     }
 
     .\setupscripts\NET_ADD_NIC_MAC.ps1 -vmName $vm2Name -hvServer $hvServer -testParams $vm2testParam
@@ -462,22 +447,11 @@ if (Get-VM -Name $vm2Name -ComputerName $hvServer |  Where { $_.State -notlike "
 }
 
 
-$timeout = 400 # seconds
-if (-not (WaitForVMToStartKVP $vm2Name $hvServer $timeout))
-{
-    "Warning: $vm2Name never started KVP"
-}
-
-# get vm2 ipv4
-$vm2ipv4 = GetIPv4 $vm2Name $hvServer
-
-# wait for ssh to start
-$timeout = 200 #seconds
-if (-not (WaitForVMToStartSSH $vm2ipv4 $timeout))
-{
-    "Error: VM ${vm2Name} never started"
-    Stop-VM $vm2Name -ComputerName $hvServer -force | out-null
-    return $False
+$new_ip = GetIPv4AndWaitForSSHStart $vm2Name $hvServer $sshKey 360
+if ($new_ip) {$vm2ipv4 = $new_ip}
+else {
+    "Error: Failed to boot VM $vm2Name"
+    return $false
 }
 
 # send utils.sh to VM2
