@@ -10,6 +10,9 @@
 # How to run:
 #	.\config_server.ps1 -DomainName x -DomainUser y -UsersList "domain\user"
 #
+# If no parameters are given, the script will skip the domain join and users
+# list add to local admin.
+#
 ############################################################################
 
 param(
@@ -106,15 +109,19 @@ if ($statefile -eq $null) {
 	netsh advfirewall firewall set rule group="Remote Event Log Management" new enable=yes
 
 	Write-Host "Installing HYPER-V"
-	Install-WindowsFeature -Name Hyper-V -IncludeManagementTools 
+	Install-WindowsFeature -Name Hyper-V -IncludeManagementTools
+
 	if (($DomainName -ne '') -and ($DomainUser -ne '')) {
 		Write-Host "Add computer to domain"
 		Add-Computer -DomainName $DomainName -Credential $DomainUser -Restart
 	}
 }
 
-Write-Host "Add users to domain"
-cmd /c "for %i in ($UsersList) do net localgroup Administrators %i /add" 
+if ($UsersList -ne '') {
+	Write-Host "Add users to domain"
+	cmd /c "for %i in ($UsersList) do net localgroup Administrators %i /add" 
+}
+
 $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
 if($hyperv.State -eq "Enabled") {
 	Write-Host "Creating private switch"
