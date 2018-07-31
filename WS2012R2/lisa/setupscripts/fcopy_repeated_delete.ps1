@@ -58,107 +58,6 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 $testfile = $null
 $gsi = $null
 
-#######################################################################
-#
-#   Checks if the file copy daemon is running on the Linux guest
-#
-#######################################################################
-function check_fcopy_daemon()
-{
-    $filename = ".\fcopy_present"
-
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /tmp/fcopy_present"
-    if (-not $?) {
-        Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
-        return $False
-    }
-
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/tmp/fcopy_present .
-    if (-not $?) {
-        Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to copy the confirmation file from the VM"
-        return $False
-    }
-
-    # When using grep on the process in file, it will return 1 line if the daemon is running
-    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) {
-        Write-Output "Info: hv_fcopy_daemon process is running."
-        $retValue = $True
-    }
-
-    del $filename
-    return $retValue
-}
-
-#######################################################################
-#
-#   Checks if test file is present
-#
-#######################################################################
-function check_file([String] $testfile)
-{
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /mnt/$testfile"
-    if (-not $?) {
-        Write-Output "ERROR: Unable to read file /mnt/$testfile." -ErrorAction SilentlyContinue
-        return $False
-    }
-    return $True
-}
-
-#######################################################################
-#
-#   Mount disk
-#
-#######################################################################
-function mount_disk()
-{
-    . .\setupScripts\TCUtils.ps1
-
-    $driveName = "/dev/sdb"
-
-    $sts = SendCommandToVM $ipv4 $sshKey "(echo d;echo;echo w)|fdisk ${driveName}"
-    if (-not $sts) {
-        Write-Output "ERROR: Failed to format the disk in the VM $vmName." | Tee-Object -Append -file $summaryLog
-        return $False
-    }
-
-    $sts = SendCommandToVM $ipv4 $sshKey "(echo n;echo p;echo 1;echo;echo;echo w)|fdisk ${driveName}" | Tee-Object -Append -file $summaryLog
-    if (-not $sts) {
-        Write-Output "ERROR: Failed to format the disk in the VM $vmName."
-        return $False
-    }
-
-    $sts = SendCommandToVM $ipv4 $sshKey "mkfs.ext3 ${driveName}1"
-    if (-not $sts) {
-        Write-Output "ERROR: Failed to make file system in the VM $vmName." | Tee-Object -Append -file $summaryLog
-        return $False
-    }
-
-    $sts = SendCommandToVM $ipv4 $sshKey "mount ${driveName}1 /mnt"
-    if (-not $sts) {
-        Write-Output "ERROR: Failed to mount the disk in the VM $vmName." | Tee-Object -Append -file $summaryLog
-        return $False
-    }
-
-    "Info: $driveName has been mounted to /mnt in the VM $vmName."
-    return $True
-}
-
-#################################################################
-#
-# Remove file from vm
-#
-#################################################################
-function remove_file_vm(){
-    . .\setupScripts\TCUtils.ps1
-    $sts = SendCommandToVM $ipv4 $sshKey "rm -f /mnt/$testfile"
-    if (-not $sts) {
-        return $False
-    }
-    return $True
-}
-
 ################################################################
 #
 # Copy the file to the Linux guest VM
@@ -172,25 +71,6 @@ function copy_file_vm(){
     }
     return $True
 }
-
-####################################################################################
-#
-# Checking if the file is present on the guest and file size is matching
-#
-####################################################################################
-function check_file_vm(){
-    $sts = check_file $testfile
-    if (-not $sts[-1]) {
-        Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
-        return $False
-    }
-    elseif ($sts[0] -ne $fileSize) {
-        Write-Output "ERROR: The file copied doesn't match the ${originalFileSize} size!" | Tee-Object -Append -file $summaryLog
-        return $False
-    }
-    return $True
-}
-
 #######################################################################
 #
 #   Main body script
@@ -336,10 +216,10 @@ else {
 }
 
 # Verifying if /tmp folder on guest exists; if not, it will be created
-.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /tmp ]"
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /mnt ]"
 if (-not $?){
-    Write-Output "Folder /tmp not present on guest. It will be created"
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir /tmp"
+    Write-Output "Folder /mnt not present on guest. It will be created"
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "mkdir /mnt"
 }
 
 #
@@ -351,7 +231,7 @@ if (-not $sts[-1]) {
     $retVal = $False
 }
 
-$sts = mount_disk
+$sts = MountDisk
 if (-not $sts[-1]) {
     Write-Output "ERROR: Failed to mount the disk in the VM." | Tee-Object -Append -file $summaryLog
     $retVal = $False
@@ -370,15 +250,21 @@ for($i=0; $i -ne 4; $i++){
         }
         Write-Output "Info: File has been successfully copied to guest VM '${vmName}'"
 
-        $sts = check_file_vm
-        if (-not $sts) {
-            Write-Output "ERROR: File check error on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
+        $sts = CheckFile "/mnt/$testfile" $True
+        if (-not $sts[-1]) {
+            Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
             $retVal = $False
             break
         }
+        elseif ($sts[0] -ne $fileSize) {
+            Write-Output "ERROR: The file copied doesn't match the ${originalFileSize} size!" | Tee-Object -Append -file $summaryLog
+            $retVal = $False
+            break
+        }
+
         Write-Output "Info: The file copied matches the ${originalFileSize} size."
 
-        $sts = remove_file_vm
+        $sts = DeleteFile "/mnt/$testfile"
         if (-not $sts) {
             Write-Output "ERROR: Failed to remove file from VM $vmName." | Tee-Object -Append -file $summaryLog
             $retVal = $False

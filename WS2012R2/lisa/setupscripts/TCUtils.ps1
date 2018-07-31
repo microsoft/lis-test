@@ -1469,9 +1469,9 @@ function CreateFile([string] $fileName)
 # Delete a file on the VM
 #
 #######################################################################
-function DeleteFile()
+function DeleteFile([string] $fileName)
 {
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "rm -rf /root/1"
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "rm -rf $fileName"
     if (-not $?)
     {
         Write-Error -Message "ERROR: Unable to delete test file!" -ErrorAction SilentlyContinue
@@ -1483,18 +1483,30 @@ function DeleteFile()
 
 #######################################################################
 #
-# Checks if test file is present or not
+# Checks if test file is present or not, if set $checkSize as $True, return file size,
+# if set checkContent as $True, will return file content.
 #
 #######################################################################
-function CheckFile([string] $fileName)
+function CheckFile([string] $fileName, [boolean] $checkSize = $False , [boolean] $checkContent = $False )
 {
-    $retVal = $true
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "stat ${fileName} 2>/dev/null" | out-null
-    if (-not $?) {
-        $retVal = $false
+    if ($checkSize) {
+        .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "wc -c < $fileName"
+    }
+    else {
+        .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "stat ${fileName} >/dev/null" | out-null
     }
 
-    return  $retVal
+    if (-not $?) {
+        return $False
+    }
+    if ($checkContent) {
+        .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "dos2unix ${fileName} >/dev/null 2>&1"
+        .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat ${fileName}"
+        if (-not $?) {
+            return $False
+        }
+    }
+    return  $True
 }
 
 #######################################################################
@@ -2316,4 +2328,138 @@ $DM_scriptBlock = {
 
     return $retVal
   }
+}
+
+#################################################################
+#
+# Check systemd available or not
+#
+#################################################################
+function CheckSystemd()
+{
+    $check1 = $true
+    $check2 = $true
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "ls -l /sbin/init | grep systemd"
+    if ($? -ne "True"){
+        Write-Output "Systemd not found on VM"
+        $check1 = $false
+    }
+
+    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemd-analyze --help"
+    if ($? -ne "True"){
+        Write-Output "Systemd-analyze not present on VM."
+        $check2 = $false
+    }
+
+    if (($check1 -and $check2) -eq $true) {
+        return $true
+    } else {
+        return $false
+    }
+}
+
+#################################################################
+#
+# Do fdisk /dev/sdb, mkfs /dev/sdb1 and mount /dev/sdb1 to /mnt
+#
+#################################################################
+function MountDisk()
+{
+    $driveName = "/dev/sdb"
+
+    $sts = SendCommandToVM $ipv4 $sshKey "(echo d;echo;echo w)|fdisk ${driveName}"
+    if (-not $sts) {
+        Write-Output "ERROR: Failed to format the disk in the VM $vmName."
+        return $Failed
+    }
+
+    $sts = SendCommandToVM $ipv4 $sshKey "(echo n;echo p;echo 1;echo;echo;echo w)|fdisk ${driveName}"
+    if (-not $sts) {
+        Write-Output "ERROR: Failed to format the disk in the VM $vmName."
+        return $Failed
+    }
+
+    $sts = SendCommandToVM $ipv4 $sshKey "mkfs.ext4 ${driveName}1"
+    if (-not $sts) {
+        Write-Output "ERROR: Failed to make file system in the VM $vmName."
+        return $Failed
+    }
+
+    $sts = SendCommandToVM $ipv4 $sshKey "mount ${driveName}1 /mnt"
+    if (-not $sts) {
+        Write-Output "ERROR: Failed to mount the disk in the VM $vmName."
+        return $Failed
+    }
+
+    "Info: $driveName has been mounted to /mnt in the VM $vmName."
+
+    return $True
+}
+
+#######################################################################
+#
+# Checks if the file copy daemon is running on the Linux guest
+#
+#######################################################################
+function check_fcopy_daemon()
+{
+    $filename = ".\fcopy_present"
+
+    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /tmp/fcopy_present"
+    if (-not $?) {
+        Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
+        return $False
+    }
+
+    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/tmp/fcopy_present .
+    if (-not $?) {
+        Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
+        Write-Output "ERROR: Unable to copy the confirmation file from the VM"
+        return $False
+    }
+
+    # When using grep on the process in file, it will return 1 line if the daemon is running
+    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) {
+        Write-Output "Info: hv_fcopy_daemon process is running."
+        $retValue = $True
+    }
+
+    del $filename
+    return $retValue
+}
+
+#######################################################
+#
+# Stop hypervfcopyd or hv_fcopy_daemon when it is running on vm
+#
+#######################################################################
+function stop_fcopy_daemon()
+{
+    $sts = check_fcopy_daemon
+    if ($sts[-1] -eq $True ){
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "pkill -f 'fcopy'"
+        if (-not $?) {
+            Write-Error -Message  "ERROR: Unable to kill hypervfcopy daemon" -ErrorAction SilentlyContinue
+            Write-Output "ERROR: Unable to kill hypervfcopy daemon"
+            return $False
+        }
+    }
+    return $true
+}
+
+#######################################################################
+#
+# Generate random string
+#
+#######################################################################
+function generate_random_string([Int] $length)
+{
+    $set = "abcdefghijklmnopqrstuvwxyz0123456789".ToCharArray()
+    $result = ""
+    for ($x = 0; $x -lt $length; $x++)
+    {
+        $result += $set | Get-Random
+    }
+    return $result
 }

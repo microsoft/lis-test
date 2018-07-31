@@ -125,16 +125,15 @@ if ($BuildNumber -eq 0){
     return $false
 }
 elseif ($BuildNumber -lt 9600){
+    Write-Output "Hyper-v host version $BuildNumber does not support fcopy, skipping test." | Tee-Object -Append -file $summaryLog
     return $Skipped
 }
 
-# Source FCOPY_Utils.ps1
-. .\setupScripts\FCOPY_utils.ps1
-
 # If vm does not support systemd, skip test.
-$sts = Check-Systemd
+$sts = CheckSystemd
 if ($sts[-1] -eq $false){
-	return $Skipped
+    Write-Output "Distro does not support systemd, skipping test." | Tee-Object -Append -file $summaryLog
+    return $Skipped
 }
 
 # Delete any previous summary.log file, then create a new one
@@ -176,6 +175,12 @@ if ( $? -ne $true) {
     return $false
 }
 
+# The fcopy daemon must be running on the Linux guest VM
+$sts = check_fcopy_daemon
+if (-not $sts[-1]) {
+    Write-Output "ERROR: file copy daemon is not running inside the Linux guest VM!" | Tee-Object -Append -file $summaryLog
+    return $false
+}
 #
 # Step 1: verify the file cannot copy to vm when target folder is immutable
 #
@@ -197,7 +202,7 @@ if ( $? -eq $true ) {
     return $false
 }
 elseif (($Error.Count -gt 0) -and ($Error[0].Exception.Message -like "*failed to initiate copying files to the guest*")) {
-	Write-Output $Error[0].Exception.Message
+    Write-Output $Error[0].Exception.Message
     Write-Output "Info: File could not be copied to VM as expected since target folder immutable" | Tee-Object -Append -file $summaryLog
 }
 

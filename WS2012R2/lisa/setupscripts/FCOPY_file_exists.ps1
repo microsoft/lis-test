@@ -60,53 +60,6 @@ $retVal = $false
 $testfile = $null
 $gsi = $null
 
-#######################################################################
-#
-#	Checks if the file copy daemon is running on the Linux guest
-#
-#######################################################################
-function check_fcopy_daemon()
-{
-	$filename = ".\fcopy_present"
-
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "ps -ef | grep '[h]v_fcopy_daemon\|[h]ypervfcopyd' > /tmp/fcopy_present"
-    if (-not $?) {
-        Write-Error -Message  "ERROR: Unable to verify if the fcopy daemon is running" -ErrorAction SilentlyContinue
-        Write-Output "ERROR: Unable to verify if the fcopy daemon is running"
-        return $False
-    }
-
-    .\bin\pscp -i ssh\${sshKey} root@${ipv4}:/tmp/fcopy_present .
-    if (-not $?) {
-		Write-Error -Message "ERROR: Unable to copy the confirmation file from the VM" -ErrorAction SilentlyContinue
-		Write-Output "ERROR: Unable to copy the confirmation file from the VM"
-		return $False
-    }
-
-    # When using grep on the process in file, it will return 1 line if the daemon is running
-    if ((Get-Content $filename  | Measure-Object -Line).Lines -eq  "1" ) {
-		Write-Output "Info: hv_fcopy_daemon process is running."
-		$retValue = $True
-    }
-
-    del $filename
-    return $retValue
-}
-
-#######################################################################
-#
-#	Checks if test file is present
-#
-#######################################################################
-function check_file([String] $testfile)
-{
-    .\bin\plink -i ssh\${sshKey} root@${ipv4} "wc -c < /tmp/$testfile"
-    if (-not $?) {
-        Write-Output "ERROR: Unable to read file" -ErrorAction SilentlyContinue
-        return $False
-    }
-	return $True
-}
 
 #######################################################################
 #
@@ -270,7 +223,8 @@ $Error.Clear()
 Copy-VMFile -vmName $vmName -ComputerName $hvServer -SourcePath $filePath -DestinationPath "/tmp/" -FileSource host -ErrorAction SilentlyContinue
 if ($error.Count -eq 0) {
 	# Checking if the file size is matching
-	$sts = check_file $testfile
+	$sts = CheckFile "/tmp/$testfile" $True
+
 	if (-not $sts[-1]) {
 		Write-Output "ERROR: File is not present on the guest VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
 		$retVal = $False

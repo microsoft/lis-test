@@ -66,63 +66,6 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
-function Mount-Disk()
-{
-
-    $driveName = "/dev/sdb"
-
-    $sts = SendCommandToVM $ipv4 $sshKey "(echo d;echo;echo w)|fdisk ${driveName}"
-    if (-not $sts) {
-        Write-Output "ERROR: Failed to format the disk in the VM $vmName."
-        return $Failed
-    }
-
-    $sts = SendCommandToVM $ipv4 $sshKey "(echo n;echo p;echo 1;echo;echo;echo w)|fdisk ${driveName}"
-    if (-not $sts) {
-        Write-Output "ERROR: Failed to format the disk in the VM $vmName."
-        return $Failed
-    }
-
-    $sts = SendCommandToVM $ipv4 $sshKey "mkfs.ext4 ${driveName}1"
-    if (-not $sts) {
-        Write-Output "ERROR: Failed to make file system in the VM $vmName."
-        return $Failed
-    }
-
-    $sts = SendCommandToVM $ipv4 $sshKey "mount ${driveName}1 /mnt"
-    if (-not $sts) {
-        Write-Output "ERROR: Failed to mount the disk in the VM $vmName."
-        return $Failed
-    }
-
-    "Info: $driveName has been mounted to /mnt in the VM $vmName."
-
-    return $True
-}
-
-function Check-Systemd()
-{
-    $check1 = $true
-    $check2 = $true
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "ls -l /sbin/init | grep systemd"
-    if ($? -ne "True"){
-        Write-Output "Systemd not found on VM"
-        $check1 = $false
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemd-analyze --help"
-    if ($? -ne "True"){
-        Write-Output "Systemd-analyze not present on VM."
-        $check2 = $false
-    }
-
-    if (($check1 -and $check2) -eq $true) {
-        return $true
-    } else {
-        return $Failed
-    }
-}
-
 # Read parameters
 $params = $testParams.TrimEnd(";").Split(";")
 foreach ($p in $params) {
@@ -209,7 +152,7 @@ if ($currentState -ne "Running") {
     Start-Sleep 60
 }
 
-$checkVM = Check-Systemd
+$checkVM = CheckSystemd
 if ($checkVM -eq "True") {
 
     # Get Integration Services status
@@ -299,7 +242,7 @@ if ($checkVM -eq "True") {
     }
 
     # Mount attached VHDX
-    $sts = Mount-Disk
+    $sts = MountDisk
     if (-not $sts[-1]) {
         Write-Output "Error: Failed to mount the disk in the VM." | Tee-Object -Append -file $summaryLog
         return $Failed
@@ -343,7 +286,7 @@ if ($checkVM -eq "True") {
     Write-Output "Info: The file copy process took ${copyDuration} seconds" | Tee-Object -Append -file $summaryLog
 
     # Checking if the file is present on the guest and file size is matching
-    $sts = CheckFile /mnt/$testfile
+    $sts = CheckFile "/mnt/$testfile" $True
     if (-not $sts[-1]) {
         Write-Output "Error: File is not present on the guest VM" | Tee-Object -Append -file $summaryLog
         return $Failed

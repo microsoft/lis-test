@@ -54,29 +54,6 @@
 
 param([String] $vmName, [String] $hvServer, [String] $testParams)
 
-function Check-Systemd()
-{
-    $check1 = $true
-    $check2 = $true
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "ls -l /sbin/init | grep systemd"
-    if ($? -ne "True"){
-        Write-Output "Systemd not found on VM"
-        $check1 = $false
-    }
-
-    .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "systemd-analyze --help"
-    if ($? -ne "True"){
-        Write-Output "Systemd-analyze not present on VM."
-        $check2 = $false
-    }
-
-    if (($check1 -and $check2) -eq $true) {
-        return $true
-    } else {
-        return $false
-    }
-}
-
 #######################################################################
 #
 # Main script body
@@ -149,7 +126,7 @@ else {
     return $Failed
 }
 
-$checkVM = Check-Systemd
+$checkVM = CheckSystemd
 if ( -not $checkVM[-1]) {
     Write-Output "Systemd is not being used. Test Skipped" | Tee-Object -Append -file $summaryLog
     return $Skipped

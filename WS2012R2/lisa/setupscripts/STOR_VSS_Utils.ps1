@@ -128,7 +128,7 @@ function startBackup([string] $vmName, [string] $driveletter)
 	# Delete file on the VM
 	$vmState = $(Get-VM -name $vmName -ComputerName $hvServer).state
 	if (-not $vmState) {
-		$sts = DeleteFile
+		$sts = DeleteFile "/root/1"
 		if (-not $sts[-1])
 		{
 			$logger.error("Cannot delete test file!")
@@ -232,8 +232,8 @@ function checkResults([string] $vmName, [string] $hvServer)
 	$stsipv4 = Test-NetConnection $ipv4 -Port 22 -WarningAction SilentlyContinue
 	if ($stsipv4.TcpTestSucceeded)
 	{
-		$sts= CheckFile /root/1
-		if ($sts -eq $false)
+		$sts= CheckFile "/root/1"
+		if (-not $sts[-1])
 		{
 			$logger.error("No /root/1 file after restore")
 			return $False
