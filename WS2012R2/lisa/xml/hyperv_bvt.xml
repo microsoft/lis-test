@@ -67,6 +67,7 @@
             <suiteTest>FCOPY_non_ascii</suiteTest>
             <suiteTest>FCOPY_repeat</suiteTest>
             <suiteTest>FCOPY_disableEnable</suiteTest>
+            <suiteTest>FCOPY_negative</suiteTest>
 
             <!-- VHDx Resize Tests -->
             <suiteTest>VHDxResizeToBigger512</suiteTest>
@@ -609,6 +610,15 @@
                 <param>SCSI=0,0,Fixed,512,7GB</param>
                 <param>FcopyFileSize=5GB</param>
                 <param>CycleCount=20</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+        <test>
+            <testName>FCOPY_negative</testName>
+            <testScript>setupscripts\FCOPY_negative.ps1</testScript>
+            <timeout>900</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-08</param>
             </testParams>
             <noReboot>False</noReboot>
         </test>
