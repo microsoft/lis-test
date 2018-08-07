@@ -68,13 +68,13 @@
             <suiteTest>FCOPY_non_ascii</suiteTest>
             <suiteTest>FCOPY_repeat</suiteTest>
             <suiteTest>FCOPY_disableEnable</suiteTest>
+            <suiteTest>FCOPY_negative</suiteTest>
             <!-- NMI and VMBus tests -->
             <suiteTest>NMI_Verify_Interrupt</suiteTest>
             <suiteTest>NMI_different_vmStates</suiteTest>
             <suiteTest>VMBus_protocol_version</suiteTest>
             <suiteTest>VMBus_verify_interrupts</suiteTest>
             <suiteTest>VMBus_PanicNotifier</suiteTest>
-            <suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
          </suiteTests>
       </suite>
       <suite>
@@ -220,6 +220,7 @@
             <suiteTest>Crash_NMI</suiteTest>
             <suiteTest>Crash_differentVCPU</suiteTest>
             <suiteTest>Crash_16cores</suiteTest>
+            <suiteTest>VMBus_PanicNotifier_onKdump</suiteTest>
          </suiteTests>
       </suite>
    </testSuites>
@@ -2579,6 +2580,16 @@
             </testParams>
             <noReboot>False</noReboot>
         </test>
+        <test>
+            <testName>FCOPY_negative</testName>
+            <testScript>setupscripts\FCOPY_negative.ps1</testScript>
+            <timeout>900</timeout>
+            <testParams>
+                <param>TC_COVERED=FCopy-08</param>
+            </testParams>
+            <noReboot>False</noReboot>
+        </test>
+
       <!-- KDUMP -->
       <test>
          <testName>Crash_single_core</testName>
