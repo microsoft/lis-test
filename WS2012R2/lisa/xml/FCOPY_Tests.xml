@@ -50,6 +50,7 @@
             <suiteTest>FCOPY_non_ascii</suiteTest>
             <suiteTest>FCOPY_repeat</suiteTest>
             <suiteTest>FCOPY_disableEnable</suiteTest>
+            <suiteTest>FCOPY_negative</suiteTest>
         </suiteTests>
         </suite>
     </testSuites>
@@ -102,8 +103,9 @@
             <testParams>
                 <param>TC_COVERED=FCopy-04</param>
                 <param>SCSI=0,0,Fixed,512,15GB</param>
-                <!-- Customize file size if you wish, 10GB by default
-                <param>Large_File_Size_GB=11.3</param>
+                <!-- Customizable file size, 10GB by default.
+                The disk size must be larger than the file size param.
+                <param>Large_File_Size_GB=15</param>
                 -->
             </testParams>
             <noReboot>False</noReboot>
@@ -127,7 +129,7 @@
             <testParams>
                 <param>TC_COVERED=FCopy-06</param>
                 <param>SCSI=0,0,Fixed,512,3GB</param>
-            <!--Make sure DefaultSize is equal or bigger than FileSize-->
+                <!--Make sure DefaultSize is equal or bigger than FileSize-->
                 <param>FileSize=2GB</param>
             </testParams>
             <noReboot>False</noReboot>
