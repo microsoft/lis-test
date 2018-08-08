@@ -141,6 +141,10 @@ $summaryLog = "${vmName}_summary.log"
 del $summaryLog -ErrorAction SilentlyContinue
 Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
+# Delete any previous test files
+echo y | bin\plink.exe -i ssh\${sshKey} root@${ipv4} exit
+.\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "rm -rf /tmp/testfile-* 2>/dev/null"
+
 #
 # Setup: Create temporary test file in the host
 #
@@ -187,7 +191,6 @@ if (-not $sts[-1]) {
 Write-Output "Info: Step 1: fcopy file to vm when target folder is immutable"
 
 # Verifying if /tmp folder on guest exists; if not, it will be created
-echo y | bin\plink.exe -i ssh\${sshKey} root@${ipv4} exit
 .\bin\plink.exe -i ssh\${sshKey} root@${ipv4} "[ -d /test ] || mkdir /test ; chattr +i /test"
 
 if (-not $?){
