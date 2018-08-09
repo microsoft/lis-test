@@ -31,8 +31,8 @@
     A typical test case definition for this test script would look
     similar to the following:
         <test>
-            <testName>KVP_Basic</testName>
-            <testScript>SetupScripts\Kvp_Basic.ps1</testScript>
+            <testName>KVP_Intrinsic</testName>
+            <testScript>SetupScripts\KVP_Intrinsic.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
@@ -49,7 +49,7 @@
 .Parameter testParams
     Test data for this test case , when DE_change=yes .this case do uncheck and check operation with intergated service
 .Example
-    setupScripts\KvpBasic.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa;TC_COVERED=KVP-01"
+    setupScripts\KVP_Intrinsic.ps1 -vmName "myVm" -hvServer "localhost -TestParams "rootDir=c:\lisa;TC_COVERED=KVP-01"
 .Link
     None.
 #>
