@@ -33,16 +33,14 @@
             <subject>KVP and SQM Test Run</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
-        <!-- Optional testParams go here -->
     </global>
-
     <testSuites>
         <suite>
             <suiteName>KVP</suiteName>
             <suiteTests>
                 <suiteTest>SQM_Basic</suiteTest>
-                <suiteTest>KVP_Basic</suiteTest>
-                <suiteTest>ReadKVPData_BasicTest</suiteTest>
+                <suiteTest>KVP_basic_checks</suiteTest>
+                <suiteTest>KVP_Intrinsic</suiteTest>
                 <suiteTest>KVP_Add_Key_Values</suiteTest>
                 <suiteTest>KVP_Modify_Key_Values</suiteTest>
                 <suiteTest>KVP_Remove_Key_Values</suiteTest>
@@ -55,7 +53,6 @@
             </suiteTests>
         </suite>
     </testSuites>
-
     <testCases>
         <test>
             <testName>SQM_Basic</testName>
@@ -67,10 +64,11 @@
                 <param>TC_COVERED=SQM-01</param>
             </testparams>
         </test>
-
         <test>
-            <testName>KVP_Basic</testName>
-            <testScript>SetupScripts\KVP_Basic.ps1</testScript>
+            <testName>KVP_basic_checks</testName>
+            <testScript>KVP_basic_checks.sh</testScript>
+            <files>remote-scripts\ica\KVP_basic_checks.sh,remote-scripts/ica/utils.sh,
+                tools/KVP/kvp_client64,tools/KVP/kvp_client32</files>
             <timeout>600</timeout>
             <onError>Continue</onError>
             <noReboot>True</noReboot>
@@ -78,20 +76,16 @@
                 <param>TC_COVERED=KVP-01</param>
             </testparams>
         </test>
-
         <test>
-            <testName>ReadKVPData_BasicTest</testName>
-            <testScript>KVP_BasicTest.sh</testScript>
-            <files>remote-scripts\ica\KVP_BasicTest.sh,remote-scripts/ica/utils.sh,
-                tools/KVP/kvp_client64,tools/KVP/kvp_client32</files>
+            <testName>KVP_Intrinsic</testName>
+            <testScript>SetupScripts\KVP_Intrinsic.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
-            <noReboot>False</noReboot>
+            <noReboot>True</noReboot>
             <testparams>
-                <param>TC_COVERED=BVT-21</param>
+                <param>TC_COVERED=KVP-01b</param>
             </testparams>
         </test>
-
         <test>
             <testName>KVP_Add_Key_Values</testName>
             <testScript>KVP_VerifyKeyValue.sh</testScript>
@@ -108,7 +102,6 @@
                 <param>Pool=0</param>
             </testparams>
         </test>
-
         <test>
             <testName>KVP_Modify_Key_Values</testName>
             <testScript>KVP_VerifyKeyValue.sh</testScript>
@@ -125,7 +118,6 @@
                 <param>Pool=0</param>
             </testparams>
         </test>
-
         <test>
             <testName>KVP_Remove_Key_Values</testName>
             <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
@@ -139,7 +131,6 @@
                 <param>Pool=0</param>
             </testparams>
         </test>
-
         <test>
             <testName>KVP_Push_Key_Values</testName>
             <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
@@ -153,35 +144,32 @@
                 <param>Value=111</param>
             </testparams>
         </test>
-
         <test>
-                <testName>KVP_DeleteNonExistKVPOnGuest</testName>
-                <testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
-                <timeout>600</timeout>
-                <onError>Abort</onError>
-                <noReboot>True</noReboot>
-                <testparams>
-                        <param>TC_COVERED=KVP-06</param>
-                        <param>Key=AAA</param>
-                        <param>Value=000</param>
-                        <param>Pool=0</param>
-                </testparams>
+			<testName>KVP_DeleteNonExistKVPOnGuest</testName>
+			<testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+			<timeout>600</timeout>
+			<onError>Abort</onError>
+			<noReboot>True</noReboot>
+			<testparams>
+					<param>TC_COVERED=KVP-06</param>
+					<param>Key=AAA</param>
+					<param>Value=000</param>
+					<param>Pool=0</param>
+			</testparams>
         </test>
-
         <test>
-                <testName>KVP_ModifyNonExistKVPOnGuest</testName>
-                <testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
-                <timeout>600</timeout>
-                <onError>Abort</onError>
-                <noReboot>True</noReboot>
-                <testparams>
-                        <param>TC_COVERED=KVP-07</param>
-                        <param>Key=AAA</param>
-                        <param>Value=000</param>
-                        <param>Pool=0</param>
-                </testparams>
+			<testName>KVP_ModifyNonExistKVPOnGuest</testName>
+			<testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+			<timeout>600</timeout>
+			<onError>Abort</onError>
+			<noReboot>True</noReboot>
+			<testparams>
+					<param>TC_COVERED=KVP-07</param>
+					<param>Key=AAA</param>
+					<param>Value=000</param>
+					<param>Pool=0</param>
+			</testparams>
         </test>
-
         <test>
             <testName>KVP_VerifyHostInjectedItems</testName>
             <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
@@ -196,7 +184,6 @@
                 <param>Items=11</param>
             </testparams>
         </test>
-
         <test>
             <testName>KVP_TestRescind</testName>
             <testScript>SetupScripts\KVP_TestRescind.ps1</testScript>
@@ -205,11 +192,10 @@
             <noReboot>False</noReboot>
             <testparams>
                 <param>TC_COVERED=KVP-11</param>
-                <!-- Number of times to disable and reenable the KVP service -->
+                <!-- Number of times to disable and re-enable the KVP service -->
                 <param>CycleCount=20</param>
             </testparams>
         </test>
-
         <test>
             <testName>KVP_Max_Read</testName>
             <testScript>SetupScripts\Kvp_Max_Read.ps1</testScript>
@@ -225,7 +211,6 @@
             </testparams>
         </test>
     </testCases>
-
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
