@@ -83,7 +83,7 @@ fi
 # Make sure constants.sh contains the variables we expect
 #
 if [ "${kvp_pool:-UNDEFINED}" = "UNDEFINED" ]; then
-    msg="The test parameter Pool number is not defined in ${CONSTANTS_FILE}"
+    msg="The test parameter kvp_pool number is not defined in ${CONSTANTS_FILE}"
     LogMsg "$msg"
     echo "$msg" >> ~/summary.log
     SetTestStateAborted
