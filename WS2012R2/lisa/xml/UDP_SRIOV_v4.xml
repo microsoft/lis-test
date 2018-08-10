@@ -62,13 +62,13 @@
         <param>MAX_THREADS=64</param>
         <param>ETH_NAME=eth1</param>
         <param>MAC=001600444416</param>
-        <param>log_folder=logs_ipv4</param>
+        <param>log_folder=logs_ipv4_1k</param>
         <param>VM2NAME=SRIOV-Server</param>
         <param>VM2SERVER=43f13-36</param>
         <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
       </testParams>
       <uploadFiles>
-        <file>logs_ipv4.zip</file>
+        <file>logs_ipv4_1k.zip</file>
       </uploadFiles>
       <timeout>14400</timeout>
       <OnError>Continue</OnError>
@@ -97,13 +97,13 @@
         <param>MAX_THREADS=64</param>
         <param>ETH_NAME=eth1</param>
         <param>MAC=001600444416</param>
-        <param>log_folder=logs_ipv4</param>
+        <param>log_folder=logs_ipv4_8k</param>
         <param>VM2NAME=SRIOV-Server</param>
         <param>VM2SERVER=43f13-36</param>
         <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
       </testParams>
       <uploadFiles>
-        <file>logs_ipv4.zip</file>
+        <file>logs_ipv4_8k.zip</file>
       </uploadFiles>
       <timeout>14400</timeout>
       <OnError>Continue</OnError>
