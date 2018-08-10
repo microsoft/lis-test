@@ -54,16 +54,16 @@
             <!-- <suiteTest>PausedCritical_Heartbeat</suiteTest> -->
             <!--KVP and SQM tests-->
             <suiteTest>SQM_Basic</suiteTest>
-            <suiteTest>KVP_Basic</suiteTest>
+            <suiteTest>KVP_basic_checks</suiteTest>
+            <suiteTest>KVP_Intrinsic</suiteTest>
             <suiteTest>KVP_Add_Key_Values</suiteTest>
             <suiteTest>KVP_Modify_Key_Values</suiteTest>
             <suiteTest>KVP_Remove_Key_Values</suiteTest>
             <suiteTest>KVP_Push_Key_Values</suiteTest>
             <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
             <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
-            <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
             <suiteTest>KVP_TestRescind</suiteTest>
-            <suiteTest>KVP_Max_Read</suiteTest> 
+            <suiteTest>KVP_Max_Read</suiteTest>
             <!-- FCopy tests -->
             <suiteTest>FCOPY_basic</suiteTest>
             <suiteTest>FCOPY_file_exists</suiteTest>
@@ -569,145 +569,149 @@
     </test>
     <!-- KVP_Tests -->
     <test>
-      <testName>SQM_Basic</testName>
-      <testScript>SetupScripts\SQM_Basic.ps1</testScript>
-      <timeout>600</timeout>
-      <onError>Continue</onError>
-      <noReboot>False</noReboot>
-      <testparams>
-        <param>TC_COVERED=SQM-01</param>
-      </testparams>
+        <testName>SQM_Basic</testName>
+        <testScript>SetupScripts\SQM_Basic.ps1</testScript>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+        <testparams>
+            <param>TC_COVERED=SQM-01</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_Basic</testName>
-      <testScript>SetupScripts\KVP_Basic.ps1</testScript>
-      <timeout>600</timeout>
-      <onError>Continue</onError>
-      <noReboot>True</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-01</param>
-      </testparams>
+        <testName>KVP_basic_checks</testName>
+        <testScript>KVP_basic_checks.sh</testScript>
+        <files>remote-scripts\ica\KVP_basic_checks.sh,remote-scripts/ica/utils.sh,
+            tools/KVP/kvp_client64,tools/KVP/kvp_client32</files>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+            <param>TC_COVERED=KVP-01</param>
+            <param>kvp_pool=3</param>
+            <!-- minimum number of items expected in KVP pool 3 -->
+            <param>kvp_items=11</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_Add_Key_Values</testName>
-      <testScript>KVP_VerifyKeyValue.sh</testScript>
-      <files>remote-scripts\ica\KVP_VerifyKeyValue.sh, tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
-      <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
-      <timeout>600</timeout>
-      <onError>Continue</onError>
-      <noReboot>True</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-02</param>
-        <param>Key=EEE</param>
-        <param>Value=555</param>
-        <param>Pool=0</param>
-      </testparams>
+        <testName>KVP_Intrinsic</testName>
+        <testScript>SetupScripts\KVP_Intrinsic.ps1</testScript>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+            <param>TC_COVERED=KVP-01b</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_Modify_Key_Values</testName>
-      <testScript>KVP_VerifyKeyValue.sh</testScript>
-      <files>remote-scripts\ica\KVP_VerifyKeyValue.sh, tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
-      <preTest>setupscripts\ModifyKeyValue.ps1</preTest>
-      <timeout>600</timeout>
-      <onError>Continue</onError>
-      <noReboot>True</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-03</param>
-        <param>Key=EEE</param>
-        <param>Value=999</param>
-        <param>Pool=0</param>
-      </testparams>
+        <testName>KVP_Add_Key_Values</testName>
+        <testScript>KVP_VerifyKeyValue.sh</testScript>
+        <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+            tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+        <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+            <param>TC_COVERED=KVP-02</param>
+            <param>Key=EEE</param>
+            <param>Value=555</param>
+            <param>Pool=0</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_Remove_Key_Values</testName>
-      <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
-      <timeout>600</timeout>
-      <onError>Continue</onError>
-      <noReboot>True</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-04</param>
-        <param>Key=EEE</param>
-        <param>Value=999</param>
-        <param>Pool=0</param>
-      </testparams>
+        <testName>KVP_Modify_Key_Values</testName>
+        <testScript>KVP_VerifyKeyValue.sh</testScript>
+        <files>remote-scripts\ica\KVP_VerifyKeyValue.sh,
+            tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+        <preTest>setupscripts\ModifyKeyValue.ps1</preTest>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+            <param>TC_COVERED=KVP-03</param>
+            <param>Key=EEE</param>
+            <param>Value=999</param>
+            <param>Pool=0</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_Push_Key_Values</testName>
-      <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
-      <files>tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
-      <timeout>600</timeout>
-      <onError>Abort</onError>
-      <noReboot>True</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-05</param>
-        <param>Key=BBB</param>
-        <param>Value=111</param>
-      </testparams>
+        <testName>KVP_Remove_Key_Values</testName>
+        <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+            <param>TC_COVERED=KVP-04</param>
+            <param>Key=EEE</param>
+            <param>Value=999</param>
+            <param>Pool=0</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_DeleteNonExistKVPOnGuest</testName>
-      <testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
-      <timeout>600</timeout>
-      <onError>Abort</onError>
-      <noReboot>True</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-06</param>
-        <param>Key=AAA</param>
-        <param>Value=000</param>
-        <param>Pool=0</param>
-      </testparams>
+        <testName>KVP_Push_Key_Values</testName>
+        <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
+        <files>tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+        <timeout>600</timeout>
+        <onError>Abort</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+            <param>TC_COVERED=KVP-05</param>
+            <param>Key=BBB</param>
+            <param>Value=111</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_ModifyNonExistKVPOnGuest</testName>
-      <testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
-      <timeout>600</timeout>
-      <onError>Abort</onError>
-      <noReboot>True</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-07</param>
-        <param>Key=AAA</param>
-        <param>Value=000</param>
-        <param>Pool=0</param>
-      </testparams>
+        <testName>KVP_DeleteNonExistKVPOnGuest</testName>
+        <testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+        <timeout>600</timeout>
+        <onError>Abort</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+                <param>TC_COVERED=KVP-06</param>
+                <param>Key=AAA</param>
+                <param>Value=000</param>
+                <param>Pool=0</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_VerifyHostInjectedItems</testName>
-      <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
-      <files>remote-scripts\ica\KVP_VerifyHostInjectedItems.sh, tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
-      <timeout>600</timeout>
-      <onError>Abort</onError>
-      <noReboot>True</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-10</param>
-        <param>Pool=3</param>
-        <param>Items=11</param>
-      </testparams>
+        <testName>KVP_ModifyNonExistKVPOnGuest</testName>
+        <testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+        <timeout>600</timeout>
+        <onError>Abort</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+                <param>TC_COVERED=KVP-07</param>
+                <param>Key=AAA</param>
+                <param>Value=000</param>
+                <param>Pool=0</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_TestRescind</testName>
-      <testScript>SetupScripts\KVP_TestRescind.ps1</testScript>
-      <timeout>600</timeout>
-      <onError>Continue</onError>
-      <noReboot>False</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-11</param>
-        <!-- Number of times to disable and reenable the KVP service -->
-        <param>CycleCount=20</param>
-      </testparams>
+        <testName>KVP_TestRescind</testName>
+        <testScript>SetupScripts\KVP_TestRescind.ps1</testScript>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>False</noReboot>
+        <testparams>
+            <param>TC_COVERED=KVP-11</param>
+            <!-- Number of times to disable and re-enable the KVP service -->
+            <param>CycleCount=20</param>
+        </testparams>
     </test>
     <test>
-      <testName>KVP_Max_Read</testName>
-      <testScript>SetupScripts\Kvp_Max_Read.ps1</testScript>
-      <files>tools/KVP/kvp_client64, tools/KVP/kvp_client32</files>
-      <timeout>600</timeout>
-      <onError>Continue</onError>
-      <noReboot>False</noReboot>
-      <testparams>
-        <param>TC_COVERED=KVP-12</param>
-        <param>Pool=1</param>
-        <!-- Number of key pairs to be added in the kvp pool -->
-        <param>Entries=250</param>
-      </testparams>
+        <testName>KVP_Max_Read</testName>
+        <testScript>SetupScripts\Kvp_Max_Read.ps1</testScript>
+        <files>tools/KVP/kvp_client64, tools/KVP/kvp_client32</files>
+        <timeout>600</timeout>
+        <onError>Continue</onError>
+        <noReboot>True</noReboot>
+        <testparams>
+            <param>TC_COVERED=KVP-12</param>
+            <param>Pool=1</param>
+            <!-- Number of key pairs to be added in the kvp pool -->
+            <param>Entries=250</param>
+        </testparams>
     </test>
     <!-- VSS BACK-UP -->
     <test>
