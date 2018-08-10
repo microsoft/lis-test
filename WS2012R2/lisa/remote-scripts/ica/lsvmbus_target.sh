@@ -95,7 +95,7 @@ case $DISTRO in
     ;;
 esac
 
-if [[ "$DISTRO" =~ "redhat" ]] || [[ "$DISTRO" =~ "centos" ]]; then
+if [[ "$DISTRO" =~ "redhat" ]] || [[ "$DISTRO" =~ "centos" ]] || [[ "$DISTRO" =~ "fedora" ]]; then
     rpm -q hyperv-tools
     if [ $? -ne 0 ]; then
         yum install -y hyperv-tools
@@ -130,9 +130,16 @@ while IFS='' read -r line || [[ -n "$line" ]]; do
         fi
     fi
 done < "lsvmbus.log"
+# the cpu count that attached to the network driver is less than 8
+# the cpu count that attached to the scsi controller is (N+3)/4
+if [ $VCPU -gt 8 ];then
+    network_CPU=8
+else
+    network_CPU=$VCPU
+fi
 
-if [ $network_counter != $VCPU ] && [ $scsi_counter != $VCPU/4 ]; then
-    error_msg="Error: values are wrong. Expected for network adapter: $VCPU and actual: $network_counter;
+if [ $network_counter != $network_CPU ] && [ $scsi_counter != $((VCPU+3))/4 ]; then
+    error_msg="Error: values are wrong. Expected for network adapter: $network_CPU and actual: $network_counter;
     expected for scsi controller: 2, actual: $scsi_counter."
 
     LogMsg "$error_msg"
@@ -141,8 +148,8 @@ if [ $network_counter != $VCPU ] && [ $scsi_counter != $VCPU/4 ]; then
     exit 1
 fi
 
-UpdateSummary "Network driver is spread on all $network_counter cores as expected."
-UpdateSummary "Storage driver is spread on all $scsi_counter cores as expected."
+UpdateSummary "Network driver is spread on $network_counter core(s) as expected, actual cpu count in os is '$VCPU'."
+UpdateSummary "Storage driver is spread on all $scsi_counter core(s) as expected."
 
 UpdateSummary "Test completed successfully."
 UpdateTestState $ICA_TESTCOMPLETED
