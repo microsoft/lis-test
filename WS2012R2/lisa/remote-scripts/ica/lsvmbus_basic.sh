@@ -90,7 +90,7 @@ case $DISTRO in
     ;;
 esac
 
-if [[ "$DISTRO" =~ "redhat" ]] || [[ "$DISTRO" =~ "centos" ]]; then
+if [[ "$DISTRO" =~ "redhat" ]] || [[ "$DISTRO" =~ "centos" ]] || [[ "$DISTRO" =~ "fedora" ]]; then
     rpm -q hyperv-tools
     if [ $? -ne 0 ]; then
         yum install -y hyperv-tools
