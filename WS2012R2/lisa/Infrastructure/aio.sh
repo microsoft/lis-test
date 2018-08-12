@@ -533,7 +533,7 @@ if is_fedora ; then
     rpm_packages=(openssh-server dos2unix at net-tools gpm bridge-utils btrfs-progs xfsprogs ntp crash bc dosfstools
     selinux-policy-devel libaio-devel libattr-devel keyutils-libs-devel gcc gcc-c++ autoconf automake nano parted
     kexec-tools device-mapper-multipath expect sysstat git wget mdadm bc numactl python3 nfs-utils omping nc
-    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel hyperv-tools kernel-devel-`uname -r`)
+    pciutils squashfs-tools vim tcpdump elfutils-libelf-devel curl hyperv-tools kernel-devel-`uname -r`)
     sudo yum -y install ${rpm_packages[@]}
 
     yum groups mark install "Development Tools"
@@ -585,7 +585,7 @@ elif is_ubuntu ; then
     multipath-tools expect zip libaio-dev make libattr1-dev stressapptest git wget mdadm automake libtool pkg-config ifupdown
     bridge-utils btrfs-tools libkeyutils-dev xfsprogs reiserfsprogs sysstat build-essential bc numactl python3 pciutils tcpdump
     nfs-client parted netcat squashfs-tools bison flex linux-cloud-tools-common linux-tools-`uname -r` linux-cloud-tools-`uname -r`
-    net-tools)
+    net-tools curl)
     DEBIAN_FRONTEND=noninteractive sudo apt -y install ${deb_packages[@]}
 
     # multipathd daemon might cause conflicts with partitioning tools
