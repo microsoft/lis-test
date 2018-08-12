@@ -51,14 +51,14 @@
                 <suiteTest>MainVM_Checkpoint</suiteTest>
                 <suiteTest>ProductionCheckpoint</suiteTest>   
                 <suiteTest>ProductionCheckpoint_Failback</suiteTest>
-                <suiteTest>ProductionCheckpoint_ext3</suiteTest>
                 <suiteTest>ProductionCheckpoint_ext4</suiteTest>
                 <suiteTest>ProductionCheckpoint_btrfs</suiteTest>
                 <suiteTest>ProductionCheckpoint_IDE_SCSI</suiteTest>
                 <suiteTest>ProductionCheckpoint_SCSI_vhdx_xfs</suiteTest>
                 <suiteTest>ProductionCheckpoint_ISO_NoNetwork</suiteTest> 
                 <suiteTest>ProductionCheckpoint_3Chain_VHD</suiteTest>
-                <suiteTest>ProductionCheckpoint_iSCSI</suiteTest>
+                <!-- requires a pre-configured iSCSI target
+                <suiteTest>ProductionCheckpoint_iSCSI</suiteTest> -->
             </suiteTests>
         </suite>
     </testSuites>
@@ -93,24 +93,6 @@
             <testScript>setupscripts\Production_checkpoint_failback.ps1</testScript>
             <testParams>
                 <param>TC_COVERED=PC-02</param>
-            </testParams>
-            <timeout>2400</timeout>
-            <OnError>Continue</OnError>
-        </test>
-
-        <test>
-            <testName>ProductionCheckpoint_ext3</testName>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\AddVhdxHardDisk.ps1</file>
-            </setupScript>
-			<files>remote-scripts/ica/utils.sh</files>
-            <testScript>setupscripts\Production_checkpoint_partition.ps1</testScript>
-            <cleanupScript>SetupScripts\RemoveVhdxHardDisk.ps1</cleanupScript>
-            <testParams>
-                <param>TC_COVERED=PC-03</param>
-                <param>SCSI=0,1,Dynamic,512</param>
-                <param>FILESYS=ext3</param>
             </testParams>
             <timeout>2400</timeout>
             <OnError>Continue</OnError>
