@@ -86,6 +86,7 @@ CheckSource()
         exit 1
     fi
 }
+
 function UnbindCurrentSource()
 {
     unbind_file="/sys/devices/system/clocksource/clocksource0/unbind_clocksource"
@@ -110,6 +111,7 @@ function UnbindCurrentSource()
         exit 1
     fi
 }
+
 #
 # MAIN SCRIPT
 #
@@ -124,7 +126,7 @@ case $DISTRO in
         CheckSource
         UnbindCurrentSource
         ;;
-    ubuntu* )
+    ubuntu* | debian* )
         CheckSource
         UnbindCurrentSource
         ;;
