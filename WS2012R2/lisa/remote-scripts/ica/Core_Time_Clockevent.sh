@@ -127,7 +127,7 @@ case $DISTRO in
         CheckTimerInfo
         UnbindClockEvent
         ;;
-    ubuntu* )
+    ubuntu* | debian* )
         CheckClockEvent
         CheckTimerInfo
         UnbindClockEvent
@@ -140,6 +140,7 @@ case $DISTRO in
         exit 1
         ;;
 esac
+
 LogMsg "Test completed successfully."
 UpdateSummary "Test passed."
 SetTestStateCompleted
