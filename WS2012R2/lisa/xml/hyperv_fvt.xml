@@ -30,8 +30,7 @@
          <suiteTests>
             <suiteTest>MainVM_Checkpoint</suiteTest>
             <suiteTest>VMHeartbeat</suiteTest>
-            <suiteTest>Verify_LISModules_Version</suiteTest>
-            <suiteTest>Verify_LIS_Modules</suiteTest>
+            <suiteTest>Verify_LIS_modules_version</suiteTest>
             <suiteTest>initrd_modules_check</suiteTest>
             <suiteTest>Core_Time_Clocksource</suiteTest>
             <suiteTest>Core_Time_Clockevent_UP</suiteTest>
@@ -253,6 +252,18 @@
          <noReboot>False</noReboot>
       </test>
       <!-- Core Tests -->
+		<test>
+			<testName>Verify_LIS_modules_version</testName>
+			<testScript>CORE_LIS_modules.sh</testScript>
+			<files>remote-scripts/ica/CORE_LIS_modules.sh</files>
+			<testParams>
+				<param>TC_COVERED=CORE-01</param>
+				<param>HYPERV_MODULES=(hv_vmbus hv_netvsc hv_storvsc hv_utils hv_balloon hid_hyperv hyperv_keyboard hyperv_fb)</param>
+			</testParams>
+			<timeout>600</timeout>
+			<onError>Continue</onError>
+			<noReboot>True</noReboot>
+		</test>
       <test>
          <testName>VMHeartBeat</testName>
          <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
@@ -332,18 +343,6 @@
          <noReboot>False</noReboot>
       </test>
       <test>
-         <testName>Verify_LIS_Modules</testName>
-         <testScript>LIS_VerifyHyperVIC.sh</testScript>
-         <files>remote-scripts/ica/LIS_VerifyHyperVIC.sh</files>
-         <testParams>
-            <param>TC_COVERED=CORE-09,CORE-10</param>
-            <param>HYPERV_MODULES=(hyperv_keyboard hv_netvsc hid_hyperv hv_util hv_storvsc)</param>
-         </testParams>
-         <timeout>600</timeout>
-         <onError>Continue</onError>
-         <noReboot>True</noReboot>
-      </test>
-      <test>
          <testName>Multi_Cpu_Test</testName>
          <setupscript>setupscripts\Config-VM.ps1</setupscript>
          <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
@@ -353,18 +352,6 @@
          </testParams>
          <timeout>1600</timeout>
          <noReboot>False</noReboot>
-      </test>
-      <test>
-         <testName>Verify_LISModules_Version</testName>
-         <testScript>CORE_LISmodules_version.sh</testScript>
-         <files>remote-scripts/ica/CORE_LISmodules_version.sh</files>
-         <testparams>
-            <param>TC_COVERED=CORE-15</param>
-            <param>HYPERV_MODULES=(hv_vmbus hyperv_keyboard hv_netvsc hid_hyperv hv_utils hv_storvsc hv_balloon)</param>
-         </testparams>
-         <timeout>600</timeout>
-         <onError>Continue</onError>
-         <noReboot>True</noReboot>
       </test>
       <test>
          <testName>VerifyIntegratedShutdownService</testName>
