@@ -53,8 +53,7 @@
             <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
             <suiteTest>FloppyDisk</suiteTest>
             <suiteTest>StressReloadModules</suiteTest>
-            <suiteTest>LISShutdownVM</suiteTest>
-            <suiteTest>Multi_Cpu_Test</suiteTest>
+            <suiteTest>Core_max_cpus</suiteTest>
             <suiteTest>VCPU_verify_online</suiteTest>
             <suiteTest>VerifyIntegratedShutdownService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
@@ -167,9 +166,9 @@
             <noReboot>False</noReboot>
         </test>
         <test>
-         <testName>Multi_Cpu_Test</testName>
+         <testName>Core_max_cpus</testName>
          <setupscript>setupscripts\Config-VM.ps1</setupscript>
-         <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
+         <testScript>setupscripts\CORE_max_cpus.ps1</testScript>
          <testParams>
             <param>TC_COVERED=CORE-11</param>
             <param>vmMemory=4GB</param>
