@@ -41,8 +41,7 @@
             <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
 
             <suiteTest>StressReloadModules</suiteTest>
-            <suiteTest>LISShutdownVM</suiteTest>
-            <suiteTest>Multi_Cpu_Test</suiteTest>
+            <suiteTest>Core_max_cpus</suiteTest>
             <suiteTest>VCPU_verify_online</suiteTest>
             <suiteTest>VerifyIntegratedShutdownService</suiteTest>
             <suiteTest>CheckNuma</suiteTest>
@@ -186,31 +185,18 @@
             <onError>Continue</onError>
             <noReboot>True</noReboot>
         </test>
-
         <test>
-            <testName>LISShutdownVM</testName>
-            <setupScript>setupScripts\ChangeCPU.ps1</setupScript>
-            <testScript>setupscripts\INST_LIS_TestVMShutdown.ps1</testScript>
-            <testParams>
-                <param>TC_COVERED=CORE-07</param>
-                <param>vCPU=5</param>
-            </testParams>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <noReboot>False</noReboot>
-        </test>
-      <test>
-         <testName>Multi_Cpu_Test</testName>
+         <testName>Core_max_cpus</testName>
          <setupscript>setupscripts\Config-VM.ps1</setupscript>
-         <testScript>setupscripts\ChangeCPUIterated.ps1</testScript>
+         <testScript>setupscripts\CORE_max_cpus.ps1</testScript>
          <testParams>
             <param>TC_COVERED=CORE-11</param>
             <param>vmMemory=4GB</param>
          </testParams>
          <timeout>1600</timeout>
          <noReboot>False</noReboot>
-      </test>
-    <test>
+        </test>
+        <test>
             <testName>VerifyIntegratedShutdownService</testName>
             <testScript>setupscripts\INST_LIS_ShutdownServiceDisableEnable.ps1</testScript>
             <testParams>
@@ -220,7 +206,6 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-
         <test>
             <testName>StressReloadModules</testName>
             <setupscript>setupscripts\CORE_EnableIntegrationServices.ps1</setupscript>
@@ -232,7 +217,6 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-
         <test>
             <testName>VCPU_verify_online</testName>
             <testScript>vcpu_verify_online.sh</testScript>
