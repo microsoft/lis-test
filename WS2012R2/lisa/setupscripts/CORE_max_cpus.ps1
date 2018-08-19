@@ -111,10 +111,10 @@ Remove-Item $summaryLog -ErrorAction SilentlyContinue
 
 # Source TCUtils.ps1 for test related functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
+    . .\setupScripts\TCUtils.ps1
 } else {
-	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 #######################################################################
@@ -127,19 +127,19 @@ if ($OSInfo) {
     if ($OSInfo.Caption -match '.2008 R2.') {
         $guest_max_cpus = 4
     } else {
-		# Check VM OS architecture and set max CPU allowed
-		$linuxArch = .\bin\plink -i ssh\${sshKey} root@${ipv4} "uname -m"
-		if ($linuxArch -eq "i686") {
-			$guest_max_cpus = 32
-		}
-		if ($linuxArch -eq "x86_64") {
-			$guest_max_cpus = 64
-		}
+        # Check VM OS architecture and set max CPU allowed
+        $linuxArch = .\bin\plink -i ssh\${sshKey} root@${ipv4} "uname -m"
+        if ($linuxArch -eq "i686") {
+            $guest_max_cpus = 32
+        }
+        if ($linuxArch -eq "x86_64") {
+            $guest_max_cpus = 64
+        }
 
         if ((GetVMGeneration $vmName $hvServer) -eq "2" ) {
-			$guest_max_cpus = 240
-		}
-	}
+            $guest_max_cpus = 240
+        }
+    }
 
     #
     # Get the total number of Logical processors
@@ -171,10 +171,10 @@ try {
 
 Set-VM -Name $vmName -ComputerName $hvServer -ProcessorCount $guest_max_cpus
 if ($? -eq "True") {
-   "CPU cores count updated to $guest_max_cpus"
+    "CPU cores count updated to $guest_max_cpus"
 } else {
-	"Error: Unable to update CPU count to $guest_max_cpus!" | Tee-Object -Append -file $summaryLog
-	return $False
+    "Error: Unable to update CPU count to $guest_max_cpus!" | Tee-Object -Append -file $summaryLog
+    return $False
 }
 
 #
@@ -183,12 +183,12 @@ if ($? -eq "True") {
 Start-VM -Name $vmName -ComputerName $hvServer
 $new_ipv4 = GetIPv4AndWaitForSSHStart $vmName $hvServer $sshKey 300
 if ($new_ipv4) {
-	# In some cases the IP changes after a reboot
-	Set-Variable -Name "ipv4" -Value $new_ipv4
+    # In some cases the IP changes after a reboot
+    Set-Variable -Name "ipv4" -Value $new_ipv4
 } else {
     "Error: VM $vmName failed to start after setting $guest_max_cpus vCPUs" | `
     Tee-Object -Append -file $summaryLog
-	return $False  
+    return $False  
 }
 
 #
@@ -196,13 +196,13 @@ if ($new_ipv4) {
 #
 $Vcpu = .\bin\plink -i ssh\${sshKey} root@${ipv4} "cat /proc/cpuinfo | grep processor | wc -l"
 if ($Vcpu -eq $guest_max_cpus) {
-	"CPU count inside VM is $guest_max_cpus"
-	$retVal=$true
+    "CPU count inside VM is $guest_max_cpus"
+    $retVal=$true
 } else {
     "Error: Wrong vCPU count of $Vcpu detected on the VM, expected $guest_max_cpus!" | `
     Tee-Object -Append -file $summaryLog
-	return $False
+    return $False
 }
 
-"VM $vmName was successfully set with $guest_max_cpus cores." | Tee-Object -Append -file $summaryLog
+"VM $vmName successfully started with $guest_max_cpus cores." | Tee-Object -Append -file $summaryLog
 return $retVal
