@@ -149,6 +149,7 @@ if ($OSInfo) {
     if ($guest_max_cpus -gt $maxCPUs) {
         "VM maximum cores is limited by the number of Logical cores: $maxCPUs" | `
         Tee-Object -Append -file $summaryLog
+        $guest_max_cpus = $maxCPUs
     }
 }
 
@@ -188,7 +189,7 @@ if ($new_ipv4) {
 } else {
     "Error: VM $vmName failed to start after setting $guest_max_cpus vCPUs" | `
     Tee-Object -Append -file $summaryLog
-    return $False  
+    return $False
 }
 
 #
