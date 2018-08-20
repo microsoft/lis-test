@@ -23,6 +23,7 @@
                 <suiteTest>Sysbench</suiteTest>
                 <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
                 <suiteTest>BootVM_LargeMemory</suiteTest>
+                <suiteTest>StressReloadModules_UP</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
@@ -95,6 +96,23 @@
             </testParams>
             <timeout>600</timeout>
             <onError>Continue</onError>
+        </test>
+
+        <test>
+            <testName>StressReloadModules_UP</testName>
+            <setupScript>
+                <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+                <file>setupScripts\ChangeCPU.ps1</file>
+            </setupScript>
+            <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-18a</param>
+                <param>vCPU=1</param>
+                <param>LoopCount=1500</param>
+            </testParams>
+            <timeout>10000</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
         </test>
     </testCases>
 

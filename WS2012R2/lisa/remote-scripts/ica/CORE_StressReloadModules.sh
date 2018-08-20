@@ -146,22 +146,35 @@ if [ $? -eq 0 ]; then
     exit 1
 fi
 
+# if not set the LoopCount, set as 100 by default
+if [ "${LoopCount:-UNDEFINED}" = "UNDEFINED" ]; then
+    LoopCount=100
+fi
+
+# if not set the sleep duration, set as 1 second by default
+if [ "${Duration:-UNDEFINED}" = "UNDEFINED" ]; then
+    Duration=1
+fi
+msg="Info: module unload/load loop count set as $LoopCount"
+LogMsg "${msg}"
+echo "$msg" >> ~/summary.log
+
 pass=0
 START=$(date +%s)
-while [ $pass -lt 100 ]
+while [ $pass -lt $LoopCount ]
 do
     modprobe -r hv_netvsc
-    sleep 1
+    sleep $Duration
     modprobe hv_netvsc
-    sleep 1
+    sleep $Duration
     modprobe -r hv_utils
-    sleep 1
+    sleep $Duration
     modprobe hv_utils
-    sleep 1
+    sleep $Duration
     modprobe -r hid_hyperv
-    sleep 1
+    sleep $Duration
     modprobe hid_hyperv
-    sleep 1
+    sleep $Duration
     pass=$((pass+1))
     echo $pass
 done

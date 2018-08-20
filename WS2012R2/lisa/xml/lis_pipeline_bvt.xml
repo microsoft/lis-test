@@ -39,7 +39,7 @@
             <suiteTest>TimeSync_NTP</suiteTest>
             <suiteTest>TimeSync_SavedVM</suiteTest>
             <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
-            <suiteTest>StressReloadModules</suiteTest>
+            <suiteTest>StressReloadModules_SMP</suiteTest>
             <suiteTest>Core_max_cpus</suiteTest>
             <suiteTest>VCPU_verify_online</suiteTest>
             <suiteTest>VerifyIntegratedShutdownService</suiteTest>
@@ -145,7 +145,7 @@
         <files>remote-scripts/ica/vmbus_protocol_version.sh</files>
         <timeout>300</timeout>
         <onError>Continue</onError>
-        <noReboot>False</noReboot>  
+        <noReboot>False</noReboot>
         <testParams>
             <param>TC_COVERED=VMBus-01</param>
         </testParams>
@@ -222,13 +222,17 @@
         </test>
 
         <test>
-            <testName>StressReloadModules</testName>
-            <setupscript>setupscripts\CORE_EnableIntegrationServices.ps1</setupscript>
+            <testName>StressReloadModules_SMP</testName>
+            <setupScript>
+                <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+                <file>setupScripts\ChangeCPU.ps1</file>
+            </setupScript>
             <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=CORE-18</param>
+                <param>TC_COVERED=CORE-18b</param>
+                <param>vCPU=4</param>
             </testParams>
-            <timeout>3600</timeout>
+            <timeout>1200</timeout>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
@@ -755,7 +759,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-01</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-01</param>
                 <param>startupMem=2GB</param>
                 <param>testMem=4GB</param>
             </testParams>
@@ -767,7 +771,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-02</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-02</param>
                 <param>startupMem=4GB</param>
                 <param>testMem=2GB</param>
             </testParams>
@@ -779,7 +783,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_reboot.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-09</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-09</param>
                 <param>startupMem=5000MB</param>
             </testParams>
             <timeout>1200</timeout>
