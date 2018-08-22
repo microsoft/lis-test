@@ -28,6 +28,7 @@
 # - turns off SELinux
 # - registers the system (RedHat and SUSE only)
 # - installs packages for each distribution
+# - various configuration changes for ubuntu
 # - installs stressapptest and stress-ng
 # - sets up SSH keys
 #
@@ -571,6 +572,10 @@ elif is_ubuntu ; then
     echo "Starting the configuration..."
     echo "Disable IPv6 for apt-get"
     echo "Acquire::ForceIPv4 "true";" > /etc/apt/apt.conf.d/99force-ipv4
+
+    # Disable automatic updates on ubuntu
+    systemctl disable apt-daily.timer
+    systemctl mask apt-daily.service
 
     #
     # Because Ubuntu has a 100 seconds delay waiting for a new network interface,
