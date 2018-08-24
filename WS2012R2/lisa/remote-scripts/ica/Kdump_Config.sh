@@ -186,7 +186,7 @@ ConfigRhel()
     # Extra config for WS2012 - RHEL7
     if [[ $os_RELEASE.$os_UPDATE =~ ^7.* ]] && [[ $BuildNumber == "9200" ]] ; then
         echo "extra_modules ata_piix sr_mod sd_mod" >> /etc/kdump.conf
-        echo "KDUMP_COMMANDLINE_APPEND=\"ata_piix.prefer_ms_hyperv=0 disk_timeout=100 rd.driver.blacklist=hv_vmbus,hv_storvsc,hv_utils,hv_netvsc,hid-hyperv\"" >> /etc/sysconfig/kdump
+        echo "KDUMP_COMMANDLINE_APPEND=\"ata_piix.prefer_ms_hyperv=0 disk_timeout=100 rd.driver.blacklist=hv_vmbus,hv_storvsc,hv_utils,hv_netvsc,hid-hyperv,hyperv_fb\"" >> /etc/sysconfig/kdump
     fi
 
     GetGuestGeneration
