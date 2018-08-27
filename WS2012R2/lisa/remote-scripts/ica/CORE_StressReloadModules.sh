@@ -24,6 +24,7 @@
 ########################################################################
 #
 # CORE_StressReloadModules.sh
+#
 # Description:
 #    This script will first check the existence of Hyper-V kernel modules.
 #    Then it will reload the modules in a loop in order to stress the system.
@@ -155,6 +156,7 @@ fi
 if [ "${Duration:-UNDEFINED}" = "UNDEFINED" ]; then
     Duration=1
 fi
+
 msg="Info: module unload/load loop count set as $LoopCount"
 LogMsg "${msg}"
 echo "$msg" >> ~/summary.log
@@ -182,8 +184,7 @@ END=$(date +%s)
 DIFF=$(echo "$END - $START" | bc)
 
 echo "Info: Finished testing, bringing up eth0"
-ifdown eth0
-ifup eth0
+ifdown eth0 && ifup eth0
 dhclient
 if [[ $? -ne 0 ]]; then
     msg="Error: dhclient exited with an error"
@@ -194,11 +195,10 @@ if [[ $? -ne 0 ]]; then
 fi
 VerifyModules
 
-#ipAddress=$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | cut -d: -f2 | cut -d' ' -f1 | sed -n 1p)
 # inet\b only shows the IPv4 address of the interface
 ipAddress=$(ip addr show eth0 | grep "inet\b")
-if [[ ${ipAddress} -eq '' ]]; then
-    LogMsg "Info: Waiting for interface to receive an IP"
+if [ -z "$ipAddress" ]; then
+    LogMsg "Info: Waiting 30 seconds for interface to receive an IP"
     sleep 30
 fi
 
