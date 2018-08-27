@@ -37,6 +37,7 @@
 ########################################################################
 
 hv_string=$(dmesg | grep "Vmbus version:")
+skip_modules=()
 MODULES_ERROR=false
 
 ICA_TESTRUNNING="TestRunning"      # The test is running
@@ -88,6 +89,31 @@ if [[ ( $hv_string == "" ) || ! ( $hv_string == *"hv_vmbus:"*"Vmbus version:"* )
     exit 1
 fi
 
+vmbusIncluded=`grep CONFIG_HYPERV=y /boot/config-$(uname -r)`
+if [ $vmbusIncluded ]; then
+    skip_modules+=("hv_vmbus")
+    echo "Info: Skiping hv_vmbus module as it is built-in." >> ~/summary.log
+fi
+
+storvscIncluded=`grep CONFIG_HYPERV_STORAGE=y /boot/config-$(uname -r)`
+if [ $storvscIncluded ]; then
+    skip_modules+=("hv_storvsc")
+    echo "Info: Skiping hv_storvsc module as it is built-in." >> ~/summary.log
+fi
+
+# declare temporary array
+tempList=()
+
+# remove each module in HYPERV_MODULES from skip_modules
+for module in "${HYPERV_MODULES[@]}"; do
+    skip=""
+    for modSkip in "${skip_modules[@]}"; do
+        [[ $module == $modSkip ]] && { skip=1; break; }
+    done
+    [[ -n $skip ]] || tempList+=("$module")
+done
+HYPERV_MODULES=("${tempList[@]}")
+
 #
 # Verify first if the LIS modules are loaded
 #
@@ -96,8 +122,8 @@ for module in "${HYPERV_MODULES[@]}"; do
 
     # Check to see if the module is loaded
     if [[ $load_status =~ $module ]]; then
-        if rpm --help > /dev/null; then
-            if rpm -qa | grep hyper-v > /dev/null; then
+        if rpm --help 2>/dev/null; then
+            if rpm -qa | grep hyper-v 2>/dev/null; then
                 version=$(modinfo $module | grep version: | head -1 | awk '{print $2}')
                 LogMsg "Detected module $module version: ${version}"
                 echo "Detected module $module version: ${version}" >> ~/summary.log
