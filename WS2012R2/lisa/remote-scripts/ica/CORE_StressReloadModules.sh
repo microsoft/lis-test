@@ -24,6 +24,7 @@
 ########################################################################
 #
 # CORE_StressReloadModules.sh
+#
 # Description:
 #    This script will first check the existence of Hyper-V kernel modules.
 #    Then it will reload the modules in a loop in order to stress the system.
@@ -146,22 +147,36 @@ if [ $? -eq 0 ]; then
     exit 1
 fi
 
+# if not set the LoopCount, set as 100 by default
+if [ "${LoopCount:-UNDEFINED}" = "UNDEFINED" ]; then
+    LoopCount=100
+fi
+
+# if not set the sleep duration, set as 1 second by default
+if [ "${Duration:-UNDEFINED}" = "UNDEFINED" ]; then
+    Duration=1
+fi
+
+msg="Info: module unload/load loop count set as $LoopCount"
+LogMsg "${msg}"
+echo "$msg" >> ~/summary.log
+
 pass=0
 START=$(date +%s)
-while [ $pass -lt 100 ]
+while [ $pass -lt $LoopCount ]
 do
     modprobe -r hv_netvsc
-    sleep 1
+    sleep $Duration
     modprobe hv_netvsc
-    sleep 1
+    sleep $Duration
     modprobe -r hv_utils
-    sleep 1
+    sleep $Duration
     modprobe hv_utils
-    sleep 1
+    sleep $Duration
     modprobe -r hid_hyperv
-    sleep 1
+    sleep $Duration
     modprobe hid_hyperv
-    sleep 1
+    sleep $Duration
     pass=$((pass+1))
     echo $pass
 done
@@ -169,8 +184,7 @@ END=$(date +%s)
 DIFF=$(echo "$END - $START" | bc)
 
 echo "Info: Finished testing, bringing up eth0"
-ifdown eth0
-ifup eth0
+ifdown eth0 && ifup eth0
 dhclient
 if [[ $? -ne 0 ]]; then
     msg="Error: dhclient exited with an error"
@@ -181,11 +195,10 @@ if [[ $? -ne 0 ]]; then
 fi
 VerifyModules
 
-#ipAddress=$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | cut -d: -f2 | cut -d' ' -f1 | sed -n 1p)
 # inet\b only shows the IPv4 address of the interface
 ipAddress=$(ip addr show eth0 | grep "inet\b")
-if [[ ${ipAddress} -eq '' ]]; then
-    LogMsg "Info: Waiting for interface to receive an IP"
+if [ -z "$ipAddress" ]; then
+    LogMsg "Info: Waiting 30 seconds for interface to receive an IP"
     sleep 30
 fi
 

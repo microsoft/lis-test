@@ -27,7 +27,7 @@
     This script pushes a bash file to the VM, which reloads all the hyper-v modules.
     Runs the script and waits for either a kernel panic or for the it to finish.
     A typical test case definition for this test script would look
-    similar to the following: 
+    similar to the following:
     <test>
         <testName>StressReloadModules</testName>
         <setupscript>setupscripts\CORE_EnableIntegrationServices.ps1</setupscript>
@@ -40,15 +40,15 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
- 
+
 .Parameter vmName
     Name of the VM to perform the test with.
-    
+
 .Parameter hvServer
     Name of the Hyper-V server hosting the VM.
-    
+
 .Parameter testParams
-    
+
 .Example
     setupScripts\CORE_reload_modules.ps1 -vmName "myVm" -hvServer "localhost" -TestParams "TC_COVERED=CORE-18"
 #>
@@ -71,7 +71,7 @@ function CheckResult()
     $TestCompleted = "TestCompleted"
     $TestAborted   = "TestAborted"
     $TestFailed   = "TestFailed"
-    $attempts      = 200
+    $attempts      = 300
 
     while ($attempts -ne 0 ){
         $newIP = GetIPv4 $vmName $hvServer
@@ -106,8 +106,9 @@ function CheckResult()
             Start-Sleep -s 10
             $attempts--
             Write-Output "Info : Attempt number ${attempts}"
-            if ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "Lost Communication") {
-                Write-Output "Error : Lost Communication to VM" | Out-File -Append $summaryLog
+            if ((Get-VMIntegrationService $vmName -ComputerName $hvServer | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -match "No Contact|Lost Communication" ) {
+                Stop-VM -Name $vmName -ComputerName $hvServer -Force -TurnOff
+                Write-Output "Error : Lost Communication or No Contact to VM, maybe vm reboots" | Out-File -Append $summaryLog
                 break
             }
             if ($attempts -eq 0) {
@@ -123,7 +124,7 @@ function CheckResult()
 
     if (test-path $stateFile) {
         Remove-Item $stateFile
-    } 
+    }
     return $retVal
 }
 
@@ -253,7 +254,8 @@ Stop-Job $pingJob
 
 $status = CheckResult
 if (-not $($status[-1])) {
-    "Error: Something went wrong during execution of CORE_StressReloadModules script!" 
+    "Error: Something went wrong during execution of CORE_StressReloadModules script!"
+
     return $False
 }
 else {
@@ -264,4 +266,3 @@ else {
 Remove-Item runtest.sh
 "Info : Test Stress Reload Modules ${results} "
 return $retVal
-0

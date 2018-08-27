@@ -42,7 +42,7 @@
             <suiteTest>TimeSync_SavedVM</suiteTest>
             <suiteTest>TimeSync_PausedVM</suiteTest>
             <suiteTest>VerifyIntegratedTimeSyncService</suiteTest>
-            <suiteTest>StressReloadModules</suiteTest>
+            <suiteTest>StressReloadModules_SMP</suiteTest>
             <suiteTest>Core_max_cpus</suiteTest>
             <suiteTest>VCPU_verify_online</suiteTest>
             <suiteTest>VerifyIntegratedShutdownService</suiteTest>
@@ -195,9 +195,9 @@
             <suiteTest>HotAdd_Verify_udev</suiteTest>
             <!-- Basic Hot Add tests -->
             <suiteTest>HotAdd</suiteTest>
-            <!--<suiteTest>HotAddStressapptest</suiteTest> 
+            <!--<suiteTest>HotAddStressapptest</suiteTest>
 		<suiteTest>DemandPressure</suiteTest>-->
-            <!-- Complex Hot Add tests 
+            <!-- Complex Hot Add tests
 		<suiteTest>HotRemove</suiteTest>-->
             <!-- Dynamic Memory – Ballooning
 		<suiteTest>StartupLowCompete</suiteTest>
@@ -378,16 +378,19 @@
          <noReboot>False</noReboot>
       </test>
       <test>
-         <testName>StressReloadModules</testName>
-         <setupscript>setupscripts\CORE_EnableIntegrationServices.ps1</setupscript>
-         <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
-         <files>remote-scripts/ica/utils.sh</files>
-         <testParams>
-            <param>TC_COVERED=CORE-18</param>
-         </testParams>
-         <timeout>3600</timeout>
-         <onError>Continue</onError>
-         <noReboot>False</noReboot>
+          <testName>StressReloadModules_SMP</testName>
+          <setupScript>
+              <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+              <file>setupScripts\ChangeCPU.ps1</file>
+          </setupScript>
+          <testScript>setupscripts\CORE_reload_modules.ps1</testScript>
+          <testParams>
+              <param>TC_COVERED=CORE-18b</param>
+              <param>vCPU=4</param>
+          </testParams>
+          <timeout>1200</timeout>
+          <onError>Continue</onError>
+          <noReboot>False</noReboot>
       </test>
       <test>
          <testName>VCPU_verify_online</testName>
@@ -2635,7 +2638,7 @@
             <onError>Continue</onError>
             <noReboot>False</noReboot>
         </test>
-	   
+
       <test>
          <testName>Crash_single_core</testName>
          <setupScript>
