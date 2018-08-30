@@ -22,8 +22,8 @@
 #####################################################################
 
 NetInterface="eth1"
-TestCount=""
 REMOTE_SERVER="8.8.4.4"
+TestCount=0
 LoopCount=10
 
 # Convert eol
@@ -39,76 +39,38 @@ dos2unix utils.sh
 # Source constants file and initialize most common variables
 UtilsInit
 
-# In case of error
-case $? in
-	0)
-		#do nothing, init succeeded
-		;;
-	1)
-		LogMsg "Unable to cd to $LIS_HOME. Aborting..."
-		UpdateSummary "Unable to cd to $LIS_HOME. Aborting..."
-		SetTestStateAborted
-		exit 3
-		;;
-	2)
-		LogMsg "Unable to use test state file. Aborting..."
-		UpdateSummary "Unable to use test state file. Aborting..."
-		# need to wait for test timeout to kick in
-			# hailmary try to update teststate
-			sleep 60
-			echo "TestAborted" > state.txt
-		exit 4
-		;;
-	3)
-		LogMsg "Error: unable to source constants file. Aborting..."
-		UpdateSummary "Error: unable to source constants file"
-		SetTestStateAborted
-		exit 5
-		;;
-	*)
-		# should not happen
-		LogMsg "UtilsInit returned an unknown error. Aborting..."
-		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
-		SetTestStateAborted
-		exit 6
-		;;
-esac
+CreateIfupConfigFile "$NetInterface" "dhcp"
+if [ 0 -ne $? ]; then
+    msg="Unable to get address for $NetInterface through DHCP"
+    LogMsg "$msg"
+    UpdateSummary "$msg"
+    SetTestStateFailed
+    exit 10
+fi
+LogMsg "$(ip -o addr show $NetInterface | grep -vi inet6)"
 
-	CreateIfupConfigFile "$NetInterface" "dhcp"
-
-	if [ 0 -ne $? ]; then
-		msg="Unable to get address for $NetInterface through DHCP"
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateFailed
-		exit 10
-	fi
-
-	LogMsg "$(ip -o addr show $NetInterface | grep -vi inet6)"
-	
-PingCheck()
-{
+PingCheck() {
 	ping -I eth0 $REMOTE_SERVER -c 4
 	if [ 0 -ne $? ]; then
-		msg="Ping eth0 could not be performed. Test Failed."
+		msg="Ping on eth0 could not be performed. Test Failed."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		SetTestStateFailed
 		exit 1
 	else
-		msg="Ping eth0 : Passed"
+		msg="Succesful ping on eth0 after ifdown/ifup"
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 	fi
 }
-RestartNetwork()
-{
+
+RestartNetwork() {
 GetDistro
 case $DISTRO in
-	centos_7*|redhat_7*|fedora*)
+	redhat_7|redhat_8|centos_7|centos_8|fedora*)
 	ifup eth0
 	if [ 0 -ne $? ]; then
-		msg="Bringing up eth0 could not be performed. Attempting to restart network."
+		msg="Could not bring up eth0. Attempting to restart network."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		systemctl restart network
@@ -134,12 +96,13 @@ case $DISTRO in
 			fi
 			PingCheck
 		else
-			msg="First ping eth0 : Passed"
+			msg="Succesful first ping on eth0"
 			LogMsg "$msg"
 			UpdateSummary "$msg"
 		fi
 	fi
 	;;
+
 	centos_6*|redhat_6*)
 	ifup eth0
 	ping -I eth0 $REMOTE_SERVER -c 4
@@ -174,18 +137,16 @@ case $DISTRO in
 				SetTestStateFailed
 				exit 1
 			fi
-			ifup eth0 
+			ifup eth0
 			PingCheck
 		else
-			msg="Ping eth0 : Passed"
-			LogMsg "$msg"
+			LogMsg "Succesful ping on eth0 after ifdown/ifup"
 		fi
 	else
-		msg="Ping eth0 : Passed"
-		LogMsg "$msg"
+		LogMsg "Succesful ping on eth0 after ifdown/ifup"
 	fi
 	;;
-	
+
 	ubuntu*)
 	ping -I eth0 $REMOTE_SERVER -c 4
 	if [ 0 -ne $? ]; then
@@ -202,11 +163,10 @@ case $DISTRO in
 		fi
 		PingCheck
 	else
-		msg="Ping eth0 : Passed"
-		LogMsg "$msg"
+		LogMsg "Succesful ping on eth0 after ifdown/ifup"
 	fi
 	;;
-	
+
 	debian*)
 	ping -I eth0 $REMOTE_SERVER -c 4
 	if [ 0 -ne $? ]; then
@@ -231,8 +191,7 @@ case $DISTRO in
 		fi
 		ping -I eth0 $REMOTE_SERVER -c 4
 		if [ 0 -ne $? ]; then
-			msg="Attempting to bring up eth0"
-			LogMsg "$msg"
+			LogMsg "Attempting to bring up eth0"
 			ifup eth0
 			if [ 0 -ne $? ]; then
 				msg="Second ping did not work and bringing up eth0 could not be performed. Test Failed."
@@ -243,18 +202,17 @@ case $DISTRO in
 			fi
 			PingCheck
 		else
-			msg="Second ping eth0 : Passed"
-			LogMsg "$msg"
+			LogMsg "Second ping eth0 : Passed"
 		fi
 	else
-		msg="First ping eth0 : Passed"
-		LogMsg "$msg"
+		LogMsg "Succesful first ping on eth0"
 	fi
 	;;
+
 	*suse*)
 	ifup eth0
 	if [ 0 -ne $? ]; then
-		msg="Bringing up eth0 could not be performed. Attempting to reload hv_netvsc."
+		msg="Could not bring up eth0. Attempting to reload hv_netvsc."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
 		modprobe -r hv_netvsc
@@ -265,7 +223,7 @@ case $DISTRO in
 			SetTestStateFailed
 			exit 1
 		fi
-		modprobe hv_netvsc 
+		modprobe hv_netvsc
 		if [ 0 -ne $? ]; then
 			msg="Loading the module hv_netvsc could not be performed. Test Failed."
 			LogMsg "$msg"
@@ -312,13 +270,16 @@ case $DISTRO in
 			fi
 			PingCheck
 		else
-			msg="First ping eth0 : Passed"
-			LogMsg "$msg"
+			LogMsg "Succesful first ping on eth0"
 		fi
 	fi
 	;;
-esac	
+esac
 }
+
+# Check for call traces during test run
+dos2unix check_traces.sh && chmod +x check_traces.sh
+./check_traces.sh &
 
 # Bring down eth0 before entering the loop
 ifdown eth0
@@ -331,15 +292,12 @@ if [ 0 -ne $? ]; then
 		SetTestStateFailed
 		exit 1
 	else
-		msg="Ifdown eth0 : Passed"
-		LogMsg "$msg"
+		LogMsg "Ifdown eth0 : Passed"
 	fi
 else
-	msg="Ifdown eth0 : Passed"
-	LogMsg "$msg"  
+	LogMsg "Ifdown eth0 : Passed"
 fi
 
-TestCount=0
 while [ $TestCount -lt $LoopCount ]
 do
 	TestCount=$((TestCount+1))
@@ -355,15 +313,13 @@ do
 			SetTestStateFailed
 			exit 1
 		else
-			msg="Ifdown $NetInterface  : Passed"
-			LogMsg "$msg"
+			LogMsg "Ifdown $NetInterface  : Passed"
 		fi
 	else
-		msg="Ifdown $NetInterface  : Passed"
-		LogMsg "$msg"  
+		LogMsg "Ifdown $NetInterface  : Passed"
 	fi
 	sleep 3
-		
+
 	modprobe -r hv_netvsc
 	if [ 0 -ne $? ]; then
 		msg="modprobe -r hv_netvsc : Failed"
@@ -372,8 +328,7 @@ do
 		SetTestStateFailed
 		exit 1
 	else
-		msg="modprobe -r hv_netvsc : Passed"
-		LogMsg "$msg"
+		LogMsg "modprobe -r hv_netvsc : Passed"
 	fi
 	modprobe hv_netvsc
 	if [ 0 -ne $? ]; then
@@ -383,10 +338,9 @@ do
 		SetTestStateFailed
 		exit 1
 	else
-		msg="modprobe hv_netvsc : Passed"
-		LogMsg "$msg"
+		LogMsg "modprobe hv_netvsc : Passed"
 	fi
-	
+
 	ifup $NetInterface
 	if [ 0 -ne $? ]; then
 		ip link set dev $NetInterface up
@@ -397,15 +351,14 @@ do
 			SetTestStateFailed
 			exit 1
 		else
-			msg="Ifup $NetInterface : Passed"
-			LogMsg "$msg"
+			LogMsg "Ifup $NetInterface : Passed"
 		fi
 	else
-		msg="Ifup $NetInterface : Passed"
-		LogMsg "$msg"  
+		LogMsg "Ifup $NetInterface : Passed"
 	fi
 	sleep 3
 done
+
 ping -I $NetInterface $REMOTE_SERVER -c 4
 	if [ 0 -ne $? ]; then
 		msg="Ping  $NetInterface : Failed"
@@ -414,10 +367,10 @@ ping -I $NetInterface $REMOTE_SERVER -c 4
 		SetTestStateFailed
 		exit 1
 	else
-		msg="Ping $NetInterface : Passed"
-		LogMsg "$msg"
+		LogMsg "Ping $NetInterface : Passed"
 	fi
 RestartNetwork
+
 LogMsg "#########################################################"
 LogMsg "Result : Test Completed Successfully"
 SetTestStateCompleted
