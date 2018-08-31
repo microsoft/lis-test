@@ -21,403 +21,98 @@
 #
 #####################################################################
 
-NetInterface="eth1"
-TestCount=""
+NetInterface="eth0"
 REMOTE_SERVER="8.8.4.4"
 LoopCount=10
+TestCount=0
 
-# Convert eol
-dos2unix utils.sh
-
-# Source utils.sh
-. utils.sh || {
-	echo "Error: unable to source utils.sh!"
-	echo "TestAborted" > state.txt
-	exit 2
+PingCheck() {
+    if ! ping "$REMOTE_SERVER" -c 4; then
+        # On azure ping is disabled so we need another test method
+        if ! wget google.com; then
+            msg = "Error: ${NetInterface} ping and wget failed on try ${1}."
+            LogMsg "$msg" && UpdateSummary "$msg"
+            SetTestStateFailed
+            exit 1
+        fi
+    else
+        LogMsg "Ping ${NetInterface}: Passed on try ${1}"
+    fi
 }
 
+ChangeInterfaceState() {
+    if ! ip link set dev "$NetInterface" "$1"; then
+        msg="Error: Bringing interface ${1} ${NetInterface} failed"
+        LogMsg "$msg" && UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    else
+        LogMsg "Interface ${NetInterface} was put ${1}"
+    fi
+    sleep 5
+}
+
+ReloadNetvsc() {
+    if ! modprobe $1 hv_netvsc; then
+        msg="modprobe ${1} hv_netvsc : Failed"
+        LogMsg "$msg" && UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    else
+        sleep 1
+        LogMsg "modprobe ${1} hv_netvsc : Passed"
+    fi
+}
+
+### Main script ###
+# Source utils.sh
+. utils.sh || {
+    echo "Error: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 1
+}
 # Source constants file and initialize most common variables
 UtilsInit
 
-# In case of error
-case $? in
-	0)
-		#do nothing, init succeeded
-		;;
-	1)
-		LogMsg "Unable to cd to $LIS_HOME. Aborting..."
-		UpdateSummary "Unable to cd to $LIS_HOME. Aborting..."
-		SetTestStateAborted
-		exit 3
-		;;
-	2)
-		LogMsg "Unable to use test state file. Aborting..."
-		UpdateSummary "Unable to use test state file. Aborting..."
-		# need to wait for test timeout to kick in
-			# hailmary try to update teststate
-			sleep 60
-			echo "TestAborted" > state.txt
-		exit 4
-		;;
-	3)
-		LogMsg "Error: unable to source constants file. Aborting..."
-		UpdateSummary "Error: unable to source constants file"
-		SetTestStateAborted
-		exit 5
-		;;
-	*)
-		# should not happen
-		LogMsg "UtilsInit returned an unknown error. Aborting..."
-		UpdateSummary "UtilsInit returned an unknown error. Aborting..."
-		SetTestStateAborted
-		exit 6
-		;;
-esac
+# Check for call traces during test run
+dos2unix check_traces.sh && chmod +x check_traces.sh
+./check_traces.sh &
 
-	CreateIfupConfigFile "$NetInterface" "dhcp"
-
-	if [ 0 -ne $? ]; then
-		msg="Unable to get address for $NetInterface through DHCP"
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateFailed
-		exit 10
-	fi
-
-	LogMsg "$(ip -o addr show $NetInterface | grep -vi inet6)"
-	
-PingCheck()
-{
-	ping -I eth0 $REMOTE_SERVER -c 4
-	if [ 0 -ne $? ]; then
-		msg="Ping eth0 could not be performed. Test Failed."
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateFailed
-		exit 1
-	else
-		msg="Ping eth0 : Passed"
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-	fi
-}
-RestartNetwork()
-{
-GetDistro
-case $DISTRO in
-	centos_7*|redhat_7*|fedora*)
-	ifup eth0
-	if [ 0 -ne $? ]; then
-		msg="Bringing up eth0 could not be performed. Attempting to restart network."
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		systemctl restart network
-		if [ 0 -ne $? ]; then
-			msg="Restart network could not be performed. Test Failed."
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		fi
-		PingCheck
-	else
-		ping -I eth0 $REMOTE_SERVER -c 4
-		if [ 0 -ne $? ]; then
-			msg="First ping could not be performed. Attempting to restart network."
-			systemctl restart network
-			if [ 0 -ne $? ]; then
-				msg="Restart network could not be performed. Test Failed."
-				LogMsg "$msg"
-				UpdateSummary "$msg"
-				SetTestStateFailed
-				exit 1
-			fi
-			PingCheck
-		else
-			msg="First ping eth0 : Passed"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-		fi
-	fi
-	;;
-	centos_6*|redhat_6*)
-	ifup eth0
-	ping -I eth0 $REMOTE_SERVER -c 4
-	if [ 0 -ne $? ]; then
-		msg="The first ping did not work. Attempting to restart network."
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		service network restart
-		if [ 0 -ne $? ]; then
-			msg="Restarting the network could not be performed. Test Failed."
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		fi
-		ifup eth0
-		ping -I eth0 $REMOTE_SERVER -c 4
-		if [ 0 -ne $? ]; then
-			modprobe -r hv_netvsc
-			if [ 0 -ne $? ]; then
-				msg="Unloading module hv_netvsc could not be performed. Test Failed."
-				LogMsg "$msg"
-				UpdateSummary "$msg"
-				SetTestStateFailed
-				exit 1
-			fi
-			modprobe hv_netvsc
-			if [ 0 -ne $? ]; then
-				msg="Unloading module hv_netvsc could not be performed. Test Failed."
-				LogMsg "$msg"
-				UpdateSummary "$msg"
-				SetTestStateFailed
-				exit 1
-			fi
-			ifup eth0 
-			PingCheck
-		else
-			msg="Ping eth0 : Passed"
-			LogMsg "$msg"
-		fi
-	else
-		msg="Ping eth0 : Passed"
-		LogMsg "$msg"
-	fi
-	;;
-	
-	ubuntu*)
-	ping -I eth0 $REMOTE_SERVER -c 4
-	if [ 0 -ne $? ]; then
-		msg="The first ping did not work. Attempting to restart network."
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		systemctl restart networking
-		if [ 0 -ne $? ]; then
-			msg="Restart network could not be performed. Test Failed."
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		fi
-		PingCheck
-	else
-		msg="Ping eth0 : Passed"
-		LogMsg "$msg"
-	fi
-	;;
-	
-	debian*)
-	ping -I eth0 $REMOTE_SERVER -c 4
-	if [ 0 -ne $? ]; then
-		msg="The first ping did not work. Attempting to reload module hv_netvsc."
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		modprobe -r hv_netvsc
-		if [ 0 -ne $? ]; then
-			msg="Unloading module hv_netvsc could not be performed. Test Failed."
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		fi
-		modprobe hv_netvsc
-		if [ 0 -ne $? ]; then
-			msg="Loading module hv_netvsc could not be performed. Test Failed."
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		fi
-		ping -I eth0 $REMOTE_SERVER -c 4
-		if [ 0 -ne $? ]; then
-			msg="Attempting to bring up eth0"
-			LogMsg "$msg"
-			ifup eth0
-			if [ 0 -ne $? ]; then
-				msg="Second ping did not work and bringing up eth0 could not be performed. Test Failed."
-				LogMsg "$msg"
-				UpdateSummary "$msg"
-				SetTestStateFailed
-				exit 1
-			fi
-			PingCheck
-		else
-			msg="Second ping eth0 : Passed"
-			LogMsg "$msg"
-		fi
-	else
-		msg="First ping eth0 : Passed"
-		LogMsg "$msg"
-	fi
-	;;
-	*suse*)
-	ifup eth0
-	if [ 0 -ne $? ]; then
-		msg="Bringing up eth0 could not be performed. Attempting to reload hv_netvsc."
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		modprobe -r hv_netvsc
-		if [ 0 -ne $? ]; then
-			msg="Unloading the module hv_netvsc could not be performed. Test Failed."
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		fi
-		modprobe hv_netvsc 
-		if [ 0 -ne $? ]; then
-			msg="Loading the module hv_netvsc could not be performed. Test Failed."
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		fi
-		ifup eth0
-		if [ 0 -ne $? ]; then
-			msg="Bringing up eth0 after module loading could not be performed. Test Failed."
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		fi
-		PingCheck
-	else
-		ping -I eth0 $REMOTE_SERVER -c 4
-		if [ 0 -ne $? ]; then
-			msg="First ping could not be performed. Attempting to reload hv_netvsc."
-			modprobe -r hv_netvsc
-			if [ 0 -ne $? ]; then
-				msg="Unloading module hv_netvsc could not be performed. Test Failed."
-				LogMsg "$msg"
-				UpdateSummary "$msg"
-				SetTestStateFailed
-				exit 1
-			fi
-			modprobe hv_netvsc 
-				if [ 0 -ne $? ]; then
-				msg="Loading module hv_netvsc could not be performed. Test Failed."
-				LogMsg "$msg"
-				UpdateSummary "$msg"
-				SetTestStateFailed
-				exit 1
-			fi
-			ifup eth0
-			if [ 0 -ne $? ]; then
-				msg="Bringing up eth0 after module loading could not be performed. Test Failed."
-				LogMsg "$msg"
-				UpdateSummary "$msg"
-				SetTestStateFailed
-				exit 1
-			fi
-			PingCheck
-		else
-			msg="First ping eth0 : Passed"
-			LogMsg "$msg"
-		fi
-	fi
-	;;
-esac	
-}
-
-# Bring down eth0 before entering the loop
-ifdown eth0
-if [ 0 -ne $? ]; then
-	ip link set dev eth0 down
-	if [ 0 -ne $? ]; then
-		msg="Ifdown eth0 : Failed"
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateFailed
-		exit 1
-	else
-		msg="Ifdown eth0 : Passed"
-		LogMsg "$msg"
-	fi
-else
-	msg="Ifdown eth0 : Passed"
-	LogMsg "$msg"  
-fi
-
-TestCount=0
-while [ $TestCount -lt $LoopCount ]
+while [ "$TestCount" -lt "$LoopCount" ]
 do
-	TestCount=$((TestCount+1))
-	LogMsg "Test Iteration : $TestCount"
-	ifdown $NetInterface
+    TestCount=$((TestCount+1))
+    LogMsg "Test Iteration : $TestCount"
 
-	if [ 0 -ne $? ]; then
-		ip link set dev $NetInterface down
-		if [ 0 -ne $? ]; then
-			msg="Ifdown $NetInterface : Failed"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		else
-			msg="Ifdown $NetInterface  : Passed"
-			LogMsg "$msg"
-		fi
-	else
-		msg="Ifdown $NetInterface  : Passed"
-		LogMsg "$msg"  
-	fi
-	sleep 3
-		
-	modprobe -r hv_netvsc
-	if [ 0 -ne $? ]; then
-		msg="modprobe -r hv_netvsc : Failed"
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateFailed
-		exit 1
-	else
-		msg="modprobe -r hv_netvsc : Passed"
-		LogMsg "$msg"
-	fi
-	modprobe hv_netvsc
-	if [ 0 -ne $? ]; then
-		msg="modprobe hv_netvsc : Failed"
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateFailed
-		exit 1
-	else
-		msg="modprobe hv_netvsc : Passed"
-		LogMsg "$msg"
-	fi
-	
-	ifup $NetInterface
-	if [ 0 -ne $? ]; then
-		ip link set dev $NetInterface up
-		if [ 0 -ne $? ]; then
-			msg="Ifup $NetInterface : Failed"
-			LogMsg "$msg"
-			UpdateSummary "$msg"
-			SetTestStateFailed
-			exit 1
-		else
-			msg="Ifup $NetInterface : Passed"
-			LogMsg "$msg"
-		fi
-	else
-		msg="Ifup $NetInterface : Passed"
-		LogMsg "$msg"  
-	fi
-	sleep 3
+    # Unload hv_netvsc
+    ReloadNetvsc "-r"
+
+    # Load hv_netvsc
+    ReloadNetvsc
 done
-ping -I $NetInterface $REMOTE_SERVER -c 4
-	if [ 0 -ne $? ]; then
-		msg="Ping  $NetInterface : Failed"
-		LogMsg "$msg"
-		UpdateSummary "$msg"
-		SetTestStateFailed
-		exit 1
-	else
-		msg="Ping $NetInterface : Passed"
-		LogMsg "$msg"
-	fi
-RestartNetwork
+UpdateSummary "Successful hv_netvsc reload."
+
+# Clean all dhclient processes, get IP & try ping
+LoopCount=4
+TestCount=1
+ChangeInterfaceState "up"
+kill "$(pidof dhclient)"
+dhclient -r && dhclient
+sleep 15
+PingCheck $TestCount
+
+while [ "$TestCount" -lt "$LoopCount" ]
+do
+    TestCount=$((TestCount+1))
+    LogMsg "Test Iteration : ${TestCount}"
+    ChangeInterfaceState "down"
+    ChangeInterfaceState "up"
+    kill "$(pidof dhclient)"
+    dhclient -r && dhclient
+    sleep 15
+    PingCheck "$TestCount"
+done
+UpdateSummary "Successful interface restart and ping check."
+
 LogMsg "#########################################################"
 LogMsg "Result : Test Completed Successfully"
 SetTestStateCompleted

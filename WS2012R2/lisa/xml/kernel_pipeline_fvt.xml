@@ -178,7 +178,7 @@
             <suiteTest>MaxNIC</suiteTest>
             <suiteTest>TCP_Corruption</suiteTest>
             <suiteTest>Multicast</suiteTest>
-            <suiteTest>Ifdown-ifup-regression</suiteTest>
+            <suiteTest>ifdown-ifup-regression</suiteTest>
             <!-- VM Stress tests -->
             <suiteTest>Sysbench</suiteTest>
             <suiteTest>LTPBasic</suiteTest>
@@ -691,26 +691,6 @@
                 <param>Entries=250</param>
             </testparams>
         </test>
-      <!-- VSS BACK-UP -->
-      <test>
-         <testName>STOR_VSS_BackupRestore_ext3_vhd</testName>
-         <setupScript>
-            <file>setupscripts\RevertSnapshot.ps1</file>
-            <file>setupscripts\AddHardDisk.ps1</file>
-         </setupScript>
-         <files>remote-scripts/ica/utils.sh</files>
-         <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
-         <testParams>
-            <param>TC_COVERED=VSS-01</param>
-            <param>SCSI=0,1,Dynamic</param>
-            <param>IDE=0,1,Dynamic</param>
-            <param>FILESYS=ext3</param>
-            <param>DriveLetter=V:</param>
-         </testParams>
-         <timeout>2400</timeout>
-         <OnError>Continue</OnError>
-         <noReboot>False</noReboot>
-      </test>
       <!-- Stress Tests -->
       <test>
          <testName>MultipleReboot</testName>
@@ -1305,14 +1285,14 @@
          <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
       </test>
         <test>
-        <testName>Ifdown-ifup-regression</testName>
+        <testName>ifdown-ifup-regression</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testScript>verify_ifdown_ifup.sh</testScript>
+            <files>remote-scripts/ica/verify_ifdown_ifup.sh,remote-scripts/ica/utils.sh,remote-scripts\ica\check_traces.sh</files>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-34</param>
             </testParams>
-            <testScript>verify_ifdown_ifup.sh</testScript>
-            <files>remote-scripts/ica/verify_ifdown_ifup.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
@@ -1354,7 +1334,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>NewSize=4GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-01a</param>
             </testparams>
         </test>
@@ -1371,7 +1351,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,4096,3GB</param>
                 <param>NewSize=4GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-01b</param>
             </testparams>
         </test>
@@ -1388,7 +1368,7 @@
             <testparams>
                 <param>IDE=0,1,Fixed,512</param>
                 <param>NewSize=2GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-105</param>
              </testparams>
        </test>
@@ -1405,7 +1385,7 @@
             <testparams>
                 <param>IDE=0,1,Dynamic,512</param>
                 <param>NewSize=4GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-106</param>
             </testparams>
        </test>
@@ -1422,7 +1402,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>NewSize=2GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-02a</param>
             </testparams>
         </test>
@@ -1439,7 +1419,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,4096,3GB</param>
                 <param>NewSize=2GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-02b</param>
             </testparams>
         </test>
@@ -1457,7 +1437,7 @@
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>growSize=4GB</param>
                 <param>shrinkSize=3GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-03a</param>
             </testparams>
         </test>
@@ -1475,7 +1455,7 @@
                 <param>IDE=0,1,Dynamic,512,3GB</param>
                 <param>growSize=4GB</param>
                 <param>shrinkSize=3GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-03b</param>
             </testparams>
         </test>
@@ -1493,7 +1473,7 @@
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>growSize=4GB</param>
                 <param>shrinkSize=3GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>Offline=True</param>
                 <param>TC_COVERED=STOR-VHDx-03c</param>
             </testparams>
@@ -1511,7 +1491,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,512,3GB</param>
                 <param>NewSize=4GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-04a</param>
             </testparams>
         </test>
@@ -1528,7 +1508,7 @@
             <testparams>
                 <param>SCSI=0,1,Dynamic,4096,3GB</param>
                 <param>NewSize=4GB</param>
-                <param>fileSystems=(ext4 ext3 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-VHDx-04b</param>
             </testparams>
         </test>
@@ -1632,7 +1612,7 @@
             <testParams>
                 <param>IDE=0,1,Dynamic,512</param>
                 <param>IDE=1,1,Dynamic,512</param>
-                <param>fileSystems=(ext3 ext4 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-22</param>
             </testParams>
             <timeout>1800</timeout>
@@ -1650,7 +1630,7 @@
                 <param>SCSI=0,0,Dynamic,512</param>
                 <param>SCSI=0,1,Dynamic,512</param>
                 <param>SCSI=0,2,Dynamic,512</param>
-                <param>fileSystems=(ext3 ext4 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-23,STOR-28</param>
             </testparams>
             <timeout>3600</timeout>
@@ -1667,7 +1647,7 @@
             <testParams>
                 <param>IDE=0,1,Fixed,512</param>
                 <param>IDE=1,1,Fixed,512</param>
-                <param>fileSystems=(ext3 ext4 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-24</param>
             </testParams>
             <timeout>1800</timeout>
@@ -1685,7 +1665,7 @@
                 <param>SCSI=0,0,Fixed,512</param>
                 <param>SCSI=0,1,Fixed,512</param>
                 <param>SCSI=0,2,Fixed,512</param>
-                <param>fileSystems=(ext3 ext4 xfs)</param>
+                <param>fileSystems=(ext4 xfs)</param>
                 <param>TC_COVERED=STOR-25</param>
             </testparams>
             <timeout>3600</timeout>
@@ -1700,7 +1680,7 @@
             <testparams>
                 <param>IDE=1,1,Diff</param>
                 <param>TC_COVERED=STOR-26</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
                 <param>vhdFormat=vhdx</param>
             </testparams>
             <timeout>3600</timeout>
@@ -1715,7 +1695,7 @@
             <testparams>
                 <param>SCSI=0,0,Diff</param>
                 <param>TC_COVERED=STOR-27</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
                 <param>vhdFormat=vhdx</param>
             </testparams>
             <timeout>3600</timeout>
@@ -2077,7 +2057,7 @@
             <testParams>
                 <param>SCSI=0,1,Dynamic,2039GB</param>
                 <param>TC_COVERED=STOR-13</param>
-                <param>fileSystems=(ext3 ext4 xfs btrfs)</param>
+                <param>fileSystems=(ext4 xfs btrfs)</param>
             </testParams>
             <testScript>STOR_Large_Disk.sh</testScript>
             <files>remote-scripts/ica/STOR_Large_Disk.sh</files>
@@ -2195,7 +2175,7 @@
             <timeout>1800</timeout>
             <testparams>
                 <param>IDE=1,1,Diff</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
                 <param>vhdFormat=vhd</param>
                 <param>TC_COVERED=STOR-06</param>
             </testparams>
@@ -2210,7 +2190,7 @@
             <timeout>1800</timeout>
             <testparams>
                 <param>SCSI=0,0,Diff</param>
-                <param>FILESYS=ext3</param>
+                <param>FILESYS=ext4</param>
                 <param>vhdFormat=vhd</param>
                 <param>TC_COVERED=STOR-07</param>
             </testparams>

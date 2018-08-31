@@ -66,7 +66,7 @@ permissions and limitations under the License.
                 <suiteTest>Network_Hang_Vxlan</suiteTest>
                 <suiteTest>TCP_Corruption</suiteTest>
                 <suiteTest>Multicast</suiteTest>
-                <suiteTest>Ifdown-ifup-regression</suiteTest>
+                <suiteTest>ifdown-ifup-regression</suiteTest>
                 <suiteTest>Ethtool_Check_Keys</suiteTest>
                 <suiteTest>Ethtool_Change_RingBuffer</suiteTest>
                 <suiteTest>Ethtool_SetGet_TCP_HashLevels</suiteTest>
@@ -651,14 +651,14 @@ permissions and limitations under the License.
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
         </test>
         <test>
-        <testName>Ifdown-ifup-regression</testName>
+        <testName>ifdown-ifup-regression</testName>
             <setupScript>SetupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+            <testScript>verify_ifdown_ifup.sh</testScript>
+            <files>remote-scripts/ica/verify_ifdown_ifup.sh,remote-scripts/ica/utils.sh,remote-scripts\ica\check_traces.sh</files>
             <testParams>
                 <param>NIC=NetworkAdapter,External,External</param>
                 <param>TC_COVERED=NET-34</param>
             </testParams>
-            <testScript>verify_ifdown_ifup.sh</testScript>
-            <files>remote-scripts/ica/verify_ifdown_ifup.sh,remote-scripts/ica/utils.sh</files>
             <cleanupScript>SetupScripts\NET_REMOVE_NIC_MAC.ps1</cleanupScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
