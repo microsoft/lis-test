@@ -1510,7 +1510,6 @@ CreateIfupConfigFile()
 						BOOTPROTO=none
 						IPADDR="$__ip"
 						NETMASK="$__netmask"
-						NM_CONTROLLED=no
 					EOF
 				else
 					cat <<-EOF > "$__file_path"
@@ -1519,7 +1518,6 @@ CreateIfupConfigFile()
 						IPV6ADDR="$__ip"
 						IPV6INIT=yes
 						PREFIX="$__netmask"
-						NM_CONTROLLED=no
 					EOF
 				fi
 
