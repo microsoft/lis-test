@@ -22,17 +22,18 @@
 
 ############################################################################
 #
-# FC_stressTest
-# FC_stressTestsh
+# FC_stressTest.sh
 #
 # Description:
 # For the test to run you have to place the iozone3_420.tar archive in the
-# lisablue/Tools folder on the HyperV.
+# lisa\Tools folder.
 #
 #     TOTAL_DISKS: Number of disks attached
 #     TEST_DEVICE1 = /dev/sdb
 #
 ############################################################################
+
+FS="ext4"
 
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
@@ -42,18 +43,15 @@ ICA_TESTFAILED="TestFailed"        # Error during execution of test
 CONSTANTS_FILE="constants.sh"
 
 
-LogMsg()
-{
+LogMsg() {
     echo `date "+%a %b %d %T %Y"` : ${1}    # To add the timestamp to the log file
 }
 
-UpdateTestState()
-{
+UpdateTestState() {
     echo $1 > ~/state.txt
 }
 
-LinuxRelease()
-{
+LinuxRelease() {
     DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
 
     case $DISTRO in
@@ -118,17 +116,14 @@ fi
 
 case $(LinuxRelease) in
     "UBUNTU")
-        FS="ext4"
         COMMAND="timeout 1800 ./iozone -az -g 50G /mnt &"
         EVAL=""
     ;;
     "SLES")
-        FS="ext3"
         COMMAND="bash -c \ '(sleep 1800; kill \$$) & exec ./iozone -az -g 50G /mnt\'"
         EVAL="eval"
     ;;
      *)
-        FS="ext3"
         COMMAND="timeout 1800 ./iozone -az -g 50G /mnt &"
         EVAL=""
     ;;
@@ -178,30 +173,28 @@ do
                     LogMsg "Error in creating directory /mnt/Example..."
                     echo "Error in creating directory /mnt/Example" >> ~/summary.log
                     UpdateTestState $ICA_TESTFAILED
-                    exit 60
+                    exit 1
                 fi
             else
                 LogMsg "Error in mounting drive..."
                 echo "Drive mount : Failed" >> ~/summary.log
                 UpdateTestState $ICA_TESTFAILED
-                exit 70
+                exit 1
             fi
         else
             LogMsg "Error in creating file system.."
             echo "Creating Filesystem : Failed" >> ~/summary.log
             UpdateTestState $ICA_TESTFAILED
-            exit 80
+            exit 1
         fi
     else
         LogMsg "Error in executing fdisk  ${driveName}1"
         echo "Error in executing fdisk  ${driveName}1" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
-        exit 90
+        exit 1
     fi
     break
 done
-
-
 
 #
 # Install IOzone and check if its installed successfully
@@ -214,7 +207,7 @@ if [ ! -e ${IOZONE} ];
 then
     echo "Cannot find iozone file." >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
-    exit 20
+    exit 1
 fi
 
 # Get Root Directory of the archive
@@ -226,7 +219,7 @@ sts=$?
 if [ 0 -ne ${sts} ]; then
     echo "Failed to extract Iozone archive" >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
-    exit 30
+    exit 1
 fi
 
 # cd in to directory
@@ -234,7 +227,7 @@ if [ !  ${ROOTDIR} ];
 then
     echo "Cannot find ROOTDIR." >> ~/summary.log
     UpdateTestState $ICA_TESTABORTED
-    exit 40
+    exit 1
 fi
 
 cd ${ROOTDIR}/src/current
@@ -242,26 +235,21 @@ cd ${ROOTDIR}/src/current
 #
 # Compile IOzone
 #
-
 make linux
 sts=$?
     if [ 0 -ne ${sts} ]; then
         echo "Error:  make linux  ${sts}" >> ~/summary.log
         UpdateTestState "TestAborted"
         echo "make linux : Failed"
-        exit 50
+        exit 1
     else
         echo "make linux : Success"
-
     fi
-
-
 LogMsg "IOzone installed successfully"
 
 #
 # Run iozone for 30 minutes
 #
-
 ${EVAL} ${COMMAND}
 
 #
@@ -273,7 +261,7 @@ dd if=/dev/zero of=/mnt/Example/data bs=10M count=50
         LogMsg "FC stress test failed!"
         echo "FC stress test failed!" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
-        exit 60
+        exit 1
     fi
    sleep 1
 
@@ -285,6 +273,5 @@ echo "FC stress test completed successfully" >> ~/summary.log
 #
 LogMsg "Updating test case state to completed"
 UpdateTestState $ICA_TESTCOMPLETED
-
 exit 0
 
