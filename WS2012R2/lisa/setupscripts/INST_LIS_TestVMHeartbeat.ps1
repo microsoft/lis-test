@@ -184,7 +184,7 @@ if ($heartbeatTimeout -eq 0)
 $hb = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
 if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
 {
-    "After boot up: OK"
+    "Info: Heartbeat detected"
 }
 else
 {
