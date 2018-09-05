@@ -92,8 +92,8 @@ foreach ($p in $params)
     
     if ($tokens.Length -ne 2)
     {
-    "Warn: test parameter '$p' is being ignored because it appears to be malformed"
-     continue
+        "Warn: test parameter '$p' is being ignored because it appears to be malformed"
+        continue
     }
     
     if ($tokens[0].Trim() -eq "RootDir")
@@ -182,7 +182,7 @@ if ($heartbeatTimeout -eq 0)
 
 
 $hb = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
-if ($($hb.Enabled) -eq "True" -And $($hb.PrimaryStatusDescription) -eq "OK")
+if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
 {
     "After boot up: OK"
 }
