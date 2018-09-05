@@ -469,6 +469,115 @@ class NTTTCPLogsReader(BaseLogsReader):
         return log_dict
 
 
+class NTTTCPUDPLogsReader(BaseLogsReader):
+    """
+    Subclass for parsing NTTTCP-UDP  log files e.g.
+    ntttcp-pXXX.log
+    tcping-ntttcp-pXXX.log - avg latency
+    """
+
+    # conversion units
+    CUNIT = {'us': 10**-3,
+             'ms': 1,
+             's': 10**3}
+
+    def __init__(self, log_path=None):
+        super(NTTTCPUDPLogsReader, self).__init__(log_path)
+        self.headers = ['NumberOfConnections', 'TxThroughput_Gbps',
+                        'RxThroughput_Gbps', 'DatagramLoss',
+                        'PacketSize_KBytes', 'IPVersion', 'Protocol',
+                        'SendBufSize_KBytes']
+        self.eth_log_csv = dict()
+        self.__get_eth_log_csv()
+        self.log_matcher = 'ntttcp-sender-p([0-9X]+).log'
+
+    def __get_eth_log_csv(self):
+        if isinstance(self.log_path, list):
+            for path in self.log_path:
+                self.eth_log_csv[path] = parse_from_csv(os.path.join(
+                    path, 'eth_report.log'))
+        else:
+            self.eth_log_csv[self.log_path] = parse_from_csv(os.path.join(
+                self.log_path, 'eth_report.log'))
+
+    def collect_data(self, f_match, log_file, log_dict):
+        """
+        :param f_match: regex file matcher
+        :param log_file: log file name
+        :param log_dict: dict constructed from the defined headers
+        :return: <dict> {'head1': 'val1', ...}
+        """
+     # compute the number of connections from the log name
+        n_conn = reduce(lambda x1, x2: int(x1) * int(x2),
+                        f_match.group(1).split('X'))
+        log_dict['NumberOfConnections'] = n_conn
+        log_dict['SendBufSize_KBytes'] = 0
+        log_dict['DatagramLoss'] = 0
+        log_dict['PacketSize_KBytes'] = 0
+        log_dict['TxThroughput_Gbps'] = 0
+        log_dict['RxThroughput_Gbps'] = 0
+        log_dict['IPVersion'] = 'IPv4'
+        log_dict['Protocol'] = 'UDP'
+        with open(log_file, 'r') as fl:
+            for x in fl:
+                if not log_dict.get('TxThroughput_Gbps', None):
+                 throughput = re.match('.+INFO.+throughput.+:([0-9.]+)', x)
+                if throughput:
+                        log_dict['TxThroughput_Gbps'] = throughput.group(1).strip()
+                if not log_dict.get('SenderCyclesPerByte', None):
+                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
+                    if cycle:
+                        log_dict['SenderCyclesPerByte'] = cycle.group(1).strip()
+        receiver_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
+                                     'ntttcp-receiver-p{}.log'.format(f_match.group(1)))
+        if os.path.exists(receiver_file):
+            with open(receiver_file, 'r') as fl:
+                for x in fl:
+                    if not log_dict.get('ReceiverCyclesPerByte', None):
+                        cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
+                        if cycle:
+                            log_dict['ReceiverCyclesPerByte'] = cycle.group(1).strip()
+                    if not log_dict.get('RxThroughput_Gbps', None):
+                     throughput = re.match('.+INFO.+throughput.+:([0-9.]+)', x)
+                    if throughput:
+                        log_dict['RxThroughput_Gbps'] = throughput.group(1).strip()
+
+        lat_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
+                                'lagscope-ntttcp-p{}.log'.format(f_match.group(1)))
+        with open(lat_file, 'r') as fl:
+            for x in fl:
+                if not log_dict.get('IPVersion', None):
+                    ip_version = re.match('domain:.+(IPv[4,6])', x)
+                    if ip_version:
+                        log_dict['IPVersion'] = ip_version.group(1).strip()
+                if not log_dict.get('Protocol', None):
+                    ip_proto = re.match('protocol:.+([A-Z]{3})', x)
+                    if ip_proto:
+                        log_dict['Protocol'] = ip_proto.group(1).strip()
+                latency = re.match('.+Average\s*=\s*([0-9.]+)\s*([a-z]+)', x)
+                if latency:
+                    unit = latency.group(2).strip()
+                    log_dict['AverageLatency_ms'] = \
+                        float(latency.group(1).strip()) * self.CUNIT[unit]
+        avg_pkg_size = [elem['average_packet_size'] for elem in self.eth_log_csv[os.path.dirname(os.path.abspath(log_file))]
+                        if (int(elem['#test_connections']) == log_dict['NumberOfConnections'])]
+        ica_log = os.path.join(self.log_base_path, 'ica.log')
+        with open(ica_log, 'r') as f2:
+                lines = f2.readlines()
+                ip_version_mark = 'v4' if log_dict['IPVersion'] == 'IPv4' else ''
+                for i in xrange(0, len(lines)):
+                    #Get data from ica.log
+                    ica_mark = re.match('.*Test\s*UDP_{}_{}k.*:\s*Passed'.format(
+                            ip_version_mark, log_dict['SendBufSize_KBytes']),
+                            lines[i])
+        try:
+            log_dict['PacketSize_KBytes'] = avg_pkg_size[0].strip()
+        except IndexError:
+            logger.warning('Could not find average_packet size in eth_report.log')
+            log_dict['PacketSize_KBytes'] = 0
+        return log_dict
+
+
 class FIOLogsReaderManual(BaseLogsReader):
     """
     Subclass for parsing FIO log files e.g.
