@@ -44,8 +44,7 @@ UtilsInit
 # Pre-settings & Functions
 #######################################################################
 # Check kernel version
-CheckVMFeatureSupportStatus "3.10.0-692"
-if [ $? -ne 0 ]; then
+if ! CheckVMFeatureSupportStatus "3.10.0-692"; then
     LogMsg "INFO: this kernel version does not support uio feature, skip test"
     UpdateSummary "INFO: this kernel version does not support uio feature, skip test"
     SetTestStateSkipped
@@ -59,9 +58,8 @@ fi
 #      0 if it is expected NOT loaded
 CheckModule() {
     ret=$(lsmod |awk "\$1==\"$1\"" |wc -l)
-
-    if [ $2 -eq 1 ]; then
-        if [ $ret -eq 1 ]; then
+    if [ "$2" -eq 1 ]; then
+        if [ "$ret" -eq 1 ]; then
             LogMsg "Success: $1 loaded"
         else
             LogMsg "Fail: module $1 is not loaded"
@@ -71,8 +69,8 @@ CheckModule() {
         fi
     fi
 
-    if [ $2 -eq 0 ]; then
-        if [ $ret -eq 0 ]; then
+    if [ "$2" -eq 0 ]; then
+        if [ "$ret" -eq 0 ]; then
             LogMsg "Success: $1 unloaded"
         else
             LogMsg "Fail: module $1 is not unloaded"
@@ -105,13 +103,16 @@ CheckSuccess() {
 #######################################################################
 
 # Check for uio_hv_generic driver. If it's not present, test will be skipped
-cat /boot/config-`uname -r` | grep "CONFIG_UIO_HV_GENERIC=y\|CONFIG_UIO_HV_GENERIC=m"
+grep "CONFIG_UIO_HV_GENERIC=y\|CONFIG_UIO_HV_GENERIC=m" /boot/config-"$(uname -r)"
 if [ $? -ne 0 ]; then
     msg="uio_hv_generic is not present in kernel configuration. Test skipped."
     LogMsg "$msg" && UpdateSummary "$msg"
     SetTestStateSkipped
     exit 1
 fi
+
+version=$(modinfo uio_hv_generic -F version)
+UpdateSummary "uio_hv_generic module version: $version"
 
 # Part I: Test loading/unloading uio & uio_hv_generic
 for i in $(seq 100)
@@ -140,10 +141,6 @@ do
     modprobe -r uio
     CheckModule uio 0
 done
-
-version=`modinfo uio_hv_generic -F version`
-UpdateSummary "uio_hv_generic module version: $version"
-
 UpdateSummary "Success: loading/unloading uio and uio_hv_generic modules"
 
 # Part II: Test reassign a device (network adapter) to uio_hv_generic driver
@@ -153,27 +150,27 @@ modprobe uio_hv_generic
 CheckSuccess "Load uio_hv_generic"
 
 # Setup: Find the not connected network adapter, will use it to test uio
-InactiveNIC=`ip address |awk '$9=="DOWN" { print substr($2, 1, length($2)-1) }'`
-CheckSuccess "Get inactive nic info"
+InactiveNIC=$(ip address |awk '$9=="DOWN" { print substr($2, 1, length($2)-1) }')
+CheckSuccess "Get inactive NIC info"
 
 # Setup: acquire adapter class id
-ClassID=`cat /sys/class/net/$InactiveNIC/device/class_id |awk '{ print( substr($1, 2, length($1)-2)) }'`
+ClassID=$(cut -c2-37 /sys/class/net/"$InactiveNIC"/device/class_id)
 CheckSuccess "Get network adapter class id"
 
 # Setup: acquire adapter device id
-DeviceID=`cat /sys/class/net/$InactiveNIC/device/device_id |awk '{ print( substr($1, 2, length($1)-2)) }'`
+DeviceID=$(cut -c2-37 /sys/class/net/"$InactiveNIC"/device/device_id)
 CheckSuccess "Get network adapter device id"
 
 # Setup: add new id to uio generic
-echo $ClassID > /sys/bus/vmbus/drivers/uio_hv_generic/new_id
+echo "$ClassID" > /sys/bus/vmbus/drivers/uio_hv_generic/new_id
 CheckSuccess "Add new id for uio_hv_generic"
 
 # Setup: unbind device from netvsc
-echo -n $DeviceID > /sys/bus/vmbus/drivers/hv_netvsc/unbind
+echo -n "$DeviceID" > /sys/bus/vmbus/drivers/hv_netvsc/unbind
 CheckSuccess "Unbind device from hv_netvsc"
 
 # Test binding device to uio generic
-echo -n $DeviceID > /sys/bus/vmbus/drivers/uio_hv_generic/bind
+echo -n "$DeviceID" > /sys/bus/vmbus/drivers/uio_hv_generic/bind
 CheckSuccess "Assigned device to uio_hv_generic"
 
 # Check /dev/uio0 exists
@@ -187,7 +184,7 @@ else
 fi
 
 # Test unbinding device from uio generic
-echo -n $DeviceID > /sys/bus/vmbus/drivers/uio_hv_generic/unbind
+echo -n "$DeviceID" > /sys/bus/vmbus/drivers/uio_hv_generic/unbind
 CheckSuccess "Unbind device from uio_hv_generic"
 UpdateSummary "Success: uio_hv_generic device assign/deassigned"
 
@@ -195,7 +192,7 @@ UpdateSummary "Success: uio_hv_generic device assign/deassigned"
 # This is not part of the test, just to recover environment so that this
 # script can be reruned. Nevertheless, if this part fails, it could be a
 # potential issue.
-echo -n $DeviceID > /sys/bus/vmbus/drivers/hv_netvsc/bind
+echo -n "$DeviceID" > /sys/bus/vmbus/drivers/hv_netvsc/bind
 CheckSuccess "Assign network adapter back to hv_netvsc"
 
 SetTestStateCompleted
