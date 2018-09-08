@@ -21,22 +21,28 @@
 #
 ########################################################################
 
+#Delete any old summary.log file
+if [ -e ~/summary.log ]; then
+    rm -f ~/summary.log
+fi
+touch ~/summary.log
+
 # Convert eol
 dos2unix utils.sh
 
 # Source utils.sh
 . utils.sh || {
-	echo "Error: unable to source utils.sh!"
-	echo "TestAborted" > state.txt
-	exit 2
+    echo "Error: unable to source utils.sh!"
+    echo "TestAborted" > state.txt
+    exit 2
 }
+
+# Source constants file and initialize most common variables
+UtilsInit
 
 #######################################################################
 # Pre-settings & Functions
 #######################################################################
-
-UtilsInit
-
 # Check kernel version
 CheckVMFeatureSupportStatus "3.10.0-692"
 if [ $? -ne 0 ]; then
@@ -51,7 +57,7 @@ fi
 #  $1: module name
 #  $2: 1 if the module is expected to be loadd,
 #      0 if it is expected NOT loaded
-CheckModule(){
+CheckModule() {
     ret=$(lsmod |awk "\$1==\"$1\"" |wc -l)
 
     if [ $2 -eq 1 ]; then
@@ -81,7 +87,7 @@ CheckModule(){
 # mark the test as failed.
 # Param:
 # $1: Operation description (Log info)
-CheckSuccess(){
+CheckSuccess() {
     if [ $? -eq 0 ]; then
         LogMsg "Success: $1"
     else
@@ -93,8 +99,19 @@ CheckSuccess(){
 }
 
 #######################################################################
+#
 # Main test body
+#
 #######################################################################
+
+# Check for uio_hv_generic driver. If it's not present, test will be skipped
+cat /boot/config-`uname -r` | grep "CONFIG_UIO_HV_GENERIC=y\|CONFIG_UIO_HV_GENERIC=m"
+if [ $? -ne 0 ]; then
+    msg="uio_hv_generic is not present in kernel configuration. Test skipped."
+    LogMsg "$msg" && UpdateSummary "$msg"
+    SetTestStateSkipped
+    exit 1
+fi
 
 # Part I: Test loading/unloading uio & uio_hv_generic
 for i in $(seq 100)
@@ -124,7 +141,9 @@ do
     CheckModule uio 0
 done
 
-# Part I pass
+version=`modinfo uio_hv_generic -F version`
+UpdateSummary "uio_hv_generic module version: $version"
+
 UpdateSummary "Success: loading/unloading uio and uio_hv_generic modules"
 
 # Part II: Test reassign a device (network adapter) to uio_hv_generic driver
@@ -170,13 +189,11 @@ fi
 # Test unbinding device from uio generic
 echo -n $DeviceID > /sys/bus/vmbus/drivers/uio_hv_generic/unbind
 CheckSuccess "Unbind device from uio_hv_generic"
-
-# Part II pass
-UpdateSummary "Success: uio_hv_generic: device assign/deassigned"
+UpdateSummary "Success: uio_hv_generic device assign/deassigned"
 
 # Bind device back to netvsc.
 # This is not part of the test, just to recover environment so that this
-# script can be reruned. Nevertheless, If this part fails, it could be a
+# script can be reruned. Nevertheless, if this part fails, it could be a
 # potential issue.
 echo -n $DeviceID > /sys/bus/vmbus/drivers/hv_netvsc/bind
 CheckSuccess "Assign network adapter back to hv_netvsc"

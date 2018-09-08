@@ -49,6 +49,7 @@
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
             <suiteTest>PausedCritical_Heartbeat</suiteTest>
+            <suiteTest>UIO_Basic</suiteTest>
             <!-- KVP and SQM tests -->
             <suiteTest>SQM_Basic</suiteTest>
             <suiteTest>KVP_basic_checks</suiteTest>
@@ -531,6 +532,17 @@
          <onError>Continue</onError>
          <noReboot>False</noReboot>
       </test>
+        <test>
+              <testName>UIO_Basic</testName>
+              <setupScript>setupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+              <testScript>UIO_Basic.sh</testScript>
+              <files>remote-scripts/ica/utils.sh,remote-scripts/ica/UIO_Basic.sh</files>
+              <testParams>
+                  <param>NIC=NetworkAdapter,None,InvalidNIC</param>
+                  <param>TC_COVERED=UIO-01</param>
+              </testParams>
+              <timeout>400</timeout>
+        </test>
       <!-- KVP_Tests -->
         <test>
             <testName>SQM_Basic</testName>
