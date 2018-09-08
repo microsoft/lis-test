@@ -47,6 +47,7 @@
             <suiteTest>CheckNuma</suiteTest>
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
+            <suiteTest>UIO_Basic</suiteTest>
 
             <!-- KVP and SQM Tests -->
             <suiteTest>SQM_Basic</suiteTest>
@@ -78,7 +79,6 @@
             <suiteTest>VHDxResizeToSmaller4096</suiteTest>
 
             <!-- lsvmbus tool Tests -->
-            <suiteTest>lsvmbus_basic</suiteTest>
             <suiteTest>lsvmbus_target</suiteTest>
 
             <!-- Runtime Memory Resize Tests -->
@@ -395,7 +395,17 @@
         <onError>Continue</onError>
         <noReboot>False</noReboot>
         </test>
-
+        <test>
+              <testName>UIO_Basic</testName>
+              <setupScript>setupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+              <testScript>UIO_Basic.sh</testScript>
+              <files>remote-scripts/ica/utils.sh,remote-scripts/ica/UIO_Basic.sh</files>
+              <testParams>
+                  <param>NIC=NetworkAdapter,None,InvalidNIC</param>
+                  <param>TC_COVERED=UIO-01</param>
+              </testParams>
+              <timeout>400</timeout>
+        </test>
         <!-- KVP and SQM Tests -->
         <test>
             <testName>SQM_Basic</testName>

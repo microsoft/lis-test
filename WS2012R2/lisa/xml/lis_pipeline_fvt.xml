@@ -50,6 +50,7 @@
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
             <suiteTest>PausedCritical_Heartbeat</suiteTest>
+            <suiteTest>UIO_Basic</suiteTest>
             <!-- KVP and SQM tests -->
             <suiteTest>SQM_Basic</suiteTest>
             <suiteTest>KVP_basic_checks</suiteTest>
@@ -121,7 +122,6 @@
             <!-- Test case VHDx_SCSI_0_1_Dynamic_Large_64TB requires a 64bit virtual machine -->
             <suiteTest>VHDx_SCSI_0_1_Dynamic_Large_64TB</suiteTest>
             <suiteTest>VHDx_SCSI_Dynamic_Local_Copy_File</suiteTest>
-            <suiteTest>VHDx_SCSI_Dynamic_Wget_File</suiteTest>
             <suiteTest>VHDx_Verify_SectorSize</suiteTest>
             <!-- VHD tests -->
             <suiteTest>VHD_IDE_0_1_Fixed</suiteTest>
@@ -547,6 +547,17 @@
          <onError>Continue</onError>
          <noReboot>False</noReboot>
       </test>
+        <test>
+              <testName>UIO_Basic</testName>
+              <setupScript>setupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+              <testScript>UIO_Basic.sh</testScript>
+              <files>remote-scripts/ica/utils.sh,remote-scripts/ica/UIO_Basic.sh</files>
+              <testParams>
+                  <param>NIC=NetworkAdapter,None,InvalidNIC</param>
+                  <param>TC_COVERED=UIO-01</param>
+              </testParams>
+              <timeout>400</timeout>
+        </test>
       <!-- KVP_Tests -->
         <test>
             <testName>SQM_Basic</testName>

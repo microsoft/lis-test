@@ -46,7 +46,7 @@
             <suiteTest>CheckNuma</suiteTest>
             <suiteTest>CheckNuma_Maximum</suiteTest>
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
-
+            <suiteTest>UIO_Basic</suiteTest>
             <!-- KVP and SQM Tests -->
             <suiteTest>SQM_Basic</suiteTest>
             <suiteTest>KVP_basic_checks</suiteTest>
@@ -59,7 +59,6 @@
             <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
             <suiteTest>KVP_TestRescind</suiteTest>
             <suiteTest>KVP_Max_Read</suiteTest>
-
             <!-- FCopy Tests -->
             <suiteTest>FCOPY_basic</suiteTest>
             <suiteTest>FCOPY_file_exists</suiteTest>
@@ -69,17 +68,13 @@
             <suiteTest>FCOPY_repeat</suiteTest>
             <suiteTest>FCOPY_disableEnable</suiteTest>
             <suiteTest>FCOPY_negative</suiteTest>
-
             <!-- VHDx Resize Tests -->
             <suiteTest>VHDxResizeToBigger512</suiteTest>
             <suiteTest>VHDxResizeToBigger4096</suiteTest>
             <suiteTest>VHDxResizeToSmaller512</suiteTest>
             <suiteTest>VHDxResizeToSmaller4096</suiteTest>
-
             <!-- lsvmbus tool Tests -->
-            <suiteTest>lsvmbus_basic</suiteTest>
             <suiteTest>lsvmbus_target</suiteTest>
-
             <!-- Runtime Memory Resize Tests -->
             <suiteTest>Runtime_Mem_HotAdd</suiteTest>
             <suiteTest>Runtime_Mem_HotRemove</suiteTest>
@@ -377,7 +372,17 @@
         <onError>Continue</onError>
         <noReboot>False</noReboot>
         </test>
-
+        <test>
+              <testName>UIO_Basic</testName>
+              <setupScript>setupScripts\NET_ADD_NIC_MAC.ps1</setupScript>
+              <testScript>UIO_Basic.sh</testScript>
+              <files>remote-scripts/ica/utils.sh,remote-scripts/ica/UIO_Basic.sh</files>
+              <testParams>
+                  <param>NIC=NetworkAdapter,None,InvalidNIC</param>
+                  <param>TC_COVERED=UIO-01</param>
+              </testParams>
+              <timeout>400</timeout>
+        </test>
         <!-- KVP and SQM Tests -->
         <test>
             <testName>SQM_Basic</testName>
