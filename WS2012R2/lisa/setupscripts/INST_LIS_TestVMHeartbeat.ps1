@@ -25,10 +25,10 @@
 
 .Description
     Use the PowerShell cmdlet to verify the heartbeat
-	provided by the test VM is detected by the Hyper-V
-	server.
-	
-	A sample XML test case definition for this test would look similar to:
+    provided by the test VM is detected by the Hyper-V
+    server.
+    
+    A sample XML test case definition for this test would look similar to:
         <test>
             <testName>VMHeartBeat</testName>
             <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
@@ -41,13 +41,13 @@
 
 .Parameter vmName
     Name of the Test VM.
-	
+    
 .Parameter hvServer
     Name of the Hyper-V server hosting the test VM.
-	
+    
 .Parameter testParams
     A semicolon separated list of test parameters.
-	
+    
 .Example
     .\INST_LIS_TestVMHeartbeat.ps1 "myVM" "localhost" "rootDir"
 #>
@@ -92,8 +92,8 @@ foreach ($p in $params)
     
     if ($tokens.Length -ne 2)
     {
-	"Warn: test parameter '$p' is being ignored because it appears to be malformed"
-     continue
+        "Warn: test parameter '$p' is being ignored because it appears to be malformed"
+        continue
     }
     
     if ($tokens[0].Trim() -eq "RootDir")
@@ -179,6 +179,8 @@ if ($heartbeatTimeout -eq 0)
 #
 # Check the VMs heartbeat
 #
+
+
 $hb = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
 if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
 {
@@ -190,6 +192,7 @@ else
      Write-Output "Heartbeat not detected while the Heartbeat service is enabled" | Out-File -Append $summaryLog
      return $False
 }
+
 
 #
 #Disable the VMs heartbeat
@@ -214,16 +217,32 @@ Enable-VMIntegrationService -ComputerName $hvServer -VMName $vmName -Name "Heart
 $hb = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
 if ($($hb.Enabled) -eq "True" -And $($vm.Heartbeat) -eq "OkApplicationsUnknown")
 {
-    "Heartbeat detected again"
-    $retVal = $True   
+    "Heartbeat detected again" 
 }
 else
 {
     "Test Failed: VM heartbeat not detected again!"
-     Write-Output "Error: Heartbeat not detected after re-enabling the Heartbeat service" | Out-File -Append $summaryLog
-     $retVal = $True   
+     Write-Output "Error: Heartbeat not detected after re-enabling the Heartbeat service" | Out-File -Append $summaryLog 
 }
 
+#
+#Check the VMs heartbeat during booting up
+#
+Stop-VM -ComputerName $hvServer -Name $vmName 
+Start-VM -ComputerName $hvServer -Name $vmName
+
+$hb = Get-VMIntegrationService -VMName $vmName -ComputerName $hvServer -Name "Heartbeat"
+if ($($hb.Enabled) -eq "True" -And $($hb.PrimaryStatusDescription) -eq "No Contact")
+{
+    "During booting up: HeartBeat No Contact"
+    $retVal = $True
+}
+else
+{
+    "Test Failed: VM heartbeat not detected!"
+     Write-Output "Heartbeat not detected while the Heartbeat service is enabled" | Out-File -Append $summaryLog
+     return $False
+}
 #
 # If we made it here, everything worked
 #
