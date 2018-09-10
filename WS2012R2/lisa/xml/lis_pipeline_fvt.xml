@@ -191,21 +191,12 @@
             <suiteTest>lis_install</suiteTest>
             <suiteTest>kexec_git_install</suiteTest>
             <suiteTest>MainVM_Checkpoint</suiteTest>
-            <!-- WS 2016 TESTS -->
+            <!-- WS 2016 tests -->
             <suiteTest>DM_loaded</suiteTest>
             <suiteTest>HotAdd_Verify_udev</suiteTest>
             <!-- Basic Hot Add tests -->
             <suiteTest>HotAdd</suiteTest>
-            <!--<suiteTest>HotAddStressapptest</suiteTest>
-		<suiteTest>DemandPressure</suiteTest>-->
-            <!-- Complex Hot Add tests
-		<suiteTest>HotRemove</suiteTest>-->
-            <!-- Dynamic Memory – Ballooning
-		<suiteTest>StartupLowCompete</suiteTest>
-		<suiteTest>MinMemHonored</suiteTest>
-		<suiteTest>MaxMemHonored</suiteTest>
-		<suiteTest>SaveRestore</suiteTest>
-		<suiteTest>CleanShutdown</suiteTest>-->
+            <!-- Runtime memory resize tests -->
             <suiteTest>Runtime_Mem_HotAdd</suiteTest>
             <suiteTest>Runtime_Mem_HotRemove</suiteTest>
             <suiteTest>Runtime_Mem_SmallIncrease128</suiteTest>
