@@ -462,8 +462,6 @@
         <testParams>
             <param>publicKey=rhel5_id_rsa.pub</param>
             <param>snapshotName=ICABase</param>
-            <!-- Required for CDmount -->
-            <param>IsoFilename=CDTEST.iso</param>
         </testParams>
         </vm>
     </VMs>

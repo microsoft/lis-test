@@ -36,15 +36,18 @@
     Semicolon separated list of test parameters.
 
 .Example
-    .\InsertIsoInDvd.ps1 "testVM" "localhost" "isoFilename=test.iso"
+    .\InsertIsoInDvd.ps1 "testVM" "localhost"
 #>
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
+# any small ISO file URL can be used
+# using a PowerPC ISO, which does not boot on Gen1/Gen2 VMs
+# For other bootable media must ensure that boot from CD is not the first option
+$url = "http://ports.ubuntu.com/dists/trusty/main/installer-powerpc/current/images/powerpc/netboot/mini.iso"
 $retVal = $False
-$isoFilename = $null
-$vmGeneration = $null
 $hotAdd = $False
+
 #######################################################################
 #
 # Main script body
@@ -52,106 +55,70 @@ $hotAdd = $False
 #######################################################################
 
 # Check arguments
-if (-not $vmName)
-{
+if (-not $vmName) {
     "Error: Missing vmName argument"
     return $False
 }
 
-if (-not $hvServer)
-{
+if (-not $hvServer) {
     "Error: Missing hvServer argument"
     return $False
 }
 
-if (-not $testParams)
-{
+if (-not $testParams) {
     "Error: Missing testParams argument"
     return $False
 }
 
 # Source TCUtils.ps1 for common functions
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
-	. .\setupScripts\TCUtils.ps1
-	"Info: Sourced TCUtils.ps1"
+    . .\setupScripts\TCUtils.ps1
+    "Info: Sourced TCUtils.ps1"
 }
 else {
-	"Error: Could not find setupScripts\TCUtils.ps1"
-	return $false
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 #
-# Extract the testParams we are concerned with
+# Extract the testParams
 #
 $params = $testParams.Split(';')
-foreach ($p in $params)
-{
-    if ($p.Trim().Length -eq 0)
-    {
+foreach ($p in $params) {
+    if ($p.Trim().Length -eq 0) {
         continue
     }
-
     $tokens = $p.Trim().Split('=')
 
-    if ($tokens.Length -ne 2)
-    {
-	# Just ignore it
-	continue
+    if ($tokens.Length -ne 2) {
+    # Just ignore it
+    continue
     }
 
     $lValue = $tokens[0].Trim()
     $rValue = $tokens[1].Trim()
 
-    if ($lValue -eq "IsoFilename")
-    {
-        $isoFilename = $rValue
-    }
-    if ($lValue -eq "HotAdd")
-    {
+    if ($lValue -eq "HotAdd") {
         $hotAdd = $rValue
     }
 }
 
-#
-# Checking the mandatory testParams. New parameters must be validated here.
-#
-if (-not $isoFilename)
-{
-    "Error: Test parameters is missing the IsoFilename parameter"
-    return $False
-}
-
 $error.Clear()
 
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq $False)
-{
-   $vmGeneration = 1
-}
-
-
-if ( $hotAdd -eq "True" -and $vmGeneration -eq 1)
-{
+$vmGen = GetVMGeneration $vmName $hvServer
+if ( $hotAdd -eq "True" -and $vmGen -eq 1) {
     "Info: Generation 1 VM does not support hot add DVD, please skip this case in the test script"
     return $True
 }
 
 #
-# Make sure the DVD drive exists on the VM
+# There should be only one DVD unit by default
 #
-if ($vmGeneration -eq 1)
-{
-    $dvd = Get-VMDvdDrive $vmName -ComputerName $hvServer -ControllerLocation 1 -ControllerNumber 1
-}
-else
-{
-    $dvd = Get-VMDvdDrive $vmName -ComputerName $hvServer -ControllerLocation 2 -ControllerNumber 0
-}
-if ($dvd)
-{
-    Remove-VMDvdDrive $dvd -Confirm:$False
-    if($? -ne "True")
-    {
+$dvd = Get-VMDvdDrive $vmName -ComputerName $hvServer
+if ( $dvd ) {
+    try {
+        Remove-VMDvdDrive $dvd -Confirm:$False
+    } catch {
         "Error: Cannot remove DVD drive from ${vmName}"
         $error[0].Exception
         return $False
@@ -159,56 +126,44 @@ if ($dvd)
 }
 
 #
-# Make sure the .iso file exists on the Hyper-V server
+# Get Hyper-V VHD path
 #
-if (-not ([System.IO.Path]::IsPathRooted($isoFilename)))
-{
-    $obj = Get-WmiObject -ComputerName $hvServer -Namespace "root\virtualization\v2" -Class "MsVM_VirtualSystemManagementServiceSettingData"
-
-    $defaultVhdPath = $obj.DefaultVirtualHardDiskPath
-
-    if (-not $defaultVhdPath)
-    {
-        "Error: Unable to determine VhdDefaultPath on Hyper-V server ${hvServer}"
-        $error[0].Exception
-        return $False
-    }
-
-    if (-not $defaultVhdPath.EndsWith("\"))
-    {
-        $defaultVhdPath += "\"
-    }
-
-    $isoFilename = $defaultVhdPath + $isoFilename
-
+$obj = Get-WmiObject -ComputerName $hvServer -Namespace "root\virtualization\v2" -Class "MsVM_VirtualSystemManagementServiceSettingData"
+$defaultVhdPath = $obj.DefaultVirtualHardDiskPath
+if (-not $defaultVhdPath) {
+    "Error: Unable to determine VhdDefaultPath on Hyper-V server ${hvServer}"
+    $error[0].Exception
+    return $False
 }
+if (-not $defaultVhdPath.EndsWith("\")) {
+    $defaultVhdPath += "\"
+}
+$isoPath = $defaultVhdPath + "${vmName}_CDtest.iso"
 
-$isoFileInfo = GetRemoteFileInfo $isoFilename $hvServer
-if (-not $isoFileInfo)
-{
-    "Error: The .iso file $isoFilename does not exist on HyperV server ${hvServer}"
+$WebClient = New-Object System.Net.WebClient
+$WebClient.DownloadFile("$url","$isoPath")
+
+try {
+    GetRemoteFileInfo $isoPath $hvServer
+} catch {
+    "Error: The .iso file $isoPath could not be found!"
     return $False
 }
 
 #
 # Insert the .iso file into the VMs DVD drive
 #
-if ($vmGeneration -eq 1)
-{
-    Add-VMDvdDrive -VMName $vmName -Path $isoFilename -ControllerNumber 1 -ControllerLocation 1 -ComputerName $hvServer -Confirm:$False
+if ($vmGen -eq 1) {
+    Add-VMDvdDrive -VMName $vmName -Path $isoPath -ControllerNumber 1 -ControllerLocation 1 -ComputerName $hvServer -Confirm:$False
+} else {
+    Add-VMDvdDrive -VMName $vmName -Path $isoPath -ControllerNumber 0 -ControllerLocation 1 -ComputerName $hvServer -Confirm:$False
 }
-else
-{
-    Add-VMDvdDrive -VMName $vmName -Path $isoFilename -ControllerNumber 0 -ControllerLocation 1 -ComputerName $hvServer -Confirm:$False
-}
-if ($? -ne "True")
-{
+
+if ($? -ne "True") {
     "Error: Unable to mount the ISO file!"
     $error[0].Exception
     return $False
-}
-else
-{
+} else {
     $retVal = $True
 }
 

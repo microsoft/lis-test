@@ -24,16 +24,18 @@
 # RemoveIsoFromDvd.ps1
 #
 # Description:
-#    This script will "unmount" a .iso file in the DVD drive
+#    This script will remove all DVD drives from a VM.
 #
 #######################################################################
 
 <#
 .Synopsis
-    Remove the .iso file from the default DVD drive.
+    Remove all DVD drives from VM.
 
 .Description
-    Remove the .iso file from the default DVD drive.
+    Remove all DVD drives from VM.
+    In order to just eject any ISO, Set-VMDvdDrive path should be set
+    to null instead.
 
 .Parameter vmName
     Name of the test VM.
@@ -50,21 +52,17 @@
 
 param ([String] $vmName, [String] $hvServer, [String] $testParams)
 
-$isoFilename = $null
 $controllerNumber=$null
-$vmGeneration = $null
 
 #
 # Check arguments
 #
-if (-not $vmName)
-{
+if (-not $vmName) {
     "Error: Missing vmName argument"
     return $False
 }
 
-if (-not $hvServer)
-{
+if (-not $hvServer) {
     "Error: Missing hvServer argument"
     return $False
 }
@@ -79,35 +77,29 @@ $error.Clear()
 # Main script body
 #
 #######################################################################
-$vmGeneration = Get-VM $vmName -ComputerName $hvServer| select -ExpandProperty Generation -ErrorAction SilentlyContinue
-if ($? -eq $False)
-{
-   $vmGeneration = 1
+$vmGeneration = Get-VM $vmName -ComputerName $hvServer| Select-Object -ExpandProperty Generation -ErrorAction SilentlyContinue
+if ($? -eq $False) {
+    $vmGeneration = 1
 }
 #
 # Make sure the DVD drive exists on the VM
 #
-if ($vmGeneration -eq 1)
-{
+if ($vmGeneration -eq 1) {
     $controllerNumber=1
-}
-else
-{
+} else {
     $controllerNumber=0
 }
 
 $dvdcount = $(Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer).ControllerLocation.count 
-for ($i=0; $i -le $dvdcount; $i++)
-{
+for ($i=0; $i -le $dvdcount; $i++) {
     $dvd = Get-VMDvdDrive -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerNumber -ControllerLocation $i
-    if ($dvd)
-    {
+    if ($dvd) {
         Remove-VMDvdDrive -VMName $vmName -ComputerName $hvServer -ControllerNumber $controllerNumber -ControllerLocation $i
     }
 }
-if (-not $?)
-{
-    "Error: Unable to remove the .iso from the DVD"
+
+if (-not $?) {
+    "Error: Unable to remove the .iso from the DVD!"
     return $False
 }
 
