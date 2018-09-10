@@ -51,6 +51,7 @@
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
             <suiteTest>PausedCritical_Heartbeat</suiteTest>
             <suiteTest>UIO_Basic</suiteTest>
+            <suiteTest>CDmount</suiteTest>
             <!-- KVP and SQM tests -->
             <suiteTest>SQM_Basic</suiteTest>
             <suiteTest>KVP_basic_checks</suiteTest>
@@ -557,6 +558,19 @@
                   <param>TC_COVERED=UIO-01</param>
               </testParams>
               <timeout>400</timeout>
+        </test>
+        <test>
+            <testName>CDmount</testName>
+            <testScript>Core_LIS_CD.sh</testScript>
+            <files>remote-scripts/ica/Core_LIS_CD.sh,remote-scripts\ica\check_traces.sh,remote-scripts/ica/utils.sh</files>
+            <setupScript>setupscripts\InsertIsoInDvd.ps1</setupScript>
+            <cleanupScript>setupScripts\RemoveIsoFromDvd.ps1</cleanupScript>
+            <testparams>
+                <param>TC_COVERED=CORE-20</param>
+            </testparams>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
         </test>
       <!-- KVP_Tests -->
         <test>
