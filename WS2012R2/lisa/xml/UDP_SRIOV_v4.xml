@@ -24,7 +24,7 @@
       <file>.\setupScripts\CreateVMs.ps1</file>
     </LisaInitScript>
     <!-- Optional testParams go here -->
-    <imageStoreDir>\\43f13-35\C$\workspace\d48PR-200-perf\vhd-destination\</imageStoreDir>
+    <imageStoreDir>\\unc\path</imageStoreDir>
   </global>
   <testSuites>
     <suite>
@@ -32,8 +32,10 @@
       <suiteTests>
         <suiteTest>UDP_v4_1k_sriov</suiteTest>
         <suiteTest>UDP_v4_8k_sriov</suiteTest>
+        <!-- UDP over IPv6 tests
         <suiteTest>UDP_v6_1k_sriov</suiteTest>
         <suiteTest>UDP_v6_8k_sriov</suiteTest>
+        -->
       </suiteTests>
     </suite>
   </testSuites>
@@ -202,8 +204,7 @@
       <hvServer>43f13-35</hvServer>
       <vmName>SRIOV-Client</vmName>
       <os>Linux</os>
-      <ipv4>
-      </ipv4>
+      <ipv4></ipv4>
       <sshKey>rhel5_id_rsa.ppk</sshKey>
       <suite>UDP</suite>
       <hardware>
@@ -220,8 +221,7 @@
       <hvServer>43f13-36</hvServer>
       <vmName>SRIOV-Server</vmName>
       <os>Linux</os>
-      <ipv4>
-      </ipv4>
+      <ipv4></ipv4>
       <sshKey>rhel5_id_rsa.ppk</sshKey>
       <hardware>
         <create>true</create>
