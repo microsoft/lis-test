@@ -26,7 +26,7 @@ import logging
 import sql_utils
 from copy import deepcopy
 from file_parser import ParseXML, parse_ica_log, FIOLogsReader, FIOLogsReaderRaid,\
-    NTTTCPLogsReader, IPERFLogsReader, LatencyLogsReader
+    NTTTCPLogsReader, NTTTCPUDPLogsReader, IPERFLogsReader, LatencyLogsReader
 from virtual_machine import VirtualMachine
 
 
@@ -221,6 +221,8 @@ class PerfTestRun(TestRun):
             parsed_perf_log = FIOLogsReaderRaid(self.perf_path).process_logs()
         elif self.suite.lower() in ['ntttcp', 'tcp']:
             parsed_perf_log = NTTTCPLogsReader(self.perf_path).process_logs()
+        elif self.suite.lower() in ['ntttcp-udp', 'udp-ntttcp']:
+            parsed_perf_log = NTTTCPUDPLogsReader(self.perf_path).process_logs()
         elif self.suite.lower() in ['iperf', 'udp']:
             parsed_perf_log = IPERFLogsReader(self.perf_path).process_logs()
         elif self.suite.lower() in ['latency']:
@@ -263,6 +265,8 @@ class PerfTestRun(TestRun):
                 self.prep_for_fio(table_dict, test_case_obj)
             elif self.suite.lower() in ['ntttcp', 'tcp']:
                 self.prep_for_ntttcp(table_dict, test_case_obj)
+            elif self.suite.lower() in ['ntttcp-udp', 'udp-ntttcp']:
+                self.prep_for_ntttcp_udp(table_dict, test_case_obj)
             elif self.suite.lower() in ['iperf', 'udp']:
                 self.prep_for_iperf(table_dict, test_case_obj)
             elif self.suite.lower() in ['latency']:
@@ -281,6 +285,9 @@ class PerfTestRun(TestRun):
             insertion_list = sorted(insertion_list, key=lambda column: (
                 column['QDepth'], column['BlockSize_KB']))
         elif self.suite.lower() == 'ntttcp':
+            insertion_list = sorted(insertion_list, key=lambda column: (
+                column['ProtocolType'], column['NumberOfConnections']))
+        elif self.suite.lower() == 'ntttcp-udp':
             insertion_list = sorted(insertion_list, key=lambda column: (
                 column['ProtocolType'], column['NumberOfConnections']))
         elif self.suite.lower() == 'iperf':
@@ -309,11 +316,19 @@ class PerfTestRun(TestRun):
         table_dict['Latency_ms'] = float(test_case_obj.perf_dict['AverageLatency_ms'])
         table_dict['PacketSize_KBytes'] = float(test_case_obj.perf_dict['PacketSize_KBytes'])
         table_dict['SenderCyclesPerByte'] = float(test_case_obj.perf_dict['SenderCyclesPerByte'])
-        table_dict['ReceiverCyclesPerByte'] = float(test_case_obj.perf_dict[
-                                                        'ReceiverCyclesPerByte'])
+        table_dict['ReceiverCyclesPerByte'] = float(test_case_obj.perf_dict['ReceiverCyclesPerByte'])
         table_dict['IPVersion'] = test_case_obj.perf_dict['IPVersion']
         table_dict['ProtocolType'] = test_case_obj.perf_dict['Protocol']
-
+    @staticmethod
+    def prep_for_ntttcp_udp(table_dict, test_case_obj):
+        table_dict['NumberOfConnections'] = int(test_case_obj.perf_dict['NumberOfConnections'])
+        table_dict['TxThroughput_Gbps'] = float(test_case_obj.perf_dict['TxThroughput_Gbps'])
+        table_dict['RxThroughput_Gbps'] = float(test_case_obj.perf_dict['RxThroughput_Gbps'])
+        table_dict['DatagramLoss'] = float(test_case_obj.perf_dict['DatagramLoss'])
+        table_dict['PacketSize_KBytes'] = float(test_case_obj.perf_dict['PacketSize_KBytes'])
+        table_dict['IPVersion'] = test_case_obj.perf_dict['IPVersion']
+        table_dict['ProtocolType'] = test_case_obj.perf_dict['Protocol']
+        table_dict['SendBufSize_KBytes'] = test_case_obj.perf_dict['SendBufSize_KBytes']
     @staticmethod
     def prep_for_iperf(table_dict, test_case_obj):
         table_dict['NumberOfConnections'] = int(test_case_obj.perf_dict['NumberOfConnections'])
