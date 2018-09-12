@@ -34,7 +34,7 @@
 #
 # How to run:
 # Place this script and your public and authorized keys in /root/ then
-# run the script. 
+# run the script.
 #
 #   ./aio.sh
 #
@@ -205,6 +205,7 @@ function is_ubuntu {
         GetOSVersion
     fi
     [ "$os_PACKAGE" = "deb" ]
+    [ "$os_VENDOR" = "Debian" ] || [ "$os_VENDOR" = "Ubuntu" ]
 }
 
 ########################################################################
@@ -217,8 +218,7 @@ function copy_check () {
         echo "$1 successfully copied $2" >> summary.log
     else
         echo "ERROR: $1 failed copy $2" >> summary.log
-fi
-
+    fi
 }
 
 ########################################################################
@@ -252,7 +252,7 @@ function rsa_keys() {
 
 ########################################################################
 #
-# Set up SSH
+# Configure SSH daemon
 #
 ########################################################################
 function configure_ssh() {
@@ -351,8 +351,7 @@ function install_stressapptest() {
     git clone $stressapptest_githubLink $work_directory/stressapptest
     cd $work_directory/stressapptest
     ./configure
-    make
-    make install
+    make && make install
     verify_install $? stressapptest
     cd ~
 }
@@ -372,8 +371,7 @@ function install_stress_ng() {
     git clone $stressng_githubLink $work_directory/stress-ng
     cd $work_directory/stress-ng
     git checkout tags/$stressng_version
-    make
-    make install
+    make && make install
     verify_install $? Stress
     cd ~
 }
@@ -662,7 +660,6 @@ elif is_suse ; then
     else
         echo "ERROR: Unsupported version of SLES!" >> summary.log
     fi
-
     echo "Installing dependencies for SLES 12" >> summary.log
 
     PACK_LIST=(at dos2unix dosfstools git-core subversion ntp gcc gcc-c++ wget mdadm expect sysstat bc numactl python3
