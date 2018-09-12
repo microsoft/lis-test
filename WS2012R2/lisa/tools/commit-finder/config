@@ -21,7 +21,7 @@ drivers/net/hyperv/netvsc_drv.c
 drivers/net/hyperv/rndis_filter.c
 drivers/scsi/storvsc_drv.c
 drivers/video/fbdev/hyperv_fb.c
-drivers/pci/host/pci-hyperv.c
+drivers/pci/controller/pci-hyperv.c
 tools/hv/hv_fcopy_daemon.c
 tools/hv/hv_get_dhcp_info.sh
 tools/hv/hv_get_dns_info.sh
