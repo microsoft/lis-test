@@ -26,9 +26,9 @@
 # Description:
 #     This script was created to automate the installation and validation
 #     of an Ubuntu test kernel. The following steps are performed:
-#	1. Download the test kernel from the URL provided in XML file.
-#	2. Install the test kernel
-#	3. Matching LIS daemons packages are also installed.
+#   1. Download the test kernel from the URL provided in XML file.
+#   2. Install the test kernel
+#   3. Matching LIS daemons packages are also installed.
 #
 #######################################################################
 
@@ -53,7 +53,6 @@ UpdateSummary() {
 
 function check_constants {
     constants=(SHARE_URL AZURE_TOKEN KERNEL_FOLDER)
-    
     for var in ${constants[@]};do
         if [[ ${!var} = "" ]];then
             msg="Error: ${var} parameter is null"
@@ -122,7 +121,7 @@ function install_kernel_rhel {
 
 function main {
     UpdateTestState $ICA_TESTRUNNING
-    
+
     if [[ -e "./utils.sh" ]];then
         dos2unix utils.sh
         source utils.sh
@@ -131,14 +130,15 @@ function main {
         UpdateSummary $msg
         UpdateTestState $ICA_TESTABORTED
         exit 1
-    fi        
+    fi
+
     GetDistro
     case $DISTRO in
     centos* | redhat* | fedora*)
         os_FAMILY="rhel"
         os_PACKAGE="rpm"
     ;;
-    ubuntu*)
+    ubuntu* | debian*)
         os_FAMILY="debian"
         os_PACKAGE="deb"
     ;;
@@ -147,7 +147,7 @@ function main {
         UpdateSummary "WARNING: Distro '${distro}' not supported."
     ;;
     esac
-    
+
     if [[ -e "./$CONSTANTS_FILE" ]];then
         source ${CONSTANTS_FILE}
         check_constants
@@ -161,7 +161,7 @@ function main {
         rm -rf ./kernel_temp_dir
     fi
     mkdir ./kernel_temp_dir
-    
+
     pushd ./kernel_temp_dir
     prepare_${os_FAMILY}
     download_artifacts "$SHARE_URL" "$AZURE_TOKEN" "$KERNEL_FOLDER" "$os_PACKAGE"
