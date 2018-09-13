@@ -28,7 +28,7 @@ TestCount=0
 
 PingCheck() {
     if ! ping "$REMOTE_SERVER" -c 4; then
-        # On azure ping is disabled so we need another test method
+        # On Azure ping is disabled so we need another test method
         if ! wget google.com; then
             msg = "Error: ${NetInterface} ping and wget failed on try ${1}."
             LogMsg "$msg" && UpdateSummary "$msg"
@@ -64,7 +64,9 @@ ReloadNetvsc() {
     fi
 }
 
-### Main script ###
+# Convert eol
+dos2unix utils.sh
+
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
@@ -73,6 +75,8 @@ ReloadNetvsc() {
 }
 # Source constants file and initialize most common variables
 UtilsInit
+
+### Main script ###
 
 # Check for call traces during test run
 dos2unix check_traces.sh && chmod +x check_traces.sh
