@@ -30,7 +30,7 @@ PingCheck() {
     if ! ping "$REMOTE_SERVER" -c 4; then
         # On Azure ping is disabled so we need another test method
         if ! wget google.com; then
-            msg = "Error: ${NetInterface} ping and wget failed on try ${1}."
+            msg="Error: ${NetInterface} ping and wget failed on try ${1}."
             LogMsg "$msg" && UpdateSummary "$msg"
             SetTestStateFailed
             exit 1
