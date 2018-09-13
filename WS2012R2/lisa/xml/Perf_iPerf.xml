@@ -45,7 +45,6 @@
                     <!-- TCP Testing -->
                 <suiteTest>iperf3-TCP</suiteTest>
                 <suiteTest>iperf3-TCP-ipv6</suiteTest>
-
                      <!-- UDP Testing -->
                 <suiteTest>iperf3-UDP-1k</suiteTest>
                 <suiteTest>iperf3-UDP-8k</suiteTest>
@@ -87,7 +86,7 @@
             </uploadFiles>
             <timeout>7200</timeout>
             <OnError>Continue</OnError>
-        </test>        
+        </test>
 
         <test>
             <testName>iperf3-TCP-ipv6</testName>
@@ -120,10 +119,9 @@
             </uploadFiles>
             <timeout>7200</timeout>
             <OnError>Continue</OnError>
-        </test>       
+        </test>
 
 <!-- UDP Testing -->
-        
         <test>
             <testName>iperf3-UDP-1k</testName>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
@@ -284,7 +282,7 @@
                <numCPUs>8</numCPUs>
                <memSize>8192</memSize>
                <disableDiff>True</disableDiff>
-               <nic>VMBus,Vm.Enterprise#1</nic>
+               <nic>VMBus,External</nic>
                <nic>VMBus,Vm.Private40G#1,001600112200</nic>
             </hardware>
         </vm>
@@ -300,7 +298,7 @@
                <numCPUs>12</numCPUs>
                <memSize>8</memSize>
                <disableDiff>True</disableDiff>
-               <nic>VMBus,Vm.Enterprise#1,001600112233</nic>
+               <nic>VMBus,External,001600112233</nic>
                <nic>VMBus,Vm.Private40G#1,001600112201</nic>
             </hardware>
         </vm>

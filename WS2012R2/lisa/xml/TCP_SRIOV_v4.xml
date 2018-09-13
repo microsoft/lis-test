@@ -24,7 +24,7 @@
       <file>.\setupScripts\CreateVMs.ps1</file>
     </LisaInitScript>
     <!-- Optional testParams go here -->
-	<imageStoreDir>\\unc\path</imageStoreDir>
+  <imageStoreDir>\\unc\path</imageStoreDir>
   </global>
   <testSuites>
     <suite>
@@ -119,7 +119,7 @@
         <numCPUs>8</numCPUs>
         <memSize>8192</memSize>
         <disableDiff>True</disableDiff>
-        <nic>VMBus,Vm.Enterprise</nic>
+        <nic>VMBus,External</nic>
         <nic>VMBus,SRIOV,001600112232</nic>
       </hardware>
     </vm>
@@ -136,7 +136,7 @@
         <numCPUs>8</numCPUs>
         <memSize>8192</memSize>
         <disableDiff>True</disableDiff>
-        <nic>VMBus,Vm.Enterprise,001600112205</nic>
+        <nic>VMBus,External,001600112205</nic>
         <nic>VMBus,SRIOV,001600112233</nic>
       </hardware>
     </vm>

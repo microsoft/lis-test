@@ -61,7 +61,7 @@
         <numCPUs>8</numCPUs>
         <memSize>8192</memSize>
         <disableDiff>True</disableDiff>
-        <nic>VMBus,Vm.Enterprise</nic>
+        <nic>VMBus,External</nic>
       </hardware>
       <suite>fio-raid0-4disks</suite>
     </vm>

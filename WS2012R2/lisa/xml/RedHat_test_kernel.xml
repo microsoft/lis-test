@@ -59,8 +59,8 @@
         </test>
     </testCases>
 
-    <VMs>        
-	    <vm>
+    <VMs>
+        <vm>
             <hvServer>localhost</hvServer>
             <vmName>VM_NAME</vmName>
             <os>Linux</os>

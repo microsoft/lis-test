@@ -39,11 +39,11 @@
             </setupScript>
             <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
             <timeout>5400</timeout>
-            <testParams>  
+            <testParams>
                 <param>TC_COVERED=FIO</param>
-                <!-- Modify with physical disk  number -->
+                <!-- Modify with physical disk number -->
                 <param>PHYSICAL_NUMBER=3</param>
-            	<param>SCSI=0,0,Physical</param>
+                <param>SCSI=0,0,Physical</param>
                 <param>LOG_FOLDER=fio_logs_8k</param>
                 <param>FIO_SCENARIO_FILE=fio_8k.fio</param>
             </testParams>
@@ -66,7 +66,7 @@
             <timeout>5400</timeout>
             <testParams>
                 <param>TC_COVERED=FIO</param>
-                <!-- Modify with physical disk  number -->
+                <!-- Modify with physical disk number -->
                 <param>PHYSICAL_NUMBER=3</param>
                 <param>SCSI=0,0,Physical</param>
                 <param>LOG_FOLDER=fio_logs_1M</param>
@@ -93,7 +93,7 @@
                <numCPUs>8</numCPUs>
                <memSize>8192</memSize>
                <disableDiff>True</disableDiff>
-               <nic>VMBus,Vm.Enterprise#1</nic>
+               <nic>VMBus,External</nic>
             </hardware>
             <testParams>
                 <param>TEST_DEVICE=/dev/sdb</param>
