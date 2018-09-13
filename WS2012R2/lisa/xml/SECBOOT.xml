@@ -28,7 +28,7 @@
                 <to>user@company.com</to>
             </recipients>
             <sender>user@company.com</sender>
-            <subject>LISA Secure Boot for Gen2 VM on WS2016 Testing</subject>
+            <subject>Secure Boot for Gen2 VM Testing</subject>
             <smtpServer>SMTP_SERVER</smtpServer>
         </email>
     </global>
@@ -81,7 +81,6 @@
             <testparams>
                 <param>secureBootVM=True</param>
                 <param>TC_COVERED=SECBOOT-03</param>
-                
             </testparams>
         </test>
         <test>

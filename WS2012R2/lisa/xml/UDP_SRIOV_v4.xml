@@ -212,7 +212,7 @@
         <numCPUs>8</numCPUs>
         <memSize>8192</memSize>
         <disableDiff>True</disableDiff>
-        <nic>VMBus,Vm.Enterprise</nic>
+        <nic>VMBus,External</nic>
         <nic>VMBus,SRIOV,001600114232</nic>
       </hardware>
     </vm>
@@ -228,7 +228,7 @@
         <numCPUs>8</numCPUs>
         <memSize>8192</memSize>
         <disableDiff>True</disableDiff>
-        <nic>VMBus,Vm.Enterprise,001600444416</nic>
+        <nic>VMBus,External,001600444416</nic>
         <nic>VMBus,SRIOV,001600114233</nic>
       </hardware>
     </vm>

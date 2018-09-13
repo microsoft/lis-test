@@ -43,11 +43,11 @@
         <suite>
             <suiteName>Runtime_Memory_Resize</suiteName>
             <suiteTests>
-                <suiteTest>Runtime_Mem_HotAdd</suiteTest>      
-                <suiteTest>Runtime_Mem_HotRemove</suiteTest> 
-                <suiteTest>Runtime_Mem_SmallIncrease128</suiteTest>  
-                <suiteTest>Runtime_Mem_SmallDecrease128</suiteTest> 
-                <suiteTest>Runtime_Mem_SmallIncrease100</suiteTest>  
+                <suiteTest>Runtime_Mem_HotAdd</suiteTest>
+                <suiteTest>Runtime_Mem_HotRemove</suiteTest>
+                <suiteTest>Runtime_Mem_SmallIncrease128</suiteTest>
+                <suiteTest>Runtime_Mem_SmallDecrease128</suiteTest>
+                <suiteTest>Runtime_Mem_SmallIncrease100</suiteTest>
                 <suiteTest>Runtime_Mem_SmallDecrease100</suiteTest>
                 <suiteTest>Runtime_Mem_MultipleAddRemove</suiteTest>
                 <suiteTest>Runtime_Mem_StressHotRemove</suiteTest>
@@ -62,7 +62,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-01</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-01</param>
                 <param>startupMem=2GB</param>
                 <param>testMem=4GB</param>
             </testParams>
@@ -74,7 +74,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-02</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-02</param>
                 <param>startupMem=4GB</param>
                 <param>testMem=2GB</param>
             </testParams>
@@ -86,7 +86,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-03</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-03</param>
                 <param>startupMem=2048MB</param>
                 <param>chunkMem=128MB</param>
                 <param>decrease=no</param>
@@ -99,7 +99,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-04</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-04</param>
                 <param>startupMem=3072MB</param>
                 <param>chunkMem=128MB</param>
                 <param>decrease=yes</param>
@@ -112,7 +112,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-05</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-05</param>
                 <param>startupMem=2048MB</param>
                 <param>chunkMem=100MB</param>
                 <param>decrease=no</param>
@@ -125,7 +125,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_Chunks.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-06</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-06</param>
                 <param>startupMem=3072MB</param>
                 <param>chunkMem=100MB</param>
                 <param>decrease=yes</param>
@@ -138,7 +138,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_MultipleAddRemove.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-07</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-07</param>
                 <param>startupMem=3GB</param>
             </testParams>
             <timeout>1200</timeout>
@@ -149,7 +149,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_StressHotRemove.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-08</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-08</param>
                 <param>startupMem=4GB</param>
             </testParams>
             <timeout>1200</timeout>
@@ -160,7 +160,7 @@
             <setupScript>setupscripts\Runtime_Mem_Configure.ps1</setupScript>
             <testScript>setupscripts\Runtime_Mem_HotAdd_reboot.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=Runtime_Mem_Resize-09</param>                                   
+                <param>TC_COVERED=Runtime_Mem_Resize-09</param>
                 <param>startupMem=5000MB</param>
             </testParams>
             <timeout>1200</timeout>
@@ -173,7 +173,7 @@
             <vmName>VM</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>linux_id_rsa.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>Runtime_Memory_Resize</suite>
         </vm>
     </VMs>
