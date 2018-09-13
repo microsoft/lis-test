@@ -33,6 +33,18 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+function RestartVM () {
+    # Reboot the VM to apply the changes
+    Restart-VM -VMName $vmName -ComputerName $hvServer -Force
+
+    $sts = WaitForVMToStartSSH $ipv4 400
+    if (-not $sts[-1]){
+        Write-Output "Error: $vmName didn't start after reboot"
+        return $false
+      }   
+    return $true
+}
+
 # Checking the input arguments
 if (-not $vmName) {
     "Error: VM name is null!"
@@ -51,21 +63,20 @@ if (-not $testParams) {
 }
 
 $testParams -match "RootDir=([^;]+)"
-if (-not $?){
+if (-not $?) {
   "Mandatory param RootDir=Path; not found!"
   return $false
 }
 $rootDir = $Matches[1]
 
-if (Test-Path $rootDir){
+if (Test-Path $rootDir) {
   Set-Location -Path $rootDir
   if (-not $?){
     "Error: Could not change directory to $rootDir !"
     return $false
   }
   "Changed working directory to $rootDir"
-}
-else{
+} else {
   "Error: RootDir = $rootDir is not a valid path"
   return $false
 }
@@ -73,8 +84,7 @@ else{
 # Source TCUtils.ps1 for getipv4 and other functions
 if (Test-Path ".\setupScripts\TCUtils.ps1"){
   . .\setupScripts\TCUtils.ps1
-}
-else{
+} else {
   "Error: Could not find setupScripts\TCUtils.ps1"
   return $false
 }
@@ -103,10 +113,8 @@ foreach ($p in $params) {
 #
 # Verify the VM exists
 #
-
 $vm = Get-VM -VMName $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
-if (-not $vm)
-{
+if (-not $vm) {
     "Error: VM ${vmName} does not exist"
     return $False
 }
@@ -115,18 +123,25 @@ $ipv4 = GetIPv4 $vmName $hvServer
 
 # Change selinux policy
 $sts = SendCommandToVM $ipv4 $sshkey "sed -i 's/SELINUX=\S*/SELINUX=${selinux}/g' /etc/selinux/config && sync"
-if (-not $sts[-1]){
+if (-not $sts[-1]) {
     Write-Output "Error: Could not change the selinux policy."
     return $False
 }
 
-# Reboot the VM to apply the changes
-Restart-VM -VMName $vmName -ComputerName $hvServer -Force
-
-$sts = WaitForVMToStartSSH $ipv4 300
+$sts = RestartVM
+$ip_after_reboot = GetIPv4 $vmName $hvServer
+Write-Host "SELinux change: IP after first reboot: $ip_after_reboot"
+Write-Host $sts[-1]
 if (-not $sts[-1]){
-    Write-Output "Error: $vmName didn't start after reboot"
-    return $False
+    $sts_2 = RestartVM
+    $ip_after_reboot = GetIPv4 $vmName $hvServer
+    Write-Host "SELinux change: IP after second reboot: $ip_after_reboot"
+	Write-Host $sts_2[-1]
+    if (-not $sts_2[-1]) {
+        return $false
+    } else {
+		return $true
+	}
+} else {
+	return $true
 }
-
-return $True
