@@ -32,7 +32,7 @@
                 <to>myself@mycompany.com</to>
             </recipients>
             <sender>myself@mycompany.com</sender>
-            <subject>LIS test area</subject>
+            <subject>LIS SR-IOV test run</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
         <imageStoreDir>\\path\to\vhd</imageStoreDir>
@@ -63,7 +63,7 @@
                 <suiteTest>DisableNIC</suiteTest>
 
                 <!-- Complex SR-IOV tests -->
-                <suiteTest>Multicast</suiteTest> 
+                <suiteTest>Multicast</suiteTest>
                 <suiteTest>Broadcast</suiteTest>
                 <suiteTest>iPerf_Reboot</suiteTest>
                 <suiteTest>iPerf_Stress</suiteTest>
@@ -111,16 +111,16 @@
             </testParams>
             <onError>Abort</onError>
             <noReboot>False</noReboot>
-        </test>  
+        </test>
         <test>
             <testName>VerifyVF_basic</testName>
             <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
                 <file>setupScripts\SR-IOV_GetMLNXInfo.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -153,7 +153,7 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -169,11 +169,11 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
-                <param>TC_COVERED=SRIOV-5</param>                                   
+                <param>TC_COVERED=SRIOV-5</param>
             </testParams>
             <onError>Continue</onError>
             <timeout>1000</timeout>
@@ -185,7 +185,7 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -201,7 +201,7 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -217,7 +217,7 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -233,7 +233,7 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -249,7 +249,7 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -261,11 +261,11 @@
         <test>
             <testName>Multicast</testName>
             <testScript>SR-IOV_Multicast.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_Multicast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_Multicast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -277,11 +277,11 @@
         <test>
             <testName>Broadcast</testName>
             <testScript>SR-IOV_Broadcast.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_Broadcast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_Broadcast.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -293,11 +293,11 @@
         <test>
             <testName>iPerf_Reboot</testName>
             <testScript>setupscripts\SR-IOV_iPerf_Reboot.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -309,11 +309,11 @@
         <test>
             <testName>iPerf_Stress</testName>
             <testScript>SR-IOV_iPerfStress.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_iPerfStress.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_iPerfStress.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -325,11 +325,11 @@
         <test>
             <testName>Disable_VMQ</testName>
             <testScript>setupscripts\SR-IOV_DisableVMQ.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -341,11 +341,11 @@
         <test>
             <testName>Change_RSS</testName>
             <testScript>setupscripts\SR-IOV_ChangeRSS.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -357,11 +357,11 @@
         <test>
             <testName>Measure_DisableVF</testName>
             <testScript>setupscripts\SR-IOV_MeasureDisableVF.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -373,11 +373,11 @@
         <test>
             <testName>Move_VHD</testName>
             <testScript>setupscripts\SR-IOV_MoveVHD.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -389,12 +389,12 @@
         <test>
             <testName>Max_vCPU</testName>
             <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupScripts\ChangeCPU.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -409,12 +409,12 @@
         <test>
             <testName>One_vCPU</testName>
             <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupScripts\ChangeCPU.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600112800</param>
@@ -429,11 +429,11 @@
         <test>
             <testName>Multiple_basic</testName>
             <testScript>SR-IOV_Multiple_basic.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_Multiple_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_Multiple_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -449,11 +449,11 @@
         <test>
             <testName>Multiple_fileCopy</testName>
             <testScript>SR-IOV_Multiple_fileCopy.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_Multiple_fileCopy.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+            <files>remote-scripts/ica/SR-IOV_Multiple_fileCopy.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -472,12 +472,11 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>TC_COVERED=SRIOV-26</param>
                 <param>MAX_NICS=yes</param>
-                <param>Switch_Name=SRIOV_MLNX</param>
                 <param>Clean_Dependency=yes</param>
             </testParams>
             <onError>Continue</onError>
@@ -491,12 +490,11 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupScripts\ChangeCPU.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>TC_COVERED=SRIOV-26B</param>
                 <param>MAX_NICS=yes</param>
-                <param>Switch_Name=SRIOV_MLNX</param>
                 <param>Clean_Dependency=yes</param>
                 <!-- This is based on the physical CPU hardware topology -->
                 <param>vCPU=max</param>
@@ -512,7 +510,7 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -530,7 +528,7 @@
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript> 
+            </setupScript>
             <noReboot>False</noReboot>
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV_MLNX,001600332800</param>
@@ -558,6 +556,7 @@
                 <param>VF_IP1=10.11.12.2</param>
                 <param>VF_IP2=10.11.12.3</param>
                 <param>NETMASK=255.255.255.0</param>
+                <param>Switch_Name=SRIOV_MLNX</param>
             </testParams>
             <suite>SR-IOV</suite>
             <hardware>

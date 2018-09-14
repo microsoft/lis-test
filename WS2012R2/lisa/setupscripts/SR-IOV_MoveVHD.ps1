@@ -70,6 +70,10 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$netmask = "255.255.255.0"
+# Management switch name
+$external_switch = "External"
+
 function Cleanup($childVMName) {
     # Clean up
     Stop-VM -Name $childVMName -ComputerName $hvServer -TurnOff
@@ -83,8 +87,6 @@ function Cleanup($childVMName) {
 # Main script body
 #
 #############################################################
-$netmask = "255.255.255.0"
-
 # Write out test Params
 $testParams
 
@@ -153,6 +155,7 @@ foreach ($p in $params)
         "REMOTE_SERVER" { $remoteServer = $fields[1].Trim() }
         "VF_IP1" { $vmVF_IP1 = $fields[1].Trim()}
         "VF_IP2" { $vmVF_IP2 = $fields[1].Trim()}
+        "Switch_Name"{ $Switch_Name = $fields[1].Trim()}
         "NIC"
         {
             $temp = $p.Trim().Split('=')
@@ -219,7 +222,7 @@ if (-not $?) {
 Start-Sleep -s 30
 # Get Parent VHD
 $ParentVHD = GetParentVHD $vmName $hvServer
-if(-not $ParentVHD) {
+if (-not $ParentVHD) {
     Write-Output "Error getting Parent VHD of VM $vmName" | Tee-Object -Append -file $summaryLog
     return $False
 }
@@ -229,18 +232,18 @@ $vm = Get-VM -Name $vmName -ComputerName $hvServer
 # Get VM Generation
 $vm_gen = $vm.Generation
 
-$VMNetAdapter = Get-VMNetworkAdapter $vmName -ComputerName $hvServer
+Get-VMNetworkAdapter $vmName -ComputerName $hvServer
 if (-not $?) {
     Write-Output "Error: Get-VMNetworkAdapter for $vmName failed" | Tee-Object -Append -file $summaryLog
     return $false
 }
 
 # Create Child vhd
-$ChildVHD = CreateChildVHD $ParentVHD $final_vhd_path $hvServer
+CreateChildVHD $ParentVHD $final_vhd_path $hvServer
 
 # Create the new VM
-$newVm = New-VM -Name "SRIOV_Child" -ComputerName $hvServer -VHDPath "${defaultVhdPath}\SRIOV_ChildRemote.vhdx" `
-            -MemoryStartupBytes 4096MB -SwitchName "External" -Generation $vm_gen
+New-VM -Name "SRIOV_Child" -ComputerName $hvServer -VHDPath "${defaultVhdPath}\SRIOV_ChildRemote.vhdx" `
+        -MemoryStartupBytes 4096MB -SwitchName "$external_switch" -Generation $vm_gen
 if (-not $?) {
     Write-Output "Error: Creating New VM SRIOV_Child on $hvServer" | Tee-Object -Append -file $summaryLog
     return $False
@@ -249,14 +252,14 @@ if (-not $?) {
 # Disable secure boot if Gen2
 if ($vm_gen -eq 2) {
     Set-VMFirmware -VMName "SRIOV_Child" -ComputerName $hvServer -EnableSecureBoot Off
-    if(-not $?) {
+    if (-not $?) {
         Write-Output "Error: Unable to disable secure boot" | Tee-Object -Append -file $summaryLog
         Cleanup "SRIOV_Child"
         return $false
     }
 }
 
-ConfigureVMandVF "SRIOV_Child" $hvServer $sshKey $vmVF_IP1 $netmask
+ConfigureVMandVF "SRIOV_Child" $hvServer $sshKey $vmVF_IP1 $netmask $Switch_Name
 Write-Output "Child VM Configured and started" | Tee-Object -Append -file $summaryLog
 
 $ipv4_child = GetIPv4 "SRIOV_Child" $hvServer
