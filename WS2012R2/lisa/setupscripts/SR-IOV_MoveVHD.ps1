@@ -70,6 +70,10 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+$netmask = "255.255.255.0"
+# Management switch name
+$external_switch = "External"
+
 function Cleanup($childVMName) {
     # Clean up
     Stop-VM -Name $childVMName -ComputerName $hvServer -TurnOff
@@ -83,8 +87,6 @@ function Cleanup($childVMName) {
 # Main script body
 #
 #############################################################
-$netmask = "255.255.255.0"
-
 # Write out test Params
 $testParams
 
@@ -241,7 +243,7 @@ CreateChildVHD $ParentVHD $final_vhd_path $hvServer
 
 # Create the new VM
 New-VM -Name "SRIOV_Child" -ComputerName $hvServer -VHDPath "${defaultVhdPath}\SRIOV_ChildRemote.vhdx" `
-        -MemoryStartupBytes 4096MB -SwitchName "$Switch_Name" -Generation $vm_gen
+        -MemoryStartupBytes 4096MB -SwitchName "$external_switch" -Generation $vm_gen
 if (-not $?) {
     Write-Output "Error: Creating New VM SRIOV_Child on $hvServer" | Tee-Object -Append -file $summaryLog
     return $False
@@ -257,7 +259,7 @@ if ($vm_gen -eq 2) {
     }
 }
 
-ConfigureVMandVF "SRIOV_Child" $hvServer $sshKey $vmVF_IP1 $netmask
+ConfigureVMandVF "SRIOV_Child" $hvServer $sshKey $vmVF_IP1 $netmask $Switch_Name
 Write-Output "Child VM Configured and started" | Tee-Object -Append -file $summaryLog
 
 $ipv4_child = GetIPv4 "SRIOV_Child" $hvServer
