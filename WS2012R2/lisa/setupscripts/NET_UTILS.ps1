@@ -118,8 +118,8 @@ function getRandUnusedMAC([String]$hvServer,[Char]$delim)
 # checks if IPv4 is in dotted format
 function isValidIPv4([String]$ipv4)
 {
-	$retVal = ($ipv4 -As [IPAddress]) -As [Bool]
-	return $retVal
+    $retVal = ($ipv4 -As [IPAddress]) -As [Bool]
+    return $retVal
 }
 
 # checks ip version
@@ -159,18 +159,14 @@ function IPtoHex([String]$ipv4)
 # returns the binary representation of an IP Address in dotted format
 function IPtoBinary([String]$ipv4)
 {
-	$valid = isValidIPv4 $ipv4
+    $valid = isValidIPv4 $ipv4
+    if (-not $valid) {
+        return $false
+    }
 
-	if (-not $valid)
-	{
-		return $false
-	}
-
-	[IPAddress]$IP = $ipv4
-
-	[String]$binIP = [Convert]::ToString($IP.Address, 2)
-
-	return $binIP
+    [IPAddress]$IP = $ipv4
+    [String]$binIP = [Convert]::ToString($IP.Address, 2)
+    return $binIP
 }
 
 
@@ -189,17 +185,13 @@ function getAddrCount([String]$netmask)
 		}
 	}
 
-    if ($netmask -gt 31 -or $netmask -lt 1)
-    {
+    if ($netmask -gt 31 -or $netmask -lt 1) {
         return $false
     }
 
     [uint32]$valToShift = [uint32]32 - [uint32]$netmask
-
 	[uint32]$count = [uint32]1 -shl [uint32]$valToShift
 	[uint32]$count = [uint32]$count - [uint32]2
-
-
 	return $count
 }
 
@@ -248,12 +240,9 @@ function getAddress([String]$IPv4, [String]$netmask, [int]$nth)
     {
         # start counting from networkID + 1
         $nth += 1
-        if ($nth -gt ($addrCount-1))
-        {
+        if ($nth -gt ($addrCount-1)) {
             return $false
         }
-
-
     }
 
     [uint32]$netBits = netmaskToCIDR $netmask
@@ -270,34 +259,27 @@ function getAddress([String]$IPv4, [String]$netmask, [int]$nth)
 function byteSum([IpAddress]$ip)
 {
     [uint32]$sum = [uint32]$ip.GetAddressBytes()[1] -shl 16
-
     [uint32]$res = 0
     $bytes = $ip.GetAddressBytes()
     [array]::Reverse($bytes)
     for ($i=0; $i -lt 4; $i++)
     {
         [uint32]$sum = [uint32]$bytes[$i] -shl (24 - $i*8)
-
         [uint32] $res += [uint32]$sum
     }
-
-
     return [uint32]$res
 }
 
 function isValidCidrFormat([String]$network)
 {
 	$network = $network.split('/')
-
 	$valid = isValidIPv4 $network[0]
 
-	if (-not $valid)
-	{
+	if (-not $valid) {
 		return $false
 	}
 
 	$prefix = $network[1]
-
 	if ($prefix -lt 0 -or $prefix -gt 32)
 	{
 		return $false
@@ -309,18 +291,11 @@ function isValidCidrFormat([String]$network)
 # returns the network broadcast address
 function getNetworkBroadcast([String]$IPv4, [String]$netmask)
 {
-
     $networkID = getNetworkID $IPv4 $netmask
-
     [IpAddress]$tempIP = $networkID
-
     [IpAddress]$subnetIP = $netmask
-
     [IpAddress]$hostmask = [uint32](-bnot [uint32]$subnetIP.Address)
-
-
     [IpAddress]$broadcast= [uint32]$tempIP.Address -bor [uint32]$hostMask.Address
-
     return $broadcast.IPAddressToString
 }
 
@@ -365,21 +340,18 @@ function containsAddress([String]$netIP,[String]$netmask,[String]$IPv4ToCheck,[S
 function netmaskToCIDR([String]$netmask)
 {
 	$valid = isValidIPv4 $netmask
-
 	if (-not $valid)
 	{
 		return $false
 	}
 
 	$binNetmask = IPtoBinary $netmask
-
 	if (-not $binNetMask)
 	{
 		return $false
 	}
 
 	[char[]]$bits = $binNetmask.toCharArray()
-
 	[uint32]$count = 0
 
 	foreach ($bit in $bits)
@@ -396,23 +368,17 @@ function getNetworkID([String]$IP, [String]$netmask)
 {
 	[IpAddress]$host = $IP
 	[IpAddress]$ipnetmask = $netmask
-
 	[uint32]$netid = [uint32]$host.Address -band [uint32]$ipnetmask.Address
-
 	[IPAddress]$networkID = $netid
-
 	return $networkID.IPAddressToString
-
 }
 
 # returns the network in cidr format
 function NetworkToCIDR([String]$IPv4, [String] $Netmask)
 {
 	$valid = isValidIPv4 $IPv4
-
 	if (-not $valid)
 	{
-
 		return $false
 	}
 
@@ -420,27 +386,27 @@ function NetworkToCIDR([String]$IPv4, [String] $Netmask)
 	$cidrnetmask = netmaskToCIDR $Netmask
 	return "$networkID"+"/"+"$cidrnetmask"
 }
-# CIDR to netmask
-function CIDRtoNetmask([int]$cidr){
 
-    for($i=0; $i -lt 32; $i+=1){
-        if($i -lt $cidr){
+# CIDR to netmask
+function CIDRtoNetmask([int]$cidr) {
+    for($i=0; $i -lt 32; $i+=1) {
+        if($i -lt $cidr) {
             $ip+="1"
         }else{
             $ip+= "0"
         }
     }
     $mask = ""
-    for($byte=0; $byte -lt $ip.Length/8; $byte+=1){
+    for($byte=0; $byte -lt $ip.Length/8; $byte+=1) {
         $decimal = 0
-        for($bit=0;$bit -lt 8; $bit+=1){
+        for($bit=0;$bit -lt 8; $bit+=1) {
             $poz = $byte * 8 + $bit
-            if( $ip[$poz] -eq "1"){
+            if( $ip[$poz] -eq "1") {
                 $decimal += [math]::Pow(2, 8 - $bit -1)
             }
         }
         $mask +=[convert]::ToString($decimal)
-        if ( $byte -ne $ip.Length /8 -1){
+        if ( $byte -ne $ip.Length /8 -1) {
              $mask += "."
          }
     }
@@ -541,8 +507,7 @@ function ConfigureVF([String]$conIpv4,[String]$sshKey,[String]$netmask)
     $filename = "ConfigureVF.sh"
 
     # check for file
-    if (Test-Path ".\${filename}")
-    {
+    if (Test-Path ".\${filename}") {
         Remove-Item ".\${filename}"
     }
 
@@ -552,20 +517,17 @@ function ConfigureVF([String]$conIpv4,[String]$sshKey,[String]$netmask)
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
 
     # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0) {
         Remove-Item ".\${filename}"
     }
 
     # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
+    if (-not $retVal) {
         return $false
     }
 
     # execute sent file
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
     return $retVal
 }
 
@@ -620,8 +582,7 @@ function CreateFileOnVM ([String]$conIpv4,[String]$sshKey,[String]$fileSize)
     $filename = "CreateFile.sh"
 
     # check for file
-    if (Test-Path ".\${filename}")
-    {
+    if (Test-Path ".\${filename}") {
         Remove-Item ".\${filename}"
     }
 
@@ -631,20 +592,17 @@ function CreateFileOnVM ([String]$conIpv4,[String]$sshKey,[String]$fileSize)
     $retVal = SendFileToVM $conIpv4 $sshKey $filename "/root/${$filename}"
 
     # delete file unless the Leave_trail param was set to yes.
-    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0)
-    {
+    if ([string]::Compare($leaveTrail, "yes", $true) -ne 0) {
         Remove-Item ".\${filename}"
     }
 
     # check the return Value of SendFileToVM
-    if (-not $retVal)
-    {
+    if (-not $retVal) {
         return $false
     }
 
     # execute sent file
     $retVal = SendCommandToVM $conIpv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
     return $retVal
 }
 
@@ -864,7 +822,7 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
 # SR-IOV configure VM and VF
 #
 #######################################################################
-function ConfigureVMandVF([String]$vmName,[String]$hvServer,[String]$sshKey,[String]$vfIP,[String]$netmask)
+function ConfigureVMandVF([String]$vmName,[String]$hvServer,[String]$sshKey,[String]$vfIP,[String]$netmask,[String]$Switch_Name)
 {
     # Source TCUitls.ps1 for getipv4 and other functions
     if (Test-Path ".\setupScripts\TCUtils.ps1") {
@@ -887,18 +845,16 @@ function ConfigureVMandVF([String]$vmName,[String]$hvServer,[String]$sshKey,[Str
     }
 
     # Make sure VM2 is shutdown
-    if (Get-VM -Name $vmName -ComputerName $hvServer |  Where { $_.State -like "Running" }) {
+    if (Get-VM -Name $vmName -ComputerName $hvServer | Where-Object { $_.State -like "Running" }) {
         Stop-VM $vmName  -ComputerName $hvServer -force
-
-        if (-not $?)
-        {
+        if (-not $?) {
             "ERROR: Failed to shut $vm2Name down (in order to add a new network Adapter)"
             return $false
         }
 
         # wait for VM to finish shutting down
         $timeout = 60
-        while (Get-VM -Name $vmName -ComputerName $hvServer |  Where { $_.State -notlike "Off" })
+        while (Get-VM -Name $vmName -ComputerName $hvServer | Where-Object{ $_.State -notlike "Off" })
         {
             if ($timeout -le 0) {
                 "ERROR: Failed to shutdown $vmName"
@@ -917,7 +873,7 @@ function ConfigureVMandVF([String]$vmName,[String]$hvServer,[String]$sshKey,[Str
     Start-sleep -s 5
 
     # Add SR-IOV NIC adapter
-    Add-VMNetworkAdapter -vmName $vmName -SwitchName SRIOV -IsLegacy:$false -ComputerName $hvServer
+    Add-VMNetworkAdapter -vmName $vmName -SwitchName $Switch_Name -IsLegacy:$false -ComputerName $hvServer
     if ($? -ne "True") {
         "Error: Add-VmNic to $vmName failed"
         $retVal = $False
@@ -936,7 +892,7 @@ function ConfigureVMandVF([String]$vmName,[String]$hvServer,[String]$sshKey,[Str
     }
 
     # Start VM
-    if (Get-VM -Name $vmName -ComputerName $hvServer |  Where { $_.State -notlike "Running" }) {
+    if (Get-VM -Name $vmName -ComputerName $hvServer | Where-Object{ $_.State -notlike "Running" }) {
         Start-VM -Name $vmName -ComputerName $hvServer
         if (-not $?) {
             "ERROR: Failed to start VM ${vmName}"
@@ -1055,6 +1011,5 @@ function ConfigureVMandVF([String]$vmName,[String]$hvServer,[String]$sshKey,[Str
 
     # execute sent file
     $retVal = SendCommandToVM $ipv4 $sshKey "cd /root && chmod u+x ${filename} && sed -i 's/\r//g' ${filename} && ./${filename}"
-
     return $retVal
 }
