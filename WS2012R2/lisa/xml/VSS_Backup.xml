@@ -54,14 +54,11 @@
                 <suiteTest>STOR_VSS_BackupRestore_Mount_Squashfs</suiteTest>
                 <suiteTest>STOR_VSS_Backup_Disable_Enable_VSS</suiteTest>
                 <suiteTest>STOR_VSS_Backup_Change_Hypervvssd</suiteTest>
-
                 <!-- Live backup operations can fail silently if the VM has an
                 attached iSCSI device or direct-attached storage (pass-through disk).
                 iSCSI test requires an iSCSI server and target setup information.
-
                 <suiteTest>STOR_VSS_BackupRestore_PassTru</suiteTest>
                 <suiteTest>STOR_VSS_BackupRestore_iSCSI</suiteTest> -->
-
                 <suiteTest>STOR_VSS_Cleanup_Backup_Disk</suiteTest>
             </suiteTests>
         </suite>
@@ -86,7 +83,6 @@
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
         </test>
-
         <test>
             <testName>STOR_VSS_Cleanup_Backup_Disk</testName>
             <testScript>setupscripts\Cleanup_Backup_Disk.ps1</testScript>
@@ -102,7 +98,7 @@
             <files>remote-scripts/ica/utils.sh</files>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=VSS-05</param>
+                <param>TC_COVERED=VSS-01</param>
                 <param>SCSI=0,0,Dynamic</param>
                 <param>SCSI=1,0,Dynamic</param>
                 <param>SCSI=2,0,Dynamic</param>
@@ -118,7 +114,7 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_ISO_NoNetwork.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testParams>
-                <param>TC_COVERED=VSS-11</param>
+                <param>TC_COVERED=VSS-02</param>
                 <param>IsoFilename=CDTEST.iso</param>
             </testParams>
             <timeout>3000</timeout>
@@ -131,7 +127,7 @@
             <testScript>setupscripts\STOR_VSS_3Chain_VHD_backup.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testParams>
-                <param>TC_COVERED=VSS-12</param>
+                <param>TC_COVERED=VSS-03</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
@@ -143,7 +139,7 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_ISCSI.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testParams>
-                <param>TC_COVERED=VSS-13</param>
+                <param>TC_COVERED=VSS-11</param>
                 <param>TargetIP=10.7.1.10</param>
                 <param>IQN=iqn.2000-01.com:test-iqn</param>
                 <param>FILESYS=ext4</param>
@@ -158,7 +154,7 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_DiskStress.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testParams>
-                <param>TC_COVERED=VSS-14</param>
+                <param>TC_COVERED=VSS-04</param>
                 <param>iOzoneVers=3_424</param>
             </testParams>
             <timeout>3000</timeout>
@@ -170,7 +166,7 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_State.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testParams>
-                <param>TC_COVERED=VSS-15</param>
+                <param>TC_COVERED=VSS-05</param>
                 <param>vmState=Paused</param>
             </testParams>
             <timeout>3000</timeout>
@@ -183,10 +179,10 @@
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\AddHardDisk.ps1</file>
             </setupScript>
-			<files>remote-scripts/ica/utils.sh</files>
+            <files>remote-scripts/ica/utils.sh</files>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=VSS-16</param>
+                <param>TC_COVERED=VSS-12</param>
                 <param>SCSI=0,1,PassThrough</param>
                 <param>fileSystems=(ext4)</param>
             </testParams>
@@ -203,7 +199,7 @@
             <files>remote-scripts/ica/utils.sh</files>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Fail.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=VSS-18</param>
+                <param>TC_COVERED=VSS-06</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext4</param>
             </testParams>
@@ -220,7 +216,7 @@
             <files>remote-scripts/ica/utils.sh</files>
             <testScript>setupscripts\STOR_VSS_BackupRestore_Mount_Multi_Paths.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=VSS-19</param>
+                <param>TC_COVERED=VSS-07</param>
                 <param>IDE=0,1,Dynamic</param>
                 <param>FILESYS=ext4</param>
             </testParams>
@@ -234,7 +230,7 @@
             <testScript>setupscripts\STOR_VSS_BackupRestore_Mount_Squashfs.ps1</testScript>
             <files>remote-scripts/ica/utils.sh</files>
             <testParams>
-                <param>TC_COVERED=VSS-20</param>
+                <param>TC_COVERED=VSS-08</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
@@ -246,7 +242,7 @@
             <files>remote-scripts/ica/utils.sh</files>
             <testScript>setupscripts\STOR_VSS_Backup_Disable_Enable_VSS.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=VSS-21</param>
+                <param>TC_COVERED=VSS-09</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>
@@ -258,7 +254,7 @@
             <files>remote-scripts/ica/utils.sh</files>
             <testScript>setupscripts\STOR_VSS_Backup_Change_Hypervvssd.ps1</testScript>
             <testParams>
-                <param>TC_COVERED=VSS-22</param>
+                <param>TC_COVERED=VSS-10</param>
             </testParams>
             <timeout>3000</timeout>
             <OnError>Continue</OnError>

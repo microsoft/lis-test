@@ -709,26 +709,6 @@
                 <param>Entries=250</param>
             </testparams>
         </test>
-      <!-- VSS BACK-UP -->
-      <test>
-         <testName>STOR_VSS_BackupRestore_ext3_vhd</testName>
-         <setupScript>
-            <file>setupscripts\RevertSnapshot.ps1</file>
-            <file>setupscripts\AddHardDisk.ps1</file>
-         </setupScript>
-         <files>remote-scripts/ica/utils.sh</files>
-         <testScript>setupscripts\STOR_VSS_BackupRestore_Partition.ps1</testScript>
-         <testParams>
-            <param>TC_COVERED=VSS-01</param>
-            <param>SCSI=0,1,Dynamic</param>
-            <param>IDE=0,1,Dynamic</param>
-            <param>FILESYS=ext3</param>
-            <param>DriveLetter=V:</param>
-         </testParams>
-         <timeout>2400</timeout>
-         <OnError>Continue</OnError>
-         <noReboot>False</noReboot>
-      </test>
       <!-- Stress Tests -->
       <test>
          <testName>MultipleReboot</testName>
