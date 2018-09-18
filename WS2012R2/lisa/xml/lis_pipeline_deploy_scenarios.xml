@@ -29,11 +29,11 @@
 
             <!-- Deploy scenarios -->
             <suiteTest>Install_LIS</suiteTest>
-            <suiteTest>Uninstall_LIS</suiteTest> 
+            <suiteTest>Uninstall_LIS</suiteTest>
             <suiteTest>Install_LIS_Upgrade_kernel</suiteTest>
-            <suiteTest>Upgrade_LIS</suiteTest> 
-            <suiteTest>Downgrade_LIS</suiteTest> 
-            <suiteTest>Upgrade_LIS_upgrade_kernel</suiteTest> 
+            <suiteTest>Upgrade_LIS</suiteTest>
+            <suiteTest>Downgrade_LIS</suiteTest>
+            <suiteTest>Upgrade_LIS_upgrade_kernel</suiteTest>
             <suiteTest>Upgrade_kernel_upgrade_LIS</suiteTest>
             <suiteTest>Upgrade_kernel_no_reboot</suiteTest>
         </suiteTests>
@@ -48,17 +48,17 @@
 
             <!-- Deploy scenarios -->
             <suiteTest>Install_LIS</suiteTest>
-            <suiteTest>Uninstall_LIS</suiteTest> 
+            <suiteTest>Uninstall_LIS</suiteTest>
             <suiteTest>Install_LIS_Upgrade_kernel</suiteTest>
-            <suiteTest>Upgrade_LIS</suiteTest> 
-            <suiteTest>Downgrade_LIS</suiteTest> 
-            <suiteTest>Upgrade_LIS_upgrade_kernel</suiteTest> 
+            <suiteTest>Upgrade_LIS</suiteTest>
+            <suiteTest>Downgrade_LIS</suiteTest>
+            <suiteTest>Upgrade_LIS_upgrade_kernel</suiteTest>
             <suiteTest>Upgrade_kernel_upgrade_LIS</suiteTest>
             <suiteTest>Upgrade_kernel_no_reboot</suiteTest>
 
             <!-- Following tests require SRIOV adapters-->
             <suiteTest>Install_LIS_Check_Bonding</suiteTest>
-            <suiteTest>Upgrade_LIS_Check_Bonding</suiteTest> 
+            <suiteTest>Upgrade_LIS_Check_Bonding</suiteTest>
         </suiteTests>
     </suite>
     </testSuites>
@@ -113,7 +113,7 @@
             <timeout>1900</timeout>
             <testParams>
                 <param>TC_COVERED=LISDeploy-01</param>
-                <param>scenario=1</param>         
+                <param>scenario=1</param>
             </testParams>
         </test>
 
@@ -135,7 +135,7 @@
             <timeout>2600</timeout>
             <testParams>
                 <param>TC_COVERED=LISDeploy-05</param>
-                <param>scenario=5</param> 
+                <param>scenario=5</param>
             </testParams>
         </test>
 
@@ -179,7 +179,7 @@
             <timeout>2600</timeout>
             <testParams>
                 <param>TC_COVERED=LISDeploy-07</param>
-                <param>scenario=7</param>          
+                <param>scenario=7</param>
             </testParams>
         </test>
 
@@ -190,7 +190,7 @@
             <timeout>2600</timeout>
             <testParams>
                 <param>TC_COVERED=LISDeploy-04</param>
-                <param>scenario=4</param>          
+                <param>scenario=4</param>
             </testParams>
         </test>
 
@@ -205,8 +205,8 @@
             <timeout>2600</timeout>
             <testParams>
                 <param>TC_COVERED=LISDeploy-09</param>
-                <param>NIC=NetworkAdapter,External,SRIOV</param>
-                <param>scenario=9</param>          
+                <param>NIC=NetworkAdapter,External,SRIOV_MLNX</param>
+                <param>scenario=9</param>
             </testParams>
         </test>
 
@@ -221,8 +221,8 @@
             <timeout>2600</timeout>
             <testParams>
                 <param>TC_COVERED=LISDeploy-10</param>
-                <param>NIC=NetworkAdapter,External,SRIOV</param>
-                <param>scenario=10</param>          
+                <param>NIC=NetworkAdapter,External,SRIOV_MLNX</param>
+                <param>scenario=10</param>
             </testParams>
         </test>
     </testCases>
