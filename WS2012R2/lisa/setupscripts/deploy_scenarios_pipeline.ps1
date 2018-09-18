@@ -56,7 +56,7 @@ function InstallLIS() {
 
 function VerifyDaemons() {
     # Verify LIS Modules and daemons
-    $remoteScript = "CORE_LISmodules_version.sh"
+    $remoteScript = "CORE_LIS_modules.sh"
     $sts = RunRemoteScript $remoteScript
     if (-not $sts[-1]) {
         Write-Output "Error: Cannot verify LIS modules version on ${vmName}" | Tee-Object -Append -file $summaryLog
