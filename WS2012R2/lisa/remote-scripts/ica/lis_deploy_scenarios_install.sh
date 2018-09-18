@@ -49,8 +49,8 @@ fi
 
 # Deleting old LIS
 if [[ "$action" == "install" && "$first_install" == 0 ]]; then
-    UpdateSummary "successfully removed LIS"
-    rpm -qa | grep microsoft | xargs rpm -e | tee ~/LIS_scenario_${scenario}.log
+    UpdateSummary "Successfully removed LIS"
+    rpm -qa | grep "microsoft\|hyperv" | xargs rpm -e | tee ~/LIS_scenario_${scenario}.log
     chmod +w ~/constants.sh
     echo "first_install=1" >> ~/constants.sh
 fi
