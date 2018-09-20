@@ -3503,6 +3503,33 @@ function DoPS1TestRunning ([System.Xml.XmlElement] $vm, [XML] $xmlData)
         Debug-Job $jobStatus
     }
 
+   
+    # Get Log path
+    $vmName = $vm.vmName
+    $currentTest = $vm.currentTest
+    $logFilename = "${TestDir}\${vmName}_${currentTest}_ps.log"
+    $summaryLog = "${vmName}_summary.log"
+
+
+    # Collect log data
+    if ($jobStatus.State -ne "Completed") {
+        $jobResults = @(Receive-Job -id $jobID -ErrorAction SilentlyContinue)
+        $error.Clear()
+        if ($error.Count -gt 0) {
+            "Error : ${currentTest} script encountered an error"
+            $error[0].Exception.Message | out-file -encoding ASCII -append -filePath $logFilename
+        }
+
+        foreach ($line in $jobResults) {
+            if ($null -ne $line) {
+                $line | out-file -encoding ASCII -append -filePath $logFilename
+            }
+            else {
+                $line >> $logFilename
+            }
+        }
+    }
+
     if ($jobStatus.State -eq "Completed")
     {
         UpdateState $vm $PS1TestCompleted
