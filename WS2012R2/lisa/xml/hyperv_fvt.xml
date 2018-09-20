@@ -50,6 +50,9 @@
             <suiteTest>Disable_NUMA_By_Kernel</suiteTest>
             <suiteTest>PausedCritical_Heartbeat</suiteTest>
             <suiteTest>UIO_Basic</suiteTest>
+            <!-- lsvmbus tests -->
+            <suiteTest>lsvmbus_basic</suiteTest>
+            <suiteTest>lsvmbus_target</suiteTest>
             <!-- KVP and SQM tests -->
             <suiteTest>SQM_Basic</suiteTest>
             <suiteTest>KVP_basic_checks</suiteTest>
@@ -537,6 +540,48 @@
                   <param>TC_COVERED=UIO-01</param>
               </testParams>
               <timeout>400</timeout>
+        </test>
+      <!-- lsvmbus tests -->
+        <test>
+        <testName>lsvmbus_basic</testName>
+        <setupScript>
+            <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+            <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+        </setupScript>
+        <testScript>lsvmbus_basic.sh</testScript>
+        <files>remote-scripts/ica/lsvmbus_basic.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=lsvmbus-01</param>
+            <param>enableDM=yes</param>
+            <param>minMem=2048MB</param>
+            <param>maxMem=2GB</param>
+            <param>startupMem=2048MB</param>
+            <param>memWeight=0</param>
+            <param>staticMem=2048MB</param>
+        </testParams>
+        <timeout>800</timeout>
+        </test>
+
+        <test>
+        <testName>lsvmbus_target</testName>
+        <setupScript>
+            <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+            <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+            <file>setupScripts\ChangeCPU.ps1</file>
+        </setupScript>
+        <testScript>lsvmbus_target.sh</testScript>
+        <files>remote-scripts/ica/lsvmbus_target.sh,remote-scripts/ica/utils.sh</files>
+        <testParams>
+            <param>TC_COVERED=lsvmbus-02</param>
+            <param>enableDM=yes</param>
+            <param>minMem=2048MB</param>
+            <param>maxMem=2GB</param>
+            <param>startupMem=2048MB</param>
+            <param>memWeight=0</param>
+            <param>staticMem=2048MB</param>
+            <param>VCPU=8</param>
+        </testParams>
+        <timeout>800</timeout>
         </test>
       <!-- KVP_Tests -->
         <test>
