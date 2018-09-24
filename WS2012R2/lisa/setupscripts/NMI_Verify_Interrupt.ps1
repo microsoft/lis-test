@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-	Sends a NMI to a given VM by using the Debug-VM cmdlet
+	Sends a NMI to a given VM by using the Debug-VM cmdlet.
 
 .Description
 	The script will send a NMI to the specific VM. Script must be executed
@@ -29,31 +29,6 @@
 	can not send the NMI to VM.
 	This must be used along with the nmi_verify_interrupt.sh bash script to
 	check if the NMI is successfully detected by the Linux guest VM.
-
-	The test case definition for this test case would look similar to:
-        <test>
-            <testName>NMI_Send_Interrupt</testName>
-            <testScript>setupscripts\NMI_Send_Interrupt.ps1</testScript>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <testParams>
-                <param>TC_COVERED=NMI-01</param>
-                <param>rootDir=D:\lisa</param>
-            </testParams>
-            <noReboot>True</noReboot>
-        </test>
-
-	<test>
-            <testName>NMI_Verify_Interrupt</testName>
-            <testScript>nmi_verify_interrupt.sh</testScript>
-            <files>remote-scripts\ica\nmi_verify_interrupt.sh</files>
-            <timeout>600</timeout>
-            <onError>Continue</onError>
-            <testParams>
-                <param>TC_COVERED=NMI-01</param>
-            </testParams>
-            <noReboot>False</noReboot>
-        </test>
 
 .Parameter vmName
     Name of the VM to perform the test with.
@@ -65,7 +40,7 @@
     A semicolon separated list of test parameters.
 
 .Example
-    .\NMI_Send_Interrupt.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "rootDir=D:\lisa;TC_COVERED=NMI-01"
+    .\NMI_Verify_Interrupt.ps1 -vmName "MyVM" -hvServer "localhost" -testParams "rootDir=C:\lisa;"
 #>
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
@@ -122,12 +97,6 @@ foreach ($p in $params)
     }
 }
 
-if (-not $TC_COVERED)
-{
-    "Error: Missing testParam TC_COVERED value"
-    return $retVal
-}
-
 if (-not $rootDir)
 {
     "Error: Missing testParam rootDir value"
@@ -140,13 +109,13 @@ if (-not (Test-Path $rootDir))
     "Error: The directory `"${rootDir}`" does not exist"
     return $retVal
 }
-cd $rootDir
+Set-Location $rootDir
 
 #
 # Delete any summary.log from a previous test run, then create a new file
 #
 $summaryLog = "${vmName}_summary.log"
-del $summaryLog -ErrorAction SilentlyContinue
+Remove-Item $summaryLog -ErrorAction SilentlyContinue
 Write-output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append -file $summaryLog
 
 #

@@ -56,111 +56,105 @@ function UpdateTestState()
 }
 
 # test dd 5G files, dd one 5G file locally, then copy to /mnt which is mounted to disk
-function TestLocalCopyFile()
-{
- LogMsg "Start to dd file"
- echo "start to dd file"
- #dd 5G files
- dd if=/dev/zero of=/root/data bs=2048 count=2500000
- file_size=`ls -l /root/data | awk '{ print $5}' | tr -d '\r'`
- LogMsg "Successful dd file as /root/data"
- LogMsg "Start to copy file to /mnt"
- echo "start to copy file to /mnt"
- cp /root/data /mnt
- rm -f /root/data
- file_size1=`ls -l /mnt/data | awk '{ print $5}' | tr -d '\r'`
- echo "file_size after dd=$file_size"
- echo "file_size after copyed= $file_size1"
+function TestLocalCopyFile() {
+    LogMsg "Start to dd file"
+    echo "start to dd file"
+    #dd 5G files
+    dd if=/dev/zero of=/root/data bs=2048 count=2500000
+    file_size=`ls -l /root/data | awk '{ print $5}' | tr -d '\r'`
+    LogMsg "Successful dd file as /root/data"
+    LogMsg "Start to copy file to /mnt"
+    echo "start to copy file to /mnt"
+    cp /root/data /mnt
+    rm -f /root/data
+    file_size1=`ls -l /mnt/data | awk '{ print $5}' | tr -d '\r'`
+    echo "file_size after dd=$file_size"
+    echo "file_size after copyed= $file_size1"
 
- if [[ $file_size1 = $file_size ]]; then
-     LogMsg "Successful copy file"
-     LogMsg "Listing directory: ls /mnt/"
-     ls /mnt/
-     df -h
-     rm -rf /mnt/*
+    if [[ $file_size1 = $file_size ]]; then
+        LogMsg "Successful copy file"
+        LogMsg "Listing directory: ls /mnt/"
+        ls /mnt/
+        df -h
+        rm -rf /mnt/*
 
-     LogMsg "Disk test completed for ${driveName}1 with filesystem for copying 5G files ${fs} successfully"
-     echo "Disk test completed for ${driveName}1 with filesystem for copying 5G files ${fs} successfully" >> ~/summary.log
- else
-     LogMsg "Copying 5G file for ${driveName}1 with filesystem ${fs} failed"
-     echo "Copying 5G file for ${driveName}1 with filesystem ${fs} failed" >> ~/summary.log
-     UpdateTestState $ICA_TESTFAILED
-     exit 80
- fi
+        LogMsg "Disk test completed for file copy on ${driveName}1 with filesystem ${fs}."
+        echo "Disk test completed for file copy on ${driveName}1 with filesystem ${fs}." >> ~/summary.log
+    else
+        LogMsg "Copying 5G file for ${driveName}1 with filesystem ${fs} failed"
+        echo "Copying 5G file for ${driveName}1 with filesystem ${fs} failed" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
 }
 
 # test wget file, wget one 5G file to /mnt which is mounted to disk
-function TestWgetFile()
-{
-  file_basename=`basename $Wget_Path`
-  wget -O /mnt/$file_basename $Wget_Path
+function TestWgetFile() {
+    file_basename=`basename $Wget_Path`
+    wget -O /mnt/$file_basename $Wget_Path
 
-  file_size=`curl -sI $Wget_Path | grep Content-Length | awk '{print $2}' | tr -d '\r'`
-  file_size1=`ls -l /mnt/$file_basename | awk '{ print $5}' | tr -d '\r'`
-  echo "file_size before wget=$file_size"
-  echo "file_size after wget=$file_size1"
+    file_size=`curl -sI $Wget_Path | grep Content-Length | awk '{print $2}' | tr -d '\r'`
+    file_size1=`ls -l /mnt/$file_basename | awk '{ print $5}' | tr -d '\r'`
+    echo "file_size before wget=$file_size"
+    echo "file_size after wget=$file_size1"
 
-  if [[ $file_size = $file_size1 ]]; then
-      LogMsg "Drive wget to ${driveName}1 with filesystem ${fs} successfully"
-      echo "Drive wget to ${driveName}1 with filesystem ${fs} successfully" >> ~/summary.log
-  else
-      LogMsg "Drive wget to ${driveName}1 with filesystem ${fs} failed"
-      echo "Drive wget to ${driveName}1 with filesystem ${fs} failed" >> ~/summary.log
-      UpdateTestState $ICA_TESTFAILED
-      exit 80
-  fi
-
-  rm -rf /mnt/*
+    if [[ $file_size = $file_size1 ]]; then
+        LogMsg "Drive wget to ${driveName}1 with filesystem ${fs} successfully"
+        echo "Drive wget to ${driveName}1 with filesystem ${fs} successfully" >> ~/summary.log
+    else
+        LogMsg "Drive wget to ${driveName}1 with filesystem ${fs} failed"
+        echo "Drive wget to ${driveName}1 with filesystem ${fs} failed" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
+    rm -rf /mnt/*
 }
 
 # test copy from nfs path, dd one file to /mnt2 which is mounted to nfs, then copy to /mnt
 # which is mounted to disk
-function TestNFSCopyFile()
-{
-  if [ ! -d "/mnt_2" ]; then
-     mkdir /mnt_2
-  fi
-  mount -t nfs $NFS_Path /mnt_2
+function TestNFSCopyFile() {
+    if [ ! -d "/mnt_2" ]; then
+        mkdir /mnt_2
+    fi
+    mount -t nfs $NFS_Path /mnt_2
 
-  if [ "$?" = "0" ]; then
-      LogMsg "Mount nfs successfully from $NFS_Path"
-      # dd file
-      dd if=/dev/zero of=/mnt_2/data bs=$File_DD_Bs count=$File_DD_Count
-      sleep 2
+    if [ "$?" = "0" ]; then
+        LogMsg "Mount nfs successfully from $NFS_Path"
+        # dd file
+        dd if=/dev/zero of=/mnt_2/data bs=$File_DD_Bs count=$File_DD_Count
+        sleep 2
 
-      LogMsg "Finish dd file in nfs path, start to copy to drive..."
-      cp /mnt_2/data /mnt/
-      sleep 2
+        LogMsg "Finish dd file in nfs path, start to copy to drive..."
+        cp /mnt_2/data /mnt/
+        sleep 2
 
-      file_size=`ls -l /mnt_2/data | awk '{ print $5}' | tr -d '\r'`
-      file_size1=`ls -l /mnt/data | awk '{ print $5}' | tr -d '\r'`
-      echo "file_size after dd=$file_size"
-      echo "file_size after copy=$file_size1"
+        file_size=`ls -l /mnt_2/data | awk '{ print $5}' | tr -d '\r'`
+        file_size1=`ls -l /mnt/data | awk '{ print $5}' | tr -d '\r'`
+        echo "file_size after dd=$file_size"
+        echo "file_size after copy=$file_size1"
 
-      rm -rf /mnt/*
-      if [ $file_size = $file_size1 ]; then
-          LogMsg "Drive mount nfs and copy file successfully"
-          echo "Drive mount nfs and copy file successfully">> ~/summary.log
-      else
-          LogMsg "Drive mount nfs and copy file failed"
-          echo "Drive mount nfs and copy file failed" >> ~/summary.log
+        rm -rf /mnt/*
+        if [ $file_size = $file_size1 ]; then
+            LogMsg "Drive mount nfs and copy file successfully"
+            echo "Drive mount nfs and copy file successfully">> ~/summary.log
+        else
+            LogMsg "Drive mount nfs and copy file failed"
+            echo "Drive mount nfs and copy file failed" >> ~/summary.log
 
-          UpdateTestState $ICA_TESTFAILED
-          exit 80
-      fi
-      umount /mnt_2
-  else
-      LogMsg "Mount nfs ... from $NFS_Path failed"
-      echo "Mount nfs ... from $NFS_Path failed" >> ~/summary.log
-      UpdateTestState $ICA_TESTFAILED
-      exit 80
-  fi
-
+            UpdateTestState $ICA_TESTFAILED
+            exit 80
+        fi
+        umount /mnt_2
+    else
+        LogMsg "Mount nfs ... from $NFS_Path failed"
+        echo "Mount nfs ... from $NFS_Path failed" >> ~/summary.log
+        UpdateTestState $ICA_TESTFAILED
+        exit 80
+    fi
 }
 
 # Format the disk and create a file system, mount and create file on it.
-function TestFileSystemCopy()
-{
+function TestFileSystemCopy() {
     drive=$1
     fs=$2
     parted -s -- $drive mklabel gpt
@@ -215,7 +209,6 @@ function TestFileSystemCopy()
         echo "Error in executing parted  ${driveName}1 for ${fs}" >> ~/summary.log
         UpdateTestState $ICA_TESTFAILED
     fi
-
 }
 
 # Source the constants file
@@ -228,8 +221,6 @@ else
     UpdateTestState $ICA_TESTABORTED
     exit 10
 fi
-
-echo "Covers: ${TC_COVERED}" >> ~/summary.log
 
 # Create the state.txt file so ICA knows we are running
 UpdateTestState $ICA_TESTRUNNING
@@ -246,12 +237,6 @@ then
     echo "Cannot find constants.sh file."
     UpdateTestState $ICA_TESTABORTED
     exit 1
-fi
-
-#Check for Testcase count
-if [ ! ${TC_COVERED} ]; then
-    LogMsg "Warning: The TC_COVERED variable is not defined."
-    echo "Warning: The TC_COVERED variable is not defined." >> ~/summary.log
 fi
 
 echo "Covers: ${TC_COVERED}" >> ~/summary.log
@@ -285,7 +270,6 @@ echo "constants disk count= $diskCount"
 # Compute the number of sd* drives on the system
 for driveName in /dev/sd*[^0-9];
 do
-
     # Skip /dev/sda
     if [ ${driveName} = "/dev/sda" ]; then
         continue
@@ -309,5 +293,4 @@ do
 done
 
 UpdateTestState $ICA_TESTCOMPLETED
-
 exit 0
