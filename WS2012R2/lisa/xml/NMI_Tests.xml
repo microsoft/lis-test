@@ -37,33 +37,18 @@
             <subject>LISA NMI tests</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
-
         <!-- Optional testParams go here -->
     </global>
-
     <testSuites>
         <suite>
             <suiteName>NMI</suiteName>
             <suiteTests>
-                <!-- <suiteTest>NMI_Send_Interrupt</suiteTest> -->
                 <suiteTest>NMI_Verify_Interrupt</suiteTest>
                 <suiteTest>NMI_different_vmStates</suiteTest>
             </suiteTests>
         </suite>
     </testSuites>
-
     <testCases>
-        <!-- <test>
-            <testName>NMI_Send_Interrupt</testName>
-            <testScript>setupscripts\NMI_Send_Interrupt.ps1</testScript>
-            <timeout>300</timeout>
-            <onError>Continue</onError>
-            <noReboot>True</noReboot>
-            <testParams>
-                <param>TC_COVERED=NMI-01a</param>
-            </testParams>
-        </test> -->
-
         <test>
             <testName>NMI_Verify_Interrupt</testName>
             <testScript>setupscripts\NMI_Verify_Interrupt.ps1</testScript>
@@ -77,7 +62,6 @@
                 <param>TC_COVERED=NMI-01</param>
             </testParams>
         </test>
-
         <test>
             <testName>NMI_different_vmStates</testName>
             <testScript>setupscripts\NMI_different_vmStates.ps1</testScript>
@@ -88,18 +72,15 @@
                 <param>TC_COVERED=NMI-02</param>
             </testParams>
         </test>
-
     </testCases>
-
     <VMs>
         <VM>
             <hvServer>localhost</hvServer>
             <vmName>VMname</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
-            <sshKey>linux_id_rsa.ppk</sshKey>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>NMI</suite>
         </VM>
     </VMs>
-
 </config>
