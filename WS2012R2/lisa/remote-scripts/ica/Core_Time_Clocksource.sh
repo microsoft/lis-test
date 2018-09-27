@@ -27,7 +27,8 @@
 # Description:
 #	This script was created to check and unbind the current clocksource.
 #
-################################################################
+########################################################################
+
 dos2unix utils.sh
 # Source utils.sh
 . utils.sh || {
@@ -42,8 +43,7 @@ UtilsInit
 #
 # Check the file of current_clocksource
 #
-CheckSource()
-{
+CheckSource() {
     current_clocksource="/sys/devices/system/clocksource/clocksource0/current_clocksource"
     clocksource="hyperv_clocksource_tsc_page"
     if ! [[ $(find $current_clocksource -type f -size +0M) ]]; then
@@ -87,8 +87,7 @@ CheckSource()
     fi
 }
 
-function UnbindCurrentSource()
-{
+function UnbindCurrentSource() {
     unbind_file="/sys/devices/system/clocksource/clocksource0/unbind_clocksource"
     clocksource="hyperv_clocksource_tsc_page"
     echo $clocksource > $unbind_file
@@ -122,7 +121,7 @@ case $DISTRO in
         UpdateSummary "WARNING: $DISTRO does not support unbind current clocksource, only check"
         CheckSource
         ;;
-    redhat_7|redhat_8|centos_7|centos_8|fedora*)
+    redhat_7|redhat_8|centos_7|centos_8|fedora*|suse*)
         CheckSource
         UnbindCurrentSource
         ;;
