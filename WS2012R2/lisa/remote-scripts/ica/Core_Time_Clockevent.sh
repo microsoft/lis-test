@@ -27,7 +27,8 @@
 # Description:
 #	This script was created to check current clockevent device and unbind func.
 #
-################################################################
+########################################################################
+
 dos2unix utils.sh
 # Source utils.sh
 . utils.sh || {
@@ -42,8 +43,7 @@ UtilsInit
 #
 # Check the file of current_device for clockevent
 #
-CheckClockEvent()
-{
+CheckClockEvent() {
     current_clockevent="/sys/devices/system/clockevents/clockevent0/current_device"
     if ! [[ $(find $current_clockevent -type f -size +0M) ]]; then
         LogMsg "Test Failed. No file was found current_device greater than 0M."
@@ -65,8 +65,7 @@ CheckClockEvent()
 }
 
 # check timer info in /proc/timer_list compares vcpu count
-CheckTimerInfo()
-{
+CheckTimerInfo() {
     timer_list="/proc/timer_list"
     clockevent_count=`cat $timer_list | grep "Hyper-V clockevent" | wc -l`
     event_handler_count=`cat $timer_list | grep "hrtimer_interrupt" | wc -l`
@@ -82,8 +81,7 @@ CheckTimerInfo()
 }
 
 # unbind clockevent "Hyper-V clockevent"
-UnbindClockEvent()
-{
+UnbindClockEvent() {
     if [ $VCPU -gt 1 ]; then
         LogMsg "SMP vcpus not support unbind clockevent"
         UpdateSummary "SMP vcpus not support unbind clockevent"
@@ -122,7 +120,7 @@ case $DISTRO in
         SetTestStateSkipped
         exit 1
         ;;
-    redhat_7|redhat_8|centos_7|centos_8|fedora*)
+    redhat_7|redhat_8|centos_7|centos_8|fedora*|suse*)
         CheckClockEvent
         CheckTimerInfo
         UnbindClockEvent
