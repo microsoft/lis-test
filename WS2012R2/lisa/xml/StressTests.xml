@@ -18,7 +18,7 @@
         <suite>
             <suiteName>Stress</suiteName>
             <suiteTests>
-                <suiteTest>EventId18602Regression</suiteTest>
+                <suiteTest>EventId_18602_regression</suiteTest>
                 <suiteTest>Sysbench</suiteTest>
                 <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
                 <suiteTest>BootVM_LargeMemory</suiteTest>
@@ -29,8 +29,8 @@
 
     <testCases>
         <test>
-            <testName>EventId18602Regression</testName>
-            <testScript>setupScripts\eventid_18602_regression..ps1</testScript>
+            <testName>EventId_18602_regression</testName>
+            <testScript>setupScripts\eventid_18602_regression.ps1</testScript>
             <timeout>9000</timeout>
             <testParams>
                 <param>TC_COVERED=Stress-01</param>
@@ -101,7 +101,7 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>VM_name</vmName>
+            <vmName>stress_vm</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
