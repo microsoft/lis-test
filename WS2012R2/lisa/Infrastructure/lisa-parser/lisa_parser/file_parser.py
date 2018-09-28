@@ -518,14 +518,18 @@ class NTTTCPUDPLogsReader(BaseLogsReader):
         log_dict['RxThroughput_Gbps'] = 0
         log_dict['IPVersion'] = 'IPv4'
         log_dict['Protocol'] = 'UDP'
-        with open(log_file, 'r') as fl:
-            for x in fl:
-                if not log_dict.get('TxThroughput_Gbps', None):
-                 throughput = re.match('.+INFO.+throughput.+:([0-9.]+)', x)
-                if throughput:
+        log_files = [os.path.join(os.path.dirname(log_file), f)
+                     for f in os.listdir(os.path.dirname(log_file))
+                     if f.startswith('ntttcp-sender-')]
+        for log_f in log_files:
+            with open(log_f, 'r') as fl:
+                for x in fl:
+                    if not log_dict.get('TxThroughput_Gbps', None):
+                      throughput = re.match('.+INFO.+throughput.+:([0-9.]+)', x)
+                    if throughput:
                         log_dict['TxThroughput_Gbps'] = throughput.group(1).strip()
-                if not log_dict.get('SenderCyclesPerByte', None):
-                    cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
+                    if not log_dict.get('SenderCyclesPerByte', None):
+                      cycle = re.match('.+cycles/byte\s*:\s*([0-9.]+)', x)
                     if cycle:
                         log_dict['SenderCyclesPerByte'] = cycle.group(1).strip()
         receiver_file = os.path.join(os.path.dirname(os.path.abspath(log_file)),
