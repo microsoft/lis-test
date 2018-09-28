@@ -18,7 +18,7 @@
         <suite>
             <suiteName>Stress</suiteName>
             <suiteTests>
-                <suiteTest>MultipleReboot</suiteTest>
+                <suiteTest>EventId_18602_regression</suiteTest>
                 <suiteTest>Sysbench</suiteTest>
                 <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
                 <suiteTest>BootVM_LargeMemory</suiteTest>
@@ -29,12 +29,12 @@
 
     <testCases>
         <test>
-            <testName>MultipleReboot</testName>
-            <testScript>setupScripts\MultipleReboot.ps1</testScript>
-            <timeout>3600</timeout>
+            <testName>EventId_18602_regression</testName>
+            <testScript>setupScripts\eventid_18602_regression.ps1</testScript>
+            <timeout>9000</timeout>
             <testParams>
                 <param>TC_COVERED=Stress-01</param>
-                <param>count=50</param>
+                <param>count=100</param>
             </testParams>
             <onError>Continue</onError>
             <noReboot>False</noReboot>
@@ -101,7 +101,7 @@
     <VMs>
         <vm>
             <hvServer>localhost</hvServer>
-            <vmName>VM_name</vmName>
+            <vmName>stress_vm</vmName>
             <os>Linux</os>
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
