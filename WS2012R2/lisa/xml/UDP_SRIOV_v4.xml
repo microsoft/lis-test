@@ -25,6 +25,10 @@
     </LisaInitScript>
     <!-- Optional testParams go here -->
     <imageStoreDir>\\unc\path</imageStoreDir>
+    <testParams>
+      <param>hvServer1=43f13-35</param>
+      <param>hvServer2=43f13-36</param>
+    </testParams>
   </global>
   <testSuites>
     <suite>
@@ -42,10 +46,12 @@
   <testCases>
     <test>
       <testName>UDP_v4_1k_sriov</testName>
-      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
       <setupScript>
-        <file>setupScripts\perf_SRIOV_enable.ps1</file>
+        <file>setupScripts\Check_PowerPlan.ps1</file>
+        <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+        <file>setupscripts\perf_SRIOV_enable.ps1</file>
       </setupScript>
+      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
       <testScript>perf_ntttcp_client.sh</testScript>
       <files>remote-scripts/ica/perf_ntttcp_client.sh,remote-scripts/ica/perf_ntttcp_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
       <testParams>
@@ -77,10 +83,12 @@
     </test>
     <test>
       <testName>UDP_v4_8k_sriov</testName>
-      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
       <setupScript>
-        <file>setupScripts\perf_SRIOV_enable.ps1</file>
+        <file>setupScripts\Check_PowerPlan.ps1</file>
+        <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+        <file>setupscripts\perf_SRIOV_enable.ps1</file>
       </setupScript>
+      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
       <testScript>perf_ntttcp_client.sh</testScript>
       <files>remote-scripts/ica/perf_ntttcp_client.sh,remote-scripts/ica/perf_ntttcp_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
       <testParams>
@@ -112,11 +120,12 @@
     </test>
     <test>
       <testName>UDP_v6_1k_sriov</testName>
-      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
       <setupScript>
         <file>setupScripts\Check_PowerPlan.ps1</file>
+        <file>Infrastructure\Configure-Numa-Rss.ps1</file>
         <file>setupscripts\perf_SRIOV_enable.ps1</file>
       </setupScript>
+      <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
       <testScript>perf_iperf_client.sh</testScript>
       <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
       <files>Tools/iperf-3.1.3.tar.gz</files>
@@ -155,11 +164,12 @@
     </test>
     <test>
       <testName>UDP_v6_8k_sriov</testName>
+      <setupScript>
+        <file>setupScripts\Check_PowerPlan.ps1</file>
+        <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+        <file>setupscripts\perf_SRIOV_enable.ps1</file>
+      </setupScript>
       <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
-      <!--<setupScript>
-                <file>setupScripts\Check_PowerPlan.ps1</file> 
-                <file>setupscripts\perf_SRIOV_enable.ps1</file> 
-            </setupScript>-->
       <testScript>perf_iperf_client.sh</testScript>
       <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
       <files>Tools/iperf-3.1.3.tar.gz</files>
