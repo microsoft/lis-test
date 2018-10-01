@@ -25,10 +25,6 @@
 #
 # Performance_FIO.sh
 #
-# Description:
-#     For the test to run you have to place the fio-2.1.10.tar.gz  archive and lis-ssd-test.fio in the
-#     Tools folder under lisa.
-#
 # Parameters:
 #     DISKS: Number of disks attached
 #     TEST_DEVICE1 = /dev/sdb
@@ -54,26 +50,6 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-LinuxRelease()
-{
-    DISTRO=`grep -ihs "buntu\|Suse\|Fedora\|Debian\|CentOS\|Red Hat Enterprise Linux" /etc/{issue,*release,*version}`
-
-    case $DISTRO in
-        *buntu*)
-            echo "UBUNTU";;
-        Fedora*)
-            echo "FEDORA";;
-        CentOS*)
-            echo "CENTOS";;
-        *SUSE*)
-            echo "SLES";;
-        Red*Hat*)
-            echo "RHEL";;
-        Debian*)
-            echo "DEBIAN";;
-    esac
-}
-
 #
 # Create the state.txt file so ICA knows we are running
 #
@@ -90,7 +66,6 @@ else
 fi
 
 if [ -e ~/summary.log ]; then
-    LogMsg "Cleaning up previous copies of summary.log"
     rm -rf ~/summary.log
 fi
 
@@ -114,22 +89,27 @@ dos2unix utils.sh
     exit 2
 }
 
-#Apling performance parameters
+# Applying performance parameters
 setup_io_scheduler
 if [ $? -ne 0 ]; then
     echo "Unable to add performance parameters."
     LogMsg "Unable to add performance parameters."
     UpdateTestState $ICA_TESTABORTED
 fi
+
 echo "Kernel version: $(uname -r)" >> ~/summary.log
 
-case $(LinuxRelease) in
+# Get distro
+GetDistro
+
+case "$DISTRO" in
     "UBUNTU")
         LogMsg "Run test on Ubuntu. Install dependencies..."
-        apt-get -y install make gcc mdadm libaio-dev
+        apt update
+        apt -y install make gcc mdadm libaio-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the dependencies.!" >> ~/summary.log
+            echo "Failed to install the dependencies!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
@@ -143,28 +123,28 @@ case $(LinuxRelease) in
 
     ;;
     "RHEL"|"CENTOS")
-        LogMsg "Run test on RHEL. Install libaio-devel..."
+        LogMsg "Run test on RHEL. Install dependencies..."
         yum -y install libaio-devel mdadm zlib-dev
         sts=$?
         if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the libaio-dev library!" >> ~/summary.log
+            echo "Failed to install the dependencies!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
     ;;
     "SLES")
-        LogMsg "Run test on SLES. Install libaio-devel..."
+        LogMsg "Run test on SLES. Install dependencies..."
         zypper --non-interactive install libaio-devel mdadm
         sts=$?
         if [ 0 -ne ${sts} ]; then
-            echo "Failed to install the libaio-devel library!" >> ~/summary.log
+            echo "Failed to install the dependencies!" >> ~/summary.log
             UpdateTestState $ICA_TESTABORTED
             exit 41
         fi
     ;;
 esac
 
-#Setup FIO-tool
+# Setup FIO-tool
 setup_fio
 if [ $? -ne 0 ]; then
     LogMsg "ERROR: FIO failed."
@@ -172,7 +152,7 @@ if [ $? -ne 0 ]; then
     UpdateTestState $ICA_TESTABORTED
 fi
 
-#Run FIO
+# Run FIO
 if [ "${TC_COVERED}" == "FIO" ]; then
     echo "INFO: Run FIO on single disk."
     fio_single_disk
@@ -190,7 +170,9 @@ else
         UpdateTestState $ICA_TESTABORTED
      fi
 fi
+
 LogMsg "FIO test completed successfully"
 echo "FIO test completed successfully" >> ~/summary.log
+
 LogMsg "Updating test case state to completed"
 UpdateTestState $ICA_TESTCOMPLETED
