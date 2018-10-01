@@ -21,7 +21,8 @@
       <testScript>Performance_FIO.sh</testScript>
       <files>remote-scripts/ica/Performance_FIO.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
       <setupScript>
-        <file>setupScripts\AddHardDisk.ps1</file>
+       <file>setupScripts\Check_PowerPlan.ps1</file>
+       <file>setupScripts\AddHardDisk.ps1</file>
       </setupScript>
       <cleanupScript>SetupScripts\RemoveHardDisk.ps1</cleanupScript>
       <timeout>48000</timeout>

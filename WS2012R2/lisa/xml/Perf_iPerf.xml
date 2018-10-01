@@ -35,17 +35,21 @@
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
         <imageStoreDir>\\UNCpath\test</imageStoreDir>
-       <!-- Optional testParams go here -->
+        <!-- Optional testParams go here -->
+        <testParams>
+            <param>hvServer1=LIS-PERF08</param>
+            <param>hvServer2=LIS-PERF09</param>
+        </testParams>
     </global>
 
     <testSuites>
         <suite>
             <suiteName>iperf</suiteName>
             <suiteTests>
-                    <!-- TCP Testing -->
+                <!-- TCP Testing -->
                 <suiteTest>iperf3-TCP</suiteTest>
                 <suiteTest>iperf3-TCP-ipv6</suiteTest>
-                     <!-- UDP Testing -->
+                <!-- UDP Testing -->
                 <suiteTest>iperf3-UDP-1k</suiteTest>
                 <suiteTest>iperf3-UDP-8k</suiteTest>
                 <suiteTest>iperf3-UDP-ipv6-1k</suiteTest>
@@ -55,8 +59,12 @@
     </testSuites>
 
     <testCases>
-         <test>
+        <test>
             <testName>iperf3-TCP</testName>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+            </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_iperf_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
@@ -90,6 +98,10 @@
 
         <test>
             <testName>iperf3-TCP-ipv6</testName>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+            </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_udp_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
@@ -121,9 +133,13 @@
             <OnError>Continue</OnError>
         </test>
 
-<!-- UDP Testing -->
+        <!-- UDP Testing -->
         <test>
             <testName>iperf3-UDP-1k</testName>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+            </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_iperf_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
@@ -160,7 +176,10 @@
 
         <test>
             <testName>iperf3-UDP-8k</testName>
-            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+            </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_iperf_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
@@ -197,6 +216,10 @@
 
         <test>
             <testName>iperf3-UDP-ipv6-1k</testName>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+            </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_udp_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
@@ -233,6 +256,10 @@
 
         <test>
             <testName>iperf3-UDP-ipv6-8k</testName>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+            </setupScript>
             <pretest>setupscripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_udp_client.sh</testScript>
             <files>remote-scripts/ica/perf_iperf_client.sh,remote-scripts/ica/perf_iperf_server.sh,remote-scripts/ica/perf_run_parallelcommands.sh,remote-scripts/ica/perf_capturer.sh,remote-scripts/ica/utils.sh</files>
@@ -278,12 +305,12 @@
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <suite>iperf</suite>
             <hardware>
-               <create>true</create>
-               <numCPUs>8</numCPUs>
-               <memSize>8192</memSize>
-               <disableDiff>True</disableDiff>
-               <nic>VMBus,External</nic>
-               <nic>VMBus,Vm.Private40G#1,001600112200</nic>
+                <create>true</create>
+                <numCPUs>8</numCPUs>
+                <memSize>8192</memSize>
+                <disableDiff>True</disableDiff>
+                <nic>VMBus,External</nic>
+                <nic>VMBus,Vm.Private40G#1,001600112200</nic>
             </hardware>
         </vm>
         <vm>
@@ -294,12 +321,12 @@
             <ipv4></ipv4>
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <hardware>
-               <create>true</create>
-               <numCPUs>12</numCPUs>
-               <memSize>8</memSize>
-               <disableDiff>True</disableDiff>
-               <nic>VMBus,External,001600112233</nic>
-               <nic>VMBus,Vm.Private40G#1,001600112201</nic>
+                <create>true</create>
+                <numCPUs>12</numCPUs>
+                <memSize>8</memSize>
+                <disableDiff>True</disableDiff>
+                <nic>VMBus,External,001600112233</nic>
+                <nic>VMBus,Vm.Private40G#1,001600112201</nic>
             </hardware>
         </vm>
     </VMs>

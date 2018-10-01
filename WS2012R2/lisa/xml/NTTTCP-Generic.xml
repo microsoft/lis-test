@@ -35,7 +35,11 @@
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
         <imageStoreDir>\\path\to\vhd</imageStoreDir>
-       <!-- Optional testParams go here -->
+        <!-- Optional testParams go here -->
+        <testParams>
+            <param>hvServer1=LIS-PERF08</param>
+            <param>hvServer2=LIS-PERF09</param>
+        </testParams>
     </global>
 
     <testSuites>
@@ -49,9 +53,12 @@
     </testSuites>
 
     <testCases>
-         <test>
+        <test>
             <testName>ntttcp_v4</testName>
-            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
+            <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+            </setupScript>
             <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_ntttcp_client.sh</testScript>
             <files>remote-scripts/ica/perf_ntttcp_client.sh,remote-scripts/ica/perf_ntttcp_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
@@ -77,11 +84,14 @@
             </uploadFiles>
             <timeout>7200</timeout>
             <OnError>Continue</OnError>
-         </test>
+        </test>
 
-          <test>
+        <test>
             <testName>ntttcp_v6</testName>
-            <setupScript>setupScripts\Check_PowerPlan.ps1</setupScript>
+             <setupScript>
+                <file>setupScripts\Check_PowerPlan.ps1</file>
+                <file>Infrastructure\Configure-Numa-Rss.ps1</file>
+            </setupScript>
             <pretest>setupScripts\NET_SendIPtoVM.ps1</pretest>
             <testScript>perf_ntttcp_client.sh</testScript>
             <files>remote-scripts/ica/perf_ntttcp_client.sh,remote-scripts/ica/perf_ntttcp_server.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/perf_utils.sh</files>
@@ -107,7 +117,7 @@
             </uploadFiles>
             <timeout>7200</timeout>
             <OnError>Continue</OnError>
-         </test>
+        </test>
     </testCases>
 
     <VMs>
@@ -121,12 +131,12 @@
             <suite>ntttcp</suite>
             <hardware>
                 <generation>1</generation>
-               <create>true</create>
-               <numCPUs>8</numCPUs>
-               <memSize>8192</memSize>
-               <disableDiff>True</disableDiff>
-               <nic>VMBus,External</nic>
-               <nic>VMBus,SRIOV,001600112200</nic>
+                <create>true</create>
+                <numCPUs>8</numCPUs>
+                <memSize>8192</memSize>
+                <disableDiff>True</disableDiff>
+                <nic>VMBus,External</nic>
+                <nic>VMBus,SRIOV,001600112200</nic>
             </hardware>
         </vm>
         <vm>
@@ -138,12 +148,12 @@
             <sshKey>rhel5_id_rsa.ppk</sshKey>
             <hardware>
                 <generation>1</generation>
-               <create>true</create>
-               <numCPUs>8</numCPUs>
-               <memSize>8192</memSize>
-               <disableDiff>True</disableDiff>
-               <nic>VMBus,External,001600118899</nic>
-               <nic>VMBus,SRIOV,001600112201</nic>
+                <create>true</create>
+                <numCPUs>8</numCPUs>
+                <memSize>8192</memSize>
+                <disableDiff>True</disableDiff>
+                <nic>VMBus,External,001600118899</nic>
+                <nic>VMBus,SRIOV,001600112201</nic>
             </hardware>
         </vm>
     </VMs>
