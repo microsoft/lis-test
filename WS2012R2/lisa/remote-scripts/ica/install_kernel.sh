@@ -96,7 +96,7 @@ function prepare_rhel {
 }
 
 function install_kernel_debian {
-    apt remove -y linux-cloud-tools-common
+    apt remove -y linux-cloud-tools-common grub-legacy-ec2
     dpkg --force-all -i *.deb
     if [[ $? -ne 0 ]];then
         msg="Error: deb install failed."
