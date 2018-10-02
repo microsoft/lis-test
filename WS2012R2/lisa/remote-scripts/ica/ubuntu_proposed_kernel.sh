@@ -25,7 +25,8 @@
 #
 # Description:
 #     This script was created to automate the installation and validation
-#     of an Ubuntu proposed kernel or Ubuntu proposed kernel azure.
+#     of an Ubuntu proposed kernel.
+#
 #     The following steps are performed:
 #		1. Adds the proposed repository source for the detected release.
 #		2. Installs the newest proposed kernel version or newest proposed
@@ -33,8 +34,9 @@
 #		3. Matching LIS daemons packages are also installed.
 #		4. Modifies grub configuration to boot the installed kernel.
 #
-# Note: For Ubuntu proposed kernel azure you must have param 'azure_kernel'
-#     set to 'yes'. Also, linux-azure exist only for Ubuntu 16.04 LTS.
+# Note: Flags must alternate - if azure_kernel_edge is set to "yes",
+#     then azure_kernel must be set to "no".
+#
 ########################################################################
 
 DEBUG_LEVEL=3
@@ -98,6 +100,7 @@ apply_proposed_kernel_azure() {
         exit 1
     fi
 }
+
 apply_proposed_kernel_azure_edge() {
     candidate_kernel=$(apt-cache policy linux-azure-edge | grep "Candidate")
     apt-get install -qq linux-azure-edge/$release
@@ -136,7 +139,6 @@ fi
 # Check if script is running on primary vm or secondary vm
 # If constants.sh is present, means that script is running on 1st vm
 # Otherwise it's running on secondary vm
-ls ~/constants.sh
 cat constants.sh | grep VM2NAME
 willInstall=$?
 
@@ -211,7 +213,6 @@ fi
 
 echo "Grub configuration has been successfully modified."
 
-
 # Send the script on the secondary vm if it's the case
 if [ $willInstall -eq 0 ]; then
     . ~/constants.sh || {
@@ -247,5 +248,4 @@ fi
 #
 dbgprint 1 "Exiting with state: TestCompleted."
 UpdateTestState "TestCompleted"
-
 exit 0
