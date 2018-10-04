@@ -44,7 +44,7 @@ CONSTANTS_FILE="constants.sh"
 
 # define regular stable releases in order to avoid unstable builds
 # https://github.com/linux-test-project/ltp/tags
-ltp_version="20170929"
+ltp_version="20180118"
 
 TOP_BUILDDIR="/opt/ltp"
 TOP_SRCDIR="$HOME/src"
