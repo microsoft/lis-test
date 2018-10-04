@@ -104,6 +104,18 @@ function install_kernel_debian {
         UpdateTestState $ICA_TESTABORTED
         exit 1
     fi
+    image_file=$(ls -1 *image* | grep -v "dbg" | sed -n 1p)
+    if [[ "${image_file}" != '' ]]; then
+        kernel_identifier=$(dpkg-deb --info "${image_file}" | grep 'Package: ' | grep -o "image.*")
+        kernel_identifier=${kernel_identifier#image-}
+        sudo sed -i.bak 's/GRUB_DEFAULT=.*/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux '$kernel_identifier'"/g' /etc/default/grub
+        sudo update-grub
+    else
+        msg="Error: kernel configure failed."
+        UpdateSummary $msg
+        UpdateTestState $ICA_TESTABORTED
+        exit 1
+    fi
 }
 
 function install_kernel_rhel {
