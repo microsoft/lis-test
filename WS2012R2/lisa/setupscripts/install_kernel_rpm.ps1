@@ -25,6 +25,40 @@
 
 param([string] $vmName, [string] $hvServer, [string] $testParams)
 
+function Set-UbuntuBootKernel {
+    param (
+        [string] $ipv4,
+        [string] $sshkey,
+        [string] $rootDir
+    )
+
+    $retVal = $False
+    $scriptName = "change-grub.sh"
+    $script = @'
+#!/bin/bash
+
+cd /tmp/test-artifacts
+image_file=$(ls -1 *image* | grep -v "dbg" | sed -n 1p)
+if [[ "${image_file}" != '' ]]; then
+    kernel_identifier=$(dpkg-deb --info "${image_file}" | grep 'Package: ' | grep -o "image.*")
+    kernel_identifier=${kernel_identifier#image-}
+    sed -i.bak 's/GRUB_DEFAULT=.*/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux '$kernel_identifier'"/g' /etc/default/grub
+    update-grub
+else
+    exit 1
+fi
+'@
+
+    $scriptPath = Join-Path $rootDir $scriptName
+    Set-Content -Value $script -Path $scriptPath
+    SendFileToVM $ipv4 $sshkey $scriptPath "/root/$scriptName" -ChangeEOL
+    Remove-Item -Path $scriptPath
+
+    $retVal = SendCommandToVM $ipv4 $sshkey "bash /root/$scriptName"
+    return $retVal
+}
+
+
 #
 # Main script
 #
@@ -130,10 +164,11 @@ if ($distro -eq "rhel" -or $distro -or $distro -eq "centos") {
 }
 if ($distro -eq "ubuntu") {
     # Install deb packages & extract source files
-    SendCommandToVM $ipv4 $sshKey "apt -y remove linux-cloud-tools-common"
+    SendCommandToVM $ipv4 $sshKey "apt -y remove linux-cloud-tools-common grub-legacy-ec2"
     SendCommandToVM $ipv4 $sshKey "dpkg -i /tmp/$kernel/linux-*image-*"
     SendCommandToVM $ipv4 $sshKey "dpkg -i /tmp/$kernel/*hyperv-daemons*"
     Start-Sleep -s 120
+    Set-UbuntuBootKernel $ipv4 $sshKey $rootDir
 }
 
 # Restart VM and check daemons
