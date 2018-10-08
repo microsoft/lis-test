@@ -781,7 +781,7 @@ function SendFileToVM([String] $ipv4, [String] $sshkey, [string] $localFile, [st
 
     if ($ChangeEOL)
     {
-        .bin\plink -i ssh\${sshKey} root@${ipv4} "dos2unix $remoteFile"
+        .\bin\plink -i ssh\${sshKey} root@${ipv4} "dos2unix $remoteFile"
     }
 
     return $retVal
