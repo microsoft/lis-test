@@ -60,7 +60,7 @@ param([string] $vmName, [string] $hvServer, [string] $testParams)
 
 # Define the guest side script
 $remoteScript = "STOR_VSS_StopNetwork.sh"
-
+$url = "http://ports.ubuntu.com/dists/trusty/main/installer-powerpc/current/images/powerpc/netboot/mini.iso"
 $retVal = $false
 
 ######################################################################
@@ -212,13 +212,37 @@ if (-not $sts[-1])
 }
 
 Write-Output "VSS Daemon is running " >> $summaryLog
+#
+# Get Hyper-V VHD path
+#
+$obj = Get-WmiObject -ComputerName $hvServer -Namespace "root\virtualization\v2" -Class "MsVM_VirtualSystemManagementServiceSettingData"
+$defaultVhdPath = $obj.DefaultVirtualHardDiskPath
+if (-not $defaultVhdPath) {
+    "Error: Unable to determine VhdDefaultPath on Hyper-V server ${hvServer}"
+    $error[0].Exception
+    return $False
+}
+if (-not $defaultVhdPath.EndsWith("\")) {
+    $defaultVhdPath += "\"
+}
+$isoPath = $defaultVhdPath + "${vmName}_CDtest.iso"
+
+$WebClient = New-Object System.Net.WebClient
+$WebClient.DownloadFile("$url","$isoPath")
+
+try {
+    GetRemoteFileInfo $isoPath $hvServer
+} catch {
+    "Error: The .iso file $isoPath could not be found!"
+    return $False
+}
 
 # Insert CD/DVD .
-$CdPath = ".\bin\CDTEST.iso"
-Set-VMDvdDrive -VMName $vmName -ComputerName $hvServer -Path $CdPath
+
+Set-VMDvdDrive -VMName $vmName -ComputerName $hvServer -Path $isoPath
 if (-not $?)
     {
-        "Error: Unable to Add ISO $CdPath" 
+        "Error: Unable to Add ISO $isoPath"
         return $False
     }
 
