@@ -767,9 +767,10 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
             # extract VF name
             vfInterface=`$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo')
 
-            txValueVF=`$(ifconfig `$vfInterface | grep "TX packets" | sed 's/:/ /' | awk '{print `$3}')
-            echo "Virtual Function TX Value: `$txValueVF" >> SRIOV_SendFile.log
-            if [ `$txValueVF -lt 6000 ]; then
+            #txValueVF=`$(ifconfig `$vfInterface | grep "TX packets" | sed 's/:/ /' | awk '{print `$3}')
+            txValueVF=$(cat /sys/class/net/$vfInterface/statistics/tx_packets)
+            echo "Virtual Function TX Value: $txValueVF" >> SRIOV_SendFile.log
+            if [ $txValueVF -lt 6000 ]; then
                 echo "ERROR: Virtual Function TX packets insufficient. Make sure VF is up & running" >> SRIOV_SendFile.log
                 `$__retVal=1
                 exit 10
