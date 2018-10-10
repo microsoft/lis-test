@@ -22,16 +22,16 @@
 ########################################################################
 
 # Description:
-#   Disable VF, verify SR-IOV Failover is working
+#   Disable VF, verify SR-IOV Failover is working.
 #
 #   Steps:
 #   1. Verify/install pciutils package
 #   2. Using the lspci command, examine the NIC with SR-IOV support
 #   3. Configure VF
 #   4. Check network capability
-#   5. Disable VF using ifdown
+#   5. Disable VF
 #   6. Check network capability (ping & send file to Dependency VM)
-#   5. Enable VF using ifup
+#   5. Enable VF
 #   6. Check network capability (ping)
 #
 #############################################################################################################
@@ -123,7 +123,8 @@ while [ $__iterator -le $vfCount ]; do
     fi
 
     # Get TX value before sending the file
-    txValueBefore=$(ifconfig eth$__iterator | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
+    #txValueBefore=$(ifconfig eth$__iterator | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
+    txValueBefore=$(cat /sys/class/net/eth`$__iterator/statistics/tx_packets)
     LogMsg "TX value before sending file: $txValueBefore"
 
     # Send the file
@@ -140,7 +141,8 @@ while [ $__iterator -le $vfCount ]; do
     fi
 
     # Get TX value after sending the file
-    txValueAfter=$(ifconfig eth$__iterator | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
+    #txValueAfter=$(ifconfig eth$__iterator | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
+    txValueAfter=$(cat /sys/class/net/eth`$__iterator/statistics/tx_packets)
     LogMsg "TX value after sending the file: $txValueAfter"
 
     # Compare the values to see if TX increased as expected
