@@ -78,9 +78,10 @@ fi
 
 LogMsg "INFO: All configuration completed successfully. Will proceed with the testing"
 # Configure VM1
-ifconfig eth1 allmulti
+#ifconfig eth1 allmulti
+ip link set dev eth1 allmulticast on
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not enable ALLMULTI on VM1"
+    msg="ERROR: Could not enable ALLMULTI option on VM1!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateAborted
@@ -88,9 +89,9 @@ if [ $? -ne 0 ]; then
 fi
 
 # Configure VM2
-ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" "ifconfig eth1 allmulti"
+ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" "ip link set dev eth1 allmulticast on"
 if [ $? -ne 0 ]; then
-    msg="ERROR: Could not enable ALLMULTI on VM2"
+    msg="ERROR: Could not enable ALLMULTI option on VM2!"
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateAborted
