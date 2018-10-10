@@ -162,7 +162,9 @@ VerifyVF()
     fi
 
     interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo' | head -1)
-    ifconfig -a | grep $interface
+    # Checking for the VF interface
+    #ifconfig -a | grep $interface
+    ip link show $interface
         if [ $? -ne 0 ]; then
         msg="ERROR: VF device, $interface , was not found!"
         LogMsg "$msg"
@@ -170,7 +172,6 @@ VerifyVF()
         SetTestStateFailed
         exit 1
     fi
-
     return 0
 }
 
@@ -381,7 +382,7 @@ InstallDependencies()
             fi
         ;;
 
-        redhat*|centos*)
+        redhat*|centos*|fedora*)
             # Disable firewall
             service firewalld stop
 
