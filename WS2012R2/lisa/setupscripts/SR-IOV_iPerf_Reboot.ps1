@@ -59,7 +59,6 @@
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
-            <param>TC_COVERED=SRIOV-9</param>
             <param>VF_IP1=10.11.12.31</param>
             <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
@@ -225,8 +224,10 @@ $vfName = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep 
 if (-not $vfName) {
     "INFO: Could not extract VF name from VM" | Tee-Object -Append -file $summaryLog
 }
-[int]$txValue_beforeReboot = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig $vfName | grep 'TX packets' | sed 's/:/ /' | awk '{print `$3}'"
+#[int]$txValue_beforeReboot = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig $vfName | grep 'TX packets' | sed 's/:/ /' | awk '{print `$3}'"
+[int]$txValue_beforeReboot = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat /sys/class/net/$vfName/statistics/tx_packets"
 "TX packet count before reboot is $txValue_beforeReboot" | Tee-Object -Append -file $summaryLog
+
 #
 # Reboot VM1
 #
@@ -247,23 +248,25 @@ Start-Sleep -s 60
 # Check if VF is still up & running
 $vfName = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep -v 'eth0\|eth1\|lo'"
 Start-Sleep -s 10
-$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig $vfName" 
-if (-not $status) {
+#$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig $vfName"
+$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ip link show dev $vfName | grep DOWN"
+if ($status) {
     "ERROR: The VF $vfName is down after reboot!" | Tee-Object -Append -file $summaryLog
     return $false    
 }
 
-[int]$txValue_afterReboot = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig $vfName | grep 'TX packets' | sed 's/:/ /' | awk '{print `$3}'"
+#[int]$txValue_afterReboot = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig $vfName | grep 'TX packets' | sed 's/:/ /' | awk '{print `$3}'"
+[int]$txValue_afterReboot = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "cat /sys/class/net/$vfName/statistics/tx_packets"
 if ($txValue_afterReboot -ge $txValue_beforeReboot){
     "ERROR: TX packet count didn't decrease after reboot" | Tee-Object -Append -file $summaryLog
     return $false   
 }
 else {
     if ($txValue_afterReboot -gt 0){
-        "INFO: TX packet count after reboot is $txValue_afterReboot" | Tee-Object -Append -file $summaryLog  
+        "INFO: TX packet count after reboot is $txValue_afterReboot" | Tee-Object -Append -file $summaryLog
     }
     else {
-        "INFO: TX packet count is 0 after reboot" | Tee-Object -Append -file $summaryLog   
+        "INFO: TX packet count is 0 after reboot" | Tee-Object -Append -file $summaryLog
     }
 }
 
@@ -288,7 +291,7 @@ Start-Sleep -s 30
 if ($vfBeforeThroughput -ge $vfFinalThroughput ) {
     "ERROR: After rebooting the VM, the throughput is significantly lower
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 return $true
