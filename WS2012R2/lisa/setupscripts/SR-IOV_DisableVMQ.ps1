@@ -21,7 +21,7 @@
 
 <#
 .Synopsis
-    Tear down VMQ and fallback to synthetic NIC
+    Tear down VMQ and fallback to synthetic NIC.
 
 .Description
     Description:  
@@ -55,7 +55,6 @@
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
-            <param>TC_COVERED=SRIOV-11</param>
             <param>VF_IP1=10.11.12.31</param>
             <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
@@ -113,31 +112,23 @@ if (Test-Path $rootDir)
         return $false
     }
     "Changed working directory to $rootDir"
-}
-else
-{
+} else {
     "ERROR: RootDir = $rootDir is not a valid path"
     return $false
 }
 
 # Source TCUitls.ps1 for getipv4 and other functions
-if (Test-Path ".\setupScripts\TCUtils.ps1")
-{
+if (Test-Path ".\setupScripts\TCUtils.ps1") {
     . .\setupScripts\TCUtils.ps1
-}
-else
-{
+} else {
     "ERROR: Could not find setupScripts\TCUtils.ps1"
     return $false
 }
 
 # Source NET_UTILS.ps1 for network functions
-if (Test-Path ".\setupScripts\NET_UTILS.ps1")
-{
+if (Test-Path ".\setupScripts\NET_UTILS.ps1") {
     . .\setupScripts\NET_UTILS.ps1
-}
-else
-{
+} else {
     "ERROR: Could not find setupScripts\NET_Utils.ps1"
     return $false
 }
@@ -174,8 +165,7 @@ $vm2ipv4 = GetIPv4 $vm2Name $remoteServer
 # Configure eth1 on test VM
 #
 $retVal = ConfigureVF $ipv4 $sshKey $netmask
-if (-not $retVal)
-{
+if (-not $retVal) {
     "ERROR: Failed to configure eth1 on vm $vmName (IP: ${ipv4}), by setting a static IP of $vmVF_IP1 , netmask $netmask"
     return $false
 }
@@ -241,8 +231,9 @@ if (-not $vfName) {
     "INFO: Could not extract VF name from VM" | Tee-Object -Append -file $summaryLog
 }
 Start-Sleep -s 10
-$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep $vfName" 
-if (-not $status) {
+#$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep $vfName"
+$status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ip link show dev $vfName | grep DOWN"
+if ($status) {
     "ERROR: The VF $vfName is down after disabling VMQ!" | Tee-Object -Append -file $summaryLog
     return $false    
 }
