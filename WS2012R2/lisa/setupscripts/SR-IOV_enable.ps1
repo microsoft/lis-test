@@ -24,7 +24,7 @@
     Enable SR-IOV on VM
 
 .Description
-    This is a setupscript that enables SR-IOV on VM
+    This is a setupscript that enables SR-IOV on VM.
     Steps:
     1. Add new NICs to VMs
     2. Configure/enable SR-IOV on VMs settings via cmdlet Set-VMNetworkAdapter
@@ -53,7 +53,6 @@
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC_sriov_name=SRIOV</param>
-            <param>TC_COVERED=??</param>
             <param>VF_IP1=10.11.12.31</param>
             <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
@@ -66,6 +65,7 @@
 #>
 
 param ([String] $vmName, [String] $hvServer, [string] $testParams)
+
 #
 # Function which configures VF on VM2 and assigns a static IP to it
 #
@@ -404,13 +404,13 @@ if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like 
     "${vm2Name} IPADDRESS: ${vm2ipv4}"
 
     # Verify if SR-IOV is enabled and configured on VM2
-    $retval = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "ifconfig | grep $vm_vfIP2"
+    $retval = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "ip a | grep $vm_vfIP2"
     if ($retVal) {
         $vm2_is_configured = $true
     }
 
     if ($vm_vfIP4 -ne $null) {
-        $retval = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "ifconfig | grep $vm_vfIP4"
+        $retval = .\bin\plink.exe -i ssh\$sshKey root@${vm2ipv4} "ip a | grep $vm_vfIP4"
         if ($retVal) {
             $vm2_is_configured = $true
         }
@@ -420,7 +420,7 @@ if (Get-VM -Name $vm2Name -ComputerName $remoteServer |  Where { $_.State -like 
     }
 }
 
-# There are some tests that require a clean dependency VM
+# Some tests require a clean dependency VM
 if ($cleanDependency -ne $null) {
     if ($cleanDependency -eq 'yes'){
         $vm2_is_configured = $false
