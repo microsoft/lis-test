@@ -744,18 +744,20 @@ function SRIOV_SendFile ([String]$conIpv4, [String]$sshKey, [String]$MinimumPack
             fi
 
             # Verify both VFs on VM1 and VM2 to see if file was sent between them
-            txValue=`$(ifconfig eth`$__iterator | grep "TX packets" | sed 's/:/ /' |  awk '{print `$3}')
-            echo "TX Value: `$txValue" >> SRIOV_SendFile.log
-            if [ `$txValue -lt $MinimumPacketSize ]; then
+            #txValue=`$(ifconfig eth`$__iterator | grep "TX packets" | sed 's/:/ /' |  awk '{print `$3}')
+            txValue=$(cat /sys/class/net/eth$__iterator/statistics/tx_packets)
+            echo "TX Value: $txValue" >> SRIOV_SendFile.log
+            if [ $txValue -lt $MinimumPacketSize ]; then
                 echo "ERROR: TX packets insufficient" >> SRIOV_SendFile.log
                 `$__retVal=1
                 exit 10
             fi
 
             vfName=`$(ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$VF_IP2" ls /sys/class/net | grep -v 'eth0\|eth1\|lo')
-            rxValue=`$(ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$VF_IP2" ifconfig `$vfName | grep "RX packets" | sed 's/:/ /' | awk '{print `$3}')
-            echo "RX Value: `$rxValue" >> SRIOV_SendFile.log
-            if [ `$rxValue -lt $MinimumPacketSize ]; then
+            #rxValue=`$(ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$VF_IP2" ifconfig `$vfName | grep "RX packets" | sed 's/:/ /' | awk '{print `$3}')
+            rxValue=`$(ssh -i "`$HOME"/.ssh/"`$sshKey" -o StrictHostKeyChecking=no "`$REMOTE_USER"@"`$VF_IP2" cat /sys/class/net/eth$__iterator/statistics/rx_packets)
+            echo "RX Value: $rxValue" >> SRIOV_SendFile.log
+            if [ $rxValue -lt $MinimumPacketSize ]; then
                 echo "ERROR: RX packets insufficient" >> SRIOV_SendFile.log
                 `$__retVal=1
                 exit 10
