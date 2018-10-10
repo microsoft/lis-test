@@ -22,7 +22,7 @@
 <#
 .Synopsis
     Perform tens of Save/Pause operations and check the time for the VF to
-    get up
+    get up.
 
 .Description
     1.  Configure two VMs, where each VM has a SR-IOV device.
@@ -56,8 +56,7 @@
         </setupScript> 
         <noReboot>False</noReboot>
         <testParams>
-            <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-            <param>TC_COVERED=SRIOV-25</param>                                   
+            <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>                                  
             <param>VF_IP1=10.11.12.31</param>
             <param>VF_IP2=10.11.12.32</param>
             <param>NETMASK=255.255.255.0</param>
@@ -311,7 +310,8 @@ while ($isDone -eq $False)
         else {  
             if ($timeToSwitch -gt 5){
                 $vfName = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ls /sys/class/net | grep -v 'eth0\|eth1\|lo'"
-                $interfaceOutput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep $vfName"
+                #$interfaceOutput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ifconfig | grep $vfName"
+                $interfaceOutput = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ip link show dev $vfName | grep UP"
                 if ($interfaceOutput -and ($vfAfterThroughput -gt 0)){
                     "Info: On run $counter, the throughput did not increase enough ($vfAfterThroughput gbps), but VF is up" | Tee-Object -Append -file $summaryLog
                     $hasSwitched = $true
