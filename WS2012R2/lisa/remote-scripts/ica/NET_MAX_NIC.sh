@@ -129,15 +129,14 @@ fi
 GetOSVersion
 DEFAULT_GATEWAY=($(route -n | grep 'UG[ \t]' | awk '{print $2}'))
 
-IFACES=($(ifconfig -s -a | awk '{print $1}'))
-# Delete first element from the list - iface
-IFACES=("${IFACES[@]:1}")
+#IFACES=($(ifconfig -s -a | awk '{print $1}'))
+IFACES=($(ls /sys/class/net/))
+
 # Check for interfaces with longer names - enp0s10f
 # Delete other interfaces - lo, virbr
 let COUNTER=0
 for i in "${!IFACES[@]}"; do
 	if echo "${IFACES[$i]}" | grep -q "lo\|virbr"; then
-		echo "Found"
 		unset IFACES[$i]
 	fi
 	if [[ ${IFACES[$i]} == "enp0s10f" ]]; then
