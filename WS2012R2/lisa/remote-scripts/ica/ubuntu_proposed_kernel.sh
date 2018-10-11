@@ -51,17 +51,17 @@ function LogMsg() {
 }
 
 dbgprint() {
-    if [ $1 -le $DEBUG_LEVEL ]; then
+    if [ "$1" -le $DEBUG_LEVEL ]; then
         echo "$2"
     fi
 }
 
 UpdateTestState() {
-    echo $1 > ~/state.txt
+    echo "$1" > ~/state.txt
 }
 
 UpdateSummary() {
-    echo $1 >> ~/summary.log
+    echo "$1" >> ~/summary.log
 }
 
 #Source constans file
@@ -74,16 +74,16 @@ fi
 
 apply_proposed_kernel() {
     candidate_kernel=$(apt-cache policy linux-image-generic | grep "Candidate")
-    apt-get install -y -qq linux-image-generic/$release-proposed
+    apt install -y -qq linux-image-generic/$release-proposed
     if [[ $? -ne 0 ]]; then
         UpdateSummary "Error: Unable to install the proposed kernel!"
         UpdateTestState $ICA_TESTABORTED
         exit 1
     fi
 
-    apt-get install -y -qq linux-tools-generic/$release-proposed
-    apt-get install -y -qq linux-cloud-tools-generic/$release-proposed
-    apt-get install -y -qq linux-cloud-tools-common/$release-proposed
+    apt install -y -qq linux-tools-generic/$release-proposed
+    apt install -y -qq linux-cloud-tools-generic/$release-proposed
+    apt install -y -qq linux-cloud-tools-common/$release-proposed
     if [[ $? -ne 0 ]]; then
         UpdateSummary "Error: Unable to install the proposed LIS daemons packages!"
         UpdateTestState $ICA_TESTABORTED
@@ -93,7 +93,7 @@ apply_proposed_kernel() {
 
 apply_proposed_kernel_azure() {
     candidate_kernel=$(apt-cache policy linux-azure | grep "Candidate")
-    apt-get install -qq linux-azure/$release
+    apt install -y -qq linux-azure/$release
     if [[ $? -ne 0 ]]; then
         UpdateSummary "Error: Unable to install the proposed kernel azure!"
         UpdateTestState $ICA_TESTABORTED
@@ -103,7 +103,7 @@ apply_proposed_kernel_azure() {
 
 apply_proposed_kernel_azure_edge() {
     candidate_kernel=$(apt-cache policy linux-azure-edge | grep "Candidate")
-    apt-get install -qq linux-azure-edge/$release
+    apt install -y -qq linux-azure-edge/$release
     if [[ $? -ne 0 ]]; then
         UpdateSummary "Error: Unable to install the proposed kernel azure-edge!"
         UpdateTestState $ICA_TESTABORTED
@@ -139,8 +139,7 @@ fi
 # Check if script is running on primary vm or secondary vm
 # If constants.sh is present, means that script is running on 1st vm
 # Otherwise it's running on secondary vm
-cat constants.sh | grep VM2NAME
-willInstall=$?
+willInstall=$(cat constants.sh | grep VM2NAME)
 
 #
 # Start the setup
@@ -148,9 +147,9 @@ willInstall=$?
 echo "deb http://archive.ubuntu.com/ubuntu/ $release-proposed restricted main multiverse universe" >> /etc/apt/sources.list
 
 # Cleaning up repos cache
-echo "Updating apt-get cache..."
-apt-get clean all
-apt-get -qq update
+echo "Updating apt cache..."
+apt clean all
+apt -qq update
 
 #
 # Installing the proposed kernel
@@ -158,7 +157,7 @@ apt-get -qq update
 if [ $azure_kernel_edge == "yes" ]; then
     apply_proposed_kernel_azure_edge
     if [ 0 -ne $? ]; then
-        dbgprint 1 "Error: Couldn't install the proposed kernel: ${sts}"
+        dbgprint 1 "Error: Couldn't install the proposed kernel: ${candidate_kernel}"
         UpdateTestState $ICA_TESTABORTED
         exit 1
     fi
@@ -173,7 +172,7 @@ if [ $azure_kernel_edge == "yes" ]; then
 elif [ $azure_kernel == "yes" ] && [ $azure_kernel_edge == "no" ]; then
     apply_proposed_kernel_azure
     if [ 0 -ne $? ]; then
-        dbgprint 1 "Error: Couldn't install the proposed kernel: ${sts}"
+        dbgprint 1 "Error: Couldn't install the proposed kernel: ${candidate_kernel}"
         UpdateTestState $ICA_TESTABORTED
         exit 1
     fi
@@ -214,7 +213,7 @@ fi
 echo "Grub configuration has been successfully modified."
 
 # Send the script on the secondary vm if it's the case
-if [ $willInstall -eq 0 ]; then
+if [ "$willInstall" -eq 0 ]; then
     . ~/constants.sh || {
     echo "ERROR: unable to source constants.sh!"
     echo "TestAborted" > state.txt
