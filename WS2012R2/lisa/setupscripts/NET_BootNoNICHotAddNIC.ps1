@@ -103,7 +103,7 @@
 
 param( [String] $vmName, [String] $hvServer, [String] $testParams )
 
-$KVP_KEY       = "HotAddTest"
+$KVP_KEY = "HotAddTest"
 
 #######################################################################
 #
@@ -268,7 +268,7 @@ function DoTest()
     # Wait for the guest to create the HotAddTest KVP item, with a value of 'NoNICs'
     #
     "Info : Waiting for the VM to create the HotAddTest KVP item"
-    $tmo = 300
+    $tmo = 400
     $value = $null
     while ($tmo -gt 0)
     {
@@ -278,13 +278,13 @@ function DoTest()
             break
         }
 
-        $tmo -= 10
-        Start-Sleep -Seconds 10
+        $tmo -= 60
+        Start-Sleep -Seconds 60
     }
 
     if ($value -ne "NoNICs")
     {
-        Throw "Error: The VM never reported 0 NICs found"
+        Throw "Error: The VM never reported 0 NICs found. Value is $value"
     }
 
     #
