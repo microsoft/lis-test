@@ -164,7 +164,8 @@ Ubuntu()
 kdump_loaded()
 {
     UpdateSummary "Checking if kdump is loaded after reboot..."
-    CRASHKERNEL=`grep -i crashkernel= /proc/cmdline`;
+    # CRASHKERNEL=`grep -i crashkernel= /proc/cmdline`;
+    CRASHKERNEL=$(grep -o '\bcrashkernel=[^ ]*' /proc/cmdline)
 
     if [ ! -e $sys_kexec_crash ] && [ -z "$CRASHKERNEL" ] ; then
         LogMsg "FAILED: kdump is not enabled after reboot."
@@ -172,8 +173,8 @@ kdump_loaded()
         SetTestStateFailed
         exit 1
     else
-        LogMsg "Kdump is loaded after reboot."
-        UpdateSummary "Success: Kdump is loaded after reboot."
+        LogMsg "Kdump is loaded after reboot, actual is '$CRASHKERNEL', expected 'crashkernel=$crashkernel'"
+        UpdateSummary "Success: Kdump is loaded after reboot, actual is '$CRASHKERNEL', expected 'crashkernel=$crashkernel'"
     fi
 }
 
