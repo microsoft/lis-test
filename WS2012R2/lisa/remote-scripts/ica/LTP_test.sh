@@ -137,6 +137,7 @@ InstallRHELDependencies() {
     yum install -y flex
     yum install -y make
     yum install -y gcc
+    yum install -y git
 }
 
 # Convert eol
