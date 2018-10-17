@@ -50,7 +50,7 @@ UpdateTestState()
     echo $1 > ~/state.txt
 }
 
-SendFile(){
+SendFile() {
 	#Download netperf 2.7.0
 	wget https://github.com/HewlettPackard/netperf/archive/netperf-2.7.0.tar.gz > /dev/null 2>&1
 	if [ $? -ne 0 ]; then
@@ -123,7 +123,7 @@ SendFile(){
 				return 1
 			fi
 		fi;;
-	redhat_7)
+	redhat_7|redhat_8)
 		LogMsg "Check iptables status on RHEL."
 		systemctl status firewalld
 		if [ $? -ne 3 ]; then
@@ -175,7 +175,7 @@ SendFile(){
 				return 1
 			fi
 		fi;;
-	suse_12)
+	suse_12|suse_15)
 		LogMsg "Check iptables status on SLES."
 		service SuSEfirewall2 status
 		if [ $? -ne 3 ]; then
@@ -240,7 +240,7 @@ SendFile(){
 	scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/constants.sh ${REMOTE_USER}@[${STATIC_IP2}]: > /dev/null 2>&1
 	scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ~/utils.sh ${REMOTE_USER}@[${STATIC_IP2}]: > /dev/null 2>&1
 
-	#Start netperf in server mode on the dependency vm
+	# Start netperf in server mode on the dependency vm
 	LogMsg "Starting netperf in server mode on ${STATIC_IP2}"
 	ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "echo '~/netperf_server.sh > netperf_ServerScript.log' | at now" > /dev/null 2>&1
 	if [ $? -ne 0 ]; then
@@ -250,7 +250,7 @@ SendFile(){
 		return 1
 	fi
 
-	#Wait for server to be ready
+	# Wait for server to be ready
 	wait_for_server=600
 	server_state_file=serverstate.txt
 	while [ $wait_for_server -gt 0 ]; do
@@ -283,7 +283,7 @@ SendFile(){
 		LogMsg "SUCCESS: Netperf server is ready."
 	fi
 
-	#create 4GB file test for TCP_SENDFILE test
+	# create 4GB file test for TCP_SENDFILE test
 	dd if=/dev/zero of=test1 bs=1M count=4096
 
 	LogMsg "Starting netperf .."
@@ -296,10 +296,9 @@ SendFile(){
 	fi
 	sleep 310
 
-	#Get the modified value of 'tx_send_full' param after netpef test 
+	# Get the modified value of 'tx_send_full' param after netpef test 
 	new_send_value=$(ethtool -S ${SYNTH_NET_INTERFACES[$__iterator]} | grep "tx_send_full" | cut -d ":" -f 2)
 
-	#LogMsg values
 	UpdateSummary "Kernel: $(uname -r)."
 	LogMsg "Tx_send_full before netperf test: $send_value."
 	LogMsg "Tx_send_full after netperf test: $new_send_value."
@@ -318,7 +317,7 @@ SendFile(){
 	fi
 }
 
-ChangeMTU(){
+ChangeMTU() {
 	declare -i _iterator2=10
 	declare -i __current_mtu=0
 	declare -i __const_max_mtu=61440
@@ -348,10 +347,9 @@ ChangeMTU(){
 		fi
 	done
 
-	#Get the value of 'wake_queue' after changing MTU
+	# Get the value of 'wake_queue' after changing MTU
 	new_wake_value=$(ethtool -S ${SYNTH_NET_INTERFACES[$__iterator]} | grep "wake_queue" | cut -d ":" -f 2)
 
-	#Log the values
 	LogMsg "Wake_queue start value: $wake_value"
 	LogMsg "Wake_queue value after changing MTU: $new_wake_value"
 	UpdateSummary "Wake_queue value after changing MTU: $new_wake_value"
@@ -362,10 +360,10 @@ ChangeMTU(){
 		UpdateSummary "$msg"
 		return 0
 	else
-		msg="Error: test on wake_queue param failed."
+		msg="Warning: test on wake_queue param failed."
 		LogMsg "$msg"
 		UpdateSummary "$msg"
-		return 1
+		return 0
 	fi
 }
 
@@ -374,9 +372,6 @@ ChangeMTU(){
 # Main script body
 #
 #######################################################################
-
-#Create the state.txt file so ICA knows we are running
-UpdateTestState $ICA_TESTRUNNING
 
 #Convert eol
 dos2unix utils.sh
@@ -391,41 +386,8 @@ dos2unix utils.sh
 #Source constants file and initialize most common variables
 UtilsInit
 
-#In case of error
-case $? in
-    0)
-        #do nothing, init succeeded
-        ;;
-    1)
-        LogMsg "Unable to cd to $LIS_HOME. Aborting..."
-        UpdateSummary "Unable to cd to $LIS_HOME. Aborting..."
-        UpdateTestState $ICA_TESTABORTED
-        exit 20
-        ;;
-    2)
-        LogMsg "Unable to use test state file."
-        UpdateSummary "Unable to use test state file."
-        # need to wait for test timeout to kick in
-        # hailmary try to update teststate
-        sleep 60
-        echo "TestAborted" > state.txt
-        exit 20
-        ;;
-    3)
-        LogMsg "Error: unable to source constants file. Aborting..."
-        UpdateSummary "Error: unable to source constants file. Aborting..."
-        UpdateTestState $ICA_TESTABORTED
-        exit 20
-        ;;
-    *)
-        # should not happen
-        LogMsg "UtilsInit returned an unknown error. Aborting..."
-        UpdateSummary "UtilsInit returned an unknown error. Aborting..."
-        UpdateTestState $ICA_TESTABORTED
-        exit 20
-        ;;
-esac
-
+#Create the state.txt file so ICA knows we are running
+UpdateTestState $ICA_TESTRUNNING
 
 #Make sure the required test parameters are defined
 
@@ -533,7 +495,7 @@ fi
 #Check if ethtool exist and install it if not
 VerifyIsEthtool
 
-#Check if Statistics from ethtool are available
+# Check if Statistics from ethtool are available
 sts=$(ethtool -S ${SYNTH_NET_INTERFACES[$__iterator]} 2>&1)
 if [[ $sts = *"no stats available"* ]]; then
     LogMsg "$sts"
@@ -543,13 +505,13 @@ if [[ $sts = *"no stats available"* ]]; then
     exit 2
 fi 
 
-#Make all bash scripts executable
+# Make all bash scripts executable
 cd ~
 dos2unix ~/*.sh
 chmod 755 ~/*.sh
 
-#Start the first test on tx_send_full param with TCP_SENDFILE netperf
-#Get the started value of 'tx_send_full' param from statistics if exist and if not skip the test.
+# Start the first test on tx_send_full param with TCP_SENDFILE netperf
+# Get the started value of 'tx_send_full' param from statistics if exist and if not skip the test.
 send_value=$(ethtool -S ${SYNTH_NET_INTERFACES[$__iterator]} | grep "tx_send_full" | cut -d ":" -f 2)
 if [ -n "$send_value" ]; then
     SendFile
@@ -574,10 +536,10 @@ else
     sts_changemtu=2
 fi
 
-#Get logs from dependency vm
+# Get logs from dependency vm
 scp -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no -r ${REMOTE_USER}@[${STATIC_IP2}]:~/netperf_ServerScript.log ~/netperf_ServerScript.log > /dev/null 2>&1
 
-#Shutdown dependency VM
+# Shutdown dependency VM
 ssh -i "$HOME"/.ssh/"$SSH_PRIVATE_KEY" -v -o StrictHostKeyChecking=no ${REMOTE_USER}@${STATIC_IP2} "init 0" > /dev/null 2>&1
 
 if [[ $sts_sendfile -eq 1 || $sts_changemtu -eq 1 ]];then
@@ -588,6 +550,6 @@ elif [[ $sts_sendfile -eq 2 && $sts_changemtu -eq 2 ]];then
     exit 2
 fi
 
-#If we made it here, everything worked
+# If we made it here, everything worked
 LogMsg "Test completed successfully"
 UpdateTestState $ICA_TESTCOMPLETED
