@@ -67,6 +67,7 @@
             <onError>Continue</onError>
             <testparams>
                 <param>TC_COVERED=SECBOOT-02</param>
+                <param>Migrate=True</param>
             </testparams>
         </test>
         <test>
