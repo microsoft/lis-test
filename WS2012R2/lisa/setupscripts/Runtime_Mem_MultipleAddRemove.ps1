@@ -37,7 +37,7 @@
     Test data for this test case.
 
     .Example
-    setupscripts\Runtime_Mem_MultipleAddRemove.ps1 -vmName nameOfVM -hvServer localhost -testParams 
+    setupscripts\Runtime_Mem_MultipleAddRemove.ps1 -vmName nameOfVM -hvServer localhost -testParams
     'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; startupMem=2GB'
 #>
 
@@ -218,7 +218,9 @@ foreach ($p in $params){
       "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() }
       "ipv4"          { $ipv4       = $fields[1].Trim() }
       "sshKey"        { $sshKey     = $fields[1].Trim() }
-      "startupMem"  { 
+      "appGitURL"  { $appGitURL  = $fields[1].Trim() }
+      "appGitTag"  { $appGitTag  = $fields[1].Trim() }
+      "startupMem"  {
         $startupMem = ConvertToMemSize $fields[1].Trim() $hvServer
 
         if ($startupMem -le 0){
@@ -264,14 +266,13 @@ if (-not $vm1){
   return $false
 }
 
-# Check if stress-ng is installed
-"Checking if stress-ng is installed"
 
-$retVal = checkStressNg $ipv4 $sshKey
+# Install stress-ng if not installed
+$retVal = installApp "stress-ng" $ipv4 $appGitURL $appGitTag
 
 if (-not $retVal){
-    "Error: dependency tool stress-ng is not installed!"
-    return $false
+   "stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
+   return $false
 }
 
 "Stress-ng is installed! Will begin running memory stress tests shortly."
@@ -308,11 +309,15 @@ $testMem = $startupMem + 2147483648
 
 # Set new memory value
 for ($i=0; $i -lt 3; $i++){
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
+  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem
+  if ($? -eq $false){
+     "Error: Set-VMMemory as $($testMem/1MB) MB failed" | Tee-Object -Append -file $summaryLog
+      return $false
+  }
   Start-sleep -s 5
   if ($vm1.MemoryAssigned -eq $testMem){
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
+    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
 
     [int64]$vm1AfterIncrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
     "Free memory reported by guest VM after increase: $vm1AfterIncrease KB"
@@ -337,7 +342,7 @@ if ( ($vm1AfterIncrease - $vm1BeforeIncrease) -le 2000000){
     "Error: Guest reports that memory value hasn't increased enough!"
     "Memory stats after $vmName memory was changed "
     "  ${vmName}: Initial Memory - $vm1BeforeIncrease KB :: After setting new value - $vm1AfterIncrease"
-    return $false 
+    return $false
 }
 "Memory stats after $vmName memory was increased by 2GB "
 "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
@@ -348,11 +353,11 @@ $testMem = $testMem - 2147483648
 
 # Set new memory value
 for ($i=0; $i -lt 3; $i++){
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
+  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem
   Start-sleep -s 5
   if ($vm1.MemoryAssigned -eq $testMem){
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
+    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
 
     [int64]$vm1AfterDecrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
     "Free memory reported by guest VM after decrease: $vm1AfterDecrease KB"
@@ -377,7 +382,7 @@ if ( ($vm1AfterIncrease - $vm1AfterDecrease) -le 2000000){
     "Error: Guest reports that memory value hasn't decreased enough!"
     "Memory stats after $vmName memory was changed "
     "  ${vmName}: Initial Memory - $vm1AfterIncrease KB :: After setting new value - $vm1AfterDecrease KB"
-    return $false 
+    return $false
 }
 "Memory stats after $vmName memory was decreased by 2GB "
 "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
@@ -388,11 +393,11 @@ $testMem = $testMem + 1073741824
 
 # Set new memory value
 for ($i=0; $i -lt 3; $i++){
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
+  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem
   Start-sleep -s 5
   if ($vm1.MemoryAssigned -eq $testMem){
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
+    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
 
     [int64]$vm1AfterIncrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
     "Free memory reported by guest VM guest VM after increase: $vm1AfterIncrease KB"
@@ -417,7 +422,7 @@ if ( ($vm1AfterIncrease - $vm1AfterDecrease) -le 1000000){
     "Error: Guest reports that memory value hasn't increased enough!"
     "Memory stats after $vm1Name memory was changed "
     "  ${vmName}: Initial Memory - $vm1AfterDecrease KB :: After setting new value - $vm1AfterIncrease KB"
-    return $false 
+    return $false
 }
 "Memory stats after $vmName memory was increased by 1GB "
 "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
@@ -428,11 +433,15 @@ Start-sleep -s 10
 $testMem = $testMem - 2147483648
 # Set new memory value
 for ($i=0; $i -lt 3; $i++){
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
+  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem
+  if (-not $?){
+    "Error: Unable to set vmname $vmName memory as $testMem "
+    return $false
+  }
   Start-sleep -s 5
   if ($vm1.MemoryAssigned -eq $testMem){
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
+    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
 
     [int64]$vm1AfterDecrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
     "Free memory reported by guest VM guest VM after increase: $vm1AfterDecrease KB"
@@ -457,7 +466,7 @@ if ( ($vm1AfterIncrease - $vm1AfterDecrease) -le 2000000){
     "Error: Guest reports that memory value hasn't decreased enough!"
     "Memory stats after $vmName memory was changed "
     "  ${vmName}: Initial Memory - $vm1AfterIncrease KB :: After setting new value - $vm1AfterDecrease KB"
-    return $false 
+    return $false
 }
 "Memory stats after $vmName memory was decreased by 2GB "
 "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"

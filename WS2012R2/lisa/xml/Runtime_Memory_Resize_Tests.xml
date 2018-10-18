@@ -37,6 +37,11 @@
             <subject>LIS Runtime Memory Resize on WS2016</subject>
             <smtpServer>mysmtphost.mycompany.com</smtpServer>
         </email>
+        <testParams>
+            <param>appGitURL=https://github.com/ColinIanKing/stress-ng</param>
+            <param>appGitTag=V0.07.16</param>
+            <param>SnapshotName=ICABase</param>
+        </testParams>
     </global>
 
        <testSuites>

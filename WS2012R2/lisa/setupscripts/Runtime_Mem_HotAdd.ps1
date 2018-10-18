@@ -38,7 +38,7 @@
     Test data for this test case.
 
     .Example
-    setupscripts\Runtime_Mem_HotAdd.ps1 -vmName nameOfVM -hvServer localhost -testParams 
+    setupscripts\Runtime_Mem_HotAdd.ps1 -vmName nameOfVM -hvServer localhost -testParams
     'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; startupMem=2GB; testMem=4GB'
 #>
 
@@ -188,25 +188,25 @@ if (-not $?){
 $rootDir = $Matches[1]
 
 if (Test-Path $rootDir){
-  Set-Location -Path $rootDir
-  if (-not $?){
+    Set-Location -Path $rootDir
+    if (-not $?){
     "Error: Could not change directory to $rootDir !"
     return $false
-  }
-  "Changed working directory to $rootDir"
+    }
+    "Changed working directory to $rootDir"
 }
 else{
-  "Error: RootDir = $rootDir is not a valid path"
-  return $false
+    "Error: RootDir = $rootDir is not a valid path"
+    return $false
 }
 
 # Source TCUitls.ps1 for getipv4 and other functions
 if (Test-Path ".\setupScripts\TCUtils.ps1"){
-  . .\setupScripts\TCUtils.ps1
+    . .\setupScripts\TCUtils.ps1
 }
 else{
-  "Error: Could not find setupScripts\TCUtils.ps1"
-  return $false
+    "Error: Could not find setupScripts\TCUtils.ps1"
+    return $false
 }
 
 $params = $testParams.Split(";")
@@ -214,27 +214,29 @@ foreach ($p in $params){
     $fields = $p.Split("=")
 
     switch ($fields[0].Trim()){
-      "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() }
-      "ipv4"          { $ipv4     = $fields[1].Trim() }
-      "sshKey"        { $sshKey        = $fields[1].Trim() }
-      "testMem"  { 
+        "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() }
+        "ipv4"          { $ipv4     = $fields[1].Trim() }
+        "sshKey"        { $sshKey        = $fields[1].Trim() }
+        "appGitURL"  { $appGitURL  = $fields[1].Trim() }
+        "appGitTag"  { $appGitTag  = $fields[1].Trim() }
+        "testMem"  {
         $testMem  = ConvertToMemSize $fields[1].Trim() $hvServer
 
         if ($testMem -le 0)
         {
-          "Error: Unable to convert testMem to int64."
-          return $false
+            "Error: Unable to convert testMem to int64."
+            return $false
         }
 
         "testMem: $testMem"
-      }
-      "startupMem"  { 
+        }
+        "startupMem"  {
         $startupMem  = ConvertToMemSize $fields[1].Trim() $hvServer
 
         if ($startupMem -le 0)
         {
-          "Error: Unable to convert startupMem to int64."
-          return $false
+            "Error: Unable to convert startupMem to int64."
+            return $false
         }
 
         "startupMem: $startupMem"
@@ -243,13 +245,13 @@ foreach ($p in $params){
 }
 
 if (-not $sshKey){
-  "Error: Please pass the sshKey to the script."
-  return $false
+    "Error: Please pass the sshKey to the script."
+    return $false
 }
 
 if (-not $testMem){
-  "Error: memTest is not set!"
-  return $false
+    "Error: memTest is not set!"
+    return $false
 }
 
 # Delete any previous summary.log file
@@ -264,23 +266,22 @@ if ($BuildNumber -eq 0) {
     return $False
 }
 elseif ($BuildNumber -lt 10500) {
-	"Info: Feature supported only on WS2016 and newer" | Tee-Object -Append -file $summaryLog
+    "Info: Feature supported only on WS2016 and newer" | Tee-Object -Append -file $summaryLog
     return $Skipped
 }
 
 $vm1 = Get-VM -Name $vmName -ComputerName $hvServer -ErrorAction SilentlyContinue
 
 if (-not $vm1){
-  "Error: VM $vmName does not exist"
-  return $false
+    "Error: VM $vmName does not exist"
+    return $false
 }
 
-# Check if stress-ng is installed
-"Checking if stress-ng is installed"
+# Install stress-ng if not installed
+$retVal = installApp "stress-ng" $ipv4 $appGitURL $appGitTag
 
-$retVal = checkStressNg $ipv4 $sshKey
 if (-not $retVal){
-    "Stress-ng is not installed! Please install it before running the memory stress tests."
+    "stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
     return $false
 }
 
@@ -292,22 +293,22 @@ $sleepPeriod = 60
 
 # get VM1 memory from host and guest
 while ($sleepPeriod -gt 0){
-  [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/1MB)
-  [int64]$vm1BeforeDemand = ($vm1.MemoryDemand/1MB)
+    [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/1MB)
+    [int64]$vm1BeforeDemand = ($vm1.MemoryDemand/1MB)
 
-  [int64]$vm1BeforeAssignedGuest = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
+    [int64]$vm1BeforeAssignedGuest = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
 
-  if ($vm1BeforeAssigned -gt 0 -and $vm1BeforeDemand -gt 0 -and $vm1BeforeAssignedGuest -gt 0){
-    break
-  }
+    if ($vm1BeforeAssigned -gt 0 -and $vm1BeforeDemand -gt 0 -and $vm1BeforeAssignedGuest -gt 0){
+        break
+    }
 
-  $sleepPeriod-= 5
-  start-sleep -s 5
+    $sleepPeriod-= 5
+    start-sleep -s 5
 }
 
 if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm1BeforeAssignedGuest -le 0){
-  "Error: vm1 $vmName reported 0 memory (assigned or demand)."
-  return $False
+    "Error: vm1 $vmName reported 0 memory (assigned or demand)."
+    return $False
 }
 
 "Memory stats after $vmName started reporting "
@@ -315,22 +316,27 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0 -or $vm1BeforeAssignedGu
 
 # Set new memory value
 for ($i=0; $i -lt 3; $i++){
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
-  Start-sleep -s 5
-  if ($vm1.MemoryAssigned -eq $testMem){
-    [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
+    Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem
+    if ($? -eq $false){
+       "Error: Set-VMMemory as $($testMem/1MB) MB failed" | Tee-Object -Append -file $summaryLog
+        return $false
+    }
+    Start-sleep -s 5
 
-    # Get memory data from guest
-    [int64]$vm1AfterAssignedGuest = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
-    break
-  }
+    if ($vm1.MemoryAssigned -eq $testMem){
+        [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
+        [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
+
+        # Get memory data from guest
+        [int64]$vm1AfterAssignedGuest = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
+        break
+    }
 }
 
 if ( $i -eq 3 ){
-  "Error: VM failed to change memory!"
-  "LIS 4.1 or kernel version 4.4 required"
-  return $false
+    "Error: VM failed to change memory!" | Tee-Object -Append -file $summaryLog
+    "LIS 4.1 or kernel version 4.4 required"
+    return $false
 }
 
 if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
@@ -341,17 +347,17 @@ if ( $vm1AfterAssigned -ne ($testMem/1MB)  ){
 }
 
 if ($testMem -ge $startupMem){
-  [int64]$deltaMemGuest = ($vm1AfterAssignedGuest - $vm1BeforeAssignedGuest) / 1024
+    [int64]$deltaMemGuest = ($vm1AfterAssignedGuest - $vm1BeforeAssignedGuest) / 1024
 }
 else{
-  [int64]$deltaMemGuest = ($vm1BeforeAssignedGuest - $vm1AfterAssignedGuest) / 1024
+    [int64]$deltaMemGuest = ($vm1BeforeAssignedGuest - $vm1AfterAssignedGuest) / 1024
 }
 "Free memory difference before - after assigning the new memory value: ${deltaMemGuest} MB"
 if ( $deltaMemGuest -lt 1000){
     "Error: Guest reports that memory value hasn't increased or decreased enough!"
     "Memory stats after $vmName memory was changed "
     "  ${vmName}: Initial Memory - $vm1BeforeAssignedGuest KB :: After setting new value - $vm1AfterAssignedGuest"
-    return $false 
+    return $false
 }
 
 "Memory stats after $vmName memory was changed "
@@ -361,8 +367,8 @@ if ( $deltaMemGuest -lt 1000){
 # Send Command to consume
 $job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir) ConsumeMemory $ip $sshKey $rootDir } -InitializationScript $scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir)
 if (-not $?){
-  "Error: Unable to start job for creating pressure on $vmName"
-  return $false
+    "Error: Unable to start job for creating pressure on $vmName"
+    return $false
 }
 
 # sleep a few seconds so stress-ng starts and the memory assigned/demand gets updated
@@ -375,31 +381,31 @@ start-sleep -s 50
 "  ${vmName}: assigned - $vm1Assigned | demand - $vm1Demand"
 
 if ($vm1Demand -le $vm1BeforeDemand){
-  "Error: Memory Demand did not increase after starting stress-ng"
-  return $false
+    "Error: Memory Demand did not increase after starting stress-ng"
+    return $false
 }
 
 # Wait for jobs to finish now and make sure they exited successfully
 $timeout = 120
 $firstJobStatus = $false
 while ($timeout -gt 0){
-  if ($job1.Status -like "Completed"){
-    $firstJobStatus = $true
-    $retVal = Receive-Job $job1
-    if (-not $retVal[-1]){
-      "Error: Consume Memory script returned false on VM1 $vmName"
-      return $false
+    if ($job1.Status -like "Completed"){
+        $firstJobStatus = $true
+        $retVal = Receive-Job $job1
+        if (-not $retVal[-1]){
+            "Error: Consume Memory script returned false on VM1 $vmName"
+            return $false
+        }
+        $diff = $totalTimeout - $timeout
+        "Job finished in $diff seconds."
     }
-    $diff = $totalTimeout - $timeout
-    "Job finished in $diff seconds."
-  }
 
-  if ($firstJobStatus){
+if ($firstJobStatus){
     break
-  }
+    }
 
-  $timeout -= 1
-  start-sleep -s 1
+$timeout -= 1
+start-sleep -s 1
 }
 start-sleep -s 5
 
@@ -410,8 +416,8 @@ start-sleep -s 5
 "  ${vmName}: assigned - $vm1AfterStressAssigned | demand - $vm1AfterStressDemand"
 
 if ($vm1AfterStressDemand -ge $vm1Demand){
-  "Error: Memory Demand did not decrease after stress-ng stopped"
-  return $false
+    "Error: Memory Demand did not decrease after stress-ng stopped"
+    return $false
 }
 
 "VM changed its memory and ran memory stress tests successfully!"

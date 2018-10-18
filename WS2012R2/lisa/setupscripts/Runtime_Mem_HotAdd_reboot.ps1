@@ -41,7 +41,7 @@
     Test data for this test case
 
     .Example
-    setupscripts\Runtime_Mem_HotAdd_reboot.ps1 -vmName nameOfVM -hvServer localhost -testParams 
+    setupscripts\Runtime_Mem_HotAdd_reboot.ps1 -vmName nameOfVM -hvServer localhost -testParams
     'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; startupMem=4000MB'
 #>
 
@@ -117,7 +117,7 @@ foreach ($p in $params) {
       "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() }
       "ipv4"          { $ipv4       = $fields[1].Trim() }
       "sshKey"        { $sshKey     = $fields[1].Trim() }
-      "startupMem"  { 
+      "startupMem"  {
         $startupMem = ConvertToMemSize $fields[1].Trim() $hvServer
 
         if ($startupMem -le 0) {
@@ -185,11 +185,15 @@ $testMem = $startupMem + 1048576000
 
 # Set new memory value
 for ($i=0; $i -lt 3; $i++) {
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
+  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem
+  if ($? -eq $false){
+     "Error: Set-VMMemory as $($testMem/1MB) MB failed" | Tee-Object -Append -file $summaryLog
+      return $false
+  }
   Start-sleep -s 5
   if ($vm1.MemoryAssigned -eq $testMem) {
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
+    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
 
     [int64]$vm1AfterIncrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
     "Free memory reported by guest VM after first 1000MB increase: $vm1AfterIncrease KB"
@@ -214,7 +218,7 @@ if ( ($vm1AfterIncrease - $vm1BeforeIncrease) -le 700000) {
     "Error: Guest reports that memory value hasn't increased enough!"
     "Memory stats after $vmName memory was changed "
     "  ${vmName}: Initial Memory - $vm1BeforeIncrease KB :: After setting new value - $vm1AfterIncrease"
-    return $false 
+    return $false
 }
 "Memory stats after $vmName memory was increased by 1000MB"
 "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
@@ -235,11 +239,11 @@ $testMem = $testMem + 1048576000
 
 # Set new memory value
 for ($i=0; $i -lt 3; $i++) {
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
+  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem
   Start-sleep -s 5
   if ($vm1.MemoryAssigned -eq $testMem) {
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
+    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
 
     [int64]$vm1AfterDecrease = bin\plink.exe -i ssh\${sshKey} root@${ipv4} "cat /proc/meminfo | grep -i MemFree | awk '{ print `$2 }'"
     "Free memory reported by guest VM after second 1000MB increase: $vm1AfterDecrease KB"
