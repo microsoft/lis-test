@@ -51,11 +51,10 @@ fi
 
     $scriptPath = Join-Path $rootDir $scriptName
     Set-Content -Value $script -Path $scriptPath
-    SendFileToVM $ipv4 $sshkey $scriptPath "/root/$scriptName" -ChangeEOL
+    SendFileToVM $ipv4 $sshkey $scriptPath "/root/$scriptName"
     Remove-Item -Path $scriptPath
 
-    $retVal = SendCommandToVM $ipv4 $sshkey "bash /root/$scriptName"
-    return $retVal
+    SendCommandToVM $ipv4 $sshkey "cd /root && chmod u+x ${scriptName} && sed -i 's/\r//g' ${scriptName} && ./${scriptName}"
 }
 
 
@@ -147,7 +146,6 @@ Write-Output "All files have been sent to VM. Will proceed with installing the n
 if ($distro -eq "rhel" -or $distro -or $distro -eq "centos") {
     # Install RPMs
     SendCommandToVM $ipv4 $sshKey "yum localinstall -y /tmp/$kernel/*.rpm"
-    Start-Sleep -s 100
 
     # Update daemon startup paths
     $daemons = ('hypervkvpd', 'hypervvssd', 'hypervfcopyd')
@@ -159,20 +157,22 @@ if ($distro -eq "rhel" -or $distro -or $distro -eq "centos") {
 
     # Modify GRUB2
     SendCommandToVM $ipv4 $sshKey "grub2-mkconfig -o /boot/grub2/grub.cfg ; grub2-set-default 0"
-
-    Start-Sleep -s 200
 }
 if ($distro -eq "ubuntu") {
     # Install deb packages & extract source files
     SendCommandToVM $ipv4 $sshKey "apt -y remove linux-cloud-tools-common grub-legacy-ec2"
     SendCommandToVM $ipv4 $sshKey "dpkg -i /tmp/$kernel/linux-*image-*"
     SendCommandToVM $ipv4 $sshKey "dpkg -i /tmp/$kernel/*hyperv-daemons*"
-    Start-Sleep -s 120
+
+    # Configure grub to choose the exact kernel we installed
     Set-UbuntuBootKernel $ipv4 $sshKey $rootDir
 }
 
+# Note(v-advlad): The VM requires a sync command,
+# otherwise it might end up with empty config files
+SendCommandToVM $ipv4 $sshKey "sync"
+
 # Restart VM and check daemons
-Start-Sleep -s 10
 Restart-VM -VMName $vmName -ComputerName $hvServer -Force
 $sts = WaitForVMToStartKVP $vmName $hvServer 100
 if( -not $sts[-1]) {
