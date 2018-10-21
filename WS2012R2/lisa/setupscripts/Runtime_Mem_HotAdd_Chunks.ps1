@@ -39,7 +39,7 @@
     Test data for this test case
 
     .Example
-    setupscripts\Runtime_Mem_HotAdd_Chunks.ps1 -vmName nameOfVM -hvServer localhost -testParams 
+    setupscripts\Runtime_Mem_HotAdd_Chunks.ps1 -vmName nameOfVM -hvServer localhost -testParams
     'sshKey=KEY;ipv4=IPAddress;rootDir=path\to\dir; startupMem=2GB;chunkMem=128MB; decrease=no'
 #>
 
@@ -226,11 +226,13 @@ foreach ($p in $params){
     $fields = $p.Split("=")
 
     switch ($fields[0].Trim()){
-      "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() } 
+      "TC_COVERED"    { $TC_COVERED = $fields[1].Trim() }
       "ipv4"          { $ipv4       = $fields[1].Trim() }
       "sshKey"        { $sshKey     = $fields[1].Trim() }
       "decrease"      { $decrease   = $fields[1].Trim() }
-      "startupMem"  { 
+      "appGitURL"  { $appGitURL  = $fields[1].Trim() }
+      "appGitTag"  { $appGitTag  = $fields[1].Trim() }
+      "startupMem"  {
         $startupMem = ConvertToMemSize $fields[1].Trim() $hvServer
 
         if ($startupMem -le 0){
@@ -240,7 +242,7 @@ foreach ($p in $params){
 
         "startupMem: $startupMem"
       }
-      "chunkMem"  { 
+      "chunkMem"  {
         $chunkMem  = ConvertToMemSize $fields[1].Trim() $hvServer
 
         if ($chunkMem -le 0){
@@ -286,14 +288,12 @@ if (-not $vm1){
   return $false
 }
 
-# Check if stress-ng is installed
-"Checking if stress-ng is installed"
-
-$retVal = checkStressNg $ipv4 $sshKey
+# Install stress-ng if not installed
+$retVal = installApp "stress-ng" $ipv4 $appGitURL $appGitTag
 
 if (-not $retVal){
-    "Stress-ng is not installed! Please install it before running the memory stress tests."
-    return $false
+   "stress-ng is not installed! Please install it before running the memory stress tests." | Tee-Object -Append -file $summaryLog
+   return $false
 }
 
 "Stress-ng is installed! Will begin running memory stress tests shortly."
@@ -337,11 +337,15 @@ for ($i=1; $i -lt 5; $i++){
       $testMem =  $testMem - $chunkMem
   }
 
-  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem 
+  Set-VMMemory -VMName $vmName  -ComputerName $hvServer -DynamicMemoryEnabled $false -StartupBytes $testMem
+  if ($? -eq $false){
+     "Error: Set-VMMemory as $($testMem/1MB) MB failed" | Tee-Object -Append -file $summaryLog
+      return $false
+  }
   Start-sleep -s 5
   if ($vm1.MemoryAssigned -eq $testMem){
     [int64]$vm1AfterAssigned = ($vm1.MemoryAssigned/1MB)
-    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB) 
+    [int64]$vm1AfterDemand = ($vm1.MemoryDemand/1MB)
 
     "Memory stats after ${i} run"
     "  ${vmName}: assigned - $vm1AfterAssigned | demand - $vm1AfterDemand"
@@ -378,7 +382,7 @@ if ( $deltaMemGuest -lt 128){
     "Error: Guest reports that memory value hasn't increased or decreased enough!"
     "Memory stats after $vmName memory was changed "
     "  ${vmName}: Initial Memory - $vm1BeforeAssignedGuest KB :: After setting new value - $vm1AfterAssignedGuest"
-    return $false 
+    return $false
 }
 
 "Memory stats after $vmName memory was changed "
