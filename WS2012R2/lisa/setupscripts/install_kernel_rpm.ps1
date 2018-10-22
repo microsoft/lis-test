@@ -160,7 +160,7 @@ if ($distro -eq "rhel" -or $distro -or $distro -eq "centos") {
 }
 if ($distro -eq "ubuntu") {
     # Install deb packages & extract source files
-    SendCommandToVM $ipv4 $sshKey "apt -y remove linux-cloud-tools-common grub-legacy-ec2"
+    SendCommandToVM $ipv4 $sshKey "apt update && apt -y remove linux-cloud-tools-common grub-legacy-ec2"
     SendCommandToVM $ipv4 $sshKey "dpkg -i /tmp/$kernel/linux-*image-*"
     SendCommandToVM $ipv4 $sshKey "dpkg -i /tmp/$kernel/*hyperv-daemons*"
 
