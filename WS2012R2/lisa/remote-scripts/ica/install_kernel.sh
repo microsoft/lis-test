@@ -87,7 +87,9 @@ function download_artifacts {
 }
 
 function prepare_debian {
+    apt update -qq
     apt install -y curl
+    apt remove -y linux-cloud-tools-common grub-legacy-ec2
 }
 
 function prepare_rhel {
@@ -96,7 +98,6 @@ function prepare_rhel {
 }
 
 function install_kernel_debian {
-    apt remove -y linux-cloud-tools-common grub-legacy-ec2
     dpkg --force-all -i *.deb
     if [[ $? -ne 0 ]];then
         msg="Error: deb install failed."
@@ -177,6 +178,7 @@ function main {
     pushd ./kernel_temp_dir
     prepare_${os_FAMILY}
     download_artifacts "$SHARE_URL" "$AZURE_TOKEN" "$KERNEL_FOLDER" "$os_PACKAGE"
+    prepare_${os_FAMILY}
     install_kernel_${os_FAMILY}
     popd
     rm -rf ./kernel_temp_dir
