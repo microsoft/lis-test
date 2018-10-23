@@ -178,7 +178,6 @@ function main {
     pushd ./kernel_temp_dir
     prepare_${os_FAMILY}
     download_artifacts "$SHARE_URL" "$AZURE_TOKEN" "$KERNEL_FOLDER" "$os_PACKAGE"
-    prepare_${os_FAMILY}
     install_kernel_${os_FAMILY}
     popd
     rm -rf ./kernel_temp_dir
