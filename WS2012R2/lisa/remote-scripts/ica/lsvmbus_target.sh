@@ -28,17 +28,17 @@ scsi_counter=0
 
 LogMsg()
 {
-    echo `date "+%a %b %d %T %Y"` : ${1}
+    echo "$(date "+%a %b %d %T %Y")" : "${1}"
 }
 
 UpdateSummary()
 {
-    echo $1 >> ~/summary.log
+    echo "$1" >> ~/summary.log
 }
 
 UpdateTestState()
 {
-    echo $1 > ~/state.txt
+    echo "$1" > ~/state.txt
 }
 
 
@@ -67,7 +67,7 @@ if [ -e ~/lsvmbus.log ]; then
     rm -rf ~/lsvmbus.log
 fi
 
-if [ ! ${TC_COVERED} ]; then
+if [ ! "${TC_COVERED}" ]; then
     LogMsg "The TC_COVERED variable is not defined!"
     echo "The TC_COVERED variable is not defined!" >> ~/summary.log
 fi
@@ -77,8 +77,8 @@ echo "This script covers test case: ${TC_COVERED}" >> ~/summary.log
 dos2unix utils.sh
 . utils.sh
 
-vmbus_version=`dmesg | grep "Vmbus version" | awk -F: '{print $(NF)}' | awk -F. '{print $1}'`
-if [ $vmbus_version -lt 3 ]; then
+vmbus_version=$(dmesg | grep "Vmbus version" | awk -F: '{print $(NF)}' | awk -F. '{print $1}')
+if [ "$vmbus_version" -lt 3 ]; then
 	LogMsg "Info: Host version older than 2012R2. Skipping test."
 	UpdateSummary "Info: Host version older than 2012R2. Skipping test."
 	SetTestStateSkipped
@@ -96,15 +96,14 @@ case $DISTRO in
 esac
 
 if [[ "$DISTRO" =~ "redhat" ]] || [[ "$DISTRO" =~ "centos" ]] || [[ "$DISTRO" =~ "fedora" ]]; then
-    rpm -q hyperv-tools
-    if [ $? -ne 0 ]; then
+    if ! rpm -q hyperv-tools; then
         yum install -y hyperv-tools
     fi
 fi
 
 # check if lsvmbus exists
-lsvmbus_path=`which lsvmbus`
-if [ -z $lsvmbus_path ]; then
+lsvmbus_path=$(command -v lsvmbus)
+if [ -z "$lsvmbus_path" ]; then
     LogMsg "Error: lsvmbus tool not found!"
     UpdateSummary "Error: lsvmbus tool not found!"
     UpdateTestState $ICA_TESTFAILED
@@ -112,6 +111,15 @@ if [ -z $lsvmbus_path ]; then
 fi
 
 $lsvmbus_path -vvv >> lsvmbus.log
+
+#Check number of NICs on VM
+nics=$( grep -o "Synthetic network adapter" lsvmbus.log | wc -l)
+if [ "$nics" -gt 1 ]; then
+  LogMsg "Counting the cores spread only for the first NIC.."
+  UpdateSummary "Counting the cores spread only for the first NIC..."
+  sed -i ':a;N;$!ba;s/Synthetic network adapter/ignored adapter/2' lsvmbus.log && \
+  sed -i '/ignored adapter/,$d' lsvmbus.log
+fi
 
 while IFS='' read -r line || [[ -n "$line" ]]; do
     if [[ $line =~ "Synthetic network adapter" ]]; then
@@ -122,7 +130,7 @@ while IFS='' read -r line || [[ -n "$line" ]]; do
         token="controller"
     fi
 
-    if [ -n $token ] && [[ $line =~ "target_cpu" ]]; then
+    if [ $token ] && [[ $line =~ "target_cpu" ]]; then
         if [[ $token == "adapter" ]]; then
             ((network_counter++))
         elif [[ $token == "controller" ]]; then
@@ -132,13 +140,13 @@ while IFS='' read -r line || [[ -n "$line" ]]; do
 done < "lsvmbus.log"
 # the cpu count that attached to the network driver is less than 8
 # the cpu count that attached to the scsi controller is (N+3)/4
-if [ $VCPU -gt 8 ];then
+if [ "$VCPU" -gt 8 ];then
     network_CPU=8
 else
     network_CPU=$VCPU
 fi
 
-if [ $network_counter != $network_CPU ] && [ $scsi_counter != $((VCPU+3))/4 ]; then
+if [ "$network_counter" != "$network_CPU" ] && [ "$scsi_counter" != $((VCPU+3))/4 ]; then
     error_msg="Error: values are wrong. Expected for network adapter: $network_CPU and actual: $network_counter;
     expected for scsi controller: 2, actual: $scsi_counter."
 
