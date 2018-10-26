@@ -68,6 +68,7 @@
         <test>
         <testName>lsvmbus_target</testName>
         <setupScript>
+            <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
             <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
             <file>setupScripts\ChangeCPU.ps1</file>
