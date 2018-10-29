@@ -154,6 +154,7 @@ foreach ($p in $params)
         "VM2NAME" { $vm2Name = $fields[1].Trim() }
         "REMOTE_SERVER" { $remoteServer = $fields[1].Trim()}
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
+        "Switch_Name" { $switchName = $fields[1].Trim() }
     }
 }
 
@@ -219,14 +220,14 @@ Start-Sleep -s 10
 # Change RSS profile
 #
 # First, we'll save the current RSS profile
-$rssProfile = Get-NetAdapterRss -Name "vEthernet (SRIOV)*"
+$rssProfile = Get-NetAdapterRss -Name "*$switchName*"
 $rssProfile = $rssProfile.Profile
 
 "Changing RSS profile on VM1"
-Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile ClosestStatic
+Set-NetAdapterRss -Name "*$switchName*" -Profile ClosestStatic
 if (-not $?) {
     "ERROR: Failed to change RSS profile for SRIOV interface!" | Tee-Object -Append -file $summaryLog
-    Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
+    Set-NetAdapterRss -Name "*$switchName*" -Profile $rssProfile
     return $false
 }
 
@@ -239,7 +240,7 @@ if (-not $vfName) {
 $status = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "ip link show $vfName"
 if (-not $status) {
     "ERROR: The VF is down after changing RSS profile!" | Tee-Object -Append -file $summaryLog
-    Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
+    Set-NetAdapterRss -Name "*$switchName*" -Profile $rssProfile
     return $false
 }
 
@@ -252,11 +253,11 @@ Start-Sleep -s 60
 if (-not $vfFinalThroughput) {
     "ERROR: After changing RSS profile, the throughput is significantly lower
     Please check if the VF is still running" | Tee-Object -Append -file $summaryLog
-    Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
+    Set-NetAdapterRss -Name "*$switchName*" -Profile $rssProfile
     return $false
 }
 
 # Change back the RSS profile
-Set-NetAdapterRss -Name "vEthernet (SRIOV)*" -Profile $rssProfile
+Set-NetAdapterRss -Name "*$switchName*" -Profile $rssProfile
 
 return $true
