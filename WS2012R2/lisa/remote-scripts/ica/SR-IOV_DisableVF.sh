@@ -84,104 +84,80 @@ if [ $? -ne 0 ]; then
     SetTestStateFailed
 fi
 
-
 # Set static IPs for each VF
 vfCount=$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
-__iterator=1
-while [ $__iterator -le $vfCount ]; do
-    # Ping the remote host
-    ping -I "eth$__iterator" -c 10 "$VF_IP2" >/dev/null 2>&1
-    if [ 0 -eq $? ]; then
-        msg="Successfully pinged $VF_IP2 through eth$__iterator with VF up"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-    else
-        msg="ERROR: Unable to ping $VF_IP2 through eth$__iterator with VF up. Further testing will be stopped"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi
+UpdateSummary "VF count: $vfCount"
 
-    # Extract VF name
-    interface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo')
+# Extract VF name
+syntheticInterface=$(ip addr | grep $VF_IP1 | awk '{print $NF}')
+LogMsg  "Synthetic interface found: $syntheticInterface"
+vfInterface=$(find /sys/devices/* -name "*${syntheticInterface}*" | grep "pci" | sed 's/\// /g' | awk '{print $12}')
+LogMsg "Virtual function found: $vfInterface"
 
-    # Shut down interface
-    LogMsg "Interface to be shut down is $interface"
-    ip link set dev $interface down
+# Put VF down
+ip link set dev $vfInterface down
+ping -c 11 "$VF_IP2" >/dev/null 2>&1
+if [ 0 -eq $? ]; then
+    LogMsg "Successfully pinged $VF_IP2 with VF down"
+    UpdateSummary "Successfully pinged $VF_IP2 with VF down"
+else
+    LogMsg "Unable to ping $VF_IP2 with VF down"
+    UpdateSummary "Unable to ping $VF_IP2 with VF down"
+    SetTestStateFailed
+    exit 1
+fi
+# Send 1GB file from VM1 to VM2 via synthetic interface
+scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@"$VF_IP2":/tmp/"$output_file"
+if [ 0 -ne $? ]; then
+    LogMsg "Unable to send the file from VM1 to VM2 ($VF_IP2)"
+    UpdateSummary "Unable to send the file from VM1 to VM2 ($VF_IP2)"
+    SetTestStateFailed
+    exit 1
+else
+    LogMsg "Successfully sent $output_file to $VF_IP2"
+fi
+# Get TX value for synthetic interface after sending the file
+txValue=$(cat /sys/class/net/${syntheticInterface}/statistics/tx_packets)
+LogMsg "TX value after sending the file: $txValue"
+if [ $txValue -lt 10000 ]; then
+    LogMsg "Insufficient TX packets sent on ${syntheticInterface}"
+    UpdateSummary "Insufficient TX packets sent on ${syntheticInterface}"
+    SetTestStateFailed
+    exit 1
+fi
 
-    # Ping the remote host after bringing down the VF
-    ping -I "eth$__iterator" -c 10 "$VF_IP2" >/dev/null 2>&1
-    if [ 0 -eq $? ]; then
-        msg="Successfully pinged $VF_IP2 through eth$__iterator with VF down"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-    else
-        msg="ERROR: Unable to ping $VF_IP2 through eth$__iterator with VF down"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi
-
-    # Get TX value before sending the file
-    #txValueBefore=$(ifconfig eth$__iterator | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
-    txValueBefore=$(cat /sys/class/net/eth`$__iterator/statistics/tx_packets)
-    LogMsg "TX value before sending file: $txValueBefore"
-
-    # Send the file
-    scp -i "$HOME"/.ssh/"$sshKey" -o BindAddress=$VF_IP1 -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@"$VF_IP2":/tmp/"$output_file"
-    if [ 0 -ne $? ]; then
-        msg="ERROR: Unable to send the file from VM1 to VM2 using eth$__iterator"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 10
-    else
-        msg="Successfully sent $output_file to $VF_IP2"
-        LogMsg "$msg"
-    fi
-
-    # Get TX value after sending the file
-    #txValueAfter=$(ifconfig eth$__iterator | grep "TX packets" | sed 's/:/ /' | awk '{print $3}') 
-    txValueAfter=$(cat /sys/class/net/eth`$__iterator/statistics/tx_packets)
-    LogMsg "TX value after sending the file: $txValueAfter"
-
-    # Compare the values to see if TX increased as expected
-    txValueBefore=$(($txValueBefore + 50))      
-
-    if [ $txValueAfter -lt $txValueBefore ]; then
-        msg="ERROR: TX packets insufficient"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 10
-    fi            
-
-    msg="Successfully sent file from VM1 to VM2 through eth${__iterator} with VF down"
-    LogMsg "$msg"
-    UpdateSummary "$msg"
-
-    # Bring up again VF interface
-    ifup $interface
-
-    # Ping the remote host after bringing down the VF
-    ping -I "eth$__iterator" -c 10 "$VF_IP2" >/dev/null 2>&1
-    if [ 0 -eq $? ]; then
-        msg="Successfully pinged $VF_IP2 through eth$__iterator after VF restart"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-    else
-        msg="ERROR: Unable to ping $VF_IP2 through eth$__iterator after VF restart"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-    fi
-
-    : $((__iterator++))
-done
+# Put VF up
+ip link set dev $vfInterface up
+ping -c 11 "$VF_IP2" >/dev/null 2>&1
+if [ 0 -ne $? ]; then
+    LogMsg "Unable to ping $VF_IP2 with VF down"
+    UpdateSummary "Unable to ping $VF_IP2 with VF down"
+    SetTestStateFailed
+    exit 1
+fi
+# Send 1GB file from VM1 to VM2 via VF
+scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@"$VF_IP2":/tmp/"$output_file"
+if [ 0 -ne $? ]; then
+    LogMsg "Unable to send the file from VM1 to VM2 ($VF_IP2)"
+    UpdateSummary "Unable to send the file from VM1 to VM2 ($VF_IP2)"
+    SetTestStateFailed
+    exit 1
+else
+    LogMsg "Successfully sent $output_file to $VF_IP2"
+fi
+# Get TX value for VF after sending the file
+txValue=$(cat /sys/class/net/${vfInterface}/statistics/tx_packets)
+LogMsg "TX value after sending the file: $txValue"
+if [ $txValue -lt 10000 ]; then
+    LogMsg "Insufficient TX packets sent on ${vfInterface}"
+    UpdateSummary "Insufficient TX packets sent on ${vfInterface}"
+    SetTestStateFailed
+    exit 1
+fi
 
 # Check for Call traces
 CheckCallTracesWithDelay 120
 
-LogMsg "Updating test case state to completed"
+UpdateSummary "Successfully disabled and enabled VF"
 SetTestStateCompleted
 exit 0
