@@ -23,33 +23,30 @@
 #
 # Functions definitions
 #
-LogMsg()
-{
+LogMsg() {
     # To add the time-stamp to the log file
     echo `date "+%a %b %d %T %Y"` ": ${1}"
 }
 
-CopyImage()
-{
+CopyImage() {
     if [ -d /root/initr ]; then
         LogMsg "Deleting old temporary rescue directory."
         rm -rf /root/initr/
     fi
 
     mkdir /root/initr
-    cp $1 /root/initr/boot.img
+    cp "$1" /root/initr/boot.img
     cd /root/initr/
 
-    img_type=`file boot.img`
+    img_type=$(file boot.img)
     LogMsg "The image type is: $img_type"
 }
 
-SearchModules()
-{
+SearchModules() {
     LogMsg "Searching for modules..."
     [[ -d "/root/initr/usr/lib/modules" ]] && abs_path="/root/initr/usr/lib/modules/" || abs_path="/root/initr/lib/modules/"
     for module in "${hv_modules[@]}"; do
-        grep -i $module $abs_path*/modules.dep
+        grep -i "$module" $abs_path*/modules.dep
         if [ $? -eq 0 ]; then
             LogMsg "Info: Module $module was found in initrd."
             echo "Info: Module $module was found in initrd." >> /root/summary.log
@@ -68,7 +65,6 @@ SearchModules()
 # Main script
 #
 ######################################################################
-
 dos2unix utils.sh
 # Source utils.sh
 . utils.sh || {
@@ -100,18 +96,18 @@ fi
 # Rebuild array to exclude built-in modules
 skip_modules=()
 
-vmbusIncluded=`grep CONFIG_HYPERV=y /boot/config-$(uname -r)`
-if [ $vmbusIncluded ]; then
+vmbusIncluded=$(grep CONFIG_HYPERV=y /boot/config-"$(uname -r)")
+if [ "$vmbusIncluded" ]; then
     skip_modules+=("hv_vmbus.ko")
     LogMsg "Info: hv_vmbus module is built-in. Skipping module. "
 fi
-storvscIncluded=`grep CONFIG_HYPERV_STORAGE=y /boot/config-$(uname -r)`
-if [ $storvscIncluded ]; then
+storvscIncluded=$(grep CONFIG_HYPERV_STORAGE=y /boot/config-"$(uname -r)")
+if [ "$storvscIncluded" ]; then
     skip_modules+=("hv_storvsc.ko")
     LogMsg "Info: hv_storvsc module is built-in. Skipping module. "
 fi
-netvscIncluded=`grep CONFIG_HYPERV_NET=y /boot/config-$(uname -r)`
-if [ $netvscIncluded ]; then
+netvscIncluded=$(grep CONFIG_HYPERV_NET=y /boot/config-"$(uname -r)")
+if [ "$netvscIncluded" ]; then
     skip_modules+=("hv_netvsc.ko")
     LogMsg "Info: hv_netvsc module is built-in. Skipping module. "
 fi
@@ -132,23 +128,32 @@ hv_modules=("${tempList[@]}")
 if [ "${hv_modules:-UNDEFINED}" = "UNDEFINED" ]; then
     msg="The test parameter hv_modules is not defined in constants file."
     LogMsg "$msg"
-    echo $msg >> ~/summary.log
+    echo "$msg" >> ~/summary.log
     SetTestStateAborted
     exit 30
 fi
 
-if [[ $DISTRO == "redhat_6" ]]; then
-    yum install -y dracut-network
-    dracut -f
-    if [ "$?" = "0" ]; then
-        LogMsg "Info: dracut -f ran successfully"
-    else
-        LogMsg "Error: dracut -f fails to execute"
-        echo "Error: dracut -f fails to execute" >> summary.log
-        SetTestStateAborted
-        exit 1
-    fi
-fi
+GetDistro
+
+case $DISTRO in
+    centos_6 | redhat_6)
+        yum install -y dracut-network
+        dracut -f
+        if [ "$?" = "0" ]; then
+            LogMsg "Info: dracut -f ran successfully"
+        else
+            LogMsg "Error: dracut -f fails to execute"
+            echo "Error: dracut -f fails to execute" >> summary.log
+            SetTestStateAborted
+            exit 1
+        fi
+    ;;
+    ubuntu* | debian*)
+        apt update -qq
+        # provides skipcpio binary
+        apt install -y dracut-core
+    ;;
+esac
 
 if [ -f /boot/initramfs-0-rescue* ]; then
     img=/boot/initramfs-0-rescue*
@@ -165,13 +170,11 @@ else
     img="/boot/initrd.img-`uname -r`"
   fi
 fi
-
 echo "The initrd test image is: $img" >> summary.log
 
-CopyImage $img
+CopyImage "$img"
 
 LogMsg "Info: Unpacking the image..."
-
 case $img_type in
     *ASCII*cpio*)
         /usr/lib/dracut/skipcpio boot.img |zcat| cpio -id --no-absolute-filenames
