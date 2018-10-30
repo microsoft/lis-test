@@ -31,16 +31,35 @@
 #   5. Send a 1GB file from VM1 to VM2
 #
 ########################################################################
-
 # Convert eol
 dos2unix SR-IOV_Utils.sh
+. constants.sh
+if [ $MAX_NICS == "yes" ]; then
+    # Adding IPs for all VFs (VM1 and VM2) in constants.sh
+    sed --in-place '/IP/d' constants.sh
+
+    maxVFIterator=14
+    __iterator=0
+    __ipIterator1=1
+    __ipIterator2=1
+    while [ $__iterator -lt $maxVFIterator ]; do
+        echo -e "VF_IP${__ipIterator2}=10.1${__ipIterator1}.12.${__ipIterator2}" >> constants.sh
+
+        if [ $((__iterator%2)) -eq 1 ]; then
+            __ipIterator1=$(($__ipIterator1 + 1))    
+        fi
+
+        __ipIterator2=$(($__ipIterator2 + 1))
+        : $((__iterator++))   
+    done
+fi
 
 # Source SR-IOV_Utils.sh. This is the script that contains all the 
 # SR-IOV basic functions (checking drivers, checking VFs, assigning IPs)
 . SR-IOV_Utils.sh || {
     echo "ERROR: unable to source SR-IOV_Utils.sh!"
     echo "TestAborted" > state.txt
-    exit 2
+    exit 1
 }
 
 # Check the parameters in constants.sh
@@ -50,6 +69,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 # Check if the SR-IOV driver is in use
@@ -59,6 +79,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 UpdateSummary "VF is present on VM!"
 
@@ -69,6 +90,7 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
 # Create an 1gb file to be sent from VM1 to VM2
@@ -78,76 +100,96 @@ if [ $? -ne 0 ]; then
     LogMsg "$msg"
     UpdateSummary "$msg"
     SetTestStateFailed
+    exit 1
 fi
 
-#
-# Ping from VM1 to VM2
-#
-vfCount=$(find /sys/devices -name net -a -ipath '*vmbus*' | grep pci | wc -l)
-__iterator=1
-# Set static IPs for each VF
-while [ $__iterator -le $vfCount ]; do
-    # Ping the remote host
-    ping -I "eth$__iterator" -c 10 "$VF_IP2" >/dev/null 2>&1
-    if [ 0 -eq $? ]; then
-        msg="Successfully pinged $VF_IP2 through eth$__iterator"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-    else
-        msg="ERROR: Unable to ping $VF_IP2 through eth$__iterator"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-    fi
-
-    #
-    # Send 1GB file from VM1 to VM2 via eth1
-    #
-    scp -i "$HOME"/.ssh/"$sshKey" -o BindAddress=$VF_IP1 -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@"$VF_IP2":/tmp/"$output_file"
-    if [ 0 -ne $? ]; then
-        msg="ERROR: Unable to send the file from VM1 to VM2 using eth$__iterator"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 10
-    else
-        msg="Successfully sent $output_file to $VF_IP2"
-        LogMsg "$msg"
-    fi
-
-    # Verify both eth1 on VM1 and VM2 to see if file was sent between them
-    vfInterface=$(ls /sys/class/net/ | grep -v 'eth0\|eth1\|lo')
-    # ifconfig $vfInterface | grep bytes
-
-    # txValue=$(ifconfig $vfInterface | grep "TX packets" | sed 's/:/ /' | awk '{print $3}')
-    txValue=$(cat /sys/class/net/${vfInterface}/statistics/tx_packets)
-    LogMsg "TX value after sending the file: $txValue"
-    if [ $txValue -lt 700000 ]; then
-        msg="ERROR: insufficient TX packets sent"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 10
-    fi
-
-    vfName=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" ls /sys/class/net | grep -v 'eth0\|eth1\|lo')
-    #rxValue=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" ifconfig $vfName | grep "RX packets" | sed 's/:/ /' | awk '{print $3}')
-    rxValue=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$VF_IP2" cat /sys/class/net/${vfName}/statistics/rx_packets)
-    LogMsg "RX value after sending the file: $rxValue"
-    if [ $rxValue -lt 700000 ]; then
-        msg="ERROR: insufficient RX packets received"
-        LogMsg "$msg"
-        UpdateSummary "$msg"
-        SetTestStateFailed
-        exit 10
-    fi
-
-    msg="Successfully sent file from VM1 to VM2 through eth1"
+# Check if the VF count inside the VM is the same as the expected count
+expected_vf_count=$(grep -c VF_IP constants.sh)
+expected_vf_count=$(($expected_vf_count / 2))
+vf_count=$(find /sys/devices -name net -a -ipath '*vmbus*' | grep -c pci)
+if [ $vf_count -ne $expected_vf_count ]; then
+    msg="ERROR: Expected VF count: $expected_vf_count. Actual VF count: $vf_count"
     LogMsg "$msg"
     UpdateSummary "$msg"
+    SetTestStateFailed
+    exit 1
+fi
+UpdateSummary "Expected VF count: $expected_vf_count. Actual VF count: $vf_count"
+sleep 5
+ip a
 
+__iterator=1
+__ip_iterator_1=1
+__ip_iterator_2=2
+# Ping and send file from VM1 to VM2
+while [ $__iterator -le $vf_count ]; do
+    # Extract VF_IP values
+    ip_variable_name="VF_IP$__ip_iterator_1"
+    static_IP_1="${!ip_variable_name}"
+    ip_variable_name="VF_IP$__ip_iterator_2"
+    static_IP_2="${!ip_variable_name}"
+
+    synthetic_interface_vm_1=$(ip addr | grep $static_IP_1 | awk '{print $NF}')
+    LogMsg  "Synthetic interface found: $synthetic_interface_vm_1"
+    vf_interface_vm_1=$(find /sys/devices/* -name "*${synthetic_interface_vm_1}*" | grep "pci" | sed 's/\// /g' | awk '{print $12}')
+    LogMsg "Virtual function found: $vf_interface_vm_1"
+
+    # Ping the remote host
+    ping -c 11 "$static_IP_2" >/dev/null 2>&1
+    if [ 0 -eq $? ]; then
+        LogMsg "Successfully pinged $static_IP_2 through $synthetic_interface_vm_1"
+    else
+        msg="ERROR: Unable to ping $static_IP_2 through $synthetic_interface_vm_1"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    fi
+
+    # Send 1GB file from VM1 to VM2 via eth1
+    scp -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$output_file" "$REMOTE_USER"@"$static_IP_2":/tmp/"$output_file"
+    if [ 0 -ne $? ]; then
+        msg="ERROR: Unable to send the file from VM1 to VM2 ($static_IP_2)"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    else
+        LogMsg "Successfully sent $output_file to $static_IP_2"
+    fi
+
+    tx_value=$(cat /sys/class/net/${vf_interface_vm_1}/statistics/tx_packets)
+    LogMsg "TX value after sending the file: $tx_value"
+    if [ $tx_value -lt 400000 ]; then
+        msg="ERROR: Insufficient TX packets sent"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    fi
+
+    # Get the VF name from VM2
+    cmd_to_send="ip addr | grep \"$static_IP_2\" | awk '{print \$NF}'"
+    synthetic_interface_vm_2=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$static_IP_2" $cmd_to_send)
+    cmd_to_send="find /sys/devices/* -name "*${synthetic_interface_vm_2}*" | grep pci | sed 's/\// /g' | awk '{print \$12}'"
+    vf_interface_vm_2=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$static_IP_2" $cmd_to_send)
+    
+    rx_value=$(ssh -i "$HOME"/.ssh/"$sshKey" -o StrictHostKeyChecking=no "$REMOTE_USER"@"$static_IP_2" cat /sys/class/net/${vf_interface_vm_2}/statistics/rx_packets)
+    LogMsg "RX value after sending the file: $rx_value"
+    if [ $rx_value -lt 400000 ]; then
+        msg="ERROR: Insufficient RX packets received"
+        LogMsg "$msg"
+        UpdateSummary "$msg"
+        SetTestStateFailed
+        exit 1
+    fi
+    UpdateSummary "Successfully sent file from VM1 to VM2 through $synthetic_interface_vm_1"
+
+    __ip_iterator_1=$(($__ip_iterator_1 + 2))
+    __ip_iterator_2=$(($__ip_iterator_2 + 2))
     : $((__iterator++))
 done
 
-LogMsg "Updating test case state to completed"
+UpdateSummary "Successfully pinged and sent files through $vf_count VFs"
 SetTestStateCompleted
 exit 0

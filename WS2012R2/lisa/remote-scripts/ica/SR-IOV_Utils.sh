@@ -328,6 +328,7 @@ ConfigureVF()
         fi
         LogMsg "Network config file path: $__file_path"
 
+        sleep 10
         __ipIterator=$(($__ipIterator + 2))
         : $((__iterator++))
     done

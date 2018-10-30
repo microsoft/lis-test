@@ -72,8 +72,7 @@
                 <suiteTest>Upgrade_Downgrade_PF</suiteTest>
                 
                 <!-- Multiple VFs tests -->
-                <suiteTest>Multiple_basic</suiteTest>
-                <suiteTest>Multiple_fileCopy</suiteTest>
+                <suiteTest>Multiple_NICs</suiteTest>
                 <suiteTest>MaxNICS</suiteTest>
                 <suiteTest>MaxNICS_vCPU</suiteTest>
 
@@ -445,9 +444,9 @@
         </test>
 
         <test>
-            <testName>Multiple_basic</testName>
-            <testScript>SR-IOV_Multiple_basic.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_Multiple_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
+            <testName>Multiple_NICs</testName>
+            <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
+            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -456,27 +455,7 @@
             <testParams>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
                 <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
-                <param>TC_COVERED=SRIOV-24</param>
-                <param>VF_IP3=10.12.12.33</param>
-                <param>VF_IP4=10.12.12.34</param>
-                <param>Clean_Dependency=yes</param>
-            </testParams>
-            <timeout>1000</timeout>
-        </test>
-
-        <test>
-            <testName>Multiple_fileCopy</testName>
-            <testScript>SR-IOV_Multiple_fileCopy.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_Multiple_fileCopy.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
-            <setupScript>
-                <file>setupscripts\RevertSnapshot.ps1</file>
-                <file>setupscripts\SR-IOV_enable.ps1</file>
-            </setupScript>
-            <noReboot>False</noReboot>
-            <testParams>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112800</param>
-                <param>NIC=NetworkAdapter,External,SRIOV,001600112801</param>
-                <param>TC_COVERED=SRIOV-25</param>
+                <param>TC_COVERED=SRIOV-24,SRIOV-25</param>
                 <param>VF_IP3=10.12.12.33</param>
                 <param>VF_IP4=10.12.12.34</param>
             </testParams>
@@ -485,8 +464,8 @@
 
         <test>
             <testName>MaxNICS</testName>
-            <testScript>SR-IOV_MaxNIC.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_MaxNIC.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files>
+            <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
+            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupscripts\SR-IOV_enable.ps1</file>
@@ -502,8 +481,8 @@
 
         <test>
             <testName>MaxNICS_vCPU</testName>
-            <testScript>SR-IOV_MaxNIC.sh</testScript>
-            <files>remote-scripts/ica/SR-IOV_MaxNIC.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files>
+            <testScript>SR-IOV_VerifyVF_basic.sh</testScript>
+            <files>remote-scripts/ica/SR-IOV_VerifyVF_basic.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh,remote-scripts/ica/check_traces.sh</files>
             <setupScript>
                 <file>setupscripts\RevertSnapshot.ps1</file>
                 <file>setupScripts\ChangeCPU.ps1</file>
