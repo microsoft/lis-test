@@ -126,23 +126,15 @@ function GetIPv4([String] $vmName, [String] $server)
 
     $errMsg = $null
     $addr = GetIPv4ViaKVP $vmName $server
-    if (-not $addr)
-    {
+    if (-not $addr) {
         $errMsg += $error[0].Exception.Message
-        $addr = GetIPv4ViaICASerial $vmName $server
-        if (-not $addr)
-        {
+        $addr = GetIPv4ViaHyperV $vmName $server
+        if (-not $addr) {
             $errMsg += ("`n" + $error[0].Exception.Message)
-            $addr = GetIPv4ViaHyperV $vmName $server
-            if (-not $addr)
-            {
-                $errMsg += ("`n" + $error[0].Exception.Message)
-                Write-Error -Message ("GetIPv4: Unable to determine IP address for VM ${vmName}`n" + $errmsg) -Category ReadError -ErrorAction SilentlyContinue
-                return $null
-            }
+            Write-Error -Message ("GetIPv4: Unable to determine IP address for VM ${vmName}`n" + $errmsg) -Category ReadError -ErrorAction SilentlyContinue
+            return $null
         }
     }
-
     return $addr
 }
 
