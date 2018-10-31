@@ -177,7 +177,10 @@ CopyImage "$img"
 LogMsg "Info: Unpacking the image..."
 case $img_type in
     *ASCII*cpio*)
-        /usr/lib/dracut/skipcpio boot.img |zcat| cpio -id --no-absolute-filenames
+        cpio -id -F boot.img &> out.file
+        skip_block_size=$(cat out.file | awk '{print $1}')
+        dd if=boot.img of=finalInitrd.img bs=512 skip=$skip_block_size
+        /usr/lib/dracut/skipcpio finalInitrd.img |zcat| cpio -id --no-absolute-filenames
         if [ $? -eq 0 ]; then
             LogMsg "Info: Successfully unpacked the image."
         else
