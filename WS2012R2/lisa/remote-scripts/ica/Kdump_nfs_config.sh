@@ -62,10 +62,14 @@ ConfigRhel()
 
     service nfs restart
     if [ $? -ne 0 ]; then
-        LogMsg "ERROR: Failed to restart nfs service."
-        UpdateSummary "ERROR: Failed to restart nfs service."
-        SetTestStateAborted
-        exit 1
+        # if nfs failed, try nfs-server
+        service nfs-server restart
+        if [ $? -ne 0 ]; then
+            LogMsg "ERROR: Failed to restart nfs service."
+            UpdateSummary "ERROR: Failed to restart nfs service."
+            SetTestStateAborted
+            exit 1
+        fi
     fi
 
     #disable firewall in case it is running
