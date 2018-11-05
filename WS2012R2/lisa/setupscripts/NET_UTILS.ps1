@@ -625,8 +625,11 @@ function CreateInterfaceConfig([String]$conIpv4,[String]$sshKey, [String]$bootpr
         }
     }
 
-    # create command to be sent to VM. This determines the interface based on the MAC Address.
+    # Send utils.sh to VM
+    "Sending .\remote-scripts\ica\utils.sh to $conIpv4, authenticating with $sshKey"
+    $retVal = SendFileToVM "$conIpv4" "$sshKey" ".\remote-scripts\ica\utils.sh" "/root/utils.sh"
 
+    # create command to be sent to VM. This determines the interface based on the MAC Address.
     $cmdToVM = @"
 #!/bin/bash
         cd /root
