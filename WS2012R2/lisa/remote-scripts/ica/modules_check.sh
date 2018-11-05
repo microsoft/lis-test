@@ -35,7 +35,7 @@ CopyImage() {
     fi
 
     mkdir /root/initr
-    cp "$1" /root/initr/boot.img
+    cp $1 /root/initr/boot.img
     cd /root/initr/
 
     img_type=$(file boot.img)
