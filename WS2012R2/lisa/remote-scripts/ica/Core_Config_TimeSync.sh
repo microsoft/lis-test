@@ -26,17 +26,15 @@ ICA_TESTCOMPLETED="TestCompleted"
 ICA_TESTABORTED="TestAborted"
 ICA_TESTFAILED="TestFailed"
 
-UpdateTestState()
-{
+unsupported_msg="INFO: OS version too old for PHC refclock support, skipped config step"
+
+UpdateTestState() {
     echo $1 >> ~/state.txt
 }
 
-
 dos2unix utils.sh
-
 #
 # Source utils.sh to get more utils
-# Get $DISTRO, LogMsg directly from utils.sh
 #
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
@@ -106,7 +104,7 @@ ConfigRhel()
             UpdateTestState $ICA_TESTFAILED
             exit 1
         fi
-    fi    
+    fi
 }
 
 ConfigSles()
@@ -153,14 +151,15 @@ ConfigSles()
             UpdateTestState $ICA_TESTFAILED
             exit 1
         fi
-    fi    
+    fi
 }
 
 ConfigUbuntu()
 {
     chronyd -v
     if [ $? -ne 0 ]; then
-        apt-get install chrony -y
+        apt update
+        apt install chrony -y
         if [ $? -ne 0 ]; then
             LogMsg "ERROR: Failed to install chrony"
             UpdateSummary "ERROR: Failed to install chrony"
@@ -201,29 +200,37 @@ ConfigUbuntu()
             UpdateTestState $ICA_TESTFAILED
             exit 1
         fi
-    fi    
+    fi
 }
 
+#
+# Main script body
+#
 GetDistro
+GetOSVersion
 case $DISTRO in
     centos* | redhat* | fedora*)
-        GetOSVersion 
-		if [[ $os_RELEASE.$os_UPDATE =~ ^5.* ]] || [[ $os_RELEASE.$os_UPDATE =~ ^6.* ]] ; then
-			LogMsg "INFO: Skipped config step"
-			UpdateSummary "INFO: Skipped config step"
-		else
-			ConfigRhel
-		fi
+        if [[ $os_RELEASE.$os_UPDATE =~ ^5.* ]] || [[ $os_RELEASE.$os_UPDATE =~ ^6.* ]] ; then
+            LogMsg "$unsupported_msg"
+            UpdateSummary "$unsupported_msg"
+        else
+            ConfigRhel
+        fi
     ;;
-    ubuntu*)
-        ConfigUbuntu
+    ubuntu* | debian*)
+        if [[ $os_RELEASE =~ ^14.04* ]] ; then
+            LogMsg "$unsupported_msg"
+            UpdateSummary "$unsupported_msg"
+        else
+            ConfigUbuntu
+        fi
     ;;
     suse*)
         ConfigSles
     ;;
      *)
-        LogMsg "WARNING: Distro '${distro}' not supported."
-        UpdateSummary "WARNING: Distro '${distro}' not supported."
+        LogMsg "WARNING: Distro not supported."
+        UpdateSummary "WARNING: Distro not supported."
     ;;
 esac
 
