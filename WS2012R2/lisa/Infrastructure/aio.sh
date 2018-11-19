@@ -637,8 +637,8 @@ elif is_suse ; then
     username=$1
     password=$2
 
-    if [ "$os_RELEASE" = 12 ]; then
-        echo "Registering SLES 11" >> summary.log
+    if [ "$os_RELEASE" = 12 ] || [ $os_RELEASE = 15 ]; then
+        echo "Registering SLES 12 or newer..." >> summary.log
         SUSEConnect -r $password -e $username
 
         #
