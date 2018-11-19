@@ -214,6 +214,21 @@ else{
     return $Failed
 }
 
+# check hyperv modules
+if ($vm2Name -And $use_nfs -eq "yes")
+{
+    $retVal = RunRemoteScript "modules_check.sh"
+    if ($retVal[-1] -eq $false )
+    {
+        bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_modules_check_fail_summary.log
+        Get-content  $logdir/${TC_COVERED}_modules_check_fail_summary.log | Tee-Object -Append -file $summaryLog
+        return $Failed
+    }
+    else {
+        bin\pscp -q -i ssh\${sshKey} root@${ipv4}:summary.log $logdir/${TC_COVERED}_modules_check_pass_summary.log
+        Get-content  $logdir/${TC_COVERED}_modules_check_pass_summary.log | Tee-Object -Append -file $summaryLog
+    }
+}
 #
 # Prepare the kdump related
 #
