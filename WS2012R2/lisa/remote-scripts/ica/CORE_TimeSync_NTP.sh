@@ -26,11 +26,11 @@
 #
 # Description
 #     This script was created to automate the testing of a Linux
-#     Integration services. It enables Network Time Protocol and 
+#     Integration services. It enables Network Time Protocol and
 #     checks if the time is in sync.
-#    
+#
 #     A typical xml entry looks like this:
-# 
+#
 #         <test>
 #             <testName>TimeSyncNTP</testName>
 #             <testScript>CORE_TimeSync_NTP.sh</testScript>
@@ -70,10 +70,10 @@ function UpdateSummary() {
     echo $1 >> ~/summary.log
 }
 
-####################################################################### 
-# 
-# Main script body 
-# 
+#######################################################################
+#
+# Main script body
+#
 #######################################################################
 cd ~
 
@@ -91,7 +91,7 @@ dos2unix utils.sh
 # Source utils.sh
 . utils.sh || {
     echo "Error: unable to source utils.sh!"
-    UpdateTestState "TestAborted" 
+    UpdateTestState "TestAborted"
     exit 2
 }
 
@@ -103,6 +103,13 @@ fi
 
 # Try to restart NTP. If it fails we try to install it.
 if is_fedora ; then
+    # RHEL 8 does not support NTP, skip test
+    if [[ $os_RELEASE =~ 8.* ]]; then
+        LogMsg "Info: $os_VENDOR $os_RELEASE does not support NTP. Test skipped. "
+        UpdateSummary "Info: $os_VENDOR $os_RELEASE does not support NTP. Test skipped."
+        SetTestStateSkipped
+        exit 10
+    fi
     # Check if ntpd is running
     service ntpd restart
     if [[ $? -ne 0 ]]; then
@@ -114,7 +121,7 @@ if is_fedora ; then
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
-        
+
         chkconfig ntpd on
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to chkconfig ntpd on. Aborting"
@@ -122,7 +129,7 @@ if is_fedora ; then
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
-        
+
         ntpdate pool.ntp.org
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to set ntpdate. Aborting"
@@ -130,7 +137,7 @@ if is_fedora ; then
             UpdateTestState $ICA_TESTABORTED
             exit 10
         fi
-        
+
         service ntpd start
         if [[ $? -ne 0 ]] ; then
             LogMsg "ERROR: Unable to start ntpd. Aborting"
@@ -142,7 +149,7 @@ if is_fedora ; then
     fi
 
     # set rtc clock to system time & restart NTPD
-    hwclock --systohc 
+    hwclock --systohc
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
         UpdateSummary "ERROR: Unable to sync RTC clock to system time. Aborting"
@@ -175,7 +182,7 @@ elif is_ubuntu ; then
     fi
 
     # set rtc clock to system time & restart NTPD
-    hwclock --systohc 
+    hwclock --systohc
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
         UpdateSummary "ERROR: Unable to sync RTC clock to system time. Aborting"
@@ -231,7 +238,7 @@ elif is_suse ; then
     fi
 
     # set rtc clock to system time
-    hwclock --systohc 
+    hwclock --systohc
     if [[ $? -ne 0 ]]; then
         LogMsg "ERROR: Unable to sync RTC clock to system time. Aborting"
         UpdateSummary "ERROR: Unable to sync RTC clock to system time. Aborting"
@@ -267,7 +274,7 @@ fi
 # Variables for while loop. stopTest is the time until the test will run
 isOver=false
 secondsToRun=1800
-stopTest=$(( $(date +%s) + secondsToRun )) 
+stopTest=$(( $(date +%s) + secondsToRun ))
 
 while [ $isOver == false ]; do
     # 'ntpq -c rl' returns the offset between the ntp server and internal clock
@@ -308,7 +315,7 @@ while [ $isOver == false ]; do
             UpdateSummary "ERROR: Delay cannot be 0.000; Please check NTP sync manually."
             UpdateTestState $ICA_TESTABORTED
             exit 10
-        elif [[ 0 -ne $check ]] ; then    
+        elif [[ 0 -ne $check ]] ; then
             LogMsg "ERROR: NTP Time out of sync. Test Failed"
             UpdateSummary "ERROR: NTP Time out of sync. Test Failed"
             LogMsg "NTP offset is $delay seconds."
