@@ -171,13 +171,16 @@
                 <file>setupScripts\SetVMMemory.ps1</file>
             </setupScript>
             <testScript>setupScripts\kdump.ps1</testScript>
-            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh,remote-scripts/ica/kdump_nfs_config.sh</files>
+            <files>remote-scripts/ica/modules_check.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/kdump_config.sh,remote-scripts/ica/kdump_results.sh,remote-scripts/ica/kdump_execute.sh,remote-scripts/ica/kdump_nfs_config.sh</files>
             <testParams>
                 <param>crashkernel=384M</param>
                 <param>TC_COVERED=KDUMP-06</param>
                 <param>use_nfs=yes</param>
                 <param>VCPU=1</param>
                 <param>VMMemory=4GB</param>
+                <param>img=kdump.img</param>
+                <param>gen1_hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv_fb.ko)</param>
+                <param>gen2_hv_modules=(hv_vmbus.ko hv_storvsc.ko hv_netvsc.ko hyperv-keyboard.ko hyperv_fb.ko)</param>
             </testParams>
             <timeout>1000</timeout>
         </test>
