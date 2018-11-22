@@ -24,10 +24,10 @@
     Run continous Ping while disabling and enabling the SR-IOV feature
 
 .Description
-    Continuously ping a server, from a Linux client, over a SR-IOV connection. 
-    Disable SR-IOV on the Linux client and observe RTT increase.  
-    Re-enable SR-IOV and observe that RTT lowers. 
-      
+    Continuously ping a server, from a Linux client, over a SR-IOV connection.
+    Disable SR-IOV on the Linux client and observe RTT increase.
+    Re-enable SR-IOV and observe that RTT lowers.
+
 .Parameter vmName
     Name of the test VM.
 
@@ -42,11 +42,11 @@
     <test>
         <testName>Ping_DisableVF</testName>
         <testScript>setupscripts\SR-IOV_Ping_DisableVF.ps1</testScript>
-        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files> 
+        <files>remote-scripts/ica/utils.sh,remote-scripts/ica/SR-IOV_Utils.sh</files>
         <setupScript>
             <file>setupscripts\RevertSnapshot.ps1</file>
             <file>setupscripts\SR-IOV_enable.ps1</file>
-        </setupScript> 
+        </setupScript>
         <noReboot>False</noReboot>
         <testParams>
             <param>NIC=NetworkAdapter,External,SRIOV,001600112200</param>
@@ -145,7 +145,7 @@ foreach ($p in $params)
     switch ($fields[0].Trim())
     {
         "SshKey" { $sshKey = $fields[1].Trim() }
-        "ipv4" { $ipv4 = $fields[1].Trim() }   
+        "ipv4" { $ipv4 = $fields[1].Trim() }
         "VF_IP1" { $vmVF_IP1 = $fields[1].Trim() }
         "VF_IP2" { $vmVF_IP2 = $fields[1].Trim() }
         "NETMASK" { $netmask = $fields[1].Trim() }
@@ -185,7 +185,7 @@ Start-Sleep -s 5
 # Wait 60 seconds and read the RTT
 "Get Logs"
 Start-Sleep -s 30
-[decimal]$vfEnabledRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
+[decimal]$vfEnabledRTT =.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -30 PingResults.log | awk '{print `$7}' | sed 's/=/ /' | awk '{sum+=`$2} END {print sum/NR}'"
 if (-not $vfEnabledRTT){
     "ERROR: No result was logged! Check if Ping was executed!" | Tee-Object -Append -file $summaryLog
     return $false
@@ -200,12 +200,12 @@ Start-Sleep -s 5
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 0
 if (-not $?) {
     "ERROR: Failed to disable SR-IOV on $vmName!" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 # Read the RTT with SR-IOV disabled; it should be higher
 Start-Sleep -s 30
-[decimal]$vfDisabledRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
+[decimal]$vfDisabledRTT =.\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -30 PingResults.log | awk '{print `$7}' | sed 's/=/ /' | awk '{sum+=`$2} END {print sum/NR}'"
 if (-not $vfDisabledRTT){
     "ERROR: No result was logged after SR-IOV was disabled!" | Tee-Object -Append -file $summaryLog
     return $false
@@ -214,7 +214,7 @@ if (-not $vfDisabledRTT){
 "The RTT with SR-IOV disabled is $vfDisabledRTT ms" | Tee-Object -Append -file $summaryLog
 if ($vfDisabledRTT -le $vfEnabledRTT) {
     "ERROR: The RTT was lower with SR-IOV disabled, it should be higher" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 #
@@ -223,7 +223,7 @@ if ($vfDisabledRTT -le $vfEnabledRTT) {
 Set-VMNetworkAdapter -VMName $vmName -ComputerName $hvServer -IovWeight 1
 if (-not $?) {
     "ERROR: Failed to enable SR-IOV on $vmName!" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 Start-Sleep -s 30
@@ -231,13 +231,13 @@ Start-Sleep -s 30
 # Read the RTT again, it should be lower than before
 # We should see values to close to the initial RTT measured
 [decimal]$vfEnabledRTT = $vfEnabledRTT * 1.3
-[decimal]$vfFinalRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -2 PingResults.log | head -1 | awk '{print `$7}' | sed 's/=/ /' | awk '{print `$2}'"
+[decimal]$vfFinalRTT = .\bin\plink.exe -i ssh\$sshKey root@${ipv4} "tail -30 PingResults.log | awk '{print `$7}' | sed 's/=/ /' | awk '{sum+=`$2} END {print sum/NR}'"
 
 "The RTT after re-enabling SR-IOV is $vfFinalRTT ms" | Tee-Object -Append -file $summaryLog
 if ($vfFinalRTT -gt $vfEnabledRTT) {
     "ERROR: After re-enabling SR-IOV, the RTT value has not lowered enough
     Please check if the VF was successfully restarted" | Tee-Object -Append -file $summaryLog
-    return $false 
+    return $false
 }
 
 # Wait 2 minutes and check call traces
