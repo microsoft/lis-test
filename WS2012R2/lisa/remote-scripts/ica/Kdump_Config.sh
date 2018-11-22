@@ -424,14 +424,11 @@ case $DISTRO in
     ;;
 esac
 
-grep -i vmlinuz $boot_filepath
-if [ $? -ne 0 ]; then
-    # Can not find kernel command in grub.cfg, need to update /etc/default/grub
-    default_grub="/etc/default/grub"
-    sed -i "s/crashkernel=\S*//g" $default_grub
-    sed -i "s/console=\S*//g" $default_grub
-    sed -i "/GRUB_CMDLINE_LINUX/ s/\"$/ crashkernel=$crashkernel\"/" $default_grub
-    grub2-mkconfig -o $boot_filepath
+command -v grub2-editenv
+if [ $? -eq 0 ] && [[ ! -z `grub2-editenv - list | grep -i kernelopts` ]]; then
+    # set kernelopts by grub2-editenv
+    newopts=`grub2-editenv - list | grep -i kernelopts | sed "s/kernelopts=//g; s/crashkernel=\S*/crashkernel=$crashkernel/g"`
+    grub2-editenv - set kernelopts="$newopts"
 else
     # Remove old crashkernel params
     sed -i "s/crashkernel=\S*//g" $boot_filepath
@@ -444,8 +441,8 @@ else
 fi
 
 if [ $? -ne 0 ]; then
-    LogMsg "ERROR: Could not set the new crashkernel value in $boot_filepath"
-    UpdateSummary "ERROR: Could not set the new crashkernel value in $boot_filepath"
+    LogMsg "ERROR: Could not set the new crashkernel value $crashkernel"
+    UpdateSummary "ERROR: Could not set the new crashkernel value $crashkernel"
     SetTestStateAborted
     exit 1
 else
