@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+       <imageStoreDir>\\unc\path</imageStoreDir>
+    </global>
+    <testSuites>
+        <suite>
+            <suiteName>KVP</suiteName>
+            <suiteTests>
+                <suiteTest>MainVM_Checkpoint</suiteTest>
+                <suiteTest>SQM_Basic</suiteTest>
+                <suiteTest>KVP_basic_checks</suiteTest>
+                <suiteTest>KVP_Intrinsic</suiteTest>
+                <suiteTest>KVP_Add_Key_Values</suiteTest>
+                <suiteTest>KVP_Modify_Key_Values</suiteTest>
+                <suiteTest>KVP_Remove_Key_Values</suiteTest>
+                <suiteTest>KVP_Push_Key_Values</suiteTest>
+                <suiteTest>KVP_DeleteNonExistKVPOnGuest</suiteTest>
+                <suiteTest>KVP_ModifyNonExistKVPOnGuest</suiteTest>
+                <suiteTest>KVP_VerifyHostInjectedItems</suiteTest>
+                <suiteTest>KVP_TestRescind</suiteTest>
+                <suiteTest>KVP_Max_Read</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+    <testCases>
+        <test>
+            <testName>MainVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+        <test>
+            <testName>SQM_Basic</testName>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testScript>SetupScripts\SQM_Basic.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+            <testparams>
+                <param>TC_COVERED=SQM-01</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>KVP_Intrinsic</testName>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testScript>SetupScripts\KVP_Intrinsic.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-01b</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>KVP_Add_Key_Values</testName>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testScript>KVP_VerifyKeyValue.sh</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh,remote-scripts\ica\KVP_VerifyKeyValue.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <PreTest>setupScripts\AddKeyValue.ps1</PreTest>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-02</param>
+                <param>Key=EEE</param>
+                <param>Value=555</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>KVP_basic_checks</testName>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testScript>KVP_basic_checks.sh</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh,remote-scripts\ica\KVP_basic_checks.sh,
+                tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-01</param>
+                <param>kvp_pool=3</param>
+                <!-- minimum number of items expected in KVP pool 3 -->
+                <param>kvp_items=11</param>
+            </testparams>
+        </test>
+        <test>
+            <testName>KVP_Modify_Key_Values</testName>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testScript>KVP_VerifyKeyValue.sh</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh,remote-scripts\ica\KVP_VerifyKeyValue.sh,tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <preTest>setupscripts\ModifyKeyValue.ps1</preTest>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-03</param>
+                <param>Key=EEE</param>
+                <param>Value=999</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+        <test>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testName>KVP_Remove_Key_Values</testName>
+            <testScript>setupscripts\KVP_DeleteKeyValue.ps1</testScript>
+            <timeout>600</timeout>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-04</param>
+                <param>Key=EEE</param>
+                <param>Value=999</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+        <test>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testName>KVP_Push_Key_Values</testName>
+            <testScript>setupscripts\KVP_VerifyGuestCreatedItem.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh,tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-05</param>
+                <param>Key=BBB</param>
+                <param>Value=111</param>
+            </testparams>
+        </test>
+        <test>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testName>KVP_DeleteNonExistKVPOnGuest</testName>
+            <testScript>setupscripts\KVP_DeleteNonExistKeyValue.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-06</param>
+                <param>Key=AAA</param>
+                <param>Value=000</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+        <test>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testName>KVP_ModifyNonExistKVPOnGuest</testName>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <testScript>setupscripts\KVP_ModifyNonExistKeyValue.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-07</param>
+                <param>Key=AAA</param>
+                <param>Value=000</param>
+                <param>Pool=0</param>
+            </testparams>
+        </test>
+        <test>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testName>KVP_VerifyHostInjectedItems</testName>
+            <testScript>KVP_VerifyHostInjectedItems.sh</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh,remote-scripts\ica\KVP_VerifyHostInjectedItems.sh,tools/KVP/kvp_client32,tools/KVP/kvp_client64</files>
+            <timeout>600</timeout>
+            <onError>Abort</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-10</param>
+                <param>Pool=3</param>
+                <param>Items=11</param>
+            </testparams>
+        </test>
+        <test>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testName>KVP_TestRescind</testName>
+            <testScript>SetupScripts\KVP_TestRescind.ps1</testScript>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-11</param>
+                <!-- Number of times to disable and reenable the KVP service -->
+                <param>CycleCount=20</param>
+            </testparams>
+        </test>
+        <test>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testName>KVP_Max_Read</testName>
+            <testScript>SetupScripts\Kvp_Max_Read.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh,tools/KVP/kvp_client64, tools/KVP/kvp_client32</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>True</noReboot>
+            <testparams>
+                <param>TC_COVERED=KVP-12</param>
+                <param>Pool=1</param>
+                <!-- Number of key pairs to be added in the kvp pool -->
+                <param>Entries=250</param>
+            </testparams>
+        </test>
+    </testCases>
+    <VMs>
+        <vm>
+            <role>SUT1</role>
+            <hvServer>localhost</hvServer>
+            <vmName>code-coverage-kvp</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <testParams>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+                <param>snapshotName=ICABase</param>
+                <param>VMSnapshot=ICABase</param>
+            </testParams>
+            <suite>KVP</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>8</numCPUs>
+                <memSize>8192</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+    </VMs>
+</config>

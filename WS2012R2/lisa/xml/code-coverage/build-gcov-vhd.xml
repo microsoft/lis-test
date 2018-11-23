@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+       <imageStoreDir>\\unc\path</imageStoreDir>
+         <testParams>
+            <param>vmCpuNumber=4</param>
+            <param>vmMemory=4GB</param>
+        </testParams>
+    </global>
+    <testSuites>
+        <suite>
+            <suiteName>gcov-kernel</suiteName>
+            <suiteTests>
+                <suiteTest>install_kernel_gcov</suiteTest>
+                <suiteTest>Setup-UploadVHD</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+    <testCases>
+        <test>
+        <testName>install_kernel_gcov</testName>
+        <PreTest>setupScripts\copyLatestItem.ps1</PreTest>
+        <testScript>BuildKernelWithPatches.sh</testScript>
+        <files>remote-scripts/ica/BuildKernelWithPatches.sh,remote-scripts/ica/utils.sh</files>
+        <timeout>3600</timeout>
+        <onError>Abort</onError>
+        <testParams>
+            <param>TC_COVERED=gcow-kernel-install</param>
+            <param>SOURCE_TYPE=RPM</param>
+            <param>ACTIVATE_GCOV=yes</param>
+            <param>localDest=tools</param>
+            <param>ITEM=*.src.rpm</param>
+        </testParams>
+        </test>
+        <test>
+            <testName>Setup-UploadVHD</testName>
+            <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=Upload-VHD</param>
+                <param>uploadName=gcov_vhd.vhdx</param>
+            </testParams>
+            <OnError>Abort</OnError>
+            <cleanupScript>
+                <file>.\Infrastructure\Upload-VHD.ps1</file>
+            </cleanupScript>
+        </test>
+    </testCases>
+    <VMs>
+        <vm>
+            <hvServer>localhost</hvServer>
+            <vmName>Build-VHD-gcov</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <suite>gcov-kernel</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>8</numCPUs>
+                <memSize>8192</memSize>
+                <disableDiff>true</disableDiff>
+                <nic>VMBus,External</nic>
+                <generation>1</generation>
+            </hardware>
+        </vm>
+    </VMs>
+</config>

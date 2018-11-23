@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+       <imageStoreDir>\\unc\path</imageStoreDir>
+    </global>
+    <testSuites>
+        <suite>
+            <suiteName>VSS</suiteName>
+            <suiteTests>
+                <suiteTest>MainVM_Checkpoint</suiteTest>
+                <suiteTest>VMHeartBeat</suiteTest>
+                <suiteTest>STOR_VSS_Setup_Backup_Disk</suiteTest>
+                <suiteTest>STOR_VSS_BackupRestore_multiFS_vhdx</suiteTest>
+                <suiteTest>STOR_VSS_Cleanup_Backup_Disk</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+    <testCases>
+        <test>
+            <testName>MainVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+        <test>
+            <testName>VMHeartBeat</testName>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testScript>SetupScripts\INST_LIS_TestVMHeartbeat.ps1</testScript>
+            <testParams>
+                <param>TC_COVERED=CORE-03</param>
+            </testParams>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <timeout>600</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+        <test>
+            <testName>STOR_VSS_Setup_Backup_Disk</testName>
+            <testScript>setupscripts\Setup_Backup_Disk.ps1</testScript>
+            <timeout>3000</timeout>
+            <OnError>Continue</OnError>
+        </test>
+
+        <test>
+            <testName>STOR_VSS_Cleanup_Backup_Disk</testName>
+            <testScript>setupscripts\Cleanup_Backup_Disk.ps1</testScript>
+            <timeout>3000</timeout>
+            <OnError>Continue</OnError>
+        </test>
+        <test>
+            <testName>STOR_VSS_BackupRestore_MultiFS_vhdx</testName>
+            <setupScript>
+                <file>setupscripts\AddVhdxHardDisk.ps1</file>
+            </setupScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <testScript>setupscripts\STOR_VSS_Backup_only_Partition.ps1</testScript>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <testParams>
+                <param>TC_COVERED=VSS-05</param>
+                <param>SCSI=0,0,Dynamic</param>
+                <param>SCSI=1,0,Dynamic</param>
+                <param>SCSI=2,0,Dynamic</param>
+                <param>fileSystems=(ext4 xfs btrfs)</param>
+            </testParams>
+            <timeout>3000</timeout>
+            <OnError>Continue</OnError>
+        </test>
+    </testCases>
+    <VMs>
+        <vm>
+            <role>SUT1</role>
+            <hvServer>localhost</hvServer>
+            <vmName>code-coverage-vss</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <testParams>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+                <param>snapshotName=ICABase</param>
+                <param>VMSnapshot=ICABase</param>
+            </testParams>
+            <suite>VSS</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>8</numCPUs>
+                <memSize>8192</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+
+    </VMs>
+</config>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+       <imageStoreDir>\\unc\path</imageStoreDir>
+    </global>
+    <testSuites>
+        <suite>
+            <suiteName>Stress</suiteName>
+            <suiteTests>
+                <suiteTest>MainVM_Checkpoint</suiteTest>
+                <suiteTest>Sysbench</suiteTest>
+                <suiteTest>ChangeMTU_ReloadNetvsc</suiteTest>
+                <suiteTest>lsvmbus_target</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+    <testCases>
+        <test>
+            <testName>MainVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+        <test>
+            <testName>Sysbench</testName>
+            <testScript>Sysbench.sh</testScript>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <files>remote-scripts/ica/Sysbench.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <testParams>
+                <param>TEST_FILE=(seqwr seqrewr seqrd rndrd rndwr rndrw)</param>
+                <param>TC_COVERED=Stress-03</param>
+            </testParams>
+            <timeout>800</timeout>
+            <OnError>Continue</OnError>
+        </test>
+        <test>
+            <testName>ChangeMTU_ReloadNetvsc</testName>
+            <setupScript>setupscripts\RevertSnapshot.ps1</setupScript>
+            <testScript>setupscripts\STRESS_mtu_netvsc_reload.ps1</testScript>
+            <testparams>
+                <param>TC_COVERED=Stress-04</param>
+                <param>SnapshotName=ICABase</param>
+            </testparams>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <timeout>1800</timeout>
+            <onError>Continue</onError>
+        </test>
+        <test>
+            <testName>lsvmbus_target</testName>
+            <setupScript>
+                <file>setupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+                <file>setupscripts\CORE_EnableIntegrationServices.ps1</file>
+                <file>setupScripts\ChangeCPU.ps1</file>
+            </setupScript>
+            <testScript>lsvmbus_target.sh</testScript>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <files>remote-scripts/ica/lsvmbus_target.sh,remote-scripts/ica/utils.sh,remote-scripts/ica/collect_gcov_data.sh</files>
+            <testParams>
+                <param>TC_COVERED=lsvmbus-02</param>
+                <param>enableDM=yes</param>
+                <param>minMem=2048MB</param>
+                <param>maxMem=2GB</param>
+                <param>startupMem=2048MB</param>
+                <param>memWeight=0</param>
+                <param>staticMem=2048MB</param>
+                <param>VCPU=8</param>
+            </testParams>
+            <timeout>800</timeout>
+        </test>
+    </testCases>
+    <VMs>
+        <vm>
+            <role>SUT1</role>
+            <hvServer>localhost</hvServer>
+            <vmName>code-coverage-stress</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <testParams>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+                <param>snapshotName=ICABase</param>
+                <param>VMSnapshot=ICABase</param>
+            </testParams>
+            <suite>Stress</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>8</numCPUs>
+                <memSize>8192</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+    </VMs>
+</config>

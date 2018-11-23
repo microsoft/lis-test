@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Linux on Hyper-V and Azure Test Code, ver. 1.0.0
+    Copyright (c) Microsoft Corporation
+
+    All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the ""License"");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+    ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR
+    PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing
+    permissions and limitations under the License.
+-->
+
+<config>
+    <global>
+        <defaultSnapshot>ICABase</defaultSnapshot>
+        <LisaInitScript>
+            <file>.\setupScripts\CreateVMs.ps1</file>
+        </LisaInitScript>
+       <imageStoreDir>\\unc\path</imageStoreDir>
+    </global>
+    <testSuites>
+        <suite>
+            <suiteName>hv-sock</suiteName>
+            <suiteTests>
+                <suiteTest>MainVM_Checkpoint</suiteTest>
+                <suiteTest>HV_Sock_HostAsServer</suiteTest>
+                <suiteTest>HV_Sock_VmAsServer</suiteTest>
+            </suiteTests>
+        </suite>
+    </testSuites>
+    <testCases>
+        <test>
+            <testName>MainVM_Checkpoint</testName>
+            <testScript>setupscripts\PreVSS_TakeSnapshot.ps1</testScript>
+            <timeout>600</timeout>
+            <testParams>
+                <param>TC_COVERED=snapshot</param>
+                <param>snapshotVm=main</param>
+                <param>snapshotName=ICABase</param>
+            </testParams>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
+        </test>
+        <test>
+            <testName>HV_Sock_HostAsServer</testName>
+            <testScript>setupscripts\HV_Sock_Basic.ps1</testScript>
+            <files>tools/hv-sock/client_on_vm.c,tools/hv-sock/client_on_vm</files>
+            <testParams>
+                <param>TC_COVERED=HV-Sock-01</param>
+                <param>TEST_TYPE=1</param>
+            </testParams>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <timeout>400</timeout>
+        </test>
+        <test>
+            <testName>HV_Sock_VmAsServer</testName>
+            <testScript>setupscripts\HV_Sock_Basic.ps1</testScript>
+            <files>tools/hv-sock/server_on_vm.c,tools/hv-sock/server_on_vm</files>
+            <testParams>
+                <param>TC_COVERED=HV-Sock-02</param>
+                <param>TEST_TYPE=2</param>
+            </testParams>
+            <noReboot>True</noReboot>
+            <postTest>SetupScripts\GcovDataCollect.ps1</postTest>
+            <timeout>400</timeout>
+        </test>
+    </testCases>
+    <VMs>
+        <vm>
+            <role>SUT1</role>
+            <hvServer>localhost</hvServer>
+            <vmName>code-coverage-hv-sock</vmName>
+            <os>Linux</os>
+            <ipv4></ipv4>
+            <sshKey>rhel5_id_rsa.ppk</sshKey>
+            <testParams>
+                <param>SSH_PRIVATE_KEY=rhel5_id_rsa</param>
+                <param>snapshotName=ICABase</param>
+                <param>VMSnapshot=ICABase</param>
+            </testParams>
+            <suite>hv-sock</suite>
+            <hardware>
+                <create>true</create>
+                <numCPUs>8</numCPUs>
+                <memSize>8192</memSize>
+                <disableDiff>True</disableDiff>
+                <generation>1</generation>
+                <nic>VMBus,External</nic>
+            </hardware>
+        </vm>
+    </VMs>
+</config>
