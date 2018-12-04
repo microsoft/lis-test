@@ -155,20 +155,31 @@ case $DISTRO in
     ;;
 esac
 
-if [ -f /boot/initramfs-0-rescue* ]; then
-    img=/boot/initramfs-0-rescue*
+if [ "${img:-UNDEFINED}" = "UNDEFINED" ]; then
+    if [ -f /boot/initramfs-0-rescue* ]; then
+        img=/boot/initramfs-0-rescue*
+    else
+    if [ -f "/boot/initrd-`uname -r`" ]; then
+        img="/boot/initrd-`uname -r`"
+    fi
+
+    if [ -f "/boot/initramfs-`uname -r`.img" ]; then
+        img="/boot/initramfs-`uname -r`.img"
+    fi
+
+    if [ -f "/boot/initrd.img-`uname -r`" ]; then
+        img="/boot/initrd.img-`uname -r`"
+    fi
+    fi
 else
-  if [ -f "/boot/initrd-`uname -r`" ]; then
-    img="/boot/initrd-`uname -r`"
-  fi
-
-  if [ -f "/boot/initramfs-`uname -r`.img" ]; then
-    img="/boot/initramfs-`uname -r`.img"
-  fi
-
-  if [ -f "/boot/initrd.img-`uname -r`" ]; then
-    img="/boot/initrd.img-`uname -r`"
-  fi
+    if [ $img == "kdump.img" ] && [ -f /boot/initramfs-`uname -r`kdump.img ]; then
+        img=/boot/initramfs-`uname -r`kdump.img
+    else 
+        LogMsg "Error: Failed to find $img."
+        echo "Error: Failed to find $img." >> /root/summary.log
+        SetTestStateFailed
+        exit 1
+    fi
 fi
 echo "The initrd test image is: $img" >> summary.log
 
