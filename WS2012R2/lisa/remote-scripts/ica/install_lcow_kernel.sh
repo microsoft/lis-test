@@ -20,13 +20,11 @@ UpdateSummary() {
 }
 
 function check_constants {
-    constants=(ARCHIVE_URL)
+    constants=(ARCHIVE_URL REMOTE_DIR)
     for var in ${constants[@]};do
         if [[ ${!var} = "" ]];then
             msg="Error: ${var} parameter is null"
             UpdateSummary $msg
-            UpdateTestState $ICA_TESTABORTED
-            exit 1
         fi
     done
 }
@@ -112,7 +110,11 @@ function main {
     mkdir ./kernel_temp_dir
 
     pushd ./kernel_temp_dir
-    download_artifacts "$ARCHIVE_URL"
+    if [[ ! "$REMOTE_DIR" ]];then
+        download_artifacts "$ARCHIVE_URL"
+    else
+        cp ${REMOTE_DIR}/*.rpm .
+    fi
     install_kernel_rhel
     popd
     rm -rf ./kernel_temp_dir
