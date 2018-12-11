@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PACKAGES="lsb-release sudo build-essential git wget curl gpg gcc gcc-c++ make patch autoconf automake bison libffi-devel libtool patch readline-devel sqlite-devel zlib-devel openssl-devel"
-RUN_TESTS=("analyze_suspend.yaml" "autotest.yaml" "dbench.yaml" "ebizzy.yaml" "pm-qa.yaml")
+EXCLUDE_TESTS="reaim-hsx.yaml"
 ICA_TESTRUNNING="TestRunning"      # The test is running
 ICA_TESTCOMPLETED="TestCompleted"  # The test completed successfully
 ICA_TESTABORTED="TestAborted"      # Error during setup of test
@@ -64,6 +64,11 @@ function run_tests {
         test_path="$test"
         test_file="${test##*/}"
         test_name="${test_file%%.*}"
+        
+        if [[ $(grep "$test_file" <<< $EXCLUDE_TESTS) ]];then
+            UpdateSummary "Test $test_name is excluded"    
+            continue
+        fi
         
         lkp install $test_path
         lkp run $test_path

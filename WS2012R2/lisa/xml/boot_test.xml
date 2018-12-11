@@ -26,8 +26,7 @@
       <suiteName>LCOW</suiteName>
       <suiteTests>
         <suiteTest>InstallKernel</suiteTest>
-        <suiteTest>MainVM_Checkpoint</suiteTest>
-        <suiteTest>LTPBasic</suiteTest>
+        <suiteTest>Boot_Test</suiteTest>
       </suiteTests>
     </suite>
   </testSuites>
@@ -54,16 +53,15 @@
       <noReboot>False</noReboot>
     </test>
     <test>
-      <testName>LTPBasic</testName>
-      <testScript>LTP_test.sh</testScript>
-      <files>remote-scripts/ica/LTP_test.sh,remote-scripts\ica\utils.sh</files>
+      <testName>Boot_Test</testName>
+      <testScript>Boot_Speed_Test.sh</testScript>
+      <files>remote-scripts/ica/Boot_Speed_Test.sh,remote-scripts\ica\utils.sh</files>
       <postTest>setupScripts\download_files.ps1</postTest>
-      <timeout>20000</timeout>
+      <timeout>600</timeout>
       <onError>Continue</onError>
       <testparams>
-        <param>LTP_FULL=true</param>
-        <param>TC_COVERED=LTP-01</param>
-        <param>LOGS=/root/ltp-output.log,/root/ltp-results.log</param>
+        <param>BASE_TIME=300ms</param>
+        <param>LOGS=/root/boot_speed.log</param>
       </testparams>
     </test>
   </testCases>
@@ -71,7 +69,7 @@
     <vm>
       <role>SUT1</role>
       <hvServer>localhost</hvServer>
-      <vmName>LCOW-VM</vmName>
+      <vmName>LCOW-BOOT-VM</vmName>
       <os>Linux</os>
       <ipv4>192.168.0.10</ipv4>
       <sshKey>rhel5_id_rsa.ppk</sshKey>
