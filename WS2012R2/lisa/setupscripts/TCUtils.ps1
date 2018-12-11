@@ -2278,6 +2278,10 @@ $DM_scriptBlock = {
         elif [ $timeoutStress -eq 2 ]; then
             timeout=1000000
             duration=`$__threads
+        elif [ $timeoutStress -eq 3 ]; then
+            timeout=1000000
+            duration=`$((2*__threads))
+            __threads=`$((__threads/2))
         else
             timeout=1
             duration=30

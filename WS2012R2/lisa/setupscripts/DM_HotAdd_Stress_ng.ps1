@@ -239,6 +239,11 @@ elseif ($timeoutStress -eq 2) {
     $duration = 40
     $chunk = 1
 }
+elseif ($timeoutStress -eq 3) {
+    $sleepTime = 20
+    $duration = 40
+    $chunk = 0
+}
 else {
     $sleepTime = 20
     $duration = 40
@@ -328,6 +333,5 @@ if ($vm1AfterDemand -ge $vm1Demand)
     "Error: Demand did not go down after stress-ng finished." | Tee-Object -Append -file $summaryLog
     return $false
 }
-
 "Memory Hot Add (using stress-ng) completed successfully!" | Tee-Object -Append -file $summaryLog
 return $true
