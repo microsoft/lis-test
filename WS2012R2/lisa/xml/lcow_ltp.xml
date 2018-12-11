@@ -58,9 +58,10 @@
       <testScript>LTP_test.sh</testScript>
       <files>remote-scripts/ica/LTP_test.sh,remote-scripts\ica\utils.sh</files>
       <postTest>setupScripts\download_files.ps1</postTest>
-      <timeout>7200</timeout>
+      <timeout>14400</timeout>
       <onError>Continue</onError>
       <testparams>
+        <param>LTP_FULL=true</param>
         <param>TC_COVERED=LTP-01</param>
         <param>LOGS=/root/ltp-output.log,/root/ltp-results.log</param>
       </testparams>

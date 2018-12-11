@@ -58,7 +58,7 @@
       <testScript>LKP_test.sh</testScript>
       <files>remote-scripts/ica/LKP_test.sh,remote-scripts\ica\utils.sh</files>
       <postTest>setupScripts\download_files.ps1</postTest>
-      <timeout>7200</timeout>
+      <timeout>28800</timeout>
       <onError>Continue</onError>
       <testparams>
         <param>LOG_DIR=/test/lkp</param>

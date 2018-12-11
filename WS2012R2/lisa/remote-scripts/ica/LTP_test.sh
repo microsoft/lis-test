@@ -231,7 +231,11 @@ fi
 cd $TOP_BUILDDIR
 
 LogMsg "Running LTP..."
-./runltplite.sh -c 4 -p -q -l $LTP_RESULTS -o $LTP_OUTPUT
+if [[ "${LTP_FULL}" == "true" ]];then
+    ./runltp -c 4 -p -q -l $LTP_RESULTS -o $LTP_OUTPUT
+else
+    ./runltplite.sh -c 4 -p -q -l $LTP_RESULTS -o $LTP_OUTPUT
+fi
 
 grep -A 5 "Total Tests" $LTP_RESULTS >> ~/summary.log
 if grep FAIL $LTP_OUTPUT ; then

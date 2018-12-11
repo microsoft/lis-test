@@ -60,9 +60,10 @@ function run_tests {
         exit 1
     fi
     
-    for test in ${RUN_TESTS[@]};do
-        test_path="./jobs/${test}"
-        test_name="${test%.*}"
+    for test in $(find ./jobs -name "*.yaml");do
+        test_path="$test"
+        test_file="${test##*/}"
+        test_name="${test_file%%.*}"
         
         lkp install $test_path
         lkp run $test_path
