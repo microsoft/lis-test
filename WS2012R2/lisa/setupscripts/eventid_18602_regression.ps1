@@ -185,9 +185,9 @@ function Trigger-MultipleReboots {
                 Out-File -Append $summaryLog
             return $False
         }
-
-        if ((Wait-VMEvent -VMName $vmName -HvServer $hvServer -StartTime $testStartTime `
-                -EventCode 18602 -RetryCount 2 -RetryInterval 1)) {
+        $resultEvent = Wait-VMEvent -VMName $vmName -HvServer $hvServer -StartTime $testStartTime `
+                -EventCode 18602 -RetryCount 2 -RetryInterval 1
+        if ( $resultEvent[-1] ) {
             Write-Output "Error: VM $vmName triggered a critical event 18602 on the host" | `
                 Out-File -Append $summaryLog
             return $False
