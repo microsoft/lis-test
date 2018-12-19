@@ -147,6 +147,25 @@
 			<timeout>1200</timeout>
 		</test>
 		<test>
+			<testName>HotRemoveNoPressure</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-16</param>
+				<param>enableDM=yes</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=10%</param>
+				<param>startupMem=10%</param>
+				<param>memWeight=20</param>
+				<param>staticMem=1024MB</param>
+			</testParams>
+			<testScript>setupScripts\DM_RemoveNoPressure.ps1</testScript>
+			<files>remote-scripts/ica/check_traces.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>1800</timeout>
+			<OnError>Continue</OnError>
+			<noReboot>False</noReboot>
+		</test>
+		<test>
 			<testName>StartupLowCompete</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
