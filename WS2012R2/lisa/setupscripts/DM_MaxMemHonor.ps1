@@ -199,10 +199,18 @@ if (-not $vm2)
     return $false
 }
 
+#
+# LIS Started VM1, so start VM2
+#
+$timeout = 120
+StartDependencyVM $vm2Name $hvServer $tries
+WaitForVMToStartKVP $vm2Name $hvServer $timeout
+$vm2ipv4 = GetIPv4 $vm2Name $hvServer
+
 # Install stress-ng if not installed
 "Checking if stress-ng is installed"
 
-$retVal = installApp "stress-ng" $ipv4 $appGitURL $appGitTag
+$retVal = installApp "stress-ng" $vm2ipv4 $appGitURL $appGitTag
 
 if (-not $retVal)
 {
@@ -211,14 +219,6 @@ if (-not $retVal)
 }
 
 "stress-ng is installed! Will begin running memory stress tests shortly."
-
-#
-# LIS Started VM1, so start VM2
-#
-$timeout = 120
-StartDependencyVM $vm2Name $hvServer $tries
-WaitForVMToStartKVP $vm2Name $hvServer $timeout
-$vm2ipv4 = GetIPv4 $vm2Name $hvServer
 
 $timeoutStress = 0
 # get memory stats from vm1 and vm2
@@ -299,7 +299,7 @@ while ($timeout -gt 0)
             return $false
         }
         $diff = $totalTimeout - $timeout
-        "Job2 finished in $diff seconds."
+        "Job finished in $diff seconds."
     }
 
     if ($jobState)

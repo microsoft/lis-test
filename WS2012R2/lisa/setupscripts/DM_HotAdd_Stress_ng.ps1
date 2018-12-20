@@ -159,6 +159,7 @@ foreach ($p in $params)
         "appGitTag"  { $appGitTag  = $fields[1].Trim() }
         "TC_COVERED" { $TC_COVERED = $fields[1].Trim() }
         "Stress_Level" { $timeoutStress = $fields[1].Trim() }
+        "maxMemRatio"  { $maxMemRatio  = $fields[1].Trim() }
     }
 
 }
@@ -248,8 +249,14 @@ else {
 # Calculate the amount of memory to be consumed on VM1 and VM2 with stress-ng
 [int64]$vm1ConsumeMem = (Get-VMMemory -VM $vm1).Maximum
 
+# if set the maxMemRatio, calculate the vm1ConsumeMem again
+if ( $maxMemRatio -le 1 -and  $maxMemRatio -gt 0 ){
+    [int64]$vm1ConsumeMem = $vm1ConsumeMem * $maxMemRatio
+}
+
 # Transform to MB
 $vm1ConsumeMem /= 1MB
+" vm1ConsumeMem: $vm1ConsumeMem MB memory"
 
 # Send Command to consume
 $job1 = Start-Job -ScriptBlock { param($ip, $sshKey, $rootDir, $timeoutStress, $vm1ConsumeMem, $duration, $chunk) ConsumeMemory $ip $sshKey $rootDir $timeoutStress $vm1ConsumeMem $duration $chunk} -InitializationScript $DM_scriptBlock -ArgumentList($ipv4,$sshKey,$rootDir,$timeoutStress,$vm1ConsumeMem, $duration, $chunk)
