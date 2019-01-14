@@ -28,6 +28,7 @@
 			<suiteName>DM</suiteName>
 			<suiteTests>
 				<suiteTest>DM_loaded</suiteTest>
+				<suiteTest>DM_Top_LoadAverage</suiteTest>
 				<suiteTest>HotAdd_Verify_udev</suiteTest>
 				<!--Dynamic Memory – Hot Add-->
 				<!-- Basic Hot Add tests -->
@@ -67,6 +68,23 @@
 			</testParams>
 			<testScript>DM_VERIFY_LOADED.sh</testScript>
 			<files>remote-scripts/ica/DM_VERIFY_LOADED.sh,remote-scripts/ica/utils.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>800</timeout>
+		</test>
+		<test>
+			<testName>DM_Top_LoadAverage</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-18</param>
+				<param>enableDM=yes</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=2GB</param>
+				<param>startupMem=1024MB</param>
+				<param>memWeight=0</param>
+				<param>staticMem=1024MB</param>
+			</testParams>
+			<testScript>DM_Top_LoadAverage.sh</testScript>
+			<files>remote-scripts/ica/DM_Top_LoadAverage.sh,remote-scripts/ica/utils.sh</files>
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>800</timeout>
 		</test>
