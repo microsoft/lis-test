@@ -38,8 +38,9 @@
             <suiteName>MMIO</suiteName>
             <suiteTests>
                 <suiteTest>MMIO_Set_Invalid_GapSize</suiteTest>
+                <suiteTest>MMIO_Set_Valid_GapSize</suiteTest>
 			</suiteTests>
-		</suite> 
+		</suite>
 	</testSuites>
 
 	<testCases>
@@ -54,9 +55,21 @@
 			<noReboot>True</noReboot>
 		</test>
 
+        <test>
+         <testName>MMIO_Set_Valid_GapSize</testName>
+         <testScript>setupscripts\MMIO_Set_Valid_GapSize.ps1</testScript>
+         <timeout>600</timeout>
+         <onError>Continue</onError>
+         <testParams>
+             <param>TC_COVERED=MMIO-03</param>
+         </testParams>
+         <noReboot>False</noReboot>
+     </test>
+
+
 	</testCases>
 
-	<VMs>        
+	<VMs>
 		<vm>
 			<hvServer>localhost</hvServer>
 			<vmName>VMName</vmName>
