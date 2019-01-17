@@ -21,13 +21,13 @@
 #
 #####################################################################
 
-NetInterface="eth1"
+NetInterface="eth0"
 REMOTE_SERVER="8.8.4.4"
 LoopCount=10
 TestCount=0
 
 PingCheck() {
-    if ! ping "$REMOTE_SERVER" -c 4 -I ${NetInterface} ; then
+    if ! ping "$REMOTE_SERVER" -c 4; then
         # On Azure ping is disabled so we need another test method
         if ! wget google.com; then
             msg="Error: ${NetInterface} ping and wget failed on try ${1}."
@@ -96,7 +96,7 @@ done
 UpdateSummary "Successful hv_netvsc reload."
 
 # Clean all dhclient processes, get IP & try ping
-LoopCount=10
+LoopCount=4
 TestCount=1
 ChangeInterfaceState "up"
 kill "$(pidof dhclient)"
@@ -112,7 +112,7 @@ do
     ChangeInterfaceState "up"
     kill "$(pidof dhclient)"
     dhclient -r && dhclient
-    sleep 5
+    sleep 15
     PingCheck "$TestCount"
 done
 UpdateSummary "Successful interface restart and ping check."
