@@ -22,7 +22,10 @@
 #####################################################################
 
 # Description:
-#	This script verifies that the Dynamic Memory enabled, load average number is lower than 1.
+#	This script verifies that with the Dynamic Memory enabled,
+#	load average is lower than 1.
+#	This is a regression test based on upstream commit
+#	"Drivers: hv: Ballon: Make pressure posting thread sleep interruptibly"
 #
 #####################################################################
 
@@ -38,8 +41,10 @@ dos2unix utils.sh
 
 # Source constants file and initialize most common variables
 UtilsInit
+
 # sleep 8 minutes then check result
 sleep 480
+
 # Check load aveage value of top command
 load_average=(`top|head -n 1 | awk -F 'load average:' '{print $2}' | awk -F ',' '{print $1,$2,$3}'`)
 
