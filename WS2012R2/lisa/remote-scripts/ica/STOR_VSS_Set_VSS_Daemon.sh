@@ -49,7 +49,7 @@ fi
 
 GetDistro
 case $DISTRO in
-    "redhat_7" | "centos_7" | "Fedora" )
+    "redhat_7" | "centos_7" | "Fedora" | "redhat_8" | "centos_8")
         serviceName=`systemctl list-unit-files | grep -e 'hypervvssd\|[h]v-vss-daemon\|[h]v_vss_daemon'| cut -d " " -f 1`
     ;;
     "redhat_6" | "centos_6")

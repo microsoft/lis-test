@@ -77,14 +77,14 @@ function gettime()
 
     write-output "real time: $real, sys time: $sys" | Tee-Object -Append -file $summaryLog
     # support VDSO, sys time should be shorter than 1.0 second
-    if (([float]$real -gt 5.0) -or ([float]$sys -gt 1.0))
+    if (([float]$real -gt 10.0) -or ([float]$sys -gt 1.0))
     {
-        Write-Output "Error: Check real time is $real(>5.0s), sys time is $sys(>1.0s)" | Tee-Object -Append -file $summaryLog
+        Write-Output "Error: Check real time is $real(>10.0s), sys time is $sys(>1.0s)" | Tee-Object -Append -file $summaryLog
         return $Failed
     }
     else
     {
-        Write-Output "Check real time is $real(<5.0s), sys time is $sys(<1.0s)" | Tee-Object -Append -file $summaryLog
+        Write-Output "Check real time is $real(<10.0s), sys time is $sys(<1.0s)" | Tee-Object -Append -file $summaryLog
         return $True
     }
 }
