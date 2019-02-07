@@ -135,6 +135,7 @@
 				<param>startupMem=1024MB</param>
 				<param>memWeight=100</param>
 				<param>staticMem=1024MB</param>
+				<param>maxMemRatio=0.75</param>
 			</testParams>
 			<testScript>setupScripts\DM_HotAdd_Stress_ng.ps1</testScript>
 			<files>remote-scripts/ica/check_traces.sh</files>
@@ -164,6 +165,27 @@
 			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
 			<timeout>1200</timeout>
 		</test>
+
+		<test>
+			<testName>HotRemoveThenPressure</testName>
+			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
+			<testParams>
+				<param>TC_COVERED=DM-16</param>
+				<param>enableDM=yes</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=10%</param>
+				<param>startupMem=10%</param>
+				<param>memWeight=20</param>
+				<param>staticMem=1024MB</param>
+				<param>appGitURL=https://github.com/ColinIanKing/stress-ng</param>
+				<param>appGitTag=V0.07.16</param>
+			</testParams>
+			<testScript>setupScripts\DM_RemoveThenPressure.ps1</testScript>
+			<files>remote-scripts/ica/check_traces.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>1200</timeout>
+		</test>
+
 		<test>
 			<testName>StartupLowCompete</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>

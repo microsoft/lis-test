@@ -105,11 +105,33 @@ if [ 0 -ne $? ]; then
 	exit 10
 fi
 
+# check ps
+ps aux | grep -qi hv_balloon
+
+if [ 0 -ne $? ]; then
+	msg="The process hv_balloon is not present in ps aux's output."
+	LogMsg "$msg"
+	UpdateSummary "$msg"
+	SetTestStateFailed
+	exit 10
+fi
+
 # check modinfo
 modinfo hv_balloon >/dev/null 2>&1
 
 if [ 0 -ne $? ]; then
 	msg="The kernel module hv_balloon is not found by modinfo"
+	LosgMsg "$msg"
+	UpdateSummary "$msg"
+	SetTestStateFailed
+	exit 10
+fi
+
+# check that hv_balloon cannot be unloaded
+modprobe -r hv_balloon >/dev/null 2>&1
+
+if [ 0 -eq $? ]; then
+	msg="The kernel module hv_balloon is unloaded, expect that cannot be unloaded"
 	LosgMsg "$msg"
 	UpdateSummary "$msg"
 	SetTestStateFailed
