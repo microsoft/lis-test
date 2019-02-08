@@ -3,11 +3,11 @@
 # Linux on Hyper-V and Azure Test Code, ver. 1.0.0
 # Copyright (c) Microsoft Corporation
 #
-# All rights reserved. 
+# All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the ""License"");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0  
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
@@ -24,10 +24,10 @@
 	Attempts to send a NMI as an unprivileged user.
 
 .Description
-	The script verifies that the PCI hole for a Linux VM cannot be configured 
+	The script verifies that the PCI hole for a Linux VM cannot be configured
 	outside the valid size range of 128MB - 3.5GB.
-	Any size value outside this range is an invalid gap size. If user tries to 
-	set an invalid gap size then the system returns 4096 error code; for all 
+	Any size value outside this range is an invalid gap size. If user tries to
+	set an invalid gap size then the system returns 4096 error code; for all
 	valid gap sizes system returns 0.
 
     The test case definition for this test case would look similar to:
@@ -105,7 +105,7 @@ function TestMMIOGap([INT] $newGapSize)
         Write-Output "Error: Unable to find settings data for VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
         return $false
     }
-    
+
 	#
 	# Create a WMI management object
 	#
@@ -117,7 +117,7 @@ function TestMMIOGap([INT] $newGapSize)
 
     $vssd.LowMmioGapSize = $newGapSize
     $sts = $mgmt.ModifySystemSettings($vssd.gettext(1))
-	
+
     if ($sts.ReturnValue -eq 0) {
             Write-Output "Test failed! Incorrect MMIO gap size of $newGapSize was set to VM $VmName" | Tee-Object -Append -file $summaryLog
 			return $false
@@ -139,7 +139,7 @@ function TestMMIOGap([INT] $newGapSize)
 $params = $testParams.Split(";")
 foreach ($p in $params) {
     $fields = $p.Split("=")
-    
+
     if ($fields[0].Trim() -eq "TC_COVERED") {
         $TC_COVERED = $fields[1].Trim()
     }
@@ -216,16 +216,20 @@ if ($failCount) {
 	$retVal = $false
 }
 
-#
 # Starting the VM for LISA clean-up
-#
-if ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "Off") {
-	Start-VM -ComputerName $hvServer -Name $vmName
-}
+Start-Sleep -S 2
 
-do { 
-	Start-Sleep -Seconds 3
-} 
-until ((Get-VMIntegrationService $vmName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription -eq "OK")
+if ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "Off") {
+	Start-VM -Name $vmName -ComputerName $hvServer
+    if (-not $?){
+        "Error: Unable to start VM ${vmName}"
+        return $false
+    }
+}
+$timeout = 150
+if (-not (WaitForVMToStartKVP $vmName $hvServer $timeout )) {
+    Write-Output "Error: ${vmName} failed to start KVP" | Tee-Object -Append -file $summaryLog
+    return $false
+}
 
 return $retval
