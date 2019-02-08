@@ -30,6 +30,8 @@
 
 # Initializing variables
 summary_log=$1
+# if set ignore_oom as "True", ignore out of memory call trace in the log
+ignore_oom=$2
 errorHasOccured=0
 callTraceHasOccured=0
 [[ -f "/var/log/syslog" ]] && logfile="/var/log/syslog" || logfile="/var/log/messages"
@@ -45,15 +47,26 @@ while true; do
         errorHasOccured=1
     fi
 
-    # Check for call traces in /var/log
-    content=$(grep -i "Call Trace" $logfile)
-    if [[ -n $content ]] && \
-        [[ $callTraceHasOccured -eq 0 ]]; then
-        echo "ERROR: System shows Call Trace in $logfile" >> $summary_log 2>&1
-        callTraceHasOccured=1
+    if [[ "$ignore_oom" = "True" ]]; then
+        # Ingore out of memory log
+        count_oom=`grep -i "oom_kill_process" $logfile | wc -l`
+        count_calltrace=`grep -i "Call Trace" $logfile | wc -l`
+
+        if [[ $count_calltrace -gt $count_oom ]]; then
+        echo "ERROR: Other Call Trace besides OOM is present in dmesg" >> $summary_log 2>&1
         break
+        fi
+    else
+        # Check for call traces in /var/log
+        content=$(grep -i "Call Trace" $logfile)
+        if [[ -n $content ]] && \
+            [[ $callTraceHasOccured -eq 0 ]]; then
+            echo "ERROR: System shows Call Trace in $logfile" >> $summary_log 2>&1
+            callTraceHasOccured=1
+            break
+        fi
+        sleep 4
     fi
-    sleep 4
 done
 
 exit 0

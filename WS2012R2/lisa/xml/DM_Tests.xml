@@ -124,6 +124,47 @@
 			<timeout>1200</timeout>
 		</test>
 		<test>
+		   <testName>HotAddEatmemory_SMP</testName>
+		   <setupScript>
+		   <file>SetupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+		   <file>setupScripts\ChangeCPU.ps1</file>
+		   </setupScript>
+		   <testParams>
+				<param>TC_COVERED=DM-16</param>
+				<param>enableDM=yes</param>
+				<param>minMem=1024MB</param>
+				<param>maxMem=4GB</param>
+				<param>startupMem=1024MB</param>
+				<param>staticMem=1024MB</param>
+				<param>memWeight=100</param>
+				<param>appGitURL=https://github.com/julman99/eatmemory.git</param>
+				<param>vCPU=4</param>
+			</testParams>
+			<testScript>setupScripts\DM_HotAdd_Eatmemory.ps1</testScript>
+		  <files>remote-scripts/ica/check_traces.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>1200</timeout>
+		</test>
+		<test>
+		   <testName>HotAddEatmemory_UP</testName>
+		   <setupScript>
+		   <file>SetupScripts\DM_CONFIGURE_MEMORY.ps1</file>
+		   <file>setupScripts\ChangeCPU.ps1</file>
+		   </setupScript>
+		   <testParams>
+				<param>TC_COVERED=DM-17</param>
+				<param>enableDM=No</param>
+				<param>startupMem=4096MB</param>
+				<param>memWeight=100</param>
+				<param>appGitURL=https://github.com/julman99/eatmemory.git</param>
+				<param>vCPU=1</param>
+			</testParams>
+			<testScript>setupScripts\DM_HotAdd_Eatmemory.ps1</testScript>
+		    <files>remote-scripts/ica/check_traces.sh</files>
+			<cleanupScript>SetupScripts\DM_DISABLE.ps1</cleanupScript>
+			<timeout>1200</timeout>
+		</test>
+		<test>
 			<testName>HotAdd</testName>
 			<setupScript>SetupScripts\DM_CONFIGURE_MEMORY.ps1</setupScript>
 			<testParams>
