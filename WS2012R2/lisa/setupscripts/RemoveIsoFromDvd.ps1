@@ -103,4 +103,31 @@ if (-not $?) {
     return $False
 }
 
+#
+# Get Hyper-V VHD path
+#
+$obj = Get-WmiObject -ComputerName $hvServer -Namespace "root\virtualization\v2" -Class "MsVM_VirtualSystemManagementServiceSettingData"
+$defaultVhdPath = $obj.DefaultVirtualHardDiskPath
+if (-not $defaultVhdPath) {
+    "Error: Unable to determine VhdDefaultPath on Hyper-V server ${hvServer}"
+    $error[0].Exception
+    return $False
+}
+if (-not $defaultVhdPath.EndsWith("\")) {
+    $defaultVhdPath += "\"
+}
+
+#
+# Remove the .iso file
+#
+$isoPath = $defaultVhdPath + "${vmName}_CDtest.iso"
+if (Test-Path "${isoPath}"){
+    try{
+        Remove-Item "${isoPath}"
+    } catch {
+        "Error: The .iso file $isoPath could not be removed!"
+        return $False
+    }
+}
+
 return $True
