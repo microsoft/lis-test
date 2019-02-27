@@ -54,6 +54,7 @@
             <suiteTest>FloppyDisk</suiteTest>
             <suiteTest>StressReloadModules_SMP</suiteTest>
             <suiteTest>Core_max_cpus</suiteTest>
+            <suiteTest>Core_Offline_CPU_SMP</suiteTest>
             <suiteTest>VCPU_verify_online</suiteTest>
             <suiteTest>VerifyIntegratedShutdownService</suiteTest>
             <suiteTest>RebootDifferentMemSettings</suiteTest>
@@ -175,6 +176,22 @@
          </testParams>
          <timeout>1600</timeout>
          <noReboot>False</noReboot>
+        </test>
+        <test>
+            <testName>Core_Offline_CPU_SMP</testName>
+            <setupScript>
+                <file>setupscripts\ChangeCPU.ps1</file>
+            </setupScript>
+            <testScript>setupscripts\Core_Offline_CPU_SMP.ps1</testScript>
+            <files>remote-scripts/ica/utils.sh,remote-scripts/ica/Core_Offline_CPU_SMP.sh</files>
+            <testParams>
+                <param>TC_COVERED=CORE-39</param>
+                <param>VCPU=8</param>
+                <param>NR_CPU=4</param>
+            </testParams>
+            <timeout>1000</timeout>
+            <onError>Continue</onError>
+            <noReboot>False</noReboot>
         </test>
         <test>
             <testName>VerifyIntegratedShutdownService</testName>
