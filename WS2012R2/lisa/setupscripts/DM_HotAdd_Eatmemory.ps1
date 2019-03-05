@@ -245,11 +245,18 @@ if ($vm1BeforeAssigned -le 0 -or $vm1BeforeDemand -le 0){
 "Memory stats after $vm1Name started reporting "
 "  ${vm1Name}: assigned - $vm1BeforeAssigned | demand - $vm1BeforeDemand"
 
-[int64]$vm1ConsumeMem = (Get-VMMemory -VM $vm1).Maximum
+$vmMemory=(Get-VMMemory -VM $vm1)
+
+if ($vmMemory.DynamicMemoryEnabled){
+    [int64]$vm1ConsumeMem = $vmMemory.Maximum
+}
+else{
+    [int64]$vm1ConsumeMem = $vmMemory.Startup
+}
 
 # Transform to MB and stress with maximum
 $vm1ConsumeMem /= 1MB
-
+"Stress test consumes memory: $vm1ConsumeMem MB"
 # Send Command to consume
 $job1 = Start-Job -InitializationScript $scriptBlock -ScriptBlock { param($ipv4,$sshKey, $rootDir, $vm1ConsumeMem) DoStressEatmemory $ipv4 $sshKey $rootDir $vm1ConsumeMem } -ArgumentList($ipv4,$sshKey,$rootDir,$vm1ConsumeMem) | Receive-job
 

@@ -252,7 +252,7 @@ else{
 Start-Sleep -s 120
 
 [int64]$vm1BeforeAssigned = ($vm1.MemoryAssigned/1MB)
-[int64]$vm1BeforeAssigned = ($vm1.MemoryDemand/1MB)
+[int64]$vm1BeforeDemand = ($vm1.MemoryDemand/1MB)
 
 # Verify assigned memory does not drop below minimum memory
 if ($vm1BeforeAssigned -lt $vm1MinMem){
