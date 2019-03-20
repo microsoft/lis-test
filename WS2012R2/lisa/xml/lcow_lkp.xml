@@ -26,7 +26,6 @@
       <suiteName>LCOW</suiteName>
       <suiteTests>
         <suiteTest>InstallKernel</suiteTest>
-        <suiteTest>MainVM_Checkpoint</suiteTest>
         <suiteTest>LKP</suiteTest>
       </suiteTests>
     </suite>
