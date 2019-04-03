@@ -21,14 +21,14 @@
 
 <#
 .Synopsis
-	Attempts to send a NMI as an unprivileged user.
+    Validate the right MMIO gap size configuration.
 
 .Description
-	The script verifies that the PCI hole for a Linux VM can be configured
-	inside the valid size range of 128MB - 3.5GB.
-	Any size value inside this range is an valid gap size. If user tries to
-	set an invalid gap size then the system returns 4096 error code; for all
-	valid gap sizes system returns 0.
+    The script verifies that the PCI hole for a Linux VM can be configured
+    inside the valid size range of 128MB - 3.5GB.
+    Any size value inside this range is an valid gap size. If user tries to
+    set an invalid gap size then the system returns 4096 error code; for all
+    valid gap sizes system returns 0.
 
     The test case definition for this test case would look similar to:
         <test>
@@ -36,7 +36,7 @@
             <testScript>setupscripts\MMIO_Set_Valid_GapSize.ps1</testScript>
             <timeout>600</timeout>
             <onError>Continue</onError>
-			<testParams>
+            <testParams>
                 <param>TC_COVERED=MMIO-02</param>
             </testParams>
             <noReboot>True</noReboot>
@@ -77,14 +77,14 @@ function GetVmSettingData([String] $name, [String] $server)
 
     $vssd = gwmi -n root\virtualization\v2 -class Msvm_VirtualSystemSettingData -ComputerName $server
     if (-not $vssd) {
-		return $null
+        return $null
     }
 
     foreach ($vm in $vssd) {
         if ($vm.ElementName -ne $name) {
             continue
         }
-		return $vm
+        return $vm
     }
     return $null
 }
@@ -95,20 +95,19 @@ function GetVmSettingData([String] $name, [String] $server)
 # This function will set the MMIO gap size
 #
 #######################################################################
-function TestMMIOGap([INT] $newGapSize)
-{
-	#
-	# Getting the VM settings
-	#
+function TestMMIOGap([INT] $newGapSize) {
+    #
+    # Getting the VM settings
+    #
     $vssd = GetVmSettingData $vmName $hvServer
     if (-not $vssd) {
         Write-Output "Error: Unable to find settings data for VM '${vmName}'!" | Tee-Object -Append -file $summaryLog
         return $false
     }
 
-	#
-	# Create a WMI management object
-	#
+    #
+    # Create a WMI management object
+    #
     $mgmt = gwmi -n root\virtualization\v2 -class Msvm_VirtualSystemManagementService -ComputerName $hvServer
     if(!$?) {
         Write-Output "Error: Unable to create WMI Management Object!" | Tee-Object -Append -file $summaryLog
@@ -120,13 +119,11 @@ function TestMMIOGap([INT] $newGapSize)
 
     if ($sts.ReturnValue -eq 0) {
             Write-Output "Test passed! Correct MMIO gap size of $newGapSize was set to VM $VmName" | Tee-Object -Append -file $summaryLog
-			return $true
-        }
-	elseif ($sts.ReturnValue -ne 0) {
+            return $true
+        } elseif ($sts.ReturnValue -ne 0) {
             Write-Output "Test failed! MMIO gap size of $newGapSize cannot be set." | Tee-Object -Append -file $summaryLog
             return $false
-        }
-     else {
+        } else {
         Write-Output "Test failed to validate or configure the MMIO gap size!" | Tee-Object -Append -file $summaryLog
         return $false
     }
@@ -145,10 +142,6 @@ foreach ($p in $params) {
      if ($fields[0].Trim() -eq "rootDir") {
         $rootDir = $fields[1].Trim()
     }
-}
-
-if (-not $TC_COVERED) {
-    "Error: Missing testParam TC_COVERED value!"
 }
 
 if (-not $rootDir) {
@@ -173,11 +166,11 @@ Write-Output "This script covers test case: ${TC_COVERED}" | Tee-Object -Append 
 # Source TCUtils.ps1
 if (Test-Path ".\setupScripts\TCUtils.ps1") {
     . .\setupScripts\TCUtils.ps1
-}
-else{
+} else {
     "Error: Could not find setupScripts\TCUtils.ps1"
     return $false
 }
+
 #######################################################################
 #
 # Main script body
@@ -211,23 +204,23 @@ if ((Get-VM -Name $vmName -ComputerName $hvServer).state -ne "Off" -and $vm.Hear
 # Attempting to set the correct MMIO gap sizes
 #
 for ($i=0; $i -le $NewGapSize.Length -1; $i++) {
-	$pass = TestMMIOGap $newGapSize[$i]
-	if ($pass[1] -eq $False) {
-		$failCount++
-	}
+    $pass = TestMMIOGap $newGapSize[$i]
+    if ($pass[1] -eq $False) {
+        $failCount++
+    }
 }
 $retval = $true
 
 if ($failCount) {
-	Write-Output "Test Failed! At least one valid MMIO gap size has not been set." | Tee-Object -Append -file $summaryLog
-	$retVal = $false
+    Write-Output "Test Failed! At least one valid MMIO gap size has not been set." | Tee-Object -Append -file $summaryLog
+    $retVal = $false
 }
 
 # Starting the VM for LISA clean-up
 Start-Sleep -S 2
 
 if ((Get-VM -ComputerName $hvServer -Name $vmName).State -eq "Off") {
-	Start-VM -Name $vmName -ComputerName $hvServer
+    Start-VM -Name $vmName -ComputerName $hvServer
     if (-not $?){
         "Error: Unable to start VM ${vmName}"
         return $false
