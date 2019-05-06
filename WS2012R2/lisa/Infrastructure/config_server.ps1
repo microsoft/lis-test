@@ -20,9 +20,9 @@ param(
 [String] $DomainUser,
 [String[]] $UsersList,
 [String[]]$Roles = @("Failover-Clustering","Windows-Server-Backup","RSAT-Clustering"),
-# Java Version 8 Updated 181
-[String] $JavaURL = "http://javadl.oracle.com/webapps/download/AutoDL?BundleId=234474_96a7b8442fe848ef90c96a2fad6ed6d1",
-[String] $GitURL = "https://github.com/git-for-windows/git/releases/download/v2.18.0.windows.1/Git-2.18.0-64-bit.exe",
+# Java Version 8 Updated 211
+[String] $JavaURL = "https://javadl.oracle.com/webapps/download/AutoDL?BundleId=238729_478a62b7d4e34b78b671c754eaaf38ab",
+[String] $GitURL = "https://github.com/git-for-windows/git/releases/download/v2.21.0.windows.1/Git-2.21.0-64-bit.exe",
 [String] $PythonURL = "https://www.python.org/ftp/python/2.7.14/python-2.7.14.amd64.msi"
 )
 
